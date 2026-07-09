@@ -139,13 +139,13 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     ? ORDER_STATUS_CONFIG[game.orderStatus]
     : undefined;
 
-  const gunboatBadge = game.pressType === "no_press" && (
+  const gunboatIcon = game.pressType === "no_press" && (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="secondary" className="gap-1" aria-label="Gunboat">
-          <MessageSquareOff className="size-3" />
-          Gunboat
-        </Badge>
+        <MessageSquareOff
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-label="Gunboat"
+        />
       </TooltipTrigger>
       <TooltipContent>No private messaging is allowed in this game</TooltipContent>
     </Tooltip>
@@ -254,7 +254,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       )}
       {cdBadge}
       {isFinished && resultBadge}
-      {gunboatBadge}
       {isActive && game.isPaused && (
         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
           <Pause className="size-3.5" />
@@ -286,12 +285,15 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       <div className="flex flex-col flex-grow gap-2 p-4 md:py-2 min-w-0">
         <CardHeader className="p-0 gap-2">
           <div className="flex items-center justify-between gap-2">
-            <button
-              onClick={handleClickGame}
-              className="text-left hover:underline min-w-0 overflow-hidden"
-            >
-              <CardTitle className="truncate">{game.name}</CardTitle>
-            </button>
+            <div className="flex items-center min-w-0 gap-1">
+              <button
+                onClick={handleClickGame}
+                className="text-left hover:underline min-w-0 overflow-hidden"
+              >
+                <CardTitle className="truncate">{game.name}</CardTitle>
+              </button>
+              {gunboatIcon}
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {unreadPill}
               {joinGameButton}

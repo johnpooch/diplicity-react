@@ -59,6 +59,7 @@ const myGamesScenarios: Scenario[] = [
 const pendingScenarios: Scenario[] = [
   { label: "No players joined", game: f.pendingGameNoPlayers.game },
   { label: "Some players joined", game: pendingSome },
+  { label: "Gunboat (no press)", game: { ...pendingSome, pressType: "no_press" } },
   { label: "Almost full", game: f.pendingGameAlmostFull.game },
   { label: "Private + non-playing GM", game: { ...pendingSome, private: true, gameMaster: { userId: 9999, name: "Zara", picture: null } } },
 ];
