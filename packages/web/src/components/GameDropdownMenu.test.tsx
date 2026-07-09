@@ -67,6 +67,14 @@ describe("GameDropdownMenu", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("hides 'Clone to sandbox' for an abandoned game", async () => {
+    renderMenu({ ...mockCompletedGames[0], status: "abandoned" });
+    await openMenu();
+    expect(
+      screen.queryByRole("menuitem", { name: /clone to sandbox/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("hides 'Clone to sandbox' for a sandbox game", async () => {
     renderMenu(mockSandboxGames[0]);
     await openMenu();
