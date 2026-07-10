@@ -616,9 +616,10 @@ class Game(BaseModel):
                 data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
             )
 
-    def notification_user_ids(self, exclude_user_id=None):
+    def notification_user_ids(self, exclude_user_id=None, active_only=False):
+        members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
         user_ids = {
-            member.user_id for member in self.members.all()
+            member.user_id for member in members
             if member.user_id is not None
         }
         if self.game_master_id is not None:
