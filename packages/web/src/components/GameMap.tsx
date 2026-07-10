@@ -14,6 +14,7 @@ import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
 import {
   useGameRetrieve,
   useVariantsList,
+  useVariantsRetrieve,
   useGamePhaseRetrieve,
   useGameOrdersList,
   useGameOrdersCreate,
@@ -76,6 +77,12 @@ const GameMap: React.FC = () => {
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
   const { data: optionsData } = useGameOptionsRetrieve(gameId);
 
+  const publishedVariant = variants?.find((v) => v.id === game?.variantId);
+  const { data: fetchedVariant } = useVariantsRetrieve(
+    game?.variantId ?? "",
+    { query: { enabled: !!game?.variantId && !publishedVariant } }
+  );
+
   const isDesktopWeb = useIsDesktopWeb();
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{
@@ -91,7 +98,7 @@ const GameMap: React.FC = () => {
     optionsData?.fieldOrder ?? {}
   );
 
-  const variant = variants?.find((v) => v.id === game?.variantId);
+  const variant = publishedVariant ?? fetchedVariant;
 
   const civilDisorderNations = useMemo(
     () =>

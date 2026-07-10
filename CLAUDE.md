@@ -98,6 +98,7 @@ python -m pytest -n auto --reuse-db # full suite
 9. **Self-review non-trivial PRs with `/review-pr`** before requesting human review. Address or explicitly respond to all findings. Trivial PRs (typo fixes, dep bumps, doc-only) are exempt.
 10. **PR description must match the diff** — run `git diff main` and confirm every described change is visible. Do not describe work from a prior PR or session.
 11. **Never add a vacuous permission class** — if a Django REST `BasePermission` check's condition covers every possible value of the field it inspects (e.g. every `GameStatus`), it always evaluates `True` and gates nothing. Before adding a new permission class, check whether it excludes at least one real case; if it doesn't, don't add it — use `permissions.AllowAny` (or omit the check) instead.
+12. **Python imports go at module top-level** — do not add an inline `import` inside a function/method body, even if you find an existing one nearby to copy. The only exception is breaking a genuine circular import, and that exception should be rare enough to call out in a PR description when used.
 
 ---
 
