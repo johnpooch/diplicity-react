@@ -5,11 +5,10 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 from bot.models import BotProfile
-from channel.models import Channel
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus, NationAssignment, PhaseStatus, PressType
+from common.constants import GameStatus, NationAssignment, PhaseStatus
 
 User = get_user_model()
 
@@ -293,81 +292,6 @@ def test_game_creator_unchanged_after_join(
     game = pending_game_created_by_secondary_user
     game.refresh_from_db()
     assert game.created_by == secondary_user
-
-
-class TestJoinIntroMessage:
-
-    @pytest.mark.django_db
-    def test_join_with_intro_message_creates_channel_message(
-        self, authenticated_client, pending_game_created_by_secondary_user, primary_user, in_memory_procrastinate
-    ):
-        game = pending_game_created_by_secondary_user
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
-
-        url = reverse(join_viewname, args=[game.id])
-        response = authenticated_client.post(url, {"intro_message": "Hi, excited to play!"}, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        message = public_channel.messages.get()
-        assert message.body == "Hi, excited to play!"
-        assert message.sender.user == primary_user
-
-    @pytest.mark.django_db
-    def test_join_without_intro_message_creates_no_channel_message(
-        self, authenticated_client, pending_game_created_by_secondary_user
-    ):
-        game = pending_game_created_by_secondary_user
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
-
-        url = reverse(join_viewname, args=[game.id])
-        response = authenticated_client.post(url)
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert public_channel.messages.count() == 0
-
-    @pytest.mark.django_db
-    def test_join_with_intro_message_skipped_for_no_press_game(
-        self, authenticated_client, pending_game_created_by_secondary_user
-    ):
-        game = pending_game_created_by_secondary_user
-        game.press_type = PressType.NO_PRESS
-        game.save(update_fields=["press_type"])
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
-
-        url = reverse(join_viewname, args=[game.id])
-        response = authenticated_client.post(url, {"intro_message": "Hello"}, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert public_channel.messages.count() == 0
-
-    @pytest.mark.django_db
-    def test_join_with_intro_message_skipped_for_anonymous_game(
-        self, authenticated_client, pending_game_created_by_secondary_user
-    ):
-        game = pending_game_created_by_secondary_user
-        game.anonymous = True
-        game.save(update_fields=["anonymous"])
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
-
-        url = reverse(join_viewname, args=[game.id])
-        response = authenticated_client.post(url, {"intro_message": "Hello"}, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert public_channel.messages.count() == 0
-
-    @pytest.mark.django_db
-    def test_join_with_intro_message_over_limit_rejected(
-        self, authenticated_client, pending_game_created_by_secondary_user, settings
-    ):
-        game = pending_game_created_by_secondary_user
-        Channel.objects.create(game=game, name="Public Press", private=False)
-
-        url = reverse(join_viewname, args=[game.id])
-        response = authenticated_client.post(
-            url, {"intro_message": "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 1)}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 kick_viewname = "game-kick"

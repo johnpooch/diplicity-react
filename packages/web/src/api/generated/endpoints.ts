@@ -463,8 +463,6 @@ export interface Member {
   readonly civilDisorder: boolean;
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
-  /** @maxLength 500 */
-  introMessage?: string;
 }
 
 export interface Victory {

@@ -28,15 +28,6 @@ class IsActiveOrCompletedGame(BasePermission):
         return game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
-class IsActiveCompletedOrPendingGame(BasePermission):
-
-    message = "This game is not active, finished, or pending."
-
-    def has_permission(self, request, view):
-        game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED, GameStatus.PENDING)
-
-
 class IsGameMember(BasePermission):
     message = "User is not a member of the game."
 

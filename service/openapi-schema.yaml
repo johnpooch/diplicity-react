@@ -1043,6 +1043,7 @@ paths:
       - games
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -2837,10 +2838,6 @@ components:
         replaceable:
           type: boolean
           readOnly: true
-        introMessage:
-          type: string
-          writeOnly: true
-          maxLength: 500
       required:
       - civilDisorder
       - eliminated

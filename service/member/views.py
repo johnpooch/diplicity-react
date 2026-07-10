@@ -18,6 +18,10 @@ class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
     serializer_class = MemberSerializer
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsReliabilityRequirement]
 
+    @extend_schema(request=EmptySerializer)
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         member = serializer.save()
         member.game.start_if_full()
