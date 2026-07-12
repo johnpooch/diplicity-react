@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
-from bot.models import BotProfile
+from bot_profile.models import BotProfile
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile

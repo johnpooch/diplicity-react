@@ -1,0 +1,2 @@
+class InferenceError(Exception):
+    pass

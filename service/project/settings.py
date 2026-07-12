@@ -101,7 +101,10 @@ INSTALLED_APPS = [
     "victory",
     "draw_proposal",
     "email_service",
-    "bot",
+    "inference",
+    "harness",
+    "agent",
+    "bot_profile",
     "drf_spectacular",
 ]
 
