@@ -10,6 +10,7 @@ class GameFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         game_ids = (
             model_admin.get_queryset(request)
+            .filter(phase__isnull=False)
             .values_list("phase__game_id", flat=True)
             .distinct()
         )

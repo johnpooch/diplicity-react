@@ -46,7 +46,7 @@ class SelectOrdersTask(TaskDefinition):
         if reasoning:
             logger.info(f"[harness.select_orders] reasoning: {reasoning}")
 
-        if "choices" not in data:
+        if not isinstance(data.get("choices"), list):
             raise ParseError("response has no choices")
 
         choices = {}
@@ -57,7 +57,7 @@ class SelectOrdersTask(TaskDefinition):
         selections = []
         for source_id, source_options in group_options_by_source(context["orders"]).items():
             index = choices.get(source_id)
-            if index is None or not (0 <= index < len(source_options)):
+            if not isinstance(index, int) or not (0 <= index < len(source_options)):
                 logger.info(
                     f"[harness.select_orders] {source_id}: invalid/missing choice {index}; skipping"
                 )

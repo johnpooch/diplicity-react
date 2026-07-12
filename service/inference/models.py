@@ -1,5 +1,3 @@
-import logging
-
 from django.db import models
 from django.utils import timezone
 
@@ -7,8 +5,6 @@ from common.models import BaseModel
 from inference.clients.registry import get_inference_client
 from inference.constants import InferenceProvider, InferenceStatus
 from inference.exceptions import InferenceError
-
-logger = logging.getLogger(__name__)
 
 
 class InferenceManager(models.Manager):

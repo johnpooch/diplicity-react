@@ -326,13 +326,34 @@ class TestSelectOrdersParse:
             ["edi", OrderType.MOVE, "nwg"],
         ]
 
+    def test_non_integer_index_skips_that_source(self):
+        response = json.dumps(
+            {
+                "choices": [
+                    {"source_id": "lon", "option_index": "1"},
+                    {"source_id": "edi", "option_index": 1},
+                ]
+            }
+        )
+        assert SelectOrdersTask.parse(response, context=self._context()) == [
+            ["edi", OrderType.MOVE, "nwg"],
+        ]
+
     def test_raises_on_unparseable_json(self):
         with pytest.raises(ParseError):
             SelectOrdersTask.parse("not json at all", context=self._context())
 
+    def test_raises_on_non_object_json(self):
+        with pytest.raises(ParseError):
+            SelectOrdersTask.parse(json.dumps([1, 2]), context=self._context())
+
     def test_raises_on_missing_choices(self):
         with pytest.raises(ParseError):
             SelectOrdersTask.parse(json.dumps({"reasoning": "hm"}), context=self._context())
+
+    def test_raises_on_non_list_choices(self):
+        with pytest.raises(ParseError):
+            SelectOrdersTask.parse(json.dumps({"choices": None}), context=self._context())
 
     def test_raises_when_no_valid_selection_produced(self):
         response = json.dumps({"choices": [{"source_id": "lon", "option_index": 9}]})

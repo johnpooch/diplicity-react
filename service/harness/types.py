@@ -52,7 +52,6 @@ class UnitDict(TypedDict, total=False):
     dislodged: bool
 
 
-# Functional syntax because "pass" is a Python keyword.
 AdjacencyDict = TypedDict("AdjacencyDict", {"to": str, "pass": str})
 
 

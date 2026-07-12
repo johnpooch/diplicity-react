@@ -16,9 +16,12 @@ def extract_json(response_text: str) -> dict:
             lines = lines[:-1]
         text = "\n".join(lines).strip()
     try:
-        return json.loads(text)
+        data = json.loads(text)
     except json.JSONDecodeError as e:
         raise ParseError(f"could not parse JSON from response: {e}") from e
+    if not isinstance(data, dict):
+        raise ParseError("response JSON is not an object")
+    return data
 
 
 class TaskDefinition:

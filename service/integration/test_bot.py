@@ -4,6 +4,7 @@ from rest_framework import status
 
 from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseStatus
 from game.models import Game
+from province.models import Province
 from agent import tasks
 from agent.fallback import first_legal_selections
 from bot_profile.models import BotProfile
@@ -84,8 +85,6 @@ def test_bot_game_starts_on_creation_and_plays_phase(
 
 @pytest.mark.django_db
 def test_bot_plans_when_variant_has_no_adjacencies(allowlisted_human, italy_vs_germany_variant):
-    from province.models import Province
-
     Province.objects.filter(variant=italy_vs_germany_variant).update(adjacencies=[])
     human_client = allowlisted_human
     game, bot_user = _create_bot_game(human_client, italy_vs_germany_variant.id)

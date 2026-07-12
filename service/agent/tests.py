@@ -116,6 +116,22 @@ class TestAdjustmentOrderLimit:
 
         assert fake_client.post.call_count == 3
 
+    @pytest.mark.django_db
+    def test_plan_fills_units_missing_from_response_with_first_legal(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        bot_user = get_bot_user()
+        fake_client = self._fake_client(max_orders=None)
+
+        response = json.dumps(
+            {"reasoning": "build in London", "choices": [{"source_id": "lon", "option_index": 0}]}
+        )
+        inference_client = _mock_inference_client(response)
+        with patch("agent.api_client.APIClient", return_value=fake_client):
+            with patch("inference.models.get_inference_client", return_value=inference_client):
+                tasks.plan(user_id=bot_user.id, game_id="some-game")
+
+        assert fake_client.post.call_count == 3
+
 
 class TestPlanTask:
 

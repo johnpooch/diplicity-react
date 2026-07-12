@@ -50,6 +50,12 @@ def _submit_orders_from_context(api, data, game_id, user_id, label):
     except (InferenceError, ParseError) as e:
         logger.info(f"[{label}] {e}; using first-legal selection")
         selections = first_legal_selections(data["orders"])
+    else:
+        covered = {selection[0] for selection in selections}
+        missing = [s for s in first_legal_selections(data["orders"]) if s[0] not in covered]
+        if missing:
+            logger.info(f"[{label}] filling {len(missing)} unit(s) with first-legal selection")
+            selections = selections + missing
 
     phase_states = data["phase_states"]
     max_orders = phase_states[0].get("max_orders") if phase_states else None
