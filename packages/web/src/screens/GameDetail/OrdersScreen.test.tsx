@@ -222,6 +222,48 @@ describe("OrdersScreen confirm orders button", () => {
   });
 });
 
+describe("OrdersScreen resilience to malformed list data", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+  });
+
+  it("renders without crashing when game.members is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: undefined,
+    });
+    mockOrdersData.mockReturnValue([]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+  });
+
+  it("renders without crashing when orders is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+    mockOrdersData.mockReturnValue(undefined);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+  });
+});
+
 describe("OrdersScreen named coast display", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
