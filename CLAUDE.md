@@ -117,6 +117,8 @@ Three sections (enforced by the `create-issue` skill): **Goal** (always), **Cont
 ### PR screenshots
 If a PR changes anything visible in the web app — new screens, layout, styling, copy, empty/error states — you MUST take screenshots of the changed component and embed them in the PR description. This is a completion criterion, not optional polish; the reviewer should see what changed without pulling the branch. See the `frontend` skill for the screenshot and attachment workflow.
 
+**Never commit screenshots to the repository.** Write them to a temporary location outside the working tree (e.g. `/tmp/shots/`) and embed them in the PR description by uploading them as GitHub attachments — do not add image files to the repo or reference them via `raw.githubusercontent.com`. `screenshots/` and `shots/` are gitignored to guard against accidental commits; if you find committed screenshots, remove them.
+
 ---
 
 ## Code Philosophy
