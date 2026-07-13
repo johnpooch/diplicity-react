@@ -247,20 +247,49 @@ describe("OrdersScreen resilience to malformed list data", () => {
     expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
   });
 
+  it("falls back to an unmatched member instead of crashing when game.members is not an array and there are past orders to group by nation", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: undefined,
+    });
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "completed", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        summary: "Hold",
+        resolution: null,
+      },
+    ]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText("England")).toBeInTheDocument();
+  });
+
   it("renders without crashing when orders is not an array", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
-      status: "active",
+      status: "completed",
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
       members: [baseMember()],
     });
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "completed", supplyCenters: [], units: [],
+    });
     mockOrdersData.mockReturnValue(undefined);
 
     renderOrdersScreen();
 
-    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+    expect(screen.getByText(/no orders created/i)).toBeInTheDocument();
   });
 });
 

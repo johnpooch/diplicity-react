@@ -60,9 +60,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
     isFetchingNextPage
   );
 
-  const variantMap = new Map(
-    (Array.isArray(variants) ? variants : []).map(v => [v.id, v])
-  );
+  const safeVariants = Array.isArray(variants) ? variants : [];
+  const variantMap = new Map(safeVariants.map(v => [v.id, v]));
   const knownGames = games.filter(game => variantMap.has(game.variantId));
 
   const handleVariantChange = (value: string) => {
@@ -102,7 +101,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_VARIANTS_VALUE}>All variants</SelectItem>
-              {variants.map(v => (
+              {safeVariants.map(v => (
                 <SelectItem key={v.id} value={v.id}>
                   {v.name}
                 </SelectItem>

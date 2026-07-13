@@ -188,6 +188,7 @@ const OrdersScreen: React.FC = () => {
     game.status === "completed" || game.status === "abandoned";
   const members = Array.isArray(game.members) ? game.members : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
+  const safePhaseStates = Array.isArray(phaseStates) ? phaseStates : [];
   const currentMember = members.find(m => m.isCurrentUser);
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
@@ -269,7 +270,7 @@ const OrdersScreen: React.FC = () => {
 
   const nationGroups = buildNationGroups(
     isActivePhase,
-    phaseStates,
+    safePhaseStates,
     safeOrders,
     phase,
     members
