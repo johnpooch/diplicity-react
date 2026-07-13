@@ -27,6 +27,38 @@ Diplicity React is a full-stack web app for the Diplomacy board game:
 - **Backend**: Django REST API + PostgreSQL (`/service/`)
 - **Architecture**: Microservices with Docker containers
 
+## AI player architecture
+
+The AI player system is four apps with a strict one-way dependency graph:
+
+    agent → harness → (nothing in prod)
+    agent → inference
+    agent → bot_profile
+    harness → inference   (eval/test code only)
+
+Governing rule: **harness is pure; agent is where the world touches it.**
+
+- inference — the Inference model, the client over the LLM provider, and
+  Inference.objects.run(...). Records every model call. No HTTP API; browse
+  calls in Django admin. Must not import from harness or agent.
+- harness — pure prompt engineering: Block classes (shared prompt assembly),
+  build_prompt(), TaskDefinitions (select_orders, reply), prompt text, parsers,
+  and evals. No Django models, game API, queues, or telemetry in production
+  code. A TaskDefinition is declarative; build_prompt is shared; parse() is
+  per-task and raises ParseError on unusable output.
+- agent — orchestration: signals, Procrastinate tasks, the game API client
+  (read + write), context assembly, telemetry, fallback policy, and the
+  build → inference.run → parse → side-effect glue. Everything that touches
+  Django, the game, or the queue lives here.
+- bot_profile — BotProfile persona (disposition, voice), roster-management
+  endpoints, get_bot_user, and the roster seed.
+
+Where does new code go? Deterministic + model-shaped → harness. Touches
+Django/game/queue/side-effects → agent. Model-call mechanics/records →
+inference. Persona/roster → bot_profile. If you want to eval something in
+agent, a reasoning decision has leaked out of harness. If you want a plain
+deterministic assertion in harness, that logic belongs in agent.
+
 ---
 
 ## Development Setup
