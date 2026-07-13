@@ -11,8 +11,6 @@ import {
   currentUserProfile,
   draftVariant,
   fixtureByGameId,
-  llmCallDetails,
-  llmCallSummaries,
   makeBotMember,
   publicProfiles,
 } from "./fixtures";
@@ -256,19 +254,6 @@ export const handlers = [
     const member = makeBotMember(bot);
     fixture.game = { ...fixture.game, members: [...fixture.game.members, member] };
     return HttpResponse.json(member, { status: 201 });
-  }),
-  http.get("*/llm-calls/", ({ request }) => {
-    const url = new URL(request.url);
-    const gameId = url.searchParams.get("game");
-    const calls = gameId
-      ? llmCallSummaries.filter(call => call.gameId === gameId)
-      : llmCallSummaries;
-    return HttpResponse.json(calls);
-  }),
-  http.get("*/llm-calls/:id/", ({ params }) => {
-    const call = llmCallDetails.find(c => c.id === Number(params.id));
-    if (!call) return notFound();
-    return HttpResponse.json(call);
   }),
   http.delete("*/game/:gameId/kick/:memberId/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);

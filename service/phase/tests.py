@@ -3243,7 +3243,8 @@ class TestCivilDisorderDetection:
         phase2.phase_states.create(member=germany, has_possible_orders=True)
         Phase.objects._set_orders_outcome(phase2)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -3293,7 +3294,8 @@ class TestCivilDisorderDetection:
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         mock_send_notification_to_users.assert_not_called()
 
@@ -3342,7 +3344,8 @@ class TestCivilDisorderDetection:
         Phase.objects._set_orders_outcome(phase2)
 
         with patch("game.models.send_notification") as mock_send:
-            Phase.objects._check_civil_disorder(phase2)
+            newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         game.refresh_from_db()
         assert game.admin == secondary_user
@@ -3393,7 +3396,8 @@ class TestCivilDisorderDetection:
         Phase.objects._set_orders_outcome(phase2)
 
         with patch("game.models.send_notification") as mock_send:
-            Phase.objects._check_civil_disorder(phase2)
+            newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         game.refresh_from_db()
         assert game.admin == secondary_user
@@ -3479,7 +3483,8 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert not staging_game.members.filter(user=primary_user).exists()
         assert staging_game.members.filter(user=secondary_user).exists()
@@ -3511,7 +3516,8 @@ class TestCivilDisorderStagingRemoval:
         )
         other_active_game.members.create(user=primary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert other_active_game.members.filter(user=primary_user).exists()
 
@@ -3543,7 +3549,8 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_id = staging_game.id
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert not Game.objects.filter(id=staging_id).exists()
 
@@ -3576,7 +3583,8 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         staging_removal_jobs = [
             j for j in in_memory_procrastinate.jobs.values()
@@ -3616,10 +3624,229 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert staging_game.members.filter(user=primary_user).exists()
         assert staging_game.members.filter(user=secondary_user).exists()
+
+
+class TestCivilDisorderExcludesEliminatedMembers:
+
+    @pytest.mark.django_db
+    def test_cd_notification_excludes_eliminated_members(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="CD Excludes Eliminated Test",
+            status=GameStatus.ACTIVE,
+        )
+        italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation,
+            user=primary_user,
+            game=game,
+        )
+        germany = Member.objects.create(
+            nation=italy_vs_germany_germany_nation,
+            user=secondary_user,
+            game=game,
+            eliminated=True,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1.phase_states.create(member=germany, has_possible_orders=False)
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2.phase_states.create(member=germany, has_possible_orders=False)
+        Phase.objects._set_orders_outcome(phase2)
+
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        assert [m.id for m in newly_cd_members] == [italy.id]
+
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert call_kwargs["user_ids"] == [primary_user.id]
+
+
+class TestCivilDisorderEliminationReconciliation:
+
+    @staticmethod
+    def _setup_and_flag_cd(
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="CD Elimination Reconciliation Test",
+            status=GameStatus.ACTIVE,
+        )
+        italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation,
+            user=primary_user,
+            game=game,
+        )
+        germany = Member.objects.create(
+            nation=italy_vs_germany_germany_nation,
+            user=secondary_user,
+            game=game,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        Phase.objects._set_orders_outcome(phase2)
+
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        assert [m.id for m in newly_cd_members] == [italy.id]
+
+        return game, italy, germany, phase2, newly_cd_members
+
+    @pytest.mark.django_db
+    def test_member_eliminated_same_turn_is_not_flagged_civil_disorder(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase2, newly_cd_members = self._setup_and_flag_cd(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+        italy.refresh_from_db()
+        assert italy.civil_disorder is True
+
+        adjudication_data = {
+            "units": [{"nation": "Germany", "province": "kie"}],
+            "supply_centers": [{"nation": "Germany", "province": "kie"}],
+        }
+
+        surviving = Phase.objects._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+
+        assert surviving == []
+        italy.refresh_from_db()
+        assert italy.civil_disorder is False
+
+    @pytest.mark.django_db
+    def test_surviving_cd_member_is_unaffected_by_reconciliation(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase2, newly_cd_members = self._setup_and_flag_cd(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        adjudication_data = {
+            "units": [{"nation": "Italy", "province": "ven"}],
+            "supply_centers": [{"nation": "Italy", "province": "ven"}],
+        }
+
+        surviving = Phase.objects._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+
+        assert [m.id for m in surviving] == [italy.id]
+        italy.refresh_from_db()
+        assert italy.civil_disorder is True
+
+    @pytest.mark.django_db
+    def test_member_eliminated_same_turn_is_not_removed_from_staging(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany, phase2, newly_cd_members = self._setup_and_flag_cd(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        staging_game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Staging Game",
+            status=GameStatus.PENDING,
+            created_by=secondary_user,
+        )
+        staging_game.members.create(user=primary_user)
+        staging_game.members.create(user=secondary_user)
+
+        adjudication_data = {
+            "units": [{"nation": "Germany", "province": "kie"}],
+            "supply_centers": [{"nation": "Germany", "province": "kie"}],
+        }
+
+        surviving = Phase.objects._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+        Phase.objects._notify_civil_disorder(phase2, surviving)
+
+        assert staging_game.members.filter(user=primary_user).exists()
 
 
 class TestSetOrdersOutcome:

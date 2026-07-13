@@ -21,6 +21,17 @@ export function initializeSentry() {
     replaysOnErrorSampleRate: 1.0,
     sendDefaultPii: false,
 
+    ignoreErrors: [
+      "not a child of this node",
+      "CancelledError",
+      "Java object is gone",
+      "Importing a module script failed",
+      "Failed to fetch dynamically imported module",
+      "error loading dynamically imported module",
+    ],
+
+    denyUrls: [/chrome-extension:\/\//, /moz-extension:\/\//, /iabjs:\/\//],
+
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.replayIntegration({

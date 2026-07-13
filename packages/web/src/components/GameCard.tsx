@@ -83,7 +83,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const phase = game.currentPhase;
-  const playerNation = game.members.find(m => m.isCurrentUser)?.nation ?? null;
+  const members = Array.isArray(game.members) ? game.members : [];
+  const playerNation = members.find(m => m.isCurrentUser)?.nation ?? null;
   const joinGameMutation = useGameJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
@@ -91,10 +92,10 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const isPending = game.status === "pending";
   const isAbandoned = game.status === "abandoned";
   const isFinished = game.status === "completed" || isAbandoned;
-  const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentMember = members.find(m => m.isCurrentUser);
   const showAvatars = !game.sandbox;
   const totalSlots = variant.nations.length;
-  const joinedCount = game.members.length;
+  const joinedCount = members.length;
   const winnerIds = new Set(game.victory?.members.map(m => m.id) ?? []);
 
   const handleClickGame = () => {
@@ -366,7 +367,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   </Tooltip>
                 )}
                 <div className="flex -space-x-2">
-                  {game.members.slice(0, 7).map(member => (
+                  {members.slice(0, 7).map(member => (
                     <Avatar
                       key={member.id}
                       className={`h-8 w-8 border-2 border-background ${
@@ -381,9 +382,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {game.members.length > 7 && (
+                  {members.length > 7 && (
                     <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                      +{game.members.length - 7}
+                      +{members.length - 7}
                     </div>
                   )}
                 </div>

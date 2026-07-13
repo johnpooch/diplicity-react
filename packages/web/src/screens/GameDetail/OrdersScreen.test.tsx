@@ -222,6 +222,77 @@ describe("OrdersScreen confirm orders button", () => {
   });
 });
 
+describe("OrdersScreen resilience to malformed list data", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+  });
+
+  it("renders without crashing when game.members is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: undefined,
+    });
+    mockOrdersData.mockReturnValue([]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+  });
+
+  it("falls back to an unmatched member instead of crashing when game.members is not an array and there are past orders to group by nation", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: undefined,
+    });
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "completed", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        summary: "Hold",
+        resolution: null,
+      },
+    ]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText("England")).toBeInTheDocument();
+  });
+
+  it("renders without crashing when orders is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "completed", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue(undefined);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders created/i)).toBeInTheDocument();
+  });
+});
+
 describe("OrdersScreen named coast display", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);

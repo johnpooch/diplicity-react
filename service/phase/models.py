@@ -457,10 +457,38 @@ class PhaseManager(models.Manager):
         if any(m.user_id == phase.game.admin_id for m in newly_cd_members):
             phase.game.reassign_admin()
 
+        return newly_cd_members
+
+    def _reconcile_civil_disorder_eliminations(self, newly_cd_members, adjudication_data):
+        if not newly_cd_members:
+            return []
+
+        surviving_nations = {u["nation"] for u in adjudication_data["units"]} | {
+            sc["nation"] for sc in adjudication_data["supply_centers"]
+        }
+
+        eliminated = [
+            m for m in newly_cd_members
+            if m.nation is not None and m.nation.name not in surviving_nations
+        ]
+        surviving = [m for m in newly_cd_members if m not in eliminated]
+
+        if eliminated:
+            for m in eliminated:
+                m.civil_disorder = False
+            Member.objects.bulk_update(eliminated, ["civil_disorder"])
+
+        return surviving
+
+    def _notify_civil_disorder(self, phase, newly_cd_members):
+        if not newly_cd_members:
+            return
+
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
-        user_ids = phase.game.notification_user_ids()
+        user_ids = phase.game.notification_user_ids(active_only=True)
+
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
@@ -488,8 +516,6 @@ class PhaseManager(models.Manager):
                 )
 
         transaction.on_commit(send_notifications)
-
-        return newly_cd_members
 
     def _remove_from_staging_games(self, user_ids):
         if not user_ids:
@@ -588,15 +614,18 @@ class PhaseManager(models.Manager):
             if extension_members:
                 return phase
 
-            self._check_civil_disorder(phase)
-            adjudication_data = resolve(phase)
-
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
                     self._set_orders_outcome(phase)
-                    self._check_civil_disorder(phase)
+                    newly_cd_members = self._check_civil_disorder(phase)
+                    adjudication_data = resolve(phase)
+
+                    surviving_cd_members = self._reconcile_civil_disorder_eliminations(
+                        newly_cd_members, adjudication_data
+                    )
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
+                    self._notify_civil_disorder(phase, surviving_cd_members)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 

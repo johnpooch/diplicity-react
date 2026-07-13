@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 const VARIANT_CREATOR_URL = "https://variantcreator.diplicity.com";
 
-const DISCORD_URL = "https://discord.gg/2TkZbBRPW";
+const DISCORD_URL = "https://discord.gg/cwjzxEqTuN";
 
 const GITHUB_DISCUSSIONS_URL =
   "https://github.com/johnpooch/diplicity-react/discussions";

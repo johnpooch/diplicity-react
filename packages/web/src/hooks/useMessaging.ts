@@ -44,8 +44,9 @@ const useMessaging = (): MessagingState => {
   const native = isNativePlatform();
   const deviceType = native ? getNativeDeviceType() : "web";
 
-  const devicesRef = useRef(devicesListQuery.data);
-  devicesRef.current = devicesListQuery.data;
+  const devices = Array.isArray(devicesListQuery.data) ? devicesListQuery.data : [];
+  const devicesRef = useRef(devices);
+  devicesRef.current = devices;
 
   // Check native permission state on mount for the denied indicator
   useEffect(() => {
@@ -69,7 +70,7 @@ const useMessaging = (): MessagingState => {
   useEffect(() => {
     if (!native) return;
     const listener = addTokenRefreshListener(async (newToken) => {
-      const activeDevice = devicesRef.current?.find(
+      const activeDevice = devicesRef.current.find(
         d => d.active && d.type === getNativeDeviceType()
       );
       if (activeDevice) {
@@ -143,8 +144,8 @@ const useMessaging = (): MessagingState => {
     try {
       setError(null);
       const activeDevice = native
-        ? devicesListQuery.data?.find(d => d.active && d.type === deviceType)
-        : devicesListQuery.data?.find(d => d.active && d.registrationId === webToken);
+        ? devices.find(d => d.active && d.type === deviceType)
+        : devices.find(d => d.active && d.registrationId === webToken);
       if (activeDevice) {
         await createDeviceMutation.mutateAsync({
           data: { registrationId: activeDevice.registrationId, type: deviceType, active: false },
@@ -158,8 +159,8 @@ const useMessaging = (): MessagingState => {
   };
 
   const enabled = native
-    ? Boolean(devicesListQuery.data?.some(d => d.active && d.type === deviceType))
-    : Boolean(webToken && devicesListQuery.data?.some(d => d.active && d.registrationId === webToken));
+    ? Boolean(devices.some(d => d.active && d.type === deviceType))
+    : Boolean(webToken && devices.some(d => d.active && d.registrationId === webToken));
 
   const permissionDenied = native
     ? nativePermissionDenied

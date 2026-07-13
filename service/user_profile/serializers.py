@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from bot.utils import user_can_use_bot_opponent
+from bot_profile.utils import user_can_use_bot_opponent
 from .utils import get_player_stats
 
 
