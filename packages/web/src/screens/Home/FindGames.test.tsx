@@ -7,6 +7,7 @@ import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 
 const mockFetchNextPage = vi.fn();
 const mockSentinelRef = { current: null };
+const mockVariantsData = vi.fn();
 
 const defaultGamesListResult = {
   data: { pages: [{ results: [] }] },
@@ -21,12 +22,7 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
   >();
   return {
     ...actual,
-    useVariantsListSuspense: () => ({
-      data: [
-        { id: "classical", name: "Classical" },
-        { id: "pure", name: "Pure" },
-      ],
-    }),
+    useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   };
 });
 
@@ -61,6 +57,10 @@ describe("FindGames", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseGamesListInfinite.mockReturnValue(defaultGamesListResult);
+    mockVariantsData.mockReturnValue([
+      { id: "classical", name: "Classical" },
+      { id: "pure", name: "Pure" },
+    ]);
   });
 
   it("shows the filter toggle button in the header", () => {
@@ -216,5 +216,54 @@ describe("FindGames", () => {
     expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
     expect(screen.getAllByTestId("game-card")).toHaveLength(3);
+  });
+
+  it("renders without crashing when a page's results is not an array", () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: { pages: [{ results: undefined }] },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getByText(/no games found/i)).toBeInTheDocument();
+  });
+
+  it("renders without crashing when variants is not an array", () => {
+    mockVariantsData.mockReturnValue(undefined);
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [
+          {
+            results: [
+              { id: "g1", variantId: "classical", phases: [1], members: [] },
+            ],
+          },
+        ],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getByText(/no games found/i)).toBeInTheDocument();
+  });
+
+  it("renders without crashing when results contains a null entry", () => {
+    const buildGame = (id: string) => ({
+      id,
+      variantId: "classical",
+      phases: [1],
+      members: [],
+    });
+
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: { pages: [{ results: [null, buildGame("g1")] }] },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
   });
 });

@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Inbox, Loader2, SlidersHorizontal, Zap } from "lucide-react";
 import { useVariantsListSuspense } from "@/api/generated/endpoints";
-import type { GamesListMovementPhaseDuration } from "@/api/generated/endpoints";
+import type {
+  GameList,
+  GamesListMovementPhaseDuration,
+  Variant,
+} from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { DURATION_OPTIONS } from "@/constants";
@@ -50,7 +54,9 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
     });
   const { data: variants } = useVariantsListSuspense();
 
-  const games = data.pages.flatMap(page => page.results);
+  const games = data.pages
+    .flatMap(page => (Array.isArray(page.results) ? page.results : []))
+    .filter((game): game is GameList => Boolean(game));
 
   const sentinelRef = useInfiniteScroll(
     fetchNextPage,
@@ -58,7 +64,10 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
     isFetchingNextPage
   );
 
-  const variantMap = new Map(variants.map(v => [v.id, v]));
+  const safeVariants: readonly Variant[] = Array.isArray(variants)
+    ? variants
+    : [];
+  const variantMap = new Map(safeVariants.map(v => [v.id, v]));
   const knownGames = games.filter(game => variantMap.has(game.variantId));
 
   const handleVariantChange = (value: string) => {
@@ -98,7 +107,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_VARIANTS_VALUE}>All variants</SelectItem>
-              {variants.map(v => (
+              {safeVariants.map(v => (
                 <SelectItem key={v.id} value={v.id}>
                   {v.name}
                 </SelectItem>

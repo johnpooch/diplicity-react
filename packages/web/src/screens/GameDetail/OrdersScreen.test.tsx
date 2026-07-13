@@ -222,6 +222,69 @@ describe("OrdersScreen confirm orders button", () => {
   });
 });
 
+describe("OrdersScreen malformed list data", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+  });
+
+  it("renders without crashing when game.members is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: undefined,
+    });
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue([]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+  });
+
+  it("renders without crashing when orders is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "completed", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue(undefined);
+    mockPhaseStatesData.mockReturnValue([]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders created/i)).toBeInTheDocument();
+  });
+
+  it("renders without crashing when phaseStates is not an array", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue(undefined);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+  });
+});
+
 describe("OrdersScreen named coast display", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);

@@ -61,6 +61,7 @@ import {
   getGameOptionsRetrieveQueryKey,
   Order,
   GameRetrieve,
+  Member,
   Unit,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
@@ -95,21 +96,29 @@ const buildNationGroups = (
   phase: PhaseRetrieve,
   game: GameRetrieve
 ): NationGroup[] => {
+  const safePhaseStates: readonly PhaseState[] = Array.isArray(phaseStates)
+    ? phaseStates
+    : [];
+  const safeOrders: readonly Order[] = Array.isArray(orders) ? orders : [];
+  const members: readonly Member[] = Array.isArray(game.members)
+    ? game.members
+    : [];
+
   if (isActivePhase) {
-    return phaseStates
+    return safePhaseStates
       .filter(ps => ps.orderableProvinces.length > 0)
       .map(ps => ({
         nation: ps.member.nation ?? "",
         member: ps.member,
         items: (ps.orderableProvinces as Province[]).map(province => ({
           province,
-          order: orders.find(o => o.source.id === province.id),
+          order: safeOrders.find(o => o.source.id === province.id),
           unit: findUnitForProvince(phase.units, province.id),
         })),
       }));
   }
 
-  const ordersByNation = orders.reduce(
+  const ordersByNation = safeOrders.reduce(
     (acc, order) => {
       const nation = order.nation.name;
       acc[nation] = [...(acc[nation] || []), order];
@@ -119,7 +128,7 @@ const buildNationGroups = (
   );
 
   return Object.entries(ordersByNation).map(([nation, nationOrders]) => {
-    const member = game.members.find(m => m.nation === nation);
+    const member = members.find(m => m.nation === nation);
     if (!member && import.meta.env.DEV) {
       console.warn(`buildNationGroups: no member found for nation "${nation}"`);
     }
@@ -186,7 +195,10 @@ const OrdersScreen: React.FC = () => {
   const isActivePhase = phase.status === "active";
   const isGameFinished =
     game.status === "completed" || game.status === "abandoned";
-  const currentMember = game.members.find(m => m.isCurrentUser);
+  const members: readonly Member[] = Array.isArray(game.members)
+    ? game.members
+    : [];
+  const currentMember = members.find(m => m.isCurrentUser);
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
     isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;

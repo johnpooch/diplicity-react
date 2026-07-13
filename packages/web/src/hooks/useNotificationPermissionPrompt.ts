@@ -5,6 +5,7 @@ import {
   useDevicesList,
   useDevicesCreate,
   getDevicesListQueryKey,
+  FCMDevice,
 } from "@/api/generated/endpoints";
 import { checkPermission } from "@/messaging-native";
 import { isNativePlatform, isIosPlatform } from "@/utils/platform";
@@ -30,7 +31,7 @@ const useNotificationPermissionPrompt = () => {
 
   const hasActiveNonSandboxGame =
     activeGamesData?.pages.some(page =>
-      page.results.some(game => !game.sandbox)
+      Array.isArray(page.results) && page.results.some(game => !game.sandbox)
     ) ?? false;
 
   const { data: devicesData, isLoading: devicesLoading } = useDevicesList({
@@ -54,7 +55,10 @@ const useNotificationPermissionPrompt = () => {
       ? isIosPlatform() ? "ios" : "android"
       : "web";
 
-    if (devicesData.some(d => d.active && d.type === deviceType)) return;
+    const devices: readonly FCMDevice[] = Array.isArray(devicesData)
+      ? devicesData
+      : [];
+    if (devices.some(d => d.active && d.type === deviceType)) return;
 
     const reRegister = async () => {
       if (isNativePlatform()) {

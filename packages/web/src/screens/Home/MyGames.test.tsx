@@ -182,6 +182,37 @@ describe("MyGames draft variant fallback", () => {
   });
 });
 
+describe("MyGames malformed API data", () => {
+  it("renders without crashing when a page's results is not an array", async () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: undefined, next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+
+    renderMyGames();
+
+    expect(await screen.findByText(/create a new game/i)).toBeInTheDocument();
+  });
+
+  it("renders without crashing when results contains a null entry", async () => {
+    const game = mockActiveGames[0];
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: [null, game], next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+
+    renderMyGames();
+
+    expect(await screen.findByText(game.name)).toBeInTheDocument();
+  });
+});
+
 describe("MyGames phase fetching", () => {
   it("renders without fanning out per-game phase fetches", async () => {
     const game = mockActiveGames[0];

@@ -119,7 +119,9 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({ mine: true, status: statusFilter, ordering });
 
-  const games = data.pages.flatMap(page => page.results);
+  const games = data.pages
+    .flatMap(page => (Array.isArray(page.results) ? page.results : []))
+    .filter((game): game is GameList => Boolean(game));
 
   const sentinelRef = useInfiniteScroll(
     fetchNextPage,
@@ -136,7 +138,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
 
   const firstEliminatedIndex =
     status === "active"
-      ? games.findIndex(game => !game.sandbox && game.members.find(m => m.isCurrentUser)?.eliminated)
+      ? games.findIndex(game => !game.sandbox && game.members?.find(m => m.isCurrentUser)?.eliminated)
       : -1;
 
   return (
