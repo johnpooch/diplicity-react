@@ -182,6 +182,55 @@ describe("MyGames draft variant fallback", () => {
   });
 });
 
+describe("MyGames resilience to malformed list data", () => {
+  it("renders the empty state instead of crashing when pages is not an array", async () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: undefined },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+
+    renderMyGames();
+
+    expect(
+      await screen.findByText(/your active games will appear here/i)
+    ).toBeInTheDocument();
+  });
+
+  it("renders the empty state instead of crashing when page.results is not an array", async () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: undefined, next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+
+    renderMyGames();
+
+    expect(
+      await screen.findByText(/your active games will appear here/i)
+    ).toBeInTheDocument();
+  });
+
+  it("does not crash computing the eliminated section when a game's members is not an array", async () => {
+    const game = { ...mockActiveGames[0], members: undefined };
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: [game], next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+
+    renderMyGames();
+
+    expect(await screen.findByText(game.name)).toBeInTheDocument();
+  });
+});
+
 describe("MyGames phase fetching", () => {
   it("renders without fanning out per-game phase fetches", async () => {
     const game = mockActiveGames[0];

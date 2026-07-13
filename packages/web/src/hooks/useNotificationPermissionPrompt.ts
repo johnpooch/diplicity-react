@@ -28,10 +28,12 @@ const useNotificationPermissionPrompt = () => {
     enabled: loggedIn,
   });
 
-  const hasActiveNonSandboxGame =
-    activeGamesData?.pages.some(page =>
-      page.results.some(game => !game.sandbox)
-    ) ?? false;
+  const hasActiveNonSandboxGame = Array.isArray(activeGamesData?.pages)
+    ? activeGamesData.pages.some(
+        page =>
+          Array.isArray(page.results) && page.results.some(game => !game.sandbox)
+      )
+    : false;
 
   const { data: devicesData, isLoading: devicesLoading } = useDevicesList({
     query: { enabled: loggedIn },
@@ -48,7 +50,7 @@ const useNotificationPermissionPrompt = () => {
 
   // Silently re-register if permission is already granted but device record is missing
   useEffect(() => {
-    if (!loggedIn || devicesLoading || devicesData === undefined) return;
+    if (!loggedIn || devicesLoading || !Array.isArray(devicesData)) return;
 
     const deviceType = isNativePlatform()
       ? isIosPlatform() ? "ios" : "android"
