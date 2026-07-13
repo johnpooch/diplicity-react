@@ -68,6 +68,7 @@ packages/web/android/app/src/main/assets/capacitor.config.json
 packages/web/android/app/src/main/assets/capacitor.plugins.json
 
 screenshots/
+shots/
 
 .claude/worktrees
 .claude/settings.local.json

@@ -300,6 +300,8 @@ npm run screenshot -- /game/active-build/phase/303/orders /tmp/shots/mobile.png 
 
 Options: `--viewport WxH` (default 1280x800), `--full-page`, `--logged-out`, `--wait MS`, `--base URL`.
 
+**Never commit screenshots to the repo.** Always write them to a temp path outside the working tree (`/tmp/shots/`, as above) and embed them in the PR description by uploading them as GitHub attachments — do not add image files to the repo or reference them via `raw.githubusercontent.com`. `shots/` and `screenshots/` are gitignored; if you find committed screenshots, remove them.
+
 In cloud sessions, `playwright install chromium` fails (CDN not allowlisted). The script auto-falls back to `@sparticuz/chromium` — do not try to install Chromium manually.
 
 ## Key Principles
