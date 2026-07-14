@@ -14,7 +14,7 @@ DEFAULT_MAX_TOKENS = 2048
 class AnthropicInferenceClient:
     def __init__(self, api_key):
         if not api_key:
-            raise InferenceError("ANTHROPIC_API_KEY is not set")
+            raise InferenceError("BOT_ANTHROPIC_API_KEY is not set")
         self._client = Anthropic(api_key=api_key)
 
     def complete(self, *, model, system, messages, output_schema=None, max_tokens=None):

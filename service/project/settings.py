@@ -261,7 +261,7 @@ BOT_OPPONENT_ALLOWLIST = [
     if email.strip()
 ]
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+BOT_ANTHROPIC_API_KEY = os.getenv("BOT_ANTHROPIC_API_KEY", "")
 BOT_LLM_MODEL = os.getenv("BOT_LLM_MODEL", "claude-haiku-4-5")
 BOT_LLM_STRUCTURED_OUTPUTS = os.getenv("BOT_LLM_STRUCTURED_OUTPUTS", "True") == "True"
 

@@ -1,7 +1,7 @@
-from harness.prompts import load_prompt
+from harness.resources import load_prompt
 from harness.types import Persona
 
-PERSONA_PREAMBLE = load_prompt("persona_system.txt")
+PERSONA_PREAMBLE = load_prompt(__package__, "persona_system.txt")
 
 
 def render_persona(persona: Persona) -> str:
