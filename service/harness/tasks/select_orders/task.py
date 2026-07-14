@@ -3,38 +3,18 @@ import logging
 from harness.blocks import GameStateBlock, IdentityBlock, LegalOrdersBlock, PhaseStateBlock
 from harness.exceptions import ParseError
 from harness.orders import group_options_by_source, option_to_selected, order_option_label
-from harness.prompts import load_prompt
+from harness.resources import load_prompt
 from harness.tasks.base import TaskDefinition, extract_json
+from harness.tasks.select_orders.schema import ORDER_SELECTION_SCHEMA
 from harness.types import ContextData
 
 logger = logging.getLogger(__name__)
 
-ORDER_SELECTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "reasoning": {"type": "string"},
-        "choices": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "source_id": {"type": "string"},
-                    "option_index": {"type": "integer"},
-                },
-                "required": ["source_id", "option_index"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["reasoning", "choices"],
-    "additionalProperties": False,
-}
-
 
 class SelectOrdersTask(TaskDefinition):
     name = "select_orders"
-    system_prompt = load_prompt("select_orders_system.txt")
-    instruction = load_prompt("select_orders_instruction.txt")
+    system_prompt = load_prompt(__package__, "system.txt")
+    instruction = load_prompt(__package__, "instruction.txt")
     blocks = (GameStateBlock(), IdentityBlock(), LegalOrdersBlock(), PhaseStateBlock())
     output_schema = ORDER_SELECTION_SCHEMA
 
