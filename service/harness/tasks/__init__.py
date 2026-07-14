@@ -1,11 +1,5 @@
 from harness.tasks.base import TaskDefinition
-from harness.tasks.reply import REPLY_SCHEMA, ReplyTask
-from harness.tasks.select_orders import ORDER_SELECTION_SCHEMA, SelectOrdersTask
+from harness.tasks.reply import ReplyTask
+from harness.tasks.select_orders import SelectOrdersTask
 
-__all__ = [
-    "ORDER_SELECTION_SCHEMA",
-    "REPLY_SCHEMA",
-    "ReplyTask",
-    "SelectOrdersTask",
-    "TaskDefinition",
-]
+__all__ = ["ReplyTask", "SelectOrdersTask", "TaskDefinition"]

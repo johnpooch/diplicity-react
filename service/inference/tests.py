@@ -130,7 +130,7 @@ class TestAnthropicInferenceClient:
 class TestRegistry:
 
     def test_returns_anthropic_client(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         client = get_inference_client(InferenceProvider.ANTHROPIC)
         assert isinstance(client, AnthropicInferenceClient)
 
