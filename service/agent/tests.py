@@ -118,7 +118,7 @@ class TestAdjustmentOrderLimit:
 
     @pytest.mark.django_db
     def test_plan_fills_units_missing_from_response_with_first_legal(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         bot_user = get_bot_user()
         fake_client = self._fake_client(max_orders=None)
 
@@ -154,7 +154,7 @@ class TestPlanTask:
     def test_plan_injects_persona_into_system_prompt(
         self, bot_game_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
         disposition = BotProfile.objects.get(user=bot_user).disposition
@@ -170,7 +170,7 @@ class TestPlanTask:
     def test_plan_records_success_inference(
         self, bot_game_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
         bot_member = game.members.get(user=bot_user)
@@ -194,7 +194,7 @@ class TestPlanTask:
     def test_plan_records_failed_inference_and_falls_back(
         self, bot_game_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -214,7 +214,7 @@ class TestPlanTask:
     def test_plan_falls_back_when_parse_fails(
         self, bot_game_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -374,7 +374,7 @@ class TestReplyTask:
     def test_reply_posts_message_in_private_channel(
         self, bot_private_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_private_channel_factory()
         bot_user = get_bot_user()
         bot_member = game.members.get(user=bot_user)
@@ -391,7 +391,7 @@ class TestReplyTask:
     def test_reply_records_inference_with_channel(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
         human_member = game.members.get(user=game.created_by)
@@ -409,7 +409,7 @@ class TestReplyTask:
     def test_reply_truncates_message_over_char_limit(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
         bot_member = game.members.get(user=bot_user)
@@ -428,7 +428,7 @@ class TestReplyTask:
     def test_reply_posts_nothing_when_message_empty(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
         human_member = game.members.get(user=game.created_by)
@@ -444,7 +444,7 @@ class TestReplyTask:
     def test_reply_posts_nothing_when_inference_fails(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
         human_member = game.members.get(user=game.created_by)
@@ -460,7 +460,7 @@ class TestReplyTask:
     def test_reply_skips_inference_when_message_cap_reached(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
         bot_member = game.members.get(user=bot_user)
@@ -480,7 +480,7 @@ class TestReplyTask:
     def test_reply_injects_persona_into_system_prompt(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
-        settings.ANTHROPIC_API_KEY = "test-key"
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
         human_member = game.members.get(user=game.created_by)

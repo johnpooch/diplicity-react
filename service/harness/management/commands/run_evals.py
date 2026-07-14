@@ -11,8 +11,8 @@ class Command(BaseCommand):
         parser.add_argument("task", nargs="?", choices=sorted(TASK_PACKAGES))
 
     def handle(self, *args, **options):
-        if not settings.ANTHROPIC_API_KEY:
-            self.stdout.write("skip: ANTHROPIC_API_KEY is not set")
+        if not settings.BOT_ANTHROPIC_API_KEY:
+            self.stdout.write("skip: BOT_ANTHROPIC_API_KEY is not set")
             return
         for eval_spec in discover(options["task"]):
             eval_spec.run(self.stdout)
