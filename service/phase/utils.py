@@ -43,7 +43,7 @@ def build_notification_body(
                 return None
             return (
                 f"All orders ready. Confirm to advance the game early — "
-                f"the next deadline stays on schedule. {time_left} remaining."
+                f"the next deadline may move sooner too. {time_left} remaining."
             )
         if orders_given > 0:
             return (
@@ -385,6 +385,16 @@ FREQUENCY_INTERVALS = {
     PhaseFrequency.EVERY_2_DAYS: timedelta(days=2),
     PhaseFrequency.WEEKLY: timedelta(weeks=1),
 }
+
+
+def compress_deadline(next_deadline, frequency, now):
+    interval = FREQUENCY_INTERVALS.get(frequency)
+    if not interval:
+        return next_deadline
+    candidate = next_deadline
+    while (candidate - interval) - now >= interval:
+        candidate -= interval
+    return candidate
 
 
 def calculate_next_fixed_deadline(

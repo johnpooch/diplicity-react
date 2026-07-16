@@ -1,11 +1,11 @@
-from datetime import time, datetime
+from datetime import time, datetime, timedelta, timezone as dt_timezone
 from zoneinfo import ZoneInfo
 
 import pytest
 from django.utils import timezone
 
 from common.constants import PhaseFrequency
-from phase.utils import calculate_next_fixed_deadline
+from phase.utils import calculate_next_fixed_deadline, compress_deadline, FREQUENCY_INTERVALS
 
 
 class TestCalculateNextFixedDeadline:
@@ -279,3 +279,151 @@ class TestCalculateNextFixedDeadline:
 
         result = calculate_next_fixed_deadline(target_time, PhaseFrequency.DAILY, tz_name)
         assert result.tzinfo is not None
+
+
+NOW = datetime(2026, 1, 10, 9, 0, 0, tzinfo=dt_timezone.utc)
+DAY = timedelta(hours=24)
+HOUR = timedelta(hours=1)
+WEEK = timedelta(days=7)
+TWO_DAYS = timedelta(days=2)
+
+
+class TestCompressDeadline:
+
+    def test_daily_on_time_resolution_one_cycle_out_is_unchanged(self):
+        next_deadline = NOW + DAY
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + DAY
+
+    def test_daily_run_of_one_and_a_quarter_cycles_is_unchanged(self):
+        next_deadline = NOW + timedelta(hours=30)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + timedelta(hours=30)
+
+    def test_daily_run_just_under_two_cycles_is_unchanged(self):
+        next_deadline = NOW + timedelta(hours=47)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + timedelta(hours=47)
+
+    def test_daily_run_of_exactly_two_cycles_compresses_to_one_cycle(self):
+        next_deadline = NOW + timedelta(hours=48)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + timedelta(hours=24)
+
+    def test_daily_run_of_two_and_a_half_cycles_compresses_to_one_and_a_half(self):
+        next_deadline = NOW + timedelta(hours=60)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + timedelta(hours=36)
+
+    def test_daily_run_of_three_cycles_compresses_to_one_cycle(self):
+        next_deadline = NOW + timedelta(hours=72)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + timedelta(hours=24)
+
+    def test_daily_run_of_three_and_a_third_cycles_compresses_into_range(self):
+        next_deadline = NOW + timedelta(hours=80)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, NOW)
+
+        assert result == NOW + timedelta(hours=32)
+
+    def test_compression_preserves_wall_clock_grid_slot(self):
+        now = datetime(2026, 1, 10, 9, 0, 0, tzinfo=dt_timezone.utc)
+        next_deadline = datetime(2026, 1, 13, 21, 0, 0, tzinfo=dt_timezone.utc)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.DAILY, now)
+
+        assert result == datetime(2026, 1, 11, 21, 0, 0, tzinfo=dt_timezone.utc)
+
+    def test_hourly_run_of_one_and_a_half_cycles_is_unchanged(self):
+        next_deadline = NOW + timedelta(minutes=90)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.HOURLY, NOW)
+
+        assert result == NOW + timedelta(minutes=90)
+
+    def test_hourly_run_of_two_cycles_compresses_to_one_hour(self):
+        next_deadline = NOW + timedelta(minutes=120)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.HOURLY, NOW)
+
+        assert result == NOW + timedelta(minutes=60)
+
+    def test_hourly_run_of_two_and_a_half_cycles_compresses_to_ninety_minutes(self):
+        next_deadline = NOW + timedelta(minutes=150)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.HOURLY, NOW)
+
+        assert result == NOW + timedelta(minutes=90)
+
+    def test_every_2_days_run_of_two_and_a_half_cycles_compresses(self):
+        next_deadline = NOW + timedelta(hours=120)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.EVERY_2_DAYS, NOW)
+
+        assert result == NOW + timedelta(hours=72)
+
+    def test_weekly_run_of_two_cycles_compresses_to_one_week(self):
+        next_deadline = NOW + timedelta(days=14)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.WEEKLY, NOW)
+
+        assert result == NOW + timedelta(days=7)
+
+    def test_weekly_run_of_almost_three_cycles_compresses_into_range(self):
+        next_deadline = NOW + timedelta(days=20)
+
+        result = compress_deadline(next_deadline, PhaseFrequency.WEEKLY, NOW)
+
+        assert result == NOW + timedelta(days=13)
+
+    def test_unknown_frequency_returns_deadline_unchanged(self):
+        next_deadline = NOW + timedelta(hours=200)
+
+        result = compress_deadline(next_deadline, "invalid", NOW)
+
+        assert result == NOW + timedelta(hours=200)
+
+    @pytest.mark.parametrize("frequency", [
+        PhaseFrequency.HOURLY,
+        PhaseFrequency.DAILY,
+        PhaseFrequency.EVERY_2_DAYS,
+        PhaseFrequency.WEEKLY,
+    ])
+    @pytest.mark.parametrize("cycles", [1.0, 1.1, 1.5, 1.99, 2.0, 2.5, 3.0, 3.5, 5.0, 10.0])
+    def test_result_always_lands_in_one_to_two_cycle_range(self, frequency, cycles):
+        interval = FREQUENCY_INTERVALS[frequency]
+        next_deadline = NOW + interval * cycles
+
+        result = compress_deadline(next_deadline, frequency, NOW)
+
+        run = result - NOW
+        assert interval <= run < 2 * interval
+
+    @pytest.mark.parametrize("frequency", [
+        PhaseFrequency.HOURLY,
+        PhaseFrequency.DAILY,
+        PhaseFrequency.EVERY_2_DAYS,
+        PhaseFrequency.WEEKLY,
+    ])
+    @pytest.mark.parametrize("cycles", [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 5.0, 10.0])
+    def test_compression_only_subtracts_whole_intervals(self, frequency, cycles):
+        interval = FREQUENCY_INTERVALS[frequency]
+        next_deadline = NOW + interval * cycles
+
+        result = compress_deadline(next_deadline, frequency, NOW)
+
+        pulled_in = next_deadline - result
+        assert pulled_in.total_seconds() % interval.total_seconds() == 0

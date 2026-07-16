@@ -108,7 +108,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
         return (
           <span>
             The first phase ends at {firstEnd} {tz}, after that every hour,
-            regardless of whether players confirmed their orders.
+            or sooner if all players confirm their orders.
           </span>
         );
       }
@@ -116,8 +116,8 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       return (
         <span>
           The first phase ends at {firstEnd} {tz}, after that Movement: every
-          hour and Retreat/Adjustment: {retreatDisplay}, regardless of whether
-          players confirmed their orders.
+          hour and Retreat/Adjustment: {retreatDisplay}, or sooner if all
+          players confirm their orders.
         </span>
       );
     }
@@ -127,8 +127,8 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       return (
         <span>
           Movement resolves {formatFreqTime(movementFrequency, time, tz)}.
-          Retreat/Adjustment resolves {intervalLabel} later, regardless
-          of whether players confirmed their orders.
+          Retreat/Adjustment resolves {intervalLabel} later, or sooner
+          if all players confirm their orders.
         </span>
       );
     }
@@ -137,7 +137,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       return (
         <span>
           Phases resolve {formatFreqTime(movementFrequency, time, tz)},
-          regardless of whether players confirmed their orders.
+          or sooner if all players confirm their orders.
         </span>
       );
     }
@@ -145,8 +145,8 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
     return (
       <span>
         Phases resolve Movement: {formatFreqTime(movementFrequency, time, tz)},
-        Retreat: {formatFreqTime(retreatFrequency!, time, tz)}, regardless of
-        whether players confirmed their orders.
+        Retreat: {formatFreqTime(retreatFrequency!, time, tz)}, or sooner if
+        all players confirm their orders.
       </span>
     );
   }
