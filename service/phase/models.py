@@ -14,7 +14,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body
+from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body, compress_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -752,6 +752,15 @@ class PhaseManager(models.Manager):
                     adjudication_data["type"],
                     reference_time=previous_phase.scheduled_resolution,
                 )
+                if (
+                    scheduled_resolution is not None
+                    and previous_phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+                ):
+                    scheduled_resolution = compress_deadline(
+                        scheduled_resolution,
+                        previous_phase.game.get_phase_frequency(adjudication_data["type"]),
+                        timezone.now(),
+                    )
                 new_ordinal = previous_phase.ordinal + 1
 
                 logger.info(

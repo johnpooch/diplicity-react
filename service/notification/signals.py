@@ -3,12 +3,13 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 from channel.models import ChannelMessage
 from draw_proposal.models import DrawProposal
 from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
 from game.models import Game
-from common.constants import GameStatus, PhaseStatus
+from common.constants import DeadlineMode, GameStatus, PhaseStatus
 from notification.tasks import send_notification
 from notification.utils import send_notification_to_users
 from phase.models import Phase
@@ -206,21 +207,34 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
     old_status = _phase_status_cache.pop(instance.pk, None)
     if old_status == PhaseStatus.ACTIVE and instance.status == PhaseStatus.COMPLETED:
 
+        resolved_early = (
+            instance.game.deadline_mode == DeadlineMode.FIXED_TIME
+            and instance.scheduled_resolution is not None
+            and timezone.now() < instance.scheduled_resolution
+        )
+
         def _send():
             user_ids = instance.game.notification_user_ids()
             link = f"{settings.FRONTEND_URL}/game/{instance.game.id}"
-            body = f"{instance.name} has been resolved"
+            if resolved_early:
+                body = f"{instance.name} resolved early — all players confirmed their orders."
+                notification_type = "phase_resolved_early"
+                subject = f"{instance.game.name} — {instance.name} Resolved Early"
+            else:
+                body = f"{instance.name} has been resolved"
+                notification_type = "phase_resolved"
+                subject = f"{instance.game.name} — {instance.name} Resolved"
 
             send_notification_to_users(
                 user_ids=user_ids,
                 title=instance.game.name,
                 body=body,
-                notification_type="phase_resolved",
+                notification_type=notification_type,
                 data={"game_id": str(instance.game.id), "link": link},
             )
             send_email_notification.defer(
                 user_ids=user_ids,
-                subject=f"{instance.game.name} — {instance.name} Resolved",
+                subject=subject,
                 html=notification_email(
                     title=instance.game.name,
                     body=body,

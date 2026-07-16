@@ -375,3 +375,74 @@ class TestDeadlineGridPreservation:
         expected = datetime(2026, 1, 4, 21, 0, 0, tzinfo=dt_timezone.utc)
         assert next_with_reference == expected
         assert next_from_now != expected
+
+    @pytest.mark.django_db
+    def test_drifted_early_resolution_compresses_next_deadline_into_range(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+        game.deadline_mode = DeadlineMode.FIXED_TIME
+        game.movement_frequency = PhaseFrequency.DAILY
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
+
+        now = timezone.now()
+        grid_slot = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        if grid_slot <= now:
+            grid_slot += timedelta(days=1)
+        far_slot = grid_slot + timedelta(days=4)
+        phase.scheduled_resolution = far_slot
+        phase.save()
+
+        uncompressed = game.get_scheduled_resolution("Retreat", reference_time=far_slot)
+        assert uncompressed - timezone.now() > timedelta(hours=48)
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        run = new_phase.scheduled_resolution - timezone.now()
+        assert timedelta(hours=24) <= run < timedelta(hours=48)
+        assert new_phase.scheduled_resolution < uncompressed
+        assert new_phase.scheduled_resolution.astimezone(dt_timezone.utc).hour == 12
+        assert new_phase.scheduled_resolution.minute == 0
+
+    @pytest.mark.django_db
+    def test_on_grid_resolution_leaves_next_deadline_uncompressed(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+        game.deadline_mode = DeadlineMode.FIXED_TIME
+        game.movement_frequency = PhaseFrequency.DAILY
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
+
+        now = timezone.now()
+        near_slot = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        if near_slot <= now:
+            near_slot += timedelta(days=1)
+        phase.scheduled_resolution = near_slot
+        phase.save()
+
+        uncompressed = game.get_scheduled_resolution("Retreat", reference_time=near_slot)
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        run = new_phase.scheduled_resolution - timezone.now()
+        assert timedelta(hours=24) <= run < timedelta(hours=48)
+        assert new_phase.scheduled_resolution == uncompressed
+
+    @pytest.mark.django_db
+    def test_duration_game_deadline_is_not_compressed(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        assert phase.game.deadline_mode == DeadlineMode.DURATION
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        run = new_phase.scheduled_resolution - timezone.now()
+        expected = phase.game.movement_phase_duration_seconds
+        assert abs(run.total_seconds() - expected) < 2
