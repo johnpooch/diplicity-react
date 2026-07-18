@@ -6,7 +6,7 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { Button } from "@/components/ui/button";
 
-const VARIANT_CREATOR_URL = "https://variantcreator.diplicity.com";
+const VARIANT_CREATOR_URL = "http://variantcreator.diplicity.com";
 
 const DISCORD_URL = "https://discord.gg/cwjzxEqTuN";
 
