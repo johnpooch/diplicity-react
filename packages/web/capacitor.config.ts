@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: "com.diplicity.app",
   appName: "Diplicity",
   webDir: "dist",
+  backgroundColor: "#291b1b",
   ios: {
     webContentsDebuggingEnabled: true,
   },
@@ -15,8 +16,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchAutoHide: true,
-      launchShowDuration: 2000,
+      launchAutoHide: false,
       launchFadeOutDuration: 500,
       backgroundColor: "#291b1b",
       showSpinner: false,
