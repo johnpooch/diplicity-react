@@ -43,9 +43,11 @@ describe("MapView", () => {
   it("renders the Leaflet host for interactive mode and forwards province clicks", async () => {
     mockGameMapCanvas.mockClear();
     const onClickProvince = vi.fn();
-    renderWithClient(
+    const { container } = renderWithClient(
       <MapView {...baseProps} mode="interactive" onClickProvince={onClickProvince} />
     );
+
+    expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
 
     fireEvent.click(await screen.findByTestId("province"));
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import type {
   GameListCurrentPhase,
   Order,
@@ -57,6 +58,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const { data: dsvg } = useDsvg(props.variant.svgUrl);
 
   const [fill, setFill] = useState(showFillToggle);
+  const [baseReady, setBaseReady] = useState(false);
 
   const parsed = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
   const renderer = useMemo(() => (dsvg ? new DiplicityMap(dsvg) : null), [dsvg]);
@@ -207,6 +209,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
         basePngRef.current = pngUrl;
         if (!initialRecordedRef.current) {
           initialRecordedRef.current = true;
+          setBaseReady(true);
           const renderMs = performance.now() - t0;
           recordInitialRender({
             variantId: variantIdRef.current,
@@ -266,6 +269,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
         data-map-impl="leaflet"
         style={{ width: "100%", height: "100%", background: "var(--background)" }}
       />
+      {!baseReady && <Skeleton className="absolute inset-0 z-[900]" />}
       {showFillToggle && (
         <Button
           size="icon"

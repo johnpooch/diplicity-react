@@ -113,7 +113,7 @@ const MapView: React.FC<MapViewProps> = ({ mode = "interactive", ...props }) => 
   }
 
   return (
-    <Suspense fallback={<div style={{ width: "100%", height: "100%" }} />}>
+    <Suspense fallback={<Skeleton className="w-full h-full" />}>
       <GameMapCanvas
         variant={props.variant}
         phase={props.phase}
