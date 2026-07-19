@@ -193,6 +193,9 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     const controller = controllerRef.current;
     if (!controller || baseSvg === null || !parsed) return;
 
+    controller.setBaseVector(baseSvg);
+    setBaseReady(true);
+
     let cancelled = false;
     const t0 = performance.now();
     const { width, height } = parsed.viewBox;
@@ -209,7 +212,6 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
         basePngRef.current = pngUrl;
         if (!initialRecordedRef.current) {
           initialRecordedRef.current = true;
-          setBaseReady(true);
           const renderMs = performance.now() - t0;
           recordInitialRender({
             variantId: variantIdRef.current,
@@ -269,7 +271,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
         data-map-impl="leaflet"
         style={{ width: "100%", height: "100%", background: "var(--background)" }}
       />
-      {!baseReady && <Skeleton className="absolute inset-0 z-[900]" />}
+      {!baseReady && <Skeleton className="absolute inset-0 z-[900] bg-border" />}
       {showFillToggle && (
         <Button
           size="icon"

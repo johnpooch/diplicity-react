@@ -66,6 +66,7 @@ vi.mock("./rasterizeSvg", () => ({
 vi.mock("./GameMapController", () => ({
   GameMapController: class {
     setBase = vi.fn();
+    setBaseVector = vi.fn();
     setOverlay = vi.fn();
     setHitTest = vi.fn();
     setProvincePaths = vi.fn();
@@ -118,18 +119,22 @@ describe("GameMapCanvas", () => {
     expect(mockControllerInstances).toHaveLength(0);
   });
 
-  it("removes the skeleton once the first base raster lands", async () => {
+  it("shows the vector base and removes the skeleton before the raster lands", async () => {
     mockUseDsvg.mockReturnValue({ data: "<svg/>" });
 
     const { container } = render(<GameMapCanvas {...baseProps} />);
 
-    expect(querySkeleton(container)).not.toBeNull();
     await waitFor(() => expect(rasterDeferreds).toHaveLength(1));
+    expect(mockControllerInstances[0].setBaseVector).toHaveBeenCalledWith(
+      '<svg data-key=""/>'
+    );
+    expect(querySkeleton(container)).toBeNull();
 
     rasterDeferreds[0].resolve("blob:base");
 
-    await waitFor(() => expect(querySkeleton(container)).toBeNull());
-    expect(mockControllerInstances[0].setBase).toHaveBeenCalledWith("blob:base");
+    await waitFor(() =>
+      expect(mockControllerInstances[0].setBase).toHaveBeenCalledWith("blob:base")
+    );
   });
 
   it("does not show the skeleton again while a later phase re-rasterises", async () => {

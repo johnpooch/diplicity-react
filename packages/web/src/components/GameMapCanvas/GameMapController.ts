@@ -69,6 +69,7 @@ export class GameMapController {
   private readonly options: ControllerOptions;
 
   private baseLayer: L.ImageOverlay | null = null;
+  private vectorBaseLayer: L.SVGOverlay | null = null;
   private highlightLayer: L.SVGOverlay | null = null;
   private overlayLayer: L.SVGOverlay | null = null;
   private readonly hitLayer: L.LayerGroup;
@@ -292,6 +293,20 @@ export class GameMapController {
     this.map.on("moveend", () => this.endGesture());
   }
 
+  setBaseVector(svg: string): void {
+    const element = new DOMParser().parseFromString(svg, "image/svg+xml")
+      .documentElement as unknown as SVGElement;
+    const next = L.svgOverlay(element, this.bounds, {
+      interactive: false,
+      pane: "baseMap",
+    }).addTo(this.map);
+    if (this.vectorBaseLayer) {
+      this.map.removeLayer(this.vectorBaseLayer);
+    }
+    this.vectorBaseLayer = next;
+    this.markBaseReady();
+  }
+
   setBase(pngUrl: string): void {
     const next = L.imageOverlay(pngUrl, this.bounds, {
       interactive: false,
@@ -301,12 +316,19 @@ export class GameMapController {
       this.map.removeLayer(this.baseLayer);
     }
     this.baseLayer = next;
-    if (!this.baseReady) {
-      this.baseReady = true;
-      this.map.getPane("overlayMap")!.style.visibility = "";
-      if (this.options.forceCompositeOnBase) {
-        this.nudgeComposite();
-      }
+    if (this.vectorBaseLayer) {
+      this.map.removeLayer(this.vectorBaseLayer);
+      this.vectorBaseLayer = null;
+    }
+    this.markBaseReady();
+  }
+
+  private markBaseReady(): void {
+    if (this.baseReady) return;
+    this.baseReady = true;
+    this.map.getPane("overlayMap")!.style.visibility = "";
+    if (this.options.forceCompositeOnBase) {
+      this.nudgeComposite();
     }
   }
 
