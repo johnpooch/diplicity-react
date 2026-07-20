@@ -1361,16 +1361,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameFindSimilar'
           description: ''
-  /phase/deadline-warnings/:
-    post:
-      operationId: phaseDeadlineWarningsCreate
-      tags:
-      - phase
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /phase/resolve/:
     post:
       operationId: phaseResolveCreate
