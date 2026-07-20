@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -151,11 +152,12 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
             and instance.game_master_id is not None
             and instance.game_master_id == self.request.user.id
         )
-        if is_game_master_delete:
-            game_deleted_by_master.send(
-                sender=Game, game=instance, actor_id=self.request.user.id
-            )
-        instance.delete()
+        with transaction.atomic():
+            if is_game_master_delete:
+                game_deleted_by_master.send(
+                    sender=Game, game=instance, actor_id=self.request.user.id
+                )
+            instance.delete()
 
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):
