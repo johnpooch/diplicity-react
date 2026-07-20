@@ -215,6 +215,24 @@ def create(self, validated_data):
 
 Use `Prefetch` objects for complex prefetch strategies with custom querysets (e.g. `to_attr="template_phases"`). See `GameQuerySet` for canonical patterns.
 
+## Notifications
+
+Player-facing notifications are triggered from signals, not imperatively. All triggering lives in `notification/signals.py`, expressed with `@on_` transition decorators from `notification/decorators.py` — a `pre_save` capture helper remembers the prior field value, and a decorator fires the receiver only on the transition it names. This mirrors `agent/signals.py` (`capture_phase_status` + `@on_phase_activated`); each receiver reads as "on this transition, notify these recipients with this copy."
+
+```python
+pre_save.connect(capture_phase_status, sender=Phase)
+
+@receiver(post_save, sender=Phase)
+@on_phase_resolved
+def send_phase_resolved_notification(sender, instance, created, **kwargs):
+    ...
+```
+
+Two rules the pattern depends on:
+
+- **Bulk writes emit no signals.** `bulk_update`, `bulk_create` (partially), and queryset `.delete()` bypass `pre_save`/`post_save`, so any notification wired to those transitions silently never fires. Save per-instance, or emit an explicit signal, whenever the write must notify.
+- **Time-based notifications are signal-armed, not swept.** A notification derived from a persisted timestamp (e.g. a deadline) should be scheduled via `schedule_at` when that timestamp is set and re-evaluated at fire time (see `phase/signals.py::arm_deadline_resolution`), not polled by an every-minute cron. Reserve `@app.periodic` sweeps for genuinely open-ended work with no triggering row.
+
 ## API Codegen
 
 The OpenAPI schema and TypeScript client are auto-generated:
