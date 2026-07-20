@@ -879,7 +879,7 @@ class TestKickBotMember:
         game = pending_game_created_by_primary_user
         member = game.members.create(user=roster_bot_user)
 
-        with patch("member.views.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             url = reverse(kick_viewname, args=[game.id, member.id])
             response = authenticated_client.delete(url)
 
@@ -894,7 +894,7 @@ class TestKickBotMember:
         game = pending_game_created_by_primary_user
         member = game.members.create(user=secondary_user)
 
-        with patch("member.views.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             url = reverse(kick_viewname, args=[game.id, member.id])
             response = authenticated_client.delete(url)
 

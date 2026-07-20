@@ -3343,7 +3343,7 @@ class TestCivilDisorderDetection:
         )
         Phase.objects._set_orders_outcome(phase2)
 
-        with patch("game.models.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             newly_cd_members = Phase.objects._check_civil_disorder(phase2)
         Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
@@ -3395,7 +3395,7 @@ class TestCivilDisorderDetection:
         )
         Phase.objects._set_orders_outcome(phase2)
 
-        with patch("game.models.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             newly_cd_members = Phase.objects._check_civil_disorder(phase2)
         Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
@@ -3594,6 +3594,59 @@ class TestCivilDisorderStagingRemoval:
         assert len(staging_removal_jobs) == 1
         assert staging_removal_jobs[0]["args"]["user_ids"] == [primary_user.id]
 
+    @pytest.mark.django_db
+    def test_cd_staging_removal_sends_one_notification_per_game(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany, phase2 = self._setup_cd_scenario(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        first_staging = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="First Staging Game",
+            status=GameStatus.PENDING,
+            created_by=secondary_user,
+        )
+        first_staging.members.create(user=primary_user)
+        first_staging.members.create(user=secondary_user)
+
+        second_staging = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Second Staging Game",
+            status=GameStatus.PENDING,
+            created_by=secondary_user,
+        )
+        second_staging.members.create(user=primary_user)
+        second_staging.members.create(user=secondary_user)
+
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
+
+        staging_removal_jobs = [
+            j for j in in_memory_procrastinate.jobs.values()
+            if j["task_name"] == "notification.send_notification"
+            and j["args"].get("notification_type") == "removed_from_staging"
+        ]
+        assert len(staging_removal_jobs) == 2
+        bodies = sorted(j["args"]["body"] for j in staging_removal_jobs)
+        assert bodies == [
+            "You were removed from First Staging Game because you entered civil disorder in an active game.",
+            "You were removed from Second Staging Game because you entered civil disorder in an active game.",
+        ]
+        assert all(j["args"]["user_ids"] == [primary_user.id] for j in staging_removal_jobs)
 
     @pytest.mark.django_db
     def test_cd_does_not_remove_game_creator_from_staging(
@@ -5286,8 +5339,7 @@ class TestCheckEliminations:
         in_memory_procrastinate,
     ):
         game, italy, germany = elimination_game_factory()
-        italy.eliminated = True
-        italy.save()
+        Member.objects.filter(pk=italy.pk).update(eliminated=True)
 
         previous_phase = Phase.objects.create(
             game=game, variant=italy_vs_germany_variant,

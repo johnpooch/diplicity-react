@@ -9,11 +9,20 @@ from draw_proposal.models import DrawProposal
 from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
 from game.models import Game
+from member.models import Member
 from common.constants import DeadlineMode, GameStatus
 from notification.decorators import capture_phase_status, on_phase_resolved
+from notification.events import (
+    game_deadline_extended,
+    game_deleted_by_master,
+    member_kicked_from_staging,
+    member_removed_from_staging,
+    nmr_extensions_applied,
+)
 from notification.tasks import send_notification
 from notification.utils import send_notification_to_users
 from phase.models import Phase
+from phase.utils import format_deadline
 from victory.models import Victory
 
 logger = logging.getLogger(__name__)
@@ -61,6 +70,7 @@ def send_draw_proposal_notification(sender, instance, created, **kwargs):
 
 
 _game_status_cache = {}
+_previous_game_management_state = {}
 
 
 @receiver(post_save, sender=ChannelMessage)
@@ -104,6 +114,10 @@ def cache_game_status(sender, instance, **kwargs):
         try:
             old_instance = Game.objects.get(pk=instance.pk)
             _game_status_cache[instance.pk] = old_instance.status
+            _previous_game_management_state[instance.pk] = {
+                "admin_id": old_instance.admin_id,
+                "paused_at": old_instance.paused_at,
+            }
         except sender.DoesNotExist:
             pass
 
@@ -227,5 +241,224 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):
                 link=link,
             ),
         )
+
+    transaction.on_commit(_send)
+
+
+def _game_manager_suffix(game):
+    return "" if game.anonymity_active else f" ({game.admin.username})"
+
+
+def _notify_admin_reassigned(game):
+    if game.admin_id is None:
+        return
+    send_notification.defer(
+        user_ids=[game.admin_id],
+        title=game.name,
+        body="The previous manager is no longer available, so you are now managing this game.",
+        notification_type="game_admin_reassigned",
+        data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+    )
+
+
+def _notify_game_paused(game):
+    user_ids = game.notification_user_ids(exclude_user_id=game.admin_id)
+    if not user_ids:
+        return
+    body = f"Game paused by {game.manager_label}{_game_manager_suffix(game)}"
+
+    def _send():
+        send_notification_to_users(
+            user_ids=user_ids,
+            title=game.name,
+            body=body,
+            notification_type="game_paused",
+            data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+        )
+
+    transaction.on_commit(_send)
+
+
+def _notify_game_resumed(game):
+    user_ids = game.notification_user_ids(exclude_user_id=game.admin_id)
+    if not user_ids:
+        return
+    new_deadline = game.current_phase.scheduled_resolution if game.current_phase else None
+    deadline_str = format_deadline(new_deadline, game.fixed_deadline_timezone) if new_deadline else "N/A"
+    body = f"Game resumed by {game.manager_label}{_game_manager_suffix(game)}. New deadline: {deadline_str}"
+
+    def _send():
+        send_notification_to_users(
+            user_ids=user_ids,
+            title=game.name,
+            body=body,
+            notification_type="game_resumed",
+            data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+        )
+
+    transaction.on_commit(_send)
+
+
+@receiver(post_save, sender=Game)
+def send_game_management_notifications(sender, instance, created, **kwargs):
+    previous_state = _previous_game_management_state.pop(instance.pk, None)
+    if created or previous_state is None:
+        return
+
+    if previous_state["admin_id"] != instance.admin_id:
+        _notify_admin_reassigned(instance)
+
+    if previous_state["paused_at"] is None and instance.paused_at is not None:
+        _notify_game_paused(instance)
+    elif previous_state["paused_at"] is not None and instance.paused_at is None:
+        _notify_game_resumed(instance)
+
+
+_previous_member_state = {}
+
+
+@receiver(pre_save, sender=Member)
+def capture_member_state(sender, instance, **kwargs):
+    if instance.pk:
+        _previous_member_state[instance.pk] = (
+            Member.objects.filter(pk=instance.pk).values("eliminated", "civil_disorder").first()
+        )
+
+
+def _notify_elimination(member):
+    if member.user_id is None:
+        return
+    game = member.game
+    send_notification.defer(
+        user_ids=[member.user_id],
+        title=game.name,
+        body="You've been eliminated. You are not required to enter any orders anymore. You can still chat with players. Better luck next time!",
+        notification_type="elimination",
+        data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+    )
+
+
+def _notify_civil_disorder_recovery(member):
+    game = member.game
+    user_ids = game.notification_user_ids(exclude_user_id=member.user_id)
+    if not user_ids:
+        return
+    nation_name = member.nation.name if member.nation else "A player"
+
+    def _send():
+        send_notification_to_users(
+            user_ids=user_ids,
+            title="Player Returned",
+            body=f"{nation_name} has returned from civil disorder.",
+            notification_type="civil_disorder_recovery",
+            data={"game_id": str(game.id)},
+        )
+
+    transaction.on_commit(_send)
+
+
+@receiver(post_save, sender=Member)
+def send_member_notifications(sender, instance, created, **kwargs):
+    previous_state = _previous_member_state.pop(instance.pk, None)
+    if created or previous_state is None:
+        return
+
+    if not previous_state["eliminated"] and instance.eliminated:
+        _notify_elimination(instance)
+
+    if previous_state["civil_disorder"] and not instance.civil_disorder:
+        _notify_civil_disorder_recovery(instance)
+
+
+@receiver(game_deleted_by_master)
+def send_game_deleted_notification(sender, game, actor_id, **kwargs):
+    user_ids = game.notification_user_ids(exclude_user_id=actor_id)
+    if not user_ids:
+        return
+    game_name = game.name
+
+    def _send():
+        send_notification.defer(
+            user_ids=user_ids,
+            title=game_name,
+            body="The game was deleted by the Game Master.",
+            notification_type="game_deleted",
+        )
+
+    transaction.on_commit(_send)
+
+
+@receiver(game_deadline_extended)
+def send_game_deadline_extended_notification(sender, game, **kwargs):
+    user_ids = game.notification_user_ids(exclude_user_id=game.admin_id)
+    if not user_ids:
+        return
+    new_deadline = game.current_phase.scheduled_resolution if game.current_phase else None
+    deadline_str = format_deadline(new_deadline, game.fixed_deadline_timezone) if new_deadline else "N/A"
+    body = f"Deadline extended by {game.manager_label}{_game_manager_suffix(game)}. New deadline: {deadline_str}"
+
+    def _send():
+        send_notification_to_users(
+            user_ids=user_ids,
+            title=game.name,
+            body=body,
+            notification_type="game_deadline_extended",
+            data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+        )
+
+    transaction.on_commit(_send)
+
+
+@receiver(member_kicked_from_staging)
+def send_kicked_from_staging_notification(sender, game, user_id, **kwargs):
+    send_notification.defer(
+        user_ids=[user_id],
+        title=game.name,
+        body=f"You were removed from this game by {game.manager_label}.",
+        notification_type="kicked_from_staging",
+        data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+    )
+
+
+@receiver(member_removed_from_staging)
+def send_removed_from_staging_notification(sender, user_id, game, **kwargs):
+    send_notification.defer(
+        user_ids=[user_id],
+        title="Removed from staging games",
+        body=f"You were removed from {game.name} because you entered civil disorder in an active game.",
+        notification_type="removed_from_staging",
+    )
+
+
+@receiver(nmr_extensions_applied)
+def send_nmr_extension_notifications(sender, phase, extension_members, deadline_str, **kwargs):
+    game = phase.game
+    link = f"{settings.FRONTEND_URL}/game/{game.id}"
+
+    def _send():
+        for member in extension_members:
+            if member.user_id is None:
+                continue
+            send_notification_to_users(
+                user_ids=[member.user_id],
+                title=game.name,
+                body=f"You did not submit orders and used an automatic extension ({member.nmr_extensions_remaining} remaining). The current phase is extended until {deadline_str}.",
+                notification_type="nmr_extension_used",
+                data={"game_id": str(game.id), "link": link},
+            )
+
+        extension_ids = {m.user_id for m in extension_members if m.user_id is not None}
+        other_ids = [
+            user_id for user_id in game.notification_user_ids()
+            if user_id not in extension_ids
+        ]
+        if other_ids:
+            send_notification_to_users(
+                user_ids=other_ids,
+                title=game.name,
+                body=f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline_str}.",
+                notification_type="nmr_extension_applied",
+                data={"game_id": str(game.id), "link": link},
+            )
 
     transaction.on_commit(_send)

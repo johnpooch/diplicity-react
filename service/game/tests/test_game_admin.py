@@ -53,7 +53,7 @@ class TestGameAdminField:
         game.members.create(user=secondary_user)
 
         api_client.force_authenticate(user=creator)
-        with patch("game.models.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             response = api_client.delete(reverse(leave_viewname, args=[game.id]))
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
@@ -73,7 +73,7 @@ class TestGameAdminField:
         game.members.create(user=secondary_user)
 
         api_client.force_authenticate(user=secondary_user)
-        with patch("game.models.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             response = api_client.delete(reverse(leave_viewname, args=[game.id]))
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
@@ -89,7 +89,7 @@ class TestReassignAdmin:
         game = pending_game_factory()
         game.members.create(user=secondary_user)
 
-        with patch("game.models.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             game.reassign_admin()
 
         game.refresh_from_db()
@@ -106,7 +106,7 @@ class TestReassignAdmin:
         member_factory(game=game, civil_disorder=True)
         eligible_member = member_factory(game=game)
 
-        with patch("game.models.send_notification"):
+        with patch("notification.signals.send_notification"):
             game.reassign_admin()
 
         game.refresh_from_db()
@@ -117,7 +117,7 @@ class TestReassignAdmin:
         game = pending_game_factory()
         original_admin = game.admin
 
-        with patch("game.models.send_notification") as mock_send:
+        with patch("notification.signals.send_notification") as mock_send:
             game.reassign_admin()
 
         game.refresh_from_db()

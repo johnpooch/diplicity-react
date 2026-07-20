@@ -228,9 +228,12 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):
     ...
 ```
 
-Two rules the pattern depends on:
+Some triggers can't be read off a model field transition — a request-scoped actor is baked into the copy (deadline extended by X), the same write is ambiguous (a `Member` delete may be a kick, a civil-disorder removal, or a voluntary leave), or the fact is ephemeral (which members just used an NMR extension). For those, define an explicit `django.dispatch.Signal` in `notification/events.py`, `.send()` it from the trigger site with the context the receiver needs, and connect the receiver in `notification/signals.py`. The domain code emits a fact; recipients and copy still live only in `notification/signals.py` — no notification `send` in a view, serializer, or model method.
+
+Three rules the pattern depends on:
 
 - **Bulk writes emit no signals.** `bulk_update`, `bulk_create` (partially), and queryset `.delete()` bypass `pre_save`/`post_save`, so any notification wired to those transitions silently never fires. Save per-instance, or emit an explicit signal, whenever the write must notify.
+- **When a model save can't carry the trigger, emit an explicit signal.** Reach for a `notification/events.py` signal when the copy needs a request-scoped actor, when the same write is ambiguous, or when the triggering fact isn't persisted — not as a default over a clean field transition.
 - **Time-based notifications are signal-armed, not swept.** A notification derived from a persisted timestamp (e.g. a deadline) should be scheduled via `schedule_at` when that timestamp is set and re-evaluated at fire time (see `phase/signals.py::arm_deadline_resolution`), not polled by an every-minute cron. Reserve `@app.periodic` sweeps for genuinely open-ended work with no triggering row.
 
 ## API Codegen

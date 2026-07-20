@@ -1,4 +1,3 @@
-from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -23,7 +22,7 @@ from common.views import SelectedGameMixin
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGameMember, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
-from notification.tasks import send_notification
+from notification.events import game_deleted_by_master
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -152,18 +151,11 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
             and instance.game_master_id is not None
             and instance.game_master_id == self.request.user.id
         )
-        user_ids = instance.notification_user_ids(exclude_user_id=self.request.user.id)
-        game_name = instance.name
-        instance.delete()
-        if is_game_master_delete and user_ids:
-            transaction.on_commit(
-                lambda: send_notification.defer(
-                    user_ids=user_ids,
-                    title=game_name,
-                    body="The game was deleted by the Game Master.",
-                    notification_type="game_deleted",
-                )
+        if is_game_master_delete:
+            game_deleted_by_master.send(
+                sender=Game, game=instance, actor_id=self.request.user.id
             )
+        instance.delete()
 
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):

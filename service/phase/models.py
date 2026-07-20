@@ -23,7 +23,7 @@ from victory.models import Victory
 from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
 from notification import utils as notification_utils
-from notification.tasks import send_notification
+from notification.events import member_removed_from_staging, nmr_extensions_applied
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -231,33 +231,12 @@ class PhaseManager(models.Manager):
 
         deadline_str = format_deadline(phase.scheduled_resolution, phase.game.fixed_deadline_timezone)
 
-        def send_notifications():
-            for member in members_with_extensions:
-                if member.user_id is None:
-                    continue
-                notification_utils.send_notification_to_users(
-                    user_ids=[member.user_id],
-                    title=phase.game.name,
-                    body=f"You did not submit orders and used an automatic extension ({member.nmr_extensions_remaining} remaining). The current phase is extended until {deadline_str}.",
-                    notification_type="nmr_extension_used",
-                    data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
-                )
-
-            extension_ids = {m.user_id for m in members_with_extensions if m.user_id is not None}
-            other_ids = [
-                user_id for user_id in phase.game.notification_user_ids()
-                if user_id not in extension_ids
-            ]
-            if other_ids:
-                notification_utils.send_notification_to_users(
-                    user_ids=other_ids,
-                    title=phase.game.name,
-                    body=f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline_str}.",
-                    notification_type="nmr_extension_applied",
-                    data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
-                )
-
-        transaction.on_commit(send_notifications)
+        nmr_extensions_applied.send(
+            sender=Phase,
+            phase=phase,
+            extension_members=members_with_extensions,
+            deadline_str=deadline_str,
+        )
 
         return members_with_extensions
 
@@ -542,13 +521,10 @@ class PhaseManager(models.Manager):
         Member.objects.filter(id__in=[m.id for m in staging_members]).delete()
 
         for user_id, games in games_by_user.items():
-            game_names = ", ".join(g.name for g in games)
-            send_notification.defer(
-                user_ids=[user_id],
-                title="Removed from staging games",
-                body=f"You were removed from {game_names} because you entered civil disorder in an active game.",
-                notification_type="removed_from_staging",
-            )
+            for game in games:
+                member_removed_from_staging.send(
+                    sender=Member, user_id=user_id, game=game
+                )
 
         from game.models import Game
         for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
@@ -580,20 +556,7 @@ class PhaseManager(models.Manager):
 
         for m in newly_eliminated:
             m.eliminated = True
-        Member.objects.bulk_update(newly_eliminated, ["eliminated"])
-
-        game = previous_phase.game
-
-        for member in newly_eliminated:
-            if member.user_id is None:
-                continue
-            send_notification.defer(
-                user_ids=[member.user_id],
-                title=game.name,
-                body="You've been eliminated. You are not required to enter any orders anymore. You can still chat with players. Better luck next time!",
-                notification_type="elimination",
-                data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
-            )
+            m.save(update_fields=["eliminated"])
 
     def _check_abandonment(self, game):
         if game.sandbox:

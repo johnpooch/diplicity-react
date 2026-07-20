@@ -7,6 +7,7 @@ from channel.models import Channel, ChannelMessage
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus
 from draw_proposal.models import DrawProposal
 from game.models import Game
+from member.models import Member
 from phase.models import Phase
 from victory.models import Victory
 from notification.signals import _truncate_body
@@ -442,3 +443,137 @@ class TestGameStartEmailNotification:
         assert "Game Started" in args["subject"]
         assert game.name in args["subject"]
         assert game.name in args["html"]
+
+
+def _managed_game(factory, admin_user, paused=False):
+    game, phase, italy, germany = factory()
+    Game.objects.filter(pk=game.id).update(
+        admin=admin_user, paused_at=timezone.now() if paused else None
+    )
+    return Game.objects.get(pk=game.id), phase, italy, germany
+
+
+class TestGameManagementNotifications:
+
+    @pytest.mark.django_db
+    def test_admin_change_notifies_new_admin(
+        self, end_game_notification_game_factory, primary_user, secondary_user, in_memory_procrastinate
+    ):
+        game, _, _, _ = _managed_game(end_game_notification_game_factory, primary_user)
+
+        game.admin = secondary_user
+        game.save()
+
+        jobs = _notification_jobs(in_memory_procrastinate, "game_admin_reassigned")
+        assert len(jobs) == 1
+        assert jobs[0]["args"]["user_ids"] == [secondary_user.id]
+
+    @pytest.mark.django_db
+    def test_creating_game_does_not_notify_admin(
+        self, end_game_notification_game_factory, in_memory_procrastinate
+    ):
+        end_game_notification_game_factory()
+
+        assert _notification_jobs(in_memory_procrastinate, "game_admin_reassigned") == []
+
+    @pytest.mark.django_db
+    def test_pause_notifies_players_excluding_admin(
+        self,
+        end_game_notification_game_factory,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game, _, _, _ = _managed_game(end_game_notification_game_factory, primary_user)
+
+        game.paused_at = timezone.now()
+        game.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "game_paused"
+        assert primary_user.id not in call.kwargs["user_ids"]
+        assert secondary_user.id in call.kwargs["user_ids"]
+
+    @pytest.mark.django_db
+    def test_resume_notifies_players(
+        self,
+        end_game_notification_game_factory,
+        secondary_user,
+        primary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game, _, _, _ = _managed_game(end_game_notification_game_factory, primary_user, paused=True)
+
+        game.paused_at = None
+        game.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "game_resumed"
+        assert secondary_user.id in call.kwargs["user_ids"]
+
+    @pytest.mark.django_db
+    def test_resaving_paused_game_does_not_renotify(
+        self,
+        end_game_notification_game_factory,
+        primary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game, _, _, _ = _managed_game(end_game_notification_game_factory, primary_user)
+
+        game.paused_at = timezone.now()
+        game.save()
+        game.save()
+
+        assert mock_send_notification_to_users.call_count == 1
+
+
+class TestMemberTransitionNotifications:
+
+    @pytest.mark.django_db
+    def test_elimination_notifies_member(
+        self, end_game_notification_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game, phase, italy, germany = end_game_notification_game_factory()
+
+        italy.eliminated = True
+        italy.save()
+
+        jobs = _notification_jobs(in_memory_procrastinate, "elimination")
+        assert len(jobs) == 1
+        assert jobs[0]["args"]["user_ids"] == [primary_user.id]
+
+    @pytest.mark.django_db
+    def test_resaving_eliminated_member_does_not_renotify(
+        self, end_game_notification_game_factory, in_memory_procrastinate
+    ):
+        game, phase, italy, germany = end_game_notification_game_factory()
+
+        italy.eliminated = True
+        italy.save()
+        italy.save()
+
+        assert len(_notification_jobs(in_memory_procrastinate, "elimination")) == 1
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_notifies_others(
+        self,
+        end_game_notification_game_factory,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game, phase, italy, germany = end_game_notification_game_factory()
+        Member.objects.filter(pk=germany.pk).update(civil_disorder=True)
+        germany = Member.objects.get(pk=germany.pk)
+
+        germany.civil_disorder = False
+        germany.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "civil_disorder_recovery"
+        assert secondary_user.id not in call.kwargs["user_ids"]
+        assert primary_user.id in call.kwargs["user_ids"]
