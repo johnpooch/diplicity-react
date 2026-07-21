@@ -1,11 +1,8 @@
-import logging
 from collections import namedtuple
 
 from django.conf import settings
 
 from notification.tasks import send_notification
-
-logger = logging.getLogger(__name__)
 
 
 class Bucket:
