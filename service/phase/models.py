@@ -605,6 +605,16 @@ class PhaseManager(models.Manager):
 
         return all(m.civil_disorder for m in active_members)
 
+    def _apply_member_status_changes(self, previous_phase, adjudication_data):
+        newly_cd_members = self._check_civil_disorder(previous_phase)
+        surviving_cd_members = self._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+        new_phase = self.create_from_adjudication_data(previous_phase, adjudication_data)
+        self._check_eliminations(previous_phase, new_phase)
+        self._notify_civil_disorder(previous_phase, surviving_cd_members)
+        return new_phase
+
     def resolve(self, phase):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
             span.set_attribute("phase.id", phase.id)
@@ -617,15 +627,8 @@ class PhaseManager(models.Manager):
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
                     self._set_orders_outcome(phase)
-                    newly_cd_members = self._check_civil_disorder(phase)
                     adjudication_data = resolve(phase)
-
-                    surviving_cd_members = self._reconcile_civil_disorder_eliminations(
-                        newly_cd_members, adjudication_data
-                    )
-                    new_phase = self.create_from_adjudication_data(phase, adjudication_data)
-                    self._check_eliminations(phase, new_phase)
-                    self._notify_civil_disorder(phase, surviving_cd_members)
+                    new_phase = self._apply_member_status_changes(phase, adjudication_data)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 
