@@ -10,6 +10,7 @@ import { Toaster } from "./components/ui/sonner";
 import { isNativePlatform } from "./utils/platform";
 import { initializeNativeSocialLogin } from "./auth/nativeGoogleAuth";
 import { App as CapacitorApp } from "@capacitor/app";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
@@ -64,6 +65,12 @@ function App() {
   useEffect(() => {
     if (isNativePlatform()) {
       initializeNativeSocialLogin();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isNativePlatform()) {
+      SplashScreen.hide();
     }
   }, []);
 

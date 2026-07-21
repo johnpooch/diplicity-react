@@ -48,7 +48,6 @@ type GameMapCanvasProps = {
 const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<GameMapController | null>(null);
-  const basePngRef = useRef<string | null>(null);
   const initialRecordedRef = useRef(false);
 
   const mode = props.mode ?? "interactive";
@@ -153,10 +152,6 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       resizeObserver.disconnect();
       controller.destroy();
       controllerRef.current = null;
-      if (basePngRef.current) {
-        URL.revokeObjectURL(basePngRef.current);
-        basePngRef.current = null;
-      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- create the map once per parsed dSVG; live values flow through refs and dedicated effects
   }, [parsed]);
@@ -195,16 +190,11 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     const t0 = performance.now();
     const { width, height } = parsed.viewBox;
     rasterizeSvg(baseSvg, width, height)
-      .then((pngUrl) => {
+      .then((canvas) => {
         if (cancelled) {
-          URL.revokeObjectURL(pngUrl);
           return;
         }
-        controller.setBase(pngUrl);
-        if (basePngRef.current) {
-          URL.revokeObjectURL(basePngRef.current);
-        }
-        basePngRef.current = pngUrl;
+        controller.setBase(canvas);
         if (!initialRecordedRef.current) {
           initialRecordedRef.current = true;
           const renderMs = performance.now() - t0;

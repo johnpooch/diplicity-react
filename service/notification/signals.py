@@ -9,7 +9,8 @@ from draw_proposal.models import DrawProposal
 from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
 from game.models import Game
-from common.constants import DeadlineMode, GameStatus, PhaseStatus
+from common.constants import DeadlineMode, GameStatus
+from notification.decorators import capture_phase_status, on_phase_resolved
 from notification.tasks import send_notification
 from notification.utils import send_notification_to_users
 from phase.models import Phase
@@ -186,60 +187,45 @@ def send_game_status_notifications(sender, instance, created, **kwargs):
         _send_game_end_notification(instance.id, instance.name, instance.notification_user_ids())
 
 
-_phase_status_cache = {}
-
-
-@receiver(pre_save, sender=Phase)
-def cache_phase_status(sender, instance, **kwargs):  # noqa: ARG001
-    if instance.pk:
-        try:
-            old_instance = Phase.objects.get(pk=instance.pk)
-            _phase_status_cache[instance.pk] = old_instance.status
-        except sender.DoesNotExist:
-            pass
+pre_save.connect(capture_phase_status, sender=Phase)
 
 
 @receiver(post_save, sender=Phase)
-def send_phase_resolved_notification(sender, instance, created, **kwargs):  # noqa: ARG001
-    if created:
-        return
+@on_phase_resolved
+def send_phase_resolved_notification(sender, instance, created, **kwargs):
+    resolved_early = (
+        instance.game.deadline_mode == DeadlineMode.FIXED_TIME
+        and instance.scheduled_resolution is not None
+        and timezone.now() < instance.scheduled_resolution
+    )
 
-    old_status = _phase_status_cache.pop(instance.pk, None)
-    if old_status == PhaseStatus.ACTIVE and instance.status == PhaseStatus.COMPLETED:
+    def _send():
+        user_ids = instance.game.notification_user_ids()
+        link = f"{settings.FRONTEND_URL}/game/{instance.game.id}"
+        if resolved_early:
+            body = f"{instance.name} resolved early — all players confirmed their orders."
+            notification_type = "phase_resolved_early"
+            subject = f"{instance.game.name} — {instance.name} Resolved Early"
+        else:
+            body = f"{instance.name} has been resolved"
+            notification_type = "phase_resolved"
+            subject = f"{instance.game.name} — {instance.name} Resolved"
 
-        resolved_early = (
-            instance.game.deadline_mode == DeadlineMode.FIXED_TIME
-            and instance.scheduled_resolution is not None
-            and timezone.now() < instance.scheduled_resolution
+        send_notification_to_users(
+            user_ids=user_ids,
+            title=instance.game.name,
+            body=body,
+            notification_type=notification_type,
+            data={"game_id": str(instance.game.id), "link": link},
         )
-
-        def _send():
-            user_ids = instance.game.notification_user_ids()
-            link = f"{settings.FRONTEND_URL}/game/{instance.game.id}"
-            if resolved_early:
-                body = f"{instance.name} resolved early — all players confirmed their orders."
-                notification_type = "phase_resolved_early"
-                subject = f"{instance.game.name} — {instance.name} Resolved Early"
-            else:
-                body = f"{instance.name} has been resolved"
-                notification_type = "phase_resolved"
-                subject = f"{instance.game.name} — {instance.name} Resolved"
-
-            send_notification_to_users(
-                user_ids=user_ids,
+        send_email_notification.defer(
+            user_ids=user_ids,
+            subject=subject,
+            html=notification_email(
                 title=instance.game.name,
                 body=body,
-                notification_type=notification_type,
-                data={"game_id": str(instance.game.id), "link": link},
-            )
-            send_email_notification.defer(
-                user_ids=user_ids,
-                subject=subject,
-                html=notification_email(
-                    title=instance.game.name,
-                    body=body,
-                    link=link,
-                ),
-            )
+                link=link,
+            ),
+        )
 
-        transaction.on_commit(_send)
+    transaction.on_commit(_send)

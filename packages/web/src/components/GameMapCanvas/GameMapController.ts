@@ -63,6 +63,23 @@ const hitTestStyle = (): L.PathOptions => ({
   fillOpacity: 0,
 });
 
+const CanvasOverlay = L.ImageOverlay.extend({
+  _initImage(this: { _url: HTMLCanvasElement; _image: HTMLCanvasElement; _zoomAnimated: boolean }) {
+    const canvas = this._url;
+    this._image = canvas;
+    canvas.classList.add("leaflet-image-layer");
+    if (this._zoomAnimated) {
+      canvas.classList.add("leaflet-zoom-animated");
+    }
+    canvas.onselectstart = () => false;
+    canvas.onmousemove = () => false;
+  },
+}) as unknown as new (
+  canvas: HTMLCanvasElement,
+  bounds: L.LatLngBoundsExpression,
+  options?: L.ImageOverlayOptions
+) => L.ImageOverlay;
+
 export class GameMapController {
   private readonly map: L.Map;
   private readonly bounds: L.LatLngBounds;
@@ -292,8 +309,8 @@ export class GameMapController {
     this.map.on("moveend", () => this.endGesture());
   }
 
-  setBase(pngUrl: string): void {
-    const next = L.imageOverlay(pngUrl, this.bounds, {
+  setBase(canvas: HTMLCanvasElement): void {
+    const next = new CanvasOverlay(canvas, this.bounds, {
       interactive: false,
       pane: "baseMap",
     }).addTo(this.map);

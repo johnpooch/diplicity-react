@@ -406,6 +406,22 @@ class TestPhaseResolvedNotification:
         assert len(jobs) == 1
         assert "Resolved Early" in jobs[0]["args"]["subject"]
 
+    @pytest.mark.django_db
+    def test_resaving_completed_phase_does_not_renotify(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1))
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        phase.save()
+
+        assert mock_send_notification_to_users.call_count == 1
+
 
 class TestGameStartEmailNotification:
 

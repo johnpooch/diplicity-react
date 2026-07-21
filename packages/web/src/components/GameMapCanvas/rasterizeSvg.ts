@@ -26,16 +26,19 @@ export const computeRasterDimensions = (
   return { width: width * scale, height: height * scale };
 };
 
-// Rasterises an SVG string to a PNG object URL once. Per the map re-architecture
+// Rasterises an SVG string to a canvas once. Per the map re-architecture
 // proposal, the static base is rasterised a single time and thereafter only
 // moved by the camera, so the ~17k path commands are never repainted per frame.
 // The board is drawn at its native viewBox resolution, capped to a pixel-area
-// budget (the accepted "soft base map at 4× zoom" trade).
+// budget (the accepted "soft base map at 4× zoom" trade). The canvas is handed
+// to Leaflet as-is: encoding it to a PNG blob and decoding it back was measured
+// at ~5s per map on an Android WebView (Pixel 8a), versus ~0.5s for the raster
+// itself.
 export const rasterizeSvg = (
   svg: string,
   width: number,
   height: number
-): Promise<string> =>
+): Promise<HTMLCanvasElement> =>
   new Promise((resolve, reject) => {
     const rasterDimensions = computeRasterDimensions(width, height);
     const sizedSvg = injectSvgDimensions(
@@ -63,13 +66,7 @@ export const rasterizeSvg = (
           throw new Error("Could not acquire a 2D canvas context");
         }
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((png) => {
-          if (!png) {
-            reject(new Error("Failed to rasterise base map to PNG"));
-            return;
-          }
-          resolve(URL.createObjectURL(png));
-        }, "image/png");
+        resolve(canvas);
       } catch (error) {
         reject(error);
       } finally {
