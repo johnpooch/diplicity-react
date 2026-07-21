@@ -9,7 +9,7 @@ vi.mock("./staleChunk", () => ({
     error instanceof Error && error.message.includes("dynamically imported"),
 }));
 
-import { resolveScreenModule } from "./lazyScreen";
+import { healLazyImport, resolveScreenModule } from "./lazyScreen";
 
 const Screen: ComponentType = () => null;
 
@@ -70,6 +70,43 @@ describe("resolveScreenModule", () => {
         }>,
         "Screen"
       )
+    ).rejects.toThrow("a real bug");
+    expect(reloadForStaleChunk).not.toHaveBeenCalled();
+  });
+});
+
+describe("healLazyImport", () => {
+  beforeEach(() => {
+    reloadForStaleChunk.mockClear();
+  });
+
+  it("returns the loaded component", async () => {
+    const result = await healLazyImport(() => Promise.resolve(Screen), Screen);
+
+    expect(result.default).toBe(Screen);
+    expect(reloadForStaleChunk).not.toHaveBeenCalled();
+  });
+
+  it("reloads when the load resolves to undefined", async () => {
+    const result = await healLazyImport(() => Promise.resolve(undefined), Screen);
+
+    expect(reloadForStaleChunk).toHaveBeenCalledOnce();
+    expect(result.default).toBe(Screen);
+  });
+
+  it("reloads when the load rejects with a stale-chunk error", async () => {
+    const result = await healLazyImport(
+      () => Promise.reject(new Error("Failed to fetch dynamically imported module")),
+      Screen
+    );
+
+    expect(reloadForStaleChunk).toHaveBeenCalledOnce();
+    expect(result.default).toBe(Screen);
+  });
+
+  it("rethrows errors that are not stale-chunk errors", async () => {
+    await expect(
+      healLazyImport(() => Promise.reject(new Error("a real bug")), Screen)
     ).rejects.toThrow("a real bug");
     expect(reloadForStaleChunk).not.toHaveBeenCalled();
   });
