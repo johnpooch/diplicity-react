@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType } from "react";
 import type {
   GameListCurrentPhase,
   Order,
@@ -10,12 +11,15 @@ import { useDsvg } from "../hooks/useDsvg";
 import { DiplicityMap } from "./InteractiveMap/mapRenderer";
 import { toRenderState } from "./InteractiveMap/toRenderState";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { GameMapCanvasProps } from "./GameMapCanvas/GameMapCanvas";
 import type { MapMode } from "./GameMapCanvas/GameMapController";
+import { healLazyImport, StaleChunkFallback } from "../utils/lazyScreen";
 
 const GameMapCanvas = lazy(() =>
-  import("./GameMapCanvas/GameMapCanvas").then((module) => ({
-    default: module.GameMapCanvas,
-  }))
+  healLazyImport<ComponentType<GameMapCanvasProps>>(
+    async () => (await import("./GameMapCanvas/GameMapCanvas"))?.GameMapCanvas,
+    StaleChunkFallback
+  )
 );
 
 type MapPhase = PhaseRetrieve | VariantTemplatePhase | GameListCurrentPhase;
