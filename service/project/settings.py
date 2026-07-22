@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     "channel",
     "adjudication",
     "notification",
+    "emit",
     "integration",
     "health",
     "victory",

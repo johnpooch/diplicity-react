@@ -21,7 +21,7 @@ The internal representation is an explicit Decision graph:
     Popping one computes its value and re-checks every decision that
     depends on it; newly-ready ones are enqueued.
   * When the queue empties but decisions remain, we look for closed
-    dependency cycles. Two kinds get resolved:
+    dependency cycles. Three kinds get resolved:
 
       - Clean N-move cycles (A→B→C→A): if every member's attack
         strictly exceeds every external competitor's prevent, all
@@ -34,8 +34,16 @@ The internal representation is an explicit Decision graph:
         Szykman's rule, 6.F.13ff). This matches the modern
         adjudication consensus.
 
-    Cycles that match neither shape are unresolvable in the current
-    solver and will exhaust the `_MAX_CYCLE_PASSES` cap, raising
+      - Contested rotations: a rotational cycle (DATC 6.C) whose
+        members are attacked from outside by an equal-or-greater
+        force is not clean, but each member is still individually
+        determined. Any member whose maximum possible attack
+        strength cannot exceed a resolved competitor's prevent is
+        forced to bounce; the rest of the cycle then collapses
+        through normal propagation.
+
+    Cycles that match none of these shapes are unresolvable in the
+    current solver and will exhaust the `_MAX_CYCLE_PASSES` cap, raising
     `RuntimeError`. Such cycles should not arise from valid
     Diplomacy positions; if one does, it indicates a solver bug.
   * Cycle-resolution passes are capped at `_MAX_CYCLE_PASSES`; exceeding
@@ -186,6 +194,11 @@ class _Solver:
                     raise RuntimeError("Decision graph did not converge")
                 continue
             if self._try_resolve_szykman_paradoxes():
+                passes += 1
+                if passes > self._MAX_CYCLE_PASSES:
+                    raise RuntimeError("Decision graph did not converge")
+                continue
+            if self._try_resolve_guaranteed_bounces():
                 passes += 1
                 if passes > self._MAX_CYCLE_PASSES:
                     raise RuntimeError("Decision graph did not converge")
@@ -1084,6 +1097,77 @@ class _Solver:
             if found_entry:
                 cycle_members.append(node)
         return cycle_members
+
+    # --- Guaranteed bounces (contested rotations) ---
+
+    def _try_resolve_guaranteed_bounces(self) -> bool:
+        """Force an unresolved MOVE_STATUS to BOUNCE when the move cannot
+        possibly enter its target regardless of how the remaining
+        decisions settle.
+
+        A Move needs its attack strength to *strictly exceed* every
+        competitor's prevent strength. The most attack strength a Move
+        could ever muster is one plus each of its matched supports —
+        support cuts and the own-nation exclusion only ever reduce it.
+        So if that ceiling is no greater than some already-resolved
+        competitor's prevent strength, the Move is beaten no matter what
+        the unresolved decisions turn out to be, and it bounces.
+
+        This is the last-resort breaker: it runs only after the clean-
+        cycle and Szykman handlers have declined. It resolves rotational
+        cycles (DATC 6.C) whose members are contested from outside by an
+        equal-or-greater attack — the external competition makes the
+        cycle un-clean (so the clean-cycle handler rejects it) while
+        leaving each member individually determined. Forcing the beaten
+        member to bounce collapses the rest of the cycle through normal
+        propagation.
+
+        Only fires for a convoyed Move once its convoy path is known
+        intact, so a broken-convoy failure is never mislabelled as a
+        competitive bounce.
+        """
+        parsed = self._parsed
+        variant = self._variant
+        resolutions = self._initial_resolutions
+        changed = False
+        for i, order in enumerate(parsed):
+            if not isinstance(order, MoveOrder):
+                continue
+            key = (_MOVE_STATUS, i)
+            decision = self._decisions.get(key)
+            if decision is None or decision.value is not None:
+                continue
+            if resolutions[i].via_convoy and (
+                self._dec_value((_CONVOY_PATH_INTACT, i)) is not True
+            ):
+                continue
+            ceiling = 1 + len(_matching_attack_supports(self._state, i))
+            target_parent = variant.parent_of(order.target)
+            for j, other in enumerate(parsed):
+                if j == i:
+                    continue
+                if not isinstance(other, MoveOrder):
+                    continue
+                if resolutions[j].status == Status.ILLEGAL:
+                    continue
+                if variant.parent_of(other.target) != target_parent:
+                    continue
+                prevent = self._dec_value((_PREVENT_STRENGTH, j))
+                if prevent is None:
+                    continue
+                if ceiling <= prevent:
+                    self._decisions[key] = replace(
+                        decision,
+                        value=(
+                            Status.BOUNCE,
+                            "The attack was prevented by a competing move "
+                            "of equal or greater strength.",
+                        ),
+                    )
+                    self._enqueue_dependents(key)
+                    changed = True
+                    break
+        return changed
 
     # --- Completeness check ---
 
