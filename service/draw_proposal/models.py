@@ -3,6 +3,7 @@ from django.utils import timezone
 from common.models import BaseModel
 from common.constants import GameStatus, PhaseStatus
 from draw_proposal.constants import DrawProposalStatus
+from emit import emit
 from victory.models import Victory
 
 
@@ -57,6 +58,15 @@ class DrawProposalManager(models.Manager):
             game=game,
             created_by=created_by,
             phase=phase,
+        )
+
+        proposer_name = "Anonymous" if game.anonymity_active else created_by.name
+        emit(
+            "draw_proposal",
+            game=game,
+            phase=phase,
+            actor=created_by.user,
+            context={"proposer_name": proposer_name},
         )
 
         votes_to_create = []
@@ -146,6 +156,8 @@ class DrawProposal(BaseModel):
             self.phase.status = PhaseStatus.COMPLETED
             self.phase.scheduled_resolution = None
             self.phase.save()
+
+            self.game.emit_game_ended()
 
             return victory
 

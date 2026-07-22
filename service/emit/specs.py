@@ -13,6 +13,16 @@ from emit.registry import register
 from emit.transport import Push, Timeline
 
 
+def _truncate_body(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
+    lines = text.split("\n")
+    truncated = "\n".join(lines[:max_lines])
+    if len(truncated) > max_chars:
+        truncated = truncated[:max_chars].rstrip() + "…"
+    elif len(lines) > max_lines:
+        truncated += "…"
+    return truncated
+
+
 @register("channel_message")
 class ChannelMessageSpec(EmitSpec):
     transports = [Push]
@@ -20,7 +30,7 @@ class ChannelMessageSpec(EmitSpec):
     link = ChannelLink
 
     def get_body(self, context):
-        return f"{context.payload['sender_name']}: {context.payload['body']}"
+        return f"{context.payload['sender_name']}: {_truncate_body(context.payload['body'])}"
 
 
 @register("draw_proposal")

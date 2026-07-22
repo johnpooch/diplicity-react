@@ -10,6 +10,7 @@ from rest_framework import status
 from adjudication import service as adjudication_service
 from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
 from game.models import Game
+from phase.models import Phase
 from user_profile.models import UserProfile
 
 User = get_user_model()
@@ -422,8 +423,7 @@ class TestGameMasterNotifications:
         mock_send_notification_to_users.reset_mock()
 
         phase = game.current_phase
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
+        Phase.objects._emit_phase_resolved(phase)
 
         phase_resolved_calls = [
             c for c in mock_send_notification_to_users.call_args_list

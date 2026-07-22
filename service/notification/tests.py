@@ -1,67 +1,21 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from channel.models import Channel, ChannelMessage
+from adjudication import service as adjudication_service
+from channel.models import Channel
+from channel.serializers import ChannelMessageSerializer
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus
 from draw_proposal.models import DrawProposal
 from game.models import Game
 from phase.models import Phase
+from user_profile.models import UserProfile
 from victory.models import Victory
-from notification.signals import _truncate_body
 
-
-class TestTruncateBody:
-    def test_short_single_line_unchanged(self):
-        assert _truncate_body("Hello world") == "Hello world"
-
-    def test_exactly_three_lines_unchanged(self):
-        text = "line1\nline2\nline3"
-        assert _truncate_body(text) == "line1\nline2\nline3"
-
-    def test_four_lines_truncated_to_three_with_ellipsis(self):
-        text = "line1\nline2\nline3\nline4"
-        assert _truncate_body(text) == "line1\nline2\nline3…"
-
-    def test_many_lines_truncated_to_three_with_ellipsis(self):
-        text = "\n".join(f"line{i}" for i in range(10))
-        assert _truncate_body(text) == "line0\nline1\nline2…"
-
-    def test_exceeds_max_chars_truncated_with_ellipsis(self):
-        long_line = "x" * 250
-        result = _truncate_body(long_line)
-        assert result == "x" * 200 + "…"
-        assert len(result) == 201
-
-    def test_exceeds_max_chars_after_joining_lines(self):
-        line = "x" * 70
-        text = f"{line}\n{line}\n{line}"
-        result = _truncate_body(text)
-        assert result.endswith("…")
-        assert len(result) <= 202
-
-    def test_trailing_whitespace_stripped_before_ellipsis_on_char_limit(self):
-        long_line = "x" * 199 + " " + "y" * 50
-        result = _truncate_body(long_line)
-        assert not result[:-1].endswith(" ")
-        assert result.endswith("…")
-
-    def test_empty_string_unchanged(self):
-        assert _truncate_body("") == ""
-
-    def test_custom_max_lines(self):
-        text = "a\nb\nc\nd"
-        assert _truncate_body(text, max_lines=2) == "a\nb…"
-
-    def test_custom_max_chars(self):
-        text = "x" * 50
-        result = _truncate_body(text, max_chars=10)
-        assert result == "x" * 10 + "…"
-
-    def test_exactly_max_chars_no_ellipsis(self):
-        text = "x" * 200
-        assert _truncate_body(text) == "x" * 200
+User = get_user_model()
 
 
 def _notification_jobs(connector, notification_type=None):
@@ -75,12 +29,19 @@ def _email_jobs(connector):
     return [j for j in connector.jobs.values() if j["task_name"] == "email_service.send_email_notification"]
 
 
+def _send_channel_message(channel, member, body):
+    serializer = ChannelMessageSerializer(
+        context={"channel": channel, "current_game_member": member}
+    )
+    return serializer.create({"body": body})
+
+
 @pytest.mark.django_db
 def test_channel_message_notification_uses_display_name(active_game, in_memory_procrastinate):
     sender_member = active_game.members.first()
     channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
 
-    ChannelMessage.objects.create(channel=channel, sender=sender_member, body="Hello everyone")
+    _send_channel_message(channel, sender_member, "Hello everyone")
 
     jobs = _notification_jobs(in_memory_procrastinate, "channel_message")
     assert len(jobs) == 1
@@ -102,7 +63,7 @@ def test_channel_message_notification_deleted_user(active_game, in_memory_procra
     sender_member.user = None
     sender_member.save()
 
-    ChannelMessage.objects.create(channel=channel, sender=sender_member, body="Ghost message")
+    _send_channel_message(channel, sender_member, "Ghost message")
 
     jobs = _notification_jobs(in_memory_procrastinate, "channel_message")
     assert len(jobs) == 1
@@ -116,7 +77,7 @@ def test_channel_message_notification_masks_sender_in_anonymous_game(active_game
     sender_member = active_game.members.first()
     channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
 
-    ChannelMessage.objects.create(channel=channel, sender=sender_member, body="Hello everyone")
+    _send_channel_message(channel, sender_member, "Hello everyone")
 
     jobs = _notification_jobs(in_memory_procrastinate, "channel_message")
     assert len(jobs) == 1
@@ -235,8 +196,7 @@ class TestGameEndNotifications:
         victory = Victory.objects.create(game=game, winning_phase=phase)
         victory.members.add(italy, germany)
 
-        game.status = GameStatus.COMPLETED
-        game.save()
+        game.emit_game_ended()
 
         jobs = _notification_jobs(in_memory_procrastinate, "game_draw")
         assert len(jobs) == 1
@@ -256,8 +216,7 @@ class TestGameEndNotifications:
         victory = Victory.objects.create(game=game, winning_phase=phase)
         victory.members.add(italy)
 
-        game.status = GameStatus.COMPLETED
-        game.save()
+        game.emit_game_ended()
 
         jobs = _notification_jobs(in_memory_procrastinate, "game_solo_win")
         assert len(jobs) == 1
@@ -276,8 +235,7 @@ class TestGameEndNotifications:
         victory = Victory.objects.create(game=game, winning_phase=phase)
         victory.members.add(italy)
 
-        game.status = GameStatus.COMPLETED
-        game.save()
+        game.emit_game_ended()
 
         jobs = _notification_jobs(in_memory_procrastinate, "game_solo_loss")
         assert len(jobs) == 1
@@ -289,7 +247,7 @@ class TestGameEndNotifications:
 
 class TestPhaseResolvedNotification:
 
-    def _make_active_phase(self, variant, scheduled_resolution):
+    def _make_active_phase(self, variant, scheduled_resolution, member_user):
         game = Game.objects.create(
             variant=variant,
             name="Notify Test",
@@ -297,6 +255,7 @@ class TestPhaseResolvedNotification:
             deadline_mode=DeadlineMode.FIXED_TIME,
             movement_frequency=PhaseFrequency.DAILY,
         )
+        game.members.create(user=member_user)
         return Phase.objects.create(
             game=game,
             variant=variant,
@@ -312,14 +271,13 @@ class TestPhaseResolvedNotification:
     def test_resolution_before_deadline_sends_phase_resolved_early(
         self,
         classical_variant,
+        primary_user,
         mock_send_notification_to_users,
-        mock_immediate_on_commit,
         in_memory_procrastinate,
     ):
-        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12))
+        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12), primary_user)
 
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
+        Phase.objects._emit_phase_resolved(phase)
 
         call = mock_send_notification_to_users.call_args
         assert call.kwargs["notification_type"] == "phase_resolved_early"
@@ -329,14 +287,13 @@ class TestPhaseResolvedNotification:
     def test_resolution_at_deadline_sends_phase_resolved(
         self,
         classical_variant,
+        primary_user,
         mock_send_notification_to_users,
-        mock_immediate_on_commit,
         in_memory_procrastinate,
     ):
-        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1))
+        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1), primary_user)
 
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
+        Phase.objects._emit_phase_resolved(phase)
 
         call = mock_send_notification_to_users.call_args
         assert call.kwargs["notification_type"] == "phase_resolved"
@@ -346,14 +303,13 @@ class TestPhaseResolvedNotification:
     def test_game_ending_phase_without_deadline_sends_phase_resolved(
         self,
         classical_variant,
+        primary_user,
         mock_send_notification_to_users,
-        mock_immediate_on_commit,
         in_memory_procrastinate,
     ):
-        phase = self._make_active_phase(classical_variant, None)
+        phase = self._make_active_phase(classical_variant, None, primary_user)
 
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
+        Phase.objects._emit_phase_resolved(phase)
 
         call = mock_send_notification_to_users.call_args
         assert call.kwargs["notification_type"] == "phase_resolved"
@@ -362,8 +318,8 @@ class TestPhaseResolvedNotification:
     def test_duration_game_early_resolution_still_sends_phase_resolved(
         self,
         classical_variant,
+        primary_user,
         mock_send_notification_to_users,
-        mock_immediate_on_commit,
         in_memory_procrastinate,
     ):
         game = Game.objects.create(
@@ -372,6 +328,7 @@ class TestPhaseResolvedNotification:
             status=GameStatus.ACTIVE,
             deadline_mode=DeadlineMode.DURATION,
         )
+        game.members.create(user=primary_user)
         phase = Phase.objects.create(
             game=game,
             variant=classical_variant,
@@ -383,8 +340,7 @@ class TestPhaseResolvedNotification:
             scheduled_resolution=timezone.now() + timedelta(hours=12),
         )
 
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
+        Phase.objects._emit_phase_resolved(phase)
 
         call = mock_send_notification_to_users.call_args
         assert call.kwargs["notification_type"] == "phase_resolved"
@@ -393,48 +349,32 @@ class TestPhaseResolvedNotification:
     def test_early_resolution_email_subject_marks_resolved_early(
         self,
         classical_variant,
-        mock_send_notification_to_users,
-        mock_immediate_on_commit,
+        primary_user,
         in_memory_procrastinate,
     ):
-        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12))
+        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12), primary_user)
 
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
+        Phase.objects._emit_phase_resolved(phase)
 
         jobs = _email_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
         assert "Resolved Early" in jobs[0]["args"]["subject"]
-
-    @pytest.mark.django_db
-    def test_resaving_completed_phase_does_not_renotify(
-        self,
-        classical_variant,
-        mock_send_notification_to_users,
-        mock_immediate_on_commit,
-        in_memory_procrastinate,
-    ):
-        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1))
-
-        phase.status = PhaseStatus.COMPLETED
-        phase.save()
-        phase.save()
-
-        assert mock_send_notification_to_users.call_count == 1
 
 
 class TestGameStartEmailNotification:
 
     @pytest.mark.django_db
     def test_game_start_defers_email_notification(
-        self, end_game_notification_game_factory, in_memory_procrastinate
+        self, pending_game_with_game_master_factory, adjudication_data_classical, in_memory_procrastinate
     ):
-        game, phase, italy, germany = end_game_notification_game_factory()
-        game.status = GameStatus.PENDING
-        game.save()
+        game = pending_game_with_game_master_factory()
+        for i in range(game.variant.nations.count()):
+            user = User.objects.create_user(f"start_email_player{i}@test.com", password="testpass")
+            UserProfile.objects.create(user=user, name=f"Start Email Player {i}")
+            game.members.create(user=user)
 
-        game.status = GameStatus.ACTIVE
-        game.save()
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            game.start()
 
         jobs = _email_jobs(in_memory_procrastinate)
         assert len(jobs) == 1

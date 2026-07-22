@@ -30,7 +30,9 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
-from notification.tasks import send_notification
+from email_service.tasks import send_email_notification
+from email_service.templates import notification_email
+from emit import emit
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
@@ -608,13 +610,7 @@ class Game(BaseModel):
             self.admin = new_admin
             self.save(update_fields=["admin"])
 
-            send_notification.defer(
-                user_ids=[new_admin.id],
-                title=self.name,
-                body="The previous manager is no longer available, so you are now managing this game.",
-                notification_type="game_admin_reassigned",
-                data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
-            )
+            emit("game_admin_reassigned", game=self, context={"recipients": [new_admin.id]})
 
     def notification_user_ids(self, exclude_user_id=None, active_only=False):
         members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
@@ -689,6 +685,38 @@ class Game(BaseModel):
             self.status = GameStatus.ACTIVE
             self.started_at = timezone.now()
             self.save()
+
+            emit("game_start", game=self)
+
+            user_ids = self.notification_user_ids()
+            if user_ids:
+                body = "The game has started. You can now chat with other players and submit your orders. Good luck!"
+                link = f"{settings.FRONTEND_URL}/game/{self.id}"
+                send_email_notification.defer(
+                    user_ids=user_ids,
+                    subject=f"{self.name} — Game Started",
+                    html=notification_email(title=self.name, body=body, link=link),
+                )
+
+    def emit_game_ended(self):
+        try:
+            victory = Victory.objects.prefetch_related("members").get(game=self)
+        except Victory.DoesNotExist:
+            return
+
+        victory_members = list(victory.members.all())
+        if len(victory_members) >= 2:
+            names = ", ".join(m.name for m in victory_members)
+            emit("game_draw", game=self, context={"winner_names": names})
+        elif len(victory_members) == 1:
+            winner = victory_members[0]
+            winner_ids = [winner.user_id] if winner.user_id is not None else []
+            emit("game_solo_win", game=self, context={"recipients": winner_ids})
+            emit(
+                "game_solo_loss",
+                game=self,
+                context={"winner_user_id": winner.user_id, "winner_name": winner.name},
+            )
 
     def start_if_full(self):
         if self.status != GameStatus.PENDING:

@@ -1,6 +1,5 @@
 from zoneinfo import ZoneInfo
 
-from django.conf import settings
 from rest_framework import serializers
 from django.db import transaction
 from django.db.models import Subquery, OuterRef
@@ -12,7 +11,7 @@ from user_profile.utils import get_player_stats, tier_allows_min_reliability
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
-from notification import utils as notification_utils
+from emit import emit
 from phase.utils import format_deadline
 
 from victory.serializers import VictorySerializer
@@ -31,19 +30,6 @@ def _phase_state_order_count(phase_state):
     if count is None:
         count = phase_state.orders.count()
     return count
-
-
-def send_game_management_notification(game, title, body, notification_type, exclude_user_id):
-    def _send():
-        user_ids = game.notification_user_ids(exclude_user_id=exclude_user_id)
-        notification_utils.send_notification_to_users(
-            user_ids=user_ids,
-            title=title,
-            body=body,
-            notification_type=notification_type,
-            data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
-        )
-    transaction.on_commit(_send)
 
 
 class GameMasterSerializer(serializers.Serializer):
@@ -639,12 +625,11 @@ class GamePauseSerializer(serializers.Serializer):
         actor = self.context["request"].user
         instance.pause()
         actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
-        send_game_management_notification(
-            instance,
-            title=instance.name,
-            body=f"Game paused by {instance.manager_label}{actor_suffix}",
-            notification_type="game_paused",
-            exclude_user_id=actor.id,
+        emit(
+            "game_paused",
+            game=instance,
+            actor=actor,
+            context={"manager_label": f"{instance.manager_label}{actor_suffix}"},
         )
         return instance
 
@@ -664,12 +649,14 @@ class GameUnpauseSerializer(serializers.Serializer):
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
         actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
-        send_game_management_notification(
-            instance,
-            title=instance.name,
-            body=f"Game resumed by {instance.manager_label}{actor_suffix}. New deadline: {deadline_str}",
-            notification_type="game_resumed",
-            exclude_user_id=actor.id,
+        emit(
+            "game_resumed",
+            game=instance,
+            actor=actor,
+            context={
+                "manager_label": f"{instance.manager_label}{actor_suffix}",
+                "deadline": deadline_str,
+            },
         )
         return instance
 
@@ -698,12 +685,14 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
         actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
-        send_game_management_notification(
-            instance,
-            title=instance.name,
-            body=f"Deadline extended by {instance.manager_label}{actor_suffix}. New deadline: {deadline_str}",
-            notification_type="game_deadline_extended",
-            exclude_user_id=actor.id,
+        emit(
+            "game_deadline_extended",
+            game=instance,
+            actor=actor,
+            context={
+                "manager_label": f"{instance.manager_label}{actor_suffix}",
+                "deadline": deadline_str,
+            },
         )
         return instance
 

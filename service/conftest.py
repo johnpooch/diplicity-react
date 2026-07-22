@@ -1811,7 +1811,8 @@ def end_game_notification_game_factory(
 @pytest.fixture
 def mock_send_notification_to_users():
     with patch("notification.utils.send_notification_to_users") as mock_fn, patch(
-        "notification.signals.send_notification_to_users", mock_fn
+        "notification.tasks.send_notification.defer",
+        side_effect=lambda **kwargs: mock_fn(**kwargs),
     ):
         yield mock_fn
 

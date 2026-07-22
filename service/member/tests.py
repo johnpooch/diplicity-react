@@ -17,6 +17,14 @@ retrieve_viewname = "game-retrieve"
 recovery_viewname = "civil-disorder-recovery"
 
 
+def _kicked_from_staging_jobs(connector):
+    return [
+        j for j in connector.jobs.values()
+        if j["task_name"] == "notification.send_notification"
+        and j["args"].get("notification_type") == "kicked_from_staging"
+    ]
+
+
 class TestCivilDisorderSerialization:
 
     @pytest.mark.django_db
@@ -874,32 +882,30 @@ class TestKickBotMember:
 
     @pytest.mark.django_db
     def test_kick_bot_sends_no_notification(
-        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user
+        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_primary_user
         member = game.members.create(user=roster_bot_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not game.members.filter(user=roster_bot_user).exists()
-        mock_send.defer.assert_not_called()
+        assert _kicked_from_staging_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
     def test_kick_human_sends_notification(
-        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_primary_user
         member = game.members.create(user=secondary_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        mock_send.defer.assert_called_once()
+        assert len(_kicked_from_staging_jobs(in_memory_procrastinate)) == 1
 
 
 @pytest.mark.django_db

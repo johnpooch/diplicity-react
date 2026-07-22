@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema_field
 from .models import Channel, ChannelMessage, ChannelMember
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
+from emit import emit
 
 Game = apps.get_model("game", "Game")
 Member = apps.get_model("member", "Member")
@@ -47,12 +48,24 @@ class ChannelMessageSerializer(serializers.Serializer):
         channel = self.context["channel"]
         member = self.context["current_game_member"]
 
-        return ChannelMessage.objects.create(
+        message = ChannelMessage.objects.create(
             channel=channel,
             sender=member,
             phase=channel.game.current_phase,
             body=validated_data["body"],
         )
+
+        game = channel.game
+        sender_name = "Anonymous" if game.anonymity_active else member.name
+        emit(
+            "channel_message",
+            game=game,
+            phase=game.current_phase or game.phases.last(),
+            actor=member.user,
+            channel=channel,
+            context={"sender_name": sender_name, "body": message.body},
+        )
+        return message
 
 
 class ChannelSerializer(serializers.Serializer):
