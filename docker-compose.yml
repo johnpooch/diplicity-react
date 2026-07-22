@@ -42,7 +42,6 @@ services:
         required: false
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - VITE_DIPLICITY_API_BASE_URL=http://localhost:8000
     networks:
       - diplicity-network
 
