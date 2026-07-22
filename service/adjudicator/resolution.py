@@ -167,6 +167,23 @@ class _Solver:
         self._dependents: Dict[_Key, Set[_Key]] = {}
         self._ready: Deque[_Key] = deque()
 
+    def _get_base_strength(self, i: int) -> float:
+        order = self._parsed[i]
+        assert isinstance(order, MoveOrder)
+        resolutions = self._initial_resolutions
+        variant = self._variant
+        source = order.source  # may be a named coast
+        target = variant.parent_of(order.target)
+        for adj in variant.adjacencies_of(source):
+            if variant.parent_of(adj.to) == target:
+                if resolutions[i].via_convoy:
+                    return adj.convoy_strength
+                elif order.unit_type == Unit.FLEET:
+                    return adj.fleet_strength
+                else:
+                    return adj.army_strength
+        return 1.0  # fallback (shouldn't happen for legal moves)
+
     def solve(self) -> StateView:
         self._enumerate_decisions()
         self._build_dependents_and_initial_ready()
@@ -246,32 +263,52 @@ class _Solver:
             kind=kind, subject=subject, dependencies=dependencies
         )
 
+    def _get_base_strength(self, i: int) -> float:
+        """Get the base strength for a MoveOrder based on the edge traversed.
+        
+        Returns the convoy_strength, fleet_strength, or army_strength
+        from the adjacency depending on unit type and whether moving via convoy.
+        Defaults to 1.0 if no matching adjacency found.
+        """
+        order = self._parsed[i]
+        assert isinstance(order, MoveOrder)
+        resolutions = self._initial_resolutions
+        variant = self._variant
+        source = order.source  # may be a named coast
+        target = variant.parent_of(order.target)
+        for adj in variant.adjacencies_of(source):
+            if variant.parent_of(adj.to) == target:
+                if resolutions[i].via_convoy:
+                    return adj.convoy_strength
+                elif order.unit_type == Unit.FLEET:
+                    return adj.fleet_strength
+                else:
+                    return adj.army_strength
+        return 1.0  # fallback (shouldn't happen for legal moves)
+
     # --- Dependency rules ---
 
     def _support_cut_deps(self, i: int) -> FrozenSet[_Key]:
         """A Support is normally cut by any non-own-nation attack on the
         supporter. Two conditional dependencies layer on top:
 
-          - cut-exception attacker (DATC 6.D.4): an attack from the
-            province the SupportMove targets does not cut — unless it
-            dislodges the supporter (DATC 6.D.17). Reads MOVE_STATUS of
+          - cut-exception attacker: an attack from a province with
+            cut_exception=True does not cut — unless it
+            dislodges the supporter. Reads MOVE_STATUS of
             that attacker.
           - convoyed attacker (DATC 6.F.6): a convoyed attack with a
             broken convoy never happens and so does not cut. Reads
             CONVOY_PATH_INTACT of that attacker.
 
-        SupportHold has no cut exception but is still subject to the
-        convoy rule. Decisions whose dependencies are absent in a given
-        position are simply resolved cheaply."""
+        SupportHold has no cut exception by target but is still subject to the
+        convoy rule and the per-adjacency cut_exception rule. Decisions whose
+        dependencies are absent in a given position are simply resolved cheaply."""
         order = self._parsed[i]
         if not isinstance(order, (SupportHoldOrder, SupportMoveOrder)):
             return frozenset()
         variant = self._variant
         resolutions = self._initial_resolutions
         supporter_parent = variant.parent_of(order.source)
-        cut_exception_parent: Optional[str] = None
-        if isinstance(order, SupportMoveOrder):
-            cut_exception_parent = variant.parent_of(order.target)
         deps: Set[_Key] = set()
         for j, attacker in enumerate(self._parsed):
             if not isinstance(attacker, MoveOrder):
@@ -282,10 +319,14 @@ class _Solver:
                 continue
             if attacker.nation == order.nation:
                 continue
-            if (
-                cut_exception_parent is not None
-                and variant.parent_of(attacker.source) == cut_exception_parent
-            ):
+            # Find adjacency from attacker.source to supporter_parent
+            attacker_parent = variant.parent_of(attacker.source)
+            cut_exception = False
+            for adj in variant.adjacencies_of(attacker_parent):
+                if variant.parent_of(adj.to) == supporter_parent:
+                    cut_exception = adj.cut_exception
+                    break
+            if cut_exception:
                 deps.add((_MOVE_STATUS, j))
             if resolutions[j].via_convoy:
                 deps.add((_CONVOY_PATH_INTACT, j))
@@ -531,9 +572,6 @@ class _Solver:
         order = parsed[i]
         assert isinstance(order, (SupportHoldOrder, SupportMoveOrder))
         supporter_parent = variant.parent_of(order.source)
-        cut_exception_parent: Optional[str] = None
-        if isinstance(order, SupportMoveOrder):
-            cut_exception_parent = variant.parent_of(order.target)
         for j, attacker in enumerate(parsed):
             if not isinstance(attacker, MoveOrder):
                 continue
@@ -543,6 +581,13 @@ class _Solver:
                 continue
             if attacker.nation == order.nation:
                 continue
+            # Find adjacency from attacker.source to supporter_parent
+            attacker_parent = variant.parent_of(attacker.source)
+            cut_exception = False
+            for adj in variant.adjacencies_of(attacker_parent):
+                if variant.parent_of(adj.to) == supporter_parent:
+                    cut_exception = adj.cut_exception
+                    break
             if resolutions[j].via_convoy:
                 # Convoyed attacker: only cuts if its convoy is intact
                 # (DATC 6.F.6 — a dislodged convoy doesn't cut support).
@@ -551,12 +596,9 @@ class _Solver:
                     return None
                 if not intact:
                     continue
-            if (
-                cut_exception_parent is not None
-                and variant.parent_of(attacker.source) == cut_exception_parent
-            ):
+            if cut_exception:
                 # Cut-exception attacker: doesn't cut unless it actually
-                # dislodges the supporter (DATC 6.D.17).
+                # dislodges the supporter.
                 attacker_status = self._dec_value((_MOVE_STATUS, j))
                 if attacker_status is None:
                     return None
@@ -566,7 +608,7 @@ class _Solver:
             return Status.CUT
         return Status.OK
 
-    def _compute_attack_strength(self, i: int) -> Optional[int]:
+    def _compute_attack_strength(self, i: int) -> Optional[float]:
         defender_nation = self._effective_defender_nation_for(i)
         supports = _matching_attack_supports(self._state, i)
         parsed = self._parsed
@@ -580,9 +622,9 @@ class _Solver:
             if defender_nation is not None and parsed[k].nation == defender_nation:
                 continue
             active += 1
-        return 1 + active
+        return self._get_base_strength(i) + active
 
-    def _compute_defense_strength(self, i: int) -> int:
+    def _compute_defense_strength(self, i: int) -> float:
         supports = _matching_attack_supports(self._state, i)
         resolutions = self._initial_resolutions
         active = 0
@@ -592,9 +634,9 @@ class _Solver:
             if self._dec_value((_SUPPORT_CUT, k)) != Status.OK:
                 continue
             active += 1
-        return 1 + active
+        return 1.0 + active
 
-    def _compute_prevent_strength(self, i: int) -> Optional[int]:
+    def _compute_prevent_strength(self, i: int) -> Optional[float]:
         if self._initial_resolutions[i].via_convoy:
             intact = self._dec_value((_CONVOY_PATH_INTACT, i))
             if intact is None:
@@ -615,9 +657,9 @@ class _Solver:
             if self._dec_value((_SUPPORT_CUT, k)) != Status.OK:
                 continue
             active += 1
-        return 1 + active
+        return self._get_base_strength(i) + active
 
-    def _compute_hold_strength(self, i: int) -> Optional[int]:
+    def _compute_hold_strength(self, i: int) -> Optional[float]:
         order = self._parsed[i]
         initial_status = self._initial_resolutions[i].status
         if isinstance(order, MoveOrder) and initial_status != Status.ILLEGAL:
@@ -625,8 +667,8 @@ class _Solver:
             if move_value is None:
                 return None
             if move_value[0] == Status.OK:
-                return 0
-            return 1
+                return 0.0
+            return 1.0
         supports = _matching_hold_supports(self._state, i)
         resolutions = self._initial_resolutions
         active = 0
@@ -636,7 +678,7 @@ class _Solver:
             if self._dec_value((_SUPPORT_CUT, k)) != Status.OK:
                 continue
             active += 1
-        return 1 + active
+        return 1.0 + active
 
     def _compute_move_status(
         self, i: int
@@ -1166,6 +1208,16 @@ def _matching_attack_supports(
             support.target
         ) != variant.parent_of(move.target):
             continue
+        # Check no_support on adjacency from supporter to target
+        supporter_parent = variant.parent_of(support.source)
+        target_parent = variant.parent_of(move.target)
+        no_support = False
+        for adj in variant.adjacencies_of(supporter_parent):
+            if variant.parent_of(adj.to) == target_parent and adj.no_support:
+                no_support = True
+                break
+        if no_support:
+            continue
         results.append(k)
     return tuple(results)
 
@@ -1189,6 +1241,16 @@ def _matching_hold_supports(
         if not resolutions[k].support_matched:
             continue
         if variant.parent_of(support.supported_source) != supported_parent:
+            continue
+        # Check no_support on adjacency from supporter to target
+        supporter_parent = variant.parent_of(support.source)
+        hold_target_parent = supported_parent
+        no_support = False
+        for adj in variant.adjacencies_of(supporter_parent):
+            if variant.parent_of(adj.to) == hold_target_parent and adj.no_support:
+                no_support = True
+                break
+        if no_support:
             continue
         results.append(k)
     return tuple(results)

@@ -538,9 +538,15 @@ class MarkConvoyedMovesReachableReducer(Reducer):
             r = resolutions[i]
             source_parent = variant.parent_of(order.source)
             target_parent = variant.parent_of(order.target)
-            if not state.province(source_parent).is_coastal():
+            # Target check: must be coastal OR convoyable_capable
+            target_province = variant.provinces.get(target_parent)
+            if not (state.province(target_parent).is_coastal() or
+                    (target_province is not None and target_province.convoyable_capable)):
                 continue
-            if not state.province(target_parent).is_coastal():
+            # Source check (same logic)
+            source_province = variant.provinces.get(source_parent)
+            if not (state.province(source_parent).is_coastal() or
+                    (source_province is not None and source_province.convoyable_capable)):
                 continue
             if r.status == Status.ILLEGAL and r.failure_reason == reach_message:
                 if not potential_fleet_locs:
@@ -731,9 +737,13 @@ class ResolveStrengthsAndCutsReducer(Reducer):
 
 
 class ResolveRetreatBouncesReducer(Reducer):
-    """Mark BOUNCE on every still-undecided RetreatOrder whose parent
-    target is targeted by another still-undecided RetreatOrder. All
-    competing retreats fail; none move (DATC 6.H.7, 6.H.8)."""
+    """Resolve retreat bounces with priority-based resolution.
+
+    When multiple units retreat to the same province:
+    - Compute retreat_priority for each retreat from the adjacency edge
+    - Highest priority wins; others BOUNCE
+    - Tie on priority → all BOUNCE (standard behavior)
+    - Default priority is 0; Suez circumnavigation edges = -1"""
 
     ACTION = Actions.ResolveRetreatBounces
 
@@ -741,15 +751,47 @@ class ResolveRetreatBouncesReducer(Reducer):
     def reduce(cls, state: StateView, action: Action) -> StateView:
         by_target = state.orders().retreats_by_target_parent()
         resolutions = list(state.resolutions())
+        variant = state.variant()
+
         for parent, indices in by_target.items():
             if len(indices) < 2:
                 continue
+
+            # Compute retreat_priority for each retreat
+            priorities = {}
             for i in indices:
-                resolutions[i] = replace(
-                    resolutions[i],
-                    status=Status.BOUNCE,
-                    failure_reason="Multiple units retreat to the same province; all disband.",
-                )
+                order = state.parsed_orders()[i]
+                assert isinstance(order, RetreatOrder)
+                source_parent = variant.parent_of(order.source)
+                target_parent = variant.parent_of(order.target)
+                priority = 0
+                for adj in variant.adjacencies_of(source_parent):
+                    if variant.parent_of(adj.to) == target_parent:
+                        priority = adj.retreat_priority
+                        break
+                priorities[i] = priority
+
+            max_priority = max(priorities.values())
+            winners = [i for i, p in priorities.items() if p == max_priority]
+
+            if len(winners) == 1:
+                # Single highest priority → others BOUNCE, winner survives
+                for i in indices:
+                    if i != winners[0]:
+                        resolutions[i] = replace(
+                            resolutions[i],
+                            status=Status.BOUNCE,
+                            failure_reason="Retreat displaced by higher-priority retreat.",
+                        )
+            else:
+                # Tie on priority → all BOUNCE (standard behavior)
+                for i in indices:
+                    resolutions[i] = replace(
+                        resolutions[i],
+                        status=Status.BOUNCE,
+                        failure_reason="Multiple units retreat to the same province; all disband.",
+                    )
+
         return state.replace(resolutions=tuple(resolutions))
 
 
