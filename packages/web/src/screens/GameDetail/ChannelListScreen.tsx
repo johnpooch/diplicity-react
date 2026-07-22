@@ -34,7 +34,7 @@ const getLatestMessagePreview = (
   const latestMessage = messages[messages.length - 1];
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
-    : latestMessage.sender.nation.name;
+    : (latestMessage.sender.nation?.name ?? latestMessage.sender.name);
   return `${senderLabel}: ${latestMessage.body}`;
 };
 

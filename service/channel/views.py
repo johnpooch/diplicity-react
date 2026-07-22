@@ -13,12 +13,12 @@ class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.Crea
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsGameMember, IsChannelMember, IsNotSandboxGame, IsNotNoPressActiveGame]
+    permission_classes = [permissions.IsAuthenticated, IsGameMember, IsChannelMember, IsNotSandboxGame, IsNotNoPressActiveGame]
     serializer_class = ChannelMessageSerializer
 
 
 class ChannelMarkReadView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsGameMember, IsChannelMember]
+    permission_classes = [permissions.IsAuthenticated, IsGameMember, IsChannelMember]
     serializer_class = ChannelMarkReadSerializer
 
     def create(self, request, *args, **kwargs):
@@ -29,7 +29,7 @@ class ChannelMarkReadView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMe
 
 
 class ChannelListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [IsActiveOrCompletedGame]
+    permission_classes = [permissions.AllowAny]
     serializer_class = ChannelSerializer
 
     def get_queryset(self):

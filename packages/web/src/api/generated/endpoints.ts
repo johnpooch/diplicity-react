@@ -100,7 +100,7 @@ export interface ChannelMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
-  nation: Nation;
+  nation: Nation | null;
 }
 
 export interface ChannelMessage {
