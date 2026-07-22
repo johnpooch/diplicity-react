@@ -249,18 +249,32 @@ const Login: React.FC = () => {
             Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance. Outwit, out-talk, and outlast everyone else to take the map.
           </p>
           {(!isNativePlatform() || isIosPlatform()) && (
-            <a
-              href="https://apps.apple.com/app/id6759169536"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block mt-8"
-            >
-              <img
-                src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
-                alt="Download on the App Store"
-                className="h-10"
-              />
-            </a>
+            <div className="flex items-center gap-3 mt-8">
+              <a
+                href="https://apps.apple.com/app/id6759169536"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img
+                  src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
+                  alt="Download on the App Store"
+                  className="h-10"
+                />
+              </a>
+              {!isNativePlatform() && (
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                    alt="Get it on Google Play"
+                    className="h-10"
+                  />
+                </a>
+              )}
+            </div>
           )}
         </div>
 
@@ -386,20 +400,34 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* App Store badge — mobile only, inside hero below login card */}
+        {/* App/Play Store badges — mobile only, inside hero below login card */}
         {(!isNativePlatform() || isIosPlatform()) && (
-          <a
-            href="https://apps.apple.com/app/id6759169536"
-            target="_blank"
-            rel="noreferrer"
-            className="relative z-10 lg:hidden mt-6"
-          >
-            <img
-              src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
-              alt="Download on the App Store"
-              className="h-10"
-            />
-          </a>
+          <div className="relative z-10 lg:hidden mt-6 flex items-center gap-3">
+            <a
+              href="https://apps.apple.com/app/id6759169536"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <img
+                src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
+                alt="Download on the App Store"
+                className="h-10"
+              />
+            </a>
+            {!isNativePlatform() && (
+              <a
+                href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img
+                  src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                  alt="Get it on Google Play"
+                  className="h-10"
+                />
+              </a>
+            )}
+          </div>
         )}
 
       </section>
