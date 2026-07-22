@@ -88,13 +88,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
                     orders_confirmed=False
                 )
 
-            nation_name = member.nation.name if member.nation else "A player"
-            emit(
-                "civil_disorder_recovery",
-                game=game,
-                actor=request.user,
-                context={"nation_name": nation_name},
-            )
+            emit("civil_disorder_recovery", game=game, actor=request.user)
 
         serializer = MemberSerializer(member, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_200_OK)

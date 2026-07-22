@@ -14,7 +14,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body, compress_deadline
+from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -229,27 +229,12 @@ class PhaseManager(models.Manager):
             f"Applied NMR extensions for {len(members_with_extensions)} members in phase {phase.id}"
         )
 
-        deadline_str = format_deadline(phase.scheduled_resolution, phase.game.fixed_deadline_timezone)
-
         for member in members_with_extensions:
             if member.user_id is None:
                 continue
-            emit(
-                "nmr_extension_used",
-                game=phase.game,
-                context={
-                    "recipients": [member.user_id],
-                    "extensions_remaining": member.nmr_extensions_remaining,
-                    "deadline": deadline_str,
-                },
-            )
+            emit("nmr_extension_used", phase=phase, actor=member.user)
 
-        extension_user_ids = [m.user_id for m in members_with_extensions if m.user_id is not None]
-        emit(
-            "nmr_extension_applied",
-            game=phase.game,
-            context={"extension_user_ids": extension_user_ids, "deadline": deadline_str},
-        )
+        emit("nmr_extension_applied", phase=phase)
 
         return members_with_extensions
 
@@ -485,18 +470,6 @@ class PhaseManager(models.Manager):
 
         emit("civil_disorder", game=phase.game, context={"nation_names": nation_names})
 
-        user_ids = phase.game.notification_user_ids(active_only=True)
-        if user_ids:
-            send_email_notification.defer(
-                user_ids=user_ids,
-                subject=f"{phase.game.name} — Civil Disorder",
-                html=notification_email(
-                    title="Civil Disorder",
-                    body=f"{nation_names} entered civil disorder.",
-                    link=f"{settings.FRONTEND_URL}/game/{phase.game.id}",
-                ),
-            )
-
     def _remove_from_staging_games(self, user_ids):
         if not user_ids:
             return
@@ -522,7 +495,8 @@ class PhaseManager(models.Manager):
                 continue
             emit(
                 "removed_from_staging",
-                context={"recipients": [m.user_id], "game_names": m.game.name},
+                game=m.game,
+                context={"recipients": [m.user_id]},
             )
 
         from game.models import Game
@@ -626,28 +600,7 @@ class PhaseManager(models.Manager):
             and timezone.now() < phase.scheduled_resolution
         )
         event_type = "phase_resolved_early" if resolved_early else "phase_resolved"
-        emit(event_type, phase=phase, context={"phase_name": phase.name})
-
-        user_ids = phase.game.notification_user_ids()
-        if not user_ids:
-            return
-
-        if resolved_early:
-            body = f"{phase.name} resolved early — all players confirmed their orders."
-            subject = f"{phase.game.name} — {phase.name} Resolved Early"
-        else:
-            body = f"{phase.name} has been resolved"
-            subject = f"{phase.game.name} — {phase.name} Resolved"
-
-        send_email_notification.defer(
-            user_ids=user_ids,
-            subject=subject,
-            html=notification_email(
-                title=phase.game.name,
-                body=body,
-                link=f"{settings.FRONTEND_URL}/game/{phase.game.id}",
-            ),
-        )
+        emit(event_type, phase=phase)
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:

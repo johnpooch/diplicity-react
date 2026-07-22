@@ -1,3 +1,11 @@
+from victory.models import Victory
+
+
+def victory_members(game):
+    victory = Victory.objects.filter(game=game).prefetch_related("members").first()
+    return list(victory.members.all()) if victory is not None else []
+
+
 class Audience:
     def resolve(self, context):
         raise NotImplementedError
@@ -22,6 +30,12 @@ class Explicit(Audience):
         return set(context.payload.get("recipients", []))
 
 
+class Actor(Audience):
+    def resolve(self, context):
+        actor_id = self.actor_id(context.actor)
+        return {actor_id} if actor_id is not None else set()
+
+
 class AllPlayers(Audience):
     def resolve(self, context):
         user_ids = self.member_user_ids(context.game.members.all())
@@ -35,16 +49,14 @@ class AllPlayersExceptActor(AllPlayers):
         return user_ids
 
 
-class AllPlayersExceptWinner(AllPlayers):
+class Winners(Audience):
     def resolve(self, context):
-        user_ids = super().resolve(context)
-        user_ids.discard(context.payload["winner_user_id"])
-        return user_ids
+        return self.member_user_ids(victory_members(context.game))
 
 
-class AllPlayersExceptExtensionUsers(AllPlayers):
+class AllPlayersExceptWinners(AllPlayers):
     def resolve(self, context):
-        return super().resolve(context) - set(context.payload["extension_user_ids"])
+        return super().resolve(context) - self.member_user_ids(victory_members(context.game))
 
 
 class Active(Audience):

@@ -19,6 +19,9 @@ class EmitSpec:
     def get_link(self, context):
         return self.link().resolve(context)
 
+    def get_email_subject(self, context):
+        return context.game.name
+
     def actor_name(self, context):
         if context.game.anonymity_active:
             return "Anonymous"

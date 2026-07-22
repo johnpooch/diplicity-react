@@ -12,7 +12,6 @@ from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from emit import emit
-from phase.utils import format_deadline
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
@@ -624,13 +623,7 @@ class GamePauseSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         actor = self.context["request"].user
         instance.pause()
-        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
-        emit(
-            "game_paused",
-            game=instance,
-            actor=actor,
-            context={"manager_label": f"{instance.manager_label}{actor_suffix}"},
-        )
+        emit("game_paused", game=instance, actor=actor)
         return instance
 
     def to_representation(self, instance):
@@ -646,18 +639,7 @@ class GameUnpauseSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         actor = self.context["request"].user
         instance.unpause()
-        new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
-        deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
-        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
-        emit(
-            "game_resumed",
-            game=instance,
-            actor=actor,
-            context={
-                "manager_label": f"{instance.manager_label}{actor_suffix}",
-                "deadline": deadline_str,
-            },
-        )
+        emit("game_resumed", game=instance, actor=actor)
         return instance
 
     def to_representation(self, instance):
@@ -682,18 +664,7 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         actor = self.context["request"].user
         instance.extend_deadline(validated_data["duration"])
-        new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
-        deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
-        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
-        emit(
-            "game_deadline_extended",
-            game=instance,
-            actor=actor,
-            context={
-                "manager_label": f"{instance.manager_label}{actor_suffix}",
-                "deadline": deadline_str,
-            },
-        )
+        emit("game_deadline_extended", game=instance, actor=actor)
         return instance
 
     def to_representation(self, instance):

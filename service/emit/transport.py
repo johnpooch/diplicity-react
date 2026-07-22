@@ -1,3 +1,5 @@
+from email_service.tasks import send_email_notification
+from email_service.templates import notification_email
 from notification.tasks import send_notification
 
 
@@ -26,6 +28,21 @@ class Push(Transport):
         if link is not None:
             payload["link"] = link
         return payload
+
+
+class Email(Transport):
+    def deliver(self, spec, context, recipients):
+        if not recipients:
+            return
+        send_email_notification.defer(
+            user_ids=list(recipients),
+            subject=spec.get_email_subject(context),
+            html=notification_email(
+                title=spec.get_title(context),
+                body=spec.get_body(context),
+                link=spec.get_link(context),
+            ),
+        )
 
 
 class Timeline(Transport):

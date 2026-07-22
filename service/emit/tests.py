@@ -4,9 +4,27 @@ import emit
 from channel.models import Channel
 from emit.dispatch import recipients
 from emit.specs import ChannelMessageSpec
-from emit.transport import Push, Timeline
+from emit.transport import Email, Push, Timeline
+from phase.models import Phase
+from victory.models import Victory
 
 _truncate = ChannelMessageSpec._truncate
+
+
+def _create_victory(state, winners):
+    game = state["game"]
+    phase = Phase.objects.create(
+        game=game,
+        variant=game.variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        ordinal=1,
+        status="Completed",
+    )
+    victory = Victory.objects.create(game=game, winning_phase=phase)
+    victory.members.set(winners)
+    return victory
 
 
 class TestTruncateBody:
@@ -121,7 +139,7 @@ class TestRegistry:
     def test_every_type_declares_known_transports(self):
         for spec_class in emit.REGISTRY.values():
             assert spec_class.transports
-            assert all(transport in {Push, Timeline} for transport in spec_class.transports)
+            assert all(transport in {Push, Timeline, Email} for transport in spec_class.transports)
 
     def test_every_type_currently_pushes(self):
         for spec_class in emit.REGISTRY.values():
@@ -208,16 +226,22 @@ class TestActiveExceptActorResolver:
         }
 
 
-class TestSoloLossResolver:
-    def test_excludes_the_winner(self, emit_game):
+class TestWinnersResolver:
+    @pytest.mark.django_db
+    def test_solo_win_targets_only_the_winner(self, emit_game):
         state = emit_game(with_game_master=True)
-        winner_id = state["active_one"].user_id
-        result = recipients(
-            "game_solo_loss",
-            game=state["game"],
-            context={"winner_user_id": winner_id},
-        )
-        assert winner_id not in result
+        winner = state["active_one"]
+        _create_victory(state, [winner])
+        result = recipients("game_solo_win", game=state["game"])
+        assert result == {winner.user_id}
+
+    @pytest.mark.django_db
+    def test_solo_loss_excludes_the_winner(self, emit_game):
+        state = emit_game(with_game_master=True)
+        winner = state["active_one"]
+        _create_victory(state, [winner])
+        result = recipients("game_solo_loss", game=state["game"])
+        assert winner.user_id not in result
         assert result == {
             state["active_two"].user_id,
             state["eliminated"].user_id,
@@ -228,16 +252,11 @@ class TestSoloLossResolver:
 
 
 class TestNmrExtensionAppliedResolver:
-    def test_excludes_members_that_used_an_extension(self, emit_game):
+    def test_includes_all_players_and_game_master(self, emit_game):
         state = emit_game(with_game_master=True)
-        used = state["active_one"].user_id
-        result = recipients(
-            "nmr_extension_applied",
-            game=state["game"],
-            context={"extension_user_ids": [used]},
-        )
-        assert used not in result
+        result = recipients("nmr_extension_applied", game=state["game"])
         assert result == {
+            state["active_one"].user_id,
             state["active_two"].user_id,
             state["eliminated"].user_id,
             state["kicked"].user_id,
@@ -246,16 +265,22 @@ class TestNmrExtensionAppliedResolver:
         }
 
 
+class TestActorResolver:
+    def test_nmr_extension_used_targets_only_the_actor(self, emit_game):
+        state = emit_game(with_game_master=True)
+        actor = state["active_one"].user
+        result = recipients("nmr_extension_used", game=state["game"], actor=actor)
+        assert result == {actor.id}
+
+
 class TestExplicitResolvers:
     @pytest.mark.parametrize(
         "event_type",
         [
-            "game_solo_win",
             "game_admin_reassigned",
             "kicked_from_staging",
             "removed_from_staging",
             "elimination",
-            "nmr_extension_used",
             "deadline_warning",
         ],
     )
@@ -339,15 +364,23 @@ class TestEmitDispatch:
         assert _notification_jobs(in_memory_procrastinate, "elimination") == []
 
     @pytest.mark.django_db
-    def test_context_values_are_interpolated_into_copy(self, emit_game, in_memory_procrastinate):
+    def test_manager_label_and_deadline_are_inferred_into_copy(self, emit_game, in_memory_procrastinate):
         state = emit_game(with_game_master=True)
-        emit.emit(
-            "game_resumed",
-            game=state["game"],
-            actor=state["active_one"].user,
-            context={"manager_label": "the game creator", "deadline": "1 Jan 2026"},
-        )
+        actor = state["active_one"].user
+        emit.emit("game_resumed", game=state["game"], actor=actor)
 
         jobs = _notification_jobs(in_memory_procrastinate, "game_resumed")
         assert len(jobs) == 1
-        assert jobs[0]["args"]["body"] == "Game resumed by the game creator. New deadline: 1 Jan 2026"
+        assert jobs[0]["args"]["body"] == f"Game resumed by the Game Master ({actor.username}). New deadline: N/A"
+
+    @pytest.mark.django_db
+    def test_email_transport_defers_email_notification(self, emit_game, in_memory_procrastinate):
+        state = emit_game()
+        emit.emit("game_start", game=state["game"])
+
+        email_jobs = [
+            j for j in in_memory_procrastinate.jobs.values()
+            if j["task_name"] == "email_service.send_email_notification"
+        ]
+        assert len(email_jobs) == 1
+        assert "Game Started" in email_jobs[0]["args"]["subject"]

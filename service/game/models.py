@@ -30,8 +30,6 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
-from email_service.tasks import send_email_notification
-from email_service.templates import notification_email
 from emit import emit
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
@@ -688,35 +686,17 @@ class Game(BaseModel):
 
             emit("game_start", game=self)
 
-            user_ids = self.notification_user_ids()
-            if user_ids:
-                body = "The game has started. You can now chat with other players and submit your orders. Good luck!"
-                link = f"{settings.FRONTEND_URL}/game/{self.id}"
-                send_email_notification.defer(
-                    user_ids=user_ids,
-                    subject=f"{self.name} — Game Started",
-                    html=notification_email(title=self.name, body=body, link=link),
-                )
-
     def emit_game_ended(self):
         try:
             victory = Victory.objects.prefetch_related("members").get(game=self)
         except Victory.DoesNotExist:
             return
 
-        victory_members = list(victory.members.all())
-        if len(victory_members) >= 2:
-            names = ", ".join(m.name for m in victory_members)
-            emit("game_draw", game=self, context={"winner_names": names})
-        elif len(victory_members) == 1:
-            winner = victory_members[0]
-            winner_ids = [winner.user_id] if winner.user_id is not None else []
-            emit("game_solo_win", game=self, context={"recipients": winner_ids})
-            emit(
-                "game_solo_loss",
-                game=self,
-                context={"winner_user_id": winner.user_id, "winner_name": winner.name},
-            )
+        if victory.members.count() >= 2:
+            emit("game_draw", game=self)
+        else:
+            emit("game_solo_win", game=self)
+            emit("game_solo_loss", game=self)
 
     def start_if_full(self):
         if self.status != GameStatus.PENDING:

@@ -1,16 +1,19 @@
 from emit.audience import (
-    AllPlayers,
-    AllPlayersExceptActor,
-    AllPlayersExceptExtensionUsers,
-    AllPlayersExceptWinner,
     Active,
     ActiveExceptActor,
+    Actor,
+    AllPlayers,
+    AllPlayersExceptActor,
+    AllPlayersExceptWinners,
     ChannelMembersExceptActor,
+    Winners,
+    victory_members,
 )
 from emit.base import EmitSpec
 from emit.link import ChannelLink, DrawProposalsLink, NoLink
 from emit.registry import register
-from emit.transport import Push, Timeline
+from emit.transport import Email, Push, Timeline
+from phase.utils import format_deadline
 
 
 @register("channel_message")
@@ -45,11 +48,14 @@ class DrawProposalSpec(EmitSpec):
 
 @register("game_start")
 class GameStartSpec(EmitSpec):
-    transports = [Push, Timeline]
+    transports = [Push, Timeline, Email]
     audience = AllPlayers
 
     def get_body(self, context):
         return "The game has started. You can now chat with other players and submit your orders. Good luck!"
+
+    def get_email_subject(self, context):
+        return f"{context.game.name} — Game Started"
 
 
 @register("game_draw")
@@ -58,12 +64,14 @@ class GameDrawSpec(EmitSpec):
     audience = AllPlayers
 
     def get_body(self, context):
-        return f"The game has ended in a draw, including {context.payload['winner_names']}. Well played!"
+        names = ", ".join(member.name for member in victory_members(context.game))
+        return f"The game has ended in a draw, including {names}. Well played!"
 
 
 @register("game_solo_win")
 class GameSoloWinSpec(EmitSpec):
     transports = [Push, Timeline]
+    audience = Winners
 
     def get_body(self, context):
         return "The game has ended, you achieved a solo win! Congratulations!"
@@ -72,28 +80,36 @@ class GameSoloWinSpec(EmitSpec):
 @register("game_solo_loss")
 class GameSoloLossSpec(EmitSpec):
     transports = [Push, Timeline]
-    audience = AllPlayersExceptWinner
+    audience = AllPlayersExceptWinners
 
     def get_body(self, context):
-        return f"The game has ended, and {context.payload['winner_name']} achieved a solo win! Better luck next time!"
+        winners = victory_members(context.game)
+        winner_name = winners[0].name if winners else ""
+        return f"The game has ended, and {winner_name} achieved a solo win! Better luck next time!"
 
 
 @register("phase_resolved")
 class PhaseResolvedSpec(EmitSpec):
-    transports = [Push, Timeline]
+    transports = [Push, Timeline, Email]
     audience = AllPlayers
 
     def get_body(self, context):
-        return f"{context.payload['phase_name']} has been resolved"
+        return f"{context.phase.name} has been resolved"
+
+    def get_email_subject(self, context):
+        return f"{context.game.name} — {context.phase.name} Resolved"
 
 
 @register("phase_resolved_early")
 class PhaseResolvedEarlySpec(EmitSpec):
-    transports = [Push, Timeline]
+    transports = [Push, Timeline, Email]
     audience = AllPlayers
 
     def get_body(self, context):
-        return f"{context.payload['phase_name']} resolved early — all players confirmed their orders."
+        return f"{context.phase.name} resolved early — all players confirmed their orders."
+
+    def get_email_subject(self, context):
+        return f"{context.game.name} — {context.phase.name} Resolved Early"
 
 
 @register("game_deleted")
@@ -115,31 +131,40 @@ class GameAdminReassignedSpec(EmitSpec):
         return "The previous manager is no longer available, so you are now managing this game."
 
 
-@register("game_paused")
-class GamePausedSpec(EmitSpec):
+class GameManagementSpec(EmitSpec):
     transports = [Push, Timeline]
     audience = AllPlayersExceptActor
 
+    def manager_label(self, context):
+        label = context.game.manager_label
+        if not context.game.anonymity_active:
+            label += f" ({context.actor.username})"
+        return label
+
+    def deadline(self, context):
+        phase = context.game.current_phase
+        scheduled = phase.scheduled_resolution if phase else None
+        if not scheduled:
+            return "N/A"
+        return format_deadline(scheduled, context.game.fixed_deadline_timezone)
+
+
+@register("game_paused")
+class GamePausedSpec(GameManagementSpec):
     def get_body(self, context):
-        return f"Game paused by {context.payload['manager_label']}"
+        return f"Game paused by {self.manager_label(context)}"
 
 
 @register("game_resumed")
-class GameResumedSpec(EmitSpec):
-    transports = [Push, Timeline]
-    audience = AllPlayersExceptActor
-
+class GameResumedSpec(GameManagementSpec):
     def get_body(self, context):
-        return f"Game resumed by {context.payload['manager_label']}. New deadline: {context.payload['deadline']}"
+        return f"Game resumed by {self.manager_label(context)}. New deadline: {self.deadline(context)}"
 
 
 @register("game_deadline_extended")
-class GameDeadlineExtendedSpec(EmitSpec):
-    transports = [Push, Timeline]
-    audience = AllPlayersExceptActor
-
+class GameDeadlineExtendedSpec(GameManagementSpec):
     def get_body(self, context):
-        return f"Deadline extended by {context.payload['manager_label']}. New deadline: {context.payload['deadline']}"
+        return f"Deadline extended by {self.manager_label(context)}. New deadline: {self.deadline(context)}"
 
 
 @register("kicked_from_staging")
@@ -158,12 +183,12 @@ class RemovedFromStagingSpec(EmitSpec):
         return "Removed from staging games"
 
     def get_body(self, context):
-        return f"You were removed from {context.payload['game_names']} because you entered civil disorder in an active game."
+        return f"You were removed from {context.game.name} because you entered civil disorder in an active game."
 
 
 @register("civil_disorder")
 class CivilDisorderSpec(EmitSpec):
-    transports = [Push, Timeline]
+    transports = [Push, Timeline, Email]
     audience = Active
     link = NoLink
 
@@ -172,6 +197,9 @@ class CivilDisorderSpec(EmitSpec):
 
     def get_body(self, context):
         return f"{context.payload['nation_names']} entered civil disorder."
+
+    def get_email_subject(self, context):
+        return f"{context.game.name} — Civil Disorder"
 
 
 @register("civil_disorder_recovery")
@@ -184,7 +212,9 @@ class CivilDisorderRecoverySpec(EmitSpec):
         return "Player Returned"
 
     def get_body(self, context):
-        return f"{context.payload['nation_name']} has returned from civil disorder."
+        member = context.game.members.filter(user=context.actor).first()
+        nation_name = member.nation.name if member and member.nation else "A player"
+        return f"{nation_name} has returned from civil disorder."
 
 
 @register("elimination")
@@ -198,18 +228,23 @@ class EliminationSpec(EmitSpec):
 @register("nmr_extension_used")
 class NmrExtensionUsedSpec(EmitSpec):
     transports = [Push]
+    audience = Actor
 
     def get_body(self, context):
-        return f"You did not submit orders and used an automatic extension ({context.payload['extensions_remaining']} remaining). The current phase is extended until {context.payload['deadline']}."
+        member = context.game.members.filter(user=context.actor).first()
+        remaining = member.nmr_extensions_remaining if member else 0
+        deadline = format_deadline(context.phase.scheduled_resolution, context.game.fixed_deadline_timezone)
+        return f"You did not submit orders and used an automatic extension ({remaining} remaining). The current phase is extended until {deadline}."
 
 
 @register("nmr_extension_applied")
 class NmrExtensionAppliedSpec(EmitSpec):
     transports = [Push, Timeline]
-    audience = AllPlayersExceptExtensionUsers
+    audience = AllPlayers
 
     def get_body(self, context):
-        return f"Some player(s) did not submit orders and used an extension. The current phase is extended until {context.payload['deadline']}."
+        deadline = format_deadline(context.phase.scheduled_resolution, context.game.fixed_deadline_timezone)
+        return f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline}."
 
 
 @register("deadline_warning")
