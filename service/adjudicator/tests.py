@@ -8989,17 +8989,20 @@ def test_convoyed_move_into_rotational_cycle_resolves():
     # phase 51376 (Fall 1904, Movement) — Sentry DIPLICITY-API-9B. The
     # strength-and-cut solver raised "Strength-and-cut solver terminated
     # with unresolved decisions" on this position and on every retry,
-    # leaving the phase permanently overdue (DIPLICITY-API-9C/9D). This
-    # refutes the section note above: a Szykman-shaped stall *is*
-    # reachable from a valid Diplomacy position.
+    # leaving the phase permanently overdue (DIPLICITY-API-9C/9D). It
+    # refutes the section note above: a stall *is* reachable from a valid
+    # Diplomacy position — here without any convoy in the cycle, so the
+    # Szykman breaker cannot resolve it.
     #
     # A convoyed, supported move (wal -> spa, convoyed by mao and eng and
     # supported by por) targets the tail of a rotational 3-cycle
     # spa -> gas -> mar -> spa, where gas -> mar is supported by bur and
-    # mar -> spa is supported by wes. The dependency cycle this produces
-    # has no _CONVOY_PATH_INTACT member, so the Szykman breaker does not
-    # fire and the solver stalls with move/hold/attack decisions
-    # unresolved. The engine must resolve the position rather than raise.
+    # mar -> spa is supported by wes. The rotation is not clean: mar -> spa
+    # is contested from outside by wal -> spa at equal strength (2 v 2), so
+    # mar bounces. gas -> mar then dislodges the stayed mar unit (2 v 1),
+    # spa -> gas follows into the vacated Gascony, and wal bounces against
+    # mar. The contested-rotation breaker forces the beaten mar move to
+    # bounce, which collapses the rest of the cycle.
     variant = _datc_classical_variant()
     state = (
         _DatcStateBuilder(variant)
@@ -9027,7 +9030,13 @@ def test_convoyed_move_into_rotational_cycle_resolves():
 
     result = _datc_adjudicate_one(variant, state)
 
-    assert result["resolutions"] is not None
+    assert _datc_resolution_for(result, "gas") == "OK"
+    assert _datc_resolution_for(result, "spa") == "OK"
+    assert _datc_resolution_for(result, "mar") == "BOUNCE"
+    assert _datc_resolution_for(result, "wal") == "BOUNCE"
+    assert _datc_has_unit(result, "germany", "Army", "mar")
+    assert _datc_has_unit(result, "italy", "Army", "gas")
+    assert _datc_has_unit(result, "italy", "Army", "mar", dislodged=True)
 
 
 # ======================================================================
