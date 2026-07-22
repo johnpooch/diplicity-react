@@ -14,7 +14,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline
+from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -468,7 +468,7 @@ class PhaseManager(models.Manager):
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
 
-        emit("civil_disorder", game=phase.game, context={"nation_names": nation_names})
+        emit("civil_disorder", game=phase.game, nation_names=nation_names)
 
     def _remove_from_staging_games(self, user_ids):
         if not user_ids:
@@ -493,11 +493,7 @@ class PhaseManager(models.Manager):
         for m in staging_members:
             if m.user_id is None:
                 continue
-            emit(
-                "removed_from_staging",
-                game=m.game,
-                context={"recipients": [m.user_id]},
-            )
+            emit("removed_from_staging", game=m.game, recipients=[m.user_id])
 
         from game.models import Game
         for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
@@ -536,7 +532,7 @@ class PhaseManager(models.Manager):
         for member in newly_eliminated:
             if member.user_id is None:
                 continue
-            emit("elimination", game=game, context={"recipients": [member.user_id]})
+            emit("elimination", game=game, recipients=[member.user_id])
 
     def _check_abandonment(self, game):
         if game.sandbox:
@@ -905,6 +901,12 @@ class Phase(BaseModel):
         if self.remaining_time:
             return self.remaining_time.total_seconds()
         return None
+
+    @property
+    def formatted_deadline(self):
+        if not self.scheduled_resolution:
+            return None
+        return format_deadline(self.scheduled_resolution, self.game.fixed_deadline_timezone)
 
     @property
     def all_orders(self):

@@ -60,12 +60,7 @@ class DrawProposalManager(models.Manager):
             phase=phase,
         )
 
-        emit(
-            "draw_proposal",
-            game=game,
-            phase=phase,
-            actor=created_by.user,
-        )
+        emit("draw_proposal", draw_proposal=proposal)
 
         votes_to_create = []
         for member in all_active_members:

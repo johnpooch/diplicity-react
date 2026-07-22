@@ -55,15 +55,7 @@ class ChannelMessageSerializer(serializers.Serializer):
             body=validated_data["body"],
         )
 
-        game = channel.game
-        emit(
-            "channel_message",
-            game=game,
-            phase=game.current_phase or game.phases.last(),
-            actor=member.user,
-            channel=channel,
-            context={"body": message.body},
-        )
+        emit("channel_message", message=message)
         return message
 
 

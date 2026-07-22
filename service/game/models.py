@@ -608,7 +608,7 @@ class Game(BaseModel):
             self.admin = new_admin
             self.save(update_fields=["admin"])
 
-            emit("game_admin_reassigned", game=self, context={"recipients": [new_admin.id]})
+            emit("game_admin_reassigned", game=self)
 
     def notification_user_ids(self, exclude_user_id=None, active_only=False):
         members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()

@@ -61,7 +61,7 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
         with transaction.atomic():
             instance.delete()
             if user_id and not is_bot:
-                emit("kicked_from_staging", game=game, context={"recipients": [user_id]})
+                emit("kicked_from_staging", game=game, recipients=[user_id])
 
 
 class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):

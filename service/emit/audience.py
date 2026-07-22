@@ -36,6 +36,12 @@ class Actor(Audience):
         return {actor_id} if actor_id is not None else set()
 
 
+class Admin(Audience):
+    def resolve(self, context):
+        admin_id = context.game.admin_id
+        return {admin_id} if admin_id is not None else set()
+
+
 class AllPlayers(Audience):
     def resolve(self, context):
         user_ids = self.member_user_ids(context.game.members.all())

@@ -1,11 +1,18 @@
 from emit.audience import Explicit
+from emit.context import EmitContext
 from emit.link import GameLink
 
 
 class EmitSpec:
+    event_type = None
     transports = []
     audience = Explicit
     link = GameLink
+
+    def build_context(self, game=None, phase=None, actor=None, channel=None, **payload):
+        if game is None and phase is not None:
+            game = phase.game
+        return EmitContext(self.event_type, game, phase, actor, channel, payload)
 
     def get_recipients(self, context):
         return self.audience().resolve(context)

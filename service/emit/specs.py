@@ -2,6 +2,7 @@ from emit.audience import (
     Active,
     ActiveExceptActor,
     Actor,
+    Admin,
     AllPlayers,
     AllPlayersExceptActor,
     AllPlayersExceptWinners,
@@ -10,10 +11,10 @@ from emit.audience import (
     victory_members,
 )
 from emit.base import EmitSpec
+from emit.context import EmitContext
 from emit.link import ChannelLink, DrawProposalsLink, NoLink
 from emit.registry import register
 from emit.transport import Email, Push, Timeline
-from phase.utils import format_deadline
 
 
 @register("channel_message")
@@ -21,6 +22,17 @@ class ChannelMessageSpec(EmitSpec):
     transports = [Push]
     audience = ChannelMembersExceptActor
     link = ChannelLink
+
+    def build_context(self, message):
+        game = message.channel.game
+        return EmitContext(
+            self.event_type,
+            game=game,
+            phase=message.phase or game.phases.last(),
+            actor=message.sender.user,
+            channel=message.channel,
+            payload={"body": message.body},
+        )
 
     def get_body(self, context):
         return f"{self.actor_name(context)}: {self._truncate(context.payload['body'])}"
@@ -41,6 +53,14 @@ class DrawProposalSpec(EmitSpec):
     transports = [Push]
     audience = ActiveExceptActor
     link = DrawProposalsLink
+
+    def build_context(self, draw_proposal):
+        return EmitContext(
+            self.event_type,
+            game=draw_proposal.game,
+            phase=draw_proposal.phase,
+            actor=draw_proposal.created_by.user,
+        )
 
     def get_body(self, context):
         return f"{self.actor_name(context)} has proposed a draw. Respond to it now."
@@ -126,6 +146,7 @@ class GameDeletedSpec(EmitSpec):
 @register("game_admin_reassigned")
 class GameAdminReassignedSpec(EmitSpec):
     transports = [Push, Timeline]
+    audience = Admin
 
     def get_body(self, context):
         return "The previous manager is no longer available, so you are now managing this game."
@@ -143,10 +164,7 @@ class GameManagementSpec(EmitSpec):
 
     def deadline(self, context):
         phase = context.game.current_phase
-        scheduled = phase.scheduled_resolution if phase else None
-        if not scheduled:
-            return "N/A"
-        return format_deadline(scheduled, context.game.fixed_deadline_timezone)
+        return (phase.formatted_deadline if phase else None) or "N/A"
 
 
 @register("game_paused")
@@ -233,7 +251,7 @@ class NmrExtensionUsedSpec(EmitSpec):
     def get_body(self, context):
         member = context.game.members.filter(user=context.actor).first()
         remaining = member.nmr_extensions_remaining if member else 0
-        deadline = format_deadline(context.phase.scheduled_resolution, context.game.fixed_deadline_timezone)
+        deadline = context.phase.formatted_deadline
         return f"You did not submit orders and used an automatic extension ({remaining} remaining). The current phase is extended until {deadline}."
 
 
@@ -243,7 +261,7 @@ class NmrExtensionAppliedSpec(EmitSpec):
     audience = AllPlayers
 
     def get_body(self, context):
-        deadline = format_deadline(context.phase.scheduled_resolution, context.game.fixed_deadline_timezone)
+        deadline = context.phase.formatted_deadline
         return f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline}."
 
 

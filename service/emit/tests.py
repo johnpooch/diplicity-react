@@ -1,7 +1,8 @@
 import pytest
 
 import emit
-from channel.models import Channel
+from channel.models import Channel, ChannelMessage
+from draw_proposal.models import DrawProposal
 from emit.dispatch import recipients
 from emit.specs import ChannelMessageSpec
 from emit.transport import Email, Push, Timeline
@@ -206,20 +207,37 @@ class TestAllPlayersExceptActorResolver:
         result = recipients(
             "game_deleted",
             game=state["game"],
-            context={"recipients": [state["active_two"].user_id]},
+            recipients=[state["active_two"].user_id],
         )
         assert result == {state["active_two"].user_id}
 
 
 class TestActiveExceptActorResolver:
-    @pytest.mark.parametrize(
-        "event_type",
-        ["draw_proposal", "civil_disorder_recovery"],
-    )
-    def test_excludes_eliminated_kicked_civil_disorder_and_actor(self, emit_game, event_type):
+    def test_civil_disorder_recovery_excludes_eliminated_kicked_civil_disorder_and_actor(self, emit_game):
         state = emit_game(with_game_master=True)
         actor = state["active_one"].user
-        result = recipients(event_type, game=state["game"], actor=actor)
+        result = recipients("civil_disorder_recovery", game=state["game"], actor=actor)
+        assert result == {
+            state["active_two"].user_id,
+            state["game_master"].id,
+        }
+
+    @pytest.mark.django_db
+    def test_draw_proposal_excludes_eliminated_kicked_civil_disorder_and_actor(self, emit_game):
+        state = emit_game(with_game_master=True)
+        phase = Phase.objects.create(
+            game=state["game"],
+            variant=state["game"].variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status="Active",
+        )
+        proposal = DrawProposal.objects.create(
+            game=state["game"], created_by=state["active_one"], phase=phase
+        )
+        result = recipients("draw_proposal", draw_proposal=proposal)
         assert result == {
             state["active_two"].user_id,
             state["game_master"].id,
@@ -273,11 +291,20 @@ class TestActorResolver:
         assert result == {actor.id}
 
 
+class TestAdminResolver:
+    def test_game_admin_reassigned_targets_only_the_admin(self, emit_game):
+        state = emit_game()
+        game = state["game"]
+        game.admin = state["active_one"].user
+        game.save(update_fields=["admin"])
+        result = recipients("game_admin_reassigned", game=game)
+        assert result == {state["active_one"].user_id}
+
+
 class TestExplicitResolvers:
     @pytest.mark.parametrize(
         "event_type",
         [
-            "game_admin_reassigned",
             "kicked_from_staging",
             "removed_from_staging",
             "elimination",
@@ -287,7 +314,7 @@ class TestExplicitResolvers:
     def test_returns_recipients_from_context(self, emit_game, event_type):
         state = emit_game()
         target = state["active_one"].user_id
-        result = recipients(event_type, game=state["game"], context={"recipients": [target]})
+        result = recipients(event_type, game=state["game"], recipients=[target])
         assert result == {target}
 
     def test_empty_when_no_recipients_provided(self, emit_game):
@@ -301,12 +328,8 @@ class TestChannelMessageResolver:
         state = emit_game()
         channel = Channel.objects.create(game=state["game"], name="Global", private=False)
         sender = state["active_one"]
-        result = recipients(
-            "channel_message",
-            game=state["game"],
-            actor=sender.user,
-            channel=channel,
-        )
+        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        result = recipients("channel_message", message=message)
         assert sender.user_id not in result
         assert state["active_two"].user_id in result
         assert state["eliminated"].user_id in result
@@ -316,12 +339,8 @@ class TestChannelMessageResolver:
         channel = Channel.objects.create(game=state["game"], name="Private", private=True)
         sender = state["active_one"]
         channel.members.set([sender, state["active_two"]])
-        result = recipients(
-            "channel_message",
-            game=state["game"],
-            actor=sender.user,
-            channel=channel,
-        )
+        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        result = recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
 
 
@@ -347,7 +366,7 @@ class TestEmitDispatch:
         emit.emit(
             "elimination",
             game=state["game"],
-            context={"recipients": [state["active_one"].user_id]},
+            recipients=[state["active_one"].user_id],
         )
 
         jobs = _notification_jobs(in_memory_procrastinate, "elimination")
@@ -359,7 +378,7 @@ class TestEmitDispatch:
         self, emit_game, in_memory_procrastinate
     ):
         state = emit_game()
-        emit.emit("elimination", game=state["game"], context={"recipients": []})
+        emit.emit("elimination", game=state["game"], recipients=[])
 
         assert _notification_jobs(in_memory_procrastinate, "elimination") == []
 

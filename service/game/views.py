@@ -155,10 +155,7 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         game_name = instance.name
         instance.delete()
         if is_game_master_delete:
-            emit(
-                "game_deleted",
-                context={"recipients": user_ids, "game_name": game_name},
-            )
+            emit("game_deleted", recipients=user_ids, game_name=game_name)
 
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):
