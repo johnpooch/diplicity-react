@@ -165,6 +165,39 @@ Five tenets that govern all code decisions. Apply them when implementing and whe
 
 ---
 
+## Declarative class-based subsystems
+
+For a subsystem with a reasonable amount of complexity — a family of cases that share one lifecycle but differ per case — model it as a base class plus a registry, in the style of Django's class-based views. Do not reach for this when the cases are few and uniform; a handful of functions is simpler and correct there. Use it once a module is accumulating parallel per-case functions that a central table stitches back together.
+
+The unit of cohesion is the case, not the step: everything about one case lives in one class. A registry references each class by name (via a decorator) and never re-assembles behaviour from scattered parts.
+
+Pick the mechanism by how the behaviour varies:
+
+- Fixed configuration → declarative class attribute (`transports = [Push, Timeline]`).
+- One of a small, closed set of interchangeable behaviours reused across cases → composition: assign a strategy _class_ to an attribute, following Django's `permission_classes = [AllowAny]` (the base instantiates it).
+- A dominant default with per-case exceptions → template method: the base supplies the default, a case overrides only what differs (`get_body`).
+- A bespoke behaviour used by a single case → override the method directly (`get_recipients`) rather than invent a single-use strategy class. A case supplies _either_ a strategy attribute _or_ a method override, mirroring Django's `queryset =` vs `get_queryset()`.
+
+```python
+@register("some_case")
+class SomeCase(BaseSpec):
+    transports = [Push, Timeline]        # declarative config
+    recipient_provider = AllPlayers      # composed strategy (a class)
+
+    def get_body(self, event):           # template-method override
+        return f"..."
+```
+
+Diagnostic: if you override a method only to return a value from a small fixed menu, it should have been a composed attribute; if you assign a strategy used exactly once that holds real logic, it should have been a method override.
+
+### Naming
+
+**Files (Python).** In a Django app, a module that houses one class hierarchy is named after its base class, singular — `audience.py` holds `Audience` and its subclasses, `transport.py` holds `Transport`. A module that is a flat collection of many concrete registered cases is plural — `specs.py`. If you can name a file after a single base class, do; reserve the plural for genuine collections. (Frontend file naming follows React conventions instead — PascalCase components, `useX.ts` hooks.)
+
+**Classes and attributes.** Name a class for the abstraction it represents, never the caller that consumes it (`ActiveExceptActor`, not `DrawProposal`). When a subclass narrows its parent, name it parent-plus-exception (`AllPlayersExceptActor`). Don't overload a term the domain already uses — we chose `transport` over `channel` because a channel is a chat construct. Prefer a plain descriptive word over jargon (`Active`, not `Canonical`). Never give an attribute a name that repeats its owner (`context.payload`, not `context.context`). A declarative attribute is singular or plural by its cardinality: `audience = Active` (one strategy), `transports = [Push, Timeline]` (a list).
+
+---
+
 ## Maintaining This Document
 
 If you discover patterns, make architectural decisions, or establish conventions during development, propose updates to this file (or the relevant domain doc). These documents should evolve with the codebase.

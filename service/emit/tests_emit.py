@@ -1,8 +1,9 @@
 import pytest
 
+import emit
 from channel.models import Channel
-from notification import emit
-from notification.emit import Bucket
+from emit.dispatch import recipients
+from emit.transport import Push, Timeline
 
 
 def _notification_jobs(connector, notification_type=None):
@@ -35,7 +36,7 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
     return _create
 
 
-class TestClassificationTable:
+class TestRegistry:
     def test_all_live_notification_types_are_registered(self):
         expected = {
             "channel_message",
@@ -62,34 +63,32 @@ class TestClassificationTable:
         }
         assert set(emit.REGISTRY) == expected
 
-    def test_every_type_has_a_valid_bucket(self):
-        valid = {Bucket.TIMELINE_ONLY, Bucket.PUSH_AND_TIMELINE, Bucket.PUSH_ONLY}
-        for event_type in emit.REGISTRY:
-            assert emit.classification(event_type) in valid
+    def test_every_type_declares_known_transports(self):
+        for spec_class in emit.REGISTRY.values():
+            assert spec_class.transports
+            assert all(transport in {Push, Timeline} for transport in spec_class.transports)
 
     def test_every_type_currently_pushes(self):
-        for event_type in emit.REGISTRY:
-            assert emit.classification(event_type) in {Bucket.PUSH_AND_TIMELINE, Bucket.PUSH_ONLY}
+        for spec_class in emit.REGISTRY.values():
+            assert Push in spec_class.transports
 
 
-class TestCanonicalResolver:
-    def test_civil_disorder_excludes_eliminated_kicked_and_includes_game_master(self, emit_game):
+class TestActiveResolver:
+    def test_civil_disorder_excludes_eliminated_kicked_civil_and_includes_game_master(self, emit_game):
         state = emit_game(with_game_master=True)
-        result = emit.recipients("civil_disorder", game=state["game"])
+        result = recipients("civil_disorder", game=state["game"])
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
-            state["civil"].user_id,
             state["game_master"].id,
         }
 
     def test_civil_disorder_without_game_master(self, emit_game):
         state = emit_game(with_game_master=False)
-        result = emit.recipients("civil_disorder", game=state["game"])
+        result = recipients("civil_disorder", game=state["game"])
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
-            state["civil"].user_id,
         }
 
 
@@ -100,7 +99,7 @@ class TestAllRecipientsResolver:
     )
     def test_includes_eliminated_and_kicked_and_game_master(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
-        result = emit.recipients(event_type, game=state["game"])
+        result = recipients(event_type, game=state["game"])
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
@@ -111,15 +110,15 @@ class TestAllRecipientsResolver:
         }
 
 
-class TestAllExceptActorResolver:
+class TestAllPlayersExceptActorResolver:
     @pytest.mark.parametrize(
         "event_type",
-        ["game_paused", "game_resumed", "game_deadline_extended", "civil_disorder_recovery"],
+        ["game_paused", "game_resumed", "game_deadline_extended"],
     )
     def test_excludes_the_actor(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
         actor = state["active_one"].user
-        result = emit.recipients(event_type, game=state["game"], actor=actor)
+        result = recipients(event_type, game=state["game"], actor=actor)
         assert actor.id not in result
         assert result == {
             state["active_two"].user_id,
@@ -131,7 +130,7 @@ class TestAllExceptActorResolver:
 
     def test_game_deleted_uses_explicit_recipients(self, emit_game):
         state = emit_game()
-        result = emit.recipients(
+        result = recipients(
             "game_deleted",
             game=state["game"],
             context={"recipients": [state["active_two"].user_id]},
@@ -139,11 +138,15 @@ class TestAllExceptActorResolver:
         assert result == {state["active_two"].user_id}
 
 
-class TestDrawProposalResolver:
-    def test_excludes_eliminated_kicked_civil_disorder_and_proposer(self, emit_game):
+class TestActiveExceptActorResolver:
+    @pytest.mark.parametrize(
+        "event_type",
+        ["draw_proposal", "civil_disorder_recovery"],
+    )
+    def test_excludes_eliminated_kicked_civil_disorder_and_actor(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
-        proposer = state["active_one"].user
-        result = emit.recipients("draw_proposal", game=state["game"], actor=proposer)
+        actor = state["active_one"].user
+        result = recipients(event_type, game=state["game"], actor=actor)
         assert result == {
             state["active_two"].user_id,
             state["game_master"].id,
@@ -154,7 +157,7 @@ class TestSoloLossResolver:
     def test_excludes_the_winner(self, emit_game):
         state = emit_game(with_game_master=True)
         winner_id = state["active_one"].user_id
-        result = emit.recipients(
+        result = recipients(
             "game_solo_loss",
             game=state["game"],
             context={"winner_user_id": winner_id},
@@ -173,7 +176,7 @@ class TestNmrExtensionAppliedResolver:
     def test_excludes_members_that_used_an_extension(self, emit_game):
         state = emit_game(with_game_master=True)
         used = state["active_one"].user_id
-        result = emit.recipients(
+        result = recipients(
             "nmr_extension_applied",
             game=state["game"],
             context={"extension_user_ids": [used]},
@@ -204,12 +207,12 @@ class TestExplicitResolvers:
     def test_returns_recipients_from_context(self, emit_game, event_type):
         state = emit_game()
         target = state["active_one"].user_id
-        result = emit.recipients(event_type, game=state["game"], context={"recipients": [target]})
+        result = recipients(event_type, game=state["game"], context={"recipients": [target]})
         assert result == {target}
 
     def test_empty_when_no_recipients_provided(self, emit_game):
         state = emit_game()
-        result = emit.recipients("elimination", game=state["game"])
+        result = recipients("elimination", game=state["game"])
         assert result == set()
 
 
@@ -218,10 +221,11 @@ class TestChannelMessageResolver:
         state = emit_game()
         channel = Channel.objects.create(game=state["game"], name="Global", private=False)
         sender = state["active_one"]
-        result = emit.recipients(
+        result = recipients(
             "channel_message",
             game=state["game"],
-            context={"channel": channel, "sender": sender},
+            actor=sender.user,
+            channel=channel,
         )
         assert sender.user_id not in result
         assert state["active_two"].user_id in result
@@ -232,10 +236,11 @@ class TestChannelMessageResolver:
         channel = Channel.objects.create(game=state["game"], name="Private", private=True)
         sender = state["active_one"]
         channel.members.set([sender, state["active_two"]])
-        result = emit.recipients(
+        result = recipients(
             "channel_message",
             game=state["game"],
-            context={"channel": channel, "sender": sender},
+            actor=sender.user,
+            channel=channel,
         )
         assert result == {state["active_two"].user_id}
 
@@ -251,7 +256,7 @@ class TestEmitDispatch:
         jobs = _notification_jobs(in_memory_procrastinate, "game_start")
         assert len(jobs) == 1
         args = jobs[0]["args"]
-        assert set(args["user_ids"]) == emit.recipients("game_start", game=state["game"])
+        assert set(args["user_ids"]) == recipients("game_start", game=state["game"])
         assert args["title"] == state["game"].name
         assert "The game has started" in args["body"]
         assert args["data"]["game_id"] == str(state["game"].id)
