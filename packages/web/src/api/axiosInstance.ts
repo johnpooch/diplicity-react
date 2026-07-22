@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '../auth/tokenStorage';
 
-const diplictityApiBaseUrl = import.meta.env.VITE_DIPLICITY_API_BASE_URL;
+const diplictityApiBaseUrl =
+  import.meta.env.VITE_DIPLICITY_API_BASE_URL || 'http://localhost:8000';
 
 const axiosInstance = axios.create({
   baseURL: diplictityApiBaseUrl,

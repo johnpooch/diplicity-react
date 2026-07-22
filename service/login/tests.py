@@ -1,4 +1,7 @@
+import json
+
 import pytest
+from django.core.management import call_command
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -196,3 +199,71 @@ def test_unknown_audience_rejected(unauthenticated_client, mock_google_auth):
     url = reverse(viewname)
     response = unauthenticated_client.post(url, {"id_token": "bad_token"}, format="json")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_create_test_user_defaults_create_active_loginable_user(capsys, unauthenticated_client):
+    call_command("create_test_user")
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["email"] == "test@example.com"
+    assert output["password"] == "password"
+    assert output["superuser"] is False
+
+    user = User.objects.get(email="test@example.com")
+    assert user.is_active is True
+    assert user.is_staff is False
+    assert user.is_superuser is False
+    assert UserProfile.objects.get(user=user).name == "Test User"
+
+    response = unauthenticated_client.post(
+        reverse("email-login"),
+        {"email": "test@example.com", "password": "password"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+def test_create_test_user_superuser_flag_grants_admin_access(capsys):
+    call_command("create_test_user", "--superuser")
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["superuser"] is True
+
+    user = User.objects.get(email="test@example.com")
+    assert user.is_staff is True
+    assert user.is_superuser is True
+
+
+@pytest.mark.django_db
+def test_create_test_user_is_idempotent(capsys):
+    call_command("create_test_user")
+    call_command("create_test_user")
+
+    assert User.objects.filter(email="test@example.com").count() == 1
+    assert UserProfile.objects.filter(user__email="test@example.com").count() == 1
+
+
+@pytest.mark.django_db
+def test_create_test_user_custom_arguments(capsys, unauthenticated_client):
+    call_command(
+        "create_test_user",
+        "--email",
+        "custom@example.com",
+        "--name",
+        "Custom Name",
+        "--password",
+        "custompass123",
+    )
+
+    user = User.objects.get(email="custom@example.com")
+    assert user.username == "custom"
+    assert UserProfile.objects.get(user=user).name == "Custom Name"
+
+    response = unauthenticated_client.post(
+        reverse("email-login"),
+        {"email": "custom@example.com", "password": "custompass123"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
