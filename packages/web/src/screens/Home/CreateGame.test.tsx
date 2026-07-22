@@ -315,7 +315,7 @@ describe("CreateGame — find-similar intervention", () => {
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
     expect(findSimilarFn).not.toHaveBeenCalled();
     expect(mockedGetFindSimilarOptions).not.toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith("/game-info/created-game");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/created-game");
   });
 
   it("does not call find-similar when private is checked", async () => {
@@ -341,7 +341,7 @@ describe("CreateGame — find-similar intervention", () => {
 
     await waitFor(() => expect(findSimilarFn).toHaveBeenCalled());
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
-    expect(mockNavigate).toHaveBeenCalledWith("/game-info/created-game");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/created-game");
   });
 
   it("shows the modal with name and member count when find-similar returns a match", async () => {
@@ -370,7 +370,7 @@ describe("CreateGame — find-similar intervention", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
-    expect(mockNavigate).toHaveBeenCalledWith("/game-info/created-game");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/created-game");
   });
 
   it("navigates to the matched game without creating when 'Join Them?' is clicked", async () => {
@@ -385,7 +385,7 @@ describe("CreateGame — find-similar intervention", () => {
     await user.click(screen.getByRole("button", { name: /join them/i }));
 
     expect(createGameMutateAsync).not.toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith("/game-info/matched-game");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/matched-game");
   });
 });
 

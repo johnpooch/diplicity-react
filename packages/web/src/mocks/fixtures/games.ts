@@ -40,16 +40,27 @@ const makePendingMembers = (count: number, includeCurrentUser = true): Member[] 
     );
 };
 
+const makePendingPhase = (id: number) => makePhase(id, 1, { status: "pending" });
+
+const pendingNoPlayersPhase = makePendingPhase(1101);
 export const pendingGameNoPlayers = makeFixture({
   description:
     "Pending public game with zero members. The current user can join it.",
-  game: makeGame("pending-no-players", "Fresh Open Game", [], [], {
-    status: "pending",
-    canJoin: true,
-    movementPhaseDuration: "48 hours",
-  }),
+  game: makeGame(
+    "pending-no-players",
+    "Fresh Open Game",
+    [],
+    [pendingNoPlayersPhase],
+    {
+      status: "pending",
+      canJoin: true,
+      movementPhaseDuration: "48 hours",
+    }
+  ),
+  phases: [pendingNoPlayersPhase],
 });
 
+const pendingSomePlayersPhase = makePendingPhase(1102);
 export const pendingGameSomePlayers = makeFixture({
   description:
     "Pending game with 3 of 7 players plus an AI player, including the current user (who created it and can manage it). Nations are not assigned yet.",
@@ -57,7 +68,7 @@ export const pendingGameSomePlayers = makeFixture({
     "pending-some-players",
     "Gathering Forces",
     [...makePendingMembers(3), makeBotMember(botRoster[3])],
-    [],
+    [pendingSomePlayersPhase],
     {
       status: "pending",
       canLeave: true,
@@ -65,8 +76,10 @@ export const pendingGameSomePlayers = makeFixture({
       canManage: true,
     }
   ),
+  phases: [pendingSomePlayersPhase],
 });
 
+const pendingAlmostFullPhase = makePendingPhase(1103);
 export const pendingGameAlmostFull = makeFixture({
   description:
     "Pending game with 6 of 7 players including the current user — one seat left before it starts.",
@@ -74,15 +87,17 @@ export const pendingGameAlmostFull = makeFixture({
     "pending-almost-full",
     "One Seat Left",
     makePendingMembers(6),
-    [],
+    [pendingAlmostFullPhase],
     {
       status: "pending",
       canLeave: true,
       canManage: true,
     }
   ),
+  phases: [pendingAlmostFullPhase],
 });
 
+const gameMasterPhase = makePendingPhase(1104);
 export const gameMasterGame = makeFixture({
   description:
     "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster.",
@@ -90,7 +105,7 @@ export const gameMasterGame = makeFixture({
     "game-master",
     "Master of Ceremonies",
     players.slice(1, 4).map(player => makeMember(player, null)),
-    [],
+    [gameMasterPhase],
     {
       status: "pending",
       private: true,
@@ -99,6 +114,7 @@ export const gameMasterGame = makeFixture({
       gameMaster: { userId: 1, name: "Mock Player", picture: null },
     }
   ),
+  phases: [gameMasterPhase],
 });
 
 const buildActiveMovement = () => {

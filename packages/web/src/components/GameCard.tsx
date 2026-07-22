@@ -35,7 +35,7 @@ import {
   useGameJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo, getGameLandingPath } from "../util";
+import { formatTimeAgo, getGameInfoPath, getGameLandingPath, getPlayerInfoPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -103,11 +103,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   };
 
   const handleClickGameInfo = () => {
-    navigate(`/game-info/${game.id}`);
+    navigate(getGameInfoPath(game));
   };
 
   const handleClickPlayerInfo = () => {
-    navigate(`/player-info/${game.id}`);
+    navigate(getPlayerInfoPath(game));
   };
 
   const handleJoinGame = async () => {

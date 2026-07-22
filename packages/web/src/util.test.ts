@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatRemainingTime, getGameLandingPath } from "./util";
+import { formatRemainingTime, getGameInfoPath, getGameLandingPath, getPlayerInfoPath } from "./util";
 
 describe("formatRemainingTime", () => {
   it("returns 'Deadline passed' for 0 seconds", () => {
@@ -37,17 +37,41 @@ describe("formatRemainingTime", () => {
   });
 });
 
-describe("getGameLandingPath", () => {
-  it("routes pending games to game-info regardless of viewport", () => {
-    const game = { id: "abc-1", status: "pending", currentPhaseId: 5 };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-1");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-1");
+describe("getGameInfoPath", () => {
+  it("routes to the shell game-info tab when a phase exists", () => {
+    const game = { id: "abc-1", currentPhaseId: 5 };
+    expect(getGameInfoPath(game)).toBe("/game/abc-1/phase/5/game-info");
   });
 
-  it("routes pending games to game-info even when currentPhaseId is null", () => {
+  it("falls back to the game redirect route when there is no current phase", () => {
+    const game = { id: "abc-2", currentPhaseId: null };
+    expect(getGameInfoPath(game)).toBe("/game/abc-2");
+  });
+});
+
+describe("getPlayerInfoPath", () => {
+  it("routes to the shell player-info tab when a phase exists", () => {
+    const game = { id: "abc-1", currentPhaseId: 5 };
+    expect(getPlayerInfoPath(game)).toBe("/game/abc-1/phase/5/player-info");
+  });
+
+  it("falls back to the game redirect route when there is no current phase", () => {
+    const game = { id: "abc-2", currentPhaseId: null };
+    expect(getPlayerInfoPath(game)).toBe("/game/abc-2");
+  });
+});
+
+describe("getGameLandingPath", () => {
+  it("routes pending games to the shell game-info tab regardless of viewport", () => {
+    const game = { id: "abc-1", status: "pending", currentPhaseId: 5 };
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-1/phase/5/game-info");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-1/phase/5/game-info");
+  });
+
+  it("routes pending games with no currentPhaseId back to home", () => {
     const game = { id: "abc-2", status: "pending", currentPhaseId: null };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-2");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-2");
+    expect(getGameLandingPath(game, true)).toBe("/");
+    expect(getGameLandingPath(game, false)).toBe("/");
   });
 
   it("routes active games on mobile to the phase index", () => {

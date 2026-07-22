@@ -67,14 +67,14 @@ describe("GameCard", () => {
   });
 
   describe("click navigation", () => {
-    it("navigates pending games to game-info on desktop", async () => {
+    it("navigates pending games to the shell game-info tab on desktop", async () => {
       mockUseIsMobile.mockReturnValue(false);
       renderGameCard({ game: mockPendingGames[0], ...defaultProps });
       await userEvent.click(
         screen.getByRole("button", { name: mockPendingGames[0].name })
       );
       expect(mockNavigate).toHaveBeenCalledWith(
-        `/game-info/${mockPendingGames[0].id}`
+        `/game/${mockPendingGames[0].id}/phase/${mockPendingGames[0].currentPhaseId}/game-info`
       );
     });
 

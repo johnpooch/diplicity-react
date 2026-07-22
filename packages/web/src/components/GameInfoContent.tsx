@@ -5,20 +5,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
-import {
-  useGameRetrieveSuspense,
-  useGamePhaseRetrieve,
-} from "@/api/generated/endpoints";
+import { PendingGameActions } from "@/components/PendingGameActions";
+import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
-import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
+import { formatDateTime, formatTimeAgo } from "@/util";
 import { MIN_RELIABILITY_OPTIONS } from "@/constants";
-import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
-import { CardTitle } from "@/components/ui/card";
-import {
-  ScreenCard,
-  ScreenCardContent,
-  ScreenCardHeader,
-} from "@/components/ui/screen-card";
+import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { useRequiredParams } from "@/hooks";
 
 interface MetadataRowProps {
@@ -59,32 +51,25 @@ const MetadataTextRow: React.FC<MetadataTextRowProps> = ({ icon, label, text }) 
 
 interface GameInfoContentProps {
   onNavigateToPlayerInfo: () => void;
-  pendingAction?: React.ReactNode;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   onNavigateToPlayerInfo,
-  pendingAction,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
 
-  const currentPhaseId = getCurrentPhaseId(game);
-  const { data: currentPhase } = useGamePhaseRetrieve(
-    gameId,
-    currentPhaseId ?? 0,
-    { query: { enabled: !!currentPhaseId } }
-  );
+  const pendingAction =
+    game.status === "pending" ? (
+      <PendingGameActions game={game} variant={variant} />
+    ) : null;
 
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
       <ScreenCard>
-        <ScreenCardHeader>
-          <CardTitle>{game.name}</CardTitle>
-        </ScreenCardHeader>
         <ScreenCardContent>
           <MetadataRow
             icon={<Map className="size-4" />}
@@ -223,17 +208,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
               label="Rules"
               text={variant.rules}
             />
-          )}
-          {variant && currentPhase ? (
-            <div className="w-full overflow-hidden rounded-lg">
-              <ExpandableMapPreview
-                variant={variant}
-                phase={currentPhase}
-                style={{ width: "100%" }}
-              />
-            </div>
-          ) : (
-            <Skeleton className="w-full h-64 rounded-lg" />
           )}
         </ScreenCardContent>
       </ScreenCard>

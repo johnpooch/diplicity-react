@@ -41,7 +41,7 @@ describe("GamePhaseRedirect", () => {
     mockUseIsMobile.mockReset();
   });
 
-  it("redirects forming games to the game-info screen", () => {
+  it("redirects forming games to the shell game-info tab", () => {
     mockUseGameRetrieveSuspense.mockReturnValue({
       data: { id: "abc-1", status: "pending", currentPhaseId: 5 },
     });
@@ -50,11 +50,11 @@ describe("GamePhaseRedirect", () => {
     renderAtGameRoute("abc-1");
 
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "/game-info/abc-1"
+      "/game/abc-1/phase/5/game-info"
     );
   });
 
-  it("redirects forming games to game-info on mobile too", () => {
+  it("redirects forming games with no current phase back to home", () => {
     mockUseGameRetrieveSuspense.mockReturnValue({
       data: { id: "abc-2", status: "pending", currentPhaseId: null },
     });
@@ -62,9 +62,7 @@ describe("GamePhaseRedirect", () => {
 
     renderAtGameRoute("abc-2");
 
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/game-info/abc-2"
-    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
   it("redirects active games on mobile to the phase index", () => {

@@ -64,16 +64,24 @@ vi.mock("@/hooks/useOrderWizard", () => ({
 
 let mockMutateAsync = vi.fn();
 let mockExistingOrders: Order[] = [];
+let mockGameOverride: typeof mockGame | null = null;
+const mockUseGameOptionsRetrieve = vi.fn();
 let mockPublishedVariants: (typeof mockVariant)[] = [];
 let mockRetrievedVariant: typeof mockVariant | undefined = undefined;
 
 vi.mock("@/api/generated/endpoints", () => ({
-  useGameRetrieve: () => ({ data: mockGame }),
+  useGameRetrieve: () => ({ data: mockGameOverride ?? mockGame }),
   useVariantsList: () => ({ data: mockPublishedVariants }),
   useVariantsRetrieve: () => ({ data: mockRetrievedVariant }),
   useGamePhaseRetrieve: () => ({ data: mockPhase }),
   useGameOrdersList: () => ({ data: mockExistingOrders }),
-  useGameOptionsRetrieve: () => ({ data: { orders: [], fieldOrder: {} } }),
+  useGameOptionsRetrieve: (
+    gameId: string,
+    options: { query: { enabled: boolean } }
+  ) => {
+    mockUseGameOptionsRetrieve(gameId, options);
+    return { data: { orders: [], fieldOrder: {} } };
+  },
   useGameOrdersCreate: () => ({ mutateAsync: mockMutateAsync }),
   getGameOrdersListQueryKey: (gameId: string, phaseId: number) => [
     `/game/${gameId}/orders/${phaseId}`,
@@ -221,6 +229,7 @@ describe("GameMap", () => {
     vi.clearAllMocks();
     mockMutateAsync = vi.fn();
     mockExistingOrders = [];
+    mockGameOverride = null;
     mockWizardState = buildIdleWizard();
     mockPublishedVariants = [mockVariant];
     mockRetrievedVariant = undefined;
@@ -238,6 +247,26 @@ describe("GameMap", () => {
 
     const props = mockMapView.mock.calls.at(-1)?.[0] as { variant: { id: string } };
     expect(props.variant.id).toBe("standard");
+  });
+
+  describe("pending games", () => {
+    it("does not fetch order options for a pending game", () => {
+      mockGameOverride = { ...mockGame, status: "pending" };
+
+      render(gameMapJsx());
+
+      expect(mockUseGameOptionsRetrieve).toHaveBeenCalledWith("game-1", {
+        query: { enabled: false },
+      });
+    });
+
+    it("fetches order options for an active game", () => {
+      render(gameMapJsx());
+
+      expect(mockUseGameOptionsRetrieve).toHaveBeenCalledWith("game-1", {
+        query: { enabled: true },
+      });
+    });
   });
 
   describe("optimistic order rendering", () => {

@@ -75,7 +75,9 @@ const GameMap: React.FC = () => {
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
-  const { data: optionsData } = useGameOptionsRetrieve(gameId);
+  const { data: optionsData } = useGameOptionsRetrieve(gameId, {
+    query: { enabled: game !== undefined && game.status !== "pending" },
+  });
 
   const publishedVariant = variants?.find((v) => v.id === game?.variantId);
   const { data: fetchedVariant } = useVariantsRetrieve(
