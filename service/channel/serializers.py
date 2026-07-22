@@ -56,14 +56,13 @@ class ChannelMessageSerializer(serializers.Serializer):
         )
 
         game = channel.game
-        sender_name = "Anonymous" if game.anonymity_active else member.name
         emit(
             "channel_message",
             game=game,
             phase=game.current_phase or game.phases.last(),
             actor=member.user,
             channel=channel,
-            context={"sender_name": sender_name, "body": message.body},
+            context={"body": message.body},
         )
         return message
 

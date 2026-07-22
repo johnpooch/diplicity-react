@@ -18,3 +18,9 @@ class EmitSpec:
 
     def get_link(self, context):
         return self.link().resolve(context)
+
+    def actor_name(self, context):
+        if context.game.anonymity_active:
+            return "Anonymous"
+        actor = context.actor
+        return actor.profile.name if actor is not None else "Deleted User"

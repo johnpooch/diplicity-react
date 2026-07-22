@@ -30,11 +30,21 @@ def no_press_active_game_with_channel(no_press_active_game):
 @pytest.fixture
 def no_press_completed_game(db, primary_user, classical_variant, classical_england_nation):
     Game = apps.get_model("game", "Game")
+    Phase = apps.get_model("phase", "Phase")
     game = Game.objects.create(
         name="No Press Completed Game",
         variant=classical_variant,
         status=GameStatus.COMPLETED,
         press_type=PressType.NO_PRESS,
+    )
+    Phase.objects.create(
+        game=game,
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        ordinal=1,
+        status="Completed",
     )
     game.members.create(user=primary_user, nation=classical_england_nation)
     return game

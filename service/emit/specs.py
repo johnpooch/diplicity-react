@@ -13,16 +13,6 @@ from emit.registry import register
 from emit.transport import Push, Timeline
 
 
-def _truncate_body(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
-    lines = text.split("\n")
-    truncated = "\n".join(lines[:max_lines])
-    if len(truncated) > max_chars:
-        truncated = truncated[:max_chars].rstrip() + "…"
-    elif len(lines) > max_lines:
-        truncated += "…"
-    return truncated
-
-
 @register("channel_message")
 class ChannelMessageSpec(EmitSpec):
     transports = [Push]
@@ -30,7 +20,17 @@ class ChannelMessageSpec(EmitSpec):
     link = ChannelLink
 
     def get_body(self, context):
-        return f"{context.payload['sender_name']}: {_truncate_body(context.payload['body'])}"
+        return f"{self.actor_name(context)}: {self._truncate(context.payload['body'])}"
+
+    @staticmethod
+    def _truncate(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
+        lines = text.split("\n")
+        truncated = "\n".join(lines[:max_lines])
+        if len(truncated) > max_chars:
+            truncated = truncated[:max_chars].rstrip() + "…"
+        elif len(lines) > max_lines:
+            truncated += "…"
+        return truncated
 
 
 @register("draw_proposal")
@@ -40,7 +40,7 @@ class DrawProposalSpec(EmitSpec):
     link = DrawProposalsLink
 
     def get_body(self, context):
-        return f"{context.payload['proposer_name']} has proposed a draw. Respond to it now."
+        return f"{self.actor_name(context)} has proposed a draw. Respond to it now."
 
 
 @register("game_start")

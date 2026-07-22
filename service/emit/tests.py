@@ -3,60 +3,62 @@ import pytest
 import emit
 from channel.models import Channel
 from emit.dispatch import recipients
-from emit.specs import _truncate_body
+from emit.specs import ChannelMessageSpec
 from emit.transport import Push, Timeline
+
+_truncate = ChannelMessageSpec._truncate
 
 
 class TestTruncateBody:
     def test_short_single_line_unchanged(self):
-        assert _truncate_body("Hello world") == "Hello world"
+        assert _truncate("Hello world") == "Hello world"
 
     def test_exactly_three_lines_unchanged(self):
         text = "line1\nline2\nline3"
-        assert _truncate_body(text) == "line1\nline2\nline3"
+        assert _truncate(text) == "line1\nline2\nline3"
 
     def test_four_lines_truncated_to_three_with_ellipsis(self):
         text = "line1\nline2\nline3\nline4"
-        assert _truncate_body(text) == "line1\nline2\nline3…"
+        assert _truncate(text) == "line1\nline2\nline3…"
 
     def test_many_lines_truncated_to_three_with_ellipsis(self):
         text = "\n".join(f"line{i}" for i in range(10))
-        assert _truncate_body(text) == "line0\nline1\nline2…"
+        assert _truncate(text) == "line0\nline1\nline2…"
 
     def test_exceeds_max_chars_truncated_with_ellipsis(self):
         long_line = "x" * 250
-        result = _truncate_body(long_line)
+        result = _truncate(long_line)
         assert result == "x" * 200 + "…"
         assert len(result) == 201
 
     def test_exceeds_max_chars_after_joining_lines(self):
         line = "x" * 70
         text = f"{line}\n{line}\n{line}"
-        result = _truncate_body(text)
+        result = _truncate(text)
         assert result.endswith("…")
         assert len(result) <= 202
 
     def test_trailing_whitespace_stripped_before_ellipsis_on_char_limit(self):
         long_line = "x" * 199 + " " + "y" * 50
-        result = _truncate_body(long_line)
+        result = _truncate(long_line)
         assert not result[:-1].endswith(" ")
         assert result.endswith("…")
 
     def test_empty_string_unchanged(self):
-        assert _truncate_body("") == ""
+        assert _truncate("") == ""
 
     def test_custom_max_lines(self):
         text = "a\nb\nc\nd"
-        assert _truncate_body(text, max_lines=2) == "a\nb…"
+        assert _truncate(text, max_lines=2) == "a\nb…"
 
     def test_custom_max_chars(self):
         text = "x" * 50
-        result = _truncate_body(text, max_chars=10)
+        result = _truncate(text, max_chars=10)
         assert result == "x" * 10 + "…"
 
     def test_exactly_max_chars_no_ellipsis(self):
         text = "x" * 200
-        assert _truncate_body(text) == "x" * 200
+        assert _truncate(text) == "x" * 200
 
 
 def _notification_jobs(connector, notification_type=None):

@@ -18,8 +18,6 @@ class GameLink(Link):
 
 class ChannelLink(Link):
     def resolve(self, context):
-        if context.phase is None:
-            return f"{settings.FRONTEND_URL}/game/{context.game.id}"
         return (
             f"{settings.FRONTEND_URL}/game/{context.game.id}"
             f"/phase/{context.phase.id}/chat/channel/{context.channel.id}"
