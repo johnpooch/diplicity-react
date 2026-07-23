@@ -436,6 +436,27 @@ class PhaseManager(models.Manager):
 
         return surviving
 
+    def _recompute_commitment(self, phase):
+        from user_profile.commitment import recompute_commitment
+
+        if phase.game.sandbox or phase.game.private:
+            return
+
+        users = [
+            phase_state.member.user
+            for phase_state in phase.phase_states.select_related("member__user__profile")
+            if phase_state.has_possible_orders and phase_state.member.user_id is not None
+        ]
+        for user in users:
+            try:
+                with transaction.atomic():
+                    recompute_commitment(user)
+            except Exception as e:
+                logger.error(
+                    f"Failed to recompute commitment for user {user.id} after phase {phase.id}: {e}",
+                    exc_info=True,
+                )
+
     def _notify_civil_disorder(self, phase, newly_cd_members):
         if not newly_cd_members:
             return
@@ -544,6 +565,7 @@ class PhaseManager(models.Manager):
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
                     self._notify_civil_disorder(phase, surviving_cd_members)
+                    self._recompute_commitment(phase)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 

@@ -9,7 +9,7 @@ from game.models import Game
 from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus, NationAssignment, PhaseStatus
+from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, PhaseStatus
 
 User = get_user_model()
 
@@ -779,32 +779,34 @@ class TestReplaceableSerialization:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "tier,min_reliability,allowed",
+    "commitment,commitment_requirement,allowed",
     [
-        ("reliable", "open", True),
-        ("reliable", "reliable_and_new", True),
-        ("reliable", "reliable_only", True),
-        ("new", "open", True),
-        ("new", "reliable_and_new", True),
-        ("new", "reliable_only", False),
-        (None, "open", True),
-        (None, "reliable_and_new", False),
-        (None, "reliable_only", False),
+        (Commitment.HIGH, CommitmentRequirement.OPEN, True),
+        (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
+        (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
+        (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
+        (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
+        (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
+        (Commitment.LOW, CommitmentRequirement.OPEN, False),
+        (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
     ],
 )
-def test_join_game_reliability_requirement(
-    authenticated_client, pending_game_created_by_secondary_user, tier, min_reliability, allowed
+def test_join_game_commitment_requirement(
+    authenticated_client,
+    primary_user,
+    pending_game_created_by_secondary_user,
+    set_commitment,
+    commitment,
+    commitment_requirement,
+    allowed,
 ):
     game = pending_game_created_by_secondary_user
-    game.min_reliability = min_reliability
-    game.save(update_fields=["min_reliability"])
+    game.commitment_requirement = commitment_requirement
+    game.save(update_fields=["commitment_requirement"])
+    set_commitment(primary_user, commitment)
     url = reverse(join_viewname, args=[game.id])
 
-    with patch(
-        "common.permissions.get_player_stats",
-        return_value={"reliability_tier": tier},
-    ):
-        response = authenticated_client.post(url)
+    response = authenticated_client.post(url)
 
     if allowed:
         assert response.status_code == status.HTTP_201_CREATED

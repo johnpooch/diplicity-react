@@ -27,6 +27,7 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 import {
   Select,
@@ -56,7 +57,6 @@ import {
   FREQUENCY_OPTIONS,
   TIMEZONE_OPTIONS,
   NMR_EXTENSION_OPTIONS,
-  MIN_RELIABILITY_OPTIONS,
 } from "@/constants";
 import {
   useVariantsListSuspense,
@@ -107,11 +107,7 @@ const gameSchema = z.object({
     .optional()
     .nullable(),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
-  minReliability: z.enum([
-    "open",
-    "reliable_and_new",
-    "reliable_only",
-  ] as const),
+  committedOnly: z.boolean(),
 });
 
 type GameFormValues = z.infer<typeof gameSchema>;
@@ -316,14 +312,6 @@ function getBrowserTimezone(): string {
   return validTimezones.includes(tz) ? tz : "America/New_York";
 }
 
-function getMaxReliability(
-  reliabilityTier: string | null
-): "open" | "reliable_and_new" | "reliable_only" {
-  if (reliabilityTier === "reliable") return "reliable_only";
-  if (reliabilityTier === "new") return "reliable_and_new";
-  return "open";
-}
-
 const STEPS = ["General", "Deadlines", "Advanced"] as const;
 
 const STEP_FIELDS: Record<number, (keyof GameFormValues)[]> = {
@@ -337,7 +325,7 @@ const STEP_FIELDS: Record<number, (keyof GameFormValues)[]> = {
     "movementFrequency",
     "retreatFrequency",
   ],
-  2: ["nmrExtensionsAllowed", "minReliability"],
+  2: ["nmrExtensionsAllowed", "committedOnly"],
 };
 
 interface StepperStep {
@@ -407,7 +395,7 @@ interface CreateGameFormProps {
   initialVariantId?: string;
   initialPrivate?: boolean;
   initialMode?: GameMode;
-  maxReliability: "open" | "reliable_and_new" | "reliable_only";
+  creatorCommitment: string;
 }
 
 const CreateGameForm: React.FC<CreateGameFormProps> = ({
@@ -418,7 +406,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   initialVariantId,
   initialPrivate,
   initialMode,
-  maxReliability,
+  creatorCommitment,
 }) => {
   const officialVariants = variants.filter(v => v.official);
   const communityVariants = variants.filter(v => !v.official);
@@ -446,7 +434,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       movementFrequency: "daily",
       retreatFrequency: null,
       nmrExtensionsAllowed: "0",
-      minReliability: maxReliability,
+      committedOnly: false,
     },
   });
 
@@ -585,7 +573,9 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                       checked={field.value}
                       onCheckedChange={checked => {
                         field.onChange(checked);
-                        if (!checked) {
+                        if (checked) {
+                          form.setValue("committedOnly", false);
+                        } else {
                           form.setValue("gameMaster", false);
                         }
                       }}
@@ -918,50 +908,32 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="minReliability"
-              render={({ field }) => {
-                const maxIndex = MIN_RELIABILITY_OPTIONS.findIndex(
-                  o => o.value === maxReliability
-                );
-                return (
-                  <FormItem>
-                    <FormLabel>Player Reliability</FormLabel>
+            {!isPrivate && (
+              <FormField
+                control={form.control}
+                name="committedOnly"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
-                      <div className="flex rounded-md border overflow-hidden">
-                        {MIN_RELIABILITY_OPTIONS.map((option, i) => (
-                          <Button
-                            key={option.value}
-                            type="button"
-                            variant={
-                              field.value === option.value ? "default" : "ghost"
-                            }
-                            disabled={i > maxIndex || isSubmitting}
-                            onClick={() => field.onChange(option.value)}
-                            className={cn(
-                              "flex-1 rounded-none",
-                              i < MIN_RELIABILITY_OPTIONS.length - 1 &&
-                                "border-r"
-                            )}
-                          >
-                            {option.label}
-                          </Button>
-                        ))}
-                      </div>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting || creatorCommitment !== "high"}
+                      />
                     </FormControl>
-                    <FormDescription>
-                      {
-                        MIN_RELIABILITY_OPTIONS.find(
-                          option => option.value === field.value
-                        )?.description
-                      }
-                    </FormDescription>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Committed players only</FormLabel>
+                      <FormDescription>
+                        {creatorCommitment === "high"
+                          ? "Only players with high commitment can join. Fills slower, but reduces the risk of abandoned seats."
+                          : "Only available to players with high commitment."}
+                      </FormDescription>
+                    </div>
                     <FormMessage />
                   </FormItem>
-                );
-              }}
-            />
+                )}
+              />
+            )}
           </div>
         )}
 
@@ -1011,7 +983,6 @@ const CreateGame: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: allVariants } = useVariantsListSuspense();
   const { data: userProfile } = useUserRetrieveSuspense();
-  const maxReliability = getMaxReliability(userProfile.reliabilityTier);
 
   const initialVariantId =
     searchParams.get(CREATE_GAME_PARAM.variantId) ?? undefined;
@@ -1078,7 +1049,7 @@ const CreateGame: React.FC = () => {
           retreatFrequency:
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
-          minReliability: data.minReliability,
+          commitmentRequirement: data.committedOnly ? "committed" : "open",
         },
       });
       toast.success("Game created successfully");
@@ -1164,7 +1135,7 @@ const CreateGame: React.FC = () => {
             initialVariantId={initialVariantId}
             initialPrivate={initialPrivate}
             initialMode={initialMode}
-            maxReliability={maxReliability}
+            creatorCommitment={userProfile.commitment}
           />
         </ScreenCardContent>
       </ScreenCard>

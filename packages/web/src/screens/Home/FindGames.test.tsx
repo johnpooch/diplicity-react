@@ -134,11 +134,11 @@ describe("FindGames", () => {
     );
   });
 
-  it("passes eligible_only: true to the games list query", () => {
+  it("does not filter ineligible games out of the games list query", () => {
     renderFindGames();
 
     expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
-      expect.objectContaining({ eligible_only: true })
+      expect.not.objectContaining({ eligible_only: true })
     );
   });
 

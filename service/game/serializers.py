@@ -6,8 +6,8 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
-from user_profile.utils import get_player_stats, tier_allows_min_reliability
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from user_profile.commitment import commitment_allows_requirement
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -106,6 +106,8 @@ class GameListSerializer(serializers.Serializer):
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     min_reliability = serializers.CharField(read_only=True)
+    commitment_requirement = serializers.CharField(read_only=True)
+    commitment_eligibility = serializers.SerializerMethodField()
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     @extend_schema_field(serializers.BooleanField)
@@ -137,6 +139,17 @@ class GameListSerializer(serializers.Serializer):
         if not user.is_authenticated:
             return False
         return obj.can_manage(user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=[
+            CommitmentEligibility.ELIGIBLE,
+            CommitmentEligibility.COMMITTED_LOCKED,
+            CommitmentEligibility.LOW_LOCKED,
+        ],
+        allow_null=True,
+    ))
+    def get_commitment_eligibility(self, obj):
+        return obj.commitment_eligibility(self.context["request"].user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -254,7 +267,20 @@ class GameRetrieveSerializer(serializers.Serializer):
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     min_reliability = serializers.CharField(read_only=True)
+    commitment_requirement = serializers.CharField(read_only=True)
+    commitment_eligibility = serializers.SerializerMethodField()
     total_unread_message_count = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=[
+            CommitmentEligibility.ELIGIBLE,
+            CommitmentEligibility.COMMITTED_LOCKED,
+            CommitmentEligibility.LOW_LOCKED,
+        ],
+        allow_null=True,
+    ))
+    def get_commitment_eligibility(self, obj):
+        return obj.commitment_eligibility(self.context["request"].user)
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):
@@ -438,6 +464,10 @@ class GameCreateSerializer(serializers.Serializer):
         choices=MinReliability.MIN_RELIABILITY_CHOICES,
         default=MinReliability.OPEN,
     )
+    commitment_requirement = serializers.ChoiceField(
+        choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
+        default=CommitmentRequirement.OPEN,
+    )
     def validate_variant_id(self, value):
         try:
             self._validated_variant = Variant.objects.get(
@@ -474,13 +504,19 @@ class GameCreateSerializer(serializers.Serializer):
                 {"game_master": "A Game Master is only available in private games."}
             )
 
-        min_reliability = attrs["min_reliability"]
-        if not attrs.get("game_master") and min_reliability != MinReliability.OPEN:
+        if not attrs.get("game_master"):
             request = self.context["request"]
-            tier = get_player_stats(request.user)["reliability_tier"]
-            if not tier_allows_min_reliability(tier, min_reliability):
+            commitment = request.user.profile.commitment
+            if commitment == Commitment.LOW:
                 raise serializers.ValidationError(
-                    {"min_reliability": "Your reliability rating does not meet this requirement."}
+                    {"commitment_requirement": "Your commitment rating does not allow creating games."}
+                )
+            if (
+                attrs["commitment_requirement"] == CommitmentRequirement.COMMITTED
+                and commitment != Commitment.HIGH
+            ):
+                raise serializers.ValidationError(
+                    {"commitment_requirement": "Only players with high commitment can require committed players."}
                 )
 
         deadline_mode = attrs["deadline_mode"]
@@ -534,6 +570,7 @@ class GameCreateSerializer(serializers.Serializer):
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
                 min_reliability=validated_data["min_reliability"],
+                commitment_requirement=validated_data["commitment_requirement"],
             )
 
             public_channel = game.channels.create(name="Public Press", private=False)

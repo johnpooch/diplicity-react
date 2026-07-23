@@ -4,6 +4,7 @@ from django.apps import apps
 from bot_profile.utils import user_can_use_bot_opponent
 from common.constants import GameStatus, MinReliability, PressType
 from common.views import resolve_game
+from user_profile.commitment import commitment_allows_requirement
 from user_profile.utils import get_player_stats, tier_allows_min_reliability
 
 Game = apps.get_model("game", "Game")
@@ -115,6 +116,18 @@ class MeetsReliabilityRequirement(BasePermission):
             return False
         tier = get_player_stats(request.user)["reliability_tier"]
         return tier_allows_min_reliability(tier, game.min_reliability)
+
+
+class MeetsCommitmentRequirement(BasePermission):
+    message = "Your commitment rating does not meet this game's requirement."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        if not request.user.is_authenticated:
+            return False
+        return commitment_allows_requirement(
+            request.user.profile.commitment, game.commitment_requirement
+        )
 
 
 class IsCurrentPhaseActive(BasePermission):

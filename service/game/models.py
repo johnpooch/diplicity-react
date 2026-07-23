@@ -18,6 +18,9 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from common.constants import (
+    Commitment,
+    CommitmentEligibility,
+    CommitmentRequirement,
     DeadlineMode,
     GameStatus,
     MinReliability,
@@ -425,6 +428,11 @@ class Game(BaseModel):
         choices=MinReliability.MIN_RELIABILITY_CHOICES,
         default=MinReliability.OPEN,
     )
+    commitment_requirement = models.CharField(
+        max_length=20,
+        choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
+        default=CommitmentRequirement.OPEN,
+    )
     movement_phase_duration = models.CharField(
         max_length=20,
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
@@ -566,6 +574,19 @@ class Game(BaseModel):
             )
             game_is_pending = self.status == GameStatus.PENDING
             return not user_is_member and game_is_pending
+
+    def commitment_eligibility(self, user):
+        if not user.is_authenticated:
+            return None
+        commitment = user.profile.commitment
+        if commitment == Commitment.LOW:
+            return CommitmentEligibility.LOW_LOCKED
+        if (
+            self.commitment_requirement == CommitmentRequirement.COMMITTED
+            and commitment != Commitment.HIGH
+        ):
+            return CommitmentEligibility.COMMITTED_LOCKED
+        return CommitmentEligibility.ELIGIBLE
 
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):

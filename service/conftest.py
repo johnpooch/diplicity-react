@@ -160,6 +160,22 @@ def authenticated_client_factory():
     return _create
 
 
+@pytest.fixture
+def set_commitment(db):
+    touched = []
+
+    def _set(user, commitment):
+        profile = user.profile
+        touched.append((profile, profile.commitment))
+        profile.commitment = commitment
+        profile.save(update_fields=["commitment"])
+
+    yield _set
+
+    for profile, original in touched:
+        profile.commitment = original
+
+
 # ---------------------------------------------------------------------------
 # Variant reference data (session-scoped lookups)
 # ---------------------------------------------------------------------------
