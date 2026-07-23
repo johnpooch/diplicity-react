@@ -11,6 +11,7 @@ from common.constants import DeadlineMode, PhaseFrequency, PhaseStatus
 from game.models import Game
 from phase.models import Phase
 from phase.serializers import PhaseStateSerializer
+from phase.utils import deadline_warning_offset
 
 
 def _resolve_jobs(connector):
@@ -19,6 +20,10 @@ def _resolve_jobs(connector):
 
 def _immediate_resolve_jobs(connector):
     return [j for j in _resolve_jobs(connector) if j["scheduled_at"] is None]
+
+
+def _warning_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "phase.send_deadline_warning"]
 
 
 class TestConfirmTrigger:
@@ -264,6 +269,102 @@ class TestDeadlineTimerArming:
 
         phase.refresh_from_db()
         assert phase.resolution_job_id is None
+
+
+class TestDeadlineWarningArming:
+
+    @pytest.mark.django_db
+    def test_active_future_deadline_arms_warning(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        offset = deadline_warning_offset(
+            phase.game.get_effective_phase_duration_seconds(phase.type)
+        )
+        jobs = _warning_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["args"] == {"phase_id": phase.id}
+        assert jobs[0]["lock"] == f"warn-game-{phase.game_id}"
+        assert jobs[0]["scheduled_at"] == future - timedelta(seconds=offset)
+
+    @pytest.mark.django_db
+    def test_pending_phase_does_not_arm_warning(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            status=PhaseStatus.PENDING,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        assert _warning_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_deadline_change_rearms_warning(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        phase.scheduled_resolution = future + timedelta(hours=2)
+        phase.save()
+
+        assert len(_warning_jobs(in_memory_procrastinate)) == 2
+
+    @pytest.mark.django_db
+    def test_deadline_change_cancels_previous_warning_job(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        old_job_id = phase.warning_job_id
+
+        phase.scheduled_resolution = future + timedelta(hours=2)
+        phase.save()
+
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+
+    @pytest.mark.django_db
+    def test_phase_completion_cancels_warning_job(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        old_job_id = phase.warning_job_id
+        assert old_job_id is not None
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+        phase.refresh_from_db()
+        assert phase.warning_job_id is None
 
 
 class TestSweepCanary:

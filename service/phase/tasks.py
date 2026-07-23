@@ -13,15 +13,14 @@ def resolve_phase(phase_id: int):
     Phase.objects.resolve_if_due(phase_id)
 
 
+@app.task(name="phase.send_deadline_warning", retry=3)
+def send_deadline_warning(phase_id: int):
+    logger.info(f"Running send_deadline_warning task for phase {phase_id}")
+    Phase.objects.send_deadline_warning(phase_id)
+
+
 @app.periodic(cron="* * * * *")
 @app.task(name="phase.sweep_due_phases")
 def sweep_due_phases(timestamp: int):
     logger.info(f"Running sweep_due_phases task (scheduled for {timestamp})")
     Phase.objects.sweep_due_phases()
-
-
-@app.periodic(cron="* * * * *")
-@app.task(name="phase.send_deadline_warnings")
-def send_deadline_warnings(timestamp: int):
-    logger.info(f"Running send_deadline_warnings task (scheduled for {timestamp})")
-    Phase.objects.send_deadline_warnings()

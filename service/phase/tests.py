@@ -1193,7 +1193,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 21
+        assert query_count == 22
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_query_count_with_full_game(
@@ -4559,7 +4559,7 @@ class TestSendDeadlineWarnings:
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
         germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         assert mock_send_notification_to_users.call_count == 2
         body = mock_send_notification_to_users.call_args_list[0].kwargs["body"]
@@ -4582,7 +4582,7 @@ class TestSendDeadlineWarnings:
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
         germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_not_called()
 
@@ -4602,7 +4602,7 @@ class TestSendDeadlineWarnings:
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -4622,7 +4622,7 @@ class TestSendDeadlineWarnings:
         add_italy_germany_units(phase)
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -4641,7 +4641,7 @@ class TestSendDeadlineWarnings:
         add_italy_germany_units(phase)
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_not_called()
 
@@ -4659,7 +4659,7 @@ class TestSendDeadlineWarnings:
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -4683,7 +4683,7 @@ class TestSendDeadlineWarnings:
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -4703,106 +4703,12 @@ class TestSendDeadlineWarnings:
         add_italy_germany_units(phase)
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
         assert "no orders given" in call_kwargs["body"]
         assert "stop waiting for you" in call_kwargs["body"]
-
-    @pytest.mark.django_db
-    def test_second_call_does_not_resend(
-        self,
-        deadline_warning_game_factory,
-        add_italy_germany_units,
-        mock_send_notification_to_users,
-    ):
-        now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
-        add_italy_germany_units(phase)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-
-        Phase.objects.send_deadline_warnings()
-        Phase.objects.send_deadline_warnings()
-
-        assert mock_send_notification_to_users.call_count == 1
-
-    @pytest.mark.django_db
-    def test_marker_set_to_scheduled_resolution_after_send(
-        self,
-        deadline_warning_game_factory,
-        add_italy_germany_units,
-        mock_send_notification_to_users,
-    ):
-        now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
-        add_italy_germany_units(phase)
-        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-
-        Phase.objects.send_deadline_warnings()
-
-        ps.refresh_from_db()
-        assert ps.deadline_warning_sent_for == phase.scheduled_resolution
-
-    @pytest.mark.django_db
-    def test_deadline_extension_sends_fresh_warning(
-        self,
-        deadline_warning_game_factory,
-        add_italy_germany_units,
-        mock_send_notification_to_users,
-    ):
-        now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(hours=1))
-        game.movement_phase_duration = "48 hours"
-        game.save()
-        add_italy_germany_units(phase)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-
-        Phase.objects.send_deadline_warnings()
-        assert mock_send_notification_to_users.call_count == 1
-
-        game.status = GameStatus.ACTIVE
-        game.save()
-        game.extend_deadline("1 hour")
-
-        Phase.objects.send_deadline_warnings()
-        assert mock_send_notification_to_users.call_count == 2
-
-    @pytest.mark.django_db
-    def test_deadline_move_after_nmr_extension_sends_fresh_warning(
-        self,
-        deadline_warning_game_factory,
-        add_italy_germany_units,
-        mock_send_notification_to_users,
-    ):
-        now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(hours=1))
-        game.movement_phase_duration = "48 hours"
-        game.save()
-        add_italy_germany_units(phase)
-        italy.nmr_extensions_remaining = 1
-        italy.save()
-        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-
-        def _deadline_warning_count():
-            return len([
-                c for c in mock_send_notification_to_users.call_args_list
-                if c.kwargs.get("notification_type") == "deadline_warning"
-            ])
-
-        Phase.objects.send_deadline_warnings()
-        assert _deadline_warning_count() == 1
-        ps.refresh_from_db()
-        assert ps.deadline_warning_sent_for == phase.scheduled_resolution
-
-        Phase.objects._check_and_apply_nmr_extensions(phase)
-
-        phase.refresh_from_db()
-        phase.scheduled_resolution = now + timedelta(minutes=30)
-        phase.save()
-
-        Phase.objects.send_deadline_warnings()
-        assert _deadline_warning_count() == 2
 
     @pytest.mark.django_db
     def test_fixed_time_no_orders_with_extensions_shows_extension_message(
@@ -4819,7 +4725,7 @@ class TestSendDeadlineWarnings:
         phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
         assert "deadline will extend" in call_kwargs["body"]
@@ -4838,7 +4744,7 @@ class TestSendDeadlineWarnings:
         phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
         assert "stop waiting for you" in call_kwargs["body"]
@@ -4858,7 +4764,7 @@ class TestSendDeadlineWarnings:
         phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
         assert "deadline will extend" in call_kwargs["body"]
@@ -4877,7 +4783,7 @@ class TestSendDeadlineWarnings:
         phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
         assert "stop waiting for you" in call_kwargs["body"]
@@ -4892,7 +4798,7 @@ class TestSendDeadlineWarnings:
         game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_not_called()
 
@@ -4928,7 +4834,7 @@ class TestSendDeadlineWarnings:
         phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_not_called()
 
@@ -4974,7 +4880,7 @@ class TestSendDeadlineWarnings:
             source=dislodged_unit.province, order_type=OrderType.MOVE, target=italy_vs_germany_rome_province
         )
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -5017,7 +4923,7 @@ class TestSendDeadlineWarnings:
         phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -5062,7 +4968,7 @@ class TestSendDeadlineWarnings:
         phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
 
-        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warning(phase.id)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
