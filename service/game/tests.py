@@ -1923,7 +1923,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 46
+        assert query_count == 45
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1943,7 +1943,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 46
+        assert query_count == 45
 
 
 class TestGamePrivateFiltering:

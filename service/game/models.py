@@ -30,7 +30,7 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
-from notification.tasks import send_notification
+from emit import emit
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
@@ -608,13 +608,7 @@ class Game(BaseModel):
             self.admin = new_admin
             self.save(update_fields=["admin"])
 
-            send_notification.defer(
-                user_ids=[new_admin.id],
-                title=self.name,
-                body="The previous manager is no longer available, so you are now managing this game.",
-                notification_type="game_admin_reassigned",
-                data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
-            )
+            emit("game_admin_reassigned", game=self)
 
     def notification_user_ids(self, exclude_user_id=None, active_only=False):
         members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
@@ -627,6 +621,28 @@ class Game(BaseModel):
         if exclude_user_id is not None:
             user_ids.discard(exclude_user_id)
         return list(user_ids)
+
+    def _with_game_master(self, user_ids):
+        result = set(user_ids)
+        if self.game_master_id is not None:
+            result.add(self.game_master_id)
+        return result
+
+    def member_user_ids(self, include_gm=False):
+        ids = {m.user_id for m in self.members.all() if m.user_id is not None}
+        return self._with_game_master(ids) if include_gm else ids
+
+    def active_member_user_ids(self, include_gm=False):
+        active = self.members.filter(eliminated=False, kicked=False, civil_disorder=False)
+        ids = {m.user_id for m in active if m.user_id is not None}
+        return self._with_game_master(ids) if include_gm else ids
+
+    def winner_members(self):
+        victory = Victory.objects.filter(game=self).prefetch_related("members").first()
+        return list(victory.members.all()) if victory is not None else []
+
+    def winner_user_ids(self):
+        return {m.user_id for m in self.winner_members() if m.user_id is not None}
 
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):
@@ -689,6 +705,20 @@ class Game(BaseModel):
             self.status = GameStatus.ACTIVE
             self.started_at = timezone.now()
             self.save()
+
+            emit("game_start", game=self)
+
+    def emit_game_ended(self):
+        try:
+            victory = Victory.objects.prefetch_related("members").get(game=self)
+        except Victory.DoesNotExist:
+            return
+
+        if victory.members.count() >= 2:
+            emit("game_draw", game=self)
+        else:
+            emit("game_solo_win", game=self)
+            emit("game_solo_loss", game=self)
 
     def start_if_full(self):
         if self.status != GameStatus.PENDING:

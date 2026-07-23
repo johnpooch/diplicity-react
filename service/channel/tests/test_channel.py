@@ -10,12 +10,13 @@ from channel.models import Channel, ChannelMessage
 from bot_profile.utils import get_bot_user
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
+from notification.models import Notification
 
 from common.constants import GameStatus
 
 
-def _notification_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "notification.send_notification"]
+def _channel_message_notifications():
+    return Notification.objects.filter(event_type="channel_message")
 
 
 class TestChannelCreateView:
@@ -266,7 +267,7 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # Author is the only channel member, so there is no one to notify.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_as_member_success(
@@ -284,7 +285,7 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # Author is the only game member, so there is no one to notify.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_without_explicit_members(
@@ -298,11 +299,11 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        user_ids = jobs[0]["args"]["user_ids"]
-        assert len(user_ids) == 1
-        assert sender_user_id not in user_ids
+        notifications = _channel_message_notifications()
+        assert notifications.count() == 1
+        recipient_ids = list(notifications.values_list("recipient_id", flat=True))
+        assert len(recipient_ids) == 1
+        assert sender_user_id not in recipient_ids
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_notifies_only_channel_members(
@@ -322,7 +323,7 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # The other game member is not in this private channel, so is not notified.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_with_multiple_members(
@@ -343,9 +344,9 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
+        notifications = _channel_message_notifications()
+        assert notifications.count() == 1
+        assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_member.user_id]
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_with_explicit_members_still_notifies_all(
@@ -366,9 +367,9 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
+        notifications = _channel_message_notifications()
+        assert notifications.count() == 1
+        assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_member.user_id]
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_as_non_member_fails(
