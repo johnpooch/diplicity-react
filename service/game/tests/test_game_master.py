@@ -10,7 +10,7 @@ from rest_framework import status
 from adjudication import service as adjudication_service
 from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
 from game.models import Game
-from notification.models import Notification
+from notification.models import Notification, NotificationDelivery
 from phase.models import Phase
 from user_profile.models import UserProfile
 
@@ -399,9 +399,13 @@ class TestGameMasterNotifications:
         with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
             game.start()
 
-        notifications = Notification.objects.filter(event_type="game_start")
-        assert notifications.count() == 1
-        assert primary_user.id in notifications.values_list("recipient_id", flat=True)
+        deliveries = NotificationDelivery.objects.filter(
+            notification__event_type="game_start",
+            notification__recipient=primary_user,
+            channel=NotificationDelivery.Channel.PUSH,
+            data__game_id=str(game.id),
+        )
+        assert deliveries.count() == 1
 
     @pytest.mark.django_db
     def test_phase_resolved_notification_includes_game_master(

@@ -10,7 +10,7 @@ from user_profile.models import UserProfile
 def _mock_procrastinate_defer():
     with patch("phase.tasks.resolve_phase.defer"), \
          patch("phase.tasks.resolve_phase.configure") as mock_configure, \
-         patch("notification.tasks.send_notification.defer"):
+         patch("notification.tasks.deliver.defer"):
         mock_configure.return_value.defer = lambda **kwargs: None
         yield
 

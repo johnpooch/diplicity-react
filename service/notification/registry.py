@@ -36,7 +36,7 @@ class NotificationSpec:
         return self.context.payload.get("recipients", [])
 
     def get_recipients(self):
-        recipients = set(self.get_audience())
+        recipients = {rid for rid in self.get_audience() if rid is not None}
         if self.exclude_actor:
             actor = self.context.actor
             actor_id = getattr(actor, "id", actor)

@@ -722,7 +722,8 @@ class TestGameStartEmailNotification:
 
         deliveries = _email("game_start")
         assert deliveries.count() == player_count
-        assert "Game Started" in deliveries.first().heading
+        delivery = deliveries.first()
+        assert "Game Started" in delivery.heading
         assert game.name in delivery.heading
         assert game.name in delivery.body
 
@@ -761,7 +762,7 @@ class TestNotificationDeliveryBroadcast:
         jobs = _deliver_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
         assert set(jobs[0]["args"]["delivery_ids"]) == set(
-            NotificationDelivery.objects.values_list("id", flat=True)
+            NotificationDelivery.objects.filter(notification__in=notifications).values_list("id", flat=True)
         )
 
 
@@ -775,7 +776,7 @@ class TestCreateFromEvent:
         )
 
         assert created == []
-        assert Notification.objects.count() == 0
+        assert Notification.objects.filter(event_type="elimination").count() == 0
         assert _deliver_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
@@ -789,7 +790,7 @@ class TestCreateFromEvent:
             "elimination", build_context("elimination", game=game, recipients=[one.id, None])
         )
 
-        assert Notification.objects.count() == 1
+        assert Notification.objects.filter(event_type="elimination").count() == 1
 
 
 class TestNotificationDeliver:

@@ -42,13 +42,14 @@ class TestEmitDispatch:
         state = _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=True)
         emit.emit("game_start", game=state["game"])
 
-        notifications = Notification.objects.filter(event_type="game_start")
+        member_ids = set(state["game"].member_user_ids(include_gm=True))
+        notifications = Notification.objects.filter(event_type="game_start", recipient_id__in=member_ids)
         assert set(notifications.values_list("recipient_id", flat=True)) == {
             state["active_one"].user_id,
             state["active_two"].user_id,
             state["game_master"].id,
         }
-        delivery = _push("game_start").first()
+        delivery = _push("game_start").filter(notification__recipient_id__in=member_ids).first()
         assert delivery.heading == state["game"].name
         assert "The game has started" in delivery.body
         assert delivery.data["game_id"] == str(state["game"].id)
