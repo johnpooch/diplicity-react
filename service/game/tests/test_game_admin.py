@@ -3,17 +3,14 @@ from django.urls import reverse
 from rest_framework import status
 
 from game.models import Game
+from notification.models import Notification
 
 create_viewname = "game-create"
 leave_viewname = "game-leave"
 
 
-def _admin_reassigned_jobs(connector):
-    return [
-        j for j in connector.jobs.values()
-        if j["task_name"] == "notification.send_notification"
-        and j["args"].get("notification_type") == "game_admin_reassigned"
-    ]
+def _admin_reassigned_notifications():
+    return Notification.objects.filter(event_type="game_admin_reassigned")
 
 
 def game_payload(variant_id, **overrides):
@@ -67,7 +64,7 @@ class TestGameAdminField:
         assert game.admin == secondary_user
         assert game.can_manage(creator) is False
         assert game.can_manage(secondary_user) is True
-        assert len(_admin_reassigned_jobs(in_memory_procrastinate)) == 1
+        assert _admin_reassigned_notifications().exists()
 
     @pytest.mark.django_db
     def test_admin_unchanged_when_leaving_member_is_not_admin(
@@ -83,7 +80,7 @@ class TestGameAdminField:
 
         game.refresh_from_db()
         assert game.admin == creator
-        assert _admin_reassigned_jobs(in_memory_procrastinate) == []
+        assert not _admin_reassigned_notifications().exists()
 
 
 class TestReassignAdmin:
@@ -99,9 +96,9 @@ class TestReassignAdmin:
 
         game.refresh_from_db()
         assert game.admin == secondary_user
-        jobs = _admin_reassigned_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_user.id]
+        notifications = _admin_reassigned_notifications()
+        assert notifications.count() == 1
+        assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_user.id]
 
     @pytest.mark.django_db
     def test_excludes_kicked_and_civil_disorder_members(
@@ -128,4 +125,4 @@ class TestReassignAdmin:
 
         game.refresh_from_db()
         assert game.admin == original_admin
-        assert _admin_reassigned_jobs(in_memory_procrastinate) == []
+        assert not _admin_reassigned_notifications().exists()

@@ -20,10 +20,7 @@ from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
 from victory.models import Victory
-from email_service.tasks import send_email_notification
-from email_service.templates import notification_email
 from emit import emit
-from notification import utils as notification_utils
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -334,25 +331,7 @@ class PhaseManager(models.Manager):
                     if ps.member.user_id is None:
                         continue
 
-                    link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
-
-                    notification_utils.send_notification_to_users(
-                        user_ids=[ps.member.user_id],
-                        title=phase.game.name,
-                        body=body,
-                        notification_type="deadline_warning",
-                        data={"game_id": str(phase.game.id), "link": link},
-                    )
-                    send_email_notification.defer(
-                        user_ids=[ps.member.user_id],
-                        subject=f"{phase.game.name} — Deadline Approaching",
-                        html=notification_email(
-                            title=phase.game.name,
-                            body=body,
-                            link=link,
-                            link_text="Submit Orders",
-                        ),
-                    )
+                    emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
                     ps.deadline_warning_sent_for = phase.scheduled_resolution
                     warned_states.append(ps)
                     notifications_sent += 1

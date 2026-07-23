@@ -622,6 +622,28 @@ class Game(BaseModel):
             user_ids.discard(exclude_user_id)
         return list(user_ids)
 
+    def _with_game_master(self, user_ids):
+        result = set(user_ids)
+        if self.game_master_id is not None:
+            result.add(self.game_master_id)
+        return result
+
+    def member_user_ids(self, include_gm=False):
+        ids = {m.user_id for m in self.members.all() if m.user_id is not None}
+        return self._with_game_master(ids) if include_gm else ids
+
+    def active_member_user_ids(self, include_gm=False):
+        active = self.members.filter(eliminated=False, kicked=False, civil_disorder=False)
+        ids = {m.user_id for m in active if m.user_id is not None}
+        return self._with_game_master(ids) if include_gm else ids
+
+    def winner_members(self):
+        victory = Victory.objects.filter(game=self).prefetch_related("members").first()
+        return list(victory.members.all()) if victory is not None else []
+
+    def winner_user_ids(self):
+        return {m.user_id for m in self.winner_members() if m.user_id is not None}
+
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):
             current_phase = self.current_phase

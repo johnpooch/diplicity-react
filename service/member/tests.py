@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from bot_profile.models import BotProfile
 from game.models import Game
+from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile
 from common.constants import GameStatus, NationAssignment, PhaseStatus
@@ -17,12 +18,8 @@ retrieve_viewname = "game-retrieve"
 recovery_viewname = "civil-disorder-recovery"
 
 
-def _kicked_from_staging_jobs(connector):
-    return [
-        j for j in connector.jobs.values()
-        if j["task_name"] == "notification.send_notification"
-        and j["args"].get("notification_type") == "kicked_from_staging"
-    ]
+def _kicked_from_staging_notifications():
+    return Notification.objects.filter(event_type="kicked_from_staging")
 
 
 class TestCivilDisorderSerialization:
@@ -892,7 +889,7 @@ class TestKickBotMember:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not game.members.filter(user=roster_bot_user).exists()
-        assert _kicked_from_staging_jobs(in_memory_procrastinate) == []
+        assert not _kicked_from_staging_notifications().exists()
 
     @pytest.mark.django_db
     def test_kick_human_sends_notification(
@@ -905,7 +902,7 @@ class TestKickBotMember:
         response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert len(_kicked_from_staging_jobs(in_memory_procrastinate)) == 1
+        assert _kicked_from_staging_notifications().exists()
 
 
 @pytest.mark.django_db

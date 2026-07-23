@@ -19,17 +19,14 @@ from supply_center.models import SupplyCenter
 from unit.models import Unit
 from member.models import Member
 from nation.models import Nation
+from notification.models import Notification, NotificationDelivery
 from province.models import Province
 from adjudicator.serializers import deserialize_variant, deserialize_game_state
 from variant.utils import variant_to_canonical_dict
 
 
-def _admin_reassigned_jobs(connector):
-    return [
-        j for j in connector.jobs.values()
-        if j["task_name"] == "notification.send_notification"
-        and j["args"].get("notification_type") == "game_admin_reassigned"
-    ]
+def _admin_reassigned_notifications():
+    return Notification.objects.filter(event_type="game_admin_reassigned")
 
 
 @pytest.mark.django_db
@@ -3364,7 +3361,7 @@ class TestCivilDisorderDetection:
 
         game.refresh_from_db()
         assert game.admin == secondary_user
-        assert len(_admin_reassigned_jobs(in_memory_procrastinate)) == 1
+        assert _admin_reassigned_notifications().exists()
 
     @pytest.mark.django_db
     def test_cd_does_not_reassign_admin_when_non_admin_enters_civil_disorder(
@@ -3416,7 +3413,7 @@ class TestCivilDisorderDetection:
 
         game.refresh_from_db()
         assert game.admin == secondary_user
-        assert _admin_reassigned_jobs(in_memory_procrastinate) == []
+        assert not _admin_reassigned_notifications().exists()
 
 
 class TestCivilDisorderStagingRemoval:
@@ -3601,13 +3598,9 @@ class TestCivilDisorderStagingRemoval:
         newly_cd_members = Phase.objects._check_civil_disorder(phase2)
         Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
-        staging_removal_jobs = [
-            j for j in in_memory_procrastinate.jobs.values()
-            if j["task_name"] == "notification.send_notification"
-            and j["args"].get("notification_type") == "removed_from_staging"
-        ]
-        assert len(staging_removal_jobs) == 1
-        assert staging_removal_jobs[0]["args"]["user_ids"] == [primary_user.id]
+        staging_removal_notifications = Notification.objects.filter(event_type="removed_from_staging")
+        assert staging_removal_notifications.count() == 1
+        assert list(staging_removal_notifications.values_list("recipient_id", flat=True)) == [primary_user.id]
 
 
     @pytest.mark.django_db
@@ -5206,12 +5199,8 @@ class TestNMRExtensionsFixedTime:
         assert italy.nmr_extensions_remaining == 1
 
 
-def _elimination_jobs(connector):
-    return [
-        j for j in connector.jobs.values()
-        if j["task_name"] == "notification.send_notification"
-        and j["args"].get("notification_type") == "elimination"
-    ]
+def _elimination_notifications():
+    return Notification.objects.filter(event_type="elimination")
 
 
 class TestCheckEliminations:
@@ -5327,7 +5316,7 @@ class TestCheckEliminations:
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
-        assert _elimination_jobs(in_memory_procrastinate) == []
+        assert not _elimination_notifications().exists()
 
     @pytest.mark.django_db
     def test_sends_elimination_notification_to_eliminated_member(
@@ -5355,11 +5344,14 @@ class TestCheckEliminations:
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
-        jobs = _elimination_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        args = jobs[0]["args"]
-        assert args["user_ids"] == [primary_user.id]
-        assert args["title"] == game.name
+        notifications = _elimination_notifications()
+        assert notifications.count() == 1
+        notification = notifications.first()
+        assert notification.recipient_id == primary_user.id
+        delivery = NotificationDelivery.objects.get(
+            notification=notification, channel=NotificationDelivery.Channel.PUSH
+        )
+        assert delivery.heading == game.name
 
     @pytest.mark.django_db
     def test_no_notification_when_no_new_eliminations(
@@ -5388,4 +5380,4 @@ class TestCheckEliminations:
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
-        assert _elimination_jobs(in_memory_procrastinate) == []
+        assert not _elimination_notifications().exists()

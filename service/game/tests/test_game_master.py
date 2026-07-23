@@ -10,6 +10,7 @@ from rest_framework import status
 from adjudication import service as adjudication_service
 from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
 from game.models import Game
+from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile
 
@@ -306,13 +307,9 @@ class TestGameMasterDelete:
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        jobs = [
-            j for j in in_memory_procrastinate.jobs.values()
-            if j["task_name"] == "notification.send_notification"
-            and j["args"].get("notification_type") == "game_deleted"
-        ]
-        assert len(jobs) == 1
-        assert set(jobs[0]["args"]["user_ids"]) == {secondary_user.id}
+        notifications = Notification.objects.filter(event_type="game_deleted")
+        assert notifications.count() == 1
+        assert set(notifications.values_list("recipient_id", flat=True)) == {secondary_user.id}
 
     @pytest.mark.django_db
     def test_sandbox_delete_still_works(self, authenticated_client, sandbox_game_factory):
@@ -402,13 +399,9 @@ class TestGameMasterNotifications:
         with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
             game.start()
 
-        jobs = [
-            j for j in in_memory_procrastinate.jobs.values()
-            if j["task_name"] == "notification.send_notification"
-            and j["args"].get("notification_type") == "game_start"
-        ]
-        assert len(jobs) == 1
-        assert primary_user.id in jobs[0]["args"]["user_ids"]
+        notifications = Notification.objects.filter(event_type="game_start")
+        assert notifications.count() == 1
+        assert primary_user.id in notifications.values_list("recipient_id", flat=True)
 
     @pytest.mark.django_db
     def test_phase_resolved_notification_includes_game_master(
