@@ -260,14 +260,6 @@ const OrdersScreen: React.FC = () => {
     }
   };
 
-  const handleNavigateToGameInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
-  };
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   const nationGroups = buildNationGroups(
     isActivePhase,
     safePhaseStates,
@@ -338,11 +330,7 @@ const OrdersScreen: React.FC = () => {
                 <PhaseGuidance />
               </Suspense>
             </div>
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
+            <GameDropdownMenu game={game} />
           </div>
         }
         onNavigateBack={() => navigate("/")}

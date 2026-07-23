@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { useRequiredParams } from "@/hooks";
-import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
+import { useGameNavItems, useRequiredParams } from "@/hooks";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -14,13 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
-import { useGameRetrieve } from "@/api/generated/endpoints";
-
-const navigationItems = [
-  { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
-  { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
-  { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
-];
 
 interface GameDetailLayoutProps {
   children: React.ReactNode;
@@ -32,64 +25,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   className,
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
   }>();
 
-  const { data: game } = useGameRetrieve(gameId, {
-    query: {
-      refetchInterval: (query) =>
-        query.state.data?.status === "active" ? 5000 : false,
-    },
-  });
-
   const [searchParams] = useSearchParams();
+  const navItems = useGameNavItems();
 
-  const navItems = useMemo(() => {
-    const items = game?.sandbox
-      ? navigationItems.filter(item => item.label !== "Chat")
-      : navigationItems;
-    const searchParamsStr = searchParams.toString();
-    const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
-    const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");
-    return items.map(item => {
-      const basePath = item.path
-        .replace(":gameId", gameId)
-        .replace(":phaseId", phaseId);
-      const badge =
-        (item.label === "Chat" &&
-          game?.totalUnreadMessageCount &&
-          game.totalUnreadMessageCount > 0) ||
-        (item.label === "Orders" &&
-          Array.isArray(game?.members) &&
-          game.members.some(m => m.isCurrentUser && m.civilDisorder))
-          ? "•"
-          : undefined;
-      let path: string;
-      if (item.label === "Chat" && isInChatChannel) {
-        const params = new URLSearchParams(searchParams);
-        params.delete("channelId");
-        const paramsStr = params.toString();
-        path = paramsStr ? `${chatBasePath}?${paramsStr}` : chatBasePath;
-      } else {
-        path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
-      }
-      const isActive = item.label === "Chat"
-        ? location.pathname === chatBasePath || location.pathname.startsWith(chatBasePath + "/")
-        : location.pathname === basePath;
-      return {
-        ...item,
-        path,
-        isActive,
-        badge,
-      };
-    });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
-
-  // Filter out Map for desktop sidebar since map is already visible in right
-  // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
+  // Unlike the bottom nav, the sidebar Chat icon should return to the
   // channel list rather than resuming the last channel, since the map is
   // always visible alongside the chat in the desktop layout.
   const sidebarNavItems = useMemo(() => {
@@ -97,19 +41,20 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     params.delete("channelId");
     const paramsStr = params.toString();
     const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
-    return navItems
-      .filter(item => item.label !== "Map")
-      .map(item =>
-        item.label === "Chat"
-          ? {
-              ...item,
-              path: paramsStr ? `${chatBasePath}?${paramsStr}` : chatBasePath,
-            }
-          : item
-      );
+    return navItems.map(item =>
+      item.label === "Chat"
+        ? {
+            ...item,
+            path: paramsStr ? `${chatBasePath}?${paramsStr}` : chatBasePath,
+          }
+        : item
+    );
   }, [navItems, searchParams, gameId, phaseId]);
 
-  const bottomClasses = cn("border-t bg-background", "block md:hidden");
+  // Selecting Map on desktop hides the content column so GameMap fills the
+  // rest of the screen next to the icon sidebar.
+  const isMapFocused =
+    navItems.find(item => item.label === "Map")?.isActive ?? false;
 
   return (
     <SidebarProvider>
@@ -120,7 +65,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         )}
       >
         <div className="flex items-stretch flex-1 min-h-0 w-full">
-          {/* Left Sidebar - Icons only */}
+          {/* Left Sidebar - Icons only (desktop) */}
           <Sidebar collapsible="none" className="hidden md:flex w-14">
             <SidebarHeader className="p-2">
               <Button
@@ -142,7 +87,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           </Sidebar>
 
           {/* Main Content Area - Fixed width on desktop */}
-          <SidebarInset className="@container flex min-w-0 min-h-0 flex-col md:w-[360px] md:flex-none">
+          <SidebarInset
+            className={cn(
+              "@container flex min-w-0 min-h-0 flex-col md:flex-none",
+              isMapFocused ? "md:hidden md:w-0" : "md:w-[360px]"
+            )}
+          >
             {children}
           </SidebarInset>
 
@@ -153,7 +103,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         </div>
 
         {/* Bottom Navigation - Mobile only */}
-        <div className={bottomClasses}>
+        <div className="md:hidden border-t bg-background">
           <Navigation
             items={navItems}
             variant="bottom"

@@ -12,19 +12,10 @@ import { useRequiredParams } from "../../hooks";
 
 const MapScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { gameId, phaseId } = useRequiredParams<{
+  const { gameId } = useRequiredParams<{
     gameId: string;
-    phaseId: string;
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
-
-  const handleNavigateToGameInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
-  };
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -37,11 +28,7 @@ const MapScreen: React.FC = () => {
                 <PhaseGuidance />
               </Suspense>
             </div>
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
+            <GameDropdownMenu game={game} />
           </div>
         }
         onNavigateBack={() => navigate("/")}
