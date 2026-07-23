@@ -132,20 +132,15 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   const lockedReason =
     game.commitmentEligibility === "low_locked"
-      ? "Your commitment rating is Low, so you can't join human games right now. Your rating is based on your last 10 rated phases."
+      ? "Your commitment rating is Low, so you can't join games right now. Your rating is based on your last 10 rated phases."
       : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
 
   const joinGameButton =
     game.canJoin &&
     (isCommitmentLocked ? (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" aria-label="Locked">
-            <Lock className="size-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="text-sm">{lockedReason}</PopoverContent>
-      </Popover>
+      <Button variant="outline" aria-label="Locked" disabled>
+        <Lock className="size-4" />
+      </Button>
     ) : (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -386,8 +381,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
             <p className="flex items-center gap-1 text-xs text-muted-foreground">
               <Lock className="size-3" />
               {game.commitmentEligibility === "low_locked"
-                ? "Locked — your commitment is Low"
-                : "Locked — requires High commitment"}
+                ? "Locked: your commitment is Low"
+                : "Locked: requires High commitment"}
               <Popover>
                 <PopoverTrigger asChild>
                   <button
