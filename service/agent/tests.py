@@ -604,3 +604,25 @@ class TestReplyTrigger:
         assert response.status_code == status.HTTP_201_CREATED
 
         assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
+
+    @pytest.mark.django_db
+    def test_pending_game_message_does_not_defer_reply(
+        self, pending_game_created_by_primary_user, primary_user, classical_france_nation, in_memory_procrastinate
+    ):
+        game = pending_game_created_by_primary_user
+        channel = game.channels.create(name="Public Press", private=False)
+        human_member = game.members.get(user=primary_user)
+        bot_member = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+        channel.member_channels.create(member=human_member)
+        channel.member_channels.create(member=bot_member)
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=primary_user)
+        response = human_client.post(
+            reverse("channel-message-create", args=[game.id, channel.id]),
+            {"body": "Hello staging"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
