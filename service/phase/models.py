@@ -235,30 +235,13 @@ class PhaseManager(models.Manager):
 
         return members_with_extensions
 
-    def send_deadline_warnings(self):
-        WARNING_THRESHOLDS = {
-            3600: 900,
-            12 * 3600: 3600,
-            24 * 3600: 3600,
-            48 * 3600: 7200,
-            72 * 3600: 7200,
-            96 * 3600: 7200,
-            168 * 3600: 14400,
-            336 * 3600: 14400,
-        }
-
-        def get_warning_threshold(duration_seconds):
-            if not duration_seconds:
-                return 3600
-            for phase_duration, warning in sorted(WARNING_THRESHOLDS.items()):
-                if duration_seconds <= phase_duration:
-                    return warning
-            return 14400
-
-        with tracer.start_as_current_span("phase.manager.send_deadline_warnings") as span:
+    def send_deadline_warning(self, phase_id):
+        with tracer.start_as_current_span("phase.manager.send_deadline_warning") as span:
+            span.set_attribute("phase.id", phase_id)
             now = timezone.now()
 
-            active_phases = self.filter(
+            phase = self.filter(
+                pk=phase_id,
                 status=PhaseStatus.ACTIVE,
                 game__sandbox=False,
                 game__paused_at__isnull=True,
@@ -271,77 +254,69 @@ class PhaseManager(models.Manager):
                 'phase_states__orders',
                 Prefetch('units', queryset=Unit.objects.select_related('nation'), to_attr='prefetched_units'),
                 Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation'), to_attr='prefetched_supply_centers'),
-            )
+            ).first()
 
+            if phase is None:
+                logger.info(f"Phase {phase_id} not eligible for deadline warning; skipping")
+                return {"notifications_sent": 0}
+
+            time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
+            if time_until_deadline <= 0:
+                logger.info(f"Phase {phase_id} deadline already passed; skipping warning")
+                return {"notifications_sent": 0}
+
+            is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+            time_left = format_time_remaining(time_until_deadline)
+
+            units_by_nation = {}
+            dislodged_units_by_nation = {}
+            for unit in phase.prefetched_units:
+                units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
+                if unit.dislodged:
+                    dislodged_units_by_nation[unit.nation_id] = dislodged_units_by_nation.get(unit.nation_id, 0) + 1
+
+            sc_by_nation = {}
+            for sc in phase.prefetched_supply_centers:
+                sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
+
+            is_adjustment = phase.type == PhaseType.ADJUSTMENT
             notifications_sent = 0
 
-            for phase in active_phases:
-                duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
-                warning_threshold = get_warning_threshold(duration_seconds)
-                time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
-
-                if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
+            for ps in phase.phase_states.all():
+                if not ps.has_possible_orders:
                     continue
 
-                is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
-                time_left = format_time_remaining(time_until_deadline)
+                nation_id = ps.member.nation_id
+                unit_count = units_by_nation.get(nation_id, 0)
 
-                units_by_nation = {}
-                dislodged_units_by_nation = {}
-                for unit in phase.prefetched_units:
-                    units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
-                    if unit.dislodged:
-                        dislodged_units_by_nation[unit.nation_id] = dislodged_units_by_nation.get(unit.nation_id, 0) + 1
+                if is_adjustment:
+                    sc_count = sc_by_nation.get(nation_id, 0)
+                    total_units = abs(sc_count - unit_count)
+                elif phase.type == PhaseType.RETREAT:
+                    total_units = dislodged_units_by_nation.get(nation_id, 0)
+                else:
+                    total_units = unit_count
 
-                sc_by_nation = {}
-                for sc in phase.prefetched_supply_centers:
-                    sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
+                if total_units == 0:
+                    continue
 
-                is_adjustment = phase.type == PhaseType.ADJUSTMENT
-                warned_states = []
+                body = build_notification_body(
+                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
+                    ps.member.nmr_extensions_remaining,
+                    is_adjustment=is_adjustment,
+                )
+                if body is None:
+                    continue
 
-                for ps in phase.phase_states.all():
-                    if not ps.has_possible_orders:
-                        continue
-                    if ps.deadline_warning_sent_for == phase.scheduled_resolution:
-                        continue
+                if ps.member.user_id is None:
+                    continue
 
-                    nation_id = ps.member.nation_id
-                    unit_count = units_by_nation.get(nation_id, 0)
-
-                    if is_adjustment:
-                        sc_count = sc_by_nation.get(nation_id, 0)
-                        total_units = abs(sc_count - unit_count)
-                    elif phase.type == PhaseType.RETREAT:
-                        total_units = dislodged_units_by_nation.get(nation_id, 0)
-                    else:
-                        total_units = unit_count
-
-                    if total_units == 0:
-                        continue
-
-                    body = build_notification_body(
-                        ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
-                        ps.member.nmr_extensions_remaining,
-                        is_adjustment=is_adjustment,
-                    )
-                    if body is None:
-                        continue
-
-                    if ps.member.user_id is None:
-                        continue
-
-                    emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
-                    ps.deadline_warning_sent_for = phase.scheduled_resolution
-                    warned_states.append(ps)
-                    notifications_sent += 1
-                    logger.info(f"Sent deadline warning to user {ps.member.user_id} for game {phase.game.name}")
-
-                if warned_states:
-                    PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
+                emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
+                notifications_sent += 1
+                logger.info(f"Sent deadline warning to user {ps.member.user_id} for game {phase.game.name}")
 
             span.set_attribute("notifications.sent", notifications_sent)
-            logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
+            logger.info(f"Sent {notifications_sent} deadline warning notification(s) for phase {phase_id}")
 
             return {"notifications_sent": notifications_sent}
 
@@ -856,6 +831,7 @@ class Phase(BaseModel):
     type = models.CharField(max_length=10)
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
     resolution_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
+    warning_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
     options = models.JSONField(default=dict)
 
     class Meta:
@@ -975,7 +951,6 @@ class PhaseState(BaseModel):
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     has_possible_orders = models.BooleanField(default=False)
-    deadline_warning_sent_for = models.DateTimeField(null=True, blank=True)
     orders_outcome = models.CharField(
         max_length=8, choices=OrdersOutcome, null=True, blank=True, default=None
     )
