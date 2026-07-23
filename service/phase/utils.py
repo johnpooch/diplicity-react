@@ -26,9 +26,14 @@ def format_deadline(dt, tz_name=None):
     return dt.strftime("%b %d, %Y at %I:%M %p UTC")
 
 
-def build_notification_body(orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining):
+def build_notification_body(
+    orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining,
+    is_adjustment=False,
+):
     if extensions_remaining > 0:
         nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
+    elif is_adjustment:
+        nmr_suffix = "If no orders given, adjustments will be made automatically."
     else:
         nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."
 
@@ -38,7 +43,7 @@ def build_notification_body(orders_confirmed, is_fixed_time, orders_given, total
                 return None
             return (
                 f"All orders ready. Confirm to advance the game early — "
-                f"the next deadline stays on schedule. {time_left} remaining."
+                f"the next deadline may move sooner too. {time_left} remaining."
             )
         if orders_given > 0:
             return (
@@ -380,6 +385,16 @@ FREQUENCY_INTERVALS = {
     PhaseFrequency.EVERY_2_DAYS: timedelta(days=2),
     PhaseFrequency.WEEKLY: timedelta(weeks=1),
 }
+
+
+def compress_deadline(next_deadline, frequency, now):
+    interval = FREQUENCY_INTERVALS.get(frequency)
+    if not interval:
+        return next_deadline
+    candidate = next_deadline
+    while (candidate - interval) - now >= interval:
+        candidate -= interval
+    return candidate
 
 
 def calculate_next_fixed_deadline(

@@ -14,7 +14,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body
+from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body, compress_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -200,12 +200,14 @@ class PhaseManager(models.Manager):
         return self.resolve_due_phases(canary=True)
 
     def _check_and_apply_nmr_extensions(self, phase):
-        unconfirmed = phase.phase_states.filter(
-            has_possible_orders=True, orders_confirmed=False
-        ).select_related('member')
+        not_submitted = phase.phase_states.filter(
+            has_possible_orders=True
+        ).exclude(
+            member__civil_disorder=True
+        ).annotate(order_count=Count("orders")).filter(order_count=0).select_related('member')
 
         members_with_extensions = [
-            ps.member for ps in unconfirmed
+            ps.member for ps in not_submitted
             if ps.member.nmr_extensions_remaining > 0
         ]
 
@@ -311,13 +313,17 @@ class PhaseManager(models.Manager):
                 time_left = format_time_remaining(time_until_deadline)
 
                 units_by_nation = {}
+                dislodged_units_by_nation = {}
                 for unit in phase.prefetched_units:
                     units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
+                    if unit.dislodged:
+                        dislodged_units_by_nation[unit.nation_id] = dislodged_units_by_nation.get(unit.nation_id, 0) + 1
 
                 sc_by_nation = {}
                 for sc in phase.prefetched_supply_centers:
                     sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
 
+                is_adjustment = phase.type == PhaseType.ADJUSTMENT
                 warned_states = []
 
                 for ps in phase.phase_states.all():
@@ -329,9 +335,11 @@ class PhaseManager(models.Manager):
                     nation_id = ps.member.nation_id
                     unit_count = units_by_nation.get(nation_id, 0)
 
-                    if phase.type == PhaseType.ADJUSTMENT:
+                    if is_adjustment:
                         sc_count = sc_by_nation.get(nation_id, 0)
                         total_units = abs(sc_count - unit_count)
+                    elif phase.type == PhaseType.RETREAT:
+                        total_units = dislodged_units_by_nation.get(nation_id, 0)
                     else:
                         total_units = unit_count
 
@@ -341,6 +349,7 @@ class PhaseManager(models.Manager):
                     body = build_notification_body(
                         ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
                         ps.member.nmr_extensions_remaining,
+                        is_adjustment=is_adjustment,
                     )
                     if body is None:
                         continue
@@ -445,10 +454,41 @@ class PhaseManager(models.Manager):
             m.civil_disorder = True
         Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
 
+        if any(m.user_id == phase.game.admin_id for m in newly_cd_members):
+            phase.game.reassign_admin()
+
+        return newly_cd_members
+
+    def _reconcile_civil_disorder_eliminations(self, newly_cd_members, adjudication_data):
+        if not newly_cd_members:
+            return []
+
+        surviving_nations = {u["nation"] for u in adjudication_data["units"]} | {
+            sc["nation"] for sc in adjudication_data["supply_centers"]
+        }
+
+        eliminated = [
+            m for m in newly_cd_members
+            if m.nation is not None and m.nation.name not in surviving_nations
+        ]
+        surviving = [m for m in newly_cd_members if m not in eliminated]
+
+        if eliminated:
+            for m in eliminated:
+                m.civil_disorder = False
+            Member.objects.bulk_update(eliminated, ["civil_disorder"])
+
+        return surviving
+
+    def _notify_civil_disorder(self, phase, newly_cd_members):
+        if not newly_cd_members:
+            return
+
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
-        user_ids = phase.game.notification_user_ids()
+        user_ids = phase.game.notification_user_ids(active_only=True)
+
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
@@ -476,8 +516,6 @@ class PhaseManager(models.Manager):
                 )
 
         transaction.on_commit(send_notifications)
-
-        return newly_cd_members
 
     def _remove_from_staging_games(self, user_ids):
         if not user_ids:
@@ -576,15 +614,18 @@ class PhaseManager(models.Manager):
             if extension_members:
                 return phase
 
-            self._check_civil_disorder(phase)
-            adjudication_data = resolve(phase)
-
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
                     self._set_orders_outcome(phase)
-                    self._check_civil_disorder(phase)
+                    newly_cd_members = self._check_civil_disorder(phase)
+                    adjudication_data = resolve(phase)
+
+                    surviving_cd_members = self._reconcile_civil_disorder_eliminations(
+                        newly_cd_members, adjudication_data
+                    )
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
+                    self._notify_civil_disorder(phase, surviving_cd_members)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 
@@ -711,6 +752,15 @@ class PhaseManager(models.Manager):
                     adjudication_data["type"],
                     reference_time=previous_phase.scheduled_resolution,
                 )
+                if (
+                    scheduled_resolution is not None
+                    and previous_phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+                ):
+                    scheduled_resolution = compress_deadline(
+                        scheduled_resolution,
+                        previous_phase.game.get_phase_frequency(adjudication_data["type"]),
+                        timezone.now(),
+                    )
                 new_ordinal = previous_phase.ordinal + 1
 
                 logger.info(

@@ -15,7 +15,7 @@ vi.mock("@opentelemetry/api", () => ({
   trace: { getTracer: () => ({ startSpan: startSpanSpy }) },
 }));
 
-import { recordInitialRender, recordGesture } from "./mapTelemetry";
+import { recordInitialRender, recordGesture, recordRasterFailure } from "./mapTelemetry";
 
 describe("mapTelemetry", () => {
   beforeEach(() => {
@@ -84,6 +84,26 @@ describe("mapTelemetry", () => {
         attributes: expect.objectContaining({ "map.implementation": "leaflet" }),
       })
     );
+  });
+
+  it("emits a map.raster_failure span with the error message", () => {
+    recordRasterFailure({
+      variantId: "cold-war-1961",
+      error: new Error("Failed to rasterise base map to PNG"),
+      implementation: "leaflet",
+    });
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      "map.raster_failure",
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          "map.variant_id": "cold-war-1961",
+          "map.implementation": "leaflet",
+          "map.error_message": "Failed to rasterise base map to PNG",
+        }),
+      })
+    );
+    expect(endSpy).toHaveBeenCalledTimes(1);
   });
 
   it("does not emit a gesture span when no frames were recorded", () => {

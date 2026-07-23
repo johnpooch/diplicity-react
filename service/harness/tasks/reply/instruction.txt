@@ -1,0 +1,5 @@
+Respond with a single JSON object in exactly this shape:
+
+{"reasoning": "<why you are responding this way>", "message": "<your reply>"}
+
+First, in the reasoning field, think through how to respond. Then write your reply in the message field. Respond with the JSON object only.

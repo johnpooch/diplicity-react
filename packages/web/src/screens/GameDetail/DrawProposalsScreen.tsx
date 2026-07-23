@@ -122,7 +122,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
             </DropdownMenu>
           )}
         </div>
-        <ItemDescription>
+        <ItemDescription className="line-clamp-none">
           {includedMembers.map(m => m.nation).join(", ")}
         </ItemDescription>
         <div className="text-sm text-muted-foreground">

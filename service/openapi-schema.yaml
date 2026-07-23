@@ -317,6 +317,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerifyEmail'
           description: ''
+  /devices/:
+    get:
+      operationId: devicesList
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FCMDevice'
+          description: ''
+    post:
+      operationId: devicesCreate
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FCMDevice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FCMDevice'
+          description: ''
+    put:
+      operationId: devicesUpdate
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FCMDevice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FCMDevice'
+          description: ''
   /game/:
     post:
       operationId: gameCreate
@@ -1308,57 +1362,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameFindSimilar'
           description: ''
-  /llm-calls/:
-    get:
-      operationId: llmCallsList
-      parameters:
-      - in: query
-        name: game
-        schema:
-          type: string
-      tags:
-      - llm-calls
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/LLMCallSummary'
-          description: ''
-  /llm-calls/{id}/:
-    get:
-      operationId: llmCallsRetrieve
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        required: true
-      tags:
-      - llm-calls
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LLMCallDetail'
-          description: ''
-  /phase/deadline-warnings/:
-    post:
-      operationId: phaseDeadlineWarningsCreate
-      tags:
-      - phase
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /phase/resolve/:
     post:
       operationId: phaseResolveCreate
@@ -2038,6 +2041,42 @@ components:
       - name
       - password
       - refreshToken
+    FCMDevice:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          nullable: true
+          maxLength: 255
+        registrationId:
+          type: string
+          title: Registration token
+        deviceId:
+          type: string
+          nullable: true
+          description: Unique device identifier
+          maxLength: 255
+        active:
+          type: boolean
+          default: true
+          title: Is active
+          description: Inactive devices will not be sent notifications
+        dateCreated:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Creation date
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+      required:
+      - dateCreated
+      - id
+      - registrationId
+      - type
     FieldValue:
       type: object
       properties:
@@ -2650,146 +2689,6 @@ components:
       - totalUnreadMessageCount
       - variantId
       - victory
-    LLMCallDetail:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        createdAt:
-          type: string
-          format: date-time
-          readOnly: true
-        stage:
-          type: string
-          readOnly: true
-        status:
-          type: string
-          readOnly: true
-        model:
-          type: string
-          readOnly: true
-        gameId:
-          type: string
-          readOnly: true
-          nullable: true
-        phaseName:
-          type: string
-          readOnly: true
-        nation:
-          type: string
-          nullable: true
-          readOnly: true
-        channelNations:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        totalTokens:
-          type: integer
-          readOnly: true
-        latencyMs:
-          type: integer
-          readOnly: true
-          nullable: true
-        system:
-          type: string
-          readOnly: true
-        userContent:
-          type: string
-          readOnly: true
-        response:
-          type: string
-          readOnly: true
-        inputTokens:
-          type: integer
-          readOnly: true
-        outputTokens:
-          type: integer
-          readOnly: true
-        cacheReadTokens:
-          type: integer
-          readOnly: true
-        cacheWriteTokens:
-          type: integer
-          readOnly: true
-        errorMessage:
-          type: string
-          readOnly: true
-      required:
-      - cacheReadTokens
-      - cacheWriteTokens
-      - channelNations
-      - createdAt
-      - errorMessage
-      - gameId
-      - id
-      - inputTokens
-      - latencyMs
-      - model
-      - nation
-      - outputTokens
-      - phaseName
-      - response
-      - stage
-      - status
-      - system
-      - totalTokens
-      - userContent
-    LLMCallSummary:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        createdAt:
-          type: string
-          format: date-time
-          readOnly: true
-        stage:
-          type: string
-          readOnly: true
-        status:
-          type: string
-          readOnly: true
-        model:
-          type: string
-          readOnly: true
-        gameId:
-          type: string
-          readOnly: true
-          nullable: true
-        phaseName:
-          type: string
-          readOnly: true
-        nation:
-          type: string
-          nullable: true
-          readOnly: true
-        channelNations:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        totalTokens:
-          type: integer
-          readOnly: true
-        latencyMs:
-          type: integer
-          readOnly: true
-          nullable: true
-      required:
-      - channelNations
-      - createdAt
-      - gameId
-      - id
-      - latencyMs
-      - model
-      - nation
-      - phaseName
-      - stage
-      - status
-      - totalTokens
     Member:
       type: object
       properties:
@@ -3494,6 +3393,16 @@ components:
       required:
       - access
       - refresh
+    TypeEnum:
+      enum:
+      - ios
+      - android
+      - web
+      type: string
+      description: |-
+        * `ios` - ios
+        * `android` - android
+        * `web` - web
     Unit:
       type: object
       properties:

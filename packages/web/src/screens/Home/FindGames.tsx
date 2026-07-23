@@ -50,7 +50,9 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
     });
   const { data: variants } = useVariantsListSuspense();
 
-  const games = data.pages.flatMap(page => page.results);
+  const games = (Array.isArray(data.pages) ? data.pages : []).flatMap(page =>
+    Array.isArray(page.results) ? page.results : []
+  );
 
   const sentinelRef = useInfiniteScroll(
     fetchNextPage,
@@ -58,7 +60,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
     isFetchingNextPage
   );
 
-  const variantMap = new Map(variants.map(v => [v.id, v]));
+  const safeVariants = Array.isArray(variants) ? variants : [];
+  const variantMap = new Map(safeVariants.map(v => [v.id, v]));
   const knownGames = games.filter(game => variantMap.has(game.variantId));
 
   const handleVariantChange = (value: string) => {
@@ -98,7 +101,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_VARIANTS_VALUE}>All variants</SelectItem>
-              {variants.map(v => (
+              {safeVariants.map(v => (
                 <SelectItem key={v.id} value={v.id}>
                   {v.name}
                 </SelectItem>
@@ -127,7 +130,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
 
       {knownGames.length > 0 ? (
         <>
-          {knownGames[0].members.length >= EXPRESS_MIN_MEMBERS ? (
+          {(Array.isArray(knownGames[0].members) ? knownGames[0].members.length : 0) >=
+          EXPRESS_MIN_MEMBERS ? (
             <>
               <div className="flex items-center gap-2 pt-2">
                 <Zap className="size-4" />

@@ -1,7 +1,13 @@
+from datetime import timedelta
+
 import pytest
+from django.utils import timezone
+
 from channel.models import Channel, ChannelMessage
-from common.constants import GameStatus
+from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus
 from draw_proposal.models import DrawProposal
+from game.models import Game
+from phase.models import Phase
 from victory.models import Victory
 from notification.signals import _truncate_body
 
@@ -279,6 +285,142 @@ class TestGameEndNotifications:
         assert secondary_user.id in args["user_ids"]
         assert italy.name in args["body"]
         assert "Better luck" in args["body"]
+
+
+class TestPhaseResolvedNotification:
+
+    def _make_active_phase(self, variant, scheduled_resolution):
+        game = Game.objects.create(
+            variant=variant,
+            name="Notify Test",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+        )
+        return Phase.objects.create(
+            game=game,
+            variant=variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=scheduled_resolution,
+        )
+
+    @pytest.mark.django_db
+    def test_resolution_before_deadline_sends_phase_resolved_early(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12))
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "phase_resolved_early"
+        assert call.kwargs["body"] == f"{phase.name} resolved early — all players confirmed their orders."
+
+    @pytest.mark.django_db
+    def test_resolution_at_deadline_sends_phase_resolved(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1))
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "phase_resolved"
+        assert call.kwargs["body"] == f"{phase.name} has been resolved"
+
+    @pytest.mark.django_db
+    def test_game_ending_phase_without_deadline_sends_phase_resolved(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        phase = self._make_active_phase(classical_variant, None)
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "phase_resolved"
+
+    @pytest.mark.django_db
+    def test_duration_game_early_resolution_still_sends_phase_resolved(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Duration Notify Test",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
+        )
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=timezone.now() + timedelta(hours=12),
+        )
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        call = mock_send_notification_to_users.call_args
+        assert call.kwargs["notification_type"] == "phase_resolved"
+
+    @pytest.mark.django_db
+    def test_early_resolution_email_subject_marks_resolved_early(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12))
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        jobs = _email_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert "Resolved Early" in jobs[0]["args"]["subject"]
+
+    @pytest.mark.django_db
+    def test_resaving_completed_phase_does_not_renotify(
+        self,
+        classical_variant,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+        in_memory_procrastinate,
+    ):
+        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1))
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        phase.save()
+
+        assert mock_send_notification_to_users.call_count == 1
 
 
 class TestGameStartEmailNotification:

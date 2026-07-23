@@ -1,4 +1,5 @@
 from datetime import timedelta
+import random
 import re
 import uuid
 
@@ -29,6 +30,7 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
+from notification.tasks import send_notification
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
@@ -593,9 +595,31 @@ class Game(BaseModel):
         with tracer.start_as_current_span("game.models.can_manage"):
             return self.admin_id == user.id
 
-    def notification_user_ids(self, exclude_user_id=None):
+    def reassign_admin(self):
+        with tracer.start_as_current_span("game.models.reassign_admin"):
+            candidates = list(
+                self.members.filter(kicked=False, civil_disorder=False, user__isnull=False)
+                .exclude(user_id=self.admin_id)
+            )
+            if not candidates:
+                return
+
+            new_admin = random.choice(candidates).user
+            self.admin = new_admin
+            self.save(update_fields=["admin"])
+
+            send_notification.defer(
+                user_ids=[new_admin.id],
+                title=self.name,
+                body="The previous manager is no longer available, so you are now managing this game.",
+                notification_type="game_admin_reassigned",
+                data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
+            )
+
+    def notification_user_ids(self, exclude_user_id=None, active_only=False):
+        members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
         user_ids = {
-            member.user_id for member in self.members.all()
+            member.user_id for member in members
             if member.user_id is not None
         }
         if self.game_master_id is not None:
@@ -638,8 +662,6 @@ class Game(BaseModel):
             nations = [n for n in self.variant.nations.all() if not n.non_playable]
 
             if self.nation_assignment == NationAssignment.RANDOM:
-                import random
-
                 random.shuffle(members)
             elif self.nation_assignment == NationAssignment.ORDERED:
                 members.sort(key=lambda m: m.id)

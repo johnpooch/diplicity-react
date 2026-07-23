@@ -4,8 +4,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
-from bot.models import BotProfile
-from bot.utils import get_bot_user
+from bot_profile.models import BotProfile
+from bot_profile.utils import get_bot_user
 from channel.models import Channel, ChannelMember, ChannelMessage
 from game.models import Game
 from phase.models import Phase

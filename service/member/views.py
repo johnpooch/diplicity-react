@@ -33,8 +33,11 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
     def perform_destroy(self, instance):
         game = instance.game
+        user_id = instance.user_id
         with transaction.atomic():
             super().perform_destroy(instance)
+            if user_id == game.admin_id:
+                game.reassign_admin()
             game.delete_if_empty_pending()
 
 

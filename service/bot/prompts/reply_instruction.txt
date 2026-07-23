@@ -1,6 +1,0 @@
-Respond with a single JSON object in exactly this shape:
-
-To stay silent: {"should_reply": false}
-To reply: {"should_reply": true, "message": "<your reply>"}
-
-Respond with the JSON object only.

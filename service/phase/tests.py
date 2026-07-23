@@ -3243,7 +3243,8 @@ class TestCivilDisorderDetection:
         phase2.phase_states.create(member=germany, has_possible_orders=True)
         Phase.objects._set_orders_outcome(phase2)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
@@ -3293,9 +3294,114 @@ class TestCivilDisorderDetection:
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_cd_reassigns_admin_when_admin_enters_civil_disorder(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = self._setup_game_with_two_members(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        game.admin = primary_user
+        game.save()
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase2)
+
+        with patch("game.models.send_notification") as mock_send:
+            newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
+
+        game.refresh_from_db()
+        assert game.admin == secondary_user
+        mock_send.defer.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_cd_does_not_reassign_admin_when_non_admin_enters_civil_disorder(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = self._setup_game_with_two_members(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        game.admin = secondary_user
+        game.save()
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase2)
+
+        with patch("game.models.send_notification") as mock_send:
+            newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
+
+        game.refresh_from_db()
+        assert game.admin == secondary_user
+        mock_send.defer.assert_not_called()
 
 
 class TestCivilDisorderStagingRemoval:
@@ -3377,7 +3483,8 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert not staging_game.members.filter(user=primary_user).exists()
         assert staging_game.members.filter(user=secondary_user).exists()
@@ -3409,7 +3516,8 @@ class TestCivilDisorderStagingRemoval:
         )
         other_active_game.members.create(user=primary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert other_active_game.members.filter(user=primary_user).exists()
 
@@ -3441,7 +3549,8 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_id = staging_game.id
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert not Game.objects.filter(id=staging_id).exists()
 
@@ -3474,7 +3583,8 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         staging_removal_jobs = [
             j for j in in_memory_procrastinate.jobs.values()
@@ -3514,10 +3624,229 @@ class TestCivilDisorderStagingRemoval:
         staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
-        Phase.objects._check_civil_disorder(phase2)
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         assert staging_game.members.filter(user=primary_user).exists()
         assert staging_game.members.filter(user=secondary_user).exists()
+
+
+class TestCivilDisorderExcludesEliminatedMembers:
+
+    @pytest.mark.django_db
+    def test_cd_notification_excludes_eliminated_members(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="CD Excludes Eliminated Test",
+            status=GameStatus.ACTIVE,
+        )
+        italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation,
+            user=primary_user,
+            game=game,
+        )
+        germany = Member.objects.create(
+            nation=italy_vs_germany_germany_nation,
+            user=secondary_user,
+            game=game,
+            eliminated=True,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1.phase_states.create(member=germany, has_possible_orders=False)
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2.phase_states.create(member=germany, has_possible_orders=False)
+        Phase.objects._set_orders_outcome(phase2)
+
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        assert [m.id for m in newly_cd_members] == [italy.id]
+
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert call_kwargs["user_ids"] == [primary_user.id]
+
+
+class TestCivilDisorderEliminationReconciliation:
+
+    @staticmethod
+    def _setup_and_flag_cd(
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="CD Elimination Reconciliation Test",
+            status=GameStatus.ACTIVE,
+        )
+        italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation,
+            user=primary_user,
+            game=game,
+        )
+        germany = Member.objects.create(
+            nation=italy_vs_germany_germany_nation,
+            user=secondary_user,
+            game=game,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        Phase.objects._set_orders_outcome(phase2)
+
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        assert [m.id for m in newly_cd_members] == [italy.id]
+
+        return game, italy, germany, phase2, newly_cd_members
+
+    @pytest.mark.django_db
+    def test_member_eliminated_same_turn_is_not_flagged_civil_disorder(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase2, newly_cd_members = self._setup_and_flag_cd(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+        italy.refresh_from_db()
+        assert italy.civil_disorder is True
+
+        adjudication_data = {
+            "units": [{"nation": "Germany", "province": "kie"}],
+            "supply_centers": [{"nation": "Germany", "province": "kie"}],
+        }
+
+        surviving = Phase.objects._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+
+        assert surviving == []
+        italy.refresh_from_db()
+        assert italy.civil_disorder is False
+
+    @pytest.mark.django_db
+    def test_surviving_cd_member_is_unaffected_by_reconciliation(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase2, newly_cd_members = self._setup_and_flag_cd(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        adjudication_data = {
+            "units": [{"nation": "Italy", "province": "ven"}],
+            "supply_centers": [{"nation": "Italy", "province": "ven"}],
+        }
+
+        surviving = Phase.objects._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+
+        assert [m.id for m in surviving] == [italy.id]
+        italy.refresh_from_db()
+        assert italy.civil_disorder is True
+
+    @pytest.mark.django_db
+    def test_member_eliminated_same_turn_is_not_removed_from_staging(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany, phase2, newly_cd_members = self._setup_and_flag_cd(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        staging_game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Staging Game",
+            status=GameStatus.PENDING,
+            created_by=secondary_user,
+        )
+        staging_game.members.create(user=primary_user)
+        staging_game.members.create(user=secondary_user)
+
+        adjudication_data = {
+            "units": [{"nation": "Germany", "province": "kie"}],
+            "supply_centers": [{"nation": "Germany", "province": "kie"}],
+        }
+
+        surviving = Phase.objects._reconcile_civil_disorder_eliminations(
+            newly_cd_members, adjudication_data
+        )
+        Phase.objects._notify_civil_disorder(phase2, surviving)
+
+        assert staging_game.members.filter(user=primary_user).exists()
 
 
 class TestSetOrdersOutcome:
@@ -4591,6 +4920,144 @@ class TestSendDeadlineWarnings:
 
         mock_send_notification_to_users.assert_not_called()
 
+    @pytest.mark.django_db
+    def test_retreat_phase_denominator_is_dislodged_units_not_all_units(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Retreat Denominator Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.RETREAT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        )
+        dislodged_unit = phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+            dislodged=True,
+        )
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        italy_ps.orders.create(
+            source=dislodged_unit.province, order_type=OrderType.MOVE, target=italy_vs_germany_rome_province
+        )
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "orders ready" in call_kwargs["body"]
+        assert "waiting confirmation" in call_kwargs["body"]
+        assert "1/2" not in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_adjustment_phase_no_orders_omits_stop_waiting_framing(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Adjustment Optional Build Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        )
+        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "no orders given" in call_kwargs["body"]
+        assert "stop waiting for you" not in call_kwargs["body"]
+        assert "adjustments will be made automatically" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_adjustment_phase_no_orders_with_extensions_shows_extension_message(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Adjustment Extension Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        )
+        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "deadline will extend" in call_kwargs["body"]
+        assert "lose an extension" in call_kwargs["body"]
+        assert "adjustments will be made automatically" not in call_kwargs["body"]
+
 
 class TestNMRExtensionsFixedTime:
 
@@ -4627,7 +5094,7 @@ class TestNMRExtensionsFixedTime:
         assert phase.scheduled_resolution > now + timedelta(hours=24)
 
     @pytest.mark.django_db
-    def test_fixed_time_confirmed_skips_extension(
+    def test_fixed_time_orders_submitted_unconfirmed_skips_extension(
         self,
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
@@ -4638,6 +5105,68 @@ class TestNMRExtensionsFixedTime:
             DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
         )
         italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+
+        assert result is None
+        italy.refresh_from_db()
+        assert italy.nmr_extensions_remaining == 1
+
+    @pytest.mark.django_db
+    def test_fixed_time_confirmed_with_no_orders_still_applies_extension(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
+        )
+        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+
+        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+
+        assert result is not None
+        italy.refresh_from_db()
+        assert italy.nmr_extensions_remaining == 0
+
+    @pytest.mark.django_db
+    def test_fixed_time_civil_disorder_member_does_not_consume_extension(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
+        )
+        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
+        italy.nmr_extensions_remaining = 1
+        italy.civil_disorder = True
         italy.save()
         phase.units.create(
             province=italy_vs_germany_venice_province,

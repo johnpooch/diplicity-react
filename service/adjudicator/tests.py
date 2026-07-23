@@ -8984,6 +8984,61 @@ def test_szykman_handles_multi_convoy_paradox():
     assert solver._decisions[k_m3].value is None
 
 
+def test_convoyed_move_into_rotational_cycle_resolves():
+    # Regression from production game "The Fracas of the Garrulous Gun",
+    # phase 51376 (Fall 1904, Movement) — Sentry DIPLICITY-API-9B. The
+    # strength-and-cut solver raised "Strength-and-cut solver terminated
+    # with unresolved decisions" on this position and on every retry,
+    # leaving the phase permanently overdue (DIPLICITY-API-9C/9D). It
+    # refutes the section note above: a stall *is* reachable from a valid
+    # Diplomacy position — here without any convoy in the cycle, so the
+    # Szykman breaker cannot resolve it.
+    #
+    # A convoyed, supported move (wal -> spa, convoyed by mao and eng and
+    # supported by por) targets the tail of a rotational 3-cycle
+    # spa -> gas -> mar -> spa, where gas -> mar is supported by bur and
+    # mar -> spa is supported by wes. The rotation is not clean: mar -> spa
+    # is contested from outside by wal -> spa at equal strength (2 v 2), so
+    # mar bounces. gas -> mar then dislodges the stayed mar unit (2 v 1),
+    # spa -> gas follows into the vacated Gascony, and wal bounces against
+    # mar. The contested-rotation breaker forces the beaten mar move to
+    # bounce, which collapses the rest of the cycle.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1904, "Movement")
+        .with_unit("england", "Fleet", "mao")
+        .with_unit("england", "Fleet", "por")
+        .with_unit("england", "Army", "wal")
+        .with_unit("germany", "Army", "bur")
+        .with_unit("germany", "Fleet", "eng")
+        .with_unit("germany", "Army", "gas")
+        .with_unit("italy", "Army", "mar")
+        .with_unit("italy", "Army", "spa")
+        .with_unit("italy", "Fleet", "wes")
+        .with_order("england", "mao", "Convoy", aux="wal", target="spa")
+        .with_order("england", "por", "Support", aux="wal", target="spa")
+        .with_order("england", "wal", "Move", target="spa", via_convoy=True)
+        .with_order("germany", "bur", "Support", aux="gas", target="mar")
+        .with_order("germany", "eng", "Convoy", aux="wal", target="spa")
+        .with_order("germany", "gas", "Move", target="mar")
+        .with_order("italy", "mar", "Move", target="spa")
+        .with_order("italy", "spa", "Move", target="gas")
+        .with_order("italy", "wes", "Support", aux="mar", target="spa")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert _datc_resolution_for(result, "gas") == "OK"
+    assert _datc_resolution_for(result, "spa") == "OK"
+    assert _datc_resolution_for(result, "mar") == "BOUNCE"
+    assert _datc_resolution_for(result, "wal") == "BOUNCE"
+    assert _datc_has_unit(result, "germany", "Army", "mar")
+    assert _datc_has_unit(result, "italy", "Army", "gas")
+    assert _datc_has_unit(result, "italy", "Army", "mar", dislodged=True)
+
+
 # ======================================================================
 # Convoy path-finding
 # ======================================================================

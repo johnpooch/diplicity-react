@@ -1,0 +1,5 @@
+Respond with a single JSON object in exactly this shape:
+
+{"reasoning": "<your strategic reasoning>", "choices": [{"source_id": "<unit>", "option_index": <integer>}, ...]}
+
+First, in the reasoning field, think through your position and what each unit should do. Then, in choices, include one entry per unit, where source_id is the unit identifier and option_index is the index of the chosen legal option for that unit. Respond with the JSON object only.
