@@ -430,6 +430,88 @@ class TestChannelMessageCreateView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
+class TestChannelStagingAccess:
+
+    @pytest.mark.django_db
+    def test_list_channels_pending_game_as_member(self, authenticated_client, pending_game_created_by_primary_user):
+        game = pending_game_created_by_primary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Public Press"
+
+    @pytest.mark.django_db
+    def test_list_channels_pending_game_as_non_member(
+        self, unauthenticated_client, pending_game_created_by_primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse("channel-list", args=[game.id])
+        response = unauthenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Public Press"
+
+    @pytest.mark.django_db
+    def test_create_message_pending_game_as_member_success(
+        self, authenticated_client, pending_game_created_by_primary_user, in_memory_procrastinate
+    ):
+        game = pending_game_created_by_primary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel.members.add(game.members.first())
+
+        url = reverse("channel-message-create", args=[game.id, public_channel.id])
+        response = authenticated_client.post(url, {"body": "Hello staging!"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_create_message_pending_game_non_member_forbidden(
+        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse("channel-message-create", args=[game.id, public_channel.id])
+        response = authenticated_client_for_secondary_user.post(url, {"body": "Hi"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_mark_read_pending_game_success(self, authenticated_client, pending_game_created_by_primary_user):
+        game = pending_game_created_by_primary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel.members.add(game.members.first())
+
+        url = reverse("channel-mark-read", args=[game.id, public_channel.id])
+        response = authenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    @pytest.mark.django_db
+    def test_message_sender_nation_null_before_game_starts(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        member = game.members.first()
+        public_channel.members.add(member)
+        ChannelMessage.objects.create(channel=public_channel, sender=member, body="Hello")
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        channel_data = next(ch for ch in response.data if ch["name"] == "Public Press")
+        assert channel_data["messages"][0]["sender"]["nation"] is None
+
+
 class TestChannelModels:
 
     @pytest.mark.django_db

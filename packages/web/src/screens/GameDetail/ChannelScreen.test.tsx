@@ -112,3 +112,31 @@ describe("ChannelScreen message limit", () => {
     expect(screen.getByPlaceholderText("Type a message")).not.toBeDisabled();
   });
 });
+
+describe("ChannelScreen staging chat (null nation)", () => {
+  it("falls back to sender name when nation is not yet assigned", () => {
+    mockChannelsData.mockReturnValue([
+      channel({
+        messages: [
+          {
+            id: 1,
+            body: "Excited to play!",
+            createdAt: "2024-01-15T12:00:00Z",
+            sender: {
+              id: 2,
+              name: "Bob",
+              picture: null,
+              nation: null,
+              isCurrentUser: false,
+            },
+          },
+        ],
+      }),
+    ]);
+
+    renderChannel();
+
+    expect(screen.getByText("Excited to play!")).toBeInTheDocument();
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+  });
+});

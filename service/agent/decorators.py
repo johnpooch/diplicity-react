@@ -1,6 +1,6 @@
 import functools
 
-from common.constants import PhaseStatus
+from common.constants import GameStatus, PhaseStatus
 from member.models import Member
 from phase.models import Phase
 
@@ -54,6 +54,8 @@ def on_human_chat_message(func):
     @functools.wraps(func)
     def wrapper(sender, instance, created, **kwargs):
         if not created:
+            return
+        if instance.channel.game.status != GameStatus.ACTIVE:
             return
         if Member.objects.filter(pk=instance.sender_id, user__bot_profile__isnull=False).exists():
             return
