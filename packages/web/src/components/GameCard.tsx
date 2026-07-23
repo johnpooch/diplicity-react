@@ -15,7 +15,9 @@ import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
 import {
   UserPlus,
+  Info,
   Lock,
+  ShieldCheck,
   MessageSquareOff,
   Mail,
   Clock,
@@ -38,6 +40,7 @@ import {
 import { formatTimeAgo, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
@@ -123,18 +126,38 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     }
   };
 
-  const joinGameButton = game.canJoin && (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button onClick={handleJoinGame} variant="outline" aria-label="Join game">
-          <UserPlus className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>Join game</p>
-      </TooltipContent>
-    </Tooltip>
-  );
+  const isCommitmentLocked =
+    game.commitmentEligibility === "committed_locked" ||
+    game.commitmentEligibility === "low_locked";
+
+  const lockedReason =
+    game.commitmentEligibility === "low_locked"
+      ? "Your commitment rating is Low, so you can't join human games right now. Your rating is based on your last 10 rated phases."
+      : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
+
+  const joinGameButton =
+    game.canJoin &&
+    (isCommitmentLocked ? (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" aria-label="Locked">
+            <Lock className="size-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="text-sm">{lockedReason}</PopoverContent>
+      </Popover>
+    ) : (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button onClick={handleJoinGame} variant="outline" aria-label="Join game">
+            <UserPlus className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Join game</p>
+        </TooltipContent>
+      </Tooltip>
+    ));
 
   const orderStatusConfig = game.orderStatus
     ? ORDER_STATUS_CONFIG[game.orderStatus]
@@ -342,6 +365,43 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
               <Skeleton className="w-24 h-4" />
             )}
           </CardDescription>
+
+          {isPending && game.commitmentRequirement === "committed" && !isCommitmentLocked && (
+            <div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="gap-1 bg-green-600">
+                    <ShieldCheck className="size-3" />
+                    Committed
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Only players with High commitment can join this game
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+
+          {isPending && isCommitmentLocked && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Lock className="size-3" />
+              {game.commitmentEligibility === "low_locked"
+                ? "Locked — your commitment is Low"
+                : "Locked — requires High commitment"}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground/60 hover:text-muted-foreground"
+                    aria-label="Why is this game locked?"
+                  >
+                    <Info className="size-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm">{lockedReason}</PopoverContent>
+              </Popover>
+            </p>
+          )}
         </CardHeader>
 
         {(game.sandbox || isActive || isFinished) && badgeCluster}

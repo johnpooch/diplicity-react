@@ -18,6 +18,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from common.constants import (
+    CommitmentRequirement,
     DeadlineMode,
     GameStatus,
     MinReliability,
@@ -424,6 +425,11 @@ class Game(BaseModel):
         max_length=20,
         choices=MinReliability.MIN_RELIABILITY_CHOICES,
         default=MinReliability.OPEN,
+    )
+    commitment_requirement = models.CharField(
+        max_length=20,
+        choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
+        default=CommitmentRequirement.OPEN,
     )
     movement_phase_duration = models.CharField(
         max_length=20,

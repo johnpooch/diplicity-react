@@ -1,8 +1,8 @@
 import React from "react";
-import { Info, ShieldCheck, Sprout } from "lucide-react";
+import { Info } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { CommitmentBadge, COMMITMENT_TIERS } from "@/components/CommitmentBadge";
 import {
   Popover,
   PopoverContent,
@@ -65,18 +65,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-lg font-semibold">{profile.name}</span>
-                {profile.reliabilityTier === "reliable" && (
-                  <Badge className="gap-1 bg-green-600">
-                    <ShieldCheck className="size-3" />
-                    Reliable
-                  </Badge>
-                )}
-                {profile.reliabilityTier === "new" && (
-                  <Badge variant="secondary" className="gap-1">
-                    <Sprout className="size-3" />
-                    New
-                  </Badge>
-                )}
+                <CommitmentBadge commitment={profile.commitment} />
               </div>
               <p className="text-sm text-muted-foreground">
                 Joined{" "}
@@ -92,8 +81,17 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
 
       <ScreenCard>
         <ScreenCardContent>
-          <h3 className="text-sm font-semibold mb-2">Reliability</h3>
+          <h3 className="text-sm font-semibold mb-2">Commitment</h3>
           <div className="divide-y">
+            <StatRow
+              label="Tier"
+              value={COMMITMENT_TIERS[profile.commitment]?.label ?? profile.commitment}
+              info={
+                profile.commitment === "undefined"
+                  ? "This player hasn't played enough rated phases to have a commitment rating yet. A rating appears after 10 rated phases."
+                  : "How consistently this player submits orders, based on their last 10 rated phases."
+              }
+            />
             <StatRow
               label="NMR Rate"
               value={formatPercent(profile.nmrRate)}

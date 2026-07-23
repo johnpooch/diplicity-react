@@ -1849,9 +1849,14 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        commitment:
+          type: string
+          nullable: true
+          readOnly: true
         nation:
           $ref: '#/components/schemas/Nation'
       required:
+      - commitment
       - id
       - isBot
       - isCurrentUser
@@ -1881,6 +1886,24 @@ components:
       - createdAt
       - id
       - sender
+    CommitmentEligibilityEnum:
+      enum:
+      - eligible
+      - committed_locked
+      - low_locked
+      type: string
+      description: |-
+        * `eligible` - eligible
+        * `committed_locked` - committed_locked
+        * `low_locked` - low_locked
+    CommitmentRequirementEnum:
+      enum:
+      - open
+      - committed
+      type: string
+      description: |-
+        * `open` - Open
+        * `committed` - Committed
     DeadlineModeEnum:
       enum:
       - duration
@@ -1966,10 +1989,15 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        commitment:
+          type: string
+          nullable: true
+          readOnly: true
         nation:
           type: string
           nullable: true
       required:
+      - commitment
       - id
       - isBot
       - isCurrentUser
@@ -2190,6 +2218,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/MinReliabilityEnum'
           default: open
+        commitmentRequirement:
+          allOf:
+          - $ref: '#/components/schemas/CommitmentRequirementEnum'
+          default: open
       required:
       - id
       - name
@@ -2358,6 +2390,15 @@ components:
         minReliability:
           type: string
           readOnly: true
+        commitmentRequirement:
+          type: string
+          readOnly: true
+        commitmentEligibility:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/CommitmentEligibilityEnum'
+          - $ref: '#/components/schemas/NullEnum'
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2368,6 +2409,8 @@ components:
       - canJoin
       - canLeave
       - canManage
+      - commitmentEligibility
+      - commitmentRequirement
       - createdAt
       - currentPhase
       - currentPhaseId
@@ -2648,6 +2691,15 @@ components:
         minReliability:
           type: string
           readOnly: true
+        commitmentRequirement:
+          type: string
+          readOnly: true
+        commitmentEligibility:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/CommitmentEligibilityEnum'
+          - $ref: '#/components/schemas/NullEnum'
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2657,6 +2709,8 @@ components:
       - canJoin
       - canLeave
       - canManage
+      - commitmentEligibility
+      - commitmentRequirement
       - createdAt
       - currentPhaseId
       - deadlineMode
@@ -2709,6 +2763,10 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        commitment:
+          type: string
+          nullable: true
+          readOnly: true
         nation:
           type: string
           readOnly: true
@@ -2736,6 +2794,7 @@ components:
           readOnly: true
       required:
       - civilDisorder
+      - commitment
       - eliminated
       - id
       - isBot
@@ -3097,6 +3156,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        commitment:
+          type: string
+          readOnly: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -3294,8 +3356,12 @@ components:
           type: string
           readOnly: true
           nullable: true
+        commitment:
+          type: string
+          readOnly: true
       required:
       - cdRate
+      - commitment
       - createdAt
       - draws
       - id
@@ -3455,8 +3521,12 @@ components:
           type: string
           readOnly: true
           nullable: true
+        commitment:
+          type: string
+          readOnly: true
       required:
       - canCreateBotGames
+      - commitment
       - email
       - id
       - name

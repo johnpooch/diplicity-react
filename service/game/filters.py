@@ -1,10 +1,9 @@
 import django_filters
 from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 
-from common.constants import GameStatus, MinReliability, MovementPhaseDuration, PhaseStatus
+from common.constants import Commitment, CommitmentRequirement, GameStatus, MovementPhaseDuration, PhaseStatus
 from member.models import Member
 from phase.models import Phase
-from user_profile.utils import get_player_stats
 
 from .models import Game
 
@@ -45,12 +44,12 @@ class GameFilter(django_filters.FilterSet):
     def filter_eligible_only(self, queryset, name, value):
         if not value or not self.request.user.is_authenticated:
             return queryset
-        tier = get_player_stats(self.request.user)["reliability_tier"]
-        if tier == "reliable":
+        commitment = self.request.user.profile.commitment
+        if commitment == Commitment.LOW:
+            return queryset.none()
+        if commitment == Commitment.HIGH:
             return queryset
-        if tier == "new":
-            return queryset.exclude(min_reliability=MinReliability.RELIABLE_ONLY)
-        return queryset.filter(min_reliability=MinReliability.OPEN)
+        return queryset.filter(commitment_requirement=CommitmentRequirement.OPEN)
 
     def filter_sandbox(self, queryset, name, value):
         return queryset.filter(sandbox=value)

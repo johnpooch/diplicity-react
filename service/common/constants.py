@@ -118,6 +118,30 @@ class MinReliability:
     )
 
 
+class Commitment:
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNDEFINED = "undefined"
+
+    COMMITMENT_CHOICES = (
+        (HIGH, "High"),
+        (MEDIUM, "Medium"),
+        (LOW, "Low"),
+        (UNDEFINED, "New"),
+    )
+
+
+class CommitmentRequirement:
+    OPEN = "open"
+    COMMITTED = "committed"
+
+    COMMITMENT_REQUIREMENT_CHOICES = (
+        (OPEN, "Open"),
+        (COMMITTED, "Committed"),
+    )
+
+
 class VariantStatus:
     DRAFT = "draft"
     PUBLISHED = "published"
