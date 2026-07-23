@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentRequirement, DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from user_profile.commitment import commitment_allows_requirement
 from member.serializers import MemberSerializer
 from unit.models import Unit
@@ -141,22 +141,15 @@ class GameListSerializer(serializers.Serializer):
         return obj.can_manage(user)
 
     @extend_schema_field(serializers.ChoiceField(
-        choices=["eligible", "committed_locked", "low_locked"],
+        choices=[
+            CommitmentEligibility.ELIGIBLE,
+            CommitmentEligibility.COMMITTED_LOCKED,
+            CommitmentEligibility.LOW_LOCKED,
+        ],
         allow_null=True,
     ))
     def get_commitment_eligibility(self, obj):
-        user = self.context["request"].user
-        if not user.is_authenticated:
-            return None
-        commitment = user.profile.commitment
-        if commitment == Commitment.LOW:
-            return "low_locked"
-        if (
-            obj.commitment_requirement == CommitmentRequirement.COMMITTED
-            and commitment != Commitment.HIGH
-        ):
-            return "committed_locked"
-        return "eligible"
+        return obj.commitment_eligibility(self.context["request"].user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -279,22 +272,15 @@ class GameRetrieveSerializer(serializers.Serializer):
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(
-        choices=["eligible", "committed_locked", "low_locked"],
+        choices=[
+            CommitmentEligibility.ELIGIBLE,
+            CommitmentEligibility.COMMITTED_LOCKED,
+            CommitmentEligibility.LOW_LOCKED,
+        ],
         allow_null=True,
     ))
     def get_commitment_eligibility(self, obj):
-        user = self.context["request"].user
-        if not user.is_authenticated:
-            return None
-        commitment = user.profile.commitment
-        if commitment == Commitment.LOW:
-            return "low_locked"
-        if (
-            obj.commitment_requirement == CommitmentRequirement.COMMITTED
-            and commitment != Commitment.HIGH
-        ):
-            return "committed_locked"
-        return "eligible"
+        return obj.commitment_eligibility(self.context["request"].user)
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):

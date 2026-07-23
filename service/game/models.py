@@ -18,6 +18,8 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from common.constants import (
+    Commitment,
+    CommitmentEligibility,
     CommitmentRequirement,
     DeadlineMode,
     GameStatus,
@@ -572,6 +574,19 @@ class Game(BaseModel):
             )
             game_is_pending = self.status == GameStatus.PENDING
             return not user_is_member and game_is_pending
+
+    def commitment_eligibility(self, user):
+        if not user.is_authenticated:
+            return None
+        commitment = user.profile.commitment
+        if commitment == Commitment.LOW:
+            return CommitmentEligibility.LOW_LOCKED
+        if (
+            self.commitment_requirement == CommitmentRequirement.COMMITTED
+            and commitment != Commitment.HIGH
+        ):
+            return CommitmentEligibility.COMMITTED_LOCKED
+        return CommitmentEligibility.ELIGIBLE
 
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):

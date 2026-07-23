@@ -142,6 +142,12 @@ class CommitmentRequirement:
     )
 
 
+class CommitmentEligibility:
+    ELIGIBLE = "eligible"
+    COMMITTED_LOCKED = "committed_locked"
+    LOW_LOCKED = "low_locked"
+
+
 class VariantStatus:
     DRAFT = "draft"
     PUBLISHED = "published"
