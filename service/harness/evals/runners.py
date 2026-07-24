@@ -36,7 +36,7 @@ class DeterministicEval:
         except InferenceError as e:
             stdout.write(f"{self.name}: FAIL — inference error: {e} (tokens: n/a)")
             return
-        tokens = inference.input_tokens + inference.output_tokens
+        tokens = inference.input_tokens + inference.output_tokenss
         try:
             result = self.task.parse(inference.response, context=context)
         except ParseError as e:

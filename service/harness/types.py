@@ -83,12 +83,13 @@ class PhaseDict(TypedDict, total=False):
 
 
 class ContextData(TypedDict):
-    orders: list[OrderOptionDict]
-    phase_states: list[dict]
-    game: dict
-    phase: PhaseDict
-    channels: list[ChannelDict]
-    variant: VariantDict
+    order_options: list[OrderOptionDict]
+    # orders: list[OrderOptionDict]
+    # phase_states: list[dict]
+    # game: dict
+    # phase: PhaseDict
+    # channels: list[ChannelDict]
+    # variant: VariantDict
 
 
 @dataclass

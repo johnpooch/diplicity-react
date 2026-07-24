@@ -1,0 +1,3003 @@
+{
+    "id": "classical",
+    "name": "Classical",
+    "description": "The original game of Diplomacy",
+    "author": "Allan B. Calhamer",
+    "rules": "The first to 18 Supply Centers (SC) is the winner.\nKiel and Constantinople have a canal, so fleets can exit on either side.\nArmies can move from Denmark to Kiel.",
+    "status": "published",
+    "official": true,
+    "ownerId": null,
+    "ownerUsername": null,
+    "canEdit": false,
+    "victoryConditions": {
+        "soloVictorySupplyCenters": 18,
+        "gameEndsYear": null,
+        "drawAfterYear": null
+    },
+    "svgUrl": "https://diplicity-react-production.up.railway.app/variants/classical/svg/9a639e4fa2eb40eda0c51a9b25b5523af9f2ca582bc61a55dca49a326a48570f.svg",
+    "nations": [
+        {
+            "nationId": "austria",
+            "name": "Austria",
+            "color": "#F44336",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/austria/flag/42ed3c7052e7a3f49633cef4475cde1b86e6305286ecbe6be1ef48862be9dda0.svg"
+        },
+        {
+            "nationId": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"
+        },
+        {
+            "nationId": "france",
+            "name": "France",
+            "color": "#80DEEA",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/france/flag/2b10c0f334793906915bd1b7125e1694fad09211225813b7107e8cc8189e0883.svg"
+        },
+        {
+            "nationId": "germany",
+            "name": "Germany",
+            "color": "#90A4AE",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/germany/flag/28786db7cc0be200fd01f26a5c9f73676a3029e740a96bea74d4784b492a4eaa.svg"
+        },
+        {
+            "nationId": "italy",
+            "name": "Italy",
+            "color": "#4CAF50",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/italy/flag/82ee0aaa1ec8c647fc3646fbcc61ff57fa2d9995327e2cf487da2975dd1068ba.svg"
+        },
+        {
+            "nationId": "russia",
+            "name": "Russia",
+            "color": "#F5F5F5",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/russia/flag/eb8fd525b4b1376dcddd7b36698c9ab3f8e355987b1301e1c033f3b9df88d9f3.svg"
+        },
+        {
+            "nationId": "turkey",
+            "name": "Turkey",
+            "color": "#FFC107",
+            "nonPlayable": false,
+            "flagUrl": "https://diplicity-react-production.up.railway.app/variants/classical/nations/turkey/flag/31f65b1a2735d5923eca01e7495b3562c75e7326e29760b40f0c6e03078502fe.svg"
+        }
+    ],
+    "provinces": [
+        {
+            "id": "adr",
+            "name": "Adriatic Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "alb",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "apu",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tri",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ven",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "aeg",
+            "name": "Aegean Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bul",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bul/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "con",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "eas",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gre",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "smy",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "alb",
+            "name": "Albania",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "adr",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gre",
+                    "pass": "both"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ser",
+                    "pass": "army"
+                },
+                {
+                    "to": "tri",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "ank",
+            "name": "Ankara",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "arm",
+                    "pass": "both"
+                },
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "con",
+                    "pass": "both"
+                },
+                {
+                    "to": "smy",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "apu",
+            "name": "Apulia",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "adr",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nap",
+                    "pass": "both"
+                },
+                {
+                    "to": "rom",
+                    "pass": "army"
+                },
+                {
+                    "to": "ven",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "arm",
+            "name": "Armenia",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "ank",
+                    "pass": "both"
+                },
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "sev",
+                    "pass": "both"
+                },
+                {
+                    "to": "smy",
+                    "pass": "army"
+                },
+                {
+                    "to": "syr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "bal",
+            "name": "Baltic Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "ber",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bot",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "den",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "kie",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lvn",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "pru",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "swe",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "bar",
+            "name": "Barents Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "nrg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "stp",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "stp/nc",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "bel",
+            "name": "Belgium",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "hol",
+                    "pass": "both"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "pic",
+                    "pass": "both"
+                },
+                {
+                    "to": "ruh",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "ber",
+            "name": "Berlin",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "kie",
+                    "pass": "both"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                },
+                {
+                    "to": "pru",
+                    "pass": "both"
+                },
+                {
+                    "to": "sil",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "bla",
+            "name": "Black Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "ank",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "arm",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bul",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bul/ec",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "con",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "rum",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "sev",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "boh",
+            "name": "Bohemia",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                },
+                {
+                    "to": "sil",
+                    "pass": "army"
+                },
+                {
+                    "to": "tyr",
+                    "pass": "army"
+                },
+                {
+                    "to": "vie",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "bre",
+            "name": "Brest",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gas",
+                    "pass": "both"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "par",
+                    "pass": "army"
+                },
+                {
+                    "to": "pic",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "bud",
+            "name": "Budapest",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "rum",
+                    "pass": "army"
+                },
+                {
+                    "to": "ser",
+                    "pass": "army"
+                },
+                {
+                    "to": "tri",
+                    "pass": "army"
+                },
+                {
+                    "to": "vie",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "bul",
+            "name": "Bulgaria",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "con",
+                    "pass": "army"
+                },
+                {
+                    "to": "gre",
+                    "pass": "army"
+                },
+                {
+                    "to": "rum",
+                    "pass": "army"
+                },
+                {
+                    "to": "ser",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "bul/ec",
+            "name": "Bulgaria (EC)",
+            "type": "named_coast",
+            "supplyCenter": false,
+            "parentId": "bul",
+            "adjacencies": [
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "con",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "rum",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "bul/sc",
+            "name": "Bulgaria (SC)",
+            "type": "named_coast",
+            "supplyCenter": false,
+            "parentId": "bul",
+            "adjacencies": [
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "con",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gre",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "bur",
+            "name": "Burgundy",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bel",
+                    "pass": "army"
+                },
+                {
+                    "to": "gas",
+                    "pass": "army"
+                },
+                {
+                    "to": "mar",
+                    "pass": "army"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                },
+                {
+                    "to": "par",
+                    "pass": "army"
+                },
+                {
+                    "to": "pic",
+                    "pass": "army"
+                },
+                {
+                    "to": "ruh",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "cly",
+            "name": "Clyde",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "edi",
+                    "pass": "both"
+                },
+                {
+                    "to": "lvp",
+                    "pass": "both"
+                },
+                {
+                    "to": "nat",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nrg",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "con",
+            "name": "Constantinople",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ank",
+                    "pass": "both"
+                },
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bul",
+                    "pass": "army"
+                },
+                {
+                    "to": "bul/ec",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bul/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "smy",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "den",
+            "name": "Denmark",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "hel",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "kie",
+                    "pass": "both"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ska",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "swe",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "eas",
+            "name": "East Med",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "smy",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "syr",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "edi",
+            "name": "Edinburgh",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "cly",
+                    "pass": "both"
+                },
+                {
+                    "to": "lvp",
+                    "pass": "army"
+                },
+                {
+                    "to": "nrg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "yor",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "eng",
+            "name": "English Channel",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bel",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bre",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "iri",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lon",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "pic",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wal",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "fin",
+            "name": "Finland",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bot",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "army"
+                },
+                {
+                    "to": "stp",
+                    "pass": "army"
+                },
+                {
+                    "to": "stp/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "swe",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "gal",
+            "name": "Galicia",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "boh",
+                    "pass": "army"
+                },
+                {
+                    "to": "bud",
+                    "pass": "army"
+                },
+                {
+                    "to": "rum",
+                    "pass": "army"
+                },
+                {
+                    "to": "sil",
+                    "pass": "army"
+                },
+                {
+                    "to": "ukr",
+                    "pass": "army"
+                },
+                {
+                    "to": "vie",
+                    "pass": "army"
+                },
+                {
+                    "to": "war",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "gas",
+            "name": "Gascony",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bre",
+                    "pass": "both"
+                },
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "mar",
+                    "pass": "army"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "par",
+                    "pass": "army"
+                },
+                {
+                    "to": "spa",
+                    "pass": "army"
+                },
+                {
+                    "to": "spa/nc",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "gre",
+            "name": "Greece",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "alb",
+                    "pass": "both"
+                },
+                {
+                    "to": "bul",
+                    "pass": "army"
+                },
+                {
+                    "to": "bul/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ser",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "bot",
+            "name": "Gulf of Bothnia",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "fin",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lvn",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "stp",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "stp/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "swe",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "gol",
+            "name": "Gulf of Lyon",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "mar",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "pie",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tus",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "hel",
+            "name": "Heligoland Bight",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "den",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "hol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "kie",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "hol",
+            "name": "Holland",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bel",
+                    "pass": "both"
+                },
+                {
+                    "to": "hel",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "kie",
+                    "pass": "both"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ruh",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "ion",
+            "name": "Ionian Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "adr",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "alb",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "apu",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "eas",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gre",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nap",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tun",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "iri",
+            "name": "Irish Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lvp",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nat",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wal",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "kie",
+            "name": "Kiel",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ber",
+                    "pass": "both"
+                },
+                {
+                    "to": "den",
+                    "pass": "both"
+                },
+                {
+                    "to": "hel",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "hol",
+                    "pass": "both"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                },
+                {
+                    "to": "ruh",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "lvp",
+            "name": "Liverpool",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "cly",
+                    "pass": "both"
+                },
+                {
+                    "to": "edi",
+                    "pass": "army"
+                },
+                {
+                    "to": "iri",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nat",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wal",
+                    "pass": "both"
+                },
+                {
+                    "to": "yor",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "lvn",
+            "name": "Livonia",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bot",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mos",
+                    "pass": "army"
+                },
+                {
+                    "to": "pru",
+                    "pass": "both"
+                },
+                {
+                    "to": "stp",
+                    "pass": "army"
+                },
+                {
+                    "to": "stp/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "war",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "lon",
+            "name": "London",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wal",
+                    "pass": "both"
+                },
+                {
+                    "to": "yor",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "mar",
+            "name": "Marseilles",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "gas",
+                    "pass": "army"
+                },
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "pie",
+                    "pass": "both"
+                },
+                {
+                    "to": "spa",
+                    "pass": "army"
+                },
+                {
+                    "to": "spa/sc",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "mid",
+            "name": "Mid-Atlantic",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bre",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gas",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "iri",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "naf",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nat",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "por",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa/nc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "mos",
+            "name": "Moscow",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "lvn",
+                    "pass": "army"
+                },
+                {
+                    "to": "sev",
+                    "pass": "army"
+                },
+                {
+                    "to": "stp",
+                    "pass": "army"
+                },
+                {
+                    "to": "ukr",
+                    "pass": "army"
+                },
+                {
+                    "to": "war",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "mun",
+            "name": "Munich",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "ber",
+                    "pass": "army"
+                },
+                {
+                    "to": "boh",
+                    "pass": "army"
+                },
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "kie",
+                    "pass": "army"
+                },
+                {
+                    "to": "ruh",
+                    "pass": "army"
+                },
+                {
+                    "to": "sil",
+                    "pass": "army"
+                },
+                {
+                    "to": "tyr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "nap",
+            "name": "Naples",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "apu",
+                    "pass": "both"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "rom",
+                    "pass": "both"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "naf",
+            "name": "North Africa",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tun",
+                    "pass": "both"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "nat",
+            "name": "North Atlantic",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "cly",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "iri",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lvp",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nrg",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "nth",
+            "name": "North Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bel",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "den",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "edi",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "hel",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "hol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lon",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nrg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ska",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "yor",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "nwy",
+            "name": "Norway",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bar",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "fin",
+                    "pass": "army"
+                },
+                {
+                    "to": "nrg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ska",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "stp",
+                    "pass": "army"
+                },
+                {
+                    "to": "stp/nc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "swe",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "nrg",
+            "name": "Norwegian Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bar",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "cly",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "edi",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nat",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "par",
+            "name": "Paris",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bre",
+                    "pass": "army"
+                },
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "gas",
+                    "pass": "army"
+                },
+                {
+                    "to": "pic",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "pic",
+            "name": "Picardy",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bel",
+                    "pass": "both"
+                },
+                {
+                    "to": "bre",
+                    "pass": "both"
+                },
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "par",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "pie",
+            "name": "Piedmont",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mar",
+                    "pass": "both"
+                },
+                {
+                    "to": "tus",
+                    "pass": "both"
+                },
+                {
+                    "to": "tyr",
+                    "pass": "army"
+                },
+                {
+                    "to": "ven",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "por",
+            "name": "Portugal",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa",
+                    "pass": "army"
+                },
+                {
+                    "to": "spa/nc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa/sc",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "pru",
+            "name": "Prussia",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ber",
+                    "pass": "both"
+                },
+                {
+                    "to": "lvn",
+                    "pass": "both"
+                },
+                {
+                    "to": "sil",
+                    "pass": "army"
+                },
+                {
+                    "to": "war",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "rom",
+            "name": "Rome",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "apu",
+                    "pass": "army"
+                },
+                {
+                    "to": "nap",
+                    "pass": "both"
+                },
+                {
+                    "to": "tus",
+                    "pass": "both"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ven",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "ruh",
+            "name": "Ruhr",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bel",
+                    "pass": "army"
+                },
+                {
+                    "to": "bur",
+                    "pass": "army"
+                },
+                {
+                    "to": "hol",
+                    "pass": "army"
+                },
+                {
+                    "to": "kie",
+                    "pass": "army"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "rum",
+            "name": "Rumania",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bud",
+                    "pass": "army"
+                },
+                {
+                    "to": "bul",
+                    "pass": "army"
+                },
+                {
+                    "to": "bul/ec",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "ser",
+                    "pass": "army"
+                },
+                {
+                    "to": "sev",
+                    "pass": "both"
+                },
+                {
+                    "to": "ukr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "ser",
+            "name": "Serbia",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "alb",
+                    "pass": "army"
+                },
+                {
+                    "to": "bud",
+                    "pass": "army"
+                },
+                {
+                    "to": "bul",
+                    "pass": "army"
+                },
+                {
+                    "to": "gre",
+                    "pass": "army"
+                },
+                {
+                    "to": "rum",
+                    "pass": "army"
+                },
+                {
+                    "to": "tri",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "sev",
+            "name": "Sevastopol",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "arm",
+                    "pass": "both"
+                },
+                {
+                    "to": "bla",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mos",
+                    "pass": "army"
+                },
+                {
+                    "to": "rum",
+                    "pass": "both"
+                },
+                {
+                    "to": "ukr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "sil",
+            "name": "Silesia",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "ber",
+                    "pass": "army"
+                },
+                {
+                    "to": "boh",
+                    "pass": "army"
+                },
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                },
+                {
+                    "to": "pru",
+                    "pass": "army"
+                },
+                {
+                    "to": "war",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "ska",
+            "name": "Skagerakk (SKA)",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "den",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "swe",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "smy",
+            "name": "Smyrna",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "aeg",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ank",
+                    "pass": "army"
+                },
+                {
+                    "to": "arm",
+                    "pass": "army"
+                },
+                {
+                    "to": "con",
+                    "pass": "both"
+                },
+                {
+                    "to": "eas",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "syr",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "spa",
+            "name": "Spain",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gas",
+                    "pass": "army"
+                },
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mar",
+                    "pass": "army"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "por",
+                    "pass": "army"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "spa/nc",
+            "name": "Spain (NC)",
+            "type": "named_coast",
+            "supplyCenter": false,
+            "parentId": "spa",
+            "adjacencies": [
+                {
+                    "to": "gas",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "por",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "spa/sc",
+            "name": "Spain (SC)",
+            "type": "named_coast",
+            "supplyCenter": false,
+            "parentId": "spa",
+            "adjacencies": [
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mar",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "por",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "stp",
+            "name": "St. Petersburg",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bar",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bot",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "fin",
+                    "pass": "army"
+                },
+                {
+                    "to": "lvn",
+                    "pass": "army"
+                },
+                {
+                    "to": "mos",
+                    "pass": "army"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "stp/nc",
+            "name": "St. Petersburg (NC)",
+            "type": "named_coast",
+            "supplyCenter": false,
+            "parentId": "stp",
+            "adjacencies": [
+                {
+                    "to": "bar",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "stp/sc",
+            "name": "St. Petersburg (SC)",
+            "type": "named_coast",
+            "supplyCenter": false,
+            "parentId": "stp",
+            "adjacencies": [
+                {
+                    "to": "bot",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "fin",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lvn",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "swe",
+            "name": "Sweden",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "bal",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "bot",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "den",
+                    "pass": "both"
+                },
+                {
+                    "to": "fin",
+                    "pass": "both"
+                },
+                {
+                    "to": "nwy",
+                    "pass": "both"
+                },
+                {
+                    "to": "ska",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "syr",
+            "name": "Syria",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "arm",
+                    "pass": "army"
+                },
+                {
+                    "to": "eas",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "smy",
+                    "pass": "both"
+                }
+            ]
+        },
+        {
+            "id": "tri",
+            "name": "Trieste",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "adr",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "alb",
+                    "pass": "both"
+                },
+                {
+                    "to": "bud",
+                    "pass": "army"
+                },
+                {
+                    "to": "ser",
+                    "pass": "army"
+                },
+                {
+                    "to": "tyr",
+                    "pass": "army"
+                },
+                {
+                    "to": "ven",
+                    "pass": "both"
+                },
+                {
+                    "to": "vie",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "tun",
+            "name": "Tunis",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "naf",
+                    "pass": "both"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "tus",
+            "name": "Tuscany",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "pie",
+                    "pass": "both"
+                },
+                {
+                    "to": "rom",
+                    "pass": "both"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ven",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "tyr",
+            "name": "Tyrolia",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "boh",
+                    "pass": "army"
+                },
+                {
+                    "to": "mun",
+                    "pass": "army"
+                },
+                {
+                    "to": "pie",
+                    "pass": "army"
+                },
+                {
+                    "to": "tri",
+                    "pass": "army"
+                },
+                {
+                    "to": "ven",
+                    "pass": "army"
+                },
+                {
+                    "to": "vie",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "tys",
+            "name": "Tyrrhenian Sea",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "ion",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "nap",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "rom",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tun",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tus",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wes",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "ukr",
+            "name": "Ukraine",
+            "type": "land",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "mos",
+                    "pass": "army"
+                },
+                {
+                    "to": "rum",
+                    "pass": "army"
+                },
+                {
+                    "to": "sev",
+                    "pass": "army"
+                },
+                {
+                    "to": "war",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "ven",
+            "name": "Venice",
+            "type": "coastal",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "adr",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "apu",
+                    "pass": "both"
+                },
+                {
+                    "to": "pie",
+                    "pass": "army"
+                },
+                {
+                    "to": "rom",
+                    "pass": "army"
+                },
+                {
+                    "to": "tri",
+                    "pass": "both"
+                },
+                {
+                    "to": "tus",
+                    "pass": "army"
+                },
+                {
+                    "to": "tyr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "vie",
+            "name": "Vienna",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "boh",
+                    "pass": "army"
+                },
+                {
+                    "to": "bud",
+                    "pass": "army"
+                },
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "tri",
+                    "pass": "army"
+                },
+                {
+                    "to": "tyr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "wal",
+            "name": "Wales",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "eng",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "iri",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "lon",
+                    "pass": "both"
+                },
+                {
+                    "to": "lvp",
+                    "pass": "both"
+                },
+                {
+                    "to": "yor",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "war",
+            "name": "Warsaw",
+            "type": "land",
+            "supplyCenter": true,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gal",
+                    "pass": "army"
+                },
+                {
+                    "to": "lvn",
+                    "pass": "army"
+                },
+                {
+                    "to": "mos",
+                    "pass": "army"
+                },
+                {
+                    "to": "pru",
+                    "pass": "army"
+                },
+                {
+                    "to": "sil",
+                    "pass": "army"
+                },
+                {
+                    "to": "ukr",
+                    "pass": "army"
+                }
+            ]
+        },
+        {
+            "id": "wes",
+            "name": "West Mediterranean",
+            "type": "sea",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "gol",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "mid",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "naf",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "spa/sc",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tun",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "tys",
+                    "pass": "fleet"
+                }
+            ]
+        },
+        {
+            "id": "yor",
+            "name": "Yorkshire",
+            "type": "coastal",
+            "supplyCenter": false,
+            "parentId": null,
+            "adjacencies": [
+                {
+                    "to": "edi",
+                    "pass": "both"
+                },
+                {
+                    "to": "lon",
+                    "pass": "both"
+                },
+                {
+                    "to": "lvp",
+                    "pass": "army"
+                },
+                {
+                    "to": "nth",
+                    "pass": "fleet"
+                },
+                {
+                    "to": "wal",
+                    "pass": "army"
+                }
+            ]
+        }
+    ],
+    "templatePhase": {
+        "year": 1901,
+        "units": [
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "England"
+                },
+                "province": {
+                    "id": "edi"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "England"
+                },
+                "province": {
+                    "id": "lvp"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "England"
+                },
+                "province": {
+                    "id": "lon"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "France"
+                },
+                "province": {
+                    "id": "bre"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "France"
+                },
+                "province": {
+                    "id": "par"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "France"
+                },
+                "province": {
+                    "id": "mar"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "Germany"
+                },
+                "province": {
+                    "id": "kie"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Germany"
+                },
+                "province": {
+                    "id": "ber"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Germany"
+                },
+                "province": {
+                    "id": "mun"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Italy"
+                },
+                "province": {
+                    "id": "ven"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Italy"
+                },
+                "province": {
+                    "id": "rom"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "Italy"
+                },
+                "province": {
+                    "id": "nap"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "Austria"
+                },
+                "province": {
+                    "id": "tri"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Austria"
+                },
+                "province": {
+                    "id": "vie"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Austria"
+                },
+                "province": {
+                    "id": "bud"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "stp/sc"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "mos"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "war"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "sev"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Turkey"
+                },
+                "province": {
+                    "id": "con"
+                }
+            },
+            {
+                "type": "Army",
+                "dislodged": false,
+                "nation": {
+                    "name": "Turkey"
+                },
+                "province": {
+                    "id": "smy"
+                }
+            },
+            {
+                "type": "Fleet",
+                "dislodged": false,
+                "nation": {
+                    "name": "Turkey"
+                },
+                "province": {
+                    "id": "ank"
+                }
+            }
+        ],
+        "supplyCenters": [
+            {
+                "nation": {
+                    "name": "England"
+                },
+                "province": {
+                    "id": "edi"
+                }
+            },
+            {
+                "nation": {
+                    "name": "England"
+                },
+                "province": {
+                    "id": "lvp"
+                }
+            },
+            {
+                "nation": {
+                    "name": "England"
+                },
+                "province": {
+                    "id": "lon"
+                }
+            },
+            {
+                "nation": {
+                    "name": "France"
+                },
+                "province": {
+                    "id": "bre"
+                }
+            },
+            {
+                "nation": {
+                    "name": "France"
+                },
+                "province": {
+                    "id": "par"
+                }
+            },
+            {
+                "nation": {
+                    "name": "France"
+                },
+                "province": {
+                    "id": "mar"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Germany"
+                },
+                "province": {
+                    "id": "kie"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Germany"
+                },
+                "province": {
+                    "id": "ber"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Germany"
+                },
+                "province": {
+                    "id": "mun"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Italy"
+                },
+                "province": {
+                    "id": "ven"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Italy"
+                },
+                "province": {
+                    "id": "rom"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Italy"
+                },
+                "province": {
+                    "id": "nap"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Austria"
+                },
+                "province": {
+                    "id": "tri"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Austria"
+                },
+                "province": {
+                    "id": "vie"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Austria"
+                },
+                "province": {
+                    "id": "bud"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Turkey"
+                },
+                "province": {
+                    "id": "con"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Turkey"
+                },
+                "province": {
+                    "id": "ank"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Turkey"
+                },
+                "province": {
+                    "id": "smy"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "sev"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "mos"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "stp"
+                }
+            },
+            {
+                "nation": {
+                    "name": "Russia"
+                },
+                "province": {
+                    "id": "war"
+                }
+            }
+        ]
+    }
+}

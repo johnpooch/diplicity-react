@@ -3,6 +3,7 @@ import json
 import pytest
 
 from common.constants import OrderType
+from inspect_ai.scorer import CORRECT, INCORRECT, Target
 
 from harness.blocks import (
     ChannelMessagesBlock,
@@ -17,363 +18,343 @@ from harness.orders import option_to_selected
 from harness.prompt import build_prompt
 from harness.tasks import ReplyTask, SelectOrdersTask
 from harness.types import Persona, TaskContext
+from harness.evals.select_orders.select_orders_structure import (
+    coverage,
+    deduplication,
+    legality,
+    support_coherence,
+    convoy_coherence,
+)
 
 
-def _option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+
+# --- builders -------------------------------------------------------------
+# Mirror the option shape produced by ContextBuilder.add_option. Only the
+# fields the scorers read (source.id) need to be faithful; the rest are
+# included so the fixtures look like real contexts.
+
+
+def _option(source_id, order_type, target=None, aux=None, unit_type=None):
     def field(value):
         return {"id": value, "label": value} if value is not None else None
 
     return {
-        "source": field(source),
+        "source": {"id": source_id, "label": source_id},
         "order_type": field(order_type),
         "target": field(target),
         "aux": field(aux),
         "unit_type": field(unit_type),
-        "named_coast": field(named_coast),
     }
 
 
-def _data(channels=None, phase=None, variant=None, orders=None, phase_states=None):
-    return {
-        "orders": orders
-        if orders is not None
-        else [
-            _option("lon", OrderType.HOLD),
-            _option("lon", OrderType.MOVE, target="nth"),
-        ],
-        "phase_states": phase_states
-        if phase_states is not None
-        else [{"max_orders": 3, "member": {"nation": "England"}}],
-        "game": {"phase_confirmed": False},
-        "phase": phase if phase is not None else {},
-        "channels": channels or [],
-        "variant": variant or {},
-    }
-
-
-def _nation(name):
-    return {"nation_id": name.lower(), "name": name}
-
-
-def _province(province_id):
-    return {"id": province_id, "name": province_id}
-
-
-def _phase():
-    return {
-        "name": "Spring 1901, Movement",
-        "type": "Movement",
-        "units": [
-            {"type": "Army", "nation": _nation("England"), "province": _province("lon"), "dislodged": False},
-            {"type": "Fleet", "nation": _nation("England"), "province": _province("nth"), "dislodged": True},
-            {"type": "Army", "nation": _nation("France"), "province": _province("par"), "dislodged": False},
-        ],
-        "supply_centers": [
-            {"province": _province("lon"), "nation": _nation("England")},
-            {"province": _province("edi"), "nation": _nation("England")},
-            {"province": _province("par"), "nation": _nation("France")},
-        ],
-    }
-
-
-def _channel(channel_id, name, messages, private=False):
-    return {"id": channel_id, "name": name, "private": private, "messages": messages}
-
-
-class TestOptionToSelected:
-
-    def test_hold(self):
-        assert option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
-
-    def test_move(self):
-        assert option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
-            "lon",
-            OrderType.MOVE,
-            "nth",
-        ]
-
-    def test_move_with_named_coast(self):
-        assert option_to_selected(
-            _option("mid", OrderType.MOVE, target="spa", named_coast="spa/nc")
-        ) == ["mid", OrderType.MOVE, "spa", "spa/nc"]
-
-    def test_support(self):
-        assert option_to_selected(
-            _option("lon", OrderType.SUPPORT, aux="wal", target="lvp")
-        ) == ["lon", OrderType.SUPPORT, "wal", "lvp"]
-
-    def test_build_fleet_named_coast(self):
-        assert option_to_selected(
-            _option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")
-        ) == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
-
-
-class TestGameStateBlock:
-
-    def test_groups_units_and_centers_by_nation(self):
-        rendered = GameStateBlock().render(_data(phase=_phase()), TaskContext())
-        assert "Current phase: Spring 1901, Movement" in rendered
-        assert "England: 2 (A lon, F nth (dislodged))" in rendered
-        assert "France: 1 (A par)" in rendered
-        assert "England: 2 (edi, lon)" in rendered
-        assert "France: 1 (par)" in rendered
-
-    def test_empty_phase_renders_nothing(self):
-        assert GameStateBlock().render(_data(), TaskContext()) is None
-
-    def test_retreat_phase_lists_dislodged_units(self):
-        phase = _phase()
-        phase["type"] = "Retreat"
-        rendered = GameStateBlock().render(_data(phase=phase), TaskContext())
-        assert "Dislodged units: F nth (England)" in rendered
-
-    def test_adjustment_phase_frames_per_nation(self):
-        phase = {
-            "name": "Winter 1901, Adjustment",
-            "type": "Adjustment",
-            "units": [
-                {"type": "Army", "nation": _nation("England"), "province": _province("lon"), "dislodged": False},
-                {"type": "Army", "nation": _nation("France"), "province": _province("par"), "dislodged": False},
-                {"type": "Fleet", "nation": _nation("France"), "province": _province("bre"), "dislodged": False},
-                {"type": "Army", "nation": _nation("Germany"), "province": _province("mun"), "dislodged": False},
-            ],
-            "supply_centers": [
-                {"province": _province("lon"), "nation": _nation("England")},
-                {"province": _province("edi"), "nation": _nation("England")},
-                {"province": _province("par"), "nation": _nation("France")},
-                {"province": _province("mun"), "nation": _nation("Germany")},
-            ],
-        }
-        rendered = GameStateBlock().render(_data(phase=phase), TaskContext())
-        assert "Adjustments:" in rendered
-        assert "England: 1 build available" in rendered
-        assert "France: 1 disband required" in rendered
-        assert "Germany: no change" in rendered
-
-
-class TestIdentityBlock:
-
-    def test_names_nation(self):
-        assert IdentityBlock().render(_data(), TaskContext()) == "You are playing England."
-
-    def test_renders_nothing_without_phase_states(self):
-        assert IdentityBlock().render(_data(phase_states=[]), TaskContext()) is None
-
-
-class TestLegalOrdersBlock:
-
-    def test_lists_options_by_source(self):
-        rendered = LegalOrdersBlock().render(_data(), TaskContext())
-        assert "Legal orders:" in rendered
-        assert "Unit lon:" in rendered
-        assert "0. lon Hold" in rendered
-        assert "1. lon Move nth" in rendered
-
-
-class TestPhaseStateBlock:
-
-    def test_states_max_orders(self):
-        rendered = PhaseStateBlock().render(_data(), TaskContext())
-        assert rendered == "Orders to submit this phase: 3"
-
-    def test_renders_nothing_without_max_orders(self):
-        data = _data(phase_states=[{"member": {"nation": "England"}}])
-        assert PhaseStateBlock().render(data, TaskContext()) is None
-
-
-class TestChannelMessagesBlock:
-
-    def test_includes_only_that_channel(self):
-        channels = [
-            _channel(
-                1,
-                "Public Press",
-                [{"body": "public", "sender": {"is_current_user": False, "nation": {"name": "England"}}}],
-            ),
-            _channel(
-                2,
-                "Private",
-                [{"body": "private", "sender": {"is_current_user": False, "nation": {"name": "France"}}}],
-            ),
-        ]
-        rendered = ChannelMessagesBlock().render(_data(channels), TaskContext(channel_id=2))
-        assert "Channel: Private" in rendered
-        assert "France: private" in rendered
-        assert "Public Press" not in rendered
-
-    def test_labels_every_message_by_nation_and_marks_privacy(self):
-        channels = [
-            _channel(
-                1,
-                "England, France",
-                [
-                    {"body": "their turn", "sender": {"is_current_user": False, "nation": {"name": "England"}}},
-                    {"body": "my turn", "sender": {"is_current_user": True, "nation": {"name": "Germany"}}},
-                ],
-                private=True,
-            ),
-        ]
-        rendered = ChannelMessagesBlock().render(_data(channels), TaskContext(channel_id=1))
-        assert "Channel: England, France (private)" in rendered
-        assert "England: their turn" in rendered
-        assert "Germany: my turn" in rendered
-
-    def test_falls_back_to_user_without_nation(self):
-        channels = [
-            _channel(1, "Public Press", [{"body": "anon", "sender": {"is_current_user": False}}]),
-        ]
-        rendered = ChannelMessagesBlock().render(_data(channels), TaskContext(channel_id=1))
-        assert "user: anon" in rendered
-
-    def test_missing_channel_renders_nothing(self):
-        assert ChannelMessagesBlock().render(_data(), TaskContext(channel_id=999)) is None
-
-
-class TestBuildPrompt:
-
-    def test_assembles_blocks_and_instruction(self):
-        prompt = build_prompt(SelectOrdersTask, _data(phase=_phase()), TaskContext())
-        assert prompt.system == SelectOrdersTask.system_prompt
-        assert "Current phase: Spring 1901, Movement" in prompt.user_content
-        assert "You are playing England." in prompt.user_content
-        assert "Legal orders:" in prompt.user_content
-        assert "Orders to submit this phase: 3" in prompt.user_content
-        assert prompt.user_content.endswith(SelectOrdersTask.instruction)
-        assert prompt.output_schema == SelectOrdersTask.output_schema
-        assert prompt.max_tokens is None
-
-    def test_skips_empty_blocks(self):
-        prompt = build_prompt(ReplyTask, _data(), TaskContext(channel_id=999))
-        assert prompt.user_content == "You are playing England.\n\n" + ReplyTask.instruction
-
-    def test_appends_persona_to_system(self):
-        persona = Persona(disposition="ruthless", voice="clipped")
-        prompt = build_prompt(SelectOrdersTask, _data(), TaskContext(persona=persona))
-        assert prompt.system.startswith(SelectOrdersTask.system_prompt)
-        assert render_persona(persona) in prompt.system
-        assert "Disposition: ruthless" in prompt.system
-        assert "Voice: clipped" in prompt.system
-
-    def test_is_deterministic_across_builds(self):
-        def build():
-            return build_prompt(SelectOrdersTask, _data(phase=_phase()), TaskContext())
-
-        assert build() == build()
-
-
-class TestSelectOrdersParse:
-
-    def _options(self):
-        return [
-            _option("lon", OrderType.HOLD),
-            _option("lon", OrderType.MOVE, target="nth"),
-            _option("edi", OrderType.HOLD),
-            _option("edi", OrderType.MOVE, target="nwg"),
-        ]
-
-    def _context(self):
-        return _data(orders=self._options())
-
-    def test_returns_choice_per_source(self):
-        response = json.dumps(
-            {
-                "choices": [
-                    {"source_id": "lon", "option_index": 1},
-                    {"source_id": "edi", "option_index": 1},
-                ]
-            }
-        )
-        assert SelectOrdersTask.parse(response, context=self._context()) == [
-            ["lon", OrderType.MOVE, "nth"],
-            ["edi", OrderType.MOVE, "nwg"],
-        ]
-
-    def test_parses_json_wrapped_in_markdown_fence(self):
-        response = (
-            "```json\n"
-            + json.dumps({"choices": [{"source_id": "lon", "option_index": 1}]})
-            + "\n```"
-        )
-        assert SelectOrdersTask.parse(response, context=self._context()) == [
-            ["lon", OrderType.MOVE, "nth"],
-        ]
-
-    def test_invalid_or_missing_index_skips_that_source(self):
-        response = json.dumps(
-            {
-                "choices": [
-                    {"source_id": "lon", "option_index": 9},
-                    {"source_id": "edi", "option_index": 0},
-                ]
-            }
-        )
-        assert SelectOrdersTask.parse(response, context=self._context()) == [
-            ["edi", OrderType.HOLD],
-        ]
-
-    def test_ignores_reasoning_field(self):
-        response = json.dumps(
-            {
-                "reasoning": "Hold London and move Edinburgh north.",
-                "choices": [
-                    {"source_id": "lon", "option_index": 0},
-                    {"source_id": "edi", "option_index": 1},
-                ],
-            }
-        )
-        assert SelectOrdersTask.parse(response, context=self._context()) == [
-            ["lon", OrderType.HOLD],
-            ["edi", OrderType.MOVE, "nwg"],
-        ]
-
-    def test_non_integer_index_skips_that_source(self):
-        response = json.dumps(
-            {
-                "choices": [
-                    {"source_id": "lon", "option_index": "1"},
-                    {"source_id": "edi", "option_index": 1},
-                ]
-            }
-        )
-        assert SelectOrdersTask.parse(response, context=self._context()) == [
-            ["edi", OrderType.MOVE, "nwg"],
-        ]
-
-    def test_raises_on_unparseable_json(self):
-        with pytest.raises(ParseError):
-            SelectOrdersTask.parse("not json at all", context=self._context())
-
-    def test_raises_on_non_object_json(self):
-        with pytest.raises(ParseError):
-            SelectOrdersTask.parse(json.dumps([1, 2]), context=self._context())
-
-    def test_raises_on_missing_choices(self):
-        with pytest.raises(ParseError):
-            SelectOrdersTask.parse(json.dumps({"reasoning": "hm"}), context=self._context())
-
-    def test_raises_on_non_list_choices(self):
-        with pytest.raises(ParseError):
-            SelectOrdersTask.parse(json.dumps({"choices": None}), context=self._context())
-
-    def test_raises_when_no_valid_selection_produced(self):
-        response = json.dumps({"choices": [{"source_id": "lon", "option_index": 9}]})
-        with pytest.raises(ParseError):
-            SelectOrdersTask.parse(response, context=self._context())
-
-    def test_empty_choices_without_options_returns_empty(self):
-        response = json.dumps({"choices": []})
-        assert SelectOrdersTask.parse(response, context=_data(orders=[])) == []
-
-
-class TestReplyParse:
-
-    def test_returns_message(self):
-        response = json.dumps({"reasoning": "answer them", "message": "Sure, let's talk."})
-        assert ReplyTask.parse(response, context=_data()) == "Sure, let's talk."
-
-    def test_returns_none_for_empty_message(self):
-        assert ReplyTask.parse(json.dumps({"message": "   "}), context=_data()) is None
-
-    def test_raises_on_unparseable_json(self):
-        with pytest.raises(ParseError):
-            ReplyTask.parse("not json at all", context=_data())
+def _context(options):
+    # NOTE: confirm this key matches your ContextData ("order_options" here).
+    return {"order_options": options}
+
+
+class _FakeOutput:
+    def __init__(self, completion):
+        self.completion = completion
+
+
+class _FakeState:
+    """Minimal stand-in for TaskState.
+
+    The scorers only ever read state.output.completion and
+    state.metadata["context"], so we expose exactly those. This keeps the
+    tests fast and free of TaskState's construction requirements while
+    staying faithful to what the scorers actually touch.
+    """
+
+    def __init__(self, completion, context):
+        self.output = _FakeOutput(completion)
+        self.metadata = {"context": context}
+
+
+def _state(selected_json, options):
+    """Build a fake state from a raw completion string and an option list."""
+    return _FakeState(selected_json, _context(options))
+
+
+def _run(scorer_factory, state):
+    """Invoke a scorer's async score() closure synchronously for testing.
+
+    Scorers are async so they can participate in Inspect's scheduling, but
+    ours never await anything, so we can drive the coroutine to completion
+    with a single send() rather than pulling in an event loop.
+    """
+    score_fn = scorer_factory()
+    coro = score_fn(state, Target(""))
+    try:
+        coro.send(None)
+    except StopIteration as stop:
+        return stop.value
+    raise AssertionError("scorer awaited something; expected it to be synchronous")
+
+
+# --- shared fixtures ------------------------------------------------------
+# The "structure" fixture: three provinces, two options each, in reading
+# order. This is the happy-path fixture the eval already runs.
+
+STRUCTURE_OPTIONS = [
+    _option("lon", "Hold"),
+    _option("lon", "Move", target="eng"),
+    _option("par", "Hold"),
+    _option("par", "Move", target="bur"),
+    _option("ber", "Hold"),
+    _option("ber", "Move", target="kie"),
+]
+
+
+# The adversarial fixture: one province (lon) has many attractive-looking
+# options, another (par) has only a single dull Hold. This tempts a model to
+# over-invest in lon and forget par -- the exact "two orders for London, none
+# for Paris" failure that motivated separating dedup from coverage. Used here
+# to prove the scorers go RED when they should, not to test the model.
+
+LOPSIDED_OPTIONS = [
+    _option("lon", "Hold"),
+    _option("lon", "Move", target="eng"),
+    _option("lon", "Move", target="wal"),
+    _option("lon", "Support", aux="wal", target="lvp"),
+    _option("par", "Hold"),
+]
+
+
+# --- legality -------------------------------------------------------------
+
+
+class TestLegality:
+
+    def test_in_range_selection_is_correct(self):
+        state = _state(json.dumps({"selected": [0, 2, 4]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == CORRECT
+
+    def test_out_of_range_index_is_incorrect(self):
+        state = _state(json.dumps({"selected": [0, 2, 99]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == INCORRECT
+
+    def test_negative_index_is_incorrect(self):
+        state = _state(json.dumps({"selected": [-1]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == INCORRECT
+
+    def test_non_integer_index_is_incorrect(self):
+        state = _state(json.dumps({"selected": ["0"]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == INCORRECT
+
+    def test_invalid_json_is_incorrect(self):
+        state = _state("not json at all", STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == INCORRECT
+
+    def test_missing_selected_key_is_incorrect(self):
+        state = _state(json.dumps({"choices": [0]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == INCORRECT
+
+    def test_non_list_selected_is_incorrect(self):
+        state = _state(json.dumps({"selected": 0}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == INCORRECT
+
+
+# --- deduplication --------------------------------------------------------
+
+
+class TestDeduplication:
+
+    def test_distinct_provinces_are_correct(self):
+        state = _state(json.dumps({"selected": [0, 2, 4]}), STRUCTURE_OPTIONS)
+        assert _run(deduplication, state).value == CORRECT
+
+    def test_two_orders_for_same_province_is_incorrect(self):
+        # indices 0 and 1 are both London
+        state = _state(json.dumps({"selected": [0, 1, 2]}), STRUCTURE_OPTIONS)
+        assert _run(deduplication, state).value == INCORRECT
+
+    def test_out_of_range_index_is_ignored_by_dedup(self):
+        # 99 is out of range (legality's problem); the in-range picks 0,2 are
+        # distinct provinces, so dedup should still pass.
+        state = _state(json.dumps({"selected": [0, 2, 99]}), STRUCTURE_OPTIONS)
+        assert _run(deduplication, state).value == CORRECT
+
+    def test_lopsided_over_selection_fails_dedup(self):
+        # Two London picks (0,1) from the adversarial fixture.
+        state = _state(json.dumps({"selected": [0, 1]}), LOPSIDED_OPTIONS)
+        assert _run(deduplication, state).value == INCORRECT
+
+
+# --- coverage -------------------------------------------------------------
+
+
+class TestCoverage:
+
+    def test_all_provinces_covered_is_correct(self):
+        state = _state(json.dumps({"selected": [0, 2, 4]}), STRUCTURE_OPTIONS)
+        assert _run(coverage, state).value == CORRECT
+
+    def test_missing_province_is_incorrect(self):
+        # covers lon and par, omits ber
+        state = _state(json.dumps({"selected": [0, 2]}), STRUCTURE_OPTIONS)
+        assert _run(coverage, state).value == INCORRECT
+
+    def test_duplicate_that_drops_a_province_is_incorrect(self):
+        # [0,1,2] is two Londons and one Paris -> Berlin uncovered
+        state = _state(json.dumps({"selected": [0, 1, 2]}), STRUCTURE_OPTIONS)
+        assert _run(coverage, state).value == INCORRECT
+
+    def test_out_of_range_pick_does_not_count_as_coverage(self):
+        # 99 covers nothing, so ber remains missing
+        state = _state(json.dumps({"selected": [0, 2, 99]}), STRUCTURE_OPTIONS)
+        assert _run(coverage, state).value == INCORRECT
+
+    def test_lopsided_over_selection_fails_coverage(self):
+        # Both picks are London; par is never covered.
+        state = _state(json.dumps({"selected": [0, 1]}), LOPSIDED_OPTIONS)
+        assert _run(coverage, state).value == INCORRECT
+
+
+# --- the key cross-scorer case -------------------------------------------
+# This is the response the happy-path fixture can never elicit but which the
+# scorers must handle correctly: right count, all in range, but wrong shape.
+# [0,1,2] on the structure fixture is legal, but is a dedup failure AND a
+# coverage failure. Proving all three verdicts on one input is what tells us
+# the three metrics are genuinely independent rather than measuring the same
+# "did the obvious thing" event.
+
+
+class TestRightCountWrongShape:
+
+    def test_legality_passes(self):
+        state = _state(json.dumps({"selected": [0, 1, 2]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == CORRECT
+
+    def test_deduplication_fails(self):
+        state = _state(json.dumps({"selected": [0, 1, 2]}), STRUCTURE_OPTIONS)
+        assert _run(deduplication, state).value == INCORRECT
+
+    def test_coverage_fails(self):
+        state = _state(json.dumps({"selected": [0, 1, 2]}), STRUCTURE_OPTIONS)
+        assert _run(coverage, state).value == INCORRECT
+
+    
+class TestMixed:
+
+    def test_redundant_third_pick_fails_dedup_only(self):
+        # [0,1,4] on the lopsided fixture: two Londons AND Paris.
+        # This is the baseline rung-4 signature: coverage stays GREEN
+        # (both provinces covered) while dedup goes RED.
+        state = _state(json.dumps({"selected": [0, 1, 4]}), LOPSIDED_OPTIONS)
+        assert _run(deduplication, state).value == INCORRECT
+        assert _run(coverage, state).value == CORRECT
+
+
+class TestFencedJson:
+    def test_fenced_completion_parses(self):
+        # model wrapped valid JSON in a markdown fence despite "no fences".
+        # This is a harness concern (parser tolerance), not model judgment.
+        state = _state('```json\n{"selected":[0,2,4]}\n```', STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == CORRECT
+
+    def test_bare_json_still_parses(self):
+        # regression guard: the fence-stripping must not break unfenced input.
+        state = _state(json.dumps({"selected": [0, 2, 4]}), STRUCTURE_OPTIONS)
+        assert _run(legality, state).value == CORRECT
+
+
+# --- the support-coherence fixture ---------------------------------------
+#   idx 0  London Move -> Liverpool     (the supported MOVE)
+#   idx 1  London Hold                  (London stays put)
+#   idx 2  Wales  Support London -> Lvp  (support-MOVE: coherent iff London moves to Lvp)
+#   idx 3  Wales  Support London -> Lon  (support-HOLD: coherent iff London does NOT move)
+#   idx 4  Wales  Hold                   (Wales opts out of supporting)
+
+SUPPORT_OPTIONS = [
+    _option("lon", "Move", target="lvp"),               # 0
+    _option("lon", "Hold"),                              # 1
+    _option("wal", "Support", aux="lon", target="lvp"),  # 2  support-move
+    _option("wal", "Support", aux="lon", target="lon"),  # 3  support-hold
+    _option("wal", "Hold"),                              # 4
+]
+
+
+class TestSupportMove:
+
+    def test_supported_move_present_is_coherent(self):
+        # [0,2]: London moves to Liverpool, Wales supports that move.
+        state = _state(json.dumps({"selected": [0, 2]}), SUPPORT_OPTIONS)
+        assert _run(support_coherence, state).value == CORRECT
+
+    def test_supported_move_absent_dangles(self):
+        # [1,2]: Wales supports London->Lvp, but London HOLDS. Dangling move.
+        state = _state(json.dumps({"selected": [1, 2]}), SUPPORT_OPTIONS)
+        assert _run(support_coherence, state).value == INCORRECT
+
+
+class TestSupportHold:
+
+    def test_supported_hold_present_is_coherent(self):
+        # [1,3]: Wales support-holds London, London holds. Coherent.
+        state = _state(json.dumps({"selected": [1, 3]}), SUPPORT_OPTIONS)
+        assert _run(support_coherence, state).value == CORRECT
+
+    def test_supported_unit_moves_away_dangles_hold(self):
+        # [0,3]: Wales support-holds London, but London MOVES to Lvp. The
+        # support-hold dangles -- the unit left the province it was held in.
+        # The case a naive "is the aux mentioned?" scorer gets wrong.
+        state = _state(json.dumps({"selected": [0, 3]}), SUPPORT_OPTIONS)
+        assert _run(support_coherence, state).value == INCORRECT
+
+
+class TestSupportAuxAbsent:
+
+    def test_support_hold_with_aux_unselected_dangles(self):
+        # [3]: Wales support-holds London, but London has no selected order.
+        # Nothing keeps London in place, so the support dangles. RED here;
+        # coverage separately reports London uncovered.
+        state = _state(json.dumps({"selected": [3]}), SUPPORT_OPTIONS)
+        assert _run(support_coherence, state).value == INCORRECT
+
+
+class TestNoSupportSelected:
+
+    def test_no_support_selected_is_coherent(self):
+        # [1,4]: no Support order selected, nothing to dangle. The scorer
+        # answers ONE question and stays silent (GREEN) when it doesn't arise
+        # -- same discipline as legality/dedup/coverage.
+        state = _state(json.dumps({"selected": [1, 4]}), SUPPORT_OPTIONS)
+        assert _run(support_coherence, state).value == CORRECT
+
+
+# --- the convoy-coherence fixture ----------------------------------------
+#   idx 0  Eng Convoy London -> Brest   (fleet convoys the army)
+#   idx 1  Eng Hold
+#   idx 2  London Move -> Brest          (the convoyed move)
+#   idx 3  London Hold                   (army stays -> convoy dangles)
+
+CONVOY_OPTIONS = [
+    _option("eng", "Convoy", aux="lon", target="bre"),  # 0
+    _option("eng", "Hold"),                              # 1
+    _option("lon", "Move", target="bre"),               # 2
+    _option("lon", "Hold"),                              # 3
+]
+
+
+class TestConvoyCoherence:
+
+    def test_convoyed_move_present_is_coherent(self):
+        # [0,2]: Eng convoys London->Brest, London moves to Brest. Coherent.
+        state = _state(json.dumps({"selected": [0, 2]}), CONVOY_OPTIONS)
+        assert _run(convoy_coherence, state).value == CORRECT
+
+    def test_convoyed_army_holds_dangles(self):
+        # [0,3]: Eng convoys London->Brest, but London HOLDS. Dangling convoy.
+        state = _state(json.dumps({"selected": [0, 3]}), CONVOY_OPTIONS)
+        assert _run(convoy_coherence, state).value == INCORRECT
+
+    def test_convoyed_army_absent_dangles(self):
+        # [0]: Eng convoys London, but London has no selected order at all.
+        state = _state(json.dumps({"selected": [0]}), CONVOY_OPTIONS)
+        assert _run(convoy_coherence, state).value == INCORRECT
+
+    def test_no_convoy_selected_is_coherent(self):
+        # [1,2]: no Convoy order selected, nothing to dangle. Silent green.
+        state = _state(json.dumps({"selected": [1, 2]}), CONVOY_OPTIONS)
+        assert _run(convoy_coherence, state).value == CORRECT
