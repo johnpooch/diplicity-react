@@ -14,6 +14,7 @@ export const currentUserProfile: UserProfile = {
   emailNotificationsEnabled: true,
   canCreateBotGames: true,
   reliabilityTier: "reliable",
+  commitment: "high",
 };
 
 interface PlayerSeed {
@@ -52,6 +53,7 @@ export const makeMember = (
   civilDisorder: false,
   seekingReplacement: false,
   replaceable: false,
+  commitment: "high",
   ...overrides,
 });
 
@@ -88,5 +90,6 @@ for (const player of players) {
     nmrRate: 0.05,
     cdRate: 0,
     reliabilityTier: "reliable",
+    commitment: "high",
   };
 }

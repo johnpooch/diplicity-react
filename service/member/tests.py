@@ -4,17 +4,22 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
-from bot.models import BotProfile
+from bot_profile.models import BotProfile
 from game.models import Game
+from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus, NationAssignment, PhaseStatus
+from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, PhaseStatus
 
 User = get_user_model()
 
 join_viewname = "game-join"
 retrieve_viewname = "game-retrieve"
 recovery_viewname = "civil-disorder-recovery"
+
+
+def _kicked_from_staging_notifications():
+    return Notification.objects.filter(event_type="kicked_from_staging")
 
 
 class TestCivilDisorderSerialization:
@@ -774,32 +779,34 @@ class TestReplaceableSerialization:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "tier,min_reliability,allowed",
+    "commitment,commitment_requirement,allowed",
     [
-        ("reliable", "open", True),
-        ("reliable", "reliable_and_new", True),
-        ("reliable", "reliable_only", True),
-        ("new", "open", True),
-        ("new", "reliable_and_new", True),
-        ("new", "reliable_only", False),
-        (None, "open", True),
-        (None, "reliable_and_new", False),
-        (None, "reliable_only", False),
+        (Commitment.HIGH, CommitmentRequirement.OPEN, True),
+        (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
+        (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
+        (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
+        (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
+        (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
+        (Commitment.LOW, CommitmentRequirement.OPEN, False),
+        (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
     ],
 )
-def test_join_game_reliability_requirement(
-    authenticated_client, pending_game_created_by_secondary_user, tier, min_reliability, allowed
+def test_join_game_commitment_requirement(
+    authenticated_client,
+    primary_user,
+    pending_game_created_by_secondary_user,
+    set_commitment,
+    commitment,
+    commitment_requirement,
+    allowed,
 ):
     game = pending_game_created_by_secondary_user
-    game.min_reliability = min_reliability
-    game.save(update_fields=["min_reliability"])
+    game.commitment_requirement = commitment_requirement
+    game.save(update_fields=["commitment_requirement"])
+    set_commitment(primary_user, commitment)
     url = reverse(join_viewname, args=[game.id])
 
-    with patch(
-        "common.permissions.get_player_stats",
-        return_value={"reliability_tier": tier},
-    ):
-        response = authenticated_client.post(url)
+    response = authenticated_client.post(url)
 
     if allowed:
         assert response.status_code == status.HTTP_201_CREATED
@@ -874,32 +881,30 @@ class TestKickBotMember:
 
     @pytest.mark.django_db
     def test_kick_bot_sends_no_notification(
-        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user
+        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_primary_user
         member = game.members.create(user=roster_bot_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not game.members.filter(user=roster_bot_user).exists()
-        mock_send.defer.assert_not_called()
+        assert not _kicked_from_staging_notifications().exists()
 
     @pytest.mark.django_db
     def test_kick_human_sends_notification(
-        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_primary_user
         member = game.members.create(user=secondary_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        mock_send.defer.assert_called_once()
+        assert _kicked_from_staging_notifications().exists()
 
 
 @pytest.mark.django_db

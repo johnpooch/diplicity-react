@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
-import { UserPlus, MessageSquare, MessageSquareOff, Bot } from "lucide-react";
+import { UserPlus, MessageSquare, MessageSquareOff } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -22,7 +22,6 @@ import {
   ChannelMessage,
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
-  useUserRetrieveSuspense,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
@@ -47,7 +46,6 @@ const ChannelListScreen: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
   const variant = useGameVariant(game);
-  const { data: profile } = useUserRetrieveSuspense();
 
   const currentNationName =
     game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
@@ -60,18 +58,7 @@ const ChannelListScreen: React.FC = () => {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <GameDetailAppBar
-        title="Chat"
-        rightButton={
-          profile.canCreateBotGames ? (
-            <Button asChild variant="ghost" size="icon">
-              <Link to={`/llm-calls?game=${gameId}`} aria-label="LLM trace">
-                <Bot className="size-5" />
-              </Link>
-            </Button>
-          ) : undefined
-        }
-      />
+      <GameDetailAppBar title="Chat" />
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>

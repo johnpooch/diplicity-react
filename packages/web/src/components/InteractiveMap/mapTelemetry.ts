@@ -99,4 +99,21 @@ const recordGesture = (params: {
   span.end();
 };
 
-export { recordInitialRender, recordGesture };
+const recordRasterFailure = (params: {
+  variantId: string;
+  error: unknown;
+  implementation?: MapImplementation;
+}): void => {
+  const span = tracer.startSpan("map.raster_failure", {
+    attributes: {
+      "map.variant_id": params.variantId,
+      "map.implementation": params.implementation ?? "svg",
+      "map.error_message":
+        params.error instanceof Error ? params.error.message : String(params.error),
+      ...deviceContext(),
+    },
+  });
+  span.end();
+};
+
+export { recordInitialRender, recordGesture, recordRasterFailure };

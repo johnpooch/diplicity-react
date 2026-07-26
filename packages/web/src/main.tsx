@@ -6,10 +6,16 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import App from "./App.tsx";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { initializeObservability } from "./observability";
 import { initializeSentry } from "./sentry";
 import { themeStorage } from "./theme/themeStorage";
+import { isNativePlatform } from "./utils/platform";
 import { reloadForStaleChunk } from "./utils/staleChunk";
+
+if (isNativePlatform()) {
+  setTimeout(() => SplashScreen.hide(), 10000);
+}
 
 themeStorage.initialize();
 initializeObservability();

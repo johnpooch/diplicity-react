@@ -100,6 +100,8 @@ export interface ChannelMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  /** @nullable */
+  readonly commitment: string | null;
   nation: Nation;
 }
 
@@ -125,6 +127,32 @@ export interface Channel {
 }
 
 /**
+ * * `eligible` - eligible
+ * `committed_locked` - committed_locked
+ * `low_locked` - low_locked
+ */
+export type CommitmentEligibilityEnum =
+  (typeof CommitmentEligibilityEnum)[keyof typeof CommitmentEligibilityEnum];
+
+export const CommitmentEligibilityEnum = {
+  eligible: "eligible",
+  committed_locked: "committed_locked",
+  low_locked: "low_locked",
+} as const;
+
+/**
+ * * `open` - Open
+ * `committed` - Committed
+ */
+export type CommitmentRequirementEnum =
+  (typeof CommitmentRequirementEnum)[keyof typeof CommitmentRequirementEnum];
+
+export const CommitmentRequirementEnum = {
+  open: "open",
+  committed: "committed",
+} as const;
+
+/**
  * * `duration` - Duration
  * `fixed_time` - Fixed Time
  */
@@ -145,6 +173,8 @@ export interface DrawVoteMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  /** @nullable */
+  readonly commitment: string | null;
   /** @nullable */
   nation: string | null;
 }
@@ -363,6 +393,7 @@ export interface GameCreate {
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
+  commitmentRequirement?: CommitmentRequirementEnum;
 }
 
 export interface GameCreateSandbox {
@@ -455,6 +486,8 @@ export interface Member {
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
   /** @nullable */
+  readonly commitment: string | null;
+  /** @nullable */
   readonly nation: string | null;
   readonly eliminated: boolean;
   readonly kicked: boolean;
@@ -516,6 +549,8 @@ export interface GameList {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly minReliability: string;
+  readonly commitmentRequirement: string;
+  readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -566,49 +601,9 @@ export interface GameRetrieve {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly minReliability: string;
+  readonly commitmentRequirement: string;
+  readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
-}
-
-export interface LLMCallDetail {
-  readonly id: number;
-  readonly createdAt: string;
-  readonly stage: string;
-  readonly status: string;
-  readonly model: string;
-  /** @nullable */
-  readonly gameId: string | null;
-  readonly phaseName: string;
-  /** @nullable */
-  readonly nation: string | null;
-  readonly channelNations: readonly string[];
-  readonly totalTokens: number;
-  /** @nullable */
-  readonly latencyMs: number | null;
-  readonly system: string;
-  readonly userContent: string;
-  readonly response: string;
-  readonly inputTokens: number;
-  readonly outputTokens: number;
-  readonly cacheReadTokens: number;
-  readonly cacheWriteTokens: number;
-  readonly errorMessage: string;
-}
-
-export interface LLMCallSummary {
-  readonly id: number;
-  readonly createdAt: string;
-  readonly stage: string;
-  readonly status: string;
-  readonly model: string;
-  /** @nullable */
-  readonly gameId: string | null;
-  readonly phaseName: string;
-  /** @nullable */
-  readonly nation: string | null;
-  readonly channelNations: readonly string[];
-  readonly totalTokens: number;
-  /** @nullable */
-  readonly latencyMs: number | null;
 }
 
 export interface NationFlagUpload {
@@ -765,6 +760,7 @@ export interface PatchedUserProfile {
   readonly canCreateBotGames?: boolean;
   /** @nullable */
   readonly reliabilityTier?: string | null;
+  readonly commitment?: string;
 }
 
 export interface PatchedVariantWrite {
@@ -859,6 +855,7 @@ export interface PublicUserProfile {
   readonly cdRate: number;
   /** @nullable */
   readonly reliabilityTier: string | null;
+  readonly commitment: string;
 }
 
 export interface Register {
@@ -888,6 +885,7 @@ export interface UserProfile {
   readonly canCreateBotGames: boolean;
   /** @nullable */
   readonly reliabilityTier: string | null;
+  readonly commitment: string;
 }
 
 export interface VictoryConditions {
@@ -1156,10 +1154,6 @@ export const GamesListMovementPhaseDuration = {
 export type GamesFindSimilarRetrieveParams = {
   movement_phase_duration: string;
   variant: string;
-};
-
-export type LlmCallsListParams = {
-  game?: string;
 };
 
 /**
@@ -7596,601 +7590,6 @@ export function useGamesFindSimilarRetrieveSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-export const llmCallsList = (
-  params?: LlmCallsListParams,
-  signal?: AbortSignal
-) => {
-  return customInstance<LLMCallSummary[]>({
-    url: `/llm-calls/`,
-    method: "GET",
-    params,
-    signal,
-  });
-};
-
-export const getLlmCallsListQueryKey = (params?: LlmCallsListParams) => {
-  return [`/llm-calls/`, ...(params ? [params] : [])] as const;
-};
-
-export const getLlmCallsListQueryOptions = <
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
-    >;
-  }
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getLlmCallsListQueryKey(params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof llmCallsList>>> = ({
-    signal,
-  }) => llmCallsList(params, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof llmCallsList>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type LlmCallsListQueryResult = NonNullable<
-  Awaited<ReturnType<typeof llmCallsList>>
->;
-export type LlmCallsListQueryError = unknown;
-
-export function useLlmCallsList<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params: undefined | LlmCallsListParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof llmCallsList>>,
-          TError,
-          Awaited<ReturnType<typeof llmCallsList>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsList<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof llmCallsList>>,
-          TError,
-          Awaited<ReturnType<typeof llmCallsList>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsList<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useLlmCallsList<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getLlmCallsListQueryOptions(params, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getLlmCallsListSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsList>>,
-        TError,
-        TData
-      >
-    >;
-  }
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getLlmCallsListQueryKey(params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof llmCallsList>>> = ({
-    signal,
-  }) => llmCallsList(params, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof llmCallsList>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type LlmCallsListSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof llmCallsList>>
->;
-export type LlmCallsListSuspenseQueryError = unknown;
-
-export function useLlmCallsListSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params: undefined | LlmCallsListParams,
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsList>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsListSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsList>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsListSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsList>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useLlmCallsListSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsList>>,
-  TError = unknown,
->(
-  params?: LlmCallsListParams,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsList>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getLlmCallsListSuspenseQueryOptions(params, options);
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const llmCallsRetrieve = (id: number, signal?: AbortSignal) => {
-  return customInstance<LLMCallDetail>({
-    url: `/llm-calls/${id}/`,
-    method: "GET",
-    signal,
-  });
-};
-
-export const getLlmCallsRetrieveQueryKey = (id: number) => {
-  return [`/llm-calls/${id}/`] as const;
-};
-
-export const getLlmCallsRetrieveQueryOptions = <
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  }
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getLlmCallsRetrieveQueryKey(id);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof llmCallsRetrieve>>
-  > = ({ signal }) => llmCallsRetrieve(id, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof llmCallsRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type LlmCallsRetrieveQueryResult = NonNullable<
-  Awaited<ReturnType<typeof llmCallsRetrieve>>
->;
-export type LlmCallsRetrieveQueryError = unknown;
-
-export function useLlmCallsRetrieve<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof llmCallsRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof llmCallsRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsRetrieve<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof llmCallsRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof llmCallsRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsRetrieve<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useLlmCallsRetrieve<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getLlmCallsRetrieveQueryOptions(id, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getLlmCallsRetrieveSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  }
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getLlmCallsRetrieveQueryKey(id);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof llmCallsRetrieve>>
-  > = ({ signal }) => llmCallsRetrieve(id, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof llmCallsRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type LlmCallsRetrieveSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof llmCallsRetrieve>>
->;
-export type LlmCallsRetrieveSuspenseQueryError = unknown;
-
-export function useLlmCallsRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLlmCallsRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useLlmCallsRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
-  TError = unknown,
->(
-  id: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof llmCallsRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getLlmCallsRetrieveSuspenseQueryOptions(id, options);
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const phaseDeadlineWarningsCreate = (signal?: AbortSignal) => {
-  return customInstance<void>({
-    url: `/phase/deadline-warnings/`,
-    method: "POST",
-    signal,
-  });
-};
-
-export const getPhaseDeadlineWarningsCreateMutationOptions = <
-  TError = unknown,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
-    TError,
-    void,
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["phaseDeadlineWarningsCreate"];
-  const { mutation: mutationOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
-    void
-  > = () => {
-    return phaseDeadlineWarningsCreate();
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type PhaseDeadlineWarningsCreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>
->;
-
-export type PhaseDeadlineWarningsCreateMutationError = unknown;
-
-export const usePhaseDeadlineWarningsCreate = <
-  TError = unknown,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
-      TError,
-      void,
-      TContext
-    >;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(
-    getPhaseDeadlineWarningsCreateMutationOptions(options),
-    queryClient
-  );
-};
 
 export const phaseResolveCreate = (signal?: AbortSignal) => {
   return customInstance<void>({

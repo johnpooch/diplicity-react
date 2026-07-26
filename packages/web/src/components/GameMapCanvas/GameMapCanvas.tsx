@@ -12,7 +12,11 @@ import type {
 import { parseDsvg } from "../InteractiveMap/dsvgParser";
 import { DiplicityMap } from "../InteractiveMap/mapRenderer";
 import { toRenderState } from "../InteractiveMap/toRenderState";
-import { recordGesture, recordInitialRender } from "../InteractiveMap/mapTelemetry";
+import {
+  recordGesture,
+  recordInitialRender,
+  recordRasterFailure,
+} from "../InteractiveMap/mapTelemetry";
 import { useDsvg } from "../../hooks/useDsvg";
 import { isNativePlatform } from "../../utils/platform";
 import {
@@ -44,7 +48,6 @@ type GameMapCanvasProps = {
 const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<GameMapController | null>(null);
-  const basePngRef = useRef<string | null>(null);
   const initialRecordedRef = useRef(false);
 
   const mode = props.mode ?? "interactive";
@@ -149,10 +152,6 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       resizeObserver.disconnect();
       controller.destroy();
       controllerRef.current = null;
-      if (basePngRef.current) {
-        URL.revokeObjectURL(basePngRef.current);
-        basePngRef.current = null;
-      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- create the map once per parsed dSVG; live values flow through refs and dedicated effects
   }, [parsed]);
@@ -191,16 +190,11 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     const t0 = performance.now();
     const { width, height } = parsed.viewBox;
     rasterizeSvg(baseSvg, width, height)
-      .then((pngUrl) => {
+      .then((canvas) => {
         if (cancelled) {
-          URL.revokeObjectURL(pngUrl);
           return;
         }
-        controller.setBase(pngUrl);
-        if (basePngRef.current) {
-          URL.revokeObjectURL(basePngRef.current);
-        }
-        basePngRef.current = pngUrl;
+        controller.setBase(canvas);
         if (!initialRecordedRef.current) {
           initialRecordedRef.current = true;
           const renderMs = performance.now() - t0;
@@ -216,8 +210,13 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
           containerRef.current?.setAttribute("data-map-ready", "true");
         }
       })
-      .catch(() => {
-        /* a failed raster leaves the previous base in place */
+      .catch((error) => {
+        // A failed raster leaves the previous base in place.
+        recordRasterFailure({
+          variantId: variantIdRef.current,
+          error,
+          implementation: "leaflet",
+        });
       });
 
     return () => {
@@ -255,7 +254,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       <div
         ref={containerRef}
         data-map-impl="leaflet"
-        style={{ width: "100%", height: "100%", background: "#fff" }}
+        style={{ width: "100%", height: "100%", background: "var(--background)" }}
       />
       {showFillToggle && (
         <Button

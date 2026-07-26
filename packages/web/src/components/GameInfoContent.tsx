@@ -11,7 +11,6 @@ import {
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
-import { MIN_RELIABILITY_OPTIONS } from "@/constants";
 import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { CardTitle } from "@/components/ui/card";
 import {
@@ -157,10 +156,11 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           )}
           <MetadataRow
             icon={<ShieldCheck className="size-4" />}
-            label="Player reliability"
+            label="Commitment"
             value={
-              MIN_RELIABILITY_OPTIONS.find(o => o.value === game.minReliability)?.label ??
-              game.minReliability
+              game.commitmentRequirement === "committed"
+                ? "Committed players only"
+                : "Open"
             }
           />
           <MetadataRow

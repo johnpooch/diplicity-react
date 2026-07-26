@@ -1,4 +1,7 @@
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  useSuspenseInfiniteQuery,
+} from "@tanstack/react-query";
 import {
   gamesList,
   getGamesListQueryKey,
@@ -12,11 +15,14 @@ const getNextPageParam = (lastPage: Awaited<ReturnType<typeof gamesList>>) => {
   return page ? Number(page) : undefined;
 };
 
-export const useGamesListInfinite = (params?: GamesListParams) => {
-  return useSuspenseInfiniteQuery({
+export const gamesListInfiniteQueryOptions = (params?: GamesListParams) =>
+  infiniteQueryOptions({
     queryKey: [...getGamesListQueryKey(params), "infinite"],
     queryFn: ({ pageParam }) => gamesList({ ...params, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam,
   });
+
+export const useGamesListInfinite = (params?: GamesListParams) => {
+  return useSuspenseInfiniteQuery(gamesListInfiniteQueryOptions(params));
 };

@@ -1,13 +1,13 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
 
 from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseStatus
 from game.models import Game
-from bot import tasks
-from bot.context.orders import first_legal_selections
-from bot.utils import get_bot_user
+from province.models import Province
+from agent import tasks
+from agent.fallback import first_legal_selections
+from bot_profile.models import BotProfile
 
 
 def _submit_first_legal_orders(client, game_id):
@@ -26,12 +26,20 @@ def _create_bot_game(client, variant_id):
             "nation_assignment": NationAssignment.ORDERED,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
-            "include_bot_opponent": True,
         },
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
-    return Game.objects.get(id=response.data["id"])
+    game = Game.objects.get(id=response.data["id"])
+
+    bot_user = BotProfile.objects.available_for_game(game).first().user
+    add_response = client.post(
+        reverse("game-add-bot", args=[game.id]), {"user_id": bot_user.id}, format="json"
+    )
+    assert add_response.status_code == status.HTTP_201_CREATED
+
+    game.refresh_from_db()
+    return game, bot_user
 
 
 @pytest.fixture
@@ -45,13 +53,12 @@ def test_bot_game_starts_on_creation_and_plays_phase(
     allowlisted_human, italy_vs_germany_variant
 ):
     human_client = allowlisted_human
-    game = _create_bot_game(human_client, italy_vs_germany_variant.id)
+    game, bot_user = _create_bot_game(human_client, italy_vs_germany_variant.id)
 
     assert game.status == GameStatus.ACTIVE
     first_phase = game.current_phase
     assert first_phase.status == PhaseStatus.ACTIVE
 
-    bot_user = get_bot_user()
     tasks.plan(user_id=bot_user.id, game_id=game.id)
 
     bot_phase_state = first_phase.phase_states.get(member__user=bot_user)
@@ -78,13 +85,10 @@ def test_bot_game_starts_on_creation_and_plays_phase(
 
 @pytest.mark.django_db
 def test_bot_plans_when_variant_has_no_adjacencies(allowlisted_human, italy_vs_germany_variant):
-    from province.models import Province
-
     Province.objects.filter(variant=italy_vs_germany_variant).update(adjacencies=[])
     human_client = allowlisted_human
-    game = _create_bot_game(human_client, italy_vs_germany_variant.id)
+    game, bot_user = _create_bot_game(human_client, italy_vs_germany_variant.id)
 
-    bot_user = get_bot_user()
     tasks.plan(user_id=bot_user.id, game_id=game.id)
 
     bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -94,8 +98,7 @@ def test_bot_plans_when_variant_has_no_adjacencies(allowlisted_human, italy_vs_g
 @pytest.mark.django_db
 def test_bot_can_play_the_next_phase(allowlisted_human, italy_vs_germany_variant):
     human_client = allowlisted_human
-    game = _create_bot_game(human_client, italy_vs_germany_variant.id)
-    bot_user = get_bot_user()
+    game, bot_user = _create_bot_game(human_client, italy_vs_germany_variant.id)
     first_phase = game.current_phase
 
     tasks.plan(user_id=bot_user.id, game_id=game.id)

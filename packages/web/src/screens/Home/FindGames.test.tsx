@@ -134,11 +134,11 @@ describe("FindGames", () => {
     );
   });
 
-  it("passes eligible_only: true to the games list query", () => {
+  it("does not filter ineligible games out of the games list query", () => {
     renderFindGames();
 
     expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
-      expect.objectContaining({ eligible_only: true })
+      expect.not.objectContaining({ eligible_only: true })
     );
   });
 
@@ -190,6 +190,45 @@ describe("FindGames", () => {
 
     expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
     expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
+  });
+
+  it("renders the empty state instead of crashing when pages is not an array", () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: { pages: undefined },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getByText(/no games found/i)).toBeInTheDocument();
+  });
+
+  it("renders the empty state instead of crashing when page.results is not an array", () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: { pages: [{ results: undefined }] },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getByText(/no games found/i)).toBeInTheDocument();
+  });
+
+  it("does not crash when a game's members is not an array", () => {
+    const game = {
+      id: "g1",
+      variantId: "classical",
+      phases: [1],
+      members: undefined,
+    };
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: { pages: [{ results: [game] }] },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
     expect(screen.getAllByTestId("game-card")).toHaveLength(1);
   });
 

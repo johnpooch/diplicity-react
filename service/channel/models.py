@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F, Exists
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from channel import registry as channel_registry
 from common.models import BaseModel
 
 User = get_user_model()
@@ -116,6 +117,10 @@ class Channel(BaseModel):
         related_name="channels",
     )
 
+    def member_user_ids(self):
+        members = self.members if self.private else self.game.members
+        return {m.user_id for m in members.all() if m.user_id is not None}
+
 
 class ChannelMemberQuerySet(models.QuerySet):
     def for_channel(self, channel):
@@ -150,6 +155,35 @@ class ChannelMessage(BaseModel):
     body = models.TextField()
 
     objects = ChannelMessageQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["created_at"]
+
+
+class ChannelEventManager(models.Manager):
+    def create_from_event(self, event_type, context):
+        spec_class = channel_registry.REGISTRY.get(event_type)
+        if spec_class is None:
+            return []
+        channels = spec_class().get_channels(context)
+        if not channels:
+            return []
+        return self.create_for_channels(event_type, channels, phase=context.phase)
+
+    def create_for_channels(self, event_type, channels, phase=None):
+        return self.bulk_create(
+            [self.model(channel=channel, type=event_type, phase=phase) for channel in channels]
+        )
+
+
+class ChannelEvent(BaseModel):
+    channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="events")
+    phase = models.ForeignKey(
+        "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_events"
+    )
+    type = models.CharField(max_length=100)
+
+    objects = ChannelEventManager()
 
     class Meta:
         ordering = ["created_at"]

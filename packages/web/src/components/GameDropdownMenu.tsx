@@ -49,7 +49,6 @@ import {
   getGamesListQueryKey,
   getGameRetrieveQueryKey,
   GameList,
-  GameRetrieve,
   DurationEnum,
   getGamePhasesListQueryKey,
   getGamePhaseRetrieveQueryKey,
@@ -59,9 +58,14 @@ import { EXTEND_DURATION_OPTIONS } from "@/constants";
 interface GameDropdownMenuProps {
   game: Pick<
     GameList,
-    "id" | "sandbox" | "canLeave" | "canDelete" | "canManage" | "isPaused"
-  > &
-    Partial<Pick<GameRetrieve, "status">>;
+    | "id"
+    | "sandbox"
+    | "canLeave"
+    | "canDelete"
+    | "canManage"
+    | "isPaused"
+    | "status"
+  >;
   onNavigateToGameInfo: () => void;
   onNavigateToPlayerInfo: () => void;
 }
@@ -224,7 +228,7 @@ export function GameDropdownMenu({
           <Share />
           Share
         </DropdownMenuItem>
-        {!game.sandbox && (
+        {!game.sandbox && isActiveGame && (
           <DropdownMenuItem onClick={() => setShowCloneConfirmation(true)}>
             <Copy />
             Clone to sandbox

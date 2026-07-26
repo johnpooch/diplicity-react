@@ -96,12 +96,16 @@ INSTALLED_APPS = [
     "channel",
     "adjudication",
     "notification",
+    "emit",
     "integration",
     "health",
     "victory",
     "draw_proposal",
     "email_service",
-    "bot",
+    "inference",
+    "harness",
+    "agent",
+    "bot_profile",
     "drf_spectacular",
 ]
 
@@ -258,8 +262,9 @@ BOT_OPPONENT_ALLOWLIST = [
     if email.strip()
 ]
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+BOT_ANTHROPIC_API_KEY = os.getenv("BOT_ANTHROPIC_API_KEY", "")
 BOT_LLM_MODEL = os.getenv("BOT_LLM_MODEL", "claude-haiku-4-5")
+BOT_LLM_STRUCTURED_OUTPUTS = os.getenv("BOT_LLM_STRUCTURED_OUTPUTS", "True") == "True"
 
 CHAT_MESSAGE_MAX_CHARS = int(os.getenv("CHAT_MESSAGE_MAX_CHARS", "500"))
 BOT_CHANNEL_MESSAGE_CAP = int(os.getenv("BOT_CHANNEL_MESSAGE_CAP", "10"))

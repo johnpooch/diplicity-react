@@ -64,10 +64,13 @@ vi.mock("@/hooks/useOrderWizard", () => ({
 
 let mockMutateAsync = vi.fn();
 let mockExistingOrders: Order[] = [];
+let mockPublishedVariants: (typeof mockVariant)[] = [];
+let mockRetrievedVariant: typeof mockVariant | undefined = undefined;
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieve: () => ({ data: mockGame }),
-  useVariantsList: () => ({ data: [mockVariant] }),
+  useVariantsList: () => ({ data: mockPublishedVariants }),
+  useVariantsRetrieve: () => ({ data: mockRetrievedVariant }),
   useGamePhaseRetrieve: () => ({ data: mockPhase }),
   useGameOrdersList: () => ({ data: mockExistingOrders }),
   useGameOptionsRetrieve: () => ({ data: { orders: [], fieldOrder: {} } }),
@@ -219,6 +222,22 @@ describe("GameMap", () => {
     mockMutateAsync = vi.fn();
     mockExistingOrders = [];
     mockWizardState = buildIdleWizard();
+    mockPublishedVariants = [mockVariant];
+    mockRetrievedVariant = undefined;
+  });
+
+  it("renders the map using a fetched draft variant when it is absent from the published list", async () => {
+    mockPublishedVariants = [];
+    mockRetrievedVariant = mockVariant;
+
+    render(gameMapJsx());
+
+    await waitFor(() => {
+      expect(mockMapView).toHaveBeenCalled();
+    });
+
+    const props = mockMapView.mock.calls.at(-1)?.[0] as { variant: { id: string } };
+    expect(props.variant.id).toBe("standard");
   });
 
   describe("optimistic order rendering", () => {
