@@ -103,7 +103,6 @@ INSTALLED_APPS = [
     "draw_proposal",
     "email_service",
     "inference",
-    "harness",
     "agent",
     "bot_profile",
     "drf_spectacular",
