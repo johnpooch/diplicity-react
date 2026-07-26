@@ -5,13 +5,17 @@ from procrastinate.contrib.django import app
 
 from agent.api_client import ApiClient, ApiClientError
 from agent.context import fetch_context
-from agent.fallback import first_legal_selections
-from agent.orchestration import run_task
+from agent.fallback import first_legal_options
+from agent.orders import option_to_selected
+from agent.orchestration import run_select_orders, run_task
 from bot_profile.models import BotProfile
 from channel.models import Channel
 from harness.exceptions import ParseError
-from harness.tasks import ReplyTask, SelectOrdersTask
-from harness.types import Persona, TaskContext
+from harness.tasks import ReplyTask
+from harness.types import Persona as ReplyPersona, TaskContext
+from harness_v2.adapter import orders_to_options
+from harness_v2.exceptions import ContextError, ParsingError
+from harness_v2.types import Persona
 from inference.exceptions import InferenceError
 from member.models import Member
 from phase.models import Phase
@@ -19,11 +23,22 @@ from phase.models import Phase
 logger = logging.getLogger(__name__)
 
 
+def _profile(user_id):
+    return BotProfile.objects.filter(user_id=user_id).first()
+
+
 def _persona(user_id) -> Persona | None:
-    profile = BotProfile.objects.filter(user_id=user_id).first()
+    profile = _profile(user_id)
     if profile is None:
         return None
     return Persona(disposition=profile.disposition, voice=profile.voice)
+
+
+def _reply_persona(user_id) -> ReplyPersona | None:
+    profile = _profile(user_id)
+    if profile is None:
+        return None
+    return ReplyPersona(disposition=profile.disposition, voice=profile.voice)
 
 
 def _phase(data):
@@ -38,32 +53,31 @@ def _member(game_id, user_id):
 
 
 def _submit_orders_from_context(api, data, game_id, user_id, label):
-    task_ctx = TaskContext(persona=_persona(user_id))
+    options = orders_to_options(data["orders"])
     try:
-        selections = run_task(
-            SelectOrdersTask,
-            context=data,
-            task_ctx=task_ctx,
+        orders = run_select_orders(
+            data=data,
+            persona=_persona(user_id),
             phase=_phase(data),
             member=_member(game_id, user_id),
         )
-    except (InferenceError, ParseError) as e:
+    except (ContextError, InferenceError, ParsingError) as e:
         logger.info(f"[{label}] {e}; using first-legal selection")
-        selections = first_legal_selections(data["orders"])
+        orders = first_legal_options(options)
     else:
-        covered = {selection[0] for selection in selections}
-        missing = [s for s in first_legal_selections(data["orders"]) if s[0] not in covered]
+        covered = {order["source"] for order in orders}
+        missing = [option for option in first_legal_options(options) if option["source"] not in covered]
         if missing:
             logger.info(f"[{label}] filling {len(missing)} unit(s) with first-legal selection")
-            selections = selections + missing
+            orders = orders + missing
 
     phase_states = data["phase_states"]
     max_orders = phase_states[0].get("max_orders") if phase_states else None
-    if max_orders is not None and len(selections) > max_orders:
-        logger.info(f"[{label}] capping {len(selections)} selection(s) to max_orders={max_orders}")
-        selections = selections[:max_orders]
+    if max_orders is not None and len(orders) > max_orders:
+        logger.info(f"[{label}] capping {len(orders)} selection(s) to max_orders={max_orders}")
+        orders = orders[:max_orders]
 
-    api.submit_orders(game_id, selections)
+    api.submit_orders(game_id, [option_to_selected(order) for order in orders])
 
 
 @app.task(name="agent.plan", retry=3)
@@ -123,7 +137,7 @@ def reply(user_id, game_id, channel_id):
             return
 
     member = _member(game_id, user_id)
-    task_ctx = TaskContext(channel_id=channel_id, persona=_persona(user_id))
+    task_ctx = TaskContext(channel_id=channel_id, persona=_reply_persona(user_id))
     try:
         reply_text = run_task(
             ReplyTask,
