@@ -17,7 +17,7 @@ services:
     depends_on:
       - service
     command: >
-      sh -c "python3 service/manage.py spectacular --file service/openapi-schema.yaml && cd /app/packages/web && npx orval --config orval.config.ts"
+      sh -c "python3 service/manage.py spectacular --file service/openapi-schema.yaml && python3 service/manage.py spectacular --custom-settings project.openapi.INTERNAL_SCHEMA_SETTINGS --file service/openapi-schema.internal.yaml && datamodel-codegen --input service/openapi-schema.internal.yaml --input-file-type openapi --output service/harness/generated/api.py --output-model-type typing.TypedDict --target-python-version 3.13 --use-standard-collections --use-union-operator --strict-nullable --disable-timestamp && cd /app/packages/web && npx orval --config orval.config.ts"
 
   web:
     build:

@@ -1,6 +1,6 @@
 from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
 
-from harness_v2.tasks.select_orders.scorers._resolve import resolve_orders
+from harness.tasks.select_orders.scorers._resolve import resolve_orders
 
 
 @scorer(metrics=[accuracy(), stderr()])

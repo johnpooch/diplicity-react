@@ -1,7 +1,7 @@
 import json
 
-from harness_v2.exceptions import ContextError, ParsingError
-from harness_v2.types import Context
+from harness.exceptions import ContextError, ParsingError
+from harness.types import Context
 
 
 def current_nation(context: Context) -> str:

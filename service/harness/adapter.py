@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from harness_v2.exceptions import ContextError, FixtureError
-from harness_v2.generated.api import (
+from harness.exceptions import ContextError, FixtureError
+from harness.generated.api import (
     FieldValue,
     FlatOrderOption,
     Member as ApiMember,
@@ -13,7 +13,7 @@ from harness_v2.generated.api import (
     Unit as ApiUnit,
     VariantProvince as ApiVariantProvince,
 )
-from harness_v2.types import (
+from harness.types import (
     Adjacency,
     ApiData,
     ApiVariant,

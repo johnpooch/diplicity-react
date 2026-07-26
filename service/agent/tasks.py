@@ -10,9 +10,9 @@ from agent.orders import option_to_selected
 from agent.orchestration import run_reply, run_select_orders
 from bot_profile.models import BotProfile
 from channel.models import Channel
-from harness_v2.adapter import orders_to_options
-from harness_v2.exceptions import ContextError, ParsingError
-from harness_v2.types import Persona
+from harness.adapter import orders_to_options
+from harness.exceptions import ContextError, ParsingError
+from harness.types import Persona
 from inference.exceptions import InferenceError
 from member.models import Member
 from phase.models import Phase

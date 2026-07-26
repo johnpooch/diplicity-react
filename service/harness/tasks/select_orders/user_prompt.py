@@ -1,7 +1,7 @@
-from harness_v2.exceptions import ContextError
-from harness_v2.tasks.select_orders.options import describe_option, group_options_by_source
-from harness_v2.types import Context
-from harness_v2.utils import current_nation
+from harness.exceptions import ContextError
+from harness.tasks.select_orders.options import describe_option, group_options_by_source
+from harness.types import Context
+from harness.utils import current_nation
 
 REQUIRED_FIELDS = ("members", "phase", "provinces", "order_options")
 

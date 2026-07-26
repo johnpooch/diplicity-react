@@ -5,8 +5,8 @@ from inspect_ai.dataset import Sample, json_dataset
 from inspect_ai.model import ChatMessageSystem, ChatMessageUser
 from inspect_ai.solver import generate
 
-from harness_v2.adapter import fixture_to_context
-from harness_v2.tasks.select_orders.scorers import (
+from harness.adapter import fixture_to_context
+from harness.tasks.select_orders.scorers import (
     convoy_coherence,
     coverage,
     deduplication,
@@ -15,9 +15,9 @@ from harness_v2.tasks.select_orders.scorers import (
     quality_strong,
     support_coherence,
 )
-from harness_v2.tasks.select_orders.system_prompt import system_prompt
-from harness_v2.tasks.select_orders.user_prompt import user_prompt
-from harness_v2.types import SelectOrdersFixture
+from harness.tasks.select_orders.system_prompt import system_prompt
+from harness.tasks.select_orders.user_prompt import user_prompt
+from harness.types import SelectOrdersFixture
 
 DATASET_PATH = Path(__file__).with_name("dataset.json")
 

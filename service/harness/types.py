@@ -1,6 +1,6 @@
 from typing import NotRequired, TypedDict
 
-from harness_v2.generated.api import (
+from harness.generated.api import (
     Channel as ApiChannel,
     FlatOrderOption,
     Member as ApiMember,

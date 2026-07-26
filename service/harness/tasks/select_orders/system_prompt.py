@@ -1,6 +1,6 @@
 from common.constants import PhaseType
 
-from harness_v2.types import Context
+from harness.types import Context
 
 ROLE = """You are an expert Diplomacy player. You will be given the state of a game and \
 the complete list of legal orders available to you this phase, grouped by the province \

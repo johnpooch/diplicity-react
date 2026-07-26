@@ -1,4 +1,4 @@
-from harness_v2.utils import parse_json_object
+from harness.utils import parse_json_object
 
 
 def parse_completion(completion: str) -> str | None:

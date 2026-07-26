@@ -1,7 +1,7 @@
-from harness_v2.exceptions import ParsingError
-from harness_v2.tasks.select_orders.options import group_options_by_source
-from harness_v2.types import Context, OrderOption
-from harness_v2.utils import parse_json_object
+from harness.exceptions import ParsingError
+from harness.tasks.select_orders.options import group_options_by_source
+from harness.types import Context, OrderOption
+from harness.utils import parse_json_object
 
 
 def parse_completion(completion: str, context: Context) -> list[OrderOption]:

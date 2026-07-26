@@ -1,6 +1,6 @@
 from common.constants import OrderType
 
-from harness_v2.types import OrderOption
+from harness.types import OrderOption
 
 
 def option_to_selected(option: OrderOption) -> list[str]:

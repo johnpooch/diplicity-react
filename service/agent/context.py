@@ -1,7 +1,7 @@
 import logging
 
 from agent.api_client import ApiClient
-from harness_v2.types import ApiData
+from harness.types import ApiData
 
 logger = logging.getLogger(__name__)
 

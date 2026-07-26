@@ -1,8 +1,8 @@
 from django.conf import settings
 
-from harness_v2.adapter import data_to_context
-from harness_v2.persona import render_persona
-from harness_v2.tasks import reply, select_orders
+from harness.adapter import data_to_context
+from harness.persona import render_persona
+from harness.tasks import reply, select_orders
 from inference.constants import InferenceProvider
 from inference.models import Inference
 

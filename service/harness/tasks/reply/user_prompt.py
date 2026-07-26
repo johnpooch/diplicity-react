@@ -1,6 +1,6 @@
-from harness_v2.exceptions import ContextError
-from harness_v2.types import Channel, Context
-from harness_v2.utils import current_nation
+from harness.exceptions import ContextError
+from harness.types import Channel, Context
+from harness.utils import current_nation
 
 
 def _channel(context: Context, channel_id: int) -> Channel:

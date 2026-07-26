@@ -1,7 +1,7 @@
 from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
 
-from harness_v2.tasks.select_orders.scorers._resolve import resolve_orders
-from harness_v2.types import OrderOption
+from harness.tasks.select_orders.scorers._resolve import resolve_orders
+from harness.types import OrderOption
 
 MOVEMENT_TYPES = {"Move", "MoveViaConvoy"}
 

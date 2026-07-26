@@ -5,11 +5,11 @@ from inspect_ai.scorer import CORRECT, INCORRECT, Target
 
 from common.constants import OrderType
 
-from harness_v2.exceptions import ContextError, ParsingError
-from harness_v2.tasks.reply.parser import parse_completion as parse_reply
-from harness_v2.tasks.reply.user_prompt import user_prompt as reply_user_prompt
-from harness_v2.tasks.select_orders.parser import parse_completion
-from harness_v2.tasks.select_orders.scorers import (
+from harness.exceptions import ContextError, ParsingError
+from harness.tasks.reply.parser import parse_completion as parse_reply
+from harness.tasks.reply.user_prompt import user_prompt as reply_user_prompt
+from harness.tasks.select_orders.parser import parse_completion
+from harness.tasks.select_orders.scorers import (
     convoy_coherence,
     coverage,
     deduplication,

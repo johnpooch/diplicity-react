@@ -1,4 +1,4 @@
-from harness_v2.types import OrderOption
+from harness.types import OrderOption
 
 
 def first_legal_options(options: list[OrderOption]) -> list[OrderOption]:

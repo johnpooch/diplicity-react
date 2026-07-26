@@ -1,4 +1,4 @@
-from harness_v2.types import Persona
+from harness.types import Persona
 
 PERSONA_PREAMBLE = """You play with a persona made up of two parts, and you must keep them separate:
 
