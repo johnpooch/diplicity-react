@@ -80,6 +80,7 @@ from typing import (
 )
 
 from .convoy import convoy_path_exists
+from .domain import Unit
 from .types import (
     ConvoyOrder,
     HoldOrder,
@@ -331,6 +332,12 @@ class _Solver:
             if variant.parent_of(attacker.target) != supporter_parent:
                 continue
             if attacker.nation == order.nation:
+                continue
+            # DATC 6.D.9: Attack on the province at which a support move is
+            # aimed does not cut the support UNLESS it dislodges the
+            # supporter. A dislodged unit's support is always cut.
+            if isinstance(order, SupportMoveOrder) and variant.parent_of(attacker.source) == variant.parent_of(order.target):
+                deps.add((_MOVE_STATUS, j))
                 continue
             # Find adjacency from attacker.source to supporter_parent
             attacker_parent = variant.parent_of(attacker.source)
@@ -593,6 +600,16 @@ class _Solver:
             if variant.parent_of(attacker.target) != supporter_parent:
                 continue
             if attacker.nation == order.nation:
+                continue
+            # DATC 6.D.9: Attack on the province at which a support move is
+            # aimed does not cut the support UNLESS it dislodges the
+            # supporter. A dislodged unit's support is always cut.
+            if isinstance(order, SupportMoveOrder) and variant.parent_of(attacker.source) == variant.parent_of(order.target):
+                attacker_status = self._dec_value((_MOVE_STATUS, j))
+                if attacker_status is None:
+                    return None
+                if attacker_status[0] == Status.OK:
+                    return Status.CUT
                 continue
             # Find adjacency from attacker.source to supporter_parent
             attacker_parent = variant.parent_of(attacker.source)
