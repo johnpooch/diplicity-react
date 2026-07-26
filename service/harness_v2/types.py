@@ -93,6 +93,18 @@ class Persona(TypedDict):
     voice: str
 
 
+class ChatMessage(TypedDict):
+    sender: str
+    body: str
+
+
+class Channel(TypedDict):
+    id: int
+    name: str
+    private: bool
+    messages: list[ChatMessage]
+
+
 class Context(TypedDict):
     members: list[Member]
     phase: Phase
@@ -101,6 +113,7 @@ class Context(TypedDict):
     units: list[Unit]
     supply_centers: list[SupplyCenter]
     order_options: list[OrderOption]
+    channels: list[Channel]
 
 
 class FixtureUnit(TypedDict):

@@ -17,6 +17,7 @@ from harness_v2.types import (
     Adjacency,
     ApiData,
     ApiVariant,
+    Channel,
     Context,
     Member,
     OrderOption,
@@ -269,6 +270,22 @@ def _context(data: ApiData) -> Context:
             max_orders = phase_state["max_orders"]
             break
 
+    channels: list[Channel] = [
+        {
+            "id": channel["id"],
+            "name": channel["name"],
+            "private": channel["private"],
+            "messages": [
+                {
+                    "sender": ((message["sender"].get("nation") or {}).get("name")) or "user",
+                    "body": message["body"],
+                }
+                for message in channel["messages"]
+            ],
+        }
+        for channel in data.get("channels", [])
+    ]
+
     return {
         "members": members,
         "phase": {
@@ -281,6 +298,7 @@ def _context(data: ApiData) -> Context:
         "units": units,
         "supply_centers": supply_centers,
         "order_options": order_options,
+        "channels": channels,
     }
 
 

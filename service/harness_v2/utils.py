@@ -1,6 +1,14 @@
 import json
 
-from harness_v2.exceptions import ParsingError
+from harness_v2.exceptions import ContextError, ParsingError
+from harness_v2.types import Context
+
+
+def current_nation(context: Context) -> str:
+    for member in context["members"]:
+        if member["is_current_user"]:
+            return member["nation"]
+    raise ContextError("context has no current-user member")
 
 
 def strip_fences(text: str) -> str:

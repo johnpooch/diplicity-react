@@ -7,12 +7,9 @@ from agent.api_client import ApiClient, ApiClientError
 from agent.context import fetch_context
 from agent.fallback import first_legal_options
 from agent.orders import option_to_selected
-from agent.orchestration import run_select_orders, run_task
+from agent.orchestration import run_reply, run_select_orders
 from bot_profile.models import BotProfile
 from channel.models import Channel
-from harness.exceptions import ParseError
-from harness.tasks import ReplyTask
-from harness.types import Persona as ReplyPersona, TaskContext
 from harness_v2.adapter import orders_to_options
 from harness_v2.exceptions import ContextError, ParsingError
 from harness_v2.types import Persona
@@ -23,22 +20,11 @@ from phase.models import Phase
 logger = logging.getLogger(__name__)
 
 
-def _profile(user_id):
-    return BotProfile.objects.filter(user_id=user_id).first()
-
-
 def _persona(user_id) -> Persona | None:
-    profile = _profile(user_id)
+    profile = BotProfile.objects.filter(user_id=user_id).first()
     if profile is None:
         return None
     return Persona(disposition=profile.disposition, voice=profile.voice)
-
-
-def _reply_persona(user_id) -> ReplyPersona | None:
-    profile = _profile(user_id)
-    if profile is None:
-        return None
-    return ReplyPersona(disposition=profile.disposition, voice=profile.voice)
 
 
 def _phase(data):
@@ -136,18 +122,16 @@ def reply(user_id, game_id, channel_id):
             logger.info(f"[{label}] message cap reached ({count}/{limit}); staying silent")
             return
 
-    member = _member(game_id, user_id)
-    task_ctx = TaskContext(channel_id=channel_id, persona=_reply_persona(user_id))
     try:
-        reply_text = run_task(
-            ReplyTask,
-            context=data,
-            task_ctx=task_ctx,
+        reply_text = run_reply(
+            data=data,
+            channel_id=channel_id,
+            persona=_persona(user_id),
             phase=_phase(data),
-            member=member,
+            member=_member(game_id, user_id),
             channel=Channel.objects.filter(id=channel_id).first(),
         )
-    except (InferenceError, ParseError) as e:
+    except (ContextError, InferenceError, ParsingError) as e:
         logger.info(f"[{label}] {e}; staying silent")
         return
 
