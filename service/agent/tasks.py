@@ -4,7 +4,7 @@ from django.conf import settings
 from procrastinate.contrib.django import app
 
 from agent.api_client import ApiClient, ApiClientError
-from agent.constants import AgentTaskKind
+from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.context import fetch_context
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
@@ -169,6 +169,9 @@ def run(agent_task_id):
     if task is None:
         logger.error(f"[{label}] no agent task found; skipping")
         return
+    if task.status == AgentTaskStatus.SUCCEEDED:
+        logger.info(f"[{label}] already succeeded; skipping")
+        return
 
     logger.info(f"[{label}] running {task.kind} for member {task.member_id}")
     task.mark_running()
@@ -180,3 +183,11 @@ def run(agent_task_id):
         raise
     task.mark_succeeded()
     logger.info(f"[{label}] completed")
+
+
+@app.periodic(cron="* * * * *")
+@app.task(name="agent.reconcile")
+def reconcile(timestamp):
+    tasks = AgentTask.objects.reconcile()
+    if tasks:
+        logger.info(f"[agent.reconcile] re-drove {len(tasks)} stalled task(s)")
