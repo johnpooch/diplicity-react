@@ -6,15 +6,17 @@ from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseSt
 from game.models import Game
 from province.models import Province
 from agent import tasks
-from agent.fallback import first_legal_selections
+from agent.fallback import first_legal_options
+from agent.orders import option_to_selected
 from bot_profile.models import BotProfile
+from harness.adapter import orders_to_options
 
 
 def _submit_first_legal_orders(client, game_id):
-    options = client.get(reverse("order-options", args=[game_id])).data["orders"]
+    options = orders_to_options(client.get(reverse("order-options", args=[game_id])).data["orders"])
     create_url = reverse("order-create", args=[game_id])
-    for selected in first_legal_selections(options):
-        client.post(create_url, {"selected": selected}, format="json")
+    for option in first_legal_options(options):
+        client.post(create_url, {"selected": option_to_selected(option)}, format="json")
 
 
 def _create_bot_game(client, variant_id):

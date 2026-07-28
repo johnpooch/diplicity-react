@@ -8,11 +8,12 @@ from rest_framework.test import APIClient
 
 from agent import decorators, tasks
 from agent.api_client import bot_request_host
-from agent.fallback import first_legal_selections
+from agent.fallback import first_legal_options
+from agent.orders import option_to_selected
 from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
 from channel.models import ChannelMessage
-from common.constants import OrderType
+from common.constants import OrderType, PhaseType
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
@@ -29,6 +30,17 @@ def _option(source, order_type, target=None, aux=None, unit_type=None, named_coa
         "aux": field(aux),
         "unit_type": field(unit_type),
         "named_coast": field(named_coast),
+    }
+
+
+def _flat_option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+    return {
+        "source": source,
+        "order_type": order_type,
+        "target": target,
+        "aux": aux,
+        "unit_type": unit_type,
+        "named_coast": named_coast,
     }
 
 
@@ -53,18 +65,73 @@ def _reply_response(message):
     return json.dumps({"reasoning": "because", "message": message})
 
 
-class TestFirstLegalSelections:
+class TestFirstLegalOptions:
 
     def test_picks_first_option_per_source(self):
         options = [
-            _option("lon", OrderType.HOLD),
-            _option("lon", OrderType.MOVE, target="nth"),
-            _option("edi", OrderType.MOVE, target="nwg"),
-            _option("edi", OrderType.HOLD),
+            _flat_option("lon", OrderType.HOLD),
+            _flat_option("lon", OrderType.MOVE, target="nth"),
+            _flat_option("edi", OrderType.MOVE, target="nwg"),
+            _flat_option("edi", OrderType.HOLD),
         ]
-        assert first_legal_selections(options) == [
-            ["lon", OrderType.HOLD],
-            ["edi", OrderType.MOVE, "nwg"],
+        assert first_legal_options(options) == [
+            _flat_option("lon", OrderType.HOLD),
+            _flat_option("edi", OrderType.MOVE, target="nwg"),
+        ]
+
+
+class TestOptionToSelected:
+
+    def test_hold(self):
+        assert option_to_selected(_flat_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
+
+    def test_disband(self):
+        assert option_to_selected(_flat_option("lon", OrderType.DISBAND)) == ["lon", OrderType.DISBAND]
+
+    def test_move(self):
+        assert option_to_selected(_flat_option("lon", OrderType.MOVE, target="nth")) == [
+            "lon",
+            OrderType.MOVE,
+            "nth",
+        ]
+
+    def test_move_with_named_coast(self):
+        assert option_to_selected(_flat_option("mao", OrderType.MOVE, target="spa", named_coast="spa/nc")) == [
+            "mao",
+            OrderType.MOVE,
+            "spa",
+            "spa/nc",
+        ]
+
+    def test_build(self):
+        assert option_to_selected(_flat_option("lon", OrderType.BUILD, unit_type="Army")) == [
+            "lon",
+            OrderType.BUILD,
+            "Army",
+        ]
+
+    def test_build_with_named_coast(self):
+        assert option_to_selected(_flat_option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")) == [
+            "stp",
+            OrderType.BUILD,
+            "Fleet",
+            "stp/sc",
+        ]
+
+    def test_support(self):
+        assert option_to_selected(_flat_option("lon", OrderType.SUPPORT, aux="wal", target="yor")) == [
+            "lon",
+            OrderType.SUPPORT,
+            "wal",
+            "yor",
+        ]
+
+    def test_convoy(self):
+        assert option_to_selected(_flat_option("nth", OrderType.CONVOY, aux="lon", target="nwy")) == [
+            "nth",
+            OrderType.CONVOY,
+            "lon",
+            "nwy",
         ]
 
 
@@ -80,16 +147,59 @@ class TestAdjustmentOrderLimit:
         }
 
     def _fake_client(self, max_orders):
+        def province(province_id, name):
+            return {
+                "id": province_id,
+                "name": name,
+                "type": "land",
+                "supply_center": True,
+                "parent_id": None,
+                "adjacencies": [],
+            }
+
         options = self._options_with_three_builds()
+        game = {
+            "phase_confirmed": False,
+            "current_phase_id": 1,
+            "variant_id": "test-variant",
+            "members": [{"name": "Bot", "nation": "England", "is_current_user": True}],
+        }
+        phase = {
+            "season": "Winter",
+            "year": 1901,
+            "name": "Winter 1901, Adjustment",
+            "type": PhaseType.ADJUSTMENT,
+            "units": [],
+            "supply_centers": [],
+        }
+        variant = {
+            "id": "test-variant",
+            "name": "Test Variant",
+            "provinces": [
+                province("lon", "London"),
+                province("edi", "Edinburgh"),
+                province("lvp", "Liverpool"),
+            ],
+        }
+        phase_states = [
+            {
+                "max_orders": max_orders,
+                "member": {"name": "Bot", "nation": "England", "is_current_user": True},
+            }
+        ]
 
         def fake_get(url, *args, **kwargs):
             if "phase-states" in url:
-                return Mock(status_code=200, data=[{"max_orders": max_orders}])
+                return Mock(status_code=200, data=phase_states)
             if "channels" in url:
                 return Mock(status_code=200, data=[])
             if url.endswith("/options/"):
                 return Mock(status_code=200, data=options)
-            return Mock(status_code=200, data={"phase_confirmed": False})
+            if "/variants/" in url:
+                return Mock(status_code=200, data=variant)
+            if "/phase/" in url:
+                return Mock(status_code=200, data=phase)
+            return Mock(status_code=200, data=game)
 
         client = MagicMock()
         client.get.side_effect = fake_get
@@ -122,9 +232,7 @@ class TestAdjustmentOrderLimit:
         bot_user = get_bot_user()
         fake_client = self._fake_client(max_orders=None)
 
-        response = json.dumps(
-            {"reasoning": "build in London", "choices": [{"source_id": "lon", "option_index": 0}]}
-        )
+        response = json.dumps({"reasoning": "build in London", "choices": [{"source_id": "lon", "option_index": 0}]})
         inference_client = _mock_inference_client(response)
         with patch("agent.api_client.APIClient", return_value=fake_client):
             with patch("inference.models.get_inference_client", return_value=inference_client):
@@ -136,9 +244,7 @@ class TestAdjustmentOrderLimit:
 class TestPlanTask:
 
     @pytest.mark.django_db
-    def test_plan_creates_orders_without_confirming(
-        self, bot_game_factory, in_memory_procrastinate
-    ):
+    def test_plan_creates_orders_without_confirming(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         bot_user = get_bot_user()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -151,9 +257,7 @@ class TestPlanTask:
         assert bot_phase_state.orders_confirmed is False
 
     @pytest.mark.django_db
-    def test_plan_injects_persona_into_system_prompt(
-        self, bot_game_factory, in_memory_procrastinate, settings
-    ):
+    def test_plan_injects_persona_into_system_prompt(self, bot_game_factory, in_memory_procrastinate, settings):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
@@ -167,17 +271,13 @@ class TestPlanTask:
         assert disposition in system
 
     @pytest.mark.django_db
-    def test_plan_records_success_inference(
-        self, bot_game_factory, in_memory_procrastinate, settings
-    ):
+    def test_plan_records_success_inference(self, bot_game_factory, in_memory_procrastinate, settings):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
         bot_member = game.members.get(user=bot_user)
 
-        response = json.dumps(
-            {"reasoning": "hold everything", "choices": [{"source_id": "rom", "option_index": 0}]}
-        )
+        response = json.dumps({"reasoning": "hold everything", "choices": [{"source_id": "rom", "option_index": 0}]})
         client = _mock_inference_client(response)
         with patch("inference.models.get_inference_client", return_value=client):
             tasks.plan(user_id=bot_user.id, game_id=game.id)
@@ -191,9 +291,7 @@ class TestPlanTask:
         assert inference.cache_read_tokens == 50
 
     @pytest.mark.django_db
-    def test_plan_records_failed_inference_and_falls_back(
-        self, bot_game_factory, in_memory_procrastinate, settings
-    ):
+    def test_plan_records_failed_inference_and_falls_back(self, bot_game_factory, in_memory_procrastinate, settings):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
@@ -211,9 +309,7 @@ class TestPlanTask:
         assert bot_phase_state.orders.count() > 0
 
     @pytest.mark.django_db
-    def test_plan_falls_back_when_parse_fails(
-        self, bot_game_factory, in_memory_procrastinate, settings
-    ):
+    def test_plan_falls_back_when_parse_fails(self, bot_game_factory, in_memory_procrastinate, settings):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
@@ -227,9 +323,7 @@ class TestPlanTask:
         assert bot_phase_state.orders.count() > 0
 
     @pytest.mark.django_db
-    def test_plan_creates_orders_when_testserver_not_allowed(
-        self, bot_game_factory, in_memory_procrastinate, settings
-    ):
+    def test_plan_creates_orders_when_testserver_not_allowed(self, bot_game_factory, in_memory_procrastinate, settings):
         settings.ALLOWED_HOSTS = ["example.com"]
         game = bot_game_factory()
         bot_user = get_bot_user()
@@ -263,18 +357,14 @@ class TestBotIdentificationByProfile:
         bot_user = get_bot_user()
         bot_user.email = "not-the-magic-email@example.com"
         bot_user.save()
-        phase = phase_factory(
-            phase_states_config=[{"nation": classical_england_nation, "user": bot_user}]
-        )
+        phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": bot_user}])
 
         assert decorators._bot_user_ids_for_phase(phase.id) == {bot_user.id}
 
     @pytest.mark.django_db
     def test_roster_bots_are_identified_as_bots(self, phase_factory, classical_england_nation):
         roster_user = BotProfile.objects.exclude(user=get_bot_user()).first().user
-        phase = phase_factory(
-            phase_states_config=[{"nation": classical_england_nation, "user": roster_user}]
-        )
+        phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": roster_user}])
 
         assert roster_user.id in decorators._bot_user_ids_for_phase(phase.id)
 
@@ -294,9 +384,7 @@ class TestFinalizeTask:
         assert bot_phase_state.orders_confirmed is True
 
     @pytest.mark.django_db
-    def test_finalize_does_not_double_toggle_when_confirmed(
-        self, bot_game_factory, in_memory_procrastinate
-    ):
+    def test_finalize_does_not_double_toggle_when_confirmed(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         bot_user = get_bot_user()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -333,9 +421,7 @@ class TestPlanTrigger:
         assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}
 
     @pytest.mark.django_db
-    def test_editing_active_phase_does_not_refire(
-        self, bot_game_factory, in_memory_procrastinate
-    ):
+    def test_editing_active_phase_does_not_refire(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         phase = game.current_phase
 
@@ -388,9 +474,7 @@ class TestReplyTask:
         assert channel.messages.filter(sender=bot_member, body="Understood.").exists()
 
     @pytest.mark.django_db
-    def test_reply_records_inference_with_channel(
-        self, bot_public_channel_factory, in_memory_procrastinate, settings
-    ):
+    def test_reply_records_inference_with_channel(self, bot_public_channel_factory, in_memory_procrastinate, settings):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_user = get_bot_user()
@@ -465,9 +549,7 @@ class TestReplyTask:
         bot_user = get_bot_user()
         bot_member = game.members.get(user=bot_user)
         for i in range(settings.BOT_CHANNEL_MESSAGE_CAP):
-            ChannelMessage.objects.create(
-                channel=channel, sender=bot_member, body=f"msg {i}", phase=game.current_phase
-            )
+            ChannelMessage.objects.create(channel=channel, sender=bot_member, body=f"msg {i}", phase=game.current_phase)
 
         client = _mock_inference_client(_reply_response("too chatty"))
         with patch("inference.models.get_inference_client", return_value=client):
@@ -499,9 +581,7 @@ class TestReplyTask:
 class TestReplyTrigger:
 
     @pytest.mark.django_db
-    def test_human_public_message_defers_reply(
-        self, bot_public_channel_factory, in_memory_procrastinate
-    ):
+    def test_human_public_message_defers_reply(self, bot_public_channel_factory, in_memory_procrastinate):
         game, channel = bot_public_channel_factory()
         bot_member = game.members.get(user=get_bot_user())
 
@@ -524,9 +604,7 @@ class TestReplyTrigger:
         }
 
     @pytest.mark.django_db
-    def test_bot_own_message_does_not_defer_reply(
-        self, bot_public_channel_factory, in_memory_procrastinate
-    ):
+    def test_bot_own_message_does_not_defer_reply(self, bot_public_channel_factory, in_memory_procrastinate):
         game, channel = bot_public_channel_factory()
         bot_member = game.members.get(user=get_bot_user())
 
@@ -535,9 +613,7 @@ class TestReplyTrigger:
         assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
 
     @pytest.mark.django_db
-    def test_private_channel_message_defers_reply(
-        self, bot_public_channel_factory, in_memory_procrastinate
-    ):
+    def test_private_channel_message_defers_reply(self, bot_public_channel_factory, in_memory_procrastinate):
         game, _ = bot_public_channel_factory()
         bot_member = game.members.get(user=get_bot_user())
         human_member = game.members.get(user=game.created_by)
@@ -586,9 +662,7 @@ class TestReplyTrigger:
         assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
 
     @pytest.mark.django_db
-    def test_non_bot_game_does_not_defer_reply(
-        self, active_game_factory, in_memory_procrastinate
-    ):
+    def test_non_bot_game_does_not_defer_reply(self, active_game_factory, in_memory_procrastinate):
         game = active_game_factory()
         channel = game.channels.create(name="Public Press", private=False)
         member = game.members.get(user=game.created_by)

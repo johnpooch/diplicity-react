@@ -1,4 +1,4 @@
-ORDER_SELECTION_SCHEMA = {
+OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
         "reasoning": {"type": "string"},
