@@ -10,7 +10,7 @@ class AgentTaskAdmin(admin.ModelAdmin):
         "status",
         "member",
         "phase",
-        "channel",
+        "message",
         "attempts",
         "created_at",
     )

@@ -159,13 +159,13 @@ def _dispatch(task):
     elif task.kind == AgentTaskKind.FINALIZE:
         finalize(member.user_id, member.game_id)
     elif task.kind == AgentTaskKind.REPLY:
-        reply(member.user_id, member.game_id, task.channel_id)
+        reply(member.user_id, member.game_id, task.message.channel_id)
 
 
 @app.task(name="agent.run", retry=3)
 def run(agent_task_id):
     label = f"agent.run task={agent_task_id}"
-    task = AgentTask.objects.select_related("member").filter(id=agent_task_id).first()
+    task = AgentTask.objects.select_related("member", "message").filter(id=agent_task_id).first()
     if task is None:
         logger.error(f"[{label}] no agent task found; skipping")
         return

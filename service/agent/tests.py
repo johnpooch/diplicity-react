@@ -604,8 +604,8 @@ class TestReplyTrigger:
         assert response.status_code == status.HTTP_201_CREATED
 
         task = AgentTask.objects.get(kind=AgentTaskKind.REPLY, member=bot_member)
-        assert task.channel_id == channel.id
         assert task.message_id == response.data["id"]
+        assert task.message.channel_id == channel.id
         assert task.status == AgentTaskStatus.PENDING
 
         jobs = _run_jobs_for(in_memory_procrastinate, task)
@@ -640,8 +640,8 @@ class TestReplyTrigger:
         assert response.status_code == status.HTTP_201_CREATED
 
         task = AgentTask.objects.get(kind=AgentTaskKind.REPLY, member=bot_member)
-        assert task.channel_id == private.id
         assert task.message_id == response.data["id"]
+        assert task.message.channel_id == private.id
 
         jobs = _run_jobs_for(in_memory_procrastinate, task)
         assert len(jobs) == 1
@@ -742,11 +742,11 @@ class TestAgentTaskRun:
         tasks.run(agent_task_id=999999)
 
     @pytest.mark.django_db
-    def test_enqueue_is_idempotent_for_same_phase_and_member(self, bot_game_factory, in_memory_procrastinate):
+    def test_create_from_event_is_idempotent_for_same_phase_and_member(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         bot_member = game.members.get(user=get_bot_user())
 
-        _, created = AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase)
+        task = AgentTask.objects.create_from_event(kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase)
 
-        assert created is False
         assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).count() == 1
+        assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1

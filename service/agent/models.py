@@ -6,15 +6,20 @@ from common.models import BaseModel
 
 
 class AgentTaskManager(models.Manager):
-    def enqueue(self, *, kind, member, phase=None, channel=None, message=None):
-        return self.get_or_create(
+    def create_from_event(self, *, kind, member, phase=None, message=None):
+        task, created = self.get_or_create(
             kind=kind,
             member=member,
             phase=phase,
-            channel=channel,
             message=message,
             defaults={"status": AgentTaskStatus.PENDING},
         )
+        if created:
+            # Local import: agent.tasks imports this module at top level.
+            from agent.tasks import run
+
+            run.configure(lock=f"agent-task-{task.id}").defer(agent_task_id=task.id)
+        return task
 
 
 class AgentTask(BaseModel):
@@ -29,13 +34,6 @@ class AgentTask(BaseModel):
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="agent_tasks")
     phase = models.ForeignKey(
         "phase.Phase",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="agent_tasks",
-    )
-    channel = models.ForeignKey(
-        "channel.Channel",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -58,7 +56,7 @@ class AgentTask(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["kind", "member", "phase"],
-                condition=models.Q(channel__isnull=True),
+                condition=models.Q(message__isnull=True),
                 name="unique_phase_agent_task",
             ),
             models.UniqueConstraint(
