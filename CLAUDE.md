@@ -114,6 +114,22 @@ appending it to `dataset.json`. Order *options* only exist for a game's current
 phase, so a resolved/historical phase (`--phase <id>`) is render-only. Output
 lives in the gitignored `phase_dumps/`.
 
+### Seating a bot in an abandoned seat
+
+`replace_member_with_bot` (in `agent`) hands a nation over to a roster bot —
+used when a player deletes their account or walks away mid-game:
+
+```bash
+python manage.py replace_member_with_bot --game <id> --nation Italy --bot dealmakerbot
+```
+
+It reassigns the member row to the bot user (keeping the nation, orders, phase
+states and channel memberships), clears `kicked`/`civil_disorder` so the bot can
+act, and queues a `plan` AgentTask for the current phase. An unrecognised
+`--bot` errors with the list of bots still available for that game. A production
+run needs a shell on the deployed service (`railway ssh`), because `railway run`
+executes locally and cannot resolve Railway's internal database host.
+
 ---
 
 ## Development Setup

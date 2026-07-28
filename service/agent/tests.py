@@ -3,6 +3,8 @@ from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -815,3 +817,126 @@ class TestAgentTaskReconcile:
             AgentTask.objects.filter(pk=task.pk).update(created_at=timezone.now() - timedelta(minutes=30))
 
         assert AgentTask.objects.reconcile() == []
+
+
+class TestReplaceMemberWithBotCommand:
+
+    @pytest.mark.django_db
+    def test_seats_bot_and_restores_the_seat(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+        member = game.members.first()
+        member.user = None
+        member.kicked = True
+        member.civil_disorder = True
+        member.save()
+
+        call_command(
+            "replace_member_with_bot",
+            "--game",
+            game.id,
+            "--nation",
+            member.nation.name,
+            "--bot",
+            "dealmakerbot",
+        )
+
+        member.refresh_from_db()
+        assert member.user.username == "dealmakerbot"
+        assert member.kicked is False
+        assert member.civil_disorder is False
+
+    @pytest.mark.django_db
+    def test_defers_plan_task_for_the_current_phase(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+        member = game.members.first()
+
+        call_command(
+            "replace_member_with_bot",
+            "--game",
+            game.id,
+            "--nation",
+            member.nation.name,
+            "--bot",
+            "dealmakerbot",
+        )
+
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=member)
+        assert task.phase == game.current_phase
+        assert task.status == AgentTaskStatus.PENDING
+        assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
+
+    @pytest.mark.django_db
+    def test_matches_nation_case_insensitively(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+        member = game.members.first()
+
+        call_command(
+            "replace_member_with_bot",
+            "--game",
+            game.id,
+            "--nation",
+            member.nation.name.lower(),
+            "--bot",
+            "dealmakerbot",
+        )
+
+        member.refresh_from_db()
+        assert member.user.username == "dealmakerbot"
+
+    @pytest.mark.django_db
+    def test_rejects_bot_already_in_the_game(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+        seated, other = game.members.all()[:2]
+        call_command(
+            "replace_member_with_bot",
+            "--game",
+            game.id,
+            "--nation",
+            seated.nation.name,
+            "--bot",
+            "dealmakerbot",
+        )
+
+        with pytest.raises(CommandError, match="available"):
+            call_command(
+                "replace_member_with_bot",
+                "--game",
+                game.id,
+                "--nation",
+                other.nation.name,
+                "--bot",
+                "dealmakerbot",
+            )
+
+        other.refresh_from_db()
+        assert other.user.username != "dealmakerbot"
+
+    @pytest.mark.django_db
+    def test_rejects_unknown_nation(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+
+        with pytest.raises(CommandError, match="no member for nation"):
+            call_command(
+                "replace_member_with_bot",
+                "--game",
+                game.id,
+                "--nation",
+                "Atlantis",
+                "--bot",
+                "dealmakerbot",
+            )
+
+    @pytest.mark.django_db
+    def test_rejects_unknown_game(self, active_game_factory, in_memory_procrastinate):
+        active_game_factory()
+
+        with pytest.raises(CommandError, match="no game with id"):
+            call_command(
+                "replace_member_with_bot",
+                "--game",
+                "not-a-game",
+                "--nation",
+                "England",
+                "--bot",
+                "dealmakerbot",
+            )
