@@ -59,6 +59,31 @@ inference. Persona/roster → bot_profile. If you want to eval something in
 agent, a reasoning decision has leaked out of harness. If you want a plain
 deterministic assertion in harness, that logic belongs in agent.
 
+### Running the harness evals
+
+The `select_orders` evals run against the real model via a management command
+(`service/`):
+
+```bash
+python manage.py run_evals              # full dataset, model/key from settings
+python manage.py run_evals --limit 1    # quick smoke run
+python manage.py run_evals --model anthropic/claude-...   # override model
+```
+
+It needs `BOT_ANTHROPIC_API_KEY` set (model defaults to `BOT_LLM_MODEL`); it
+prints a skip line and exits if the key is missing. Each eval hits the LLM
+provider, so it costs real tokens.
+
+**Permission policy:** running a single epoch (the default — one pass over the
+dataset) is fine without asking. Do **not** run multiple epochs (each sample
+repeated N times) unless the user explicitly asks — that multiplies model calls
+and cost. When asked for multiple epochs, invoke `inspect_ai.eval(...)` with
+`epochs=N` directly (the command exposes no `--epochs` flag).
+
+The latest recorded baseline lives in
+`service/harness/tasks/select_orders/EVAL_RESULTS.md` — update it when you take
+a new baseline run.
+
 ---
 
 ## Development Setup
