@@ -12,7 +12,7 @@ export const useNetworkStatus = (): boolean => {
     });
 
     const handle = Network.addListener("networkStatusChange", (status) => {
-      setOnline(status.connected);
+      if (active) setOnline(status.connected);
     });
 
     return () => {
