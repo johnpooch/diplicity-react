@@ -1,8 +1,10 @@
 import json
+from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -750,3 +752,66 @@ class TestAgentTaskRun:
 
         assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).count() == 1
         assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
+
+    @pytest.mark.django_db
+    def test_run_skips_already_succeeded_task(self, member_factory, in_memory_procrastinate):
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN, member=member_factory(), status=AgentTaskStatus.SUCCEEDED, attempts=1
+        )
+
+        with patch("agent.tasks._dispatch") as dispatch:
+            tasks.run(agent_task_id=task.id)
+            dispatch.assert_not_called()
+
+        task.refresh_from_db()
+        assert task.status == AgentTaskStatus.SUCCEEDED
+        assert task.attempts == 1
+
+
+class TestAgentTaskReconcile:
+
+    @pytest.mark.django_db
+    def test_redrives_stale_pending_task(self, member_factory, in_memory_procrastinate):
+        task = AgentTask.objects.create(kind=AgentTaskKind.PLAN, member=member_factory())
+        AgentTask.objects.filter(pk=task.pk).update(created_at=timezone.now() - timedelta(minutes=5))
+
+        redriven = AgentTask.objects.reconcile()
+
+        assert [t.id for t in redriven] == [task.id]
+        assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
+
+    @pytest.mark.django_db
+    def test_skips_fresh_pending_task(self, member_factory, in_memory_procrastinate):
+        task = AgentTask.objects.create(kind=AgentTaskKind.PLAN, member=member_factory())
+
+        assert AgentTask.objects.reconcile() == []
+        assert _run_jobs_for(in_memory_procrastinate, task) == []
+
+    @pytest.mark.django_db
+    def test_redrives_stuck_running_task(self, member_factory, in_memory_procrastinate):
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN, member=member_factory(), status=AgentTaskStatus.RUNNING
+        )
+        AgentTask.objects.filter(pk=task.pk).update(started_at=timezone.now() - timedelta(minutes=15))
+
+        redriven = AgentTask.objects.reconcile()
+
+        assert [t.id for t in redriven] == [task.id]
+        assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
+
+    @pytest.mark.django_db
+    def test_skips_recent_running_task(self, member_factory, in_memory_procrastinate):
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN, member=member_factory(), status=AgentTaskStatus.RUNNING
+        )
+        AgentTask.objects.filter(pk=task.pk).update(started_at=timezone.now() - timedelta(minutes=1))
+
+        assert AgentTask.objects.reconcile() == []
+
+    @pytest.mark.django_db
+    def test_skips_succeeded_and_failed_tasks(self, member_factory, in_memory_procrastinate):
+        for status_value in (AgentTaskStatus.SUCCEEDED, AgentTaskStatus.FAILED):
+            task = AgentTask.objects.create(kind=AgentTaskKind.PLAN, member=member_factory(), status=status_value)
+            AgentTask.objects.filter(pk=task.pk).update(created_at=timezone.now() - timedelta(minutes=30))
+
+        assert AgentTask.objects.reconcile() == []

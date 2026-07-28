@@ -1,8 +1,13 @@
+from datetime import timedelta
+
 from django.db import models
 from django.utils import timezone
 
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from common.models import BaseModel
+
+PENDING_RECONCILE_AFTER = timedelta(minutes=2)
+RUNNING_RECONCILE_AFTER = timedelta(minutes=10)
 
 
 class AgentTaskManager(models.Manager):
@@ -15,11 +20,19 @@ class AgentTaskManager(models.Manager):
             defaults={"status": AgentTaskStatus.PENDING},
         )
         if created:
-            # Local import: agent.tasks imports this module at top level.
-            from agent.tasks import run
-
-            run.configure(lock=f"agent-task-{task.id}").defer(agent_task_id=task.id)
+            task.defer()
         return task
+
+    def reconcile(self):
+        now = timezone.now()
+        stalled = self.filter(
+            models.Q(status=AgentTaskStatus.PENDING, created_at__lt=now - PENDING_RECONCILE_AFTER)
+            | models.Q(status=AgentTaskStatus.RUNNING, started_at__lt=now - RUNNING_RECONCILE_AFTER)
+        )
+        tasks = list(stalled)
+        for task in tasks:
+            task.defer()
+        return tasks
 
 
 class AgentTask(BaseModel):
@@ -65,6 +78,12 @@ class AgentTask(BaseModel):
                 name="unique_reply_agent_task",
             ),
         ]
+
+    def defer(self):
+        # Local import: agent.tasks imports this module at top level.
+        from agent.tasks import run
+
+        run.configure(lock=f"agent-task-{self.id}").defer(agent_task_id=self.id)
 
     def mark_running(self):
         self.status = AgentTaskStatus.RUNNING

@@ -53,7 +53,9 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   durable record of bot work to be done (kind = plan/finalize/reply): a
   signal creates a pending row and defers the agent.run task, which loads
   the row, transitions its status, and dispatches to the executor. One
-  AgentTask may span several Inference calls.
+  AgentTask may span several Inference calls. A periodic agent.reconcile
+  task re-drives rows whose job was lost or stalled (pending or stuck in
+  running past a timeout), so a hand-inserted row runs on the next sweep.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
 
