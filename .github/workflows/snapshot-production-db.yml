@@ -29,7 +29,7 @@ jobs:
           echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
           echo "Dumping production database..."
           $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" \
-            --no-owner --no-acl --format=custom \
+            --no-owner --no-acl --format=custom --compress=9 \
             -f snapshot.pgdata
           echo "Dump complete. Size: $(du -sh snapshot.pgdata | cut -f1)"
           date -u +%Y-%m-%dT%H:%M:%SZ > snapshot_timestamp.txt

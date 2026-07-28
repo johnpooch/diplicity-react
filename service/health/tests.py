@@ -1,6 +1,22 @@
+import asyncio
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from django.urls import reverse
+from procrastinate.contrib.django import app
 from rest_framework import status
+
+from health.tasks import JOB_RETENTION_HOURS, purge_old_jobs
+
+
+class TestPurgeOldJobs:
+    def test_deletes_finished_jobs_beyond_retention_window(self):
+        with patch.object(app.job_manager, "delete_old_jobs", new_callable=AsyncMock) as mock_delete:
+            asyncio.run(purge_old_jobs(timestamp=0))
+        mock_delete.assert_awaited_once_with(
+            nb_hours=JOB_RETENTION_HOURS,
+            include_cancelled=True,
+        )
 
 
 class TestHealthCheckView:
