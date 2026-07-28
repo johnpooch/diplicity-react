@@ -505,3 +505,25 @@ class TestOpeningLedger:
         ledger = ledger_for_nation(context, ["not json at all", _completion([("lon", 0)])])
         assert ledger["unparseable"] == 1
         assert ledger["samples"] == 2
+
+    def test_flags_self_bounce(self):
+        fixture = {
+            "id": "ledger_bounce",
+            "variant": "classical",
+            "nation": "England",
+            "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+            "units": [
+                {"type": "Fleet", "nation": "England", "province": "edi"},
+                {"type": "Fleet", "nation": "England", "province": "lon"},
+            ],
+            "supply_centers": [{"nation": "England", "province": "lon"}],
+            "order_options": [
+                {"source": "edi", "order_type": "Move", "target": "nth"},
+                {"source": "edi", "order_type": "Hold", "target": "edi"},
+                {"source": "lon", "order_type": "Move", "target": "nth"},
+                {"source": "lon", "order_type": "Hold", "target": "lon"},
+            ],
+        }
+        context = fixture_to_context(fixture)
+        flags = ledger_for_nation(context, [_completion([("edi", 0), ("lon", 0)])])["order_sets"][0]["flags"]
+        assert "self_bounce:nth" in flags

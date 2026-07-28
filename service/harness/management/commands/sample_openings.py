@@ -13,7 +13,7 @@ from harness.adapter import fixture_to_context
 from harness.exceptions import ParsingError
 from harness.tasks.select_orders import parse_completion, system_prompt, user_prompt
 from harness.tasks.select_orders.options import describe_option
-from harness.tasks.select_orders.scorers.coherence import dangling
+from harness.tasks.select_orders.scorers.coherence import MOVEMENT_TYPES, dangling
 
 OPENINGS_DIR = Path(__file__).resolve().parents[2] / "tasks" / "select_orders" / "openings" / "s1901m"
 
@@ -30,6 +30,10 @@ def _order_str(order, context, unit_types):
 def _flags(orders):
     sources = {order["source"] for order in orders}
     flags = [f"hold:{order['source']}" for order in orders if order["order_type"] == "Hold"]
+    move_targets = Counter(
+        order["target"] for order in orders if order["order_type"] in MOVEMENT_TYPES and order["target"]
+    )
+    flags += [f"self_bounce:{dest}" for dest, count in move_targets.items() if count >= 2]
     for order_type, own_label, foreign_label in (
         ("Support", "dangling_support", "support_foreign"),
         ("Convoy", "dangling_convoy", "convoy_foreign"),
