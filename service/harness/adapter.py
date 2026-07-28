@@ -210,6 +210,60 @@ def orders_to_options(orders: list[FlatOrderOption]) -> list[OrderOption]:
     return options
 
 
+def data_to_fixture(data: ApiData, *, fixture_id: str, notes: str = "") -> SelectOrdersFixture:
+    game = data["game"]
+    phase = data["phase"]
+
+    current = next((member for member in game["members"] if member["is_current_user"]), None)
+    if current is None or not current["nation"]:
+        raise FixtureError("api data has no current-user nation")
+
+    units = [
+        {
+            "type": unit["type"],
+            "nation": unit["nation"]["name"],
+            "province": unit["province"]["id"],
+            **({"dislodged": True} if unit["dislodged"] else {}),
+        }
+        for unit in phase["units"]
+    ]
+
+    supply_centers = [
+        {"nation": center["nation"]["name"], "province": center["province"]["id"]}
+        for center in phase["supply_centers"]
+    ]
+
+    order_options = [
+        {key: value for key, value in option.items() if value is not None}
+        for option in orders_to_options(data["orders"])
+    ]
+
+    max_orders = None
+    for phase_state in data["phase_states"]:
+        if phase_state["member"]["is_current_user"]:
+            max_orders = phase_state["max_orders"]
+            break
+
+    fixture: SelectOrdersFixture = {
+        "id": fixture_id,
+        "variant": game["variant_id"],
+        "nation": current["nation"],
+        "phase": {
+            "season": phase["season"],
+            "year": phase["year"],
+            "type": phase["type"],
+        },
+        "units": units,
+        "supply_centers": supply_centers,
+        "order_options": order_options,
+    }
+    if notes:
+        fixture["notes"] = notes
+    if max_orders is not None:
+        fixture["max_orders"] = max_orders
+    return fixture
+
+
 def data_to_context(data: ApiData) -> Context:
     try:
         return _context(data)
