@@ -7,12 +7,14 @@ the complete list of legal orders available to you this phase, grouped by the pr
 that issues them."""
 
 PRINCIPLES = """Principles for choosing orders:
-- Prefer orders that improve your position to capture supply centres. Avoid dead-end moves \
-into provinces with no supply centre and no follow-up.
-- Only leave a unit holding when you have judged that holding beats every move available to \
-it; an aimless hold wastes the turn.
-- A support is wasted unless it matches an order actually being made this phase — support a \
-unit only for the exact move or hold it is issuing.
+- Move units closer to supply centres you could capture, even when the square you move to \
+has none itself. A move only wastes the turn if it carries a unit away from every centre it \
+could contest or into a corner it cannot advance from.
+- Holding does nothing for a unit's position. Hold only to defend a province genuinely under \
+threat this phase; do not hold merely because no move stands out.
+- Before ordering a support, confirm the unit you are supporting is itself ordered to make \
+exactly that move or hold this phase; a support of an action that is not being taken is \
+wasted.
 - Do not order two of your own units to the same destination unless you have a specific \
 reason; normally they bounce and both accomplish nothing.
 - Support or act for another power's unit only when it advances your own position and \
