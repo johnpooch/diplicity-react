@@ -3,6 +3,8 @@ import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/Notice";
+import { OfflineNotice } from "@/components/OfflineNotice";
+import { isNetworkError } from "@/utils/network";
 import { AlertCircle } from "lucide-react";
 
 interface QueryErrorFallbackProps {
@@ -14,6 +16,14 @@ const QueryErrorFallback: React.FC<QueryErrorFallbackProps> = ({
   error,
   onReset,
 }) => {
+  if (isNetworkError(error)) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <OfflineNotice onRetry={onReset} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center p-8">
       <Notice
@@ -55,7 +65,9 @@ class ErrorBoundaryClass extends Component<
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryClassState {
-    Sentry.captureException(error);
+    if (!isNetworkError(error)) {
+      Sentry.captureException(error);
+    }
     return { hasError: true, error };
   }
 
