@@ -1,5 +1,8 @@
+import random
+
 from django.conf import settings
 
+from dumbbot.policy import select_orders as dumbbot_select_orders
 from harness.adapter import data_to_context
 from harness.persona import render_persona
 from harness.tasks import reply, select_orders
@@ -11,6 +14,11 @@ def _system(task_system_prompt, persona):
     if persona:
         return f"{task_system_prompt}\n\n{render_persona(persona)}"
     return task_system_prompt
+
+
+def run_dumbbot_orders(*, data):
+    context = data_to_context(data)
+    return dumbbot_select_orders(context, rng=random.Random())
 
 
 def run_select_orders(*, data, persona, phase, member):

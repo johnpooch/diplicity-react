@@ -1,5 +1,6 @@
 import functools
 
+from bot_profile.constants import BotKind
 from common.constants import PhaseStatus
 from member.models import Member
 from phase.models import Phase
@@ -67,7 +68,7 @@ def with_bot_channel_members(func):
     def wrapper(sender, instance, **kwargs):
         bot_members = list(
             instance.channel.members.filter(
-                user__bot_profile__isnull=False
+                user__bot_profile__kind=BotKind.LLM
             ).select_related("user")
         )
         if not bot_members:

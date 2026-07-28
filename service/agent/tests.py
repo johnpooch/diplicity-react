@@ -14,6 +14,7 @@ from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
 from agent.orders import option_to_selected
+from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
 from channel.models import ChannelMessage
@@ -337,6 +338,82 @@ class TestPlanTask:
 
         bot_phase_state.refresh_from_db()
         assert bot_phase_state.orders.count() > 0
+
+
+class TestDumbbotRouting:
+
+    @pytest.mark.django_db
+    def test_plan_for_dumbbot_submits_orders_without_inference(
+        self, bot_game_factory, in_memory_procrastinate, settings
+    ):
+        settings.BOT_ANTHROPIC_API_KEY = "test-key"
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        BotProfile.objects.filter(user=bot_user).update(kind=BotKind.DUMBBOT)
+        bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
+
+        client = _mock_inference_client(json.dumps({"choices": []}))
+        with patch("inference.models.get_inference_client", return_value=client):
+            tasks.plan(user_id=bot_user.id, game_id=game.id)
+            client.complete.assert_not_called()
+
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders.count() > 0
+        assert all(order.complete for order in bot_phase_state.orders.all())
+        assert Inference.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_finalize_for_dumbbot_submits_and_confirms(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        BotProfile.objects.filter(user=bot_user).update(kind=BotKind.DUMBBOT)
+        bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
+
+        tasks.finalize(user_id=bot_user.id, game_id=game.id)
+
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders.count() > 0
+        assert bot_phase_state.orders_confirmed is True
+        assert Inference.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_dumbbot_gets_plan_task_on_phase_activation(self, bot_game_factory, in_memory_procrastinate):
+        BotProfile.objects.filter(user=get_bot_user()).update(kind=BotKind.DUMBBOT)
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+
+        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).exists()
+
+    @pytest.mark.django_db
+    def test_dumbbot_gets_finalize_task_when_humans_confirm(self, bot_game_factory, in_memory_procrastinate):
+        BotProfile.objects.filter(user=get_bot_user()).update(kind=BotKind.DUMBBOT)
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.put(reverse("game-confirm-phase", args=[game.id]))
+        assert response.status_code == status.HTTP_200_OK
+
+        assert AgentTask.objects.filter(kind=AgentTaskKind.FINALIZE, member=bot_member).exists()
+
+    @pytest.mark.django_db
+    def test_human_message_does_not_defer_reply_for_dumbbot(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_public_channel_factory()
+        BotProfile.objects.filter(user=get_bot_user()).update(kind=BotKind.DUMBBOT)
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.post(
+            reverse("channel-message-create", args=[game.id, channel.id]),
+            {"body": "Hello bot"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert not AgentTask.objects.filter(kind=AgentTaskKind.REPLY).exists()
 
 
 class TestBotRequestHost:
