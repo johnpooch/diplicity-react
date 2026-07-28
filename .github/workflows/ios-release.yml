@@ -27,7 +27,7 @@ jobs:
           XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
           echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
