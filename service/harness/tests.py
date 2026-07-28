@@ -5,7 +5,8 @@ from inspect_ai.scorer import CORRECT, INCORRECT, Target
 
 from common.constants import OrderType
 
-from harness.exceptions import ContextError, ParsingError
+from harness.adapter import data_to_fixture, fixture_to_data
+from harness.exceptions import ContextError, FixtureError, ParsingError
 from harness.tasks.reply.parser import parse_completion as parse_reply
 from harness.tasks.reply.user_prompt import user_prompt as reply_user_prompt
 from harness.tasks.select_orders.parser import parse_completion
@@ -290,3 +291,53 @@ class TestReplyUserPrompt:
     def test_unknown_channel_raises(self):
         with pytest.raises(ContextError):
             reply_user_prompt(self._reply_context(), 99)
+
+
+class TestDataToFixture:
+
+    def _fixture(self, **overrides):
+        fixture = {
+            "id": "harvested_case",
+            "variant": "classical",
+            "nation": "Germany",
+            "phase": {"season": "Fall", "year": 1903, "type": "Movement"},
+            "units": [
+                {"type": "Army", "nation": "Germany", "province": "mun"},
+                {"type": "Army", "nation": "France", "province": "bur", "dislodged": True},
+            ],
+            "supply_centers": [
+                {"nation": "Germany", "province": "mun"},
+                {"nation": "Germany", "province": "kie"},
+            ],
+            "order_options": [
+                {"source": "kie", "order_type": "Support", "target": "mun", "aux": "mun"},
+                {"source": "mun", "order_type": "Hold", "target": "mun"},
+                {"source": "mun", "order_type": "Move", "target": "ruh"},
+            ],
+        }
+        fixture.update(overrides)
+        return fixture
+
+    def test_round_trips_through_data(self):
+        fixture = self._fixture()
+        data = fixture_to_data(fixture)
+        assert data_to_fixture(data, fixture_id="harvested_case") == fixture
+
+    def test_round_trips_with_max_orders(self):
+        fixture = self._fixture(max_orders=1)
+        data = fixture_to_data(fixture)
+        assert data_to_fixture(data, fixture_id="harvested_case") == fixture
+
+    def test_notes_are_attached_when_provided(self):
+        fixture = self._fixture()
+        data = fixture_to_data(fixture)
+        result = data_to_fixture(data, fixture_id="harvested_case", notes="a note")
+        assert result["notes"] == "a note"
+
+    def test_missing_current_user_raises(self):
+        fixture = self._fixture()
+        data = fixture_to_data(fixture)
+        for member in data["game"]["members"]:
+            member["is_current_user"] = False
+        with pytest.raises(FixtureError):
+            data_to_fixture(data, fixture_id="harvested_case")

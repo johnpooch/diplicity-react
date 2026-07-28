@@ -92,3 +92,6 @@ packages/web/fastlane/report.xml
 packages/web/fastlane/README.md
 packages/web/fastlane/.play-service-account.json
 packages/web/build/
+
+# Local output from the harness eval `dump_phase` management command
+phase_dumps/
