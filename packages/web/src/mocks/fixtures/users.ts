@@ -58,18 +58,18 @@ export const makeMember = (
 });
 
 export const botRoster: AvailableBot[] = [
-  { userId: 101, name: "The Bear", picture: null },
-  { userId: 102, name: "The Chairman", picture: null },
-  { userId: 103, name: "The Commissar", picture: null },
-  { userId: 104, name: "The Dealmaker", picture: null },
-  { userId: 105, name: "The Eagle", picture: null },
-  { userId: 106, name: "The Imperator", picture: null },
-  { userId: 107, name: "The Iron Lady", picture: null },
-  { userId: 108, name: "The Revolutionary", picture: null },
-  { userId: 109, name: "The Shogun", picture: null },
-  { userId: 110, name: "The Sultan", picture: null },
-  { userId: 111, name: "The Sun God", picture: null },
-  { userId: 112, name: "The Viceroy", picture: null },
+  { userId: 101, name: "The Bear", picture: null, kind: "llm" },
+  { userId: 102, name: "The Chairman", picture: null, kind: "llm" },
+  { userId: 103, name: "The Commissar", picture: null, kind: "llm" },
+  { userId: 104, name: "The Dealmaker", picture: null, kind: "llm" },
+  { userId: 105, name: "The Eagle", picture: null, kind: "llm" },
+  { userId: 106, name: "The Imperator", picture: null, kind: "llm" },
+  { userId: 107, name: "The Iron Lady", picture: null, kind: "llm" },
+  { userId: 108, name: "The Revolutionary", picture: null, kind: "llm" },
+  { userId: 109, name: "The Shogun", picture: null, kind: "llm" },
+  { userId: 110, name: "The Sultan", picture: null, kind: "llm" },
+  { userId: 111, name: "The Sun God", picture: null, kind: "llm" },
+  { userId: 112, name: "The Viceroy", picture: null, kind: "llm" },
 ];
 
 export const makeBotMember = (bot: AvailableBot): Member =>

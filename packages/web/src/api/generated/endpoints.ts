@@ -76,6 +76,7 @@ export interface AvailableBot {
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
+  readonly kind: string;
 }
 
 export interface BotMemberCreate {
