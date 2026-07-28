@@ -13,6 +13,7 @@ from common.constants import OrderType
 
 from harness.adapter import data_to_fixture, fixture_to_context, fixture_to_data
 from harness.exceptions import ContextError, FixtureError, ParsingError
+from harness.management.commands.sample_openings import ledger_for_nation
 from harness.tasks.reply.parser import parse_completion as parse_reply
 from harness.tasks.reply.user_prompt import user_prompt as reply_user_prompt
 from harness.tasks.select_orders.parser import parse_completion
@@ -426,3 +427,63 @@ class TestQualityMetricAggregation:
         metrics = {score.name: score.metrics["accuracy"].value for score in log.results.scores}
         assert metrics["quality_strong"] == 1.0
         assert metrics["quality_avoidance"] == 1.0
+
+
+class TestOpeningLedger:
+
+    def _hold_fixture(self):
+        return {
+            "id": "ledger",
+            "variant": "classical",
+            "nation": "England",
+            "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+            "units": [{"type": "Army", "nation": "England", "province": "lon"}],
+            "supply_centers": [{"nation": "England", "province": "lon"}],
+            "order_options": [
+                {"source": "lon", "order_type": "Hold", "target": "lon"},
+                {"source": "lon", "order_type": "Move", "target": "wal"},
+            ],
+        }
+
+    def _support_fixture(self):
+        return {
+            "id": "ledger_support",
+            "variant": "classical",
+            "nation": "Germany",
+            "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+            "units": [
+                {"type": "Army", "nation": "Germany", "province": "kie"},
+                {"type": "Army", "nation": "Germany", "province": "mun"},
+            ],
+            "supply_centers": [{"nation": "Germany", "province": "kie"}],
+            "order_options": [
+                {"source": "kie", "order_type": "Support", "target": "mun", "aux": "mun"},
+                {"source": "kie", "order_type": "Hold", "target": "kie"},
+                {"source": "mun", "order_type": "Hold", "target": "mun"},
+                {"source": "mun", "order_type": "Move", "target": "ruh"},
+            ],
+        }
+
+    def test_tallies_joint_sets_and_flags_holds(self):
+        context = fixture_to_context(self._hold_fixture())
+        completions = [_completion([("lon", 0)]), _completion([("lon", 0)]), _completion([("lon", 1)])]
+        ledger = ledger_for_nation(context, completions)
+
+        assert ledger["samples"] == 3
+        top = ledger["order_sets"][0]
+        assert top["orders"] == ["A lon Hold"]
+        assert top["count"] == 2
+        assert top["share"] == 0.667
+        assert top["flags"] == ["hold:lon"]
+        assert ledger["order_sets"][1]["flags"] == []
+
+    def test_flags_dangling_support(self):
+        context = fixture_to_context(self._support_fixture())
+        ledger = ledger_for_nation(context, [_completion([("kie", 0), ("mun", 1)])])
+        assert "dangling_support:mun" in ledger["order_sets"][0]["flags"]
+
+    def test_counts_unparseable_completions(self):
+        context = fixture_to_context(self._hold_fixture())
+        ledger = ledger_for_nation(context, ["not json at all", _completion([("lon", 0)])])
+        assert ledger["unparseable"] == 1
+        assert ledger["samples"] == 2
