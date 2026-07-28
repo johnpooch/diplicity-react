@@ -1,11 +1,17 @@
 import json
+import math
 
 import pytest
+from inspect_ai import Task
+from inspect_ai import eval as inspect_eval
+from inspect_ai.dataset import MemoryDataset, Sample
+from inspect_ai.model import ModelOutput, get_model
 from inspect_ai.scorer import CORRECT, INCORRECT, Target
+from inspect_ai.solver import generate
 
 from common.constants import OrderType
 
-from harness.adapter import data_to_fixture, fixture_to_data
+from harness.adapter import data_to_fixture, fixture_to_context, fixture_to_data
 from harness.exceptions import ContextError, FixtureError, ParsingError
 from harness.tasks.reply.parser import parse_completion as parse_reply
 from harness.tasks.reply.user_prompt import user_prompt as reply_user_prompt
@@ -15,6 +21,8 @@ from harness.tasks.select_orders.scorers import (
     coverage,
     deduplication,
     legality,
+    quality_avoidance,
+    quality_strong,
     support_coherence,
 )
 
@@ -341,3 +349,80 @@ class TestDataToFixture:
             member["is_current_user"] = False
         with pytest.raises(FixtureError):
             data_to_fixture(data, fixture_id="harvested_case")
+
+
+def _quality_fixture(fixture_id="quality", ranked=True):
+    fixture = {
+        "id": fixture_id,
+        "variant": "classical",
+        "nation": "England",
+        "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+        "units": [{"type": "Army", "nation": "England", "province": "lon"}],
+        "supply_centers": [{"nation": "England", "province": "lon"}],
+        "order_options": [
+            {"source": "lon", "order_type": "Hold", "target": "lon"},
+            {"source": "lon", "order_type": "Move", "target": "eng"},
+        ],
+    }
+    if ranked:
+        fixture["ranked_options"] = {
+            "good": [{"source": "lon", "order_type": "Hold", "target": "lon"}],
+            "neutral": [],
+            "bad": [{"source": "lon", "order_type": "Move", "target": "eng"}],
+        }
+    return fixture
+
+
+class TestQualityScorers:
+
+    def _state(self, fixture, choices):
+        state = _FakeState(_completion(choices), fixture_to_context(fixture))
+        state.metadata["ranked_options"] = fixture.get("ranked_options")
+        return state
+
+    def test_selecting_good_order_is_strong_correct(self):
+        assert _run(quality_strong, self._state(_quality_fixture(), [("lon", 0)])).value == CORRECT
+
+    def test_missing_good_order_is_strong_incorrect(self):
+        assert _run(quality_strong, self._state(_quality_fixture(), [("lon", 1)])).value == INCORRECT
+
+    def test_selecting_bad_order_is_avoidance_incorrect(self):
+        assert _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 1)])).value == INCORRECT
+
+    def test_avoiding_bad_order_is_avoidance_correct(self):
+        assert _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 0)])).value == CORRECT
+
+    def test_fixture_without_ranked_options_is_unscored(self):
+        state = self._state(_quality_fixture(ranked=False), [("lon", 0)])
+        for scorer_factory in (quality_strong, quality_avoidance):
+            value = _run(scorer_factory, state).value
+            assert isinstance(value, float) and math.isnan(value)
+
+
+class TestQualityMetricAggregation:
+
+    def _sample(self, fixture):
+        return Sample(
+            id=fixture["id"],
+            input="ignored",
+            metadata={"context": fixture_to_context(fixture), "ranked_options": fixture.get("ranked_options")},
+        )
+
+    def test_accuracy_covers_ranked_samples_and_skips_the_rest(self, tmp_path):
+        good_pick = _completion([("lon", 0)])
+        model = get_model(
+            "mockllm/model",
+            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content("mockllm/model", good_pick),
+        )
+        dataset = MemoryDataset(
+            [
+                self._sample(_quality_fixture("ranked", ranked=True)),
+                self._sample(_quality_fixture("unranked", ranked=False)),
+            ]
+        )
+        task = Task(dataset=dataset, solver=generate(), scorer=[quality_strong(), quality_avoidance()])
+        log = inspect_eval(task, model=model, display="none", log_dir=str(tmp_path))[0]
+
+        metrics = {score.name: score.metrics["accuracy"].value for score in log.results.scores}
+        assert metrics["quality_strong"] == 1.0
+        assert metrics["quality_avoidance"] == 1.0

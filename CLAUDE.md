@@ -84,6 +84,30 @@ The latest recorded baseline lives in
 `service/harness/tasks/select_orders/EVAL_RESULTS.md` — update it when you take
 a new baseline run.
 
+The `quality_strong`/`quality_avoidance` scorers only aggregate over dataset
+samples that declare `ranked_options` (a `good`/`neutral`/`bad` labelling of the
+legal moves); every other sample is `Score.unscored()` (NaN) and excluded. Those
+two scorers are the only ones that measure judgement rather than legality, so a
+new eval only bites if it carries `ranked_options`.
+
+### Harvesting eval candidates from real games
+
+`dump_phase` (in `agent`) turns a live game phase into eval raw material:
+
+```bash
+python manage.py dump_phase --game <id> --out phase_dumps
+cd packages/web
+npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render.json /tmp/board.png
+```
+
+It writes a board `RenderState` JSON (render it to a PNG with `render-phase.mjs`
+to eyeball what the bots did) plus one `select_orders` fixture stub per nation.
+Turn a bad decision into an eval by adding a `ranked_options` block to a stub —
+what the bot should have done under `good`, the mistake under `bad` — and
+appending it to `dataset.json`. Order *options* only exist for a game's current
+phase, so a resolved/historical phase (`--phase <id>`) is render-only. Output
+lives in the gitignored `phase_dumps/`.
+
 ---
 
 ## Development Setup
