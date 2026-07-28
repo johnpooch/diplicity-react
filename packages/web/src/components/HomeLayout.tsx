@@ -17,6 +17,7 @@ import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
 const navigationItems = [
@@ -74,6 +75,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
           className
         )}
       >
+        <OfflineBanner />
         <div className="flex items-stretch flex-1 min-h-0 w-full">
           {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
           <Sidebar collapsible="icon">

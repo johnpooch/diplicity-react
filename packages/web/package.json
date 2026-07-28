@@ -28,6 +28,7 @@
     "@capacitor/app": "^8.0.1",
     "@capacitor/core": "^8.1.0",
     "@capacitor/ios": "^8.1.0",
+    "@capacitor/network": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capgo/capacitor-social-login": "^8.3.6",
     "@fontsource/roboto": "^5.1.0",
