@@ -28,9 +28,15 @@ def _order_str(order, context, unit_types):
 
 
 def _flags(orders):
+    sources = {order["source"] for order in orders}
     flags = [f"hold:{order['source']}" for order in orders if order["order_type"] == "Hold"]
-    flags += [f"dangling_support:{aux}" for aux, _target, _actual in dangling(orders, "Support")]
-    flags += [f"dangling_convoy:{aux}" for aux, _target, _actual in dangling(orders, "Convoy")]
+    for order_type, own_label, foreign_label in (
+        ("Support", "dangling_support", "support_foreign"),
+        ("Convoy", "dangling_convoy", "convoy_foreign"),
+    ):
+        for aux, _target, _actual in dangling(orders, order_type):
+            label = own_label if aux in sources else foreign_label
+            flags.append(f"{label}:{aux}")
     return flags
 
 

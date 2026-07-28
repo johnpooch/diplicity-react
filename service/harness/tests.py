@@ -477,10 +477,28 @@ class TestOpeningLedger:
         assert top["flags"] == ["hold:lon"]
         assert ledger["order_sets"][1]["flags"] == []
 
-    def test_flags_dangling_support(self):
+    def test_flags_dangling_support_of_own_unit(self):
         context = fixture_to_context(self._support_fixture())
         ledger = ledger_for_nation(context, [_completion([("kie", 0), ("mun", 1)])])
         assert "dangling_support:mun" in ledger["order_sets"][0]["flags"]
+
+    def test_flags_support_of_foreign_unit_separately(self):
+        fixture = {
+            "id": "ledger_foreign",
+            "variant": "classical",
+            "nation": "Austria",
+            "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+            "units": [{"type": "Fleet", "nation": "Austria", "province": "tri"}],
+            "supply_centers": [{"nation": "Austria", "province": "tri"}],
+            "order_options": [
+                {"source": "tri", "order_type": "Support", "target": "ven", "aux": "ven"},
+                {"source": "tri", "order_type": "Hold", "target": "tri"},
+            ],
+        }
+        context = fixture_to_context(fixture)
+        flags = ledger_for_nation(context, [_completion([("tri", 0)])])["order_sets"][0]["flags"]
+        assert "support_foreign:ven" in flags
+        assert not any(flag.startswith("dangling_support:") for flag in flags)
 
     def test_counts_unparseable_completions(self):
         context = fixture_to_context(self._hold_fixture())
