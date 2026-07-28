@@ -8,7 +8,7 @@ from game.models import Game
 
 logger = logging.getLogger(__name__)
 
-SANDBOX_RETENTION_DAYS = 90
+SANDBOX_RETENTION_DAYS = 7
 
 
 @app.periodic(cron="45 3 * * *")
