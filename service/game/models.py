@@ -728,6 +728,7 @@ class Game(BaseModel):
             self.save()
 
             emit("game_start", game=self)
+            emit("phase_started", phase=current_phase)
 
     def emit_game_ended(self):
         try:

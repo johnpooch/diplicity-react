@@ -588,6 +588,9 @@ class PhaseManager(models.Manager):
                         new_phase.scheduled_resolution = None
                         new_phase.save()
 
+                    if new_phase.status == PhaseStatus.ACTIVE:
+                        emit("phase_started", phase=new_phase)
+
                     return new_phase
 
     def _emit_phase_resolved(self, phase):
@@ -983,6 +986,8 @@ class Phase(BaseModel):
         phase_states_count = self.phase_states.count()
         logger.info(f"Resetting orders_confirmed to False for {phase_states_count} phase states")
         self.phase_states.update(orders_confirmed=False)
+
+        emit("phase_started", phase=self)
 
         logger.info(f"Successfully reverted game {self.game.id} to phase {self.id}")
 

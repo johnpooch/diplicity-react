@@ -46,16 +46,19 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   and evals. No Django models, game API, queues, or telemetry in production
   code. A TaskDefinition is declarative; build_prompt is shared; parse() is
   per-task and raises ParseError on unusable output.
-- agent — orchestration: signals, Procrastinate tasks, the game API client
-  (read + write), context assembly, telemetry, fallback policy, and the
-  build → inference.run → parse → side-effect glue. Everything that touches
-  Django, the game, or the queue lives here. The AgentTask model is the
-  durable record of bot work to be done (kind = plan/finalize/reply): a
-  signal creates a pending row and defers the agent.run task, which loads
-  the row, transitions its status, and dispatches to the executor. One
-  AgentTask may span several Inference calls. A periodic agent.reconcile
-  task re-drives rows whose job was lost or stalled (pending or stuck in
-  running past a timeout), so a hand-inserted row runs on the next sweep.
+- agent — orchestration: emit consumer specs (agent/registry.py), Procrastinate
+  tasks, the game API client (read + write), context assembly, telemetry,
+  fallback policy, and the build → inference.run → parse → side-effect glue.
+  Everything that touches Django, the game, or the queue lives here. The
+  AgentTask model is the durable record of bot work to be done (kind =
+  plan/finalize/reply): agent is a third emit consumer alongside notification
+  and channel event, so an emit event (phase_started, phase_state_confirmed,
+  channel_message) drives AgentTask.objects.create_from_event, which creates
+  pending rows and defers agent.run — that loads the row, transitions its
+  status, and dispatches to the executor. One AgentTask may span several
+  Inference calls. A periodic agent.reconcile task re-drives rows whose job
+  was lost or stalled (pending or stuck in running past a timeout), so a
+  hand-inserted row runs on the next sweep.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
 
