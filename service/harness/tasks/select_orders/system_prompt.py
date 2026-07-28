@@ -6,6 +6,19 @@ ROLE = """You are an expert Diplomacy player. You will be given the state of a g
 the complete list of legal orders available to you this phase, grouped by the province \
 that issues them."""
 
+PRINCIPLES = """Principles for choosing orders:
+- Prefer orders that improve your position to capture supply centres. Avoid dead-end moves \
+into provinces with no supply centre and no follow-up.
+- Only leave a unit holding when you have judged that holding beats every move available to \
+it; an aimless hold wastes the turn.
+- A support is wasted unless it matches an order actually being made this phase — support a \
+unit only for the exact move or hold it is issuing.
+- Do not order two of your own units to the same destination unless you have a specific \
+reason; normally they bounce and both accomplish nothing.
+- Support or act for another power's unit only when it advances your own position and \
+follows a coordination you have agreed with them; without such an agreement, a unit spent \
+on a rival's move is spent for their benefit."""
+
 MOVEMENT_TASK = """Select exactly one order for every province listed. A province with no \
 order does nothing, which is almost always worse than the weakest listed alternative."""
 
@@ -42,4 +55,4 @@ def task_instruction(context: Context) -> str:
 
 
 def system_prompt(context: Context) -> str:
-    return "\n\n".join([ROLE, task_instruction(context), FORMAT])
+    return "\n\n".join([ROLE, PRINCIPLES, task_instruction(context), FORMAT])
