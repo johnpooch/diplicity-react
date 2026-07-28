@@ -8,7 +8,9 @@ from rest_framework.test import APIClient
 
 from agent import decorators, tasks
 from agent.api_client import bot_request_host
+from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
+from agent.models import AgentTask
 from agent.orders import option_to_selected
 from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
@@ -396,29 +398,29 @@ class TestFinalizeTask:
         assert bot_phase_state.orders_confirmed is True
 
 
-def _agent_plan_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "agent.plan"]
+def _agent_run_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "agent.run"]
 
 
-def _agent_finalize_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "agent.finalize"]
-
-
-def _agent_reply_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "agent.reply"]
+def _run_jobs_for(connector, task):
+    return [j for j in _agent_run_jobs(connector) if j["args"] == {"agent_task_id": task.id}]
 
 
 class TestPlanTrigger:
 
     @pytest.mark.django_db
-    def test_first_phase_activation_defers_plan(self, bot_game_factory, in_memory_procrastinate):
+    def test_first_phase_activation_creates_task_and_defers_run(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         bot_member = game.members.get(user=get_bot_user())
 
-        jobs = _agent_plan_jobs(in_memory_procrastinate)
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=bot_member)
+        assert task.phase == game.current_phase
+        assert task.status == AgentTaskStatus.PENDING
+
+        jobs = _agent_run_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
-        assert jobs[0]["lock"] == f"plan-{game.current_phase.id}-{bot_member.id}"
-        assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}
+        assert jobs[0]["lock"] == f"agent-task-{task.id}"
+        assert jobs[0]["args"] == {"agent_task_id": task.id}
 
     @pytest.mark.django_db
     def test_editing_active_phase_does_not_refire(self, bot_game_factory, in_memory_procrastinate):
@@ -428,18 +430,20 @@ class TestPlanTrigger:
         phase.refresh_from_db()
         phase.save()
 
-        assert len(_agent_plan_jobs(in_memory_procrastinate)) == 1
+        assert len(_agent_run_jobs(in_memory_procrastinate)) == 1
+        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN).count() == 1
 
     @pytest.mark.django_db
     def test_non_bot_game_does_not_defer_plan(self, active_game_factory, in_memory_procrastinate):
         active_game_factory()
-        assert len(_agent_plan_jobs(in_memory_procrastinate)) == 0
+        assert len(_agent_run_jobs(in_memory_procrastinate)) == 0
+        assert not AgentTask.objects.exists()
 
 
 class TestFinalizeTrigger:
 
     @pytest.mark.django_db
-    def test_human_confirm_defers_finalize(self, bot_game_factory, in_memory_procrastinate):
+    def test_human_confirm_creates_task_and_defers_run(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         bot_member = game.members.get(user=get_bot_user())
 
@@ -448,10 +452,13 @@ class TestFinalizeTrigger:
         response = human_client.put(reverse("game-confirm-phase", args=[game.id]))
         assert response.status_code == status.HTTP_200_OK
 
-        jobs = _agent_finalize_jobs(in_memory_procrastinate)
+        task = AgentTask.objects.get(kind=AgentTaskKind.FINALIZE, member=bot_member)
+        assert task.phase == game.current_phase
+        assert task.status == AgentTaskStatus.PENDING
+
+        jobs = _run_jobs_for(in_memory_procrastinate, task)
         assert len(jobs) == 1
-        assert jobs[0]["lock"] == f"finalize-{game.current_phase.id}-{bot_member.id}"
-        assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}
+        assert jobs[0]["lock"] == f"agent-task-{task.id}"
 
 
 class TestReplyTask:
@@ -581,7 +588,9 @@ class TestReplyTask:
 class TestReplyTrigger:
 
     @pytest.mark.django_db
-    def test_human_public_message_defers_reply(self, bot_public_channel_factory, in_memory_procrastinate):
+    def test_human_public_message_creates_task_and_defers_run(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
         game, channel = bot_public_channel_factory()
         bot_member = game.members.get(user=get_bot_user())
 
@@ -594,14 +603,14 @@ class TestReplyTrigger:
         )
         assert response.status_code == status.HTTP_201_CREATED
 
-        jobs = _agent_reply_jobs(in_memory_procrastinate)
+        task = AgentTask.objects.get(kind=AgentTaskKind.REPLY, member=bot_member)
+        assert task.channel_id == channel.id
+        assert task.message_id == response.data["id"]
+        assert task.status == AgentTaskStatus.PENDING
+
+        jobs = _run_jobs_for(in_memory_procrastinate, task)
         assert len(jobs) == 1
-        assert jobs[0]["lock"] == f"reply-{response.data['id']}-{bot_member.id}"
-        assert jobs[0]["args"] == {
-            "user_id": get_bot_user().id,
-            "game_id": game.id,
-            "channel_id": channel.id,
-        }
+        assert jobs[0]["lock"] == f"agent-task-{task.id}"
 
     @pytest.mark.django_db
     def test_bot_own_message_does_not_defer_reply(self, bot_public_channel_factory, in_memory_procrastinate):
@@ -610,7 +619,7 @@ class TestReplyTrigger:
 
         ChannelMessage.objects.create(channel=channel, sender=bot_member, body="Hi all")
 
-        assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
+        assert not AgentTask.objects.filter(kind=AgentTaskKind.REPLY).exists()
 
     @pytest.mark.django_db
     def test_private_channel_message_defers_reply(self, bot_public_channel_factory, in_memory_procrastinate):
@@ -630,14 +639,13 @@ class TestReplyTrigger:
         )
         assert response.status_code == status.HTTP_201_CREATED
 
-        jobs = _agent_reply_jobs(in_memory_procrastinate)
+        task = AgentTask.objects.get(kind=AgentTaskKind.REPLY, member=bot_member)
+        assert task.channel_id == private.id
+        assert task.message_id == response.data["id"]
+
+        jobs = _run_jobs_for(in_memory_procrastinate, task)
         assert len(jobs) == 1
-        assert jobs[0]["lock"] == f"reply-{response.data['id']}-{bot_member.id}"
-        assert jobs[0]["args"] == {
-            "user_id": get_bot_user().id,
-            "game_id": game.id,
-            "channel_id": private.id,
-        }
+        assert jobs[0]["lock"] == f"agent-task-{task.id}"
 
     @pytest.mark.django_db
     def test_private_channel_without_bot_member_does_not_defer_reply(
@@ -659,7 +667,7 @@ class TestReplyTrigger:
         )
         assert response.status_code == status.HTTP_201_CREATED
 
-        assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
+        assert not AgentTask.objects.filter(kind=AgentTaskKind.REPLY).exists()
 
     @pytest.mark.django_db
     def test_non_bot_game_does_not_defer_reply(self, active_game_factory, in_memory_procrastinate):
@@ -677,4 +685,68 @@ class TestReplyTrigger:
         )
         assert response.status_code == status.HTTP_201_CREATED
 
-        assert len(_agent_reply_jobs(in_memory_procrastinate)) == 0
+        assert not AgentTask.objects.exists()
+        assert len(_agent_run_jobs(in_memory_procrastinate)) == 0
+
+
+class TestAgentTaskRun:
+
+    @pytest.mark.django_db
+    def test_run_executes_plan_and_marks_succeeded(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+        bot_phase_state = game.current_phase.phase_states.get(member=bot_member)
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=bot_member)
+
+        tasks.run(agent_task_id=task.id)
+
+        task.refresh_from_db()
+        assert task.status == AgentTaskStatus.SUCCEEDED
+        assert task.attempts == 1
+        assert task.started_at is not None
+        assert task.completed_at is not None
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders.count() > 0
+
+    @pytest.mark.django_db
+    def test_run_executes_finalize_and_confirms(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+        bot_phase_state = game.current_phase.phase_states.get(member=bot_member)
+        task = AgentTask.objects.create(kind=AgentTaskKind.FINALIZE, member=bot_member, phase=game.current_phase)
+
+        tasks.run(agent_task_id=task.id)
+
+        task.refresh_from_db()
+        assert task.status == AgentTaskStatus.SUCCEEDED
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders_confirmed is True
+
+    @pytest.mark.django_db
+    def test_run_marks_failed_and_reraises_on_error(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=bot_member)
+
+        with patch("agent.tasks.plan", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError):
+                tasks.run(agent_task_id=task.id)
+
+        task.refresh_from_db()
+        assert task.status == AgentTaskStatus.FAILED
+        assert task.last_error == "boom"
+        assert task.attempts == 1
+
+    @pytest.mark.django_db
+    def test_run_skips_when_task_missing(self, in_memory_procrastinate):
+        tasks.run(agent_task_id=999999)
+
+    @pytest.mark.django_db
+    def test_enqueue_is_idempotent_for_same_phase_and_member(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+
+        _, created = AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase)
+
+        assert created is False
+        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).count() == 1

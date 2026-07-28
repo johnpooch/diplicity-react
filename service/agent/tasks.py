@@ -4,8 +4,10 @@ from django.conf import settings
 from procrastinate.contrib.django import app
 
 from agent.api_client import ApiClient, ApiClientError
+from agent.constants import AgentTaskKind
 from agent.context import fetch_context
 from agent.fallback import first_legal_options
+from agent.models import AgentTask
 from agent.orders import option_to_selected
 from agent.orchestration import run_reply, run_select_orders
 from bot_profile.models import BotProfile
@@ -66,7 +68,6 @@ def _submit_orders_from_context(api, data, game_id, user_id, label):
     api.submit_orders(game_id, [option_to_selected(order) for order in orders])
 
 
-@app.task(name="agent.plan", retry=3)
 def plan(user_id, game_id):
     label = f"agent.plan user={user_id} game={game_id}"
     logger.info(f"[{label}] invoked")
@@ -82,7 +83,6 @@ def plan(user_id, game_id):
     logger.info(f"[{label}] completed")
 
 
-@app.task(name="agent.finalize", retry=3)
 def finalize(user_id, game_id):
     label = f"agent.finalize user={user_id} game={game_id}"
     logger.info(f"[{label}] invoked")
@@ -102,7 +102,6 @@ def finalize(user_id, game_id):
     logger.info(f"[{label}] completed")
 
 
-@app.task(name="agent.reply", retry=3)
 def reply(user_id, game_id, channel_id):
     label = f"agent.reply user={user_id} game={game_id} channel={channel_id}"
     logger.info(f"[{label}] invoked")
@@ -150,4 +149,34 @@ def reply(user_id, game_id, channel_id):
         logger.error(f"[{label}] aborting: {e}")
         return
 
+    logger.info(f"[{label}] completed")
+
+
+def _dispatch(task):
+    member = task.member
+    if task.kind == AgentTaskKind.PLAN:
+        plan(member.user_id, member.game_id)
+    elif task.kind == AgentTaskKind.FINALIZE:
+        finalize(member.user_id, member.game_id)
+    elif task.kind == AgentTaskKind.REPLY:
+        reply(member.user_id, member.game_id, task.channel_id)
+
+
+@app.task(name="agent.run", retry=3)
+def run(agent_task_id):
+    label = f"agent.run task={agent_task_id}"
+    task = AgentTask.objects.select_related("member").filter(id=agent_task_id).first()
+    if task is None:
+        logger.error(f"[{label}] no agent task found; skipping")
+        return
+
+    logger.info(f"[{label}] running {task.kind} for member {task.member_id}")
+    task.mark_running()
+    try:
+        _dispatch(task)
+    except Exception as e:
+        task.mark_failed(e)
+        logger.error(f"[{label}] failed: {e}")
+        raise
+    task.mark_succeeded()
     logger.info(f"[{label}] completed")

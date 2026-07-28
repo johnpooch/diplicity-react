@@ -49,7 +49,11 @@ Governing rule: **harness is pure; agent is where the world touches it.**
 - agent — orchestration: signals, Procrastinate tasks, the game API client
   (read + write), context assembly, telemetry, fallback policy, and the
   build → inference.run → parse → side-effect glue. Everything that touches
-  Django, the game, or the queue lives here.
+  Django, the game, or the queue lives here. The AgentTask model is the
+  durable record of bot work to be done (kind = plan/finalize/reply): a
+  signal creates a pending row and defers the agent.run task, which loads
+  the row, transitions its status, and dispatches to the executor. One
+  AgentTask may span several Inference calls.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
 

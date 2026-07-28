@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from channel.models import ChannelMessage
 from phase.models import Phase, PhaseState
 
+from agent.constants import AgentTaskKind
 from agent.decorators import (
     capture_phase_status,
     on_human_chat_message,
@@ -15,9 +16,8 @@ from agent.decorators import (
     with_bot_channel_members,
     with_bot_members,
 )
-from agent.tasks import finalize as finalize_task
-from agent.tasks import plan as plan_task
-from agent.tasks import reply as reply_task
+from agent.models import AgentTask
+from agent.tasks import run as run_task
 
 logger = logging.getLogger(__name__)
 
@@ -31,27 +31,21 @@ pre_save.connect(capture_phase_status, sender=Phase)
 def plan(sender, instance, bot_members, **kwargs):
     logger.info(f"[agent.plan signal] phase {instance.id} activated for game {instance.game_id}")
     for member in bot_members:
-        plan_task.configure(lock=f"plan-{instance.id}-{member.id}").defer(
-            user_id=member.user_id, game_id=instance.game_id
-        )
-        logger.info(
-            f"[agent.plan signal] queued plan for member {member.id} (phase {instance.id})"
-        )
+        task, _ = AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=member, phase=instance)
+        run_task.configure(lock=f"agent-task-{task.id}").defer(agent_task_id=task.id)
+        logger.info(f"[agent.plan signal] queued plan task {task.id} for member {member.id} (phase {instance.id})")
 
 
 @receiver(post_save, sender=PhaseState)
 @on_orders_confirmed
 @when_humans_confirmed
 def finalize(sender, instance, phase, bot_phase_states, **kwargs):
-    logger.info(
-        f"[agent.finalize signal] all humans confirmed for phase {phase.id} (game {phase.game_id})"
-    )
+    logger.info(f"[agent.finalize signal] all humans confirmed for phase {phase.id} (game {phase.game_id})")
     for phase_state in bot_phase_states:
-        finalize_task.configure(
-            lock=f"finalize-{phase.id}-{phase_state.member_id}"
-        ).defer(user_id=phase_state.member.user_id, game_id=phase.game_id)
+        task, _ = AgentTask.objects.enqueue(kind=AgentTaskKind.FINALIZE, member=phase_state.member, phase=phase)
+        run_task.configure(lock=f"agent-task-{task.id}").defer(agent_task_id=task.id)
         logger.info(
-            f"[agent.finalize signal] queued finalize for member {phase_state.member_id} "
+            f"[agent.finalize signal] queued finalize task {task.id} for member {phase_state.member_id} "
             f"(phase {phase.id})"
         )
 
@@ -65,11 +59,12 @@ def reply(sender, instance, bot_members, **kwargs):
         f"(game {instance.channel.game_id})"
     )
     for member in bot_members:
-        reply_task.configure(lock=f"reply-{instance.id}-{member.id}").defer(
-            user_id=member.user_id,
-            game_id=instance.channel.game_id,
-            channel_id=instance.channel_id,
+        task, _ = AgentTask.objects.enqueue(
+            kind=AgentTaskKind.REPLY,
+            member=member,
+            phase=instance.phase,
+            channel=instance.channel,
+            message=instance,
         )
-        logger.info(
-            f"[agent.reply signal] queued reply for member {member.id} (message {instance.id})"
-        )
+        run_task.configure(lock=f"agent-task-{task.id}").defer(agent_task_id=task.id)
+        logger.info(f"[agent.reply signal] queued reply task {task.id} for member {member.id} (message {instance.id})")
