@@ -105,6 +105,7 @@ INSTALLED_APPS = [
     "inference",
     "agent",
     "bot_profile",
+    "harness",
     "drf_spectacular",
 ]
 
