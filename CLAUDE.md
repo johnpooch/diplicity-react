@@ -158,6 +158,29 @@ game. A production run needs a shell on the deployed service (`railway ssh`),
 because `railway run` executes locally and cannot resolve Railway's internal
 database host.
 
+### Re-planning a bot's orders
+
+`replan_member` (in `agent`) makes a bot think again about the phase already
+under way — used after a harness change, when existing games should re-plan
+against the new prompts:
+
+```bash
+python manage.py replan_member --game <id> --nation Italy
+```
+
+It discards the bot's orders for the current phase, then re-opens the seat's
+`plan` AgentTask and defers the job. A seat that already planned has a
+`succeeded` row which `enqueue` would return untouched (and
+`unique_phase_agent_task` forbids a second one), so the shared `agent.replan`
+helper goes through `AgentTask.objects.requeue`, which resets the existing row
+to `pending` instead. `--nation` resolves to the seat's *current* holder, as in
+`replace_member_with_bot`. The command errors if the seat is not played by a
+bot, if that member has been kicked, or if the game has no active phase.
+
+The same operation is a **Re-plan orders (bot members only)** action on the
+Members changelist in Django admin, which takes a multi-select — that is the
+route for re-planning several seats at once.
+
 ---
 
 ## Development Setup

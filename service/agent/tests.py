@@ -20,7 +20,7 @@ from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
 from channel.models import ChannelMessage
-from common.constants import OrderType, PhaseType
+from common.constants import OrderType, PhaseStatus, PhaseType
 from emit.context import build_context
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
@@ -1097,3 +1097,134 @@ class TestReplaceMemberWithBotCommand:
                 "--bot",
                 "dealmakerbot",
             )
+
+
+class TestReplanMemberCommand:
+
+    def _seat_bot(self, game, primary_user):
+        member = game.members.exclude(user=primary_user).select_related("nation", "user").first()
+        BotProfile.objects.create(user=member.user, disposition="Cautious", voice="Terse")
+        return member
+
+    def _replan(self, game, member):
+        call_command("replan_member", "--game", game.id, "--nation", member.nation.name)
+
+    @pytest.mark.django_db
+    def test_queues_a_plan_task_for_the_current_phase(self, active_game_factory, primary_user, in_memory_procrastinate):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+
+        self._replan(game, member)
+
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=member)
+        assert task.phase == game.current_phase
+        assert task.status == AgentTaskStatus.PENDING
+        assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
+
+    @pytest.mark.django_db
+    def test_reopens_the_plan_task_the_bot_already_completed(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+        existing = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN,
+            member=member,
+            phase=game.current_phase,
+            status=AgentTaskStatus.SUCCEEDED,
+            last_error="boom",
+            completed_at=timezone.now(),
+        )
+
+        self._replan(game, member)
+
+        existing.refresh_from_db()
+        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=member).count() == 1
+        assert existing.status == AgentTaskStatus.PENDING
+        assert existing.last_error == ""
+        assert existing.completed_at is None
+        assert len(_run_jobs_for(in_memory_procrastinate, existing)) == 1
+
+    @pytest.mark.django_db
+    def test_discards_the_orders_the_bot_already_submitted(
+        self, active_game_factory, primary_user, in_memory_procrastinate, classical_london_province
+    ):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+        phase_state = game.current_phase.phase_states.get(member=member)
+        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.HOLD)
+
+        self._replan(game, member)
+
+        assert not Order.objects.filter(phase_state__member=member).exists()
+
+    @pytest.mark.django_db
+    def test_rejects_a_member_not_played_by_a_bot(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+        member = game.members.select_related("nation").first()
+
+        with pytest.raises(CommandError, match="not played by a bot"):
+            self._replan(game, member)
+
+        assert not AgentTask.objects.filter(member=member).exists()
+
+    @pytest.mark.django_db
+    def test_rejects_a_kicked_member(self, active_game_factory, primary_user, in_memory_procrastinate):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+        member.kicked = True
+        member.save(update_fields=["kicked"])
+
+        with pytest.raises(CommandError, match="has been kicked"):
+            self._replan(game, member)
+
+        assert not AgentTask.objects.filter(member=member).exists()
+
+    @pytest.mark.django_db
+    def test_rejects_a_game_without_an_active_phase(self, active_game_factory, primary_user, in_memory_procrastinate):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save(update_fields=["status"])
+
+        with pytest.raises(CommandError, match="no active phase"):
+            self._replan(game, member)
+
+    @pytest.mark.django_db
+    def test_matches_nation_case_insensitively(self, active_game_factory, primary_user, in_memory_procrastinate):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+
+        call_command("replan_member", "--game", game.id, "--nation", member.nation.name.lower())
+
+        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=member).exists()
+
+    @pytest.mark.django_db
+    def test_targets_the_bot_that_replaced_the_original_member(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        member = game.members.select_related("nation").first()
+        call_command(
+            "replace_member_with_bot", "--game", game.id, "--nation", member.nation.name, "--bot", "dealmakerbot"
+        )
+        replacement = game.members.get(user__username="dealmakerbot")
+
+        self._replan(game, member)
+
+        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=replacement).exists()
+
+    @pytest.mark.django_db
+    def test_rejects_unknown_nation(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+
+        with pytest.raises(CommandError, match="no member for nation"):
+            call_command("replan_member", "--game", game.id, "--nation", "Atlantis")
+
+    @pytest.mark.django_db
+    def test_rejects_unknown_game(self, active_game_factory, in_memory_procrastinate):
+        active_game_factory()
+
+        with pytest.raises(CommandError, match="no game with id"):
+            call_command("replan_member", "--game", "not-a-game", "--nation", "England")
