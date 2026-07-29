@@ -24,11 +24,15 @@ class Command(BaseCommand):
         if game is None:
             raise CommandError(f"no game with id '{options['game']}'")
 
-        member = game.members.filter(nation__name__iexact=options["nation"]).select_related("nation").first()
+        member = (
+            game.members.filter(nation__name__iexact=options["nation"], replaced_by__isnull=True)
+            .select_related("nation", "user")
+            .first()
+        )
         if member is None:
             raise CommandError(f"game '{game.id}' has no member for nation '{options['nation']}'")
-        if member.kicked:
-            raise CommandError(f"{member.nation.name} in game '{game.id}' has already been replaced")
+        if member.user is not None and hasattr(member.user, "bot_profile"):
+            raise CommandError(f"{member.nation.name} in game '{game.id}' is already played by a bot")
 
         available = BotProfile.objects.available_for_game(game)
         bot_profile = available.filter(user__username=options["bot"]).first()

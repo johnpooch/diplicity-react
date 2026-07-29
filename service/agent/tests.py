@@ -997,12 +997,25 @@ class TestReplaceMemberWithBotCommand:
         assert game.members.filter(user__username="dealmakerbot", nation=member.nation).exists()
 
     @pytest.mark.django_db
-    def test_rejects_a_seat_that_was_already_replaced(self, active_game_factory, in_memory_procrastinate):
+    def test_replaces_a_seat_abandoned_by_account_deletion(self, active_game_factory, in_memory_procrastinate):
+        game = active_game_factory()
+        member = game.members.first()
+        member.user = None
+        member.kicked = True
+        member.save(update_fields=["user", "kicked"])
+
+        self._replace(game, member)
+
+        member.refresh_from_db()
+        assert member.replaced_by == game.members.get(user__username="dealmakerbot")
+
+    @pytest.mark.django_db
+    def test_rejects_a_seat_already_played_by_a_bot(self, active_game_factory, in_memory_procrastinate):
         game = active_game_factory()
         member = game.members.first()
         self._replace(game, member)
 
-        with pytest.raises(CommandError, match="already been replaced"):
+        with pytest.raises(CommandError, match="already played by a bot"):
             self._replace(game, member, bot="bearbot")
 
         assert not game.members.filter(user__username="bearbot").exists()

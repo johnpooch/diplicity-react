@@ -144,6 +144,12 @@ recovery only checked `IsGameMember` and now use `IsNotKickedGameMember`. Read
 access is deliberately left open — a replaced player can still view the game and
 the channels they were in.
 
+`--nation` resolves to the seat's *current* holder — the member with no
+`replaced_by` — so a seat already handed over once resolves to the bot rather
+than the member it replaced. Note that `kicked` does not mean "replaced": account
+deletion kicks a member without ever setting `replaced_by`, and that is precisely
+the seat the command exists to fill.
+
 An unrecognised `--bot` errors with the list of bots still available for that
 game. A production run needs a shell on the deployed service (`railway ssh`),
 because `railway run` executes locally and cannot resolve Railway's internal
