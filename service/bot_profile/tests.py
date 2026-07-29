@@ -42,7 +42,7 @@ class TestBotRoster:
     @pytest.mark.django_db
     def test_roster_is_seeded(self):
         roster = BotProfile.objects.exclude(user=get_bot_user()).llm()
-        assert roster.count() == 12
+        assert roster.count() == 13
         assert all(profile.disposition and profile.voice for profile in roster)
 
     @pytest.mark.django_db
@@ -78,7 +78,7 @@ class TestAvailableBots:
         response = authenticated_client.get(reverse(available_bots_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 20
+        assert len(response.data) == 21
         names = [bot["name"] for bot in response.data]
         assert names == sorted(names)
         assert all(bot["user_id"] for bot in response.data)
@@ -95,7 +95,7 @@ class TestAvailableBots:
         response = authenticated_client.get(reverse(available_bots_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 19
+        assert len(response.data) == 20
         assert bot_user.id not in [bot["user_id"] for bot in response.data]
 
     @pytest.mark.django_db
