@@ -30,6 +30,7 @@ class AvailableBot(TypedDict):
     user_id: int
     name: str
     picture: str | None
+    kind: str
 
 
 class BotMemberCreate(TypedDict):

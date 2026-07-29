@@ -11,6 +11,7 @@ class AvailableBotSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(source="user.profile.name", read_only=True)
     picture = serializers.CharField(source="user.profile.picture", read_only=True, allow_null=True)
+    kind = serializers.CharField(read_only=True)
 
 
 class BotMemberCreateSerializer(serializers.Serializer):

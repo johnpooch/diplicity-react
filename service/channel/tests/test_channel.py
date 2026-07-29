@@ -885,3 +885,32 @@ class TestChannelMemberAutoCreation:
 
         new_member = game.members.filter(user__username="primaryuser").first()
         assert ChannelMember.objects.filter(member=new_member, channel=public_channel).exists()
+
+
+class TestKickedMemberCannotChat:
+
+    @pytest.mark.django_db
+    def test_create_message_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member, in_memory_procrastinate
+    ):
+        game = active_game_with_kicked_member
+        channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        channel.members.add(game.members.get(kicked=True))
+
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+        response = authenticated_client_for_secondary_user.post(url, {"body": "Still here"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not ChannelMessage.objects.filter(channel=channel).exists()
+
+    @pytest.mark.django_db
+    def test_create_channel_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
+    ):
+        game = active_game_with_kicked_member
+        url = reverse("channel-create", args=[game.id])
+        payload = {"member_ids": [game.members.get(kicked=False).id]}
+        response = authenticated_client_for_secondary_user.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not Channel.objects.filter(game=game).exists()

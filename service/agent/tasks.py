@@ -9,9 +9,11 @@ from agent.context import fetch_context
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
 from agent.orders import option_to_selected
-from agent.orchestration import run_reply, run_select_orders
+from agent.orchestration import run_dumbbot_orders, run_reply, run_select_orders
+from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from channel.models import Channel
+from dumbbot.exceptions import DumbbotError
 from harness.adapter import orders_to_options
 from harness.exceptions import ContextError, ParsingError
 from harness.types import Persona
@@ -24,9 +26,16 @@ logger = logging.getLogger(__name__)
 
 def _persona(user_id) -> Persona | None:
     profile = BotProfile.objects.filter(user_id=user_id).first()
-    if profile is None:
+    if profile is None or profile.kind != BotKind.LLM:
         return None
     return Persona(disposition=profile.disposition, voice=profile.voice)
+
+
+def _bot_kind(user_id):
+    profile = BotProfile.objects.filter(user_id=user_id).first()
+    if profile is None:
+        return None
+    return profile.kind
 
 
 def _phase(data):
@@ -40,16 +49,19 @@ def _member(game_id, user_id):
     return Member.objects.filter(game_id=game_id, user_id=user_id).first()
 
 
-def _submit_orders_from_context(api, data, game_id, user_id, label):
+def _submit_orders_from_context(api, data, game_id, user_id, label, kind):
     options = orders_to_options(data["orders"])
     try:
-        orders = run_select_orders(
-            data=data,
-            persona=_persona(user_id),
-            phase=_phase(data),
-            member=_member(game_id, user_id),
-        )
-    except (ContextError, InferenceError, ParsingError) as e:
+        if kind == BotKind.DUMBBOT:
+            orders = run_dumbbot_orders(data=data)
+        else:
+            orders = run_select_orders(
+                data=data,
+                persona=_persona(user_id),
+                phase=_phase(data),
+                member=_member(game_id, user_id),
+            )
+    except (ContextError, DumbbotError, InferenceError, ParsingError) as e:
         logger.info(f"[{label}] {e}; using first-legal selection")
         orders = first_legal_options(options)
     else:
@@ -75,7 +87,7 @@ def plan(user_id, game_id):
     api = ApiClient.for_user(user_id)
     try:
         data = fetch_context(api, game_id)
-        _submit_orders_from_context(api, data, game_id, user_id, label)
+        _submit_orders_from_context(api, data, game_id, user_id, label, _bot_kind(user_id))
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
         return
@@ -93,7 +105,7 @@ def finalize(user_id, game_id):
         if data["game"].get("phase_confirmed"):
             logger.info(f"[{label}] orders already confirmed; skipping")
             return
-        _submit_orders_from_context(api, data, game_id, user_id, label)
+        _submit_orders_from_context(api, data, game_id, user_id, label, _bot_kind(user_id))
         api.confirm_phase(game_id)
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")

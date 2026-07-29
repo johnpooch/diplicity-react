@@ -5376,3 +5376,26 @@ class TestCheckEliminations:
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
         assert not _elimination_notifications().exists()
+
+
+class TestKickedMemberPhaseStates:
+
+    @pytest.mark.django_db
+    def test_kicked_member_has_no_possible_orders_in_the_next_phase(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+        adjudication_data_italy_vs_germany,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        kicked = phase.game.members.get(nation__name="Italy")
+        kicked.kicked = True
+        kicked.save(update_fields=["kicked"])
+
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase,
+            {**mock_adjudication_data_basic, "options": adjudication_data_italy_vs_germany["options"]},
+        )
+
+        assert new_phase.phase_states.get(member=kicked).has_possible_orders is False
+        assert new_phase.phase_states.get(member__nation__name="Germany").has_possible_orders is True

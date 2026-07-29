@@ -1,3 +1,4 @@
+from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from common.constants import PhaseStatus
 from member.models import Member
@@ -84,7 +85,7 @@ class ChannelMessageSpec(AgentTaskSpec):
         actor = self.context.actor
         if actor is None or BotProfile.objects.filter(user=actor).exists():
             return []
-        bot_members = self.context.channel.members.filter(user__bot_profile__isnull=False).select_related("user")
+        bot_members = self.context.channel.members.filter(user__bot_profile__kind=BotKind.LLM).select_related("user")
         return [
             {
                 "kind": AgentTaskKind.REPLY,

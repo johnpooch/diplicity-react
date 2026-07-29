@@ -18,9 +18,9 @@ class AgentTaskManager(models.Manager):
         spec = get_spec(event_type, context)
         if spec is None:
             return []
-        return [self._enqueue(**descriptor) for descriptor in spec.get_tasks()]
+        return [self.enqueue(**descriptor) for descriptor in spec.get_tasks()]
 
-    def _enqueue(self, *, kind, member, phase=None, message=None):
+    def enqueue(self, *, kind, member, phase=None, message=None):
         task, created = self.get_or_create(
             kind=kind,
             member=member,
