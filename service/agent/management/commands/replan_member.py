@@ -17,7 +17,8 @@ class Command(BaseCommand):
             raise CommandError(f"no game with id '{options['game']}'")
 
         member = (
-            game.members.filter(nation__name__iexact=options["nation"], replaced_by__isnull=True)
+            game.members.not_replaced()
+            .filter(nation__name__iexact=options["nation"])
             .select_related("nation", "user", "game")
             .first()
         )
