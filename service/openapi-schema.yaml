@@ -1808,14 +1808,6 @@ components:
           type: integer
           readOnly: true
           default: 0
-        messageLimit:
-          type: integer
-          nullable: true
-          readOnly: true
-        memberMessageCount:
-          type: integer
-          nullable: true
-          readOnly: true
         memberIds:
           type: array
           items:
@@ -1824,8 +1816,6 @@ components:
       required:
       - id
       - memberIds
-      - memberMessageCount
-      - messageLimit
       - messages
       - name
       - private

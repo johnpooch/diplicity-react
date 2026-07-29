@@ -120,10 +120,6 @@ export interface Channel {
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
   readonly unreadMessageCount: number;
-  /** @nullable */
-  readonly messageLimit: number | null;
-  /** @nullable */
-  readonly memberMessageCount: number | null;
   memberIds: number[];
 }
 
