@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema
 from .models import Member
 from .serializers import MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SelectedGameMixin
 from emit import emit
 
@@ -69,7 +69,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsGameMember,
+        IsNotKickedGameMember,
         IsInCivilDisorder,
     ]
 

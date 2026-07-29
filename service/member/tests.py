@@ -920,3 +920,22 @@ def test_leave_pending_game_with_only_bots_remaining_deletes_game(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not Game.objects.filter(id=game_id).exists()
+
+
+class TestKickedMemberCivilDisorderRecovery:
+
+    @pytest.mark.django_db
+    def test_recovery_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
+    ):
+        game = active_game_with_kicked_member
+        member = game.members.get(kicked=True)
+        member.civil_disorder = True
+        member.save(update_fields=["civil_disorder"])
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client_for_secondary_user.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        member.refresh_from_db()
+        assert member.civil_disorder is True
