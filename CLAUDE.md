@@ -123,12 +123,24 @@ used when a player deletes their account or walks away mid-game:
 python manage.py replace_member_with_bot --game <id> --nation Italy --bot dealmakerbot
 ```
 
-It reassigns the member row to the bot user (keeping the nation, orders, phase
-states and channel memberships), clears `kicked`/`civil_disorder` so the bot can
-act, and queues a `plan` AgentTask for the current phase. An unrecognised
-`--bot` errors with the list of bots still available for that game. A production
-run needs a shell on the deployed service (`railway ssh`), because `railway run`
-executes locally and cannot resolve Railway's internal database host.
+It creates a *new* member for the bot in the same nation and marks the original
+`kicked`, pointing `replaced_by` at the replacement — the original row is kept so
+its phase states and messages remain attributable for statistics. The
+replacement joins every channel the original was in (the original stays too, so
+its past messages still render with the right sender). On the current phase it
+takes over the phase state, and the original's pending orders are discarded so
+adjudication does not receive two order sets for one nation. Finally it queues a
+`plan` AgentTask so the bot acts in the phase already under way.
+
+A kicked member's phase states are created with `has_possible_orders=False`, which
+keeps a replaced seat out of the "is everyone done?" checks — early resolution
+(`filter_due_phases`), the bot finalize trigger (`when_humans_confirmed`), NMR
+extensions and deadline warnings all key off that flag.
+
+An unrecognised `--bot` errors with the list of bots still available for that
+game. A production run needs a shell on the deployed service (`railway ssh`),
+because `railway run` executes locally and cannot resolve Railway's internal
+database host.
 
 ---
 

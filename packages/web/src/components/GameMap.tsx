@@ -103,7 +103,7 @@ const GameMap: React.FC = () => {
   const civilDisorderNations = useMemo(
     () =>
       (game?.members ?? [])
-        .filter((m) => m.civilDisorder && m.nation)
+        .filter((m) => m.civilDisorder && !m.kicked && m.nation)
         .map((m) => m.nation as string),
     [game?.members]
   );

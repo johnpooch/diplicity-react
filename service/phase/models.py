@@ -830,7 +830,7 @@ class PhaseManager(models.Manager):
                             new_phase.phase_states.model(
                                 member=member,
                                 phase=new_phase,
-                                has_possible_orders=member.nation.name in nations_with_orders,
+                                has_possible_orders=member.nation.name in nations_with_orders and not member.kicked,
                                 orders_confirmed=member.civil_disorder,
                             )
                         )
