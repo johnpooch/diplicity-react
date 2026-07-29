@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     "agent",
     "bot_profile",
     "harness",
+    "dumbbot",
     "drf_spectacular",
 ]
 

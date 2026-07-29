@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
+from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
 from common.constants import GameStatus, PhaseStatus
@@ -40,9 +41,16 @@ class TestBotRoster:
 
     @pytest.mark.django_db
     def test_roster_is_seeded(self):
-        roster = BotProfile.objects.exclude(user=get_bot_user())
+        roster = BotProfile.objects.exclude(user=get_bot_user()).llm()
         assert roster.count() == 12
         assert all(profile.disposition and profile.voice for profile in roster)
+
+    @pytest.mark.django_db
+    def test_dumbbot_roster_is_seeded(self):
+        roster = BotProfile.objects.filter(kind=BotKind.DUMBBOT)
+        assert roster.count() == 8
+        assert all(not profile.disposition and not profile.voice for profile in roster)
+        assert all(profile.user.is_active for profile in roster)
 
     @pytest.mark.django_db
     def test_bot_user_has_profile(self):
@@ -70,10 +78,11 @@ class TestAvailableBots:
         response = authenticated_client.get(reverse(available_bots_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 12
+        assert len(response.data) == 20
         names = [bot["name"] for bot in response.data]
         assert names == sorted(names)
         assert all(bot["user_id"] for bot in response.data)
+        assert {bot["kind"] for bot in response.data} == {BotKind.LLM, BotKind.DUMBBOT}
         assert get_bot_user().id not in [bot["user_id"] for bot in response.data]
 
     @pytest.mark.django_db
@@ -86,7 +95,7 @@ class TestAvailableBots:
         response = authenticated_client.get(reverse(available_bots_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 11
+        assert len(response.data) == 19
         assert bot_user.id not in [bot["user_id"] for bot in response.data]
 
     @pytest.mark.django_db
@@ -124,6 +133,20 @@ class TestAvailableBots:
 
 
 class TestAddBot:
+
+    @pytest.mark.django_db
+    def test_admin_adds_dumbbot(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_game_via_api(authenticated_client, classical_variant.id)
+        bot_user = BotProfile.objects.filter(kind=BotKind.DUMBBOT).first().user
+
+        response = authenticated_client.post(
+            reverse(add_bot_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["is_bot"] is True
+        assert game.members.filter(user=bot_user).exists()
 
     @pytest.mark.django_db
     def test_admin_adds_roster_bot(self, authenticated_client, classical_variant, settings):

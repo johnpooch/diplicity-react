@@ -1771,7 +1771,11 @@ components:
           type: string
           readOnly: true
           nullable: true
+        kind:
+          type: string
+          readOnly: true
       required:
+      - kind
       - name
       - picture
       - userId
