@@ -11,7 +11,16 @@ RUNNING_RECONCILE_AFTER = timedelta(minutes=10)
 
 
 class AgentTaskManager(models.Manager):
-    def create_from_event(self, *, kind, member, phase=None, message=None):
+    def create_from_event(self, event_type, context):
+        # Local import: agent.registry imports member/bot_profile models.
+        from agent.registry import get_spec
+
+        spec = get_spec(event_type, context)
+        if spec is None:
+            return []
+        return [self.enqueue(**descriptor) for descriptor in spec.get_tasks()]
+
+    def enqueue(self, *, kind, member, phase=None, message=None):
         task, created = self.get_or_create(
             kind=kind,
             member=member,

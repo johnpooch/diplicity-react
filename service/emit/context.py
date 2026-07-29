@@ -8,10 +8,13 @@ class EmitContext:
     phase: object = None
     actor: object = None
     channel: object = None
+    message: object = None
     payload: dict = field(default_factory=dict)
 
 
-def build_context(event_type, game=None, phase=None, actor=None, channel=None, message=None, draw_proposal=None, **payload):
+def build_context(
+    event_type, game=None, phase=None, actor=None, channel=None, message=None, draw_proposal=None, **payload
+):
     if message is not None:
         game = message.channel.game
         phase = message.phase or game.phases.last()
@@ -24,4 +27,4 @@ def build_context(event_type, game=None, phase=None, actor=None, channel=None, m
         actor = draw_proposal.created_by.user
     elif phase is not None and game is None:
         game = phase.game
-    return EmitContext(event_type, game, phase, actor, channel, payload)
+    return EmitContext(event_type, game, phase, actor, channel, message, payload)

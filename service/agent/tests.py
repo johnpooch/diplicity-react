@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from agent import decorators, tasks
+from agent import registry, tasks
 from agent.api_client import bot_request_host
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
@@ -21,6 +21,7 @@ from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
 from channel.models import ChannelMessage
 from common.constants import OrderType, PhaseStatus, PhaseType
+from emit.context import build_context
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
@@ -443,14 +444,14 @@ class TestBotIdentificationByProfile:
         bot_user.save()
         phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": bot_user}])
 
-        assert decorators._bot_user_ids_for_phase(phase.id) == {bot_user.id}
+        assert registry._bot_user_ids_for_phase(phase.id) == {bot_user.id}
 
     @pytest.mark.django_db
     def test_roster_bots_are_identified_as_bots(self, phase_factory, classical_england_nation):
         roster_user = BotProfile.objects.exclude(user=get_bot_user()).first().user
         phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": roster_user}])
 
-        assert roster_user.id in decorators._bot_user_ids_for_phase(phase.id)
+        assert roster_user.id in registry._bot_user_ids_for_phase(phase.id)
 
 
 class TestFinalizeTask:
@@ -505,7 +506,7 @@ class TestPlanTrigger:
         assert jobs[0]["args"] == {"agent_task_id": task.id}
 
     @pytest.mark.django_db
-    def test_editing_active_phase_does_not_refire(self, bot_game_factory, in_memory_procrastinate):
+    def test_saving_active_phase_does_not_create_task(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         phase = game.current_phase
 
@@ -695,11 +696,18 @@ class TestReplyTrigger:
         assert jobs[0]["lock"] == f"agent-task-{task.id}"
 
     @pytest.mark.django_db
-    def test_bot_own_message_does_not_defer_reply(self, bot_public_channel_factory, in_memory_procrastinate):
+    def test_bot_message_does_not_defer_reply(self, bot_public_channel_factory, in_memory_procrastinate):
         game, channel = bot_public_channel_factory()
-        bot_member = game.members.get(user=get_bot_user())
+        bot_user = get_bot_user()
 
-        ChannelMessage.objects.create(channel=channel, sender=bot_member, body="Hi all")
+        bot_client = APIClient()
+        bot_client.force_authenticate(user=bot_user)
+        response = bot_client.post(
+            reverse("channel-message-create", args=[game.id, channel.id]),
+            {"body": "Hi all"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
 
         assert not AgentTask.objects.filter(kind=AgentTaskKind.REPLY).exists()
 
@@ -824,11 +832,11 @@ class TestAgentTaskRun:
         tasks.run(agent_task_id=999999)
 
     @pytest.mark.django_db
-    def test_create_from_event_is_idempotent_for_same_phase_and_member(self, bot_game_factory, in_memory_procrastinate):
+    def test_enqueue_is_idempotent_for_same_phase_and_member(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
         bot_member = game.members.get(user=get_bot_user())
 
-        task = AgentTask.objects.create_from_event(kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase)
+        task = AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase)
 
         assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).count() == 1
         assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
@@ -846,6 +854,53 @@ class TestAgentTaskRun:
         task.refresh_from_db()
         assert task.status == AgentTaskStatus.SUCCEEDED
         assert task.attempts == 1
+
+
+class TestPhaseStateConfirmedSpec:
+
+    def _phase(self, phase_factory, states):
+        config = [
+            {"nation": nation, "user": user, "has_possible_orders": True, "orders_confirmed": confirmed}
+            for nation, user, confirmed in states
+        ]
+        return phase_factory(phase_states_config=config)
+
+    @pytest.mark.django_db
+    def test_no_finalize_while_a_human_is_pending(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation, classical_germany_nation
+    ):
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, get_bot_user(), False),
+                (classical_france_nation, user_factory(), True),
+                (classical_germany_nation, user_factory(), False),
+            ],
+        )
+
+        context = build_context("phase_state_confirmed", phase=phase)
+        assert registry.PhaseStateConfirmedSpec(context).get_tasks() == []
+
+    @pytest.mark.django_db
+    def test_finalize_for_bot_once_all_humans_confirmed(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation, classical_germany_nation
+    ):
+        bot_user = get_bot_user()
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, bot_user, False),
+                (classical_france_nation, user_factory(), True),
+                (classical_germany_nation, user_factory(), True),
+            ],
+        )
+
+        context = build_context("phase_state_confirmed", phase=phase)
+        descriptors = registry.PhaseStateConfirmedSpec(context).get_tasks()
+
+        assert len(descriptors) == 1
+        assert descriptors[0]["kind"] == AgentTaskKind.FINALIZE
+        assert descriptors[0]["member"].user_id == bot_user.id
 
 
 class TestAgentTaskReconcile:

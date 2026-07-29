@@ -5,7 +5,13 @@ from common.models import BaseModel
 User = get_user_model()
 
 
+class MemberQuerySet(models.QuerySet):
+    def not_replaced(self):
+        return self.filter(replaced_by__isnull=True)
+
+
 class Member(BaseModel):
+    objects = models.Manager.from_queryset(MemberQuerySet)()
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="members")
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="members")
     nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members", null=True, blank=True)

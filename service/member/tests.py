@@ -764,19 +764,20 @@ class TestReplaceableSerialization:
         assert response.data["members"][0]["replaceable"] is False
 
     @pytest.mark.django_db
-    def test_not_replaceable_when_replaced(
+    def test_replaced_member_is_not_listed(
         self, authenticated_client, classical_variant, classical_england_nation, primary_user, secondary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
-        game.members.create(
+        replaced = game.members.create(
             user=primary_user, nation=classical_england_nation, civil_disorder=True, replaced_by=replacement
         )
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        primary_member = next(m for m in response.data["members"] if m["is_current_user"])
-        assert primary_member["replaceable"] is False
+        assert [m["id"] for m in response.data["members"]] == [replacement.id]
+        assert not any(m["is_current_user"] for m in response.data["members"])
+        assert replaced.replaceable is False
 
 
 @pytest.mark.django_db
