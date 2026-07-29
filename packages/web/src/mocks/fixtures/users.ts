@@ -63,6 +63,7 @@ export const botRoster: AvailableBot[] = [
   { userId: 103, name: "The Commissar", picture: null, kind: "llm" },
   { userId: 104, name: "The Dealmaker", picture: null, kind: "llm" },
   { userId: 105, name: "The Eagle", picture: null, kind: "llm" },
+  { userId: 113, name: "The Gaffer", picture: null, kind: "llm" },
   { userId: 106, name: "The Imperator", picture: null, kind: "llm" },
   { userId: 107, name: "The Iron Lady", picture: null, kind: "llm" },
   { userId: 108, name: "The Revolutionary", picture: null, kind: "llm" },
