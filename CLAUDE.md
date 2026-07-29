@@ -137,6 +137,13 @@ keeps a replaced seat out of the "is everyone done?" checks — early resolution
 (`filter_due_phases`), the bot finalize trigger (`when_humans_confirmed`), NMR
 extensions and deadline warnings all key off that flag.
 
+A replaced player keeps their account, so every write path has to lock them out.
+Orders, order confirmation and draw proposals were already gated on
+`IsActiveGameMember`, which rejects kicked members; chat and civil-disorder
+recovery only checked `IsGameMember` and now use `IsNotKickedGameMember`. Read
+access is deliberately left open — a replaced player can still view the game and
+the channels they were in.
+
 An unrecognised `--bot` errors with the list of bots still available for that
 game. A production run needs a shell on the deployed service (`railway ssh`),
 because `railway run` executes locally and cannot resolve Railway's internal
