@@ -547,8 +547,6 @@ class Channel(TypedDict):
     private: bool
     messages: list[ChannelMessage]
     unread_message_count: int
-    message_limit: int | None
-    member_message_count: int | None
     member_ids: list[int]
 
 
