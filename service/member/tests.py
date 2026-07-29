@@ -4,6 +4,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
+from agent.constants import AgentTaskKind, AgentTaskStatus
+from agent.models import AgentTask
 from bot_profile.models import BotProfile
 from game.models import Game
 from notification.models import Notification
@@ -939,3 +941,50 @@ class TestKickedMemberCivilDisorderRecovery:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         member.refresh_from_db()
         assert member.civil_disorder is True
+
+
+class TestReplanOrdersAdminAction:
+
+    def _post_action(self, client, member):
+        return client.post(
+            "/admin/member/member/",
+            {"action": "replan_orders", "_selected_action": [str(member.id)]},
+            follow=True,
+        )
+
+    def _staff_client(self, authenticated_client, primary_user):
+        primary_user.is_staff = True
+        primary_user.is_superuser = True
+        primary_user.save()
+        authenticated_client.force_login(primary_user)
+        return authenticated_client
+
+    @pytest.mark.django_db
+    def test_queues_a_plan_task_for_a_bot_member(
+        self, authenticated_client, active_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=primary_user).first()
+        BotProfile.objects.create(user=member.user, disposition="Cautious", voice="Terse")
+        client = self._staff_client(authenticated_client, primary_user)
+
+        response = self._post_action(client, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=member)
+        assert task.phase == game.current_phase
+        assert task.status == AgentTaskStatus.PENDING
+
+    @pytest.mark.django_db
+    def test_reports_an_error_for_a_member_not_played_by_a_bot(
+        self, authenticated_client, active_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=primary_user).first()
+        client = self._staff_client(authenticated_client, primary_user)
+
+        response = self._post_action(client, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "not played by a bot" in response.content.decode()
+        assert not AgentTask.objects.filter(member=member).exists()

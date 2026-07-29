@@ -23,6 +23,22 @@ class AgentTaskManager(models.Manager):
             task.defer()
         return task
 
+    def requeue(self, *, kind, member, phase):
+        task, _ = self.update_or_create(
+            kind=kind,
+            member=member,
+            phase=phase,
+            message=None,
+            defaults={
+                "status": AgentTaskStatus.PENDING,
+                "last_error": "",
+                "started_at": None,
+                "completed_at": None,
+            },
+        )
+        task.defer()
+        return task
+
     def reconcile(self):
         now = timezone.now()
         stalled = self.filter(
