@@ -12,11 +12,13 @@ has none itself. A move only wastes the turn if it carries a unit away from ever
 could contest or into a corner it cannot advance from.
 - Holding does nothing for a unit's position. Hold only to defend a province genuinely under \
 threat this phase; do not hold merely because no move stands out.
-- Before ordering a support, confirm the unit you are supporting is itself ordered to make \
-exactly that move or hold this phase; a support of an action that is not being taken is \
-wasted.
-- Do not order two of your own units to the same destination unless you have a specific \
-reason; normally they bounce and both accomplish nothing.
+- A support helps only when both hold: the unit you support is actually ordered to make \
+exactly that move or hold this phase, and an enemy could otherwise contest that province. If \
+the supported action is not being made, or no enemy can reach the province, the support is \
+wasted — use the unit elsewhere.
+- Choose your orders as a set, not one unit at a time. If two of your own units would move to \
+the same province they bounce and both fail, so send one of them elsewhere unless the bounce \
+itself serves a purpose.
 - Support or act for another power's unit only when it advances your own position and \
 follows a coordination you have agreed with them; without such an agreement, a unit spent \
 on a rival's move is spent for their benefit."""

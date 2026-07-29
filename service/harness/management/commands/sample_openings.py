@@ -27,20 +27,56 @@ def _order_str(order, context, unit_types):
     return f"{prefix} {order['source']} {describe_option(order, context)}"
 
 
-def _flags(orders):
+def _own_nation(context):
+    return next((member["nation"] for member in context["members"] if member["is_current_user"]), None)
+
+
+def _can_reach(context, from_province, to_province, unit_type):
+    allow = "army" if unit_type == "Army" else "fleet"
+    for province in context["provinces"]:
+        if province["id"] == from_province:
+            return any(adj["to"] == to_province and allow in adj["allows"] for adj in province["adjacencies"])
+    return False
+
+
+def _contested(context, province, own_nation):
+    for unit in context["units"]:
+        if unit["nation"] == own_nation:
+            continue
+        if unit["province"] == province or _can_reach(context, unit["province"], province, unit["type"]):
+            return True
+    return False
+
+
+def _flags(orders, context):
+    if not orders:
+        return ["no_orders"]
+
+    own_nation = _own_nation(context)
     sources = {order["source"] for order in orders}
     flags = [f"hold:{order['source']}" for order in orders if order["order_type"] == "Hold"]
+
     move_targets = Counter(
         order["target"] for order in orders if order["order_type"] in MOVEMENT_TYPES and order["target"]
     )
     flags += [f"self_bounce:{dest}" for dest, count in move_targets.items() if count >= 2]
+
+    dangling_aux = set()
     for order_type, own_label, foreign_label in (
         ("Support", "dangling_support", "support_foreign"),
         ("Convoy", "dangling_convoy", "convoy_foreign"),
     ):
         for aux, _target, _actual in dangling(orders, order_type):
+            dangling_aux.add(aux)
             label = own_label if aux in sources else foreign_label
             flags.append(f"{label}:{aux}")
+
+    for order in orders:
+        if order["order_type"] != "Support" or order["aux"] in dangling_aux:
+            continue
+        if order["target"] and not _contested(context, order["target"], own_nation):
+            flags.append(f"uncontestable_support:{order['target']}")
+
     return flags
 
 
@@ -69,7 +105,7 @@ def ledger_for_nation(context, completions):
             "count": count,
             "share": round(count / scored, 3) if scored else 0.0,
             "orders": list(key),
-            "flags": _flags(representative[key]),
+            "flags": _flags(representative[key], context),
         }
         for key, count in joint.most_common()
     ]

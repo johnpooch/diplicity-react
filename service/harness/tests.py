@@ -527,3 +527,40 @@ class TestOpeningLedger:
         context = fixture_to_context(fixture)
         flags = ledger_for_nation(context, [_completion([("edi", 0), ("lon", 0)])])["order_sets"][0]["flags"]
         assert "self_bounce:nth" in flags
+
+    def test_flags_no_orders(self):
+        context = fixture_to_context(self._hold_fixture())
+        ledger = ledger_for_nation(context, [_completion([])])
+        assert ledger["order_sets"][0]["flags"] == ["no_orders"]
+
+    def _uncontestable_fixture(self, with_enemy=False):
+        units = [
+            {"type": "Fleet", "nation": "England", "province": "lon"},
+            {"type": "Fleet", "nation": "England", "province": "edi"},
+        ]
+        if with_enemy:
+            units.append({"type": "Fleet", "nation": "Germany", "province": "hol"})
+        return {
+            "id": "ledger_uncontestable",
+            "variant": "classical",
+            "nation": "England",
+            "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+            "units": units,
+            "supply_centers": [{"nation": "England", "province": "lon"}],
+            "order_options": [
+                {"source": "lon", "order_type": "Move", "target": "nth"},
+                {"source": "lon", "order_type": "Hold", "target": "lon"},
+                {"source": "edi", "order_type": "Support", "target": "nth", "aux": "lon"},
+                {"source": "edi", "order_type": "Hold", "target": "edi"},
+            ],
+        }
+
+    def test_flags_uncontestable_support(self):
+        context = fixture_to_context(self._uncontestable_fixture())
+        flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])["order_sets"][0]["flags"]
+        assert "uncontestable_support:nth" in flags
+
+    def test_contested_support_is_not_flagged_uncontestable(self):
+        context = fixture_to_context(self._uncontestable_fixture(with_enemy=True))
+        flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])["order_sets"][0]["flags"]
+        assert not any(flag.startswith("uncontestable_support") for flag in flags)
