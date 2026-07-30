@@ -14,6 +14,7 @@ class UserProfileSerializer(serializers.Serializer):
     email_notifications_enabled = serializers.BooleanField(required=False)
     can_create_bot_games = serializers.SerializerMethodField()
     reliability_tier = serializers.CharField(read_only=True, allow_null=True)
+    commitment = serializers.CharField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_create_bot_games(self, obj):
@@ -54,6 +55,7 @@ class PublicUserProfileSerializer(serializers.Serializer):
     nmr_rate = serializers.FloatField(read_only=True)
     cd_rate = serializers.FloatField(read_only=True)
     reliability_tier = serializers.CharField(read_only=True, allow_null=True)
+    commitment = serializers.CharField(read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

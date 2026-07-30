@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 
 from common.models import BaseModel
-from bot_profile.constants import BOT_USER_USERNAME
+from bot_profile.constants import BOT_USER_USERNAME, BotKind
 
 
 class BotProfileQuerySet(models.QuerySet):
@@ -17,6 +17,9 @@ class BotProfileQuerySet(models.QuerySet):
             .order_by("user__profile__name")
         )
 
+    def llm(self):
+        return self.filter(kind=BotKind.LLM)
+
 
 class BotProfileManager(models.Manager):
     def get_queryset(self):
@@ -28,9 +31,13 @@ class BotProfileManager(models.Manager):
     def available_for_game(self, game):
         return self.get_queryset().available_for_game(game)
 
+    def llm(self):
+        return self.get_queryset().llm()
+
 
 class BotProfile(BaseModel):
     objects = BotProfileManager()
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="bot_profile")
+    kind = models.CharField(max_length=20, choices=BotKind.KIND_CHOICES, default=BotKind.LLM)
     disposition = models.TextField()
     voice = models.TextField()

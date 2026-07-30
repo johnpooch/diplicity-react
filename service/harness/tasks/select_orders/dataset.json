@@ -1,0 +1,620 @@
+[
+  {
+    "id": "structure_single",
+    "notes": "One province, one option. The control. A competent model cannot fail this on structure; red here means prompting or parsing is broken, not judgement.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "order_options": [
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      }
+    ]
+  },
+  {
+    "id": "structure_three",
+    "notes": "Three provinces, two options each, in reading order. Dedup and coverage are nominally in play but the path of least resistance already passes both, so green here is weak evidence.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "order_options": [
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      },
+      {
+        "source": "lon",
+        "order_type": "Move",
+        "target": "eng"
+      },
+      {
+        "source": "par",
+        "order_type": "Hold",
+        "target": "par"
+      },
+      {
+        "source": "par",
+        "order_type": "Move",
+        "target": "bur"
+      },
+      {
+        "source": "ber",
+        "order_type": "Hold",
+        "target": "ber"
+      },
+      {
+        "source": "ber",
+        "order_type": "Move",
+        "target": "kie"
+      }
+    ]
+  },
+  {
+    "id": "structure_six",
+    "notes": "Six provinces, two options each. Pick-one-from-each is now real work and omission becomes a plausible slip. First fixture where green coverage carries weight.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "order_options": [
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      },
+      {
+        "source": "lon",
+        "order_type": "Move",
+        "target": "eng"
+      },
+      {
+        "source": "par",
+        "order_type": "Hold",
+        "target": "par"
+      },
+      {
+        "source": "par",
+        "order_type": "Move",
+        "target": "bur"
+      },
+      {
+        "source": "ber",
+        "order_type": "Hold",
+        "target": "ber"
+      },
+      {
+        "source": "ber",
+        "order_type": "Move",
+        "target": "kie"
+      },
+      {
+        "source": "rom",
+        "order_type": "Hold",
+        "target": "rom"
+      },
+      {
+        "source": "rom",
+        "order_type": "Move",
+        "target": "ven"
+      },
+      {
+        "source": "vie",
+        "order_type": "Hold",
+        "target": "vie"
+      },
+      {
+        "source": "vie",
+        "order_type": "Move",
+        "target": "bud"
+      },
+      {
+        "source": "mos",
+        "order_type": "Hold",
+        "target": "mos"
+      },
+      {
+        "source": "mos",
+        "order_type": "Move",
+        "target": "ukr"
+      }
+    ]
+  },
+  {
+    "id": "structure_lopsided",
+    "notes": "London has four attractive options listed first; Paris a single dull Hold listed last. Tempts over-investment in London and omission of Paris. Under the per-source contract duplication is impossible, so this fixture now measures coverage alone.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "order_options": [
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      },
+      {
+        "source": "lon",
+        "order_type": "Move",
+        "target": "eng"
+      },
+      {
+        "source": "lon",
+        "order_type": "Move",
+        "target": "wal"
+      },
+      {
+        "source": "lon",
+        "order_type": "Support",
+        "target": "lvp",
+        "aux": "wal"
+      },
+      {
+        "source": "par",
+        "order_type": "Hold",
+        "target": "par"
+      }
+    ]
+  },
+  {
+    "id": "support_coherence",
+    "notes": "Wales can support London to Liverpool (support-move) or support London to hold. Coherent iff the supported unit actually ends where the support says. The observed failure is London Hold plus Wales Support London->Liverpool: a support attached to a move never committed.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "units": [
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "lon"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "wal"
+      }
+    ],
+    "order_options": [
+      {
+        "source": "lon",
+        "order_type": "Move",
+        "target": "lvp"
+      },
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      },
+      {
+        "source": "wal",
+        "order_type": "Support",
+        "target": "lvp",
+        "aux": "lon"
+      },
+      {
+        "source": "wal",
+        "order_type": "Support",
+        "target": "lon",
+        "aux": "lon"
+      },
+      {
+        "source": "wal",
+        "order_type": "Hold",
+        "target": "wal"
+      }
+    ]
+  },
+  {
+    "id": "convoy_coherence",
+    "notes": "A fleet convoys an army across water; coherent iff the army actually makes the convoyed move. Convoying an army that holds is the dangling case.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "units": [
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "eng"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "lon"
+      }
+    ],
+    "order_options": [
+      {
+        "source": "eng",
+        "order_type": "Convoy",
+        "target": "bre",
+        "aux": "lon"
+      },
+      {
+        "source": "eng",
+        "order_type": "Hold",
+        "target": "eng"
+      },
+      {
+        "source": "lon",
+        "order_type": "Move",
+        "target": "bre"
+      },
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      }
+    ]
+  },
+  {
+    "id": "retreat_to_supply_center",
+    "notes": "Austrian A Trieste is dislodged and may retreat to Serbia (neutral SC, unoccupied) or Albania (no SC), or disband. Unambiguous: the unit is already displaced so there is no opportunity cost, Serbia is uncontested here, and disbanding forfeits a unit for nothing.",
+    "variant": "classical",
+    "nation": "Austria",
+    "phase": {
+      "season": "Fall",
+      "year": 1902,
+      "type": "Retreat"
+    },
+    "units": [
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "tri",
+        "dislodged": true
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "vie"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "bud"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "tri"
+      }
+    ],
+    "supply_centers": [
+      {
+        "nation": "Austria",
+        "province": "vie"
+      },
+      {
+        "nation": "Austria",
+        "province": "bud"
+      },
+      {
+        "nation": "Italy",
+        "province": "tri"
+      }
+    ],
+    "order_options": [
+      {
+        "source": "tri",
+        "order_type": "Move",
+        "target": "ser"
+      },
+      {
+        "source": "tri",
+        "order_type": "Move",
+        "target": "alb"
+      },
+      {
+        "source": "tri",
+        "order_type": "Disband"
+      }
+    ],
+    "ranked_options": {
+      "good": [
+        {
+          "source": "tri",
+          "order_type": "Move",
+          "target": "ser"
+        }
+      ],
+      "neutral": [],
+      "bad": [
+        {
+          "source": "tri",
+          "order_type": "Disband"
+        },
+        {
+          "source": "tri",
+          "order_type": "Move",
+          "target": "alb"
+        }
+      ]
+    }
+  },
+  {
+    "id": "take_neutral_supply_center",
+    "notes": "English F North Sea can take Norway (neutral SC, unoccupied, uncontested) or drift to Skagerakk. Unambiguous: North Sea is not itself an SC and is not threatened, so the fleet defends nothing by staying, and Skagerakk leads nowhere better. Hold is weak but not forbidden; only Skagerakk is strictly wasted.",
+    "variant": "classical",
+    "nation": "England",
+    "phase": {
+      "season": "Fall",
+      "year": 1901,
+      "type": "Movement"
+    },
+    "units": [
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "nth"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "lon"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "yor"
+      }
+    ],
+    "supply_centers": [
+      {
+        "nation": "England",
+        "province": "lon"
+      },
+      {
+        "nation": "England",
+        "province": "edi"
+      },
+      {
+        "nation": "England",
+        "province": "lvp"
+      }
+    ],
+    "order_options": [
+      {
+        "source": "nth",
+        "order_type": "Move",
+        "target": "nwy"
+      },
+      {
+        "source": "nth",
+        "order_type": "Move",
+        "target": "ska"
+      },
+      {
+        "source": "nth",
+        "order_type": "Hold",
+        "target": "nth"
+      },
+      {
+        "source": "lon",
+        "order_type": "Hold",
+        "target": "lon"
+      },
+      {
+        "source": "yor",
+        "order_type": "Hold",
+        "target": "yor"
+      }
+    ],
+    "ranked_options": {
+      "good": [
+        {
+          "source": "nth",
+          "order_type": "Move",
+          "target": "nwy"
+        }
+      ],
+      "neutral": [
+        {
+          "source": "nth",
+          "order_type": "Hold",
+          "target": "nth"
+        }
+      ],
+      "bad": [
+        {
+          "source": "nth",
+          "order_type": "Move",
+          "target": "ska"
+        }
+      ]
+    }
+  },
+  {
+    "id": "support_hold_threatened_supply_center",
+    "notes": "German A Munich is attacked by two French units (Burgundy and Tyrolia). A Kiel can support Munich to hold. Unsupported Munich falls two-against-one; supported it survives. Unambiguous: Kiel is not itself threatened and has no better use, and vacating Munich hands over a home centre. The only fixture testing coordination rather than single-unit greed.",
+    "variant": "classical",
+    "nation": "Germany",
+    "phase": {
+      "season": "Fall",
+      "year": 1903,
+      "type": "Movement"
+    },
+    "units": [
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "mun"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "kie"
+      },
+      {
+        "type": "Army",
+        "nation": "France",
+        "province": "bur"
+      },
+      {
+        "type": "Army",
+        "nation": "France",
+        "province": "tyr"
+      }
+    ],
+    "supply_centers": [
+      {
+        "nation": "Germany",
+        "province": "mun"
+      },
+      {
+        "nation": "Germany",
+        "province": "kie"
+      },
+      {
+        "nation": "Germany",
+        "province": "ber"
+      }
+    ],
+    "order_options": [
+      {
+        "source": "kie",
+        "order_type": "Support",
+        "target": "mun",
+        "aux": "mun"
+      },
+      {
+        "source": "kie",
+        "order_type": "Hold",
+        "target": "kie"
+      },
+      {
+        "source": "kie",
+        "order_type": "Move",
+        "target": "hol"
+      },
+      {
+        "source": "mun",
+        "order_type": "Hold",
+        "target": "mun"
+      },
+      {
+        "source": "mun",
+        "order_type": "Move",
+        "target": "ruh"
+      }
+    ],
+    "ranked_options": {
+      "good": [
+        {
+          "source": "kie",
+          "order_type": "Support",
+          "target": "mun",
+          "aux": "mun"
+        }
+      ],
+      "neutral": [
+        {
+          "source": "mun",
+          "order_type": "Hold",
+          "target": "mun"
+        }
+      ],
+      "bad": [
+        {
+          "source": "mun",
+          "order_type": "Move",
+          "target": "ruh"
+        }
+      ]
+    }
+  },
+  {
+    "id": "build_toward_open_supply_center",
+    "notes": "Russia has one build. Sevastopol is adjacent to Rumania, a neutral SC; Warsaw has no adjacent uncontrolled centre and no threat to defend against. Both builds are armies so unit type is not a confound. Weakest of the tactical fixtures: build-site value is genuinely contested in real play.",
+    "variant": "classical",
+    "nation": "Russia",
+    "phase": {
+      "season": "Winter",
+      "year": 1901,
+      "type": "Adjustment"
+    },
+    "max_orders": 1,
+    "units": [
+      {
+        "type": "Army",
+        "nation": "Russia",
+        "province": "mos"
+      },
+      {
+        "type": "Army",
+        "nation": "Russia",
+        "province": "ukr"
+      }
+    ],
+    "supply_centers": [
+      {
+        "nation": "Russia",
+        "province": "mos"
+      },
+      {
+        "nation": "Russia",
+        "province": "war"
+      },
+      {
+        "nation": "Russia",
+        "province": "sev"
+      },
+      {
+        "nation": "Russia",
+        "province": "stp"
+      }
+    ],
+    "order_options": [
+      {
+        "source": "sev",
+        "order_type": "Build",
+        "unit_type": "Army"
+      },
+      {
+        "source": "war",
+        "order_type": "Build",
+        "unit_type": "Army"
+      }
+    ],
+    "ranked_options": {
+      "good": [
+        {
+          "source": "sev",
+          "order_type": "Build",
+          "unit_type": "Army"
+        }
+      ],
+      "neutral": [],
+      "bad": [
+        {
+          "source": "war",
+          "order_type": "Build",
+          "unit_type": "Army"
+        }
+      ]
+    }
+  }
+]

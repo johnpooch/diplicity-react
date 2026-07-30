@@ -10,12 +10,13 @@ from channel.models import Channel, ChannelMessage
 from bot_profile.utils import get_bot_user
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
+from notification.models import Notification
 
 from common.constants import GameStatus
 
 
-def _notification_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "notification.send_notification"]
+def _channel_message_notifications():
+    return Notification.objects.filter(event_type="channel_message")
 
 
 class TestChannelCreateView:
@@ -266,7 +267,7 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # Author is the only channel member, so there is no one to notify.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_as_member_success(
@@ -284,7 +285,7 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # Author is the only game member, so there is no one to notify.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_without_explicit_members(
@@ -298,11 +299,11 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        user_ids = jobs[0]["args"]["user_ids"]
-        assert len(user_ids) == 1
-        assert sender_user_id not in user_ids
+        notifications = _channel_message_notifications()
+        assert notifications.count() == 1
+        recipient_ids = list(notifications.values_list("recipient_id", flat=True))
+        assert len(recipient_ids) == 1
+        assert sender_user_id not in recipient_ids
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_notifies_only_channel_members(
@@ -322,7 +323,7 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # The other game member is not in this private channel, so is not notified.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_with_multiple_members(
@@ -343,9 +344,9 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
+        notifications = _channel_message_notifications()
+        assert notifications.count() == 1
+        assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_member.user_id]
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_with_explicit_members_still_notifies_all(
@@ -366,9 +367,9 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
+        notifications = _channel_message_notifications()
+        assert notifications.count() == 1
+        assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_member.user_id]
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_as_non_member_fails(
@@ -705,15 +706,6 @@ class TestGameRetrieveUnreadCount:
         assert data["total_unread_message_count"] == 2
 
 
-@pytest.fixture
-def active_game_with_bot_channel(active_game_with_phase_state, classical_france_nation):
-    game = active_game_with_phase_state
-    bot_member = game.members.create(user=get_bot_user(), nation=classical_france_nation)
-    channel = Channel.objects.create(game=game, name="Bot Channel", private=True)
-    channel.members.add(game.members.first(), bot_member)
-    return game
-
-
 class TestChannelMessageCharLimit:
 
     @pytest.mark.django_db
@@ -755,90 +747,25 @@ class TestChannelMessagePhaseStamping:
         assert message.phase_id == game.current_phase.id
 
 
-class TestChannelMessageBotCap:
+class TestChannelMessageBotChannel:
 
     @pytest.mark.django_db
-    def test_cap_enforced_in_bot_channel(
-        self, authenticated_client, active_game_with_bot_channel, in_memory_procrastinate, settings
-    ):
-        game = active_game_with_bot_channel
-        channel = Channel.objects.get(game=game, name="Bot Channel")
-        url = reverse("channel-message-create", args=[game.id, channel.id])
-
-        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP):
-            response = authenticated_client.post(url, {"body": "hello"}, format="json")
-            assert response.status_code == status.HTTP_201_CREATED
-
-        response = authenticated_client.post(url, {"body": "one too many"}, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "reached the limit" in response.data["non_field_errors"][0]
-
-    @pytest.mark.django_db
-    def test_no_cap_in_human_only_channel(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
-    ):
-        game = active_game_with_private_channel
-        channel = Channel.objects.get(game=game, private=True)
-        url = reverse("channel-message-create", args=[game.id, channel.id])
-
-        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP + 3):
-            response = authenticated_client.post(url, {"body": "hello"}, format="json")
-            assert response.status_code == status.HTTP_201_CREATED
-
-    @pytest.mark.django_db
-    def test_cap_is_per_phase(
+    def test_no_message_cap_in_bot_channel(
         self,
         authenticated_client,
-        active_game_with_bot_channel,
+        active_game_with_phase_state,
+        classical_france_nation,
         in_memory_procrastinate,
-        settings,
-        phase_factory,
     ):
-        game = active_game_with_bot_channel
-        channel = Channel.objects.get(game=game, name="Bot Channel")
+        game = active_game_with_phase_state
+        bot_member = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+        channel = Channel.objects.create(game=game, name="Bot Channel", private=True)
+        channel.members.add(game.members.first(), bot_member)
         url = reverse("channel-message-create", args=[game.id, channel.id])
 
-        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP):
-            authenticated_client.post(url, {"body": "hello"}, format="json")
-        blocked = authenticated_client.post(url, {"body": "blocked"}, format="json")
-        assert blocked.status_code == status.HTTP_400_BAD_REQUEST
-
-        phase_factory(game=game, ordinal=game.current_phase.ordinal + 1, season="Fall")
-        allowed = authenticated_client.post(url, {"body": "new phase"}, format="json")
-        assert allowed.status_code == status.HTTP_201_CREATED
-
-
-class TestChannelListMessageLimit:
-
-    @pytest.mark.django_db
-    def test_bot_channel_exposes_limit_and_count(
-        self, authenticated_client, active_game_with_bot_channel, primary_user, settings
-    ):
-        game = active_game_with_bot_channel
-        channel = Channel.objects.get(game=game, name="Bot Channel")
-        primary_member = game.members.get(user=primary_user)
-        ChannelMessage.objects.create(
-            channel=channel, sender=primary_member, body="hi", phase=game.current_phase
-        )
-
-        url = reverse("channel-list", args=[game.id])
-        response = authenticated_client.get(url)
-
-        data = next(ch for ch in response.data if ch["name"] == "Bot Channel")
-        assert data["message_limit"] == settings.BOT_CHANNEL_MESSAGE_CAP
-        assert data["member_message_count"] == 1
-
-    @pytest.mark.django_db
-    def test_human_only_channel_has_null_limit(
-        self, authenticated_client, active_game_with_private_channel
-    ):
-        game = active_game_with_private_channel
-        url = reverse("channel-list", args=[game.id])
-        response = authenticated_client.get(url)
-
-        data = next(ch for ch in response.data if ch["name"] == "Private Channel")
-        assert data["message_limit"] is None
-        assert data["member_message_count"] is None
+        for _ in range(20):
+            response = authenticated_client.post(url, {"body": "hello"}, format="json")
+            assert response.status_code == status.HTTP_201_CREATED
 
 
 class TestChannelMemberAutoCreation:
@@ -884,3 +811,32 @@ class TestChannelMemberAutoCreation:
 
         new_member = game.members.filter(user__username="primaryuser").first()
         assert ChannelMember.objects.filter(member=new_member, channel=public_channel).exists()
+
+
+class TestKickedMemberCannotChat:
+
+    @pytest.mark.django_db
+    def test_create_message_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member, in_memory_procrastinate
+    ):
+        game = active_game_with_kicked_member
+        channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        channel.members.add(game.members.get(kicked=True))
+
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+        response = authenticated_client_for_secondary_user.post(url, {"body": "Still here"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not ChannelMessage.objects.filter(channel=channel).exists()
+
+    @pytest.mark.django_db
+    def test_create_channel_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
+    ):
+        game = active_game_with_kicked_member
+        url = reverse("channel-create", args=[game.id])
+        payload = {"member_ids": [game.members.get(kicked=False).id]}
+        response = authenticated_client_for_secondary_user.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not Channel.objects.filter(game=game).exists()

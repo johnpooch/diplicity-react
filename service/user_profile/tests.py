@@ -5,9 +5,15 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from adjudication import service as adjudication_service
-from common.constants import GameStatus, PhaseStatus, PhaseType
+from common.constants import Commitment, CommitmentRequirement, GameStatus, PhaseStatus, PhaseType
 from game.models import Game
-from phase.models import PhaseState
+from phase.models import Phase, PhaseState
+from user_profile.commitment import (
+    commitment_allows_requirement,
+    get_rated_outcomes,
+    recompute_commitment,
+    score_commitment,
+)
 from user_profile.models import UserProfile
 from member.models import Member
 from victory.models import Victory
@@ -680,6 +686,204 @@ class TestTierAllowsMinReliability:
         from user_profile.utils import tier_allows_min_reliability
 
         assert tier_allows_min_reliability(None, "something_else") is True
+
+
+RECEIVED = PhaseState.OrdersOutcome.RECEIVED
+NMR = PhaseState.OrdersOutcome.NMR
+
+
+class TestScoreCommitment:
+
+    @pytest.mark.parametrize(
+        "outcomes,expected",
+        [
+            ([], Commitment.UNDEFINED),
+            ([RECEIVED] * 9, Commitment.UNDEFINED),
+            ([RECEIVED] * 10, Commitment.HIGH),
+            ([NMR] + [RECEIVED] * 9, Commitment.HIGH),
+            ([NMR] * 2 + [RECEIVED] * 8, Commitment.MEDIUM),
+            ([NMR] * 4 + [RECEIVED] * 6, Commitment.MEDIUM),
+            ([NMR] * 5 + [RECEIVED] * 5, Commitment.LOW),
+            ([NMR], Commitment.UNDEFINED),
+            ([NMR] * 2, Commitment.LOW),
+            ([NMR, RECEIVED, NMR], Commitment.LOW),
+            ([RECEIVED] * 10 + [NMR] * 5, Commitment.HIGH),
+        ],
+    )
+    def test_score_commitment(self, outcomes, expected):
+        assert score_commitment(outcomes) == expected
+
+
+class TestCommitmentAllowsRequirement:
+
+    @pytest.mark.parametrize(
+        "commitment,commitment_requirement,expected",
+        [
+            (Commitment.HIGH, CommitmentRequirement.OPEN, True),
+            (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
+            (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
+            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
+            (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
+            (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
+            (Commitment.LOW, CommitmentRequirement.OPEN, False),
+            (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
+        ],
+    )
+    def test_commitment_allows_requirement(self, commitment, commitment_requirement, expected):
+        assert commitment_allows_requirement(commitment, commitment_requirement) is expected
+
+
+class TestRecomputeCommitment:
+
+    def _build_history(
+        self,
+        user,
+        variant,
+        nation,
+        outcomes,
+        private=False,
+        sandbox=False,
+        kicked=False,
+        phase_type=PhaseType.MOVEMENT,
+    ):
+        game = Game.objects.create(
+            name=f"History Game {Game.objects.count()}",
+            variant=variant,
+            status=GameStatus.ACTIVE,
+            private=private,
+            sandbox=sandbox,
+        )
+        member = game.members.create(user=user, nation=nation, kicked=kicked)
+        for ordinal, outcome in enumerate(outcomes, start=1):
+            phase = game.phases.create(
+                variant=variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=phase_type,
+                status=PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+            )
+            phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=outcome,
+            )
+        return game
+
+    @pytest.mark.django_db
+    def test_writes_stored_commitment(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED] * 10
+        )
+        assert recompute_commitment(user) == Commitment.HIGH
+        user.profile.refresh_from_db()
+        assert user.profile.commitment == Commitment.HIGH
+
+    @pytest.mark.django_db
+    def test_first_game_abandoner_scores_low(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED, NMR, NMR]
+        )
+        assert recompute_commitment(user) == Commitment.LOW
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("exclusion", ["private", "sandbox", "kicked"])
+    def test_excluded_phases_not_rated(
+        self, user_factory, classical_variant, classical_england_nation, exclusion
+    ):
+        user = user_factory()
+        self._build_history(
+            user,
+            classical_variant,
+            classical_england_nation,
+            [NMR] * 5,
+            **{exclusion: True},
+        )
+        assert recompute_commitment(user) == Commitment.UNDEFINED
+
+    @pytest.mark.django_db
+    def test_post_civil_disorder_phases_leave_rated_set(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        self._build_history(
+            user,
+            classical_variant,
+            classical_england_nation,
+            [RECEIVED, NMR, NMR, NMR, NMR, NMR, NMR, NMR],
+        )
+        assert get_rated_outcomes(user) == [NMR, NMR, RECEIVED]
+
+    @pytest.mark.django_db
+    def test_non_movement_nmrs_do_not_trigger_clamp(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        self._build_history(
+            user,
+            classical_variant,
+            classical_england_nation,
+            [NMR] * 4,
+            phase_type=PhaseType.RETREAT,
+        )
+        assert len(get_rated_outcomes(user)) == 4
+
+    @pytest.mark.django_db
+    def test_window_spans_multiple_games(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED] * 6
+        )
+        self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED] * 4
+        )
+        assert recompute_commitment(user) == Commitment.HIGH
+
+    @pytest.mark.django_db
+    def test_resolution_hook_writes_stored_commitment(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        game = self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED, NMR, NMR]
+        )
+        Phase.objects._recompute_commitment(game.phases.last())
+        user.profile.refresh_from_db()
+        assert user.profile.commitment == Commitment.LOW
+
+    @pytest.mark.django_db
+    def test_resolution_hook_skips_private_games(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        game = self._build_history(
+            user, classical_variant, classical_england_nation, [NMR, NMR], private=True
+        )
+        Phase.objects._recompute_commitment(game.phases.last())
+        user.profile.refresh_from_db()
+        assert user.profile.commitment == Commitment.UNDEFINED
+
+    @pytest.mark.django_db
+    def test_profile_serializes_commitment(
+        self, authenticated_client, primary_user, set_commitment
+    ):
+        set_commitment(primary_user, Commitment.MEDIUM)
+
+        response = authenticated_client.get(reverse("user-profile"))
+        assert response.data["commitment"] == Commitment.MEDIUM
+
+        response = authenticated_client.get(
+            reverse("public-user-profile", kwargs={"user_id": primary_user.id})
+        )
+        assert response.data["commitment"] == Commitment.MEDIUM
 
 
 class TestCanCreateBotGamesFlag:

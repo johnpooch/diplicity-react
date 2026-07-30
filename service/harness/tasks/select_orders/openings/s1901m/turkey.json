@@ -1,0 +1,361 @@
+{
+  "id": "s1901m_turkey",
+  "variant": "classical",
+  "nation": "Turkey",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "ank",
+      "order_type": "Hold"
+    },
+    {
+      "source": "ank",
+      "order_type": "Move",
+      "target": "arm"
+    },
+    {
+      "source": "ank",
+      "order_type": "Move",
+      "target": "bla"
+    },
+    {
+      "source": "ank",
+      "order_type": "Move",
+      "target": "con"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "con"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "sev"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "bla",
+      "aux": "sev"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "smy"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "smy"
+    },
+    {
+      "source": "con",
+      "order_type": "Hold"
+    },
+    {
+      "source": "con",
+      "order_type": "Move",
+      "target": "ank"
+    },
+    {
+      "source": "con",
+      "order_type": "Move",
+      "target": "bul"
+    },
+    {
+      "source": "con",
+      "order_type": "Move",
+      "target": "smy"
+    },
+    {
+      "source": "con",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "ank"
+    },
+    {
+      "source": "con",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "smy"
+    },
+    {
+      "source": "con",
+      "order_type": "Support",
+      "target": "smy",
+      "aux": "smy"
+    },
+    {
+      "source": "smy",
+      "order_type": "Hold"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "arm"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "con"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "syr"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "con"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "con"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "sev"
+    }
+  ],
+  "notes": "Classical opening (Spring 1901 Movement), Turkey. Sampler input; no ranked_options."
+}

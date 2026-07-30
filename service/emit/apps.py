@@ -6,4 +6,6 @@ class EmitConfig(AppConfig):
     name = "emit"
 
     def ready(self):
-        import emit.specs
+        import agent.registry
+        import channel.registry
+        import notification.registry

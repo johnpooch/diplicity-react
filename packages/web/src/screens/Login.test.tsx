@@ -131,6 +131,32 @@ describe("Login", () => {
     expect(screen.getByRole("button", { name: /sign in with apple/i })).toBeInTheDocument();
   });
 
+  it("shows App Store and Google Play badges linking to their store listings", () => {
+    renderLogin();
+
+    const appStoreLinks = screen.getAllByRole("link", {
+      name: /download on the app store/i,
+    });
+    expect(appStoreLinks.length).toBeGreaterThan(0);
+    appStoreLinks.forEach((link) =>
+      expect(link).toHaveAttribute(
+        "href",
+        "https://apps.apple.com/app/id6759169536"
+      )
+    );
+
+    const playStoreLinks = screen.getAllByRole("link", {
+      name: /get it on google play/i,
+    });
+    expect(playStoreLinks.length).toBeGreaterThan(0);
+    playStoreLinks.forEach((link) =>
+      expect(link).toHaveAttribute(
+        "href",
+        "https://play.google.com/store/apps/details?id=com.diplicityreact.app"
+      )
+    );
+  });
+
   it("signs in with Apple and stores tokens on success", async () => {
     mockAppleMutateAsync.mockResolvedValue({
       id: 2,

@@ -103,9 +103,10 @@ INSTALLED_APPS = [
     "draw_proposal",
     "email_service",
     "inference",
-    "harness",
     "agent",
     "bot_profile",
+    "harness",
+    "dumbbot",
     "drf_spectacular",
 ]
 
@@ -267,7 +268,6 @@ BOT_LLM_MODEL = os.getenv("BOT_LLM_MODEL", "claude-haiku-4-5")
 BOT_LLM_STRUCTURED_OUTPUTS = os.getenv("BOT_LLM_STRUCTURED_OUTPUTS", "True") == "True"
 
 CHAT_MESSAGE_MAX_CHARS = int(os.getenv("CHAT_MESSAGE_MAX_CHARS", "500"))
-BOT_CHANNEL_MESSAGE_CAP = int(os.getenv("BOT_CHANNEL_MESSAGE_CAP", "10"))
 
 
 REST_FRAMEWORK = {

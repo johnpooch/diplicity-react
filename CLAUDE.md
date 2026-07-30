@@ -46,10 +46,19 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   and evals. No Django models, game API, queues, or telemetry in production
   code. A TaskDefinition is declarative; build_prompt is shared; parse() is
   per-task and raises ParseError on unusable output.
-- agent — orchestration: signals, Procrastinate tasks, the game API client
-  (read + write), context assembly, telemetry, fallback policy, and the
-  build → inference.run → parse → side-effect glue. Everything that touches
-  Django, the game, or the queue lives here.
+- agent — orchestration: emit consumer specs (agent/registry.py), Procrastinate
+  tasks, the game API client (read + write), context assembly, telemetry,
+  fallback policy, and the build → inference.run → parse → side-effect glue.
+  Everything that touches Django, the game, or the queue lives here. The
+  AgentTask model is the durable record of bot work to be done (kind =
+  plan/finalize/reply): agent is a third emit consumer alongside notification
+  and channel event, so an emit event (phase_started, phase_state_confirmed,
+  channel_message) drives AgentTask.objects.create_from_event, which creates
+  pending rows and defers agent.run — that loads the row, transitions its
+  status, and dispatches to the executor. One AgentTask may span several
+  Inference calls. A periodic agent.reconcile task re-drives rows whose job
+  was lost or stalled (pending or stuck in running past a timeout), so a
+  hand-inserted row runs on the next sweep.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
 
@@ -58,6 +67,119 @@ Django/game/queue/side-effects → agent. Model-call mechanics/records →
 inference. Persona/roster → bot_profile. If you want to eval something in
 agent, a reasoning decision has leaked out of harness. If you want a plain
 deterministic assertion in harness, that logic belongs in agent.
+
+### Running the harness evals
+
+The `select_orders` evals run against the real model via a management command
+(`service/`):
+
+```bash
+python manage.py run_evals              # full dataset, model/key from settings
+python manage.py run_evals --limit 1    # quick smoke run
+python manage.py run_evals --model anthropic/claude-...   # override model
+```
+
+It needs `BOT_ANTHROPIC_API_KEY` set (model defaults to `BOT_LLM_MODEL`); it
+prints a skip line and exits if the key is missing. Each eval hits the LLM
+provider, so it costs real tokens.
+
+**Permission policy:** running a single epoch (the default — one pass over the
+dataset) is fine without asking. Do **not** run multiple epochs (each sample
+repeated N times) unless the user explicitly asks — that multiplies model calls
+and cost. When asked for multiple epochs, invoke `inspect_ai.eval(...)` with
+`epochs=N` directly (the command exposes no `--epochs` flag).
+
+The latest recorded baseline lives in
+`service/harness/tasks/select_orders/EVAL_RESULTS.md` — update it when you take
+a new baseline run.
+
+The `quality_strong`/`quality_avoidance` scorers only aggregate over dataset
+samples that declare `ranked_options` (a `good`/`neutral`/`bad` labelling of the
+legal moves); every other sample is `Score.unscored()` (NaN) and excluded. Those
+two scorers are the only ones that measure judgement rather than legality, so a
+new eval only bites if it carries `ranked_options`.
+
+### Harvesting eval candidates from real games
+
+`dump_phase` (in `agent`) turns a live game phase into eval raw material:
+
+```bash
+python manage.py dump_phase --game <id> --out phase_dumps
+cd packages/web
+npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render.json /tmp/board.png
+```
+
+It writes a board `RenderState` JSON (render it to a PNG with `render-phase.mjs`
+to eyeball what the bots did) plus one `select_orders` fixture stub per nation.
+Turn a bad decision into an eval by adding a `ranked_options` block to a stub —
+what the bot should have done under `good`, the mistake under `bad` — and
+appending it to `dataset.json`. Order *options* only exist for a game's current
+phase, so a resolved/historical phase (`--phase <id>`) is render-only. Output
+lives in the gitignored `phase_dumps/`.
+
+### Seating a bot in an abandoned seat
+
+`replace_member_with_bot` (in `agent`) hands a nation over to a roster bot —
+used when a player deletes their account or walks away mid-game:
+
+```bash
+python manage.py replace_member_with_bot --game <id> --nation Italy --bot dealmakerbot
+```
+
+It creates a *new* member for the bot in the same nation and marks the original
+`kicked`, pointing `replaced_by` at the replacement — the original row is kept so
+its phase states and messages remain attributable for statistics. The
+replacement joins every channel the original was in (the original stays too, so
+its past messages still render with the right sender). On the current phase it
+takes over the phase state, and the original's pending orders are discarded so
+adjudication does not receive two order sets for one nation. Finally it queues a
+`plan` AgentTask so the bot acts in the phase already under way.
+
+A kicked member's phase states are created with `has_possible_orders=False`, which
+keeps a replaced seat out of the "is everyone done?" checks — early resolution
+(`filter_due_phases`), the bot finalize trigger (`when_humans_confirmed`), NMR
+extensions and deadline warnings all key off that flag.
+
+A replaced player keeps their account, so every write path has to lock them out.
+Orders, order confirmation and draw proposals were already gated on
+`IsActiveGameMember`, which rejects kicked members; chat and civil-disorder
+recovery only checked `IsGameMember` and now use `IsNotKickedGameMember`. Read
+access is deliberately left open — a replaced player can still view the game and
+the channels they were in.
+
+`--nation` resolves to the seat's *current* holder — the member with no
+`replaced_by` — so a seat already handed over once resolves to the bot rather
+than the member it replaced. Note that `kicked` does not mean "replaced": account
+deletion kicks a member without ever setting `replaced_by`, and that is precisely
+the seat the command exists to fill.
+
+An unrecognised `--bot` errors with the list of bots still available for that
+game. A production run needs a shell on the deployed service (`railway ssh`),
+because `railway run` executes locally and cannot resolve Railway's internal
+database host.
+
+### Re-planning a bot's orders
+
+`replan_member` (in `agent`) makes a bot think again about the phase already
+under way — used after a harness change, when existing games should re-plan
+against the new prompts:
+
+```bash
+python manage.py replan_member --game <id> --nation Italy
+```
+
+It discards the bot's orders for the current phase, then re-opens the seat's
+`plan` AgentTask and defers the job. A seat that already planned has a
+`succeeded` row which `enqueue` would return untouched (and
+`unique_phase_agent_task` forbids a second one), so the shared `agent.replan`
+helper goes through `AgentTask.objects.requeue`, which resets the existing row
+to `pending` instead. `--nation` resolves to the seat's *current* holder, as in
+`replace_member_with_bot`. The command errors if the seat is not played by a
+bot, if that member has been kicked, or if the game has no active phase.
+
+The same operation is a **Re-plan orders (bot members only)** action on the
+Members changelist in Django admin, which takes a multi-select — that is the
+route for re-planning several seats at once.
 
 ---
 
@@ -85,8 +207,23 @@ Key facts:
 ### Codegen
 
 ```bash
-docker compose up codegen   # regenerates service/openapi-schema.yaml and src/api/generated/
+docker compose up codegen   # regenerates all four generated artefacts
 ```
+
+Codegen produces two OpenAPI schemas from the same serializers, because the API has two
+wire representations:
+
+| Artefact | Casing | Consumer |
+|---|---|---|
+| `service/openapi-schema.yaml` | camelCase | HTTP clients — drives `src/api/generated/` via orval |
+| `service/openapi-schema.internal.yaml` | snake_case | in-process clients — drives `service/harness/generated/api.py` |
+
+The camelCase form is produced by `CamelCaseJSONRenderer` at *render* time, so `response.data`
+(what `agent/api_client.py` reads via DRF's `APIClient`) is snake_case. The internal schema is
+generated by passing `--custom-settings project.openapi.INTERNAL_SCHEMA_SETTINGS`, which drops
+the camelize postprocessing hook for that invocation only.
+
+Never hand-edit `service/harness/generated/api.py` — it is regenerated by `datamodel-codegen`.
 
 After codegen, run `npx tsc -b --noEmit` in `packages/web` to catch downstream type errors. See the `backend` skill for environment requirements to match committed output.
 

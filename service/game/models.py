@@ -18,6 +18,9 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from common.constants import (
+    Commitment,
+    CommitmentEligibility,
+    CommitmentRequirement,
     DeadlineMode,
     GameStatus,
     MinReliability,
@@ -30,7 +33,7 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
-from notification.tasks import send_notification
+from emit import emit
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
@@ -78,7 +81,7 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile", "user__bot_profile"),
+            queryset=Member.objects.not_replaced().select_related("nation", "user__profile", "user__bot_profile"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -143,7 +146,7 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile", "user__bot_profile"),
+            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile", "user__bot_profile"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -230,7 +233,7 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile", "user__bot_profile"),
+            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile", "user__bot_profile"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -425,6 +428,11 @@ class Game(BaseModel):
         choices=MinReliability.MIN_RELIABILITY_CHOICES,
         default=MinReliability.OPEN,
     )
+    commitment_requirement = models.CharField(
+        max_length=20,
+        choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
+        default=CommitmentRequirement.OPEN,
+    )
     movement_phase_duration = models.CharField(
         max_length=20,
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
@@ -567,6 +575,19 @@ class Game(BaseModel):
             game_is_pending = self.status == GameStatus.PENDING
             return not user_is_member and game_is_pending
 
+    def commitment_eligibility(self, user):
+        if not user.is_authenticated:
+            return None
+        commitment = user.profile.commitment
+        if commitment == Commitment.LOW:
+            return CommitmentEligibility.LOW_LOCKED
+        if (
+            self.commitment_requirement == CommitmentRequirement.COMMITTED
+            and commitment != Commitment.HIGH
+        ):
+            return CommitmentEligibility.COMMITTED_LOCKED
+        return CommitmentEligibility.ELIGIBLE
+
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):
             user_is_member = any(
@@ -608,13 +629,7 @@ class Game(BaseModel):
             self.admin = new_admin
             self.save(update_fields=["admin"])
 
-            send_notification.defer(
-                user_ids=[new_admin.id],
-                title=self.name,
-                body="The previous manager is no longer available, so you are now managing this game.",
-                notification_type="game_admin_reassigned",
-                data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
-            )
+            emit("game_admin_reassigned", game=self)
 
     def notification_user_ids(self, exclude_user_id=None, active_only=False):
         members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
@@ -627,6 +642,28 @@ class Game(BaseModel):
         if exclude_user_id is not None:
             user_ids.discard(exclude_user_id)
         return list(user_ids)
+
+    def _with_game_master(self, user_ids):
+        result = set(user_ids)
+        if self.game_master_id is not None:
+            result.add(self.game_master_id)
+        return result
+
+    def member_user_ids(self, include_gm=False):
+        ids = {m.user_id for m in self.members.all() if m.user_id is not None}
+        return self._with_game_master(ids) if include_gm else ids
+
+    def active_member_user_ids(self, include_gm=False):
+        active = self.members.filter(eliminated=False, kicked=False, civil_disorder=False)
+        ids = {m.user_id for m in active if m.user_id is not None}
+        return self._with_game_master(ids) if include_gm else ids
+
+    def winner_members(self):
+        victory = Victory.objects.filter(game=self).prefetch_related("members").first()
+        return list(victory.members.all()) if victory is not None else []
+
+    def winner_user_ids(self):
+        return {m.user_id for m in self.winner_members() if m.user_id is not None}
 
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):
@@ -689,6 +726,21 @@ class Game(BaseModel):
             self.status = GameStatus.ACTIVE
             self.started_at = timezone.now()
             self.save()
+
+            emit("game_start", game=self)
+            emit("phase_started", phase=current_phase)
+
+    def emit_game_ended(self):
+        try:
+            victory = Victory.objects.prefetch_related("members").get(game=self)
+        except Victory.DoesNotExist:
+            return
+
+        if victory.members.count() >= 2:
+            emit("game_draw", game=self)
+        else:
+            emit("game_solo_win", game=self)
+            emit("game_solo_loss", game=self)
 
     def start_if_full(self):
         if self.status != GameStatus.PENDING:

@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   codegen:
     container_name: diplicity-codegen
@@ -11,13 +10,14 @@ services:
       - /app/packages/web/node_modules
       - /app/packages/native
     env_file:
-      - .env
+      - path: .env
+        required: false
     networks:
       - diplicity-network
     depends_on:
       - service
     command: >
-      sh -c "python3 service/manage.py spectacular --file service/openapi-schema.yaml && cd /app/packages/web && npx orval --config orval.config.ts"
+      sh -c "python3 service/manage.py spectacular --file service/openapi-schema.yaml && python3 service/manage.py spectacular --custom-settings project.openapi.INTERNAL_SCHEMA_SETTINGS --file service/openapi-schema.internal.yaml && datamodel-codegen --input service/openapi-schema.internal.yaml --input-file-type openapi --output service/harness/generated/api.py --output-model-type typing.TypedDict --target-python-version 3.13 --use-standard-collections --use-union-operator --strict-nullable --disable-timestamp && cd /app/packages/web && npx orval --config orval.config.ts"
 
   web:
     build:
@@ -38,7 +38,8 @@ services:
       - ./packages/web:/app
       - /app/node_modules
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - CHOKIDAR_USEPOLLING=true
     networks:
@@ -55,7 +56,8 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - DJANGO_DEBUG=True
       - ROOT_LOG_LEVEL=INFO
@@ -67,6 +69,9 @@ services:
       sh -c "python manage.py migrate && gunicorn project.wsgi:application --bind 0.0.0.0:8000 --timeout 60"
     networks:
       - diplicity-network
+    depends_on:
+      db:
+        condition: service_healthy
     tty: true
 
 
@@ -81,6 +86,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d diplicity"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
     networks:
       - diplicity-network
 
@@ -94,7 +105,8 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - DJANGO_DEBUG=True
       - ROOT_LOG_LEVEL=INFO
@@ -119,7 +131,8 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - DJANGO_DEBUG=True
       - ROOT_LOG_LEVEL=INFO

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useGameRetrieve } from "@/api/generated/endpoints";
 
 const navigationItems = [
@@ -119,6 +120,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           className
         )}
       >
+        <OfflineBanner />
         <div className="flex items-stretch flex-1 min-h-0 w-full">
           {/* Left Sidebar - Icons only */}
           <Sidebar collapsible="none" className="hidden md:flex w-14">

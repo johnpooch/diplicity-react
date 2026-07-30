@@ -1,4 +1,7 @@
+import json
+
 import pytest
+from django.core.management import call_command
 from django.urls import reverse
 from rest_framework import status
 
@@ -6,15 +9,17 @@ from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseSt
 from game.models import Game
 from province.models import Province
 from agent import tasks
-from agent.fallback import first_legal_selections
+from agent.fallback import first_legal_options
+from agent.orders import option_to_selected
 from bot_profile.models import BotProfile
+from harness.adapter import orders_to_options
 
 
 def _submit_first_legal_orders(client, game_id):
-    options = client.get(reverse("order-options", args=[game_id])).data["orders"]
+    options = orders_to_options(client.get(reverse("order-options", args=[game_id])).data["orders"])
     create_url = reverse("order-create", args=[game_id])
-    for selected in first_legal_selections(options):
-        client.post(create_url, {"selected": selected}, format="json")
+    for option in first_legal_options(options):
+        client.post(create_url, {"selected": option_to_selected(option)}, format="json")
 
 
 def _create_bot_game(client, variant_id):
@@ -81,6 +86,34 @@ def test_bot_game_starts_on_creation_and_plays_phase(
     second_phase = game.current_phase
     assert second_phase.id != first_phase.id
     assert second_phase.status == PhaseStatus.ACTIVE
+
+
+@pytest.mark.django_db
+def test_dump_phase_writes_render_state_and_fixture_stubs(
+    allowlisted_human, italy_vs_germany_variant, tmp_path
+):
+    human_client = allowlisted_human
+    game, bot_user = _create_bot_game(human_client, italy_vs_germany_variant.id)
+    phase = game.current_phase
+    _submit_first_legal_orders(human_client, game.id)
+
+    call_command("dump_phase", game=game.id, out=str(tmp_path))
+
+    prefix = f"{game.id}_p{phase.ordinal}_{phase.season}{phase.year}"
+
+    render = json.loads((tmp_path / f"{prefix}_render.json").read_text())
+    assert render["units"]
+    assert render["nationColors"]
+    assert any(order["source"] for order in render["orders"])
+
+    fixtures = list(tmp_path.glob(f"{prefix}_*.json"))
+    fixtures = [path for path in fixtures if not path.name.endswith("_render.json")]
+    assert fixtures
+    fixture = json.loads(fixtures[0].read_text())
+    assert fixture["variant"] == italy_vs_germany_variant.id
+    assert fixture["nation"]
+    assert fixture["order_options"]
+    assert "ranked_options" not in fixture
 
 
 @pytest.mark.django_db

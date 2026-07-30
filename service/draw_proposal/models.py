@@ -3,6 +3,7 @@ from django.utils import timezone
 from common.models import BaseModel
 from common.constants import GameStatus, PhaseStatus
 from draw_proposal.constants import DrawProposalStatus
+from emit import emit
 from victory.models import Victory
 
 
@@ -58,6 +59,8 @@ class DrawProposalManager(models.Manager):
             created_by=created_by,
             phase=phase,
         )
+
+        emit("draw_proposal", draw_proposal=proposal)
 
         votes_to_create = []
         for member in all_active_members:
@@ -146,6 +149,8 @@ class DrawProposal(BaseModel):
             self.phase.status = PhaseStatus.COMPLETED
             self.phase.scheduled_resolution = None
             self.phase.save()
+
+            self.game.emit_game_ended()
 
             return victory
 

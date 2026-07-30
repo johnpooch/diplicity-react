@@ -76,6 +76,7 @@ export interface AvailableBot {
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
+  readonly kind: string;
 }
 
 export interface BotMemberCreate {
@@ -100,6 +101,8 @@ export interface ChannelMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  /** @nullable */
+  readonly commitment: string | null;
   nation: Nation;
 }
 
@@ -117,12 +120,34 @@ export interface Channel {
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
   readonly unreadMessageCount: number;
-  /** @nullable */
-  readonly messageLimit: number | null;
-  /** @nullable */
-  readonly memberMessageCount: number | null;
   memberIds: number[];
 }
+
+/**
+ * * `eligible` - eligible
+ * `committed_locked` - committed_locked
+ * `low_locked` - low_locked
+ */
+export type CommitmentEligibilityEnum =
+  (typeof CommitmentEligibilityEnum)[keyof typeof CommitmentEligibilityEnum];
+
+export const CommitmentEligibilityEnum = {
+  eligible: "eligible",
+  committed_locked: "committed_locked",
+  low_locked: "low_locked",
+} as const;
+
+/**
+ * * `open` - Open
+ * `committed` - Committed
+ */
+export type CommitmentRequirementEnum =
+  (typeof CommitmentRequirementEnum)[keyof typeof CommitmentRequirementEnum];
+
+export const CommitmentRequirementEnum = {
+  open: "open",
+  committed: "committed",
+} as const;
 
 /**
  * * `duration` - Duration
@@ -145,6 +170,8 @@ export interface DrawVoteMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  /** @nullable */
+  readonly commitment: string | null;
   /** @nullable */
   nation: string | null;
 }
@@ -363,6 +390,7 @@ export interface GameCreate {
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
+  commitmentRequirement?: CommitmentRequirementEnum;
 }
 
 export interface GameCreateSandbox {
@@ -455,6 +483,8 @@ export interface Member {
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
   /** @nullable */
+  readonly commitment: string | null;
+  /** @nullable */
   readonly nation: string | null;
   readonly eliminated: boolean;
   readonly kicked: boolean;
@@ -516,6 +546,8 @@ export interface GameList {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly minReliability: string;
+  readonly commitmentRequirement: string;
+  readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -566,6 +598,8 @@ export interface GameRetrieve {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly minReliability: string;
+  readonly commitmentRequirement: string;
+  readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -723,6 +757,7 @@ export interface PatchedUserProfile {
   readonly canCreateBotGames?: boolean;
   /** @nullable */
   readonly reliabilityTier?: string | null;
+  readonly commitment?: string;
 }
 
 export interface PatchedVariantWrite {
@@ -817,6 +852,7 @@ export interface PublicUserProfile {
   readonly cdRate: number;
   /** @nullable */
   readonly reliabilityTier: string | null;
+  readonly commitment: string;
 }
 
 export interface Register {
@@ -846,6 +882,7 @@ export interface UserProfile {
   readonly canCreateBotGames: boolean;
   /** @nullable */
   readonly reliabilityTier: string | null;
+  readonly commitment: string;
 }
 
 export interface VictoryConditions {

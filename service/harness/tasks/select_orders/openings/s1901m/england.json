@@ -1,0 +1,371 @@
+{
+  "id": "s1901m_england",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "edi",
+      "order_type": "Hold"
+    },
+    {
+      "source": "edi",
+      "order_type": "Move",
+      "target": "cly"
+    },
+    {
+      "source": "edi",
+      "order_type": "Move",
+      "target": "nrg"
+    },
+    {
+      "source": "edi",
+      "order_type": "Move",
+      "target": "nth"
+    },
+    {
+      "source": "edi",
+      "order_type": "Move",
+      "target": "yor"
+    },
+    {
+      "source": "edi",
+      "order_type": "Support",
+      "target": "nth",
+      "aux": "lon"
+    },
+    {
+      "source": "edi",
+      "order_type": "Support",
+      "target": "yor",
+      "aux": "lon"
+    },
+    {
+      "source": "edi",
+      "order_type": "Support",
+      "target": "cly",
+      "aux": "lvp"
+    },
+    {
+      "source": "edi",
+      "order_type": "Support",
+      "target": "yor",
+      "aux": "lvp"
+    },
+    {
+      "source": "lon",
+      "order_type": "Hold"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "eng"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "nth"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "wal"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "yor"
+    },
+    {
+      "source": "lon",
+      "order_type": "Support",
+      "target": "eng",
+      "aux": "bre"
+    },
+    {
+      "source": "lon",
+      "order_type": "Support",
+      "target": "nth",
+      "aux": "edi"
+    },
+    {
+      "source": "lon",
+      "order_type": "Support",
+      "target": "yor",
+      "aux": "edi"
+    },
+    {
+      "source": "lon",
+      "order_type": "Support",
+      "target": "wal",
+      "aux": "lvp"
+    },
+    {
+      "source": "lon",
+      "order_type": "Support",
+      "target": "yor",
+      "aux": "lvp"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Hold"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Move",
+      "target": "cly"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Move",
+      "target": "edi"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Move",
+      "target": "wal"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Move",
+      "target": "yor"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Support",
+      "target": "cly",
+      "aux": "edi"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Support",
+      "target": "edi",
+      "aux": "edi"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Support",
+      "target": "yor",
+      "aux": "edi"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Support",
+      "target": "wal",
+      "aux": "lon"
+    },
+    {
+      "source": "lvp",
+      "order_type": "Support",
+      "target": "yor",
+      "aux": "lon"
+    }
+  ],
+  "notes": "Classical opening (Spring 1901 Movement), England. Sampler input; no ranked_options."
+}

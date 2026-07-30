@@ -2,6 +2,7 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from common.constants import PhaseStatus, PhaseType
+from emit import emit
 from member.serializers import MemberSerializer
 from phase.tasks import resolve_phase
 from phase.utils import compute_province_nations
@@ -35,6 +36,7 @@ class PhaseStateSerializer(serializers.Serializer):
             instance.save()
 
             if instance.orders_confirmed:
+                emit("phase_state_confirmed", phase=instance.phase)
                 resolve_phase.configure(
                     lock=f"resolve-game-{instance.phase.game_id}",
                 ).defer(phase_id=instance.phase_id)

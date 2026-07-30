@@ -3,13 +3,21 @@ import * as Sentry from "@sentry/react";
 import { DiplicityLogo } from "./DiplicityLogo";
 import { Button } from "@/components/ui/button";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { OfflineNotice } from "./OfflineNotice";
 import { isStaleChunkError, reloadForStaleChunk } from "@/utils/staleChunk";
+import { isNetworkError } from "@/utils/network";
+
+const reloadApp = () => window.location.reload();
 
 interface ErrorFallbackUIProps {
   error: Error;
 }
 
 export const ErrorFallbackUI: React.FC<ErrorFallbackUIProps> = ({ error }) => {
+  if (isNetworkError(error)) {
+    return <OfflineNotice fullScreen onRetry={reloadApp} />;
+  }
+
   return (
     <div className="max-w-sm mx-auto">
       <SafeAreaView className="flex flex-col items-center justify-center min-h-screen text-center gap-6">

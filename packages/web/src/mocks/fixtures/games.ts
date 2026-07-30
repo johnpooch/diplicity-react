@@ -50,6 +50,33 @@ export const pendingGameNoPlayers = makeFixture({
   }),
 });
 
+export const pendingGameCommitted = makeFixture({
+  description:
+    "Pending public game that requires committed players. The current user has high commitment and can join.",
+  game: makeGame("pending-committed", "Veterans Only", makePendingMembers(2, false), [], {
+    status: "pending",
+    canJoin: true,
+    commitmentRequirement: "committed",
+  }),
+});
+
+export const pendingGameCommittedLocked = makeFixture({
+  description:
+    "Pending public game that requires committed players, viewed by a player without high commitment. The card renders locked.",
+  game: makeGame(
+    "pending-committed-locked",
+    "Committed Circle",
+    makePendingMembers(2, false),
+    [],
+    {
+      status: "pending",
+      canJoin: true,
+      commitmentRequirement: "committed",
+      commitmentEligibility: "committed_locked",
+    }
+  ),
+});
+
 export const pendingGameSomePlayers = makeFixture({
   description:
     "Pending game with 3 of 7 players plus an AI player, including the current user (who created it and can manage it). Nations are not assigned yet.",
@@ -124,7 +151,7 @@ const buildActiveMovement = () => {
           "2026-05-01T12:10:00Z"
         ),
       ],
-      { unreadMessageCount: 1, messageLimit: 10, memberMessageCount: 8 }
+      { unreadMessageCount: 1 }
     ),
   ];
   return makeFixture({
@@ -439,6 +466,7 @@ const buildActiveDrawProposal = () => {
       picture: null,
       isCurrentUser: false,
       isBot: false,
+      commitment: "high",
       nation: "Austria",
     },
     status: "pending",
