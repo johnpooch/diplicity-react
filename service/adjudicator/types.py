@@ -26,6 +26,7 @@ from .domain import (
     SupplyCenter,
     Unit,
     Variant,
+    EmergencyMeasuresConfig,
 )
 
 # === Status constants ===
@@ -63,8 +64,11 @@ ALLOW_NON_HOME_BUILDS: str = "allow-builds-in-non-home-centers"
 # Variant modifier id enabling auto-rebuild for non-playable nations.
 NEUTRAL_NATIONS_AUTO_BUILD: str = "neutral-nations-auto-build"
 
+# Variant modifier id enabling Emergency Measures Rule.
+EMERGENCY_MEASURES: str = "emergency-measures"
+
 SUPPORTED_ADJUDICATION_MODIFIERS: frozenset = frozenset(
-    {ALLOW_NON_HOME_BUILDS, NEUTRAL_NATIONS_AUTO_BUILD}
+    {ALLOW_NON_HOME_BUILDS, NEUTRAL_NATIONS_AUTO_BUILD, EMERGENCY_MEASURES}
 )
 
 
@@ -525,6 +529,22 @@ class BuildLocationIsHomeCenterCheck(Check):
         return province is not None and province.home_nation == order.nation
 
 
+class BuildLocationIsEmergencyMeasuresSiteCheck(Check):
+    """Extra build site (e.g., Siberia) valid only when EMR active for this nation."""
+
+    MESSAGE = "This location is not a valid build site for this nation."
+
+    @classmethod
+    def check(cls, state: "StateView", order: Order) -> bool:
+        assert isinstance(order, BuildOrder)
+        nation_view = state.nation(order.nation)
+        config = nation_view._emergency_measures_config()
+        if not config or not nation_view._emergency_measures_active():
+            return True  # Not applicable
+        parent = state.variant().parent_of(order.location)
+        return parent == config.extra_build_site
+
+
 class BuildArmyNotAtNamedCoastCheck(Check):
     """An army may not be built at a named coast; the location must be a
     parent province id."""
@@ -792,6 +812,7 @@ class BuildOrder(Order):
         BuildLocationIsSupplyCenterCheck,
         BuildLocationIsOwnedCheck,
         BuildLocationIsHomeCenterCheck,
+        BuildLocationIsEmergencyMeasuresSiteCheck,
         BuildArmyNotAtNamedCoastCheck,
         BuildFleetCoastIsSpecifiedCheck,
         BuildFleetLocationIsCoastalCheck,
@@ -885,24 +906,24 @@ class OrderResolution:
     ResolveStrengthsAndCutsReducer; later mirrored onto status by
     FinalizeStatusesReducer for the external Resolution record."""
 
-    attack_strength: Optional[int] = None
+    attack_strength: Optional[float] = None
     """Per-MoveOrder attack strength: 1 + matched/uncut/non-defender-
     nation SupportMoves attached to this Move. None for non-Move and for
     ILLEGAL Move orders. Populated by ResolveStrengthsAndCutsReducer."""
 
-    defense_strength: Optional[int] = None
+    defense_strength: Optional[float] = None
     """Per-MoveOrder defense strength used when the move is the defender
     in a head-to-head: 1 + matched/uncut SupportMoves (no defender-nation
     drop). None for Move orders that aren't head-to-head defenders.
     Populated by ResolveStrengthsAndCutsReducer."""
 
-    prevent_strength: Optional[int] = None
+    prevent_strength: Optional[float] = None
     """Per-MoveOrder prevent strength: 0 when losing a head-to-head, else
     1 + matched/uncut SupportMoves. Used to determine whether competing
     attacks into the same province stand each other off. None for non-Move
     or ILLEGAL Move orders. Populated by ResolveStrengthsAndCutsReducer."""
 
-    hold_strength: Optional[int] = None
+    hold_strength: Optional[float] = None
     """Per-order hold strength at the order's source province: 0 if the
     unit's own Move resolved OK (vacating), else 1 + matched/uncut
     SupportHolds. None for non-Movement orders. Populated by
@@ -1065,12 +1086,31 @@ class NationView:
     def allowed_builds(self) -> int:
         if self._is_non_playable():
             return 0
-        return max(0, len(self.owned_supply_centers()) - self.standing_unit_count())
+        base = max(0, len(self.owned_supply_centers()) - self.standing_unit_count())
+        if self._emergency_measures_active():
+            base += 1
+        return base
 
     def required_disbands(self) -> int:
         if self._is_non_playable():
             return 0
-        return max(0, self.standing_unit_count() - len(self.owned_supply_centers()))
+        base = max(0, self.standing_unit_count() - len(self.owned_supply_centers()))
+        if self._emergency_measures_active():
+            base = max(0, base - 1)
+        return base
+
+    def _emergency_measures_config(self) -> Optional[EmergencyMeasuresConfig]:
+        for config in self._state.variant.emergency_measures:
+            if config.nation == self._nation:
+                return config
+        return None
+
+    def _emergency_measures_active(self) -> bool:
+        config = self._emergency_measures_config()
+        if not config:
+            return False
+        home = self.home_supply_centers() & set(config.home_centers)
+        return config.min_owned_home <= len(home) <= config.max_owned_home
 
     def _is_non_playable(self) -> bool:
         for nation in self._state.variant.nations:

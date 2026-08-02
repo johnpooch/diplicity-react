@@ -20,6 +20,12 @@ class ProvinceType:
 class Adjacency:
     to: str
     pass_: str
+    army_strength: float = 1.0
+    fleet_strength: float = 1.0
+    convoy_strength: float = 1.0
+    no_support: bool = False
+    cut_exception: bool = False
+    retreat_priority: int = 0
 
     def allows(self, unit_type: str) -> bool:
         if unit_type == Unit.ARMY:
@@ -37,6 +43,7 @@ class Province:
     supply_center: bool
     home_nation: Optional[str]
     adjacencies: Tuple[Adjacency, ...]
+    convoyable_capable: bool = False
 
 
 @dataclass(frozen=True)
@@ -117,6 +124,15 @@ VictoryCondition = Union[
 
 
 @dataclass(frozen=True)
+class EmergencyMeasuresConfig:
+    nation: str
+    home_centers: Tuple[str, ...]
+    extra_build_site: str
+    min_owned_home: int = 1
+    max_owned_home: int = 3
+
+
+@dataclass(frozen=True)
 class Variant:
     id: str
     name: str
@@ -130,6 +146,7 @@ class Variant:
     provinces: Dict[str, Province]
     named_coasts: Dict[str, NamedCoast]
     dominance_rules: Tuple[DominanceRule, ...]
+    emergency_measures: Tuple[EmergencyMeasuresConfig, ...] = ()
 
     def location(self, location_id: str) -> Province:
         if location_id in self.provinces:

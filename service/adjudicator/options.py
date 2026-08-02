@@ -176,9 +176,15 @@ def _move_has_convoy_path(
     if order.target != target_parent:
         return False
     source_parent = variant.parent_of(order.source)
-    if not view.province(source_parent).is_coastal():
+    # Source must be coastal OR convoyable_capable
+    source_prov = variant.provinces.get(source_parent)
+    if not (view.province(source_parent).is_coastal() or
+            (source_prov is not None and source_prov.convoyable_capable)):
         return False
-    if not view.province(target_parent).is_coastal():
+    # Target must be coastal OR convoyable_capable
+    target_prov = variant.provinces.get(target_parent)
+    if not (view.province(target_parent).is_coastal() or
+            (target_prov is not None and target_prov.convoyable_capable)):
         return False
     if not sea_fleet_locs:
         return False
@@ -296,9 +302,13 @@ def _supported_can_convoy(
     if order.target != target_parent:
         return False
     source_parent = variant.parent_of(mover.location)
-    if not view.province(source_parent).is_coastal():
+    source_prov = variant.provinces.get(source_parent)
+    if not (view.province(source_parent).is_coastal() or
+            (source_prov is not None and source_prov.convoyable_capable)):
         return False
-    if not view.province(target_parent).is_coastal():
+    target_prov = variant.provinces.get(target_parent)
+    if not (view.province(target_parent).is_coastal() or
+            (target_prov is not None and target_prov.convoyable_capable)):
         return False
     # Exclude the supporter itself from the convoy chain (godip's
     # `noConvoy` argument): if the supporter is also the only fleet,
@@ -324,7 +334,7 @@ def _convoy_options(
     coastal_parents = sorted(
         pid
         for pid, p in variant.provinces.items()
-        if p.type != ProvinceType.SEA and variant.has_fleet_access(pid)
+        if p.type != ProvinceType.SEA and (variant.has_fleet_access(pid) or p.convoyable_capable)
     )
     for army_source in army_source_parents:
         for army_target in coastal_parents:

@@ -330,6 +330,9 @@ def _sea_neighbours(state: StateView, location: str) -> Set[str]:
     When `location` is a province with named coasts (e.g. bul, spa), the
     sea adjacencies live on the named coasts rather than the parent —
     so we union over the parent and every named coast belonging to it.
+
+    Additionally, for `convoyable_capable` provinces (e.g. Gibraltar),
+    include their fleet-passable adjacencies even if they are not coastal.
     """
     variant = state.variant()
     result: Set[str] = set()
@@ -337,6 +340,17 @@ def _sea_neighbours(state: StateView, location: str) -> Set[str]:
     locations_to_check = [parent, *variant.coasts_of(parent)]
     for loc in locations_to_check:
         for adjacency in variant.adjacencies_of(loc):
+            if not adjacency.allows(Unit.FLEET):
+                continue
+            adj_parent = variant.parent_of(adjacency.to)
+            if state.province(adj_parent).is_sea():
+                result.add(adj_parent)
+    # Also check convoyable_capable provinces that are not coastal
+    prov = variant.provinces.get(parent)
+    if prov is not None and prov.convoyable_capable and not prov.type == "coastal":
+        # It's a convoyable_capable province that is not coastal (e.g., Gibraltar as sea space)
+        # Check its adjacencies for fleet-passable sea connections
+        for adjacency in variant.adjacencies_of(parent):
             if not adjacency.allows(Unit.FLEET):
                 continue
             adj_parent = variant.parent_of(adjacency.to)

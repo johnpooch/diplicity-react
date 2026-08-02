@@ -104,6 +104,35 @@ properties:
     examples:
       - ["allow-builds-in-non-home-centers"]
 
+  emergencyMeasures:
+    type: object
+    description: |
+      Per-nation emergency measures configuration (e.g., Russian Emergency Measures).
+      Each nation ID maps to a configuration object specifying home centers,
+      extra build site, and ownership thresholds.
+    additionalProperties:
+      type: object
+      required: [homeCenters, extraBuildSite]
+      properties:
+        homeCenters:
+          type: array
+          items: {type: string}
+          minItems: 1
+          description: Original home supply center province IDs for this nation.
+        extraBuildSite:
+          type: string
+          description: Province ID that becomes a build site when EMR is active.
+        minOwnedHome:
+          type: integer
+          default: 1
+          minimum: 0
+          description: Minimum owned home centers (inclusive) to activate EMR.
+        maxOwnedHome:
+          type: integer
+          default: 3
+          minimum: 0
+          description: Maximum owned home centers (inclusive) to activate EMR.
+
   phaseProgression:
     type: object
     description: |
@@ -521,6 +550,14 @@ $defs:
           nation's home center even after another nation captures it, and
           `homeNation` reflects the home-center designation, not current
           ownership.
+      convoyableCapable:
+        type: boolean
+        default: false
+        description: |
+          If true, this province can serve as a convoy endpoint for armies
+          even if it is not coastal (e.g., Gibraltar as a sea space that can
+          receive convoyed armies). The province must still have fleet-passable
+          adjacencies to sea provinces.
       adjacencies:
         type: array
         description: |
@@ -613,6 +650,49 @@ $defs:
                      provinces that don't share a coast)
             - fleet: fleet-only (sea-to-sea or sea-to-coastal)
             - both:  shared coast / either type can pass
+      armyStrength:
+        type: number
+        default: 1.0
+        minimum: 0
+        description: |
+          Attack strength multiplier for armies traversing this edge.
+          Default 1.0. Values < 1.0 represent half-strength or fractional strength edges.
+      fleetStrength:
+        type: number
+        default: 1.0
+        minimum: 0
+        description: |
+          Attack strength multiplier for fleets traversing this edge.
+          Default 1.0. Values < 1.0 represent half-strength or fractional strength edges.
+      convoyStrength:
+        type: number
+        default: 1.0
+        minimum: 0
+        description: |
+          Attack strength multiplier for convoyed armies traversing this edge.
+          Default 1.0. Values < 1.0 represent half-strength or fractional strength edges.
+      noSupport:
+        type: boolean
+        default: false
+        description: |
+          If true, units on this edge cannot support into the target province.
+          Used for Suez Canal rule where Egypt/Hejaz cannot support into MAO and vice versa.
+      cutException:
+        type: boolean
+        default: false
+        description: |
+          If true, an attack from this edge only cuts support if it succeeds in dislodging
+          the target unit. Normal edges cut support immediately on any attack.
+          Used for Suez Canal rule.
+      retreatPriority:
+        type: integer
+        default: 0
+        minimum: -10
+        maximum: 10
+        description: |
+          Priority for retreat resolution when multiple units retreat to the same province.
+          Higher priority wins; ties result in all bouncing. Default 0.
+          Negative values (e.g., -1) for longer routes like circumnavigating Africa.
 
   DominanceRule:
     type: object

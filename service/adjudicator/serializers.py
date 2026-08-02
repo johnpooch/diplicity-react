@@ -10,6 +10,7 @@ from .domain import (
     Adjacency,
     DominanceDependency,
     DominanceRule,
+    EmergencyMeasuresConfig,
     NamedCoast,
     Nation,
     Order,
@@ -133,7 +134,17 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
     provinces: Dict[str, Province] = {}
     for p in data["provinces"]:
         adjacencies = tuple(
-            Adjacency(to=a["to"], pass_=a["pass"]) for a in p["adjacencies"]
+            Adjacency(
+                to=a["to"],
+                pass_=a["pass"],
+                army_strength=a.get("armyStrength", 1.0),
+                fleet_strength=a.get("fleetStrength", 1.0),
+                convoy_strength=a.get("convoyStrength", 1.0),
+                no_support=a.get("noSupport", False),
+                cut_exception=a.get("cutException", False),
+                retreat_priority=a.get("retreatPriority", 0),
+            )
+            for a in p["adjacencies"]
         )
         provinces[p["id"]] = Province(
             id=p["id"],
@@ -142,12 +153,23 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
             supply_center=p["supplyCenter"],
             home_nation=p.get("homeNation"),
             adjacencies=adjacencies,
+            convoyable_capable=p.get("convoyableCapable", False),
         )
 
     named_coasts: Dict[str, NamedCoast] = {}
     for nc in data.get("namedCoasts", []):
         adjacencies = tuple(
-            Adjacency(to=a["to"], pass_=a["pass"]) for a in nc["adjacencies"]
+            Adjacency(
+                to=a["to"],
+                pass_=a["pass"],
+                army_strength=a.get("armyStrength", 1.0),
+                fleet_strength=a.get("fleetStrength", 1.0),
+                convoy_strength=a.get("convoyStrength", 1.0),
+                no_support=a.get("noSupport", False),
+                cut_exception=a.get("cutException", False),
+                retreat_priority=a.get("retreatPriority", 0),
+            )
+            for a in nc["adjacencies"]
         )
         if any(a.pass_ != Pass.FLEET for a in adjacencies):
             raise VariantValidationError(
@@ -201,6 +223,19 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
             )
         bucket.add(rule.priority)
 
+    emergency_measures = ()
+    if "emergencyMeasures" in data:
+        configs = []
+        for nation_id, config_data in data["emergencyMeasures"].items():
+            configs.append(EmergencyMeasuresConfig(
+                nation=nation_id,
+                home_centers=tuple(config_data["homeCenters"]),
+                extra_build_site=config_data["extraBuildSite"],
+                min_owned_home=config_data.get("minOwnedHome", 1),
+                max_owned_home=config_data.get("maxOwnedHome", 3),
+            ))
+        emergency_measures = tuple(configs)
+
     modifiers = tuple(data.get("adjudicationModifiers", []))
     for tag in modifiers:
         if tag not in SUPPORTED_ADJUDICATION_MODIFIERS:
@@ -223,6 +258,7 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
         provinces=provinces,
         named_coasts=named_coasts,
         dominance_rules=dominance_rules,
+        emergency_measures=emergency_measures,
     )
 
 
