@@ -1,0 +1,2 @@
+class DumbbotError(Exception):
+    pass

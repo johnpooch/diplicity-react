@@ -14,16 +14,13 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body
+from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
 from victory.models import Victory
-from email_service.tasks import send_email_notification
-from email_service.templates import notification_email
-from notification import utils as notification_utils
-from notification.tasks import send_notification
+from emit import emit
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -229,35 +226,12 @@ class PhaseManager(models.Manager):
             f"Applied NMR extensions for {len(members_with_extensions)} members in phase {phase.id}"
         )
 
-        deadline_str = format_deadline(phase.scheduled_resolution, phase.game.fixed_deadline_timezone)
+        for member in members_with_extensions:
+            if member.user_id is None:
+                continue
+            emit("nmr_extension_used", phase=phase, actor=member.user)
 
-        def send_notifications():
-            for member in members_with_extensions:
-                if member.user_id is None:
-                    continue
-                notification_utils.send_notification_to_users(
-                    user_ids=[member.user_id],
-                    title=phase.game.name,
-                    body=f"You did not submit orders and used an automatic extension ({member.nmr_extensions_remaining} remaining). The current phase is extended until {deadline_str}.",
-                    notification_type="nmr_extension_used",
-                    data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
-                )
-
-            extension_ids = {m.user_id for m in members_with_extensions if m.user_id is not None}
-            other_ids = [
-                user_id for user_id in phase.game.notification_user_ids()
-                if user_id not in extension_ids
-            ]
-            if other_ids:
-                notification_utils.send_notification_to_users(
-                    user_ids=other_ids,
-                    title=phase.game.name,
-                    body=f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline_str}.",
-                    notification_type="nmr_extension_applied",
-                    data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
-                )
-
-        transaction.on_commit(send_notifications)
+        emit("nmr_extension_applied", phase=phase)
 
         return members_with_extensions
 
@@ -357,25 +331,7 @@ class PhaseManager(models.Manager):
                     if ps.member.user_id is None:
                         continue
 
-                    link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
-
-                    notification_utils.send_notification_to_users(
-                        user_ids=[ps.member.user_id],
-                        title=phase.game.name,
-                        body=body,
-                        notification_type="deadline_warning",
-                        data={"game_id": str(phase.game.id), "link": link},
-                    )
-                    send_email_notification.defer(
-                        user_ids=[ps.member.user_id],
-                        subject=f"{phase.game.name} — Deadline Approaching",
-                        html=notification_email(
-                            title=phase.game.name,
-                            body=body,
-                            link=link,
-                            link_text="Submit Orders",
-                        ),
-                    )
+                    emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
                     ps.deadline_warning_sent_for = phase.scheduled_resolution
                     warned_states.append(ps)
                     notifications_sent += 1
@@ -457,39 +413,62 @@ class PhaseManager(models.Manager):
         if any(m.user_id == phase.game.admin_id for m in newly_cd_members):
             phase.game.reassign_admin()
 
+        return newly_cd_members
+
+    def _reconcile_civil_disorder_eliminations(self, newly_cd_members, adjudication_data):
+        if not newly_cd_members:
+            return []
+
+        surviving_nations = {u["nation"] for u in adjudication_data["units"]} | {
+            sc["nation"] for sc in adjudication_data["supply_centers"]
+        }
+
+        eliminated = [
+            m for m in newly_cd_members
+            if m.nation is not None and m.nation.name not in surviving_nations
+        ]
+        surviving = [m for m in newly_cd_members if m not in eliminated]
+
+        if eliminated:
+            for m in eliminated:
+                m.civil_disorder = False
+            Member.objects.bulk_update(eliminated, ["civil_disorder"])
+
+        return surviving
+
+    def _recompute_commitment(self, phase):
+        from user_profile.commitment import recompute_commitment
+
+        if phase.game.sandbox or phase.game.private:
+            return
+
+        users = [
+            phase_state.member.user
+            for phase_state in phase.phase_states.select_related("member__user__profile")
+            if phase_state.has_possible_orders and phase_state.member.user_id is not None
+        ]
+        for user in users:
+            try:
+                with transaction.atomic():
+                    recompute_commitment(user)
+            except Exception as e:
+                logger.error(
+                    f"Failed to recompute commitment for user {user.id} after phase {phase.id}: {e}",
+                    exc_info=True,
+                )
+
+    def _notify_civil_disorder(self, phase, newly_cd_members):
+        if not newly_cd_members:
+            return
+
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
-        user_ids = phase.game.notification_user_ids()
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
 
-        def send_notifications():
-            if user_ids:
-                link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
-                body = f"{nation_names} entered civil disorder."
-
-                notification_utils.send_notification_to_users(
-                    user_ids=user_ids,
-                    title="Civil Disorder",
-                    body=body,
-                    notification_type="civil_disorder",
-                    data={"game_id": str(phase.game.id)},
-                )
-                send_email_notification.defer(
-                    user_ids=user_ids,
-                    subject=f"{phase.game.name} — Civil Disorder",
-                    html=notification_email(
-                        title="Civil Disorder",
-                        body=body,
-                        link=link,
-                    ),
-                )
-
-        transaction.on_commit(send_notifications)
-
-        return newly_cd_members
+        emit("civil_disorder", game=phase.game, nation_names=nation_names)
 
     def _remove_from_staging_games(self, user_ids):
         if not user_ids:
@@ -507,22 +486,14 @@ class PhaseManager(models.Manager):
         if not staging_members:
             return
 
-        games_by_user = {}
-        game_ids = set()
-        for m in staging_members:
-            games_by_user.setdefault(m.user_id, []).append(m.game)
-            game_ids.add(m.game_id)
+        game_ids = {m.game_id for m in staging_members}
 
         Member.objects.filter(id__in=[m.id for m in staging_members]).delete()
 
-        for user_id, games in games_by_user.items():
-            game_names = ", ".join(g.name for g in games)
-            send_notification.defer(
-                user_ids=[user_id],
-                title="Removed from staging games",
-                body=f"You were removed from {game_names} because you entered civil disorder in an active game.",
-                notification_type="removed_from_staging",
-            )
+        for m in staging_members:
+            if m.user_id is None:
+                continue
+            emit("removed_from_staging", game=m.game, recipients=[m.user_id])
 
         from game.models import Game
         for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
@@ -561,13 +532,7 @@ class PhaseManager(models.Manager):
         for member in newly_eliminated:
             if member.user_id is None:
                 continue
-            send_notification.defer(
-                user_ids=[member.user_id],
-                title=game.name,
-                body="You've been eliminated. You are not required to enter any orders anymore. You can still chat with players. Better luck next time!",
-                notification_type="elimination",
-                data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
-            )
+            emit("elimination", game=game, recipients=[member.user_id])
 
     def _check_abandonment(self, game):
         if game.sandbox:
@@ -588,15 +553,19 @@ class PhaseManager(models.Manager):
             if extension_members:
                 return phase
 
-            self._check_civil_disorder(phase)
-            adjudication_data = resolve(phase)
-
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
                     self._set_orders_outcome(phase)
-                    self._check_civil_disorder(phase)
+                    newly_cd_members = self._check_civil_disorder(phase)
+                    adjudication_data = resolve(phase)
+
+                    surviving_cd_members = self._reconcile_civil_disorder_eliminations(
+                        newly_cd_members, adjudication_data
+                    )
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
+                    self._notify_civil_disorder(phase, surviving_cd_members)
+                    self._recompute_commitment(phase)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 
@@ -608,6 +577,8 @@ class PhaseManager(models.Manager):
                         new_phase.status = PhaseStatus.COMPLETED
                         new_phase.scheduled_resolution = None
                         new_phase.save()
+
+                        new_phase.game.emit_game_ended()
                     elif self._check_abandonment(new_phase.game):
                         new_phase.game.status = GameStatus.ABANDONED
                         new_phase.game.finished_at = timezone.now()
@@ -617,7 +588,19 @@ class PhaseManager(models.Manager):
                         new_phase.scheduled_resolution = None
                         new_phase.save()
 
+                    if new_phase.status == PhaseStatus.ACTIVE:
+                        emit("phase_started", phase=new_phase)
+
                     return new_phase
+
+    def _emit_phase_resolved(self, phase):
+        resolved_early = (
+            phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+            and phase.scheduled_resolution is not None
+            and timezone.now() < phase.scheduled_resolution
+        )
+        event_type = "phase_resolved_early" if resolved_early else "phase_resolved"
+        emit(event_type, phase=phase)
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
@@ -723,6 +706,15 @@ class PhaseManager(models.Manager):
                     adjudication_data["type"],
                     reference_time=previous_phase.scheduled_resolution,
                 )
+                if (
+                    scheduled_resolution is not None
+                    and previous_phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+                ):
+                    scheduled_resolution = compress_deadline(
+                        scheduled_resolution,
+                        previous_phase.game.get_phase_frequency(adjudication_data["type"]),
+                        timezone.now(),
+                    )
                 new_ordinal = previous_phase.ordinal + 1
 
                 logger.info(
@@ -841,7 +833,7 @@ class PhaseManager(models.Manager):
                             new_phase.phase_states.model(
                                 member=member,
                                 phase=new_phase,
-                                has_possible_orders=member.nation.name in nations_with_orders,
+                                has_possible_orders=member.nation.name in nations_with_orders and not member.kicked,
                                 orders_confirmed=member.civil_disorder,
                             )
                         )
@@ -859,6 +851,8 @@ class PhaseManager(models.Manager):
                     previous_phase.status = PhaseStatus.COMPLETED
                     previous_phase.save()
                     logger.info(f"Marked previous phase {previous_phase.id} as completed")
+
+                self._emit_phase_resolved(previous_phase)
 
                 logger.info(f"Successfully created new phase {new_phase.id} from adjudication data")
                 return new_phase
@@ -911,6 +905,12 @@ class Phase(BaseModel):
         if self.remaining_time:
             return self.remaining_time.total_seconds()
         return None
+
+    @property
+    def formatted_deadline(self):
+        if not self.scheduled_resolution:
+            return None
+        return format_deadline(self.scheduled_resolution, self.game.fixed_deadline_timezone)
 
     @property
     def all_orders(self):
@@ -986,6 +986,8 @@ class Phase(BaseModel):
         phase_states_count = self.phase_states.count()
         logger.info(f"Resetting orders_confirmed to False for {phase_states_count} phase states")
         self.phase_states.update(orders_confirmed=False)
+
+        emit("phase_started", phase=self)
 
         logger.info(f"Successfully reverted game {self.game.id} to phase {self.id}")
 

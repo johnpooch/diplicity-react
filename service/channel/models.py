@@ -1,7 +1,8 @@
 from django.db import models
-from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F, Exists
+from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from channel import registry as channel_registry
 from common.models import BaseModel
 
 User = get_user_model()
@@ -29,24 +30,6 @@ class ChannelQuerySet(models.QuerySet):
             "private",
             F("last_activity").desc(nulls_last=True),
             "-created_at",
-        )
-
-    def with_bot_membership(self):
-        bot_members = ChannelMember.objects.filter(
-            channel=OuterRef("pk"),
-            member__user__bot_profile__isnull=False,
-        )
-        return self.annotate(has_bot_member=Exists(bot_members))
-
-    def with_member_message_count(self, member, phase):
-        if member is None or phase is None:
-            return self.annotate(member_message_count=Value(0, output_field=IntegerField()))
-        return self.annotate(
-            member_message_count=Count(
-                "messages",
-                filter=Q(messages__sender=member) & Q(messages__phase=phase),
-                distinct=True,
-            )
         )
 
     def with_unread_counts(self, user):
@@ -93,12 +76,6 @@ class ChannelManager(models.Manager):
     def with_unread_counts(self, user):
         return self.get_queryset().with_unread_counts(user)
 
-    def with_bot_membership(self):
-        return self.get_queryset().with_bot_membership()
-
-    def with_member_message_count(self, member, phase):
-        return self.get_queryset().with_member_message_count(member, phase)
-
     def order_for_list(self):
         return self.get_queryset().order_for_list()
 
@@ -115,6 +92,10 @@ class Channel(BaseModel):
         through="channel.ChannelMember",
         related_name="channels",
     )
+
+    def member_user_ids(self):
+        members = self.members if self.private else self.game.members
+        return {m.user_id for m in members.all() if m.user_id is not None}
 
 
 class ChannelMemberQuerySet(models.QuerySet):
@@ -150,6 +131,35 @@ class ChannelMessage(BaseModel):
     body = models.TextField()
 
     objects = ChannelMessageQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["created_at"]
+
+
+class ChannelEventManager(models.Manager):
+    def create_from_event(self, event_type, context):
+        spec_class = channel_registry.REGISTRY.get(event_type)
+        if spec_class is None:
+            return []
+        channels = spec_class().get_channels(context)
+        if not channels:
+            return []
+        return self.create_for_channels(event_type, channels, phase=context.phase)
+
+    def create_for_channels(self, event_type, channels, phase=None):
+        return self.bulk_create(
+            [self.model(channel=channel, type=event_type, phase=phase) for channel in channels]
+        )
+
+
+class ChannelEvent(BaseModel):
+    channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="events")
+    phase = models.ForeignKey(
+        "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_events"
+    )
+    type = models.CharField(max_length=100)
+
+    objects = ChannelEventManager()
 
     class Meta:
         ordering = ["created_at"]

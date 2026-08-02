@@ -12,9 +12,12 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true
   },
-  "python.defaultInterpreterPath": "./.venv/bin/python",
+  "python.defaultInterpreterPath": "${workspaceFolder}/service/.venv/bin/python",
+  "black-formatter.path": ["${workspaceFolder}/service/.venv/bin/black"],
+  "black-formatter.args": ["--config", "${workspaceFolder}/service/pyproject.toml"],
   "python.terminal.activateEnvironment": true,
   "python.analysis.extraPaths": [
       "./service"

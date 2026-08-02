@@ -51,12 +51,12 @@ vi.mock("@/components/AddBotSheet", () => ({
 
 const pendingGameCanJoin = mockPendingGames.find(g => g.canJoin)!;
 const pendingGameCanLeave = mockPendingGames.find(g => !g.canJoin && g.canLeave)!;
-const pendingGameReliabilityRequired = {
+const pendingGameCommitmentLocked = {
   ...mockPendingGames.find(g => g.canJoin)!,
-  id: "game-reliability-test",
-  canJoin: false,
+  id: "game-commitment-locked-test",
+  canJoin: true,
   canLeave: false,
-  minReliability: "reliable_only" as const,
+  commitmentEligibility: "committed_locked" as const,
 };
 const pendingGameCanManage = {
   ...mockPendingGames.find(g => !g.canJoin && g.canLeave)!,
@@ -112,16 +112,16 @@ describe("GameInfoContent", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows disabled 'Join game' button with reliability message when the user cannot join", () => {
+    it("shows disabled 'Join game' button with a commitment message when the user is locked out", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
-        data: pendingGameReliabilityRequired,
+        data: pendingGameCommitmentLocked,
       });
-      renderGameInfoContent(pendingGameReliabilityRequired.id);
+      renderGameInfoContent(pendingGameCommitmentLocked.id);
 
       const joinButton = screen.getByRole("button", { name: /join game/i });
       expect(joinButton).toBeDisabled();
       expect(
-        screen.getByText(/your reliability is too low to join this game/i)
+        screen.getByText(/admits players with high commitment only/i)
       ).toBeInTheDocument();
     });
 

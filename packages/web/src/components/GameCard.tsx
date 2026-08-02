@@ -15,7 +15,9 @@ import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
 import {
   UserPlus,
+  Info,
   Lock,
+  ShieldCheck,
   MessageSquareOff,
   Mail,
   Clock,
@@ -38,6 +40,7 @@ import {
 import { formatTimeAgo, getGameInfoPath, getGameLandingPath, getPlayerInfoPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
@@ -83,7 +86,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const phase = game.currentPhase;
-  const playerNation = game.members.find(m => m.isCurrentUser)?.nation ?? null;
+  const members = Array.isArray(game.members) ? game.members : [];
+  const playerNation = members.find(m => m.isCurrentUser)?.nation ?? null;
   const joinGameMutation = useGameJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
@@ -91,10 +95,10 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const isPending = game.status === "pending";
   const isAbandoned = game.status === "abandoned";
   const isFinished = game.status === "completed" || isAbandoned;
-  const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentMember = members.find(m => m.isCurrentUser);
   const showAvatars = !game.sandbox;
   const totalSlots = variant.nations.length;
-  const joinedCount = game.members.length;
+  const joinedCount = members.length;
   const winnerIds = new Set(game.victory?.members.map(m => m.id) ?? []);
 
   const handleClickGame = () => {
@@ -122,30 +126,45 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     }
   };
 
-  const joinGameButton = game.canJoin && (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button onClick={handleJoinGame} variant="outline" aria-label="Join game">
-          <UserPlus className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>Join game</p>
-      </TooltipContent>
-    </Tooltip>
-  );
+  const isCommitmentLocked =
+    game.commitmentEligibility === "committed_locked" ||
+    game.commitmentEligibility === "low_locked";
+
+  const lockedReason =
+    game.commitmentEligibility === "low_locked"
+      ? "Your commitment rating is Low, so you can't join games right now. Your rating is based on your last 10 rated phases."
+      : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
+
+  const joinGameButton =
+    game.canJoin &&
+    (isCommitmentLocked ? (
+      <Button variant="outline" aria-label="Locked" disabled>
+        <Lock className="size-4" />
+      </Button>
+    ) : (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button onClick={handleJoinGame} variant="outline" aria-label="Join game">
+            <UserPlus className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Join game</p>
+        </TooltipContent>
+      </Tooltip>
+    ));
 
   const orderStatusConfig = game.orderStatus
     ? ORDER_STATUS_CONFIG[game.orderStatus]
     : undefined;
 
-  const gunboatBadge = game.pressType === "no_press" && (
+  const gunboatIcon = game.pressType === "no_press" && (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="secondary" className="gap-1" aria-label="Gunboat">
-          <MessageSquareOff className="size-3" />
-          Gunboat
-        </Badge>
+        <MessageSquareOff
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-label="Gunboat"
+        />
       </TooltipTrigger>
       <TooltipContent>No private messaging is allowed in this game</TooltipContent>
     </Tooltip>
@@ -254,7 +273,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       )}
       {cdBadge}
       {isFinished && resultBadge}
-      {gunboatBadge}
       {isActive && game.isPaused && (
         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
           <Pause className="size-3.5" />
@@ -286,12 +304,15 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       <div className="flex flex-col flex-grow gap-2 p-4 md:py-2 min-w-0">
         <CardHeader className="p-0 gap-2">
           <div className="flex items-center justify-between gap-2">
-            <button
-              onClick={handleClickGame}
-              className="text-left hover:underline min-w-0 overflow-hidden"
-            >
-              <CardTitle className="truncate">{game.name}</CardTitle>
-            </button>
+            <div className="flex items-center min-w-0 gap-1">
+              <button
+                onClick={handleClickGame}
+                className="text-left hover:underline min-w-0 overflow-hidden"
+              >
+                <CardTitle className="truncate">{game.name}</CardTitle>
+              </button>
+              {gunboatIcon}
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {unreadPill}
               {joinGameButton}
@@ -341,6 +362,43 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
               <Skeleton className="w-24 h-4" />
             )}
           </CardDescription>
+
+          {isPending && game.commitmentRequirement === "committed" && !isCommitmentLocked && (
+            <div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="gap-1 bg-green-600">
+                    <ShieldCheck className="size-3" />
+                    Committed
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Only players with High commitment can join this game
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+
+          {isPending && isCommitmentLocked && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Lock className="size-3" />
+              {game.commitmentEligibility === "low_locked"
+                ? "Locked: your commitment is Low"
+                : "Locked: requires High commitment"}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground/60 hover:text-muted-foreground"
+                    aria-label="Why is this game locked?"
+                  >
+                    <Info className="size-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="text-sm">{lockedReason}</PopoverContent>
+              </Popover>
+            </p>
+          )}
         </CardHeader>
 
         {(game.sandbox || isActive || isFinished) && badgeCluster}
@@ -366,7 +424,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   </Tooltip>
                 )}
                 <div className="flex -space-x-2">
-                  {game.members.slice(0, 7).map(member => (
+                  {members.slice(0, 7).map(member => (
                     <Avatar
                       key={member.id}
                       className={`h-8 w-8 border-2 border-background ${
@@ -381,9 +439,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {game.members.length > 7 && (
+                  {members.length > 7 && (
                     <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                      +{game.members.length - 7}
+                      +{members.length - 7}
                     </div>
                   )}
                 </div>

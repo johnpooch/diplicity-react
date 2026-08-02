@@ -1254,7 +1254,7 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
         if c.kwargs.get("notification_type") == "civil_disorder"
     ]
     assert len(cd_calls) == 1
-    assert germany_member.user.id in cd_calls[0].kwargs["user_ids"]
+    assert germany_member.user.id not in cd_calls[0].kwargs["user_ids"]
     assert italy_member.user.id in cd_calls[0].kwargs["user_ids"]
 
     fall_1902 = resolve_until("Fall", 1902, "Movement")

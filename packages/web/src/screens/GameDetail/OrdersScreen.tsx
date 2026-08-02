@@ -60,7 +60,7 @@ import {
   getGamePhaseStatesListQueryKey,
   getGameOptionsRetrieveQueryKey,
   Order,
-  GameRetrieve,
+  Member,
   Unit,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
@@ -93,7 +93,7 @@ const buildNationGroups = (
   phaseStates: readonly PhaseState[],
   orders: readonly Order[],
   phase: PhaseRetrieve,
-  game: GameRetrieve
+  members: readonly Member[]
 ): NationGroup[] => {
   if (isActivePhase) {
     return phaseStates
@@ -119,7 +119,7 @@ const buildNationGroups = (
   );
 
   return Object.entries(ordersByNation).map(([nation, nationOrders]) => {
-    const member = game.members.find(m => m.nation === nation);
+    const member = members.find(m => m.nation === nation);
     if (!member && import.meta.env.DEV) {
       console.warn(`buildNationGroups: no member found for nation "${nation}"`);
     }
@@ -186,7 +186,10 @@ const OrdersScreen: React.FC = () => {
   const isActivePhase = phase.status === "active";
   const isGameFinished =
     game.status === "completed" || game.status === "abandoned";
-  const currentMember = game.members.find(m => m.isCurrentUser);
+  const members = Array.isArray(game.members) ? game.members : [];
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safePhaseStates = Array.isArray(phaseStates) ? phaseStates : [];
+  const currentMember = members.find(m => m.isCurrentUser);
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
     isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
@@ -267,10 +270,10 @@ const OrdersScreen: React.FC = () => {
 
   const nationGroups = buildNationGroups(
     isActivePhase,
-    phaseStates,
-    orders,
+    safePhaseStates,
+    safeOrders,
     phase,
-    game
+    members
   );
   const hasContent = nationGroups.length > 0;
 

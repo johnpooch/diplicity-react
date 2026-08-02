@@ -88,9 +88,9 @@ const ChannelCreateScreen: React.FC = () => {
           <Panel.Content>
             <ItemGroup>
               {game.members
-                .filter(m => !m.isCurrentUser)
+                .filter(m => !m.isCurrentUser && !m.kicked)
                 .map(member => (
-                  <React.Fragment key={member.nation}>
+                  <React.Fragment key={member.id}>
                     <Item
                       className="cursor-pointer hover:bg-accent/50"
                       onClick={() => handleToggle(member.id)}

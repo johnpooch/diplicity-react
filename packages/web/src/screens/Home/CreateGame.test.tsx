@@ -72,6 +72,7 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
         email: "mock@example.com",
         canCreateBotGames: false,
         reliabilityTier: null,
+        commitment: "high",
       },
     }),
     useGameCreate: vi.fn(),
@@ -170,6 +171,7 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+    commitment: "high",
     },
     {
       id: 100,
@@ -186,6 +188,7 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+    commitment: "high",
     },
   ],
   victory: null,
@@ -200,6 +203,8 @@ const matchedGame: GameList = {
   retreatFrequency: null,
   pressType: "full_press",
   minReliability: "open",
+  commitmentRequirement: "open",
+  commitmentEligibility: "eligible",
   totalUnreadMessageCount: 0,
   orderStatus: null,
   memberStatus: [],
@@ -259,6 +264,7 @@ const mockUserProfile = {
   email: "mock@example.com",
   emailNotificationsEnabled: true,
   reliabilityTier: null as string | null,
+  commitment: "high",
 };
 
 describe("CreateGame — find-similar intervention", () => {
@@ -632,7 +638,7 @@ describe("CreateGame — sandbox mode", () => {
   });
 });
 
-describe("CreateGame — minReliability dropdown", () => {
+describe("CreateGame — committed players switch", () => {
   let createGameMutateAsync: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -667,19 +673,19 @@ describe("CreateGame — minReliability dropdown", () => {
     await user.click(screen.getByRole("button", { name: /next/i }));
   };
 
-  it("defaults to Open and shows its help text on the Advanced step", async () => {
+  it("shows the switch with help text on the Advanced step", async () => {
     const user = userEvent.setup();
     renderCreateGame();
 
     await goToAdvancedStep(user);
 
-    expect(screen.getByText(/Player Reliability/i)).toBeInTheDocument();
+    expect(screen.getByText(/Committed players only/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Anyone can join\. Fills fastest/i)
+      screen.getByText(/Only players with high commitment can join/i)
     ).toBeInTheDocument();
   });
 
-  it("includes minReliability in the create payload", async () => {
+  it("defaults commitmentRequirement to open in the create payload", async () => {
     const user = userEvent.setup();
     renderCreateGame();
 
@@ -688,7 +694,36 @@ describe("CreateGame — minReliability dropdown", () => {
 
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
     const payload = createGameMutateAsync.mock.calls[0][0].data;
-    expect(payload.minReliability).toBe("open");
+    expect(payload.commitmentRequirement).toBe("open");
+  });
+
+  it("sends committed when the switch is enabled", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await goToAdvancedStep(user);
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    const payload = createGameMutateAsync.mock.calls[0][0].data;
+    expect(payload.commitmentRequirement).toBe("committed");
+  });
+
+  it("disables the switch for creators without high commitment", async () => {
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: { ...mockUserProfile, commitment: "medium" },
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await goToAdvancedStep(user);
+
+    expect(screen.getByRole("switch")).toBeDisabled();
+    expect(
+      screen.getByText(/Only available to players with high commitment/i)
+    ).toBeInTheDocument();
   });
 });
 

@@ -4,17 +4,24 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
-from bot.models import BotProfile
+from agent.constants import AgentTaskKind, AgentTaskStatus
+from agent.models import AgentTask
+from bot_profile.models import BotProfile
 from game.models import Game
+from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus, NationAssignment, PhaseStatus
+from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, PhaseStatus
 
 User = get_user_model()
 
 join_viewname = "game-join"
 retrieve_viewname = "game-retrieve"
 recovery_viewname = "civil-disorder-recovery"
+
+
+def _kicked_from_staging_notifications():
+    return Notification.objects.filter(event_type="kicked_from_staging")
 
 
 class TestCivilDisorderSerialization:
@@ -757,49 +764,52 @@ class TestReplaceableSerialization:
         assert response.data["members"][0]["replaceable"] is False
 
     @pytest.mark.django_db
-    def test_not_replaceable_when_replaced(
+    def test_replaced_member_is_not_listed(
         self, authenticated_client, classical_variant, classical_england_nation, primary_user, secondary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
-        game.members.create(
+        replaced = game.members.create(
             user=primary_user, nation=classical_england_nation, civil_disorder=True, replaced_by=replacement
         )
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        primary_member = next(m for m in response.data["members"] if m["is_current_user"])
-        assert primary_member["replaceable"] is False
+        assert [m["id"] for m in response.data["members"]] == [replacement.id]
+        assert not any(m["is_current_user"] for m in response.data["members"])
+        assert replaced.replaceable is False
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "tier,min_reliability,allowed",
+    "commitment,commitment_requirement,allowed",
     [
-        ("reliable", "open", True),
-        ("reliable", "reliable_and_new", True),
-        ("reliable", "reliable_only", True),
-        ("new", "open", True),
-        ("new", "reliable_and_new", True),
-        ("new", "reliable_only", False),
-        (None, "open", True),
-        (None, "reliable_and_new", False),
-        (None, "reliable_only", False),
+        (Commitment.HIGH, CommitmentRequirement.OPEN, True),
+        (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
+        (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
+        (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
+        (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
+        (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
+        (Commitment.LOW, CommitmentRequirement.OPEN, False),
+        (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
     ],
 )
-def test_join_game_reliability_requirement(
-    authenticated_client, pending_game_created_by_secondary_user, tier, min_reliability, allowed
+def test_join_game_commitment_requirement(
+    authenticated_client,
+    primary_user,
+    pending_game_created_by_secondary_user,
+    set_commitment,
+    commitment,
+    commitment_requirement,
+    allowed,
 ):
     game = pending_game_created_by_secondary_user
-    game.min_reliability = min_reliability
-    game.save(update_fields=["min_reliability"])
+    game.commitment_requirement = commitment_requirement
+    game.save(update_fields=["commitment_requirement"])
+    set_commitment(primary_user, commitment)
     url = reverse(join_viewname, args=[game.id])
 
-    with patch(
-        "common.permissions.get_player_stats",
-        return_value={"reliability_tier": tier},
-    ):
-        response = authenticated_client.post(url)
+    response = authenticated_client.post(url)
 
     if allowed:
         assert response.status_code == status.HTTP_201_CREATED
@@ -874,32 +884,30 @@ class TestKickBotMember:
 
     @pytest.mark.django_db
     def test_kick_bot_sends_no_notification(
-        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user
+        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_primary_user
         member = game.members.create(user=roster_bot_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not game.members.filter(user=roster_bot_user).exists()
-        mock_send.defer.assert_not_called()
+        assert not _kicked_from_staging_notifications().exists()
 
     @pytest.mark.django_db
     def test_kick_human_sends_notification(
-        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_primary_user
         member = game.members.create(user=secondary_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        mock_send.defer.assert_called_once()
+        assert _kicked_from_staging_notifications().exists()
 
 
 @pytest.mark.django_db
@@ -915,3 +923,69 @@ def test_leave_pending_game_with_only_bots_remaining_deletes_game(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not Game.objects.filter(id=game_id).exists()
+
+
+class TestKickedMemberCivilDisorderRecovery:
+
+    @pytest.mark.django_db
+    def test_recovery_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
+    ):
+        game = active_game_with_kicked_member
+        member = game.members.get(kicked=True)
+        member.civil_disorder = True
+        member.save(update_fields=["civil_disorder"])
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client_for_secondary_user.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        member.refresh_from_db()
+        assert member.civil_disorder is True
+
+
+class TestReplanOrdersAdminAction:
+
+    def _post_action(self, client, member):
+        return client.post(
+            "/admin/member/member/",
+            {"action": "replan_orders", "_selected_action": [str(member.id)]},
+            follow=True,
+        )
+
+    def _staff_client(self, authenticated_client, primary_user):
+        primary_user.is_staff = True
+        primary_user.is_superuser = True
+        primary_user.save()
+        authenticated_client.force_login(primary_user)
+        return authenticated_client
+
+    @pytest.mark.django_db
+    def test_queues_a_plan_task_for_a_bot_member(
+        self, authenticated_client, active_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=primary_user).first()
+        BotProfile.objects.create(user=member.user, disposition="Cautious", voice="Terse")
+        client = self._staff_client(authenticated_client, primary_user)
+
+        response = self._post_action(client, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=member)
+        assert task.phase == game.current_phase
+        assert task.status == AgentTaskStatus.PENDING
+
+    @pytest.mark.django_db
+    def test_reports_an_error_for_a_member_not_played_by_a_bot(
+        self, authenticated_client, active_game_factory, primary_user, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=primary_user).first()
+        client = self._staff_client(authenticated_client, primary_user)
+
+        response = self._post_action(client, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "not played by a bot" in response.content.decode()
+        assert not AgentTask.objects.filter(member=member).exists()

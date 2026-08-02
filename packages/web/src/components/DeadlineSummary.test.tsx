@@ -111,6 +111,26 @@ describe("DeadlineSummary", () => {
       expect(screen.getByText(/daily at 9:00 PM ET/i)).toBeInTheDocument();
     });
 
+    it("tells the creator fixed-time phases resolve sooner when all confirm", () => {
+      render(
+        <DeadlineSummary
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "America/New_York",
+            movementFrequency: "daily",
+          }}
+        />
+      );
+      expect(
+        screen.getByText(/or sooner if all players confirm their orders/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/regardless of whether players confirmed/i)
+      ).not.toBeInTheDocument();
+    });
+
     it("renders fixed-time summary with hourly frequency", () => {
       render(
         <DeadlineSummary

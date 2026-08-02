@@ -1,6 +1,0 @@
-Respond with a single JSON object in exactly this shape:
-
-To stay silent: {"reasoning": "<why you are responding this way>", "should_reply": false}
-To reply: {"reasoning": "<why you are responding this way>", "should_reply": true, "message": "<your reply>"}
-
-First, in the reasoning field, think through whether and how to respond. Then set should_reply and, if replying, message. Respond with the JSON object only.

@@ -42,6 +42,7 @@ export const getChannelFlagUrls = (
   const nationNames = channel.private
     ? channel.name.split(",").map(s => s.trim()).filter(n => n !== currentNationName)
     : members
+        .filter(m => !m.kicked)
         .map(m => m.nation)
         .filter((n): n is string => n !== null);
   return nationNames.map(name => {

@@ -14,6 +14,7 @@ from phase.models import Phase
 from nation.models import Nation
 from province.models import Province
 from user_profile.models import UserProfile
+from bot_profile.utils import get_bot_user
 from .models import Game
 
 retrieve_viewname = "game-retrieve"
@@ -210,6 +211,38 @@ class TestGameRetrieveView:
         member_names = [member["name"] for member in response.data["members"]]
         assert primary_user.profile.name in member_names
         assert secondary_user.profile.name in member_names
+
+    @pytest.mark.django_db
+    def test_replaced_member_is_excluded_from_members(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        game = Game.objects.create(
+            name="Replaced Member Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        replaced = game.members.create(user=secondary_user, nation=classical_france_nation)
+        replacement = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+        replaced.kicked = True
+        replaced.replaced_by = replacement
+        replaced.save(update_fields=["kicked", "replaced_by"])
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        member_ids = [member["id"] for member in response.data["members"]]
+        assert replaced.id not in member_ids
+        assert replacement.id in member_ids
+        assert len(response.data["members"]) == 2
 
     @pytest.mark.django_db
     def test_game_with_multiple_phases(
@@ -416,6 +449,30 @@ class TestGameListView:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert isinstance(response.data["results"], list)
+
+    @pytest.mark.django_db
+    def test_list_excludes_replaced_member(
+        self,
+        authenticated_client,
+        classical_variant,
+        base_pending_phase,
+        primary_user,
+        classical_england_nation,
+    ):
+        game = Game.objects.create(name="Replaced Member Game", variant=classical_variant, status=GameStatus.ACTIVE)
+        base_pending_phase(game)
+        replaced = game.members.create(user=primary_user, nation=classical_england_nation)
+        replacement = game.members.create(user=get_bot_user(), nation=classical_england_nation)
+        replaced.kicked = True
+        replaced.replaced_by = replacement
+        replaced.save(update_fields=["kicked", "replaced_by"])
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        listed = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert [member["id"] for member in listed["members"]] == [replacement.id]
 
     @pytest.mark.django_db
     def test_list_games_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
@@ -1923,7 +1980,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 46
+        assert query_count == 45
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1943,7 +2000,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 46
+        assert query_count == 45
 
 
 class TestGamePrivateFiltering:
@@ -2365,7 +2422,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 56
+        assert query_count == 55
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2386,7 +2443,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 56
+        assert query_count == 55
 
 
 class TestSandboxGameFiltering:

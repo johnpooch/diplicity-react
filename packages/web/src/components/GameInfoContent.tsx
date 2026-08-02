@@ -9,7 +9,6 @@ import { PendingGameActions } from "@/components/PendingGameActions";
 import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { formatDateTime, formatTimeAgo } from "@/util";
-import { MIN_RELIABILITY_OPTIONS } from "@/constants";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { useRequiredParams } from "@/hooks";
 
@@ -142,10 +141,11 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           )}
           <MetadataRow
             icon={<ShieldCheck className="size-4" />}
-            label="Player reliability"
+            label="Commitment"
             value={
-              MIN_RELIABILITY_OPTIONS.find(o => o.value === game.minReliability)?.label ??
-              game.minReliability
+              game.commitmentRequirement === "committed"
+                ? "Committed players only"
+                : "Open"
             }
           />
           <MetadataRow

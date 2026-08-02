@@ -60,27 +60,6 @@ export const NMR_EXTENSION_OPTIONS = [
   { value: "2", label: "2 per player" },
 ] as const;
 
-export const MIN_RELIABILITY_OPTIONS = [
-  {
-    value: "open",
-    label: "Open",
-    description:
-      "Anyone can join. Fills fastest, but may include unreliable players.",
-  },
-  {
-    value: "reliable_and_new",
-    label: "Reliable + New Players",
-    description:
-      "Reliable players and newcomers can join. Excludes players with a history of abandoning games.",
-  },
-  {
-    value: "reliable_only",
-    label: "Reliable only",
-    description:
-      "Only Reliable players can join. Slowest to fill, highest commitment.",
-  },
-] as const;
-
 export const EXTEND_DURATION_OPTIONS = [
   { value: DurationEnum["1_hour"], label: "1 hour" },
   { value: DurationEnum["2_hours"], label: "2 hours" },

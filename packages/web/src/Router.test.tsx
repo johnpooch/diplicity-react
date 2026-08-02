@@ -23,7 +23,6 @@ vi.mock("./screens", () => ({
   },
   Home: {},
   Variants: {},
-  LLMCalls: {},
   Tutorial: {},
 }));
 

@@ -14,6 +14,7 @@ class BaseMemberSerializer(serializers.Serializer):
     picture = serializers.SerializerMethodField()
     is_current_user = serializers.SerializerMethodField()
     is_bot = serializers.SerializerMethodField()
+    commitment = serializers.SerializerMethodField()
 
     def _is_current_user(self, obj):
         if obj.user is None:
@@ -72,6 +73,14 @@ class BaseMemberSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_is_bot(self, obj):
         return self._is_bot(obj)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_commitment(self, obj):
+        if self._is_masked(obj):
+            return None
+        if obj.user is None:
+            return None
+        return obj.user.profile.commitment
 
 
 class MemberSerializer(BaseMemberSerializer):

@@ -136,7 +136,7 @@ const mockGame = {
   canDelete: false,
   phases: [1],
   currentPhaseId: 1,
-  members: [],
+  members: [] as { nation: string; civilDisorder: boolean; kicked: boolean }[],
   sandbox: false,
   victory: null,
   nationAssignment: "random",
@@ -207,6 +207,13 @@ function getLastOrdersProp(): Order[] {
   return props.orders ?? [];
 }
 
+function getLastCivilDisorderNationsProp(): string[] {
+  const last = mockMapView.mock.calls.at(-1);
+  if (!last) return [];
+  const props = (last[0] as unknown) as { civilDisorderNations: string[] };
+  return props.civilDisorderNations ?? [];
+}
+
 // --- Tests ---
 describe("GameMap", () => {
   beforeAll(() => {
@@ -233,6 +240,19 @@ describe("GameMap", () => {
     mockWizardState = buildIdleWizard();
     mockPublishedVariants = [mockVariant];
     mockRetrievedVariant = undefined;
+    mockGame.members = [];
+  });
+
+  it("stops shading a nation in civil disorder once its member has been replaced", async () => {
+    mockGame.members = [
+      { nation: "England", civilDisorder: true, kicked: true },
+      { nation: "England", civilDisorder: false, kicked: false },
+    ];
+
+    render(gameMapJsx());
+
+    await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+    expect(getLastCivilDisorderNationsProp()).toEqual([]);
   });
 
   it("renders the map using a fetched draft variant when it is absent from the published list", async () => {

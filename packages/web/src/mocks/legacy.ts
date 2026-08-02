@@ -39,6 +39,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
   {
     id: 2,
@@ -55,6 +56,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
   {
     id: 3,
@@ -71,6 +73,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
   {
     id: 4,
@@ -87,6 +90,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
   {
     id: 5,
@@ -103,6 +107,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
   {
     id: 6,
@@ -119,6 +124,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
   {
     id: 7,
@@ -135,6 +141,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+  commitment: "high",
   },
 ];
 
@@ -356,6 +363,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -393,6 +402,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -430,6 +441,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -467,6 +480,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -509,6 +524,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -551,6 +568,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -606,6 +625,8 @@ export const mockSandboxGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -643,6 +664,8 @@ export const mockSandboxGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     minReliability: "open",
+    commitmentRequirement: "open",
+    commitmentEligibility: "eligible",
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
@@ -710,6 +733,7 @@ export const mockUserProfile: UserProfile = {
   email: "john.doe@example.com",
   canCreateBotGames: false,
   reliabilityTier: "reliable",
+  commitment: "high",
 };
 
 export const mockOrders: Order[] = [

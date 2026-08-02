@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { AddBotSheet } from "@/components/AddBotSheet";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
+import { CommitmentBadge } from "@/components/CommitmentBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -149,6 +150,9 @@ export const PlayerInfoContent: React.FC = () => {
                         <Bot className="size-3" />
                         Bot
                       </Badge>
+                    )}
+                    {!member.isBot && member.commitment && (
+                      <CommitmentBadge commitment={member.commitment} />
                     )}
                     {member.isGameCreator && (
                       <Badge variant="secondary" className="gap-1">

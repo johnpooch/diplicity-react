@@ -2,11 +2,11 @@ from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
 
 from .models import Channel, ChannelMessage, ChannelMember
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
+from emit import emit
 
 Game = apps.get_model("game", "Game")
 Member = apps.get_model("member", "Member")
@@ -28,31 +28,19 @@ class ChannelMessageSerializer(serializers.Serializer):
     sender = ChannelMemberSerializer(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
-    def validate(self, attrs):
-        channel = self.context["channel"]
-        member = self.context["current_game_member"]
-
-        if channel.members.filter(user__bot_profile__isnull=False).exists():
-            cap = settings.BOT_CHANNEL_MESSAGE_CAP
-            message_count = channel.messages.filter(
-                sender=member, phase=channel.game.current_phase
-            ).count()
-            if message_count >= cap:
-                raise serializers.ValidationError(
-                    f"You have reached the limit of {cap} messages for this channel this phase."
-                )
-        return attrs
-
     def create(self, validated_data):
         channel = self.context["channel"]
         member = self.context["current_game_member"]
 
-        return ChannelMessage.objects.create(
+        message = ChannelMessage.objects.create(
             channel=channel,
             sender=member,
             phase=channel.game.current_phase,
             body=validated_data["body"],
         )
+
+        emit("channel_message", message=message)
+        return message
 
 
 class ChannelSerializer(serializers.Serializer):
@@ -61,22 +49,8 @@ class ChannelSerializer(serializers.Serializer):
     private = serializers.BooleanField(read_only=True)
     messages = ChannelMessageSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
-    message_limit = serializers.SerializerMethodField()
-    member_message_count = serializers.SerializerMethodField()
 
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_message_limit(self, obj):
-        if getattr(obj, "has_bot_member", False):
-            return settings.BOT_CHANNEL_MESSAGE_CAP
-        return None
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_member_message_count(self, obj):
-        if getattr(obj, "has_bot_member", False):
-            return getattr(obj, "member_message_count", 0)
-        return None
 
     def validate_member_ids(self, value):
         game = self.context["game"]

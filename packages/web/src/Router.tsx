@@ -14,7 +14,7 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
-import { GameDetail, Home, LLMCalls, Tutorial, Variants } from "./screens";
+import { GameDetail, Home, Tutorial, Variants } from "./screens";
 const CardGallery = React.lazy(() => import("./screens/CardGallery"));
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
@@ -24,6 +24,7 @@ import { useIsMobile } from "./hooks/use-mobile";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
+import { isNetworkError } from "./utils/network";
 
 const RouteFallback: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
@@ -35,7 +36,7 @@ const RootErrorBoundary: React.FC = () => {
   const error = useRouteError() as Error;
 
   React.useEffect(() => {
-    if (error) {
+    if (error && !isNetworkError(error)) {
       Sentry.captureException(error);
     }
   }, [error]);
@@ -180,22 +181,6 @@ export const createAuthenticatedRoutes = (
             element: (
               <Suspense fallback={<RouteFallback />}>
                 <Variants.VariantEditRoute />
-              </Suspense>
-            ),
-          },
-          {
-            path: "llm-calls",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <LLMCalls.ListScreen />
-              </Suspense>
-            ),
-          },
-          {
-            path: "llm-calls/:llmCallId",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <LLMCalls.DetailScreen />
               </Suspense>
             ),
           },
