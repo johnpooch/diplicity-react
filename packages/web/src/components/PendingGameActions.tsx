@@ -72,9 +72,27 @@ export const PendingGameActions: React.FC<PendingGameActionsProps> = ({
   const canAddBots =
     game.canManage && userProfile.canCreateBotGames && openSeats > 0;
 
+  const isCommitmentLocked =
+    game.commitmentEligibility === "committed_locked" ||
+    game.commitmentEligibility === "low_locked";
+
+  const lockedReason =
+    game.commitmentEligibility === "low_locked"
+      ? "Your commitment rating is Low, so you can't join games right now. Your rating is based on your last 10 rated phases."
+      : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
+
   return (
     <>
-      {game.canJoin ? (
+      {game.canJoin && isCommitmentLocked ? (
+        <div className="flex flex-col gap-1 w-full @[500px]:w-auto">
+          <Button disabled className="w-full @[500px]:w-auto">
+            Join game
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            {lockedReason}
+          </p>
+        </div>
+      ) : game.canJoin ? (
         <Button
           onClick={handleJoinGame}
           disabled={joinGameMutation.isPending}
@@ -107,15 +125,6 @@ export const PendingGameActions: React.FC<PendingGameActionsProps> = ({
             <Share className="size-4" />
             Share &amp; invite
           </Button>
-        </div>
-      ) : game.minReliability !== "open" ? (
-        <div className="flex flex-col gap-1 w-full @[500px]:w-auto">
-          <Button disabled className="w-full @[500px]:w-auto">
-            Join game
-          </Button>
-          <p className="text-xs text-muted-foreground text-center">
-            Your reliability is too low to join this game
-          </p>
         </div>
       ) : null}
       {canAddBots && (
