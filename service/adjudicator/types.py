@@ -43,6 +43,21 @@ class Status:
     CUT: ClassVar[str] = "CUT"
 
 
+class FailureReason:
+    """The subset of `OrderResolution.failure_reason` strings that carry
+    wire-format meaning. `Status` is coarser than godip's result codes —
+    several distinct godip codes all map to BOUNCE or ILLEGAL — so
+    `adjudication.service` narrows the code by matching the reason. Those
+    reasons are named here so the producing site and the mapping site
+    share one definition and cannot drift apart."""
+
+    CONVOY_DISRUPTED: ClassVar[str] = "The convoy was disrupted."
+    CONVOYING_FLEET_DISLODGED: ClassVar[str] = "The convoying fleet was dislodged."
+    SUPPORTEE_NOT_ORDERED: ClassVar[str] = (
+        "The supported unit was not ordered to perform the supported action."
+    )
+
+
 class OrderType:
     """Wire-format order-type ids accepted in the prototype slice. Any
     raw order whose `order_type` is not one of these raises

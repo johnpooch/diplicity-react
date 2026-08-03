@@ -23,6 +23,7 @@ from .types import (
     Check,
     ConvoyOrder,
     DisbandOrder,
+    FailureReason,
     HoldOrder,
     MoveOrder,
     MoveTargetIsReachableCheck,
@@ -895,7 +896,7 @@ class FinalizeStatusesReducer(Reducer):
                     resolutions[i] = replace(
                         r,
                         status=Status.ILLEGAL,
-                        failure_reason="The supported unit was not ordered to perform the supported action.",
+                        failure_reason=FailureReason.SUPPORTEE_NOT_ORDERED,
                     )
                 continue
             if isinstance(order, ConvoyOrder) and cls._convoy_fleet_dislodged(
@@ -904,7 +905,7 @@ class FinalizeStatusesReducer(Reducer):
                 resolutions[i] = replace(
                     r,
                     status=Status.BOUNCE,
-                    failure_reason="The convoying fleet was dislodged.",
+                    failure_reason=FailureReason.CONVOYING_FLEET_DISLODGED,
                 )
                 continue
             resolutions[i] = replace(r, status=Status.OK)

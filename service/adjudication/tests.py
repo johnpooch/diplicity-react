@@ -900,6 +900,57 @@ class TestAdjudicationService:
             ]
         )
 
+    @pytest.mark.django_db
+    def test_resolve_disrupted_convoy_reports_convoy_specific_results(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_unit(phase_state_italy, "hol", UnitType.ARMY)
+        create_unit(phase_state_italy, "nth", UnitType.FLEET)
+        create_unit(phase_state_germany, "nrg", UnitType.FLEET)
+        create_unit(phase_state_germany, "ska", UnitType.FLEET)
+
+        create_order(phase_state_italy, "hol", OrderType.MOVE_VIA_CONVOY, "lon")
+        create_order(phase_state_italy, "nth", OrderType.CONVOY, "lon", "hol")
+        create_order(phase_state_germany, "nrg", OrderType.MOVE, "nth")
+        create_order(phase_state_germany, "ska", OrderType.SUPPORT, "nth", "nrg")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        results = {r["province"]: r["result"] for r in data["resolutions"]}
+        assert results["hol"] == "ErrMissingConvoyPath"
+        assert results["nth"] == "ErrConvoyDislodged"
+        assert results["nrg"] == "OK"
+        assert results["ska"] == "OK"
+
+    @pytest.mark.django_db
+    def test_resolve_unmatched_support_reports_invalid_supportee(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_unit(phase_state_italy, "ber", UnitType.ARMY)
+        create_unit(phase_state_italy, "mun", UnitType.ARMY)
+        create_unit(phase_state_germany, "kie", UnitType.ARMY)
+
+        create_order(phase_state_italy, "ber", OrderType.HOLD)
+        create_order(phase_state_italy, "mun", OrderType.SUPPORT, "kie", "ber")
+        create_order(phase_state_germany, "kie", OrderType.HOLD)
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        results = {r["province"]: r["result"] for r in data["resolutions"]}
+        assert results["mun"] == "ErrInvalidSupporteeOrder"
+        assert results["ber"] == "OK"
 
     @pytest.mark.django_db
     def test_resolve_cd_retreat_phase_is_skipped(
