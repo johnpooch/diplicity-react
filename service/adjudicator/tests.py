@@ -3369,6 +3369,37 @@ def test_f_25_cut_support_last():
     assert _datc_has_unit(result, "germany", "Army", "nwy")
 
 
+def test_doomed_attack_on_convoying_fleet_does_not_disrupt_convoy():
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Army", "hol")
+        .with_unit("france", "Fleet", "nth")
+        .with_unit("france", "Fleet", "eng")
+        .with_unit("england", "Fleet", "lon")
+        .with_unit("england", "Fleet", "nrg")
+        .with_unit("germany", "Fleet", "hel")
+        .with_order("france", "hol", "Move", target="lon")
+        .with_order("france", "nth", "Convoy", aux="hol", target="lon")
+        .with_order("france", "eng", "Support", aux="hol", target="lon")
+        .with_order("england", "lon", "Support", aux="nrg", target="nth")
+        .with_order("england", "nrg", "Move", target="nth")
+        .with_order("germany", "hel", "Support", aux="nth")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert _datc_resolution_for(result, "hol") == "OK"
+    assert _datc_has_unit(result, "france", "Army", "lon")
+    assert _datc_has_unit(result, "france", "Fleet", "nth")
+    assert not _datc_is_dislodged(result, "nth")
+    assert _datc_is_dislodged(result, "lon")
+    assert _datc_resolution_for(result, "nrg") == "BOUNCE"
+    assert _datc_resolution_for(result, "lon") == "CUT"
+
+
 # === DATC 6.G: CONVOYING TO ADJACENT PROVINCES ===
 
 
