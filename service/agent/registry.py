@@ -30,6 +30,26 @@ def _bot_user_ids_for_phase(phase_id):
     )
 
 
+def _humans_pending(phase, bot_user_ids):
+    return (
+        phase.phase_states.filter(has_possible_orders=True, orders_confirmed=False)
+        .exclude(member__user_id__in=bot_user_ids)
+        .exists()
+    )
+
+
+def _finalize_tasks(phase, bot_user_ids):
+    bot_phase_states = phase.phase_states.filter(
+        has_possible_orders=True,
+        orders_confirmed=False,
+        member__user_id__in=bot_user_ids,
+    ).select_related("member")
+    return [
+        {"kind": AgentTaskKind.FINALIZE, "member": phase_state.member, "phase": phase}
+        for phase_state in bot_phase_states
+    ]
+
+
 class AgentTaskSpec:
     event_type = None
 
@@ -44,10 +64,20 @@ class AgentTaskSpec:
 class PhaseStartedSpec(AgentTaskSpec):
     def get_tasks(self):
         phase = self.context.phase
-        bot_members = Member.objects.filter(game_id=phase.game_id, user__bot_profile__isnull=False).select_related(
-            "user"
+        bot_members = list(
+            Member.objects.filter(game_id=phase.game_id, user__bot_profile__isnull=False).select_related("user")
         )
-        return [{"kind": AgentTaskKind.PLAN, "member": member, "phase": phase} for member in bot_members]
+        if not bot_members:
+            return []
+
+        bot_user_ids = {member.user_id for member in bot_members}
+        finalize = [] if _humans_pending(phase, bot_user_ids) else _finalize_tasks(phase, bot_user_ids)
+        finalizing = {task["member"].id for task in finalize}
+        return finalize + [
+            {"kind": AgentTaskKind.PLAN, "member": member, "phase": phase}
+            for member in bot_members
+            if member.id not in finalizing
+        ]
 
 
 @register("phase_state_confirmed")
@@ -59,24 +89,9 @@ class PhaseStateConfirmedSpec(AgentTaskSpec):
             return []
         if phase.status != PhaseStatus.ACTIVE:
             return []
-
-        humans_pending = (
-            phase.phase_states.filter(has_possible_orders=True, orders_confirmed=False)
-            .exclude(member__user_id__in=bot_user_ids)
-            .exists()
-        )
-        if humans_pending:
+        if _humans_pending(phase, bot_user_ids):
             return []
-
-        bot_phase_states = phase.phase_states.filter(
-            has_possible_orders=True,
-            orders_confirmed=False,
-            member__user_id__in=bot_user_ids,
-        ).select_related("member")
-        return [
-            {"kind": AgentTaskKind.FINALIZE, "member": phase_state.member, "phase": phase}
-            for phase_state in bot_phase_states
-        ]
+        return _finalize_tasks(phase, bot_user_ids)
 
 
 @register("channel_message")
