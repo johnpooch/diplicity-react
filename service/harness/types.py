@@ -88,11 +88,6 @@ class OrderOption(TypedDict):
     named_coast: str | None
 
 
-class Persona(TypedDict):
-    disposition: str
-    voice: str
-
-
 class ChatMessage(TypedDict):
     sender: str
     body: str
