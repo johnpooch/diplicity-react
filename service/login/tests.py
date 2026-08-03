@@ -120,6 +120,35 @@ def test_updates_existing_user_picture_to_null(unauthenticated_client, mock_goog
 
 
 @pytest.mark.django_db
+def test_creates_new_user_without_name(unauthenticated_client, mock_google_auth_without_name, mock_refresh_token):
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    user_profile = UserProfile.objects.get(user__email="test@example.com")
+    assert user_profile.name == "test"
+    assert user_profile.user.username == "test"
+
+
+@pytest.mark.django_db
+def test_existing_user_sign_in_without_name(unauthenticated_client, mock_google_auth_without_name, mock_refresh_token):
+    user = User.objects.create_user(
+        username="testuser",
+        email="test@example.com",
+        password="testpass123"
+    )
+    user_profile = UserProfile.objects.create(user=user, name="Custom Name")
+
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    user_profile.refresh_from_db()
+    assert user_profile.name == "Custom Name"
+    assert User.objects.filter(email="test@example.com").count() == 1
+
+
+@pytest.mark.django_db
 def test_ios_client_id_audience_accepted(unauthenticated_client, mock_google_auth, mock_refresh_token):
     mock_google_auth.return_value = {
         "iss": "accounts.google.com",
