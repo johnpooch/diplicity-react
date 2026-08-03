@@ -22,6 +22,7 @@ from bot_profile.utils import get_bot_user
 from channel.models import ChannelMessage
 from common.constants import OrderType, PhaseStatus, PhaseType
 from emit.context import build_context
+from emit.dispatch import emit
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
@@ -543,6 +544,34 @@ class TestFinalizeTrigger:
         assert len(jobs) == 1
         assert jobs[0]["lock"] == f"agent-task-{task.id}"
 
+    @pytest.mark.django_db
+    def test_phase_start_creates_task_and_defers_run_when_no_human_can_order(
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
+        in_memory_procrastinate,
+    ):
+        bot_user = get_bot_user()
+        phase = phase_factory(
+            phase_states_config=[
+                {"nation": classical_england_nation, "user": bot_user, "has_possible_orders": True},
+                {"nation": classical_france_nation, "user": user_factory(), "has_possible_orders": False},
+            ]
+        )
+
+        emit("phase_started", phase=phase)
+
+        task = AgentTask.objects.get(kind=AgentTaskKind.FINALIZE, member__user=bot_user)
+        assert task.phase == phase
+        assert task.status == AgentTaskStatus.PENDING
+        assert not AgentTask.objects.filter(kind=AgentTaskKind.PLAN).exists()
+
+        jobs = _run_jobs_for(in_memory_procrastinate, task)
+        assert len(jobs) == 1
+        assert jobs[0]["lock"] == f"agent-task-{task.id}"
+
 
 class TestReplyTask:
 
@@ -836,6 +865,122 @@ class TestAgentTaskRun:
         task.refresh_from_db()
         assert task.status == AgentTaskStatus.SUCCEEDED
         assert task.attempts == 1
+
+
+class TestPhaseStartedSpec:
+
+    def _phase(self, phase_factory, states):
+        config = [
+            {
+                "nation": nation,
+                "user": user,
+                "has_possible_orders": has_possible_orders,
+                "orders_confirmed": confirmed,
+            }
+            for nation, user, has_possible_orders, confirmed in states
+        ]
+        return phase_factory(phase_states_config=config)
+
+    def _descriptors(self, phase):
+        return registry.PhaseStartedSpec(build_context("phase_started", phase=phase)).get_tasks()
+
+    @pytest.mark.django_db
+    def test_plan_only_while_a_human_is_pending(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation
+    ):
+        bot_user = get_bot_user()
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, bot_user, True, False),
+                (classical_france_nation, user_factory(), True, False),
+            ],
+        )
+
+        descriptors = self._descriptors(phase)
+
+        assert len(descriptors) == 1
+        assert descriptors[0]["kind"] == AgentTaskKind.PLAN
+        assert descriptors[0]["member"].user_id == bot_user.id
+
+    @pytest.mark.django_db
+    def test_finalize_when_no_human_has_possible_orders(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation
+    ):
+        bot_user = get_bot_user()
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, bot_user, True, False),
+                (classical_france_nation, user_factory(), False, False),
+            ],
+        )
+
+        descriptors = self._descriptors(phase)
+
+        assert len(descriptors) == 1
+        assert descriptors[0]["kind"] == AgentTaskKind.FINALIZE
+        assert descriptors[0]["member"].user_id == bot_user.id
+
+    @pytest.mark.django_db
+    def test_finalize_when_every_human_is_already_confirmed(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation
+    ):
+        bot_user = get_bot_user()
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, bot_user, True, False),
+                (classical_france_nation, user_factory(), True, True),
+            ],
+        )
+
+        descriptors = self._descriptors(phase)
+
+        assert len(descriptors) == 1
+        assert descriptors[0]["kind"] == AgentTaskKind.FINALIZE
+        assert descriptors[0]["member"].user_id == bot_user.id
+
+    @pytest.mark.django_db
+    def test_bot_without_possible_orders_plans_alongside_a_finalizing_bot(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation
+    ):
+        bot_user = get_bot_user()
+        idle_bot_user = user_factory()
+        BotProfile.objects.create(user=idle_bot_user, disposition="Cautious", voice="Terse")
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, bot_user, True, False),
+                (classical_france_nation, idle_bot_user, False, False),
+            ],
+        )
+
+        descriptors = self._descriptors(phase)
+
+        assert {(d["kind"], d["member"].user_id) for d in descriptors} == {
+            (AgentTaskKind.FINALIZE, bot_user.id),
+            (AgentTaskKind.PLAN, idle_bot_user.id),
+        }
+
+    @pytest.mark.django_db
+    def test_confirmed_bot_is_not_asked_to_finalize_again(
+        self, phase_factory, user_factory, classical_england_nation, classical_france_nation
+    ):
+        bot_user = get_bot_user()
+        phase = self._phase(
+            phase_factory,
+            [
+                (classical_england_nation, bot_user, True, True),
+                (classical_france_nation, user_factory(), False, False),
+            ],
+        )
+
+        descriptors = self._descriptors(phase)
+
+        assert len(descriptors) == 1
+        assert descriptors[0]["kind"] == AgentTaskKind.PLAN
+        assert descriptors[0]["member"].user_id == bot_user.id
 
 
 class TestPhaseStateConfirmedSpec:
