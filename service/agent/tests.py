@@ -266,18 +266,19 @@ class TestPlanTask:
         assert bot_phase_state.orders_confirmed is False
 
     @pytest.mark.django_db
-    def test_plan_injects_persona_into_system_prompt(self, bot_game_factory, in_memory_procrastinate, settings):
+    def test_plan_omits_persona_from_system_prompt(self, bot_game_factory, in_memory_procrastinate, settings):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_user = get_bot_user()
-        disposition = BotProfile.objects.get(user=bot_user).disposition
+        profile = BotProfile.objects.get(user=bot_user)
 
         client = _mock_inference_client(json.dumps({"choices": []}))
         with patch("inference.models.get_inference_client", return_value=client):
             tasks.plan(user_id=bot_user.id, game_id=game.id)
 
         system = client.complete.call_args.kwargs["system"]
-        assert disposition in system
+        assert profile.disposition not in system
+        assert profile.voice not in system
 
     @pytest.mark.django_db
     def test_plan_records_success_inference(self, bot_game_factory, in_memory_procrastinate, settings):
@@ -631,7 +632,7 @@ class TestReplyTask:
         assert channel.messages.filter(sender__user=bot_user).count() == 0
 
     @pytest.mark.django_db
-    def test_reply_injects_persona_into_system_prompt(
+    def test_reply_omits_persona_from_system_prompt(
         self, bot_public_channel_factory, in_memory_procrastinate, settings
     ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
@@ -639,15 +640,15 @@ class TestReplyTask:
         bot_user = get_bot_user()
         human_member = game.members.get(user=game.created_by)
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
-        disposition = BotProfile.objects.get(user=bot_user).disposition
+        profile = BotProfile.objects.get(user=bot_user)
 
         client = _mock_inference_client(_reply_response("Hello."))
         with patch("inference.models.get_inference_client", return_value=client):
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         system = client.complete.call_args.kwargs["system"]
-        assert disposition in system
-        assert "Voice governs how you communicate" in system
+        assert profile.disposition not in system
+        assert profile.voice not in system
 
 
 class TestReplyTrigger:
