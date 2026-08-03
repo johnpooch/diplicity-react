@@ -4,7 +4,7 @@ import pytest
 from django.db import IntegrityError, DatabaseError, transaction
 from django.urls import reverse
 from django.utils import timezone
-from django.test.utils import override_settings
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
@@ -998,6 +998,29 @@ class TestOptionsTransformation:
         expected = {"Russia": {"stp": {"Build": {"Army": {}, "Fleet": {"stp/nc": {}, "stp/sc": {}}}}}}
 
         assert result == expected
+
+
+class TestLockIfActive:
+
+    @pytest.mark.django_db
+    def test_returns_the_phase_and_locks_the_row(self, order_active_game):
+        phase = order_active_game.current_phase
+
+        with transaction.atomic():
+            with CaptureQueriesContext(connection) as queries:
+                locked = Phase.objects.lock_if_active(phase.id)
+
+        assert locked == phase
+        assert "FOR UPDATE" in queries[0]["sql"]
+
+    @pytest.mark.django_db
+    def test_returns_none_for_a_phase_that_is_no_longer_active(self, order_active_game):
+        phase = order_active_game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save(update_fields=["status"])
+
+        with transaction.atomic():
+            assert Phase.objects.lock_if_active(phase.id) is None
 
 
 class TestCreateFromAdjudicationData:

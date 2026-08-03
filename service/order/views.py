@@ -1,9 +1,11 @@
 import hashlib
 
+from django.db import transaction
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, generics, status
+from rest_framework import permissions, generics, serializers, status
 from rest_framework.response import Response
 
+from phase.models import Phase
 from .models import Order
 from .serializers import OrderSerializer, OrderOptionsResponseSerializer
 from .utils import flatten_options, build_move_coast_lookup, FIELD_ORDER
@@ -86,8 +88,14 @@ class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
     def get_object(self):
         phase = self.get_phase()
         return get_object_or_404(
-            Order,
+            Order.objects.select_related("phase_state"),
             source__province_id=self.kwargs["source_id"],
             phase_state__member__user=self.request.user,
             phase_state__phase=phase,
         )
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            if Phase.objects.lock_if_active(instance.phase_state.phase_id) is None:
+                raise serializers.ValidationError("Current phase is not active.")
+            instance.delete()
