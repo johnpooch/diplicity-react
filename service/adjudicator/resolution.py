@@ -82,6 +82,7 @@ from typing import (
 from .convoy import convoy_path_exists
 from .types import (
     ConvoyOrder,
+    FailureReason,
     HoldOrder,
     MoveOrder,
     Order,
@@ -669,7 +670,7 @@ class _Solver:
             if not intact:
                 return (
                     Status.BOUNCE,
-                    "The convoy was disrupted.",
+                    FailureReason.CONVOY_DISRUPTED,
                 )
         target_parent = variant.parent_of(order.target)
         max_prevent = 0

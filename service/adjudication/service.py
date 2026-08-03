@@ -23,6 +23,8 @@ from adjudicator.domain import State, Variant
 from adjudicator.engine import Engine
 from adjudicator.options import get_options
 from adjudicator.serializers import deserialize_game_state, deserialize_variant
+from adjudicator.types import FailureReason
+from common.constants import OrderResolutionStatus
 from phase.utils import phase_to_canonical_game_state
 from variant.utils import variant_to_canonical_dict
 
@@ -41,6 +43,18 @@ _STATUS_TO_GODIP = {
     "BOUNCE": "ErrBounce",
     "CUT": "ErrSupportBroken",
     "ILLEGAL": "ErrIllegalMove",
+}
+
+# godip distinguished several failures that the engine's four-value Status
+# collapses: a convoyed move whose convoy broke and a move that simply lost
+# a contest are both BOUNCE, and every rejected order is ILLEGAL. The engine
+# still knows which is which — it records a failure reason — so where that
+# reason identifies one of godip's more specific codes, it wins over the
+# status-based mapping.
+_REASON_TO_GODIP = {
+    FailureReason.CONVOY_DISRUPTED: OrderResolutionStatus.MISSING_CONVOY_PATH,
+    FailureReason.CONVOYING_FLEET_DISLODGED: OrderResolutionStatus.CONVOY_DISLODGED,
+    FailureReason.SUPPORTEE_NOT_ORDERED: OrderResolutionStatus.INVALID_SUPPORT_ORDER,
 }
 
 
@@ -245,7 +259,9 @@ def _build_resolutions(orders, resolutions, variant: Variant) -> List[Dict[str, 
     resolutions_out: List[Dict[str, Any]] = []
     for resolution in resolutions or []:
         province_parent = variant.parent_of(resolution.province)
-        godip_status = _STATUS_TO_GODIP.get(resolution.resolution, "ErrIllegalMove")
+        godip_status = _REASON_TO_GODIP.get(
+            resolution.reason
+        ) or _STATUS_TO_GODIP.get(resolution.resolution, "ErrIllegalMove")
         by = _find_by_province(
             resolution.resolution,
             province_parent,
