@@ -78,10 +78,17 @@ def _should_skip(options, units, supply_centers, skip_nations, nation_name_by_id
         return True
     if not skip_nations:
         return False
-    location_to_nation = {
+    standing_location_to_nation = {
         u.location: nation_name_by_id.get(u.nation, u.nation)
         for u in units
+        if not u.dislodged
     }
+    dislodged_location_to_nation = {
+        u.location: nation_name_by_id.get(u.nation, u.nation)
+        for u in units
+        if u.dislodged
+    }
+    location_to_nation = {**standing_location_to_nation, **dislodged_location_to_nation}
     province_to_nation = {
         sc.province: nation_name_by_id.get(sc.nation, sc.nation)
         for sc in supply_centers
