@@ -1,4 +1,5 @@
 import type { Point } from "./dsvgParser";
+import { wrappedPointNear } from "./mapWrap";
 
 export const ROUTE_TENSION = 0.6;
 export const MOVE_CURVE_OFFSET = 20;
@@ -6,6 +7,12 @@ export const SUPPORT_STAGGER_DISTANCE = 4.375;
 
 export const euclidean = (a: Point, b: Point): number =>
   Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+
+export const wrappedEuclidean = (
+  a: Point,
+  b: Point,
+  width?: number
+): number => euclidean(a, wrappedPointNear(b, a, width));
 
 export const closestPointOnLine = (p: Point, a: Point, b: Point): Point => {
   const lineX = b.x - a.x;
@@ -56,17 +63,33 @@ export const shortestWaypointOrder = <T>(
   items: T[],
   pointOf: (item: T) => Point,
   source: Point,
-  destination: Point
+  destination: Point,
+  horizontalWrapWidth?: number
 ): T[] => {
   if (items.length <= 1) {
     return items;
   }
   const pathLength = (order: T[]): number => {
-    let total = euclidean(source, pointOf(order[0]));
+    let total = wrappedEuclidean(
+      source,
+      pointOf(order[0]),
+      horizontalWrapWidth
+    );
     for (let i = 0; i < order.length - 1; i++) {
-      total += euclidean(pointOf(order[i]), pointOf(order[i + 1]));
+      total += wrappedEuclidean(
+        pointOf(order[i]),
+        pointOf(order[i + 1]),
+        horizontalWrapWidth
+      );
     }
-    return total + euclidean(pointOf(order[order.length - 1]), destination);
+    return (
+      total +
+      wrappedEuclidean(
+        pointOf(order[order.length - 1]),
+        destination,
+        horizontalWrapWidth
+      )
+    );
   };
   return permutations(items).reduce((best, order) =>
     pathLength(order) < pathLength(best) ? order : best
@@ -120,15 +143,26 @@ export type ConvoyRoute = {
 export const buildConvoyRoute = (
   source: Point,
   destination: Point,
-  fleets: ConvoyFleet[]
+  fleets: ConvoyFleet[],
+  horizontalWrapWidth?: number
 ): ConvoyRoute => {
   const ordered = shortestWaypointOrder(
     fleets,
     (fleet) => fleet.point,
     source,
-    destination
+    destination,
+    horizontalWrapWidth
   );
-  const waypoints = [source, ...ordered.map((fleet) => fleet.point), destination];
+  const canonicalWaypoints = [
+    source,
+    ...ordered.map((fleet) => fleet.point),
+    destination,
+  ];
+  const waypoints = canonicalWaypoints.reduce<Point[]>((result, point) => {
+    const previous = result[result.length - 1];
+    result.push(previous ? wrappedPointNear(point, previous, horizontalWrapWidth) : point);
+    return result;
+  }, []);
   const attachments = new Map<string, Point>();
   ordered.forEach((fleet, index) => {
     attachments.set(fleet.id, bSplineAttachmentPoint(waypoints, index + 1));

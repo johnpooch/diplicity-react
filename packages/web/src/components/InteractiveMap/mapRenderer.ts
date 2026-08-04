@@ -16,6 +16,7 @@ import {
   buildConvoyRoute,
   type ConvoyRoute,
 } from "./orderGeometry";
+import { wrappedPointNear } from "./mapWrap";
 
 export type UnitState = {
   province: string;
@@ -53,6 +54,7 @@ export type RenderState = {
   orders?: OrderState[];
   selected?: string[];
   highlighted?: string[];
+  horizontalWrapWidth?: number;
 };
 
 const DEFAULT_FILL = "transparent";
@@ -360,7 +362,8 @@ const disbandMarkup = (position: Point): string =>
 
 const headToHeadControlPoints = (
   orders: OrderState[],
-  unitPositions: Map<string, Point>
+  unitPositions: Map<string, Point>,
+  horizontalWrapWidth?: number
 ): Map<string, Point> => {
   const moves = orders.filter(
     (order) => order.type === "Move" || order.type === "MoveViaConvoy"
@@ -385,7 +388,10 @@ const headToHeadControlPoints = (
     }
     controlPoints.set(
       `${order.source}->${order.target}`,
-      headToHeadControlPoint(source, target)
+      headToHeadControlPoint(
+        source,
+        wrappedPointNear(target, source, horizontalWrapWidth)
+      )
     );
   }
   return controlPoints;
@@ -413,7 +419,8 @@ const supportMoveGroups = (orders: OrderState[]): Map<string, OrderState[]> => {
 
 const convoyRoutes = (
   orders: OrderState[],
-  unitPositions: Map<string, Point>
+  unitPositions: Map<string, Point>,
+  horizontalWrapWidth?: number
 ): Map<string, ConvoyRoute> => {
   const routes = new Map<string, ConvoyRoute>();
   const convoys = orders.filter((order) => order.type === "Convoy");
@@ -443,7 +450,7 @@ const convoyRoutes = (
     }
     routes.set(
       `${move.source}->${move.target}`,
-      buildConvoyRoute(source, destination, fleets)
+      buildConvoyRoute(source, destination, fleets, horizontalWrapWidth)
     );
   }
   return routes;
@@ -469,14 +476,19 @@ const supportOrderParts = (
     }
     const color = nationColor(state, order.nation);
     const renderCenter = order.failed ? failureCross : undefined;
+    const wrappedTarget = wrappedPointNear(
+      target,
+      source,
+      state.horizontalWrapWidth
+    );
 
     if (order.aux === order.target) {
       parts.push(
         supportHoldArrow({
           x1: source.x,
           y1: source.y,
-          x2: target.x,
-          y2: target.y,
+          x2: wrappedTarget.x,
+          y2: wrappedTarget.y,
           offset: UNIT_RADIUS,
           endOffset: UNIT_RADIUS + UNIT_OFFSET_RADIUS,
           lineWidth: ORDER_LINE_WIDTH,
@@ -490,11 +502,26 @@ const supportOrderParts = (
       continue;
     }
 
-    const moveControlPoint = headToHead.get(`${order.aux}->${order.target}`);
+    const wrappedAux = wrappedPointNear(aux, source, state.horizontalWrapWidth);
+    const targetNearAux = wrappedPointNear(
+      target,
+      wrappedAux,
+      state.horizontalWrapWidth
+    );
+    const rawMoveControlPoint = headToHead.get(
+      `${order.aux}->${order.target}`
+    );
+    const auxOffset = wrappedAux.x - aux.x;
+    const moveControlPoint = rawMoveControlPoint
+      ? {
+          x: rawMoveControlPoint.x + auxOffset,
+          y: rawMoveControlPoint.y,
+        }
+      : undefined;
     const group = groups.get(`${order.aux}->${order.target}`) ?? [];
     const end = staggeredSupportEnd(
-      aux,
-      target,
+      wrappedAux,
+      targetNearAux,
       group.indexOf(order),
       moveControlPoint
     );
@@ -504,8 +531,8 @@ const supportOrderParts = (
         y1: source.y,
         x2: end.x,
         y2: end.y,
-        x3: aux.x,
-        y3: aux.y,
+        x3: wrappedAux.x,
+        y3: wrappedAux.y,
         offset: UNIT_RADIUS,
         lineWidth: ORDER_LINE_WIDTH,
         arrowWidth: ORDER_ARROW_WIDTH,
@@ -544,6 +571,11 @@ const moveOrderParts = (
     }
     const color = nationColor(state, order.nation);
     const renderCenter = order.failed ? failureCross : undefined;
+    const wrappedTarget = wrappedPointNear(
+      target,
+      source,
+      state.horizontalWrapWidth
+    );
 
     if (order.type === "MoveViaConvoy") {
       const route = routes.get(`${order.source}->${order.target}`);
@@ -568,8 +600,8 @@ const moveOrderParts = (
       arrow({
         x1: source.x,
         y1: source.y,
-        x2: target.x,
-        y2: target.y,
+        x2: wrappedTarget.x,
+        y2: wrappedTarget.y,
         lineWidth: ORDER_LINE_WIDTH,
         arrowWidth: ORDER_ARROW_WIDTH,
         arrowLength: ORDER_ARROW_LENGTH,
@@ -603,20 +635,29 @@ const convoyOrderParts = (
       continue;
     }
     const route = routes.get(`${order.aux}->${order.target}`);
+    const wrappedTarget = wrappedPointNear(
+      target,
+      source,
+      state.horizontalWrapWidth
+    );
+    const wrappedAux = wrappedPointNear(aux, source, state.horizontalWrapWidth);
+    const attachment = route?.attachments.get(order.source);
     parts.push(
       convoyArrow({
         x1: source.x,
         y1: source.y,
-        x2: target.x,
-        y2: target.y,
-        x3: aux.x,
-        y3: aux.y,
+        x2: wrappedTarget.x,
+        y2: wrappedTarget.y,
+        x3: wrappedAux.x,
+        y3: wrappedAux.y,
         lineWidth: ORDER_LINE_WIDTH,
         offset: UNIT_RADIUS,
         stroke: SUCCESS_COLOR,
         strokeWidth: ORDER_STROKE_WIDTH,
         fill: nationColor(state, order.nation),
-        attachmentPoint: route?.attachments.get(order.source),
+        attachmentPoint: attachment
+          ? wrappedPointNear(attachment, source, state.horizontalWrapWidth)
+          : undefined,
         renderCenter: order.failed ? failureCross : undefined,
       })
     );
@@ -631,9 +672,17 @@ const ordersLayer = (
   const orders = state.orders ?? [];
   const ofType = (type: OrderType): OrderState[] =>
     orders.filter((order) => order.type === type);
-  const headToHead = headToHeadControlPoints(orders, unitPositions);
+  const headToHead = headToHeadControlPoints(
+    orders,
+    unitPositions,
+    state.horizontalWrapWidth
+  );
   const groups = supportMoveGroups(orders);
-  const routes = convoyRoutes(orders, unitPositions);
+  const routes = convoyRoutes(
+    orders,
+    unitPositions,
+    state.horizontalWrapWidth
+  );
   const parts: string[] = [];
 
   for (const order of ofType("Hold")) {

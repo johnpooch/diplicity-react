@@ -8,6 +8,7 @@ import { GameCard } from "@/components/GameCard";
 import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Inbox, Loader2, SlidersHorizontal, Zap } from "lucide-react";
+import { Inbox, SlidersHorizontal, Zap } from "lucide-react";
 import { useVariantsListSuspense } from "@/api/generated/endpoints";
 import type { GamesListMovementPhaseDuration } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
@@ -194,7 +195,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
           )}
           {isFetchingNextPage && (
             <div className="flex justify-center py-4">
-              <Loader2 className="animate-spin" />
+              <LoadingSpinner label="Loading more games" />
             </div>
           )}
           <div ref={sentinelRef} />

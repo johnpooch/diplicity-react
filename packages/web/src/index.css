@@ -151,3 +151,15 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.map-wrap-loading-icon {
+  color: white;
+}
+
+.map-wrap-loading-icon .loading-spinner {
+  left: 50%;
+  margin-left: -12px;
+  margin-top: -12px;
+  position: absolute;
+  top: 50%;
+}

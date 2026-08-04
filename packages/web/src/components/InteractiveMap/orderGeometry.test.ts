@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import {
   euclidean,
+  wrappedEuclidean,
   closestPointOnLine,
   bSplineAttachmentPoint,
   shortestWaypointOrder,
@@ -13,6 +14,14 @@ import {
 describe("euclidean", () => {
   test("measures the distance between two points", () => {
     expect(euclidean({ x: 0, y: 0 }, { x: 3, y: 4 })).toBe(5);
+  });
+});
+
+describe("wrappedEuclidean", () => {
+  test("measures across the horizontal seam when it is shorter", () => {
+    expect(
+      wrappedEuclidean({ x: 950, y: 0 }, { x: 50, y: 0 }, 1000)
+    ).toBe(100);
   });
 });
 
@@ -120,5 +129,19 @@ describe("buildConvoyRoute", () => {
       { x: 30, y: 0 },
     ]);
     expect(route.attachments.size).toBe(0);
+  });
+
+  test("unwraps a convoy route continuously across the horizontal seam", () => {
+    const route = buildConvoyRoute(
+      { x: 900, y: 0 },
+      { x: 100, y: 0 },
+      [{ id: "fleet", point: { x: 980, y: 0 } }],
+      1000
+    );
+    expect(route.waypoints).toEqual([
+      { x: 900, y: 0 },
+      { x: 980, y: 0 },
+      { x: 1100, y: 0 },
+    ]);
   });
 });

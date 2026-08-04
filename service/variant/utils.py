@@ -239,6 +239,7 @@ def variant_to_canonical_dict(variant):
         "description": variant.description,
         "author": variant.author,
         "rules": variant.rules,
+        "mapOptions": {"horizontalWrap": variant.horizontal_wrap},
         "victoryConditions": variant.victory_conditions,
         "adjudicationModifiers": variant.adjudication_modifiers,
         "phaseProgression": variant.phase_progression,
@@ -822,6 +823,7 @@ def create_variant_from_dvar(dvar, owner=None, status=None):
         adjudication_modifiers=dvar.get("adjudicationModifiers", []),
         phase_progression=dvar["phaseProgression"],
         dominance_rules=dvar.get("dominanceRules", []),
+        horizontal_wrap=dvar.get("mapOptions", {}).get("horizontalWrap", False),
         status=status,
         owner=owner,
     )
@@ -858,6 +860,7 @@ def update_variant_from_dvar(variant, dvar):
     variant.adjudication_modifiers = dvar.get("adjudicationModifiers", [])
     variant.phase_progression = dvar["phaseProgression"]
     variant.dominance_rules = dvar.get("dominanceRules", [])
+    variant.horizontal_wrap = dvar.get("mapOptions", {}).get("horizontalWrap", False)
     variant.save()
 
     _build_variant_children(variant, dvar)
@@ -1014,6 +1017,7 @@ def apply_safe_replacement(variant, dvar, dsvg_text):
     variant.adjudication_modifiers = dvar.get("adjudicationModifiers", [])
     variant.phase_progression = dvar["phaseProgression"]
     variant.dominance_rules = dvar.get("dominanceRules", [])
+    variant.horizontal_wrap = dvar.get("mapOptions", {}).get("horizontalWrap", False)
     variant.save()
 
     nation_by_id = {nation.nation_id: nation for nation in variant.nations.all()}

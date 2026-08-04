@@ -28,7 +28,7 @@ import { renderSplitSvg } from "./mapSvgLayers";
 import { rasterizeSvg } from "./rasterizeSvg";
 import { buildProvinceRings } from "./provincePolygons";
 
-type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
+type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl" | "mapOptions">;
 
 type GameMapCanvasProps = {
   variant: VariantForMap;
@@ -86,9 +86,18 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const baseSvg = useMemo(
     () =>
       renderer && parsed
-        ? renderSplitSvg(renderer, baseState, parsed.viewBox).base
+        ? renderSplitSvg(
+            renderer,
+            {
+              ...baseState,
+              horizontalWrapWidth: props.variant.mapOptions.horizontalWrap
+                ? parsed.viewBox.width
+                : undefined,
+            },
+            parsed.viewBox
+          ).base
         : null,
-    [renderer, parsed, baseState]
+    [renderer, parsed, baseState, props.variant.mapOptions.horizontalWrap]
   );
 
   // The overlay (units + order arrows) is a light vector layer repainted on
@@ -98,14 +107,19 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       renderer && parsed
         ? renderSplitSvg(
             renderer,
-            toRenderState(
-              props.variant,
-              props.phase,
-              props.orders ?? [],
-              [],
-              [],
-              civilDisorderNations ?? []
-            ),
+            {
+              ...toRenderState(
+                props.variant,
+                props.phase,
+                props.orders ?? [],
+                [],
+                [],
+                civilDisorderNations ?? []
+              ),
+              horizontalWrapWidth: props.variant.mapOptions.horizontalWrap
+                ? parsed.viewBox.width
+                : undefined,
+            },
             parsed.viewBox
           ).overlay
         : null,
@@ -134,6 +148,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
 
     const controller = new GameMapController(containerRef.current, {
       viewBox: parsed.viewBox,
+      horizontalWrap: props.variant.mapOptions.horizontalWrap,
       mode,
       enableHover: mode === "interactive" && !isNativePlatform(),
       maxZoomFactor: showFillToggle ? undefined : 4,
@@ -153,8 +168,8 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       controller.destroy();
       controllerRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- create the map once per parsed dSVG; live values flow through refs and dedicated effects
-  }, [parsed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- create the map once per parsed dSVG or wrap mode; live values flow through refs and dedicated effects
+  }, [parsed, props.variant.mapOptions.horizontalWrap]);
 
   useEffect(() => {
     if (controllerRef.current && rings && mode === "interactive") {

@@ -69,6 +69,18 @@ properties:
     examples:
       - "Allan B. Calhamer"
 
+  mapOptions:
+    type: object
+    description: Optional presentation behavior for the variant map.
+    additionalProperties: false
+    properties:
+      horizontalWrap:
+        type: boolean
+        default: false
+        description: |
+          When true, the interactive map repeats horizontally and can be
+          panned continuously across its left and right edges.
+
   victoryConditions:
     type: array
     minItems: 1

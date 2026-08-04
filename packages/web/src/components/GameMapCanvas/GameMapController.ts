@@ -1,10 +1,16 @@
 import L from "leaflet";
 import type { Point, ViewBox } from "../InteractiveMap/dsvgParser";
 import type { GestureType } from "../InteractiveMap/mapTelemetry";
-import { toLatLng, viewBoxBounds } from "./leafletCoords";
+import { shiftedViewBoxBounds, toLatLng, viewBoxBounds } from "./leafletCoords";
 import type { ProvinceRing } from "./provincePolygons";
 import { focusBounds } from "./focusBounds";
 import { buildHighlightSvg } from "./highlightSvg";
+import {
+  nearestWorldCopyIndex,
+  WORLD_COPY_INDEXES,
+  wrappedXNear,
+} from "../InteractiveMap/mapWrap";
+import { createLoadingSpinnerElement } from "../ui/loading-spinner";
 
 export type MapMode = "static" | "pannable" | "interactive";
 
@@ -47,6 +53,7 @@ export type GestureRecord = {
 
 type ControllerOptions = {
   viewBox: ViewBox;
+  horizontalWrap: boolean;
   mode: MapMode;
   enableHover: boolean;
   maxZoomFactor?: number;
@@ -62,6 +69,14 @@ const hitTestStyle = (): L.PathOptions => ({
   fillColor: "#000000",
   fillOpacity: 0,
 });
+
+const wrapLoadingIcon = (): L.DivIcon =>
+  L.divIcon({
+    className: "map-wrap-loading-icon",
+    html: createLoadingSpinnerElement(),
+    iconSize: [64, 64],
+    iconAnchor: [32, 32],
+  });
 
 const CanvasOverlay = L.ImageOverlay.extend({
   _initImage(this: { _url: HTMLCanvasElement; _image: HTMLCanvasElement; _zoomAnimated: boolean }) {
@@ -83,11 +98,14 @@ const CanvasOverlay = L.ImageOverlay.extend({
 export class GameMapController {
   private readonly map: L.Map;
   private readonly bounds: L.LatLngBounds;
+  private readonly verticalBounds: L.LatLngBounds;
+  private readonly copyBounds: L.LatLngBounds[];
   private readonly options: ControllerOptions;
+  private readonly wrapLoadingMarker: L.Marker | null;
 
-  private baseLayer: L.ImageOverlay | null = null;
-  private highlightLayer: L.SVGOverlay | null = null;
-  private overlayLayer: L.SVGOverlay | null = null;
+  private baseLayers: L.ImageOverlay[] = [];
+  private highlightLayers: L.SVGOverlay[] = [];
+  private overlayLayers: L.SVGOverlay[] = [];
   private readonly hitLayer: L.LayerGroup;
   private readonly polygonsByProvince = new Map<string, L.Polygon[]>();
   private provincePaths = new Map<string, string>();
@@ -127,9 +145,28 @@ export class GameMapController {
     this.container = container;
     this.fill = options.initialFill ?? true;
     this.bounds = L.latLngBounds(viewBoxBounds(options.viewBox));
+    this.verticalBounds = L.latLngBounds(
+      [this.bounds.getSouth(), -10_000_000],
+      [this.bounds.getNorth(), 10_000_000]
+    );
+    const copyIndexes = options.horizontalWrap ? WORLD_COPY_INDEXES : [0];
+    this.copyBounds = copyIndexes.map((index) =>
+      L.latLngBounds(
+        shiftedViewBoxBounds(options.viewBox, index * options.viewBox.width)
+      )
+    );
+
+    const crs = options.horizontalWrap
+      ? (L.Util.extend({}, L.CRS.Simple, {
+          wrapLng: [
+            options.viewBox.minX,
+            options.viewBox.minX + options.viewBox.width,
+          ],
+        }) as L.CRS)
+      : L.CRS.Simple;
 
     this.map = L.map(container, {
-      crs: L.CRS.Simple,
+      crs,
       attributionControl: false,
       zoomControl: false,
       zoomSnap: 0,
@@ -156,14 +193,68 @@ export class GameMapController {
     // still rasterising, so it is hidden until the first base raster lands to
     // avoid units flashing on the blank background before the map appears.
     overlayPane.style.visibility = "hidden";
+    const loadingPane = this.map.createPane("wrapLoadingMap");
+    loadingPane.style.zIndex = "500";
+    loadingPane.style.pointerEvents = "none";
+
+    this.wrapLoadingMarker = options.horizontalWrap
+      ? L.marker(this.bounds.getCenter(), {
+          icon: wrapLoadingIcon(),
+          interactive: false,
+          keyboard: false,
+          pane: "wrapLoadingMap",
+        })
+      : null;
 
     this.hitLayer = L.layerGroup().addTo(this.map);
 
     this.container.addEventListener("wheel", this.onWheel, { passive: false });
+    if (options.horizontalWrap) {
+      this.map.on("move", this.updateWrapLoadingMarker);
+      this.map.on("moveend", this.wrapCenter);
+    }
 
     this.refit();
     this.wireGestures();
   }
+
+  // Leaflet's built-in worldCopyJump assumes a geographic CRS and can fire its
+  // drag handler before CRS.Simple has an initial view. Recenter explicitly at
+  // the end of a pan instead: the neighbouring copies cover the gesture, then
+  // the camera jumps by exactly one board width with no visible change.
+  private wrapCenter = (): void => {
+    const { minX, width } = this.options.viewBox;
+    const center = this.map.getCenter();
+    const wrappedX = minX + ((((center.lng - minX) % width) + width) % width);
+    if (Math.abs(wrappedX - center.lng) < 0.001) return;
+    this.map.setView([center.lat, wrappedX], this.map.getZoom(), {
+      animate: false,
+    });
+  };
+
+  // Only the canonical board and its immediate neighbours are prepared. If a
+  // single long drag outruns them, place one lightweight spinner at the centre
+  // of whichever further copy currently occupies the viewport. The marker is
+  // recycled no matter how many board widths the gesture crosses.
+  private updateWrapLoadingMarker = (): void => {
+    const marker = this.wrapLoadingMarker;
+    if (!marker) return;
+    const canonicalCenter = this.bounds.getCenter();
+    const copyIndex = nearestWorldCopyIndex(
+      this.map.getCenter().lng,
+      canonicalCenter.lng,
+      this.options.viewBox.width
+    );
+    if (Math.abs(copyIndex) <= 1) {
+      if (this.map.hasLayer(marker)) this.map.removeLayer(marker);
+      return;
+    }
+    marker.setLatLng([
+      canonicalCenter.lat,
+      canonicalCenter.lng + copyIndex * this.options.viewBox.width,
+    ]);
+    if (!this.map.hasLayer(marker)) marker.addTo(this.map);
+  };
 
   // Recomputes the zoom limits for the current container size and applies the
   // active regime. The board is (re)fitted on the first sizing and on any later
@@ -197,7 +288,9 @@ export class GameMapController {
   // clamp is removed so the whole board can be framed with margins around it.
   private applyRegime(): void {
     if (this.fill) {
-      this.map.setMaxBounds(this.bounds);
+      this.map.setMaxBounds(
+        this.options.horizontalWrap ? this.verticalBounds : this.bounds
+      );
       this.map.setMinZoom(this.fillZoom);
     } else {
       this.map.setMaxBounds();
@@ -217,7 +310,13 @@ export class GameMapController {
   setFill(fill: boolean): void {
     if (this.fill === fill) return;
     this.fill = fill;
-    this.map.setMaxBounds(fill ? this.bounds : undefined);
+    this.map.setMaxBounds(
+      fill
+        ? this.options.horizontalWrap
+          ? this.verticalBounds
+          : this.bounds
+        : undefined
+    );
     this.map.setMinZoom(this.containZoom);
     this.map.once("zoomend", () => this.applyRegime());
     this.fitToRegime(true);
@@ -236,7 +335,15 @@ export class GameMapController {
       toLatLng({ x: rect.maxX, y: rect.maxY })
     );
     const zoom = this.map.getBoundsZoom(bounds, false);
-    this.map.setView(bounds.getCenter(), zoom, { animate });
+    const center = bounds.getCenter();
+    if (this.options.horizontalWrap) {
+      center.lng = wrappedXNear(
+        center.lng,
+        this.map.getCenter().lng,
+        this.options.viewBox.width
+      );
+    }
+    this.map.setView(center, zoom, { animate });
   }
 
   // Maps wheel delta straight to a zoom change, batched per animation frame.
@@ -310,20 +417,35 @@ export class GameMapController {
   }
 
   setBase(canvas: HTMLCanvasElement): void {
-    const next = new CanvasOverlay(canvas, this.bounds, {
-      interactive: false,
-      pane: "baseMap",
-    }).addTo(this.map);
-    if (this.baseLayer) {
-      this.map.removeLayer(this.baseLayer);
-    }
-    this.baseLayer = next;
+    const next = this.copyBounds.map((bounds, index) => {
+      const copy = index === 0 ? canvas : this.copyCanvas(canvas);
+      return new CanvasOverlay(copy, bounds, {
+        interactive: false,
+        pane: "baseMap",
+      }).addTo(this.map);
+    });
+    this.removeLayers(this.baseLayers);
+    this.baseLayers = next;
     if (!this.baseReady) {
       this.baseReady = true;
       this.map.getPane("overlayMap")!.style.visibility = "";
       if (this.options.forceCompositeOnBase) {
         this.nudgeComposite();
       }
+    }
+  }
+
+  private copyCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
+    const copy = document.createElement("canvas");
+    copy.width = source.width;
+    copy.height = source.height;
+    copy.getContext("2d")?.drawImage(source, 0, 0);
+    return copy;
+  }
+
+  private removeLayers(layers: L.Layer[]): void {
+    for (const layer of layers) {
+      this.map.removeLayer(layer);
     }
   }
 
@@ -346,16 +468,18 @@ export class GameMapController {
   }
 
   setOverlay(svg: string): void {
-    const element = new DOMParser().parseFromString(svg, "image/svg+xml")
+    const source = new DOMParser().parseFromString(svg, "image/svg+xml")
       .documentElement as unknown as SVGElement;
-    const next = L.svgOverlay(element, this.bounds, {
-      interactive: false,
-      pane: "overlayMap",
-    }).addTo(this.map);
-    if (this.overlayLayer) {
-      this.map.removeLayer(this.overlayLayer);
-    }
-    this.overlayLayer = next;
+    source.setAttribute("overflow", "visible");
+    const next = this.copyBounds.map((bounds, index) =>
+      L.svgOverlay(
+        (index === 0 ? source : source.cloneNode(true)) as SVGElement,
+        bounds,
+        { interactive: false, pane: "overlayMap" }
+      ).addTo(this.map)
+    );
+    this.removeLayers(this.overlayLayers);
+    this.overlayLayers = next;
   }
 
   setProvincePaths(paths: Map<string, string>): void {
@@ -367,18 +491,26 @@ export class GameMapController {
     this.hitLayer.clearLayers();
     this.polygonsByProvince.clear();
     for (const ring of rings) {
-      const polygon = L.polygon(ring.points.map(toLatLng), hitTestStyle());
-      polygon.on("click", (event) => this.handleClick(ring.id, event));
-      if (this.options.enableHover) {
-        polygon.on("mouseover", () => this.handleHover(ring.id));
-        polygon.on("mouseout", () => this.handleHover(null));
-      }
-      polygon.addTo(this.hitLayer);
-      const existing = this.polygonsByProvince.get(ring.id);
-      if (existing) {
-        existing.push(polygon);
-      } else {
-        this.polygonsByProvince.set(ring.id, [polygon]);
+      for (const bounds of this.copyBounds) {
+        const xOffset = bounds.getWest() - this.bounds.getWest();
+        const polygon = L.polygon(
+          ring.points.map((point) =>
+            toLatLng({ x: point.x + xOffset, y: point.y })
+          ),
+          hitTestStyle()
+        );
+        polygon.on("click", (event) => this.handleClick(ring.id, event));
+        if (this.options.enableHover) {
+          polygon.on("mouseover", () => this.handleHover(ring.id));
+          polygon.on("mouseout", () => this.handleHover(null));
+        }
+        polygon.addTo(this.hitLayer);
+        const existing = this.polygonsByProvince.get(ring.id);
+        if (existing) {
+          existing.push(polygon);
+        } else {
+          this.polygonsByProvince.set(ring.id, [polygon]);
+        }
       }
     }
     this.updateHitTargets();
@@ -418,16 +550,17 @@ export class GameMapController {
       renderable: this.style.renderable,
       hovered: this.hovered,
     });
-    const element = new DOMParser().parseFromString(svg, "image/svg+xml")
+    const source = new DOMParser().parseFromString(svg, "image/svg+xml")
       .documentElement as unknown as SVGElement;
-    const next = L.svgOverlay(element, this.bounds, {
-      interactive: false,
-      pane: "highlightMap",
-    }).addTo(this.map);
-    if (this.highlightLayer) {
-      this.map.removeLayer(this.highlightLayer);
-    }
-    this.highlightLayer = next;
+    const next = this.copyBounds.map((bounds, index) =>
+      L.svgOverlay(
+        (index === 0 ? source : source.cloneNode(true)) as SVGElement,
+        bounds,
+        { interactive: false, pane: "highlightMap" }
+      ).addTo(this.map)
+    );
+    this.removeLayers(this.highlightLayers);
+    this.highlightLayers = next;
   }
 
   // Mirrors the SVG map (InteractiveMap), where every hit path is given
@@ -469,6 +602,8 @@ export class GameMapController {
       cancelAnimationFrame(this.compositeRaf);
     }
     this.container.removeEventListener("wheel", this.onWheel);
+    this.map.off("move", this.updateWrapLoadingMarker);
+    this.map.off("moveend", this.wrapCenter);
     this.map.remove();
   }
 }

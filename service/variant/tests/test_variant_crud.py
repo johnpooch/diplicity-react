@@ -67,6 +67,29 @@ def test_create_variant_success(authenticated_client, primary_user, classical_dv
 
 
 @pytest.mark.django_db
+def test_create_variant_preserves_horizontal_map_wrap(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "wrapped-map"
+    dvar["mapOptions"] = {"horizontalWrap": True}
+
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+    assert response.data["mapOptions"] == {"horizontalWrap": True}
+    variant = Variant.objects.get(id=f"{primary_user.id}-wrapped-map")
+    assert variant.horizontal_wrap is True
+    assert variant_to_canonical_dict(variant)["mapOptions"] == {
+        "horizontalWrap": True
+    }
+
+
+@pytest.mark.django_db
 def test_create_variant_preserves_non_playable_nation(
     authenticated_client, primary_user, classical_dvar, classical_dsvg
 ):

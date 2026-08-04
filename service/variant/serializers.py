@@ -71,6 +71,10 @@ class VariantTemplatePhaseSerializer(serializers.Serializer):
     supply_centers = VariantTemplateSupplyCenterSerializer(many=True)
 
 
+class VariantMapOptionsSerializer(serializers.Serializer):
+    horizontal_wrap = serializers.BooleanField()
+
+
 class VariantSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
@@ -87,6 +91,7 @@ class VariantSerializer(serializers.Serializer):
     nations = NationSerializer(many=True)
     provinces = VariantProvinceSerializer(many=True)
     template_phase = VariantTemplatePhaseSerializer()
+    map_options = VariantMapOptionsSerializer(source="*")
 
     def get_svg_url(self, variant) -> Optional[str]:
         try:
