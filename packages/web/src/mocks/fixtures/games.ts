@@ -611,7 +611,20 @@ const buildNotJoined = () => {
     phases: [phase],
     ordersByPhase: { 701: [] },
     phaseStates: members.map(m => makePhaseState(m, [])),
-    channels: [makeChannel("Public Press", members, [])],
+    channels: [
+      makeChannel("Public Press", members, [
+        makeMessage(
+          members[0],
+          "England opens with a call for a quiet Channel.",
+          "2026-05-01T09:00:00Z"
+        ),
+        makeMessage(
+          members[2],
+          "France is listening, but making no promises.",
+          "2026-05-01T09:15:00Z"
+        ),
+      ]),
+    ],
   });
 };
 

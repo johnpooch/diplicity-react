@@ -188,7 +188,10 @@ export const handlers = [
 
   http.get("*/game/:gameId/phase-states/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);
-    return fixture ? HttpResponse.json(fixture.phaseStates) : notFound();
+    if (!fixture) return notFound();
+    return HttpResponse.json(
+      fixture.phaseStates.filter(ps => ps.member.isCurrentUser)
+    );
   }),
 
   http.get("*/game/:gameId/options/", ({ params }) => {

@@ -609,6 +609,28 @@ class TestDrawProposalListView:
         assert len(response.data) == 1
         assert response.data[0]["id"] == active.id
 
+    def test_list_proposals_as_non_member(
+        self, api_client, game_factory, phase_factory, member_factory,
+        draw_proposal_factory, primary_user, secondary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        m1 = member_factory(game=game, user=primary_user)
+        m2 = member_factory(game=game)
+
+        proposal = draw_proposal_factory(
+            game=game, created_by=m1, phase=phase,
+            included_member_ids=[m1.id, m2.id],
+        )
+
+        self._auth(api_client, secondary_user)
+        response = api_client.get(f"/games/{game.id}/draw-proposals/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == proposal.id
+        assert response.data[0]["my_vote"] is None
+
     def test_list_response_no_longer_includes_combined_sc_count_or_threshold(
         self, api_client, game_factory, phase_factory, member_factory,
         draw_proposal_factory, primary_user,

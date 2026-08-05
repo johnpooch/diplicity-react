@@ -20,6 +20,7 @@ beforeAll(() => {
 });
 
 const mockChannelsData = vi.fn();
+const mockMembersData = vi.fn(() => [{ id: 1, nation: "Austria", isCurrentUser: true }]);
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
@@ -28,7 +29,7 @@ vi.mock("@/api/generated/endpoints", () => ({
       pressType: "public_press",
       status: "active",
       variantId: "standard",
-      members: [],
+      members: mockMembersData(),
     },
   }),
   useGamesChannelsListSuspense: () => ({
@@ -130,5 +131,22 @@ describe("ChannelListScreen", () => {
     expect(screen.getByText("Public")).toBeInTheDocument();
     // No badge for zero unread
     expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("shows create channel button for a member", () => {
+    mockChannelsData.mockReturnValue([]);
+
+    renderChannelList();
+
+    expect(screen.getByRole("link", { name: /create channel/i })).toBeInTheDocument();
+  });
+
+  it("hides create channel button when the user is not a member", () => {
+    mockChannelsData.mockReturnValue([]);
+    mockMembersData.mockReturnValue([{ id: 1, nation: "Austria", isCurrentUser: false }]);
+
+    renderChannelList();
+
+    expect(screen.queryByRole("link", { name: /create channel/i })).not.toBeInTheDocument();
   });
 });
