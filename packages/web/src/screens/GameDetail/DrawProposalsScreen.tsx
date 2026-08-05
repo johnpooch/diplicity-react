@@ -238,7 +238,8 @@ const DrawProposalsScreen: React.FC = () => {
     p => p.status === "pending" && p.createdBy.id === currentMember?.id
   );
   const isGameCompleted = game.status === "completed";
-  const canProposeDraw = !game.sandbox && !hasActiveProposalByCurrentUser && !isGameCompleted;
+  const canProposeDraw =
+    !!currentMember && !game.sandbox && !hasActiveProposalByCurrentUser && !isGameCompleted;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

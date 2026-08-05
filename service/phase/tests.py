@@ -113,7 +113,8 @@ def test_list_orderable_provinces_sandbox_game(authenticated_client, sandbox_gam
 def test_list_orderable_provinces_not_member(authenticated_client, active_game_created_by_secondary_user):
     url = reverse("phase-state-list", args=[active_game_created_by_secondary_user.id])
     response = authenticated_client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == []
 
 
 @pytest.mark.django_db
@@ -1659,6 +1660,14 @@ class TestPhaseListView:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    @pytest.mark.django_db
+    def test_list_phases_not_member(self, authenticated_client, active_game_created_by_secondary_user):
+        url = reverse("phase-list", args=[active_game_created_by_secondary_user.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+
 
 class TestPhaseListViewPerformance:
 
@@ -1685,7 +1694,7 @@ class TestPhaseListViewPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 3  # was 6 before resolve_game cache eliminated the dup phase fetches
+        assert query_count == 2
 
 
 class TestPhaseRetrieveViewQueryPerformance:

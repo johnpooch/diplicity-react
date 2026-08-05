@@ -321,29 +321,33 @@ const ChannelScreen: React.FC = () => {
               )}
             </div>
           </Panel.Content>
-          <Separator />
-          <Panel.Footer>
-            <div className="flex gap-2 w-full">
-              <Textarea
-                placeholder="Type a message"
-                value={message}
-                rows={1}
-                maxLength={500}
-                enterKeyHint="enter"
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={createMessageMutation.isPending}
-                className="flex-1 min-h-0 max-h-32 resize-none py-2"
-              />
-              <Button
-                onClick={handleSubmit}
-                disabled={!message.trim() || createMessageMutation.isPending}
-                size="icon"
-              >
-                <Send className="size-4" />
-              </Button>
-            </div>
-          </Panel.Footer>
+          {currentMember && (
+            <>
+              <Separator />
+              <Panel.Footer>
+                <div className="flex gap-2 w-full">
+                  <Textarea
+                    placeholder="Type a message"
+                    value={message}
+                    rows={1}
+                    maxLength={500}
+                    enterKeyHint="enter"
+                    onChange={e => setMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={createMessageMutation.isPending}
+                    className="flex-1 min-h-0 max-h-32 resize-none py-2"
+                  />
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!message.trim() || createMessageMutation.isPending}
+                    size="icon"
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </div>
+              </Panel.Footer>
+            </>
+          )}
         </Panel>
       </div>
     </div>

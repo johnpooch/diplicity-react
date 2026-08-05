@@ -9,8 +9,6 @@ from common.permissions import (
     IsUserPhaseStateExists,
     IsNotSandboxGame,
     IsSandboxGame,
-    IsGameMember,
-    IsGameMemberOrGameMaster,
 )
 from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
@@ -43,7 +41,6 @@ class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveOrCompletedGame,
-        IsGameMemberOrGameMaster,
     ]
     serializer_class = PhaseStateSerializer
 
@@ -69,7 +66,6 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveOrCompletedGame,
-        IsGameMember,
     ]
     serializer_class = PhaseListSerializer
 
