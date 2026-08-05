@@ -150,6 +150,56 @@ class TestOrderListView:
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    @pytest.mark.django_db
+    def test_list_orders_active_phase_non_member(
+        self,
+        authenticated_client_for_tertiary_user,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client_for_tertiary_user.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 0
+
+    @pytest.mark.django_db
+    def test_list_orders_completed_phase_non_member(
+        self,
+        authenticated_client_for_tertiary_user,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client_for_tertiary_user.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+
 
 class TestOrderListViewCompletedPhaseCaching:
 
@@ -3008,13 +3058,14 @@ class TestOrderOptionsView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_non_member_rejected(self, game_with_options, tertiary_user):
-        from rest_framework.test import APIClient
-        client = APIClient()
-        client.force_authenticate(user=tertiary_user)
+    def test_non_member_returns_no_options(
+        self, game_with_options, tertiary_user, authenticated_client_factory
+    ):
+        client = authenticated_client_factory(tertiary_user)
         url = reverse("order-options", args=[game_with_options.id])
         response = client.get(url)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
 
     @pytest.mark.django_db
     def test_returns_own_nation_options(self, authenticated_client, game_with_options):

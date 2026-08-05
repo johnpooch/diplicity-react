@@ -59,7 +59,7 @@ class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):
 
 
 class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsActiveGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame]
     serializer_class = OrderOptionsResponseSerializer
 
     def retrieve(self, request, *args, **kwargs):
