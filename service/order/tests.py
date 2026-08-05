@@ -3068,6 +3068,26 @@ class TestOrderOptionsView:
         assert response.data["orders"] == []
 
     @pytest.mark.django_db
+    def test_kicked_member_returns_no_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(kicked=True)
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
+
+    @pytest.mark.django_db
+    def test_eliminated_member_returns_no_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(eliminated=True)
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
+
+    @pytest.mark.django_db
     def test_returns_own_nation_options(self, authenticated_client, game_with_options):
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
