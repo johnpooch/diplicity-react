@@ -47,6 +47,10 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # as a missed primary trigger and emits a Sentry canary event (seconds).
 RESOLUTION_CANARY_GRACE_SECONDS = int(os.getenv("RESOLUTION_CANARY_GRACE_SECONDS", "300"))
 
+# How long a phase may sit in the processing status before the sweep treats its
+# resolution as lost and returns the phase to active so it can be retried (seconds).
+PHASE_PROCESSING_TIMEOUT_SECONDS = int(os.getenv("PHASE_PROCESSING_TIMEOUT_SECONDS", "300"))
+
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(",")
 
 # CSRF Settings

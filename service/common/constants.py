@@ -163,12 +163,14 @@ class VariantStatus:
 class PhaseStatus:
     PENDING = "pending"
     ACTIVE = "active"
+    PROCESSING = "processing"
     COMPLETED = "completed"
     TEMPLATE = "template"
 
     STATUS_CHOICES = (
         (PENDING, "Pending"),
         (ACTIVE, "Active"),
+        (PROCESSING, "Processing"),
         (COMPLETED, "Completed"),
         (TEMPLATE, "Template"),
     )

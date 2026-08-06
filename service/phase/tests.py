@@ -196,7 +196,7 @@ def test_resolve_due_phases_with_scheduled_time(active_game_with_phase_state):
     past_time = timezone.now() - timedelta(hours=1)
     phase.scheduled_resolution = past_time
     phase.save()
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 1
         assert result["failed"] == 0
@@ -214,7 +214,7 @@ def test_resolve_due_phases_with_immediate_resolution(active_game_with_phase_sta
     phase_state = phase.phase_states.first()
     phase_state.has_possible_orders = False
     phase_state.save()
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 1
         assert result["failed"] == 0
@@ -229,7 +229,7 @@ def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state, g
     phase.scheduled_resolution = future_time
     phase.options = godip_options_england_london_hold
     phase.save()
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 0
         assert result["failed"] == 0
@@ -257,7 +257,7 @@ def test_resolve_due_phases_skips_sandbox_games(db, classical_variant, primary_u
     assert phase.scheduled_resolution is None
     assert phase.status == PhaseStatus.ACTIVE
 
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 0
         assert result["failed"] == 0

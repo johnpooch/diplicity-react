@@ -3400,12 +3400,14 @@ components:
       enum:
       - pending
       - active
+      - processing
       - completed
       - template
       type: string
       description: |-
         * `pending` - Pending
         * `active` - Active
+        * `processing` - Processing
         * `completed` - Completed
         * `template` - Template
     StepEnum:
