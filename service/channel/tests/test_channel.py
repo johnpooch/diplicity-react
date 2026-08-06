@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 from channel.models import Channel, ChannelMessage
+from nation.models import Nation
 from bot_profile.utils import get_bot_user
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
@@ -34,6 +35,30 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_201_CREATED
         assert "id" in response.data
         assert response.data["name"] == "England, France"
+
+    @pytest.mark.django_db
+    def test_create_channel_name_longer_than_250_characters(
+        self, authenticated_client, active_game_with_phase_state, classical_variant
+    ):
+        nations = [
+            Nation.objects.create(
+                nation_id=f"long-name-nation-{index:02d}",
+                name=f"Nation With A Long Name {index:02d}",
+                color="#000000",
+                variant=classical_variant,
+            )
+            for index in range(12)
+        ]
+        members = [active_game_with_phase_state.members.create(nation=nation) for nation in nations]
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [member.id for member in members]}
+        response = authenticated_client.post(url, payload, format="json")
+
+        expected_name = ", ".join(sorted(["England"] + [nation.name for nation in nations]))
+        assert len(expected_name) > 250
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == expected_name
 
     @pytest.mark.django_db
     def test_create_channel_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
