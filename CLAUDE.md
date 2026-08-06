@@ -60,7 +60,7 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   was lost or stalled (pending or stuck in running past a timeout), so a
   hand-inserted row runs on the next sweep. A bot plans when a phase starts
   and finalizes (submits *and* confirms) once no human is still pending, which
-  both specs decide through the shared `_humans_pending` check: normally that
+  both specs decide through the shared `Phase.has_unconfirmed_human` check: normally that
   lands on phase_state_confirmed, but a phase where no human has possible
   orders — a retreat only a bot must answer, an all-bot game — already
   satisfies it at phase_started, so PhaseStartedSpec queues finalize instead
@@ -153,7 +153,7 @@ adjudication does not receive two order sets for one nation. Finally it queues a
 
 A kicked member's phase states are created with `has_possible_orders=False`, which
 keeps a replaced seat out of the "is everyone done?" checks — early resolution
-(`filter_due_phases`), the bot finalize trigger (`_humans_pending`), NMR
+(`filter_due_phases`), the bot finalize trigger (`Phase.has_unconfirmed_human`), NMR
 extensions and deadline warnings all key off that flag.
 
 A replaced player keeps their account, so every write path has to lock them out.

@@ -440,20 +440,20 @@ class TestBotRequestHost:
 class TestBotIdentificationByProfile:
 
     @pytest.mark.django_db
-    def test_bot_user_ids_for_phase_ignores_email(self, phase_factory, classical_england_nation):
+    def test_bot_members_ignores_email(self, phase_factory, classical_england_nation):
         bot_user = get_bot_user()
         bot_user.email = "not-the-magic-email@example.com"
         bot_user.save()
         phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": bot_user}])
 
-        assert registry._bot_user_ids_for_phase(phase.id) == {bot_user.id}
+        assert {member.user_id for member in phase.game.bot_members} == {bot_user.id}
 
     @pytest.mark.django_db
     def test_roster_bots_are_identified_as_bots(self, phase_factory, classical_england_nation):
         roster_user = BotProfile.objects.exclude(user=get_bot_user()).first().user
         phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": roster_user}])
 
-        assert roster_user.id in registry._bot_user_ids_for_phase(phase.id)
+        assert roster_user.id in {member.user_id for member in phase.game.bot_members}
 
 
 class TestFinalizeTask:
