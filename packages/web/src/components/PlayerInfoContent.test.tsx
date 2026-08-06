@@ -76,6 +76,7 @@ const baseMember = {
   isGameCreator: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
+  removable: false,
 };
 
 const classicalVariant = {
@@ -290,6 +291,7 @@ describe("PlayerInfoContent", () => {
           isCurrentUser: false,
           isBot: true,
           nation: null,
+          removable: true,
         },
       ],
     });
@@ -323,6 +325,7 @@ describe("PlayerInfoContent", () => {
           isCurrentUser: false,
           isBot: true,
           nation: null,
+          removable: true,
         },
       ],
     });
@@ -382,7 +385,7 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Replace" })).not.toBeInTheDocument();
   });
 
   it("copies the takeover link for a replaceable seat", async () => {
@@ -438,8 +441,32 @@ describe("PlayerInfoContent", () => {
     expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
   });
 
+  it("does not offer the menu for a member who has not missed orders", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canManage: true,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          removable: false,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
+  });
+
   it("offers to replace a seat to a non-member", async () => {
-    const user = userEvent.setup();
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -461,7 +488,6 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for Bob"));
-    expect(screen.getByRole("menuitem", { name: "Replace" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replace" })).toBeInTheDocument();
   });
 });

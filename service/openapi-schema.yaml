@@ -2814,6 +2814,9 @@ components:
         replaceable:
           type: boolean
           readOnly: true
+        removable:
+          type: boolean
+          readOnly: true
       required:
       - civilDisorder
       - commitment
@@ -2827,6 +2830,7 @@ components:
       - nation
       - nmrExtensionsRemaining
       - picture
+      - removable
       - replaceable
       - seekingReplacement
       - userId

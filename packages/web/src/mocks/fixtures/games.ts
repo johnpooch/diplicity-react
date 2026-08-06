@@ -661,6 +661,7 @@ const makeSeatOpenMembers = (idBase: number): Member[] =>
     ...m,
     id: idBase + index,
     ...(m.nation === "Turkey" ? { kicked: true, replaceable: true } : {}),
+    ...(m.nation === "Italy" ? { removable: true } : {}),
   }));
 
 const buildActiveSeatOpen = () => {

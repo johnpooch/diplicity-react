@@ -493,6 +493,7 @@ export interface Member {
   readonly civilDisorder: boolean;
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
+  readonly removable: boolean;
 }
 
 export interface Victory {

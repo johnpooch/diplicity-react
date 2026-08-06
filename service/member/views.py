@@ -8,7 +8,7 @@ from .models import Member
 from .serializers import MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SelectedGameMixin
 from emit import emit
 
@@ -46,7 +46,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingOrActiveGame, IsGameManager]
+    permission_classes = [permissions.IsAuthenticated, IsPendingOrActiveGame, IsGameManager, IsRemovableMember]
 
     def get_object(self):
         game = self.get_game()

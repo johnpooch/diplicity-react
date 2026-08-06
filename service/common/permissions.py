@@ -221,6 +221,17 @@ class IsReplaceableMember(BasePermission):
         return member.replaceable
 
 
+class IsRemovableMember(BasePermission):
+    message = "This player has not missed any orders."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(id=view.kwargs.get("member_id")).first()
+        if not member:
+            return True
+        return game.can_remove_member(member)
+
+
 class CanDeleteGame(BasePermission):
     message = "You cannot delete this game."
 

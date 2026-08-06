@@ -11,7 +11,7 @@ from game.models import Game
 from member.models import Member
 from notification.models import Notification
 from order.models import Order
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile
 from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, OrderType, PhaseStatus
 
@@ -423,12 +423,30 @@ class TestKickMember:
         assert response.status_code == status.HTTP_201_CREATED
 
 
+def _record_nmr(game, member):
+    phase = game.phases.create(
+        variant=game.variant,
+        season="Spring",
+        year=1900,
+        type="Movement",
+        status=PhaseStatus.COMPLETED,
+        ordinal=0,
+    )
+    phase.phase_states.create(
+        member=member,
+        has_possible_orders=True,
+        orders_outcome=PhaseState.OrdersOutcome.NMR,
+    )
+    return phase
+
+
 class TestRemoveMemberFromActiveGame:
 
     @pytest.mark.django_db
     def test_remove_keeps_the_row_and_marks_it_kicked(self, authenticated_client, active_game_factory):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         response = authenticated_client.delete(url)
@@ -445,6 +463,7 @@ class TestRemoveMemberFromActiveGame:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
         phase_state = game.current_phase.phase_states.get(member=member)
         Order.objects.create(
             phase_state=phase_state, source=classical_london_province, order_type=OrderType.HOLD
@@ -463,6 +482,7 @@ class TestRemoveMemberFromActiveGame:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
         phase = game.current_phase
         phase.phase_states.exclude(member=member).update(orders_confirmed=True)
 
@@ -477,6 +497,7 @@ class TestRemoveMemberFromActiveGame:
     def test_remove_notifies_the_removed_player(self, authenticated_client, active_game_factory):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         authenticated_client.delete(url)
@@ -492,6 +513,7 @@ class TestRemoveMemberFromActiveGame:
         member = game.members.exclude(user=game.admin).first()
         member.user = roster_bot_user
         member.save()
+        _record_nmr(game, member)
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         authenticated_client.delete(url)
@@ -525,6 +547,141 @@ class TestRemoveMemberFromActiveGame:
         response = client.get(reverse(retrieve_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
+
+
+class TestRemovalRequiresMissedOrders:
+
+    @pytest.mark.django_db
+    def test_member_who_missed_the_last_resolved_phase_can_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    @pytest.mark.django_db
+    def test_member_in_civil_disorder_can_be_removed(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        member.civil_disorder = True
+        member.save()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    @pytest.mark.django_db
+    def test_member_with_a_clean_record_cannot_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "This player has not missed any orders."
+        member.refresh_from_db()
+        assert member.kicked is False
+
+    @pytest.mark.django_db
+    def test_member_who_submitted_orders_last_phase_cannot_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        phase = _record_nmr(game, member)
+        phase.phase_states.filter(member=member).update(
+            orders_outcome=PhaseState.OrdersOutcome.RECEIVED
+        )
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_bot_with_a_clean_record_can_be_removed(
+        self, authenticated_client, active_game_factory, roster_bot_user
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        member.user = roster_bot_user
+        member.save()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    @pytest.mark.django_db
+    def test_already_removed_member_cannot_be_removed_again(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        Member.objects.remove(member)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestRemovableSerialization:
+
+    @pytest.mark.django_db
+    def test_removable_is_false_for_a_clean_member(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[member.id]["removable"] is False
+
+    @pytest.mark.django_db
+    def test_removable_is_true_after_a_missed_phase(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[member.id]["removable"] is True
+
+    @pytest.mark.django_db
+    def test_removable_is_false_once_removed(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        Member.objects.remove(member)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[member.id]["removable"] is False
+
+    @pytest.mark.django_db
+    def test_removable_is_true_in_a_pending_game(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        member = game.members.create(user=secondary_user)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[member.id]["removable"] is True
 
 
 replace_viewname = "game-member-replace"

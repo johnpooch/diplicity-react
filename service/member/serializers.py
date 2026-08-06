@@ -96,6 +96,11 @@ class MemberSerializer(BaseMemberSerializer):
     civil_disorder = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
+    removable = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_removable(self, obj):
+        return self._get_game(obj).can_remove_member(obj)
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):

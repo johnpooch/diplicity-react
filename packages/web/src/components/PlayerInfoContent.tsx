@@ -85,7 +85,6 @@ export const PlayerInfoContent: React.FC = () => {
   const winnerIds = game.victory?.members?.map(m => m.id) || [];
 
   const isPending = game.status === "pending";
-  const isActive = game.status === "active";
   const isGameMaster = !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
   const canTakeOverSeat = !game.members.some(m => m.isCurrentUser) && !isGameMaster;
   const playableSeats = variant
@@ -98,10 +97,7 @@ export const PlayerInfoContent: React.FC = () => {
     isPending && game.canManage && userProfile.canCreateBotGames;
 
   const canRemove = (member: Member) =>
-    (isPending || isActive) &&
-    game.canManage &&
-    !member.isCurrentUser &&
-    !member.kicked;
+    game.canManage && !member.isCurrentUser && member.removable;
 
   const handleRemove = async () => {
     const member = memberToRemove;
@@ -154,7 +150,6 @@ export const PlayerInfoContent: React.FC = () => {
           {game.members.map(member => {
             const supplyCenterCount = getSupplyCenterCount(member);
             const isWinner = winnerIds.includes(member.id);
-            const showMenu = canRemove(member) || (member.replaceable && canTakeOverSeat);
 
             return (
               <div
@@ -236,21 +231,33 @@ export const PlayerInfoContent: React.FC = () => {
                   )}
 
                   {member.replaceable && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() =>
-                        copyLink(`/game/${gameId}/replace/${member.id}`)
-                      }
-                    >
-                      <Link2 />
-                      Invite replacement
-                    </Button>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {canTakeOverSeat && (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/game/${gameId}/replace/${member.id}`)
+                          }
+                        >
+                          <UserPlus />
+                          Replace
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          copyLink(`/game/${gameId}/replace/${member.id}`)
+                        }
+                      >
+                        <Link2 />
+                        Invite replacement
+                      </Button>
+                    </div>
                   )}
                 </div>
 
-                {showMenu && (
+                {canRemove(member) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -262,24 +269,12 @@ export const PlayerInfoContent: React.FC = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {member.replaceable && canTakeOverSeat && (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            navigate(`/game/${gameId}/replace/${member.id}`)
-                          }
-                        >
-                          <UserPlus />
-                          Replace
-                        </DropdownMenuItem>
-                      )}
-                      {canRemove(member) && (
-                        <DropdownMenuItem
-                          onClick={() => setMemberToRemove(member)}
-                        >
-                          <UserMinus />
-                          Remove Player
-                        </DropdownMenuItem>
-                      )}
+                      <DropdownMenuItem
+                        onClick={() => setMemberToRemove(member)}
+                      >
+                        <UserMinus />
+                        Remove Player
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -325,7 +320,7 @@ export const PlayerInfoContent: React.FC = () => {
             <AlertDialogDescription>
               {isPending
                 ? `${memberToRemove?.name} is removed from the lobby. They can join again while the game has an open seat.`
-                : "Their orders for this phase are discarded and the seat opens for a replacement. They keep read access to the game and cannot rejoin."}
+                : "Their orders for this phase are discarded and the seat opens for a replacement. They can view the game but cannot rejoin."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

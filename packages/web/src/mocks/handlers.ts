@@ -269,7 +269,9 @@ export const handlers = [
         fixture.game.status === "pending"
           ? fixture.game.members.filter(m => m.id !== memberId)
           : fixture.game.members.map(m =>
-              m.id === memberId ? { ...m, kicked: true, replaceable: true } : m
+              m.id === memberId
+                ? { ...m, kicked: true, replaceable: true, removable: false }
+                : m
             ),
     };
     return new HttpResponse(null, { status: 204 });

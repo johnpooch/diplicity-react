@@ -191,7 +191,7 @@ const ReplaceContent: React.FC = () => {
             {replaceMutation.isPending && (
               <Loader2 className="size-4 animate-spin" />
             )}
-            Take Over {nation}
+            Join as {nation}
           </Button>
         </div>
       </ScreenCardContent>

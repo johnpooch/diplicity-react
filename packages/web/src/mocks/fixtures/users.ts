@@ -53,6 +53,7 @@ export const makeMember = (
   civilDisorder: false,
   seekingReplacement: false,
   replaceable: false,
+  removable: false,
   commitment: "high",
   ...overrides,
 });

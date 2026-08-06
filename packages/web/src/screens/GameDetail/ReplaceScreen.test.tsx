@@ -70,6 +70,7 @@ const openSeat = {
   civilDisorder: false,
   seekingReplacement: false,
   replaceable: true,
+  removable: false,
 };
 
 const otherSeat = { ...openSeat, id: 1, userId: 10, name: "Alice", nation: "England", kicked: false, replaceable: false };
@@ -139,7 +140,7 @@ describe("ReplaceScreen", () => {
 
     renderReplaceScreen();
 
-    await user.click(screen.getByRole("button", { name: "Take Over Turkey" }));
+    await user.click(screen.getByRole("button", { name: "Join as Turkey" }));
 
     expect(mockReplaceMutateAsync).toHaveBeenCalledWith({
       gameId: "game-1",
@@ -160,7 +161,7 @@ describe("ReplaceScreen", () => {
 
     expect(screen.getByText("Already playing")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Take Over Turkey" })
+      screen.queryByRole("button", { name: "Join as Turkey" })
     ).not.toBeInTheDocument();
   });
 
