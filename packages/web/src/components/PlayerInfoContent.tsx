@@ -6,6 +6,7 @@ import {
   Shield,
   Star,
   Trophy,
+  User,
   UserMinus,
   UserPlus,
 } from "lucide-react";
@@ -99,6 +100,11 @@ export const PlayerInfoContent: React.FC = () => {
   const canRemove = (member: Member) =>
     game.canManage && !member.isCurrentUser && member.removable;
 
+  const profilePath = (member: Member) =>
+    phaseId
+      ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
+      : `/player/${member.userId}`;
+
   const handleRemove = async () => {
     const member = memberToRemove;
     setMemberToRemove(null);
@@ -170,11 +176,7 @@ export const PlayerInfoContent: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     {member.userId ? (
                       <Link
-                        to={
-                          phaseId
-                            ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
-                            : `/player/${member.userId}`
-                        }
+                        to={profilePath(member)}
                         className="font-medium text-primary underline-offset-4 hover:underline"
                       >
                         {member.name}
@@ -257,27 +259,34 @@ export const PlayerInfoContent: React.FC = () => {
                   )}
                 </div>
 
-                {canRemove(member) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Options for ${member.name}`}
-                      >
-                        <MoreVertical />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Options for ${member.name}`}
+                    >
+                      <MoreVertical />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      disabled={!member.userId}
+                      onClick={() => navigate(profilePath(member))}
+                    >
+                      <User />
+                      View Profile
+                    </DropdownMenuItem>
+                    {canRemove(member) && (
                       <DropdownMenuItem
                         onClick={() => setMemberToRemove(member)}
                       >
                         <UserMinus />
                         Remove Player
                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             );
           })}

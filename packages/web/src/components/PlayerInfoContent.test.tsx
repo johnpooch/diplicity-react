@@ -308,7 +308,8 @@ describe("PlayerInfoContent", () => {
     });
   });
 
-  it("does not show a player menu to non-admins", () => {
+  it("does not offer Remove Player to non-admins", async () => {
+    const user = userEvent.setup();
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "pending",
@@ -332,9 +333,62 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
+    await user.click(screen.getByLabelText("Options for The Dealmaker"));
     expect(
-      screen.queryByLabelText("Options for The Dealmaker")
+      screen.getByRole("menuitem", { name: "View Profile" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "Remove Player" })
     ).not.toBeInTheDocument();
+  });
+
+  it("navigates to the profile from the player menu", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        { ...baseMember, id: 2, userId: 77, name: "Bob", isCurrentUser: false },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    await user.click(screen.getByLabelText("Options for Bob"));
+    const item = screen.getByRole("menuitem", { name: "View Profile" });
+    expect(item).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("disables View Profile for a member with no profile to link to", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        {
+          ...baseMember,
+          id: 2,
+          userId: null,
+          name: "Anonymous",
+          isCurrentUser: false,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    await user.click(screen.getByLabelText("Options for Anonymous"));
+    expect(
+      screen.getByRole("menuitem", { name: "View Profile" })
+    ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("shows the removed badge for a kicked member", () => {
@@ -438,10 +492,13 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Replace" })
+    ).not.toBeInTheDocument();
   });
 
-  it("does not offer the menu for a member who has not missed orders", () => {
+  it("does not offer Remove Player for a member who has not missed orders", async () => {
+    const user = userEvent.setup();
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -463,7 +520,10 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText("Options for Bob"));
+    expect(
+      screen.queryByRole("menuitem", { name: "Remove Player" })
+    ).not.toBeInTheDocument();
   });
 
   it("offers to replace a seat to a non-member", async () => {
