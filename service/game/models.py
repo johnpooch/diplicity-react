@@ -528,6 +528,10 @@ class Game(BaseModel):
     def anonymity_active(self):
         return self.anonymous and self.status != GameStatus.COMPLETED
 
+    @property
+    def bot_members(self):
+        return self.members.filter(user__bot_profile__isnull=False).select_related("user")
+
     @cached_property
     def nmrd_member_ids(self):
         with tracer.start_as_current_span("game.models.nmrd_member_ids"):

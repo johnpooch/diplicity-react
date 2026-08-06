@@ -58,7 +58,13 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   status, and dispatches to the executor. One AgentTask may span several
   Inference calls. A periodic agent.reconcile task re-drives rows whose job
   was lost or stalled (pending or stuck in running past a timeout), so a
-  hand-inserted row runs on the next sweep.
+  hand-inserted row runs on the next sweep. A bot plans when a phase starts
+  and finalizes (submits *and* confirms) once no human is still pending, which
+  both specs decide through the shared `Phase.has_unconfirmed_human` check: normally that
+  lands on phase_state_confirmed, but a phase where no human has possible
+  orders — a retreat only a bot must answer, an all-bot game — already
+  satisfies it at phase_started, so PhaseStartedSpec queues finalize instead
+  of plan for those seats rather than waiting for an event that never comes.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
 
@@ -150,7 +156,7 @@ own, not part of the shared helper.
 
 A kicked member's phase states are created with `has_possible_orders=False`, which
 keeps a replaced seat out of the "is everyone done?" checks — early resolution
-(`filter_due_phases`), the bot finalize trigger (`when_humans_confirmed`), NMR
+(`filter_due_phases`), the bot finalize trigger (`Phase.has_unconfirmed_human`), NMR
 extensions and deadline warnings all key off that flag.
 
 A replaced player keeps their account, so every write path has to lock them out.

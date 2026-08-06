@@ -940,6 +940,14 @@ class Phase(BaseModel):
         return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
 
     @property
+    def has_unconfirmed_human(self):
+        return self.phase_states.filter(
+            has_possible_orders=True,
+            orders_confirmed=False,
+            member__user__bot_profile__isnull=True,
+        ).exists()
+
+    @property
     def previous_phase_id(self):
         if not self.game:
             return None

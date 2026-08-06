@@ -395,6 +395,8 @@ def _retreat_options(view: StateView) -> List[OrderOption]:
         list(variant.provinces.keys()) + list(variant.named_coasts.keys())
     )
     for source_loc, unit in dislodged:
+        if view.nation(unit.nation).is_non_playable():
+            continue
         options.append(
             OrderOption(
                 source=source_loc,
