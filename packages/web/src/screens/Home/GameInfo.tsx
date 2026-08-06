@@ -21,6 +21,7 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { AddBotSheet } from "@/components/AddBotSheet";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { copyLink } from "@/utils/copyLink";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -59,14 +60,7 @@ const GameInfo: React.FC = () => {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(`https://diplicity.com/game/${gameId}`);
-      toast.success("Link copied to clipboard");
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  };
+  const handleShare = () => copyLink(`/game/${gameId}`);
 
   const handlePlayerInfo = () => {
     navigate(`/player-info/${gameId}`);

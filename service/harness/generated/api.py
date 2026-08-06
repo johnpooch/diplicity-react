@@ -155,6 +155,7 @@ class Member(TypedDict):
     civil_disorder: bool
     seeking_replacement: bool
     replaceable: bool
+    removable: bool
 
 
 type MemberStatusEnum = Literal['nmr', 'civil_disorder']

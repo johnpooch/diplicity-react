@@ -142,14 +142,17 @@ used when a player deletes their account or walks away mid-game:
 python manage.py replace_member_with_bot --game <id> --nation Italy --bot dealmakerbot
 ```
 
-It creates a *new* member for the bot in the same nation and marks the original
-`kicked`, pointing `replaced_by` at the replacement — the original row is kept so
-its phase states and messages remain attributable for statistics. The
-replacement joins every channel the original was in (the original stays too, so
-its past messages still render with the right sender). On the current phase it
-takes over the phase state, and the original's pending orders are discarded so
-adjudication does not receive two order sets for one nation. Finally it queues a
-`plan` AgentTask so the bot acts in the phase already under way.
+The handover itself lives in `Member.objects.hand_over_seat(member, user)`, which
+the command and the HTTP takeover path (below) share. It creates a *new* member
+for the incoming user in the same nation and marks the original `kicked`,
+pointing `replaced_by` at the replacement — the original row is kept so its phase
+states and messages remain attributable for statistics. The replacement joins
+every channel the original was in (the original stays too, so its past messages
+still render with the right sender). On the current phase it takes over the phase
+state, and the original's pending orders are discarded so adjudication does not
+receive two order sets for one nation. The command then queues a `plan` AgentTask
+so the bot acts in the phase already under way; that queuing is the command's
+own, not part of the shared helper.
 
 A kicked member's phase states are created with `has_possible_orders=False`, which
 keeps a replaced seat out of the "is everyone done?" checks — early resolution
@@ -173,6 +176,36 @@ An unrecognised `--bot` errors with the list of bots still available for that
 game. A production run needs a shell on the deployed service (`railway ssh`),
 because `railway run` executes locally and cannot resolve Railway's internal
 database host.
+
+### Handing a seat to another human
+
+The same handover is reachable from the app, so a Game Master does not need a
+shell to deal with a player who walks away mid-game:
+
+- `DELETE game/<id>/kick/<member_id>/` removes a player. In a *pending* game it
+  still hard-deletes the row (nothing to preserve, and they can rejoin the
+  lobby); in an *active* game it is a soft kick — `Member.objects.remove` sets
+  `kicked`, discards the member's orders for the current phase and sets their
+  `has_possible_orders=False` so the game keeps resolving without them. Gated on
+  `IsPendingOrActiveGame + IsGameManager`, which is already "game master or game
+  creator" because `Game.admin` is the GM in a GM game and the creator otherwise.
+- `POST game/<id>/members/<member_id>/replace/` hands the seat to the caller.
+  Gated on `IsActiveGame + IsNotGameMember + IsNotGameMaster +
+  IsReplaceableMember + MeetsCommitmentRequirement`.
+
+`Member.replaceable` is what marks a seat open: the current holder is `kicked`,
+in `civil_disorder`, or `seeking_replacement`, and is neither `eliminated` nor
+already replaced. A kicked seat counts — that is the abandoned seat the whole
+mechanism exists to fill. Nothing writes `seeking_replacement` yet.
+
+The shareable link is `/game/<id>/replace/<member_id>`, a plain URL with no
+token, matching the existing private-game invite posture where the game URL *is*
+the invite. It redirects into the current phase, so it survives phase changes.
+The frontend surfaces it as **Invite replacement** on the player card and lands
+the recipient on a Replace sub-screen of game detail.
+
+The Game Master cannot take a seat: `IsNotGameMaster` blocks both joining and
+replacing, and `Game.can_join` returns False for them.
 
 ### Re-planning a bot's orders
 

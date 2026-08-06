@@ -87,6 +87,7 @@ def _member(index: int, nation: str, is_current_user: bool) -> ApiMember:
         "civil_disorder": False,
         "seeking_replacement": False,
         "replaceable": False,
+        "removable": False,
     }
 
 

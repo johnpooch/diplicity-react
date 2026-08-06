@@ -195,7 +195,9 @@ class TestRegistry:
             "game_resumed",
             "game_deadline_extended",
             "kicked_from_staging",
+            "removed_from_game",
             "removed_from_staging",
+            "seat_filled",
             "civil_disorder",
             "civil_disorder_recovery",
             "elimination",
@@ -365,6 +367,7 @@ class TestExplicitResolvers:
         "event_type",
         [
             "kicked_from_staging",
+            "removed_from_game",
             "removed_from_staging",
             "elimination",
             "deadline_warning",

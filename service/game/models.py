@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import cached_property
 import random
 import re
 import uuid
@@ -531,6 +532,19 @@ class Game(BaseModel):
     def bot_members(self):
         return self.members.filter(user__bot_profile__isnull=False).select_related("user")
 
+    @cached_property
+    def nmrd_member_ids(self):
+        with tracer.start_as_current_span("game.models.nmrd_member_ids"):
+            completed = [p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED]
+            if not completed:
+                return set()
+            latest = max(completed, key=lambda p: p.ordinal)
+            return {
+                phase_state.member_id
+                for phase_state in latest.phase_states.all()
+                if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
+            }
+
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
             return self.movement_phase_duration_seconds
@@ -619,6 +633,18 @@ class Game(BaseModel):
     def can_manage(self, user):
         with tracer.start_as_current_span("game.models.can_manage"):
             return self.admin_id == user.id
+
+    def can_remove_member(self, member):
+        with tracer.start_as_current_span("game.models.can_remove_member"):
+            if member.kicked or member.replaced_by_id is not None:
+                return False
+            if self.status == GameStatus.PENDING:
+                return True
+            if self.status != GameStatus.ACTIVE:
+                return False
+            if member.is_bot:
+                return True
+            return member.civil_disorder or member.id in self.nmrd_member_ids
 
     def reassign_admin(self):
         with tracer.start_as_current_span("game.models.reassign_admin"):

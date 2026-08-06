@@ -171,6 +171,7 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+    removable: false,
     commitment: "high",
     },
     {
@@ -188,6 +189,7 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+    removable: false,
     commitment: "high",
     },
   ],

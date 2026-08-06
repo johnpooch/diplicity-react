@@ -20,6 +20,7 @@ import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
+import { GameReplaceRedirect } from "./components/GameReplaceRedirect";
 import { useIsMobile } from "./hooks/use-mobile";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
@@ -228,6 +229,10 @@ export const createAuthenticatedRoutes = (
           // Redirect /game/:gameId to /game/:gameId/phase/:currentPhaseId/orders
           { index: true, element: <GamePhaseRedirect /> },
           {
+            path: "replace/:memberId",
+            element: <GameReplaceRedirect />,
+          },
+          {
             path: "phase/:phaseId",
             element: <GameDetailLayoutWrapper />,
             children: [
@@ -301,6 +306,14 @@ export const createAuthenticatedRoutes = (
                 element: (
                   <Suspense fallback={<RouteFallback />}>
                     <GameDetail.PlayerProfileScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "replace/:memberId",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ReplaceScreen />
                   </Suspense>
                 ),
               },

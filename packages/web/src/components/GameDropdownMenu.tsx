@@ -54,6 +54,7 @@ import {
   getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { EXTEND_DURATION_OPTIONS } from "@/constants";
+import { copyLink } from "@/utils/copyLink";
 
 interface GameDropdownMenuProps {
   game: Pick<
@@ -213,18 +214,7 @@ export function GameDropdownMenu({
           Player info
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(
-                `https://diplicity.com/game/${game.id}`
-              );
-              toast.success("Link copied to clipboard");
-            } catch {
-              toast.error("Failed to copy link");
-            }
-          }}
-        >
+        <DropdownMenuItem onClick={() => copyLink(`/game/${game.id}`)}>
           <Share />
           Share
         </DropdownMenuItem>

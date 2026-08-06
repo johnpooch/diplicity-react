@@ -5,9 +5,10 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberSerializer
+from .serializers import MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.constants import GameStatus
+from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SelectedGameMixin
 from emit import emit
 
@@ -45,11 +46,11 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager]
+    permission_classes = [permissions.IsAuthenticated, IsPendingOrActiveGame, IsGameManager, IsRemovableMember]
 
     def get_object(self):
         game = self.get_game()
-        member = get_object_or_404(Member, game=game, id=self.kwargs["member_id"])
+        member = get_object_or_404(Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"])
         if member.user == self.request.user:
             self.permission_denied(self.request, message="Cannot kick yourself from the game.")
         return member
@@ -57,11 +58,37 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     def perform_destroy(self, instance):
         game = instance.game
         user_id = instance.user_id
-        is_bot = instance.user is not None and hasattr(instance.user, "bot_profile")
+        is_bot = instance.is_bot
+        event_type = (
+            "kicked_from_staging" if game.status == GameStatus.PENDING else "removed_from_game"
+        )
         with transaction.atomic():
-            instance.delete()
+            Member.objects.remove(instance)
             if user_id and not is_bot:
-                emit("kicked_from_staging", game=game, recipients=[user_id])
+                emit(event_type, game=game, recipients=[user_id])
+
+
+class MemberReplaceView(SelectedGameMixin, generics.CreateAPIView):
+    serializer_class = MemberReplaceSerializer
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsActiveGame,
+        IsNotGameMember,
+        IsNotGameMaster,
+        IsReplaceableMember,
+        MeetsCommitmentRequirement,
+    ]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["replaced_member"] = get_object_or_404(
+            Member, game=self.get_game(), id=self.kwargs["member_id"]
+        )
+        return context
+
+    @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
