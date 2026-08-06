@@ -1,7 +1,6 @@
 from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from common.constants import PhaseStatus
-from member.models import Member
 
 from agent.constants import AgentTaskKind
 
@@ -24,25 +23,11 @@ def get_spec(event_type, context):
     return spec_class(context)
 
 
-def _bot_user_ids_for_phase(phase_id):
-    return set(
-        Member.objects.filter(game__phases=phase_id, user__bot_profile__isnull=False).values_list("user_id", flat=True)
-    )
-
-
-def _humans_pending(phase, bot_user_ids):
-    return (
-        phase.phase_states.filter(has_possible_orders=True, orders_confirmed=False)
-        .exclude(member__user_id__in=bot_user_ids)
-        .exists()
-    )
-
-
-def _finalize_tasks(phase, bot_user_ids):
+def _finalize_tasks(phase):
     bot_phase_states = phase.phase_states.filter(
         has_possible_orders=True,
         orders_confirmed=False,
-        member__user_id__in=bot_user_ids,
+        member__user__bot_profile__isnull=False,
     ).select_related("member")
     return [
         {"kind": AgentTaskKind.FINALIZE, "member": phase_state.member, "phase": phase}
@@ -64,34 +49,26 @@ class AgentTaskSpec:
 class PhaseStartedSpec(AgentTaskSpec):
     def get_tasks(self):
         phase = self.context.phase
-        bot_members = list(
-            Member.objects.filter(game_id=phase.game_id, user__bot_profile__isnull=False).select_related("user")
-        )
-        if not bot_members:
+        plan = [{"kind": AgentTaskKind.PLAN, "member": member, "phase": phase} for member in phase.game.bot_members]
+        if not plan:
             return []
+        if phase.has_unconfirmed_human:
+            return plan
 
-        bot_user_ids = {member.user_id for member in bot_members}
-        finalize = [] if _humans_pending(phase, bot_user_ids) else _finalize_tasks(phase, bot_user_ids)
+        finalize = _finalize_tasks(phase)
         finalizing = {task["member"].id for task in finalize}
-        return finalize + [
-            {"kind": AgentTaskKind.PLAN, "member": member, "phase": phase}
-            for member in bot_members
-            if member.id not in finalizing
-        ]
+        return finalize + [task for task in plan if task["member"].id not in finalizing]
 
 
 @register("phase_state_confirmed")
 class PhaseStateConfirmedSpec(AgentTaskSpec):
     def get_tasks(self):
         phase = self.context.phase
-        bot_user_ids = _bot_user_ids_for_phase(phase.id)
-        if not bot_user_ids:
-            return []
         if phase.status != PhaseStatus.ACTIVE:
             return []
-        if _humans_pending(phase, bot_user_ids):
+        if phase.has_unconfirmed_human:
             return []
-        return _finalize_tasks(phase, bot_user_ids)
+        return _finalize_tasks(phase)
 
 
 @register("channel_message")
