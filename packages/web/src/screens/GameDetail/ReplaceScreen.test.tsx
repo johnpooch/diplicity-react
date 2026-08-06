@@ -172,7 +172,15 @@ describe("ReplaceScreen", () => {
 
     renderReplaceScreen();
 
-    expect(screen.getByText("Seat filled")).toBeInTheDocument();
+    expect(screen.getByText("Seat unavailable")).toBeInTheDocument();
+  });
+
+  it("blocks a stale link whose seat is no longer listed", () => {
+    mockGameData.mockReturnValue({ ...activeGame, members: [otherSeat] });
+
+    renderReplaceScreen();
+
+    expect(screen.getByText("Seat unavailable")).toBeInTheDocument();
   });
 
   it("blocks a game that is not in progress", () => {

@@ -7,8 +7,8 @@ from drf_spectacular.utils import extend_schema
 from .models import Member
 from .serializers import MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.constants import GameStatus
+from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SelectedGameMixin
 from emit import emit
 

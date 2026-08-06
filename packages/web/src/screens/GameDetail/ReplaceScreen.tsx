@@ -71,12 +71,12 @@ const ReplaceContent: React.FC = () => {
 
   const member = game.members.find(m => m.id === Number(memberId));
 
-  if (!member) {
+  if (game.status !== "active") {
     return (
       <Notice
         icon={UserX}
-        title="Seat not found"
-        message="This game has no such seat."
+        title="Game not in progress"
+        message="This seat can only be taken over while the game is running."
       />
     );
   }
@@ -91,22 +91,12 @@ const ReplaceContent: React.FC = () => {
     );
   }
 
-  if (game.status !== "active") {
+  if (!member?.replaceable) {
     return (
       <Notice
         icon={UserX}
-        title="Game not in progress"
-        message="This seat can only be taken over while the game is running."
-      />
-    );
-  }
-
-  if (!member.replaceable) {
-    return (
-      <Notice
-        icon={UserX}
-        title="Seat filled"
-        message="This seat is no longer open for replacement."
+        title="Seat unavailable"
+        message="This seat is not open for replacement."
       />
     );
   }

@@ -228,7 +228,6 @@ export const createAuthenticatedRoutes = (
         children: [
           // Redirect /game/:gameId to /game/:gameId/phase/:currentPhaseId/orders
           { index: true, element: <GamePhaseRedirect /> },
-          // Stable shareable takeover link, redirected into the current phase
           {
             path: "replace/:memberId",
             element: <GameReplaceRedirect />,

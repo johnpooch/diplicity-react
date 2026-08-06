@@ -119,11 +119,15 @@ class MemberReplaceSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         game = self.context["game"]
-        member = self.context["replaced_member"]
         user = self.context["request"].user
-        nation_name = member.nation.name if member.nation else None
 
         with transaction.atomic():
+            member = Member.objects.select_for_update().get(
+                pk=self.context["replaced_member"].pk
+            )
+            if not member.replaceable:
+                raise serializers.ValidationError("This seat is not open for replacement.")
+            nation_name = member.nation.name if member.nation else None
             replacement = Member.objects.hand_over_seat(member, user)
             emit("seat_filled", game=game, actor=user, nation_name=nation_name)
 
