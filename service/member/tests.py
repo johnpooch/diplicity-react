@@ -8,10 +8,12 @@ from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
 from bot_profile.models import BotProfile
 from game.models import Game
+from member.models import Member
 from notification.models import Notification
+from order.models import Order
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, PhaseStatus
+from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, OrderType, PhaseStatus
 
 User = get_user_model()
 
@@ -338,13 +340,15 @@ class TestKickMember:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_kick_member_active_game_forbidden(
+    def test_kick_member_completed_game_forbidden(
         self,
         authenticated_client,
         active_game_created_by_primary_user,
         secondary_user,
     ):
         game = active_game_created_by_primary_user
+        game.status = GameStatus.COMPLETED
+        game.save()
         member = game.members.create(user=secondary_user)
 
         url = reverse(kick_viewname, args=[game.id, member.id])
@@ -417,6 +421,289 @@ class TestKickMember:
         join_url = reverse(join_viewname, args=[game.id])
         response = authenticated_client.post(join_url)
         assert response.status_code == status.HTTP_201_CREATED
+
+
+class TestRemoveMemberFromActiveGame:
+
+    @pytest.mark.django_db
+    def test_remove_keeps_the_row_and_marks_it_kicked(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        member.refresh_from_db()
+        assert member.kicked is True
+        assert member.replaced_by is None
+        assert member.user is not None
+
+    @pytest.mark.django_db
+    def test_remove_discards_orders_and_vacates_the_phase_state(
+        self, authenticated_client, active_game_factory, classical_london_province
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        phase_state = game.current_phase.phase_states.get(member=member)
+        Order.objects.create(
+            phase_state=phase_state, source=classical_london_province, order_type=OrderType.HOLD
+        )
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        authenticated_client.delete(url)
+
+        phase_state.refresh_from_db()
+        assert phase_state.has_possible_orders is False
+        assert not Order.objects.filter(phase_state__member=member).exists()
+
+    @pytest.mark.django_db
+    def test_removed_seat_no_longer_holds_up_early_resolution(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        phase = game.current_phase
+        phase.phase_states.exclude(member=member).update(orders_confirmed=True)
+
+        assert phase.id not in [p.id for p in Phase.objects.filter_due_phases()]
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        authenticated_client.delete(url)
+
+        assert phase.id in [p.id for p in Phase.objects.filter_due_phases()]
+
+    @pytest.mark.django_db
+    def test_remove_notifies_the_removed_player(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        authenticated_client.delete(url)
+
+        notifications = Notification.objects.filter(event_type="removed_from_game")
+        assert [n.recipient_id for n in notifications] == [member.user_id]
+
+    @pytest.mark.django_db
+    def test_remove_does_not_notify_a_bot(
+        self, authenticated_client, active_game_factory, roster_bot_user
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        member.user = roster_bot_user
+        member.save()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        authenticated_client.delete(url)
+
+        assert not Notification.objects.filter(event_type="removed_from_game").exists()
+
+    @pytest.mark.django_db
+    def test_removed_player_cannot_submit_orders(self, active_game_factory, classical_london_province):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        Member.objects.remove(member)
+
+        client = APIClient()
+        client.force_authenticate(user=member.user)
+        response = client.post(
+            reverse("order-create", args=[game.id]),
+            {"selected": [classical_london_province.province_id]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_removed_player_can_still_read_the_game(self, active_game_factory):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        Member.objects.remove(member)
+
+        client = APIClient()
+        client.force_authenticate(user=member.user)
+        response = client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+
+
+replace_viewname = "game-member-replace"
+
+
+class TestMemberReplace:
+
+    def _open_seat(self, game):
+        member = game.members.exclude(user=game.admin).first()
+        Member.objects.remove(member)
+        return member
+
+    @pytest.mark.django_db
+    def test_takes_over_the_seat(self, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user):
+        game = active_game_factory()
+        member = self._open_seat(game)
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["nation"] == member.nation.name
+        replacement = game.members.get(user=tertiary_user)
+        assert replacement.nation == member.nation
+        assert replacement.kicked is False
+        member.refresh_from_db()
+        assert member.replaced_by == replacement
+
+    @pytest.mark.django_db
+    def test_replaced_member_is_swapped_out_of_the_members_list(
+        self, authenticated_client, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user
+    ):
+        game = active_game_factory()
+        member = self._open_seat(game)
+
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+        member_ids = [m["id"] for m in response.data["members"]]
+        assert member.id not in member_ids
+        assert game.members.get(user=tertiary_user).id in member_ids
+
+    @pytest.mark.django_db
+    def test_replacement_joins_every_channel_the_original_was_in(
+        self, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user
+    ):
+        game = active_game_factory()
+        member = self._open_seat(game)
+        private = game.channels.create(name="Private", private=True)
+        private.member_channels.create(member=member)
+
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        replacement = game.members.get(user=tertiary_user)
+        assert private.id in replacement.member_channels.values_list("channel_id", flat=True)
+
+    @pytest.mark.django_db
+    def test_replacement_gets_a_phase_state_for_the_current_phase(
+        self, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user
+    ):
+        game = active_game_factory()
+        member = self._open_seat(game)
+
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        phase = game.current_phase
+        replacement = game.members.get(user=tertiary_user)
+        assert phase.phase_states.get(member=replacement).has_possible_orders is True
+        assert phase.phase_states.get(member=member).has_possible_orders is False
+
+    @pytest.mark.django_db
+    def test_civil_disorder_seat_can_be_taken_over(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        member.civil_disorder = True
+        member.save()
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_open_seat_notifies_the_other_players(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._open_seat(game)
+
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        notifications = Notification.objects.filter(event_type="seat_filled")
+        assert notifications.exists()
+        assert member.nation.name in notifications.first().deliveries.first().body
+
+    @pytest.mark.django_db
+    def test_seat_that_is_not_open_forbidden(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_eliminated_seat_forbidden(self, authenticated_client_for_tertiary_user, active_game_factory):
+        game = active_game_factory()
+        member = self._open_seat(game)
+        member.eliminated = True
+        member.save()
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_second_takeover_of_the_same_seat_forbidden(
+        self, authenticated_client_for_tertiary_user, active_game_factory, user_factory
+    ):
+        game = active_game_factory()
+        member = self._open_seat(game)
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        other_client = APIClient()
+        other_client.force_authenticate(user=user_factory())
+        response = other_client.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_existing_member_forbidden(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._open_seat(game)
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_game_master_forbidden(self, active_game_factory, tertiary_user):
+        game = active_game_factory()
+        member = self._open_seat(game)
+        game.game_master = tertiary_user
+        game.save()
+
+        client = APIClient()
+        client.force_authenticate(user=tertiary_user)
+        response = client.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_pending_game_forbidden(
+        self, authenticated_client_for_tertiary_user, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        member = game.members.create(user=secondary_user, kicked=True)
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._open_seat(game)
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = unauthenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.django_db
@@ -751,12 +1038,25 @@ class TestReplaceableSerialization:
         assert response.data["members"][0]["replaceable"] is False
 
     @pytest.mark.django_db
-    def test_not_replaceable_when_kicked(
+    def test_replaceable_when_kicked(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(user=primary_user, nation=classical_england_nation, kicked=True)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        member = response.data["members"][0]
+        assert member["kicked"] is True
+        assert member["replaceable"] is True
+
+    @pytest.mark.django_db
+    def test_not_replaceable_when_kicked_and_eliminated(
         self, authenticated_client, classical_variant, classical_england_nation, primary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         game.members.create(
-            user=primary_user, nation=classical_england_nation, seeking_replacement=True, kicked=True
+            user=primary_user, nation=classical_england_nation, kicked=True, eliminated=True
         )
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)

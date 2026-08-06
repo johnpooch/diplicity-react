@@ -1,8 +1,12 @@
 from rest_framework import serializers
 from django.apps import apps
+from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus
+from emit import emit
+
+from .models import Member
 
 ChannelMember = apps.get_model("channel", "ChannelMember")
 
@@ -25,7 +29,7 @@ class BaseMemberSerializer(serializers.Serializer):
         return obj.user == request.user
 
     def _is_bot(self, obj):
-        return obj.user is not None and hasattr(obj.user, "bot_profile")
+        return obj.is_bot
 
     def _is_masked(self, obj):
         game = self._get_game(obj)
@@ -109,3 +113,21 @@ class MemberSerializer(BaseMemberSerializer):
             [ChannelMember(member=member, channel=ch) for ch in public_channels]
         )
         return member
+
+
+class MemberReplaceSerializer(serializers.Serializer):
+
+    def create(self, validated_data):
+        game = self.context["game"]
+        member = self.context["replaced_member"]
+        user = self.context["request"].user
+        nation_name = member.nation.name if member.nation else None
+
+        with transaction.atomic():
+            replacement = Member.objects.hand_over_seat(member, user)
+            emit("seat_filled", game=game, actor=user, nation_name=nation_name)
+
+        return replacement
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data

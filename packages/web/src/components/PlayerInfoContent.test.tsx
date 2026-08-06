@@ -41,6 +41,18 @@ vi.mock("@/components/AddBotSheet", () => ({
     open ? <div data-testid="add-bot-sheet" /> : null,
 }));
 
+if (!Element.prototype.hasPointerCapture)
+  Element.prototype.hasPointerCapture = () => false;
+if (!Element.prototype.releasePointerCapture)
+  Element.prototype.releasePointerCapture = () => {};
+if (!Element.prototype.scrollIntoView)
+  Element.prototype.scrollIntoView = () => {};
+
+const mockCopyLink = vi.fn();
+vi.mock("@/utils/copyLink", () => ({
+  copyLink: (path: string) => mockCopyLink(path),
+}));
+
 const renderPlayerInfo = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -284,14 +296,17 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Remove The Dealmaker"));
+    await user.click(screen.getByLabelText("Options for The Dealmaker"));
+    await user.click(screen.getByRole("menuitem", { name: "Remove Player" }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
     expect(mockKickMutateAsync).toHaveBeenCalledWith({
       gameId: "game-1",
       memberId: 2,
     });
   });
 
-  it("does not show a remove button to non-admins or for humans", () => {
+  it("does not show a player menu to non-admins", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "pending",
@@ -314,6 +329,139 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByLabelText("Remove The Dealmaker")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Options for The Dealmaker")
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the removed badge for a kicked member", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          kicked: true,
+          replaceable: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getAllByText("Removed")).toHaveLength(1);
+  });
+
+  it("does not offer to remove a member who is already removed", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canManage: true,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          kicked: true,
+          replaceable: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
+  });
+
+  it("copies the takeover link for a replaceable seat", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          kicked: true,
+          replaceable: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    await user.click(screen.getByRole("button", { name: /Invite replacement/ }));
+
+    expect(mockCopyLink).toHaveBeenCalledWith("/game/game-1/replace/2");
+  });
+
+  it("does not offer to replace a seat to a member of the game", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", isCurrentUser: true },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          kicked: true,
+          replaceable: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByLabelText("Options for Bob")).not.toBeInTheDocument();
+  });
+
+  it("offers to replace a seat to a non-member", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", isCurrentUser: false },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          kicked: true,
+          replaceable: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    await user.click(screen.getByLabelText("Options for Bob"));
+    expect(screen.getByRole("menuitem", { name: "Replace" })).toBeInTheDocument();
   });
 });

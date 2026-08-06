@@ -29,4 +29,5 @@ export const GameDetail = {
     () => import("./PlayerProfileScreen"),
     "PlayerProfileScreen"
   ),
+  ReplaceScreen: lazyScreen(() => import("./ReplaceScreen"), "ReplaceScreen"),
 };

@@ -3872,6 +3872,90 @@ export const useGameLeaveDestroy = <TError = unknown, TContext = unknown>(
 };
 
 /**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameMembersReplaceCreate = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/members/${memberId}/replace/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameMembersReplaceCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+    TError,
+    { gameId: string; memberId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  const mutationKey = ["gameMembersReplaceCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+    { gameId: string; memberId: number }
+  > = props => {
+    const { gameId, memberId } = props ?? {};
+
+    return gameMembersReplaceCreate(gameId, memberId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMembersReplaceCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMembersReplaceCreate>>
+>;
+
+export type GameMembersReplaceCreateMutationError = unknown;
+
+export const useGameMembersReplaceCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+      TError,
+      { gameId: string; memberId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  return useMutation(
+    getGameMembersReplaceCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
  * Used by views that have a game parameter in the URL. Provides a get_phase
 method that returns the current phase for the game. Also adds phase to the serializer context.
  */

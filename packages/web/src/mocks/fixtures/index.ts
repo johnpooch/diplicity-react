@@ -7,6 +7,8 @@ import {
   activeGameMovement,
   activeGameNamedCoast,
   activeGameRetreat,
+  activeGameSeatOpen,
+  activeGameSeatOpenSpectator,
   finishedGameDraw,
   finishedGameSolo,
   gameMasterGame,
@@ -21,7 +23,7 @@ import {
 export type { GameFixture } from "./types";
 export { classicalVariant, classicalProvinces, nation, province } from "./classical";
 export { allVariants, extraVariants, draftVariant } from "./variants";
-export { botRoster, currentUserProfile, makeBotMember, publicProfiles } from "./users";
+export { botRoster, currentUserProfile, makeBotMember, makeMember, publicProfiles } from "./users";
 
 export const gameFixtures = {
   pendingGameNoPlayers,
@@ -36,6 +38,8 @@ export const gameFixtures = {
   activeGameDrawProposal,
   activeGameEliminated,
   activeGameCivilDisorder,
+  activeGameSeatOpen,
+  activeGameSeatOpenSpectator,
   finishedGameSolo,
   finishedGameDraw,
   gameMasterGame,

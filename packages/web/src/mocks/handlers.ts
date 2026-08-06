@@ -12,6 +12,7 @@ import {
   draftVariant,
   fixtureByGameId,
   makeBotMember,
+  makeMember,
   publicProfiles,
 } from "./fixtures";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
@@ -261,13 +262,36 @@ export const handlers = [
   http.delete("*/game/:gameId/kick/:memberId/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);
     if (!fixture) return notFound();
+    const memberId = Number(params.memberId);
     fixture.game = {
       ...fixture.game,
-      members: fixture.game.members.filter(
-        m => m.id !== Number(params.memberId)
-      ),
+      members:
+        fixture.game.status === "pending"
+          ? fixture.game.members.filter(m => m.id !== memberId)
+          : fixture.game.members.map(m =>
+              m.id === memberId ? { ...m, kicked: true, replaceable: true } : m
+            ),
     };
     return new HttpResponse(null, { status: 204 });
+  }),
+  http.post("*/game/:gameId/members/:memberId/replace/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    const replaced = fixture.game.members.find(
+      m => m.id === Number(params.memberId)
+    );
+    if (!replaced) return notFound();
+    const replacement = makeMember(
+      { userId: currentUserProfile.userId, name: currentUserProfile.name },
+      replaced.nation
+    );
+    fixture.game = {
+      ...fixture.game,
+      members: fixture.game.members.map(m =>
+        m.id === replaced.id ? replacement : m
+      ),
+    };
+    return HttpResponse.json(replacement, { status: 201 });
   }),
   http.delete("*/game/:gameId/leave/", () => new HttpResponse(null, { status: 204 })),
   http.delete("*/game/:gameId/delete/", () => new HttpResponse(null, { status: 204 })),
