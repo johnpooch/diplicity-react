@@ -5,6 +5,7 @@ import { toLatLng, viewBoxBounds } from "./leafletCoords";
 import type { ProvinceRing } from "./provincePolygons";
 import { focusBounds } from "./focusBounds";
 import { buildHighlightSvg } from "./highlightSvg";
+import { createSafeMap } from "./safeMap";
 
 export type MapMode = "static" | "pannable" | "interactive";
 
@@ -128,7 +129,7 @@ export class GameMapController {
     this.fill = options.initialFill ?? true;
     this.bounds = L.latLngBounds(viewBoxBounds(options.viewBox));
 
-    this.map = L.map(container, {
+    this.map = createSafeMap(container, {
       crs: L.CRS.Simple,
       attributionControl: false,
       zoomControl: false,
