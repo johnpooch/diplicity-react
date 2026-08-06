@@ -10971,6 +10971,69 @@ def test_options_adjustment_no_disbands_for_non_playable_nation():
     assert [o for o in options if o.order_type == "Disband"] == []
 
 
+def test_options_retreat_no_options_for_non_playable_nation():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    assert get_options(state) == []
+
+
+def test_options_retreat_still_emitted_for_playable_nation_alongside_non_playable():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="iso",
+                dislodged=True,
+                dislodged_from="sea",
+            ),
+        ],
+    )
+    assert {o.source for o in get_options(state)} == {"iso"}
+
+
+def test_retreat_dislodged_non_playable_unit_is_removed_without_orders():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    result = Engine().adjudicate(state)
+    assert [u for u in result[0].units if u.nation == SOUTH] == []
+
+
 def _with_neutral_auto_build(variant: Variant) -> Variant:
     return replace(variant, adjudication_modifiers=("neutral-nations-auto-build",))
 
