@@ -12,7 +12,7 @@ MIGRATIONS_DIR = Path(__file__).with_name("migrations")
 
 STDERR_METRIC = "stderr"
 
-TEMPLATE = '''import datetime
+TEMPLATE = """import datetime
 
 from django.db import migrations
 
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(record, unrecord),
     ]
-'''
+"""
 
 
 def extract(log, *, kind=EvalRunKind.EVAL, model=None):
