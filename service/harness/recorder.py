@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 from pathlib import Path
 
@@ -73,8 +74,8 @@ def extract(log, *, model=None):
 def write_migration(payload, *, directory=MIGRATIONS_DIR):
     number, dependency = _next_migration(directory)
     name = f"{number:04d}_record_{_model_slug(payload['run']['model'])}_{payload['run']['commit']}.py"
-    run = "".join(f"    {key!r}: {value!r},\n" for key, value in payload["run"].items())
-    scores = "".join(f"    {score!r},\n" for score in payload["scores"])
+    run = "".join(f"    {_literal(key)}: {_literal(value)},\n" for key, value in payload["run"].items())
+    scores = "".join(f"    {_mapping(score)},\n" for score in payload["scores"])
     path = directory / name
     path.write_text(TEMPLATE.format(run=run, scores=scores, dependency=dependency))
     return path
@@ -124,6 +125,17 @@ def _next_migration(directory):
     dependency = leaves[0][1]
     existing = [int(path.name[:4]) for path in directory.glob("[0-9][0-9][0-9][0-9]_*.py")]
     return max(existing, default=0) + 1, dependency
+
+
+def _literal(value):
+    if isinstance(value, str):
+        return json.dumps(value)
+    return repr(value)
+
+
+def _mapping(mapping):
+    body = ", ".join(f"{_literal(key)}: {_literal(value)}" for key, value in mapping.items())
+    return f"{{{body}}}"
 
 
 def _model_slug(model):
