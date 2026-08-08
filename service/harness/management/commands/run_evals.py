@@ -6,6 +6,7 @@ from inspect_ai import eval as inspect_eval
 
 from dumbbot.evals import dumbbot_select_orders
 
+from harness.exceptions import RecordingError
 from harness.recorder import record
 from harness.tasks.select_orders.evals import select_orders
 
@@ -41,4 +42,8 @@ class Command(BaseCommand):
 
         if not options["record"]:
             return
-        self.stdout.write(f"recorded: {record(log, model=recorded_model)}")
+        try:
+            path = record(log, model=recorded_model)
+        except RecordingError as error:
+            raise CommandError(str(error))
+        self.stdout.write(f"recorded: {path}")
