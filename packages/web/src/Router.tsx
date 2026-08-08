@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import {
   createBrowserRouter,
+  Navigate,
   Outlet,
   RouterProvider,
   redirect,
@@ -21,7 +22,11 @@ import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { useIsMobile } from "./hooks/use-mobile";
-import { getVariantsListQueryOptions } from "./api/generated/endpoints";
+import { useRequiredParams } from "./hooks";
+import {
+  getVariantsListQueryOptions,
+  useGameRetrieveSuspense,
+} from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import { isNetworkError } from "./utils/network";
@@ -69,14 +74,28 @@ const AuthenticatedRoot: React.FC = () => {
   return <Outlet />;
 };
 
-export const GameIndexRoute: React.FC = () => {
+const GameIndexRouteInner: React.FC = () => {
   const isMobile = useIsMobile();
-  return (
-    <Suspense fallback={<RouteFallback />}>
-      {isMobile ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />}
-    </Suspense>
-  );
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+
+  if (game.status === "pending") {
+    return (
+      <Navigate to={`/game/${gameId}/phase/${phaseId}/game-info`} replace />
+    );
+  }
+
+  return isMobile ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />;
 };
+
+export const GameIndexRoute: React.FC = () => (
+  <Suspense fallback={<RouteFallback />}>
+    <GameIndexRouteInner />
+  </Suspense>
+);
 
 interface RouterProps {
   loggedIn: boolean;
