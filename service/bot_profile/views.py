@@ -4,7 +4,7 @@ from rest_framework import generics, permissions
 from bot_profile.models import BotProfile
 from bot_profile.serializers import AvailableBotSerializer, BotMemberCreateSerializer
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame, IsSpaceAvailable
-from common.views import SelectedGameMixin
+from common.views import SeatClaimMixin, SelectedGameMixin
 from member.serializers import MemberSerializer
 
 
@@ -17,10 +17,6 @@ class AvailableBotListView(SelectedGameMixin, generics.ListAPIView):
 
 
 @extend_schema(responses={201: MemberSerializer})
-class BotMemberCreateView(SelectedGameMixin, generics.CreateAPIView):
+class BotMemberCreateView(SeatClaimMixin, generics.CreateAPIView):
     serializer_class = BotMemberCreateSerializer
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, IsSpaceAvailable, CanUseBotOpponent]
-
-    def perform_create(self, serializer):
-        member = serializer.save()
-        member.game.start_if_full()

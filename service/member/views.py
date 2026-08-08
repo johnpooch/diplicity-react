@@ -8,21 +8,17 @@ from .models import Member
 from .serializers import MemberSerializer
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
-from common.views import SelectedGameMixin
+from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 
 
-class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
+class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
     serializer_class = MemberSerializer
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
 
     @extend_schema(request=EmptySerializer)
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
-
-    def perform_create(self, serializer):
-        member = serializer.save()
-        member.game.start_if_full()
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
