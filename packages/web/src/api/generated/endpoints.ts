@@ -103,7 +103,7 @@ export interface ChannelMember {
   readonly isBot: boolean;
   /** @nullable */
   readonly commitment: string | null;
-  nation: Nation;
+  nation: Nation | null;
 }
 
 export interface ChannelMessage {
