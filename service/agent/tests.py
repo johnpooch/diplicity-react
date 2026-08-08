@@ -27,6 +27,7 @@ from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
 from order.models import Order
+from phase.models import Phase
 
 
 def _option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
@@ -1336,6 +1337,17 @@ class TestReplanMemberCommand:
 
         with pytest.raises(CommandError, match="no active phase"):
             self._replan(game, member)
+
+    @pytest.mark.django_db
+    def test_rejects_a_game_whose_phase_is_processing(self, active_game_factory, primary_user, in_memory_procrastinate):
+        game = active_game_factory()
+        member = self._seat_bot(game, primary_user)
+        Phase.objects.filter(pk=game.current_phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        with pytest.raises(CommandError, match="no active phase"):
+            self._replan(game, member)
+
+        assert not AgentTask.objects.filter(member=member).exists()
 
     @pytest.mark.django_db
     def test_matches_nation_case_insensitively(self, active_game_factory, primary_user, in_memory_procrastinate):

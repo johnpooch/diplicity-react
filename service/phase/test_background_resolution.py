@@ -2,7 +2,8 @@ from datetime import datetime, time, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
 import pytest
-from django.db import transaction
+from django.db import connection, transaction
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -81,7 +82,7 @@ class TestResolveIfDue:
             ],
         )
 
-        with patch.object(Phase.objects, "resolve", return_value="resolved") as mock_resolve:
+        with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved") as mock_resolve:
             result = Phase.objects.resolve_if_due(phase.id)
 
         assert result == "resolved"
@@ -97,7 +98,7 @@ class TestResolveIfDue:
             ],
         )
 
-        with patch.object(Phase.objects, "resolve") as mock_resolve:
+        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
             result = Phase.objects.resolve_if_due(phase.id)
 
         assert result is None
@@ -113,7 +114,7 @@ class TestResolveIfDue:
             ],
         )
 
-        with patch.object(Phase.objects, "resolve") as mock_resolve:
+        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
             result = Phase.objects.resolve_if_due(phase.id)
 
         assert result is None
@@ -121,7 +122,7 @@ class TestResolveIfDue:
 
     @pytest.mark.django_db
     def test_missing_phase_is_noop(self):
-        with patch.object(Phase.objects, "resolve") as mock_resolve:
+        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
             result = Phase.objects.resolve_if_due(999999)
 
         assert result is None
@@ -266,6 +267,136 @@ class TestDeadlineTimerArming:
         assert phase.resolution_job_id is None
 
 
+class TestProcessingStatus:
+
+    @pytest.fixture
+    def due_phase(self, phase_factory, classical_england_nation):
+        return phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+    @pytest.mark.django_db
+    def test_phase_is_processing_before_adjudication_starts(self, due_phase):
+        observed = {}
+
+        def record(phase):
+            observed["status"] = Phase.objects.values_list("status", flat=True).get(pk=phase.pk)
+            observed["savepoints"] = len(transaction.get_connection().savepoint_ids)
+            return "resolved"
+
+        baseline = len(transaction.get_connection().savepoint_ids)
+
+        with patch.object(Phase.objects, "_resolve_claimed", side_effect=record):
+            Phase.objects.resolve_if_due(due_phase.id)
+
+        assert observed["status"] == PhaseStatus.PROCESSING
+        assert observed["savepoints"] == baseline
+
+    @pytest.mark.django_db
+    def test_claim_records_when_processing_started(self, due_phase):
+        before = timezone.now()
+
+        with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved"):
+            Phase.objects.resolve_if_due(due_phase.id)
+
+        due_phase.refresh_from_db()
+        assert due_phase.processing_started_at >= before
+
+    @pytest.mark.django_db
+    def test_claim_is_refused_for_a_phase_another_worker_is_already_processing(self, due_phase):
+        Phase.objects.filter(pk=due_phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        assert Phase.objects.claim_for_processing(due_phase) is False
+
+    @pytest.mark.django_db
+    def test_failed_resolution_returns_the_phase_to_active(self, due_phase):
+        with patch.object(Phase.objects, "_set_orders_outcome", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError):
+                Phase.objects.resolve_if_due(due_phase.id)
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+        assert due_phase.processing_started_at is None
+
+    @pytest.mark.django_db
+    def test_a_processing_phase_is_not_picked_up_by_the_sweep(self, due_phase):
+        Phase.objects.filter(pk=due_phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
+            Phase.objects.resolve_due_phases()
+
+        mock_resolve.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_recovery_returns_a_stalled_phase_to_active(self, due_phase):
+        Phase.objects.filter(pk=due_phase.pk).update(
+            status=PhaseStatus.PROCESSING,
+            processing_started_at=timezone.now() - timedelta(seconds=400),
+        )
+
+        with patch("phase.models.sentry_sdk.capture_message") as mock_capture:
+            recovered = Phase.objects.recover_stalled_processing()
+
+        due_phase.refresh_from_db()
+        assert recovered == 1
+        assert due_phase.status == PhaseStatus.ACTIVE
+        assert due_phase.processing_started_at is None
+        mock_capture.assert_called_once()
+        assert str(due_phase.id) in mock_capture.call_args[0][0]
+
+    @pytest.mark.django_db
+    def test_sweep_retries_a_phase_it_recovered(self, due_phase):
+        Phase.objects.filter(pk=due_phase.pk).update(
+            status=PhaseStatus.PROCESSING,
+            processing_started_at=timezone.now() - timedelta(seconds=400),
+        )
+
+        with patch("phase.models.sentry_sdk.capture_message"):
+            with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved") as mock_resolve:
+                Phase.objects.sweep_due_phases()
+
+        mock_resolve.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_sweep_leaves_a_phase_processing_within_the_timeout(self, due_phase):
+        started = timezone.now() - timedelta(seconds=60)
+        Phase.objects.filter(pk=due_phase.pk).update(
+            status=PhaseStatus.PROCESSING, processing_started_at=started
+        )
+
+        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
+            Phase.objects.sweep_due_phases()
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.PROCESSING
+        mock_resolve.assert_not_called()
+
+
+class TestLockIfActive:
+
+    @pytest.mark.django_db
+    def test_returns_the_phase_and_locks_the_row(self, order_active_game):
+        phase = order_active_game.current_phase
+
+        with transaction.atomic():
+            with CaptureQueriesContext(connection) as queries:
+                locked = Phase.objects.lock_if_active(phase.id)
+
+        assert locked == phase
+        assert "FOR UPDATE" in queries[0]["sql"]
+
+    @pytest.mark.django_db
+    def test_returns_none_while_the_phase_is_processing(self, order_active_game):
+        phase = order_active_game.current_phase
+        Phase.objects.filter(pk=phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        with transaction.atomic():
+            assert Phase.objects.lock_if_active(phase.id) is None
+
+
 class TestSweepCanary:
 
     @pytest.mark.django_db
@@ -278,7 +409,7 @@ class TestSweepCanary:
         )
 
         with patch("phase.models.sentry_sdk.capture_message") as mock_capture, patch.object(
-            Phase.objects, "resolve", return_value="resolved"
+            Phase.objects, "_resolve_claimed", return_value="resolved"
         ) as mock_resolve:
             Phase.objects.sweep_due_phases()
 
@@ -296,7 +427,7 @@ class TestSweepCanary:
         )
 
         with patch("phase.models.sentry_sdk.capture_message") as mock_capture, patch.object(
-            Phase.objects, "resolve", return_value="resolved"
+            Phase.objects, "_resolve_claimed", return_value="resolved"
         ) as mock_resolve:
             Phase.objects.sweep_due_phases()
 

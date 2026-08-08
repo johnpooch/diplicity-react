@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.core import exceptions
 from rest_framework import status
 from common.constants import PhaseStatus, OrderType, UnitType, OrderCreationStep, OrderResolutionStatus, PhaseType
+from phase.models import Phase
 
 from .models import Order, OrderResolution
 from .utils import get_options_for_order, get_order_data_from_selected, flatten_options, FIELD_ORDER
@@ -709,8 +710,49 @@ class TestOrderCreateView:
         assert second_order.order_type == "Hold"
         assert second_order.id != first_order.id
 
+    @pytest.mark.django_db
+    def test_order_create_rejected_while_the_phase_is_processing(
+        self, authenticated_client, game_with_options
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        Phase.objects.filter(pk=game.current_phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        response = authenticated_client.post(url, {"selected": ["bud", "Move", "gal"]}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 1
+        assert Order.objects.get().order_type == OrderType.HOLD
+
 
 class TestOrderDeleteView:
+    @pytest.mark.django_db
+    def test_delete_order_rejected_while_the_phase_is_processing(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
+        Phase.objects.filter(pk=phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 1
+
     @pytest.mark.django_db
     def test_delete_order_success(
         self,
@@ -1061,7 +1103,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15  # was 18 before resolve_game cache + dedup create_from_selected
+        assert query_count == 19
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
@@ -1076,7 +1118,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 19
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
@@ -1091,7 +1133,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 19
 
 
 class TestOrderDeleteViewQueryPerformance:
@@ -1125,7 +1167,7 @@ class TestOrderDeleteViewQueryPerformance:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         query_count = len(connection.queries)
 
-        assert query_count == 6
+        assert query_count == 10
 
 
 class TestGetOptionsForOrder:
