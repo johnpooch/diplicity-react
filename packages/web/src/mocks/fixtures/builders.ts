@@ -89,10 +89,7 @@ export const makeGame = (
   phases: PhaseRetrieve[],
   overrides: GameOverrides = {}
 ): GameList => {
-  const currentPhase =
-    phases.find(p => p.status === "active") ??
-    [...phases].reverse().find(p => p.status === "completed") ??
-    null;
+  const currentPhase = phases[phases.length - 1] ?? null;
   return {
     id,
     name,

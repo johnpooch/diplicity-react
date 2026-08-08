@@ -1054,7 +1054,7 @@ const CreateGame: React.FC = () => {
       });
       toast.success("Game created successfully");
       checkNotificationPermission();
-      navigate(`/game-info/${game.id}`);
+      navigate(`/game/${game.id}`);
     } catch {
       toast.error("Failed to create game");
     }
@@ -1098,7 +1098,7 @@ const CreateGame: React.FC = () => {
 
   const handleSimilarMatchJoin = () => {
     if (similarMatch) {
-      navigate(`/game-info/${similarMatch.id}`);
+      navigate(`/game/${similarMatch.id}`);
     }
     setSimilarMatch(null);
     setPendingFormData(null);
