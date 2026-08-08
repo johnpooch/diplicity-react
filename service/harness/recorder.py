@@ -16,7 +16,8 @@ TEMPLATE = """import datetime
 
 from django.db import migrations
 
-RUN = {run}
+RUN = {{
+{run}}}
 
 SCORES = [
 {scores}]
@@ -72,9 +73,10 @@ def extract(log, *, model=None):
 def write_migration(payload, *, directory=MIGRATIONS_DIR):
     number, dependency = _next_migration(directory)
     name = f"{number:04d}_record_{_model_slug(payload['run']['model'])}_{payload['run']['commit']}.py"
+    run = "".join(f"    {key!r}: {value!r},\n" for key, value in payload["run"].items())
     scores = "".join(f"    {score!r},\n" for score in payload["scores"])
     path = directory / name
-    path.write_text(TEMPLATE.format(run=repr(payload["run"]), scores=scores, dependency=dependency))
+    path.write_text(TEMPLATE.format(run=run, scores=scores, dependency=dependency))
     return path
 
 
