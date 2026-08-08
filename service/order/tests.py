@@ -710,7 +710,52 @@ class TestOrderCreateView:
         assert second_order.id != first_order.id
 
 
+    def test_order_create_rejected_once_the_phase_is_no_longer_active(
+        self, authenticated_client, game_with_options
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save(update_fields=["status"])
+
+        response = authenticated_client.post(url, {"selected": ["bud", "Move", "gal"]}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert Order.objects.count() == 1
+        assert Order.objects.get().order_type == OrderType.HOLD
+
+
 class TestOrderDeleteView:
+    @pytest.mark.django_db
+    def test_delete_order_rejected_once_the_phase_is_no_longer_active(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        phase_state = phase.phase_states.get(member__user=primary_user)
+        Order.objects.create(
+            phase_state=phase_state,
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
+        phase.status = PhaseStatus.COMPLETED
+        phase.save(update_fields=["status"])
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert Order.objects.count() == 1
+
     @pytest.mark.django_db
     def test_delete_order_success(
         self,
@@ -1061,7 +1106,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15  # was 18 before resolve_game cache + dedup create_from_selected
+        assert query_count == 18  # 15 + BEGIN, SELECT ... FOR UPDATE, COMMIT for the phase lock
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
@@ -1076,7 +1121,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 18
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
@@ -1091,7 +1136,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 18
 
 
 class TestOrderDeleteViewQueryPerformance:
@@ -1125,7 +1170,7 @@ class TestOrderDeleteViewQueryPerformance:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         query_count = len(connection.queries)
 
-        assert query_count == 6
+        assert query_count == 9
 
 
 class TestGetOptionsForOrder:

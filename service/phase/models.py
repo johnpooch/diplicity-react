@@ -125,6 +125,14 @@ class PhaseManager(models.Manager):
 
             return phases_to_resolve
 
+    def lock_if_active(self, phase_id):
+        return (
+            self.defer("options")
+            .select_for_update()
+            .filter(pk=phase_id, status=PhaseStatus.ACTIVE)
+            .first()
+        )
+
     def resolve_if_due(self, phase_id):
         with tracer.start_as_current_span("phase.manager.resolve_if_due") as span:
             span.set_attribute("phase.id", phase_id)
