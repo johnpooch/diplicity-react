@@ -113,10 +113,14 @@ missing, and each eval hits the LLM provider, so it costs real tokens.
 needs no key and costs nothing.
 
 **Permission policy:** running a single epoch (the default — one pass over the
-dataset) is fine without asking. Do **not** run multiple epochs (each sample
+dataset) is fine without asking. Do **not** pass `--epochs` above 1 (each sample
 repeated N times) unless the user explicitly asks — that multiplies model calls
-and cost. When asked for multiple epochs, invoke `inspect_ai.eval(...)` with
-`epochs=N` directly (the command exposes no `--epochs` flag).
+and cost in direct proportion.
+
+Epochs matter for what the numbers mean, not just what they cost: only 4 of the
+10 dataset samples carry `ranked_options`, so a single-epoch `quality_strong` is
+an average over 4 observations and its stderr swamps any plausible change. A run
+meant as a baseline wants `--epochs 100`; a run meant as a check does not.
 
 ### Recording an eval run
 

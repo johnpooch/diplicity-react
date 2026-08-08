@@ -2,9 +2,12 @@ import hashlib
 import importlib.util
 import json
 import math
+from pathlib import Path
 
 import pytest
 from django.apps import apps as django_apps
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.migrations.loader import MigrationLoader
 from django.db.utils import IntegrityError
 from django.utils import timezone
@@ -27,7 +30,7 @@ from harness.models import EvalRun, EvalScore
 from harness.recorder import extract, write_migration
 from harness.tasks.reply.parser import parse_completion as parse_reply
 from harness.tasks.reply.user_prompt import user_prompt as reply_user_prompt
-from harness.tasks.select_orders.evals import fixture_to_sample
+from harness.tasks.select_orders.evals import DATASET_PATH, fixture_to_sample, select_orders
 from harness.tasks.select_orders.parser import parse_completion
 from harness.tasks.select_orders.scorers import (
     convoy_coherence,
@@ -631,6 +634,24 @@ class TestEvalRunRecorder:
         digest = hashlib.sha256((tmp_path / "dataset.json").read_bytes()).hexdigest()[:12]
         assert extract(log)["run"]["dataset"] == digest
 
+    def test_digests_a_dataset_location_relative_to_the_task_file(self, tmp_path):
+        model = get_model(
+            "mockllm/model",
+            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content("mockllm/model", '{"choices": []}'),
+        )
+        log = inspect_eval(select_orders(), model=model, display="none", log_dir=str(tmp_path / "logs"))[0]
+        log.eval.revision = EvalRevision(type="git", origin="origin", commit="abc1234", dirty=False)
+        assert not Path(log.eval.dataset.location).is_absolute()
+
+        digest = hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()[:12]
+        assert extract(log)["run"]["dataset"] == digest
+
+    def test_refuses_a_log_without_results(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        log.results = None
+        with pytest.raises(RecordingError):
+            extract(log)
+
     def test_takes_sample_count_from_scored_samples(self, tmp_path):
         log = self._ranked_and_unranked(tmp_path)
         scores = {score["scorer"]: score for score in extract(log)["scores"]}
@@ -707,6 +728,17 @@ class TestEvalRunRecorder:
 
         assert not EvalRun.objects.exists()
         assert not EvalScore.objects.exists()
+
+
+class TestRunEvalsCommand:
+
+    def test_rejects_recording_a_limited_run(self):
+        with pytest.raises(CommandError):
+            call_command("run_evals", "--task", "dumbbot", "--record", "--limit", "1")
+
+    def test_rejects_recording_a_zero_limited_run(self):
+        with pytest.raises(CommandError):
+            call_command("run_evals", "--task", "dumbbot", "--record", "--limit", "0")
 
 
 class TestEvalScoreModel:

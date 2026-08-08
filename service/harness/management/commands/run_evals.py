@@ -23,10 +23,11 @@ class Command(BaseCommand):
         parser.add_argument("--task", choices=(SELECT_ORDERS, DUMBBOT), default=SELECT_ORDERS)
         parser.add_argument("--model", default=f"anthropic/{settings.BOT_LLM_MODEL}")
         parser.add_argument("--limit", type=int, default=None)
+        parser.add_argument("--epochs", type=int, default=1)
         parser.add_argument("--record", action="store_true")
 
     def handle(self, *args, **options):
-        if options["record"] and options["limit"]:
+        if options["record"] and options["limit"] is not None:
             raise CommandError("--record cannot be combined with --limit: a partial run is not a baseline")
 
         if options["task"] == DUMBBOT:
@@ -38,12 +39,12 @@ class Command(BaseCommand):
             os.environ.setdefault("ANTHROPIC_API_KEY", settings.BOT_ANTHROPIC_API_KEY)
             task, model, recorded_model = select_orders(), options["model"], options["model"]
 
-        log = inspect_eval(task, model=model, limit=options["limit"])[0]
+        log = inspect_eval(task, model=model, limit=options["limit"], epochs=options["epochs"])[0]
 
         if not options["record"]:
             return
         try:
             path = record(log, model=recorded_model)
         except RecordingError as error:
-            raise CommandError(str(error))
+            raise CommandError(f"{error}. The run is preserved at {log.location}")
         self.stdout.write(f"recorded: {path}")

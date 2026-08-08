@@ -47,19 +47,21 @@ class Migration(migrations.Migration):
 """
 
 
-def extract(log, *, kind=EvalRunKind.EVAL, model=None):
+def extract(log, *, model=None):
     if log.status != "success":
         raise RecordingError(f"eval did not succeed: status {log.status}")
+    if log.results is None:
+        raise RecordingError("eval produced no results")
     revision = log.eval.revision
     if revision is None:
         raise RecordingError("eval was not run from a git checkout, so its commit is unknown")
     if revision.dirty:
         raise RecordingError("working tree is dirty, so the recorded commit would not describe the run")
     run = {
-        "kind": kind,
+        "kind": EvalRunKind.EVAL,
         "model": model or log.eval.model,
         "commit": revision.commit,
-        "dataset": _dataset_digest(log.eval.dataset.location),
+        "dataset": _dataset_digest(log.eval),
         "epochs": log.eval.config.epochs or 1,
         "eval_id": log.eval.eval_id,
         "ran_at": parse_datetime(log.eval.created),
@@ -76,14 +78,20 @@ def write_migration(payload, *, directory=MIGRATIONS_DIR):
     return path
 
 
-def record(log, *, kind=EvalRunKind.EVAL, model=None, directory=MIGRATIONS_DIR):
-    return write_migration(extract(log, kind=kind, model=model), directory=directory)
+def record(log, *, model=None, directory=MIGRATIONS_DIR):
+    return write_migration(extract(log, model=model), directory=directory)
 
 
-def _dataset_digest(location):
-    if not location:
+def _dataset_digest(spec):
+    if not spec.dataset.location:
         return ""
-    return hashlib.sha256(Path(location).read_bytes()).hexdigest()[:12]
+    path = Path(spec.dataset.location)
+    if not path.is_absolute() and spec.task_file:
+        path = Path(spec.task_file).parent / path
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    except OSError as error:
+        raise RecordingError(f"dataset {path} could not be read: {error}")
 
 
 def _score_rows(log):
