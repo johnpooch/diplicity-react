@@ -8,3 +8,7 @@ class FixtureError(Exception):
 
 class ContextError(Exception):
     pass
+
+
+class RecordingError(Exception):
+    pass
