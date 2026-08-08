@@ -137,6 +137,12 @@ epochs, eval_id, ran_at) and one `EvalScore` row per scorer (value, stderr,
 sample count). Commit it — applying it on deploy is what puts the run in the
 series, whose x-axis is the run pk, i.e. migration order.
 
+`sample_count` is the number of *dataset samples* a scorer averaged over, not
+the number of observations: inspect reduces epochs to one score per sample
+before metrics run, so a 20-epoch run still reports 10. Observations are
+`sample_count * epochs`. The two quality scorers report 4 where the rest report
+10, because only 4 fixtures declare `ranked_options`.
+
 Constraints worth knowing before you reach for it:
 
 - **`--record` refuses a dirty working tree**, so the recorded commit exactly

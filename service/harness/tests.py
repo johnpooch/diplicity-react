@@ -710,7 +710,7 @@ class TestEvalRunRecorder:
 
         module.record(django_apps, None)
 
-        run = EvalRun.objects.get()
+        run = EvalRun.objects.get(eval_id=log.eval.eval_id)
         assert run.model == "dumbbot"
         assert run.commit == "abc1234"
         assert sorted(run.scores.values_list("scorer", "sample_count")) == [
@@ -726,8 +726,18 @@ class TestEvalRunRecorder:
 
         module.unrecord(django_apps, None)
 
-        assert not EvalRun.objects.exists()
-        assert not EvalScore.objects.exists()
+        assert not EvalRun.objects.filter(eval_id=log.eval.eval_id).exists()
+        assert not EvalScore.objects.filter(run__eval_id=log.eval.eval_id).exists()
+
+
+class TestRecordedRuns:
+
+    @pytest.mark.django_db
+    def test_dumbbot_baseline_is_recorded(self):
+        run = EvalRun.objects.filter(model="dumbbot").first()
+        assert run.epochs == 20
+        assert run.scores.count() == 7
+        assert run.scores.get(scorer="quality_strong").sample_count == 4
 
 
 class TestRunEvalsCommand:
