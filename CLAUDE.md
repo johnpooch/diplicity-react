@@ -29,12 +29,15 @@ Diplicity React is a full-stack web app for the Diplomacy board game:
 
 ## AI player architecture
 
-The AI player system is four apps with a strict one-way dependency graph:
+The AI player system is five apps with a strict one-way dependency graph:
 
     agent → harness → (nothing in prod)
     agent → inference
     agent → bot_profile
+    agent → dumbbot
     harness → inference   (eval/test code only)
+    dumbbot → harness
+    harness → dumbbot     (the run_evals command only)
 
 Governing rule: **harness is pure; agent is where the world touches it.**
 
@@ -43,9 +46,12 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   calls in Django admin. Must not import from harness or agent.
 - harness — pure prompt engineering: Block classes (shared prompt assembly),
   build_prompt(), TaskDefinitions (select_orders, reply), prompt text, parsers,
-  and evals. No Django models, game API, queues, or telemetry in production
-  code. A TaskDefinition is declarative; build_prompt is shared; parse() is
-  per-task and raises ParseError on unusable output.
+  and evals. No game API, queues, or telemetry in production code. A
+  TaskDefinition is declarative; build_prompt is shared; parse() is per-task and
+  raises ParseError on unusable output. The one permitted Django surface is the
+  eval-run record — EvalRun/EvalScore plus harness/recorder.py — because the
+  thing being recorded is the harness's own measurement and run_evals already
+  lives here; nothing else in harness may define or query a model.
 - agent — orchestration: emit consumer specs (agent/registry.py), Procrastinate
   tasks, the game API client (read + write), context assembly, telemetry,
   fallback policy, and the build → inference.run → parse → side-effect glue.
@@ -67,10 +73,13 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   of plan for those seats rather than waiting for an event that never comes.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
+- dumbbot — the Norman DumbBot policy (board, weights, select_orders) and its
+  token-free eval task. No models; its roster is seeded by bot_profile. agent
+  dispatches to it for BotKind.DUMBBOT seats.
 
 **Personas are currently switched off.** No prompt receives a `disposition` or a
 `voice` block; production and the evals now run the same neutral system prompt,
-which is the only prompt the `EVAL_RESULTS.md` baseline has ever measured. The
+which is the only prompt any recorded eval run has ever measured. The
 roster, its columns and its seed migrations are deliberately kept — the plan
 ([#1131](https://github.com/johnpooch/diplicity-react/issues/1131)) is to re-add
 disposition first (into both `select_orders` and `reply`, gated on a larger
@@ -80,9 +89,10 @@ half without that measurement.
 
 Where does new code go? Deterministic + model-shaped → harness. Touches
 Django/game/queue/side-effects → agent. Model-call mechanics/records →
-inference. Persona/roster → bot_profile. If you want to eval something in
-agent, a reasoning decision has leaked out of harness. If you want a plain
-deterministic assertion in harness, that logic belongs in agent.
+inference. Persona/roster → bot_profile. Eval-run records → harness. If you want
+to eval something in agent, a reasoning decision has leaked out of harness. If
+you want a plain deterministic assertion in harness, that logic belongs in
+agent.
 
 ### Running the harness evals
 
@@ -93,11 +103,14 @@ The `select_orders` evals run against the real model via a management command
 python manage.py run_evals              # full dataset, model/key from settings
 python manage.py run_evals --limit 1    # quick smoke run
 python manage.py run_evals --model anthropic/claude-...   # override model
+python manage.py run_evals --task dumbbot   # token-free DumbBot baseline
 ```
 
-It needs `BOT_ANTHROPIC_API_KEY` set (model defaults to `BOT_LLM_MODEL`); it
-prints a skip line and exits if the key is missing. Each eval hits the LLM
-provider, so it costs real tokens.
+`--task select_orders` (the default) needs `BOT_ANTHROPIC_API_KEY` set (model
+defaults to `BOT_LLM_MODEL`); it prints a skip line and exits if the key is
+missing, and each eval hits the LLM provider, so it costs real tokens.
+`--task dumbbot` runs the same dataset and scorers through the DumbBot policy,
+needs no key and costs nothing.
 
 **Permission policy:** running a single epoch (the default — one pass over the
 dataset) is fine without asking. Do **not** run multiple epochs (each sample
@@ -105,9 +118,33 @@ repeated N times) unless the user explicitly asks — that multiplies model call
 and cost. When asked for multiple epochs, invoke `inspect_ai.eval(...)` with
 `epochs=N` directly (the command exposes no `--epochs` flag).
 
-The latest recorded baseline lives in
-`service/harness/tasks/select_orders/EVAL_RESULTS.md` — update it when you take
-a new baseline run.
+### Recording an eval run
+
+Eval results live in the database, not in a markdown file. `--record` turns the
+run into a data migration you commit:
+
+```bash
+python manage.py run_evals --record                  # writes harness/migrations/00NN_record_...
+python manage.py run_evals --task dumbbot --record
+```
+
+The migration carries one `EvalRun` row (kind, model, commit, dataset digest,
+epochs, eval_id, ran_at) and one `EvalScore` row per scorer (value, stderr,
+sample count). Commit it — applying it on deploy is what puts the run in the
+series, whose x-axis is the run pk, i.e. migration order.
+
+Constraints worth knowing before you reach for it:
+
+- **`--record` refuses a dirty working tree**, so the recorded commit exactly
+  describes the harness that produced the numbers. Commit first, then record.
+- **`--record` cannot be combined with `--limit`** — a partial run is not a
+  baseline. This fails before any model call.
+- A scorer with no scored samples is dropped rather than stored as NaN, so a run
+  may carry fewer than seven score rows.
+- **Disowning a bad run is a follow-up migration** that deletes it
+  (`EvalRun.objects.filter(eval_id=...).delete()`, scores cascade). There is no
+  `excluded` flag for cards to filter on; both migrations stay in git, so the
+  episode remains readable there.
 
 The `quality_strong`/`quality_avoidance` scorers only aggregate over dataset
 samples that declare `ranked_options` (a `good`/`neutral`/`bad` labelling of the

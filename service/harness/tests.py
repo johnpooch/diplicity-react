@@ -1,10 +1,18 @@
+import hashlib
+import importlib.util
 import json
 import math
 
 import pytest
+from django.apps import apps as django_apps
+from django.db.migrations.loader import MigrationLoader
+from django.db.utils import IntegrityError
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from inspect_ai import Task
 from inspect_ai import eval as inspect_eval
-from inspect_ai.dataset import MemoryDataset, Sample
+from inspect_ai.dataset import MemoryDataset, Sample, json_dataset
+from inspect_ai.log import EvalRevision
 from inspect_ai.model import ModelOutput, get_model
 from inspect_ai.scorer import CORRECT, INCORRECT, Target
 from inspect_ai.solver import generate
@@ -12,10 +20,14 @@ from inspect_ai.solver import generate
 from common.constants import OrderType
 
 from harness.adapter import data_to_fixture, fixture_to_context, fixture_to_data
-from harness.exceptions import ContextError, FixtureError, ParsingError
+from harness.constants import EvalRunKind
+from harness.exceptions import ContextError, FixtureError, ParsingError, RecordingError
 from harness.management.commands.sample_openings import ledger_for_nation
+from harness.models import EvalRun, EvalScore
+from harness.recorder import extract, write_migration
 from harness.tasks.reply.parser import parse_completion as parse_reply
 from harness.tasks.reply.user_prompt import user_prompt as reply_user_prompt
+from harness.tasks.select_orders.evals import fixture_to_sample
 from harness.tasks.select_orders.parser import parse_completion
 from harness.tasks.select_orders.scorers import (
     convoy_coherence,
@@ -564,3 +576,147 @@ class TestOpeningLedger:
         context = fixture_to_context(self._uncontestable_fixture(with_enemy=True))
         flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])["order_sets"][0]["flags"]
         assert not any(flag.startswith("uncontestable_support") for flag in flags)
+
+
+def _load_module(path):
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TestEvalRunRecorder:
+
+    def _log(self, tmp_path, fixtures, scorers, choices=(("lon", 0),)):
+        dataset_path = tmp_path / "dataset.json"
+        dataset_path.write_text(json.dumps(fixtures))
+        model = get_model(
+            "mockllm/model",
+            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content(
+                "mockllm/model", _completion(list(choices))
+            ),
+        )
+        task = Task(
+            dataset=json_dataset(str(dataset_path), fixture_to_sample),
+            solver=generate(),
+            scorer=list(scorers),
+        )
+        log = inspect_eval(task, model=model, display="none", log_dir=str(tmp_path / "logs"))[0]
+        log.eval.revision = EvalRevision(type="git", origin="origin", commit="abc1234", dirty=False)
+        return log
+
+    def _ranked_and_unranked(self, tmp_path):
+        return self._log(
+            tmp_path,
+            [_quality_fixture("ranked"), _quality_fixture("unranked", ranked=False)],
+            [legality(), quality_strong()],
+        )
+
+    def test_maps_the_log_onto_a_run_row(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        run = extract(log)["run"]
+        assert run["kind"] == EvalRunKind.EVAL
+        assert run["model"] == "mockllm/model"
+        assert run["commit"] == "abc1234"
+        assert run["epochs"] == 1
+        assert run["eval_id"] == log.eval.eval_id
+        assert run["ran_at"] == parse_datetime(log.eval.created)
+
+    def test_records_the_given_model_over_the_log_model(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        assert extract(log, model="dumbbot")["run"]["model"] == "dumbbot"
+
+    def test_digests_the_dataset_file(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        digest = hashlib.sha256((tmp_path / "dataset.json").read_bytes()).hexdigest()[:12]
+        assert extract(log)["run"]["dataset"] == digest
+
+    def test_takes_sample_count_from_scored_samples(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        scores = {score["scorer"]: score for score in extract(log)["scores"]}
+        assert scores["legality"]["sample_count"] == 2
+        assert scores["quality_strong"]["sample_count"] == 1
+
+    def test_carries_value_and_stderr_on_one_row_per_scorer(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        scores = extract(log)["scores"]
+        assert [score["metric"] for score in scores] == ["accuracy", "accuracy"]
+        assert all(score["value"] == 1.0 and score["stderr"] == 0.0 for score in scores)
+
+    def test_drops_a_scorer_with_no_scored_samples(self, tmp_path):
+        log = self._log(tmp_path, [_quality_fixture("unranked", ranked=False)], [legality(), quality_strong()])
+        assert [score["scorer"] for score in extract(log)["scores"]] == ["legality"]
+
+    def test_refuses_a_dirty_tree(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        log.eval.revision.dirty = True
+        with pytest.raises(RecordingError):
+            extract(log)
+
+    def test_refuses_a_log_without_a_revision(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        log.eval.revision = None
+        with pytest.raises(RecordingError):
+            extract(log)
+
+    def test_refuses_an_unsuccessful_log(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        log.status = "error"
+        with pytest.raises(RecordingError):
+            extract(log)
+
+    def test_names_the_migration_after_the_model_and_commit(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        path = write_migration(extract(log, model="anthropic/claude-haiku-4-5"), directory=tmp_path)
+        assert path.name == "0001_record_claude_haiku_4_5_abc1234.py"
+
+    def test_numbers_the_migration_after_the_highest_existing_one(self, tmp_path):
+        (tmp_path / "0007_something.py").write_text("")
+        log = self._ranked_and_unranked(tmp_path)
+        path = write_migration(extract(log, model="dumbbot"), directory=tmp_path)
+        assert path.name == "0008_record_dumbbot_abc1234.py"
+
+    def test_depends_on_the_current_harness_leaf(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        path = write_migration(extract(log), directory=tmp_path)
+        leaf = MigrationLoader(None, ignore_no_migrations=True).graph.leaf_nodes("harness")[0][1]
+        assert f'("harness", "{leaf}")' in path.read_text()
+
+    @pytest.mark.django_db
+    def test_generated_migration_records_the_run(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        module = _load_module(write_migration(extract(log, model="dumbbot"), directory=tmp_path))
+
+        module.record(django_apps, None)
+
+        run = EvalRun.objects.get()
+        assert run.model == "dumbbot"
+        assert run.commit == "abc1234"
+        assert sorted(run.scores.values_list("scorer", "sample_count")) == [
+            ("legality", 2),
+            ("quality_strong", 1),
+        ]
+
+    @pytest.mark.django_db
+    def test_generated_migration_unrecords_the_run(self, tmp_path):
+        log = self._ranked_and_unranked(tmp_path)
+        module = _load_module(write_migration(extract(log), directory=tmp_path))
+        module.record(django_apps, None)
+
+        module.unrecord(django_apps, None)
+
+        assert not EvalRun.objects.exists()
+        assert not EvalScore.objects.exists()
+
+
+class TestEvalScoreModel:
+
+    @pytest.mark.django_db
+    def test_rejects_a_duplicate_scorer_and_metric(self):
+        run = EvalRun.objects.create(
+            model="dumbbot", commit="abc1234", dataset="0123456789ab", epochs=1, ran_at=timezone.now()
+        )
+        EvalScore.objects.create(run=run, scorer="legality", metric="accuracy", value=1.0, sample_count=10)
+
+        with pytest.raises(IntegrityError):
+            EvalScore.objects.create(run=run, scorer="legality", metric="accuracy", value=0.5, sample_count=10)
