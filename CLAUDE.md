@@ -278,8 +278,9 @@ npm run lint          # ESLint
 ## Design playground
 
 `packages/design-playground/` is a standalone app for prototyping screens before
-we build them. It deploys independently to `design.diplicity.com`, has no
-backend and no real data, and nothing in it ever ships to users.
+we build them. It deploys independently to
+`diplicity-design-playground.netlify.app`, has no backend and no real data, and
+nothing in it ever ships to users.
 
 **The rules in this file do not apply under `packages/design-playground/`.** That
 directory has its own `CLAUDE.md`, which overrides this one — most importantly it
