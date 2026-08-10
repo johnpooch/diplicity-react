@@ -54,9 +54,11 @@ from .types import (
     ConvoyOrder,
     HoldOrder,
     MoveOrder,
+    MoveTargetIsReachableCheck,
     Order,
     OrderResolution,
     OrderType,
+    ResolutionCode,
     StateView,
     SupportHoldOrder,
     SupportMoveOrder,
@@ -7656,6 +7658,13 @@ def _c2_failure_reason(states: List[State], province: str) -> Optional[str]:
     return None
 
 
+def _c2_code(states: List[State], province: str) -> Optional[str]:
+    for r in states[0].resolutions or []:
+        if r.province == province:
+            return r.code
+    return None
+
+
 def _c2_unit_at(states: List[State], location: str) -> Optional[Unit]:
     for u in states[0].units:
         if u.location == location and not u.dislodged:
@@ -7682,6 +7691,84 @@ def _c2_convoy_matched_at(adj: AdjudicationState, source: str) -> Optional[bool]
         if isinstance(order, ConvoyOrder) and order.source == source:
             return res.convoy_matched
     return None
+
+
+# === Outcome codes ===
+
+
+def test_successful_order_reports_succeeded_code():
+    """An uncontested move carries the success code, not an absent one."""
+    state = _c2_movement_state(
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "lhs") == Status.OK
+    assert _c2_code(result, "lhs") == ResolutionCode.SUCCEEDED
+
+
+def test_illegal_order_reports_the_code_declared_by_the_check_that_rejected_it():
+    """The code travels from the failing Check's CODE attribute through
+    to the external Resolution — nothing downstream re-derives it from
+    the status."""
+    state = _c2_movement_state(
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="far"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "lhs") == Status.ILLEGAL
+    assert _c2_code(result, "lhs") == MoveTargetIsReachableCheck.CODE
+
+
+def test_bounced_move_reports_bounced_code():
+    """Two armies contest mid; both bounce and both carry the bounce
+    code, which is distinct from the illegal-order code."""
+    state = _c2_movement_state(
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(nation=SOUTH, source="rhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "lhs") == Status.BOUNCE
+    assert _c2_code(result, "lhs") == ResolutionCode.BOUNCED
+    assert _c2_code(result, "rhs") == ResolutionCode.BOUNCED
+
+
+def test_cut_support_reports_support_broken_code():
+    """A support cut by an attack on the supporter reports the
+    support-broken code rather than the generic bounce code."""
+    state = _c2_movement_state(
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Hold"),
+            RawOrder(nation=NORTH, source="mid", order_type="Support", aux="lhs"),
+            RawOrder(nation=SOUTH, source="rhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "mid") == Status.CUT
+    assert _c2_code(result, "mid") == ResolutionCode.SUPPORT_BROKEN
 
 
 # === Custom chain variant for multi-sea path tests ===

@@ -32,18 +32,6 @@ logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
 
 
-# Map the Python engine's resolution statuses back to godip's wire-format
-# strings. Downstream OrderResolution.status is a CharField with choices
-# defined as the godip codes (see common.constants.OrderResolutionStatus),
-# and `get_status_display` is what the frontend renders.
-_STATUS_TO_GODIP = {
-    "OK": "OK",
-    "BOUNCE": "ErrBounce",
-    "CUT": "ErrSupportBroken",
-    "ILLEGAL": "ErrIllegalMove",
-}
-
-
 def start(phase) -> Dict[str, Any]:
     logger.info(f"Starting adjudication for phase {phase.id} of game {phase.game.id}")
     with tracer.start_as_current_span("adjudication.start") as span:
@@ -235,6 +223,10 @@ def _build_resolutions(orders, resolutions, variant: Variant) -> List[Dict[str, 
     # parent province (named coasts get collapsed at order creation), so
     # the resolution province must be the parent too.
     #
+    # The engine reports each order's outcome code directly, so "result"
+    # is a copy rather than a translation: ResolutionCode and
+    # OrderResolutionStatus are the same vocabulary.
+    #
     # For BOUNCE/CUT statuses we also populate the "by" province — godip
     # encoded it as `ErrBounce:par` / `ErrSupportBroken:mar`. The engine
     # doesn't carry that on the Resolution, so we reconstruct it from the
@@ -252,7 +244,6 @@ def _build_resolutions(orders, resolutions, variant: Variant) -> List[Dict[str, 
     resolutions_out: List[Dict[str, Any]] = []
     for resolution in resolutions or []:
         province_parent = variant.parent_of(resolution.province)
-        godip_status = _STATUS_TO_GODIP.get(resolution.resolution, "ErrIllegalMove")
         by = _find_by_province(
             resolution.resolution,
             province_parent,
@@ -263,7 +254,7 @@ def _build_resolutions(orders, resolutions, variant: Variant) -> List[Dict[str, 
         resolutions_out.append(
             {
                 "province": province_parent,
-                "result": godip_status,
+                "result": resolution.code,
                 "by": by,
             }
         )
