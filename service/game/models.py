@@ -334,7 +334,7 @@ class GameManager(models.Manager):
             game = self.create_from_template(variant, name=name, **kwargs)
 
             nations_list = [n for n in variant.nations.all() if not n.non_playable]
-            members_to_create = [Member(game=game, user=user) for _ in nations_list]
+            members_to_create = [Member(game=game, user=user, sandbox=True) for _ in nations_list]
             created_members = Member.objects.bulk_create(members_to_create)
 
             current_phase = getattr(game, "_created_phase", None)

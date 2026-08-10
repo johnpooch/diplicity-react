@@ -97,6 +97,7 @@ class Member(BaseModel):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="members")
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="members")
     nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members", null=True, blank=True)
+    sandbox = models.BooleanField(default=False)
     won = models.BooleanField(default=False)
     drew = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
@@ -123,7 +124,12 @@ class Member(BaseModel):
                 fields=["game", "nation"],
                 condition=models.Q(replaced_by__isnull=True),
                 name="member_unique_nation_per_game",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["game", "user"],
+                condition=models.Q(sandbox=False),
+                name="unique_member_per_user_per_game",
+            ),
         ]
 
     @property
