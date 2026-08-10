@@ -671,20 +671,18 @@ class TestAdjudicationService:
         classical_austria_nation,
         classical_russia_nation,
         classical_turkey_nation,
-        primary_user,
-        secondary_user,
-        tertiary_user,
+        user_factory,
     ):
         game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
 
         members_by_nation = {
-            "England": Member.objects.create(nation=classical_england_nation, user=primary_user, game=game),
-            "France": Member.objects.create(nation=classical_france_nation, user=secondary_user, game=game),
-            "Germany": Member.objects.create(nation=classical_germany_nation, user=tertiary_user, game=game),
-            "Italy": Member.objects.create(nation=classical_italy_nation, user=primary_user, game=game),
-            "Austria": Member.objects.create(nation=classical_austria_nation, user=secondary_user, game=game),
-            "Russia": Member.objects.create(nation=classical_russia_nation, user=tertiary_user, game=game),
-            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=primary_user, game=game),
+            "England": Member.objects.create(nation=classical_england_nation, user=user_factory(), game=game),
+            "France": Member.objects.create(nation=classical_france_nation, user=user_factory(), game=game),
+            "Germany": Member.objects.create(nation=classical_germany_nation, user=user_factory(), game=game),
+            "Italy": Member.objects.create(nation=classical_italy_nation, user=user_factory(), game=game),
+            "Austria": Member.objects.create(nation=classical_austria_nation, user=user_factory(), game=game),
+            "Russia": Member.objects.create(nation=classical_russia_nation, user=user_factory(), game=game),
+            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=user_factory(), game=game),
         }
 
         phase = Phase.objects.create(
@@ -733,20 +731,18 @@ class TestAdjudicationService:
         classical_austria_nation,
         classical_russia_nation,
         classical_turkey_nation,
-        primary_user,
-        secondary_user,
-        tertiary_user,
+        user_factory,
     ):
         game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
 
         members_by_nation = {
-            "England": Member.objects.create(nation=classical_england_nation, user=primary_user, game=game),
-            "France": Member.objects.create(nation=classical_france_nation, user=secondary_user, game=game),
-            "Germany": Member.objects.create(nation=classical_germany_nation, user=tertiary_user, game=game),
-            "Italy": Member.objects.create(nation=classical_italy_nation, user=primary_user, game=game),
-            "Austria": Member.objects.create(nation=classical_austria_nation, user=secondary_user, game=game),
-            "Russia": Member.objects.create(nation=classical_russia_nation, user=tertiary_user, game=game),
-            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=primary_user, game=game),
+            "England": Member.objects.create(nation=classical_england_nation, user=user_factory(), game=game),
+            "France": Member.objects.create(nation=classical_france_nation, user=user_factory(), game=game),
+            "Germany": Member.objects.create(nation=classical_germany_nation, user=user_factory(), game=game),
+            "Italy": Member.objects.create(nation=classical_italy_nation, user=user_factory(), game=game),
+            "Austria": Member.objects.create(nation=classical_austria_nation, user=user_factory(), game=game),
+            "Russia": Member.objects.create(nation=classical_russia_nation, user=user_factory(), game=game),
+            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=user_factory(), game=game),
         }
 
         phase = Phase.objects.create(
@@ -784,20 +780,18 @@ class TestAdjudicationService:
         classical_austria_nation,
         classical_russia_nation,
         classical_turkey_nation,
-        primary_user,
-        secondary_user,
-        tertiary_user,
+        user_factory,
     ):
         game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
 
         members_by_nation = {
-            "England": Member.objects.create(nation=classical_england_nation, user=primary_user, game=game),
-            "France": Member.objects.create(nation=classical_france_nation, user=secondary_user, game=game),
-            "Germany": Member.objects.create(nation=classical_germany_nation, user=tertiary_user, game=game),
-            "Italy": Member.objects.create(nation=classical_italy_nation, user=primary_user, game=game),
-            "Austria": Member.objects.create(nation=classical_austria_nation, user=secondary_user, game=game),
-            "Russia": Member.objects.create(nation=classical_russia_nation, user=tertiary_user, game=game),
-            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=primary_user, game=game),
+            "England": Member.objects.create(nation=classical_england_nation, user=user_factory(), game=game),
+            "France": Member.objects.create(nation=classical_france_nation, user=user_factory(), game=game),
+            "Germany": Member.objects.create(nation=classical_germany_nation, user=user_factory(), game=game),
+            "Italy": Member.objects.create(nation=classical_italy_nation, user=user_factory(), game=game),
+            "Austria": Member.objects.create(nation=classical_austria_nation, user=user_factory(), game=game),
+            "Russia": Member.objects.create(nation=classical_russia_nation, user=user_factory(), game=game),
+            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=user_factory(), game=game),
         }
 
         phase = Phase.objects.create(
