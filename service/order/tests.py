@@ -260,6 +260,20 @@ class TestOrderListViewCompletedPhaseCaching:
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"] != '"stale"'
 
+    @pytest.mark.django_db
+    def test_completed_phase_weakened_etag_returns_304(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
 
 class TestOrderCreateView:
 
