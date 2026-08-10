@@ -3,7 +3,7 @@ from phase.models import Phase
 from game.models import Game
 from member.models import Member
 import adjudication.service as adjudication_service
-from common.constants import GameStatus, OrderType, UnitType
+from common.constants import GameStatus, OrderResolutionStatus, OrderType, UnitType
 
 
 def sort_by_province(supply_centers):
@@ -900,6 +900,76 @@ class TestAdjudicationService:
             ]
         )
 
+    @pytest.mark.django_db
+    def test_resolve_disrupted_convoy_reports_convoy_specific_results(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        """
+        Test a convoy broken by the dislodgement of the convoying fleet.
+
+        Italian Army in Holland is convoyed to London by the Italian Fleet in
+        the North Sea, which German Fleets in the Norwegian Sea and Skagerrak
+        dislodge. The army never sails and the convoy never happens, and the
+        two failures are reported apart from an ordinary bounce.
+        """
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_unit(phase_state_italy, "hol", "Army")
+        create_unit(phase_state_italy, "nth", "Fleet")
+
+        create_unit(phase_state_germany, "nrg", "Fleet")
+        create_unit(phase_state_germany, "ska", "Fleet")
+
+        create_order(phase_state_italy, "hol", OrderType.MOVE_VIA_CONVOY, "lon")
+        create_order(phase_state_italy, "nth", OrderType.CONVOY, aux="hol", target="lon")
+
+        create_order(phase_state_germany, "nrg", OrderType.MOVE, "nth")
+        create_order(phase_state_germany, "ska", OrderType.SUPPORT, aux="nrg", target="nth")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        results = {r["province"]: r["result"] for r in data["resolutions"]}
+        assert results["hol"] == OrderResolutionStatus.MISSING_CONVOY_PATH
+        assert results["nth"] == OrderResolutionStatus.CONVOY_DISLODGED
+        assert results["nrg"] == OrderResolutionStatus.SUCCEEDED
+        assert results["ska"] == OrderResolutionStatus.SUCCEEDED
+
+    @pytest.mark.django_db
+    def test_resolve_unmatched_support_reports_invalid_supportee(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        """
+        Test a support naming a unit that never ordered the supported action.
+
+        The Italian Army in Munich supports Berlin into Kiel, but Berlin was
+        ordered to hold, so the support is rejected for its own reason rather
+        than as a generic illegal order.
+        """
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_unit(phase_state_italy, "ber", "Army")
+        create_unit(phase_state_italy, "mun", "Army")
+
+        create_unit(phase_state_germany, "kie", "Army")
+
+        create_order(phase_state_italy, "ber", OrderType.HOLD)
+        create_order(phase_state_italy, "mun", OrderType.SUPPORT, aux="ber", target="kie")
+
+        create_order(phase_state_germany, "kie", OrderType.HOLD)
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        results = {r["province"]: r["result"] for r in data["resolutions"]}
+        assert results["mun"] == OrderResolutionStatus.INVALID_SUPPORT_ORDER
+        assert results["ber"] == OrderResolutionStatus.SUCCEEDED
 
     @pytest.mark.django_db
     def test_resolve_cd_retreat_phase_is_skipped(
