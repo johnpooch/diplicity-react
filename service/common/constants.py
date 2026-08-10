@@ -1,5 +1,7 @@
 from typing import Optional
 
+from adjudicator.types import ResolutionCode
+
 
 class GameStatus:
     PENDING = "pending"
@@ -251,16 +253,16 @@ class ProvinceType:
 
 
 class OrderResolutionStatus:
-    SUCCEEDED = "OK"
-    ILLEGAL_MOVE = "ErrIllegalMove"
-    ILLEGAL_DESTINATION = "ErrIllegalDestination"
-    BOUNCED = "ErrBounce"
-    INVALID_SUPPORT_ORDER = "ErrInvalidSupporteeOrder"
-    ILLEGAL_SUPPORT_DESTINATION = "ErrIllegalSupportDestination"
-    INVALID_DESTINATION = "ErrInvalidDestination"
-    MISSING_SUPPORT_UNIT = "ErrMissingSupportUnit"
-    MISSING_UNIT = "ErrMissingUnit"
-    SUPPORT_BROKEN = "ErrSupportBroken"
+    SUCCEEDED = ResolutionCode.SUCCEEDED
+    ILLEGAL_MOVE = ResolutionCode.ILLEGAL_MOVE
+    ILLEGAL_DESTINATION = ResolutionCode.ILLEGAL_DESTINATION
+    BOUNCED = ResolutionCode.BOUNCED
+    INVALID_SUPPORT_ORDER = ResolutionCode.INVALID_SUPPORT_ORDER
+    ILLEGAL_SUPPORT_DESTINATION = ResolutionCode.ILLEGAL_SUPPORT_DESTINATION
+    INVALID_DESTINATION = ResolutionCode.INVALID_DESTINATION
+    MISSING_SUPPORT_UNIT = ResolutionCode.MISSING_SUPPORT_UNIT
+    MISSING_UNIT = ResolutionCode.MISSING_UNIT
+    SUPPORT_BROKEN = ResolutionCode.SUPPORT_BROKEN
 
     STATUS_CHOICES = (
         (SUCCEEDED, "Succeeded"),
