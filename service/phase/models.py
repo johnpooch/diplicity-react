@@ -627,23 +627,12 @@ class PhaseManager(models.Manager):
                         victory = Victory.objects.try_create_victory(new_phase)
 
                         if victory:
-                            new_phase.game.status = GameStatus.COMPLETED
-                            new_phase.game.finished_at = timezone.now()
-                            new_phase.game.save()
-
-                            new_phase.status = PhaseStatus.COMPLETED
-                            new_phase.scheduled_resolution = None
-                            new_phase.save()
-
+                            new_phase.game.finish(GameStatus.COMPLETED)
                             new_phase.game.emit_game_ended()
                         elif self._check_abandonment(new_phase.game):
-                            new_phase.game.status = GameStatus.ABANDONED
-                            new_phase.game.finished_at = timezone.now()
-                            new_phase.game.save()
+                            new_phase.game.finish(GameStatus.ABANDONED)
 
-                            new_phase.status = PhaseStatus.COMPLETED
-                            new_phase.scheduled_resolution = None
-                            new_phase.save()
+                        new_phase.refresh_from_db()
 
                         if new_phase.status == PhaseStatus.ACTIVE:
                             emit("phase_started", phase=new_phase)
@@ -945,7 +934,14 @@ class Phase(BaseModel):
     options = models.JSONField(default=dict)
 
     class Meta:
-        ordering = ["ordinal"]
+        ordering = ["ordinal", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["game", "ordinal"],
+                condition=~Q(status=PhaseStatus.COMPLETED),
+                name="unique_live_phase_ordinal_per_game",
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.game.name if self.game else '-'})"

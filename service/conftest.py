@@ -1250,7 +1250,7 @@ def retreat_phase(db):
             year=1901,
             type=PhaseType.RETREAT,
             status=PhaseStatus.ACTIVE,
-            ordinal=1,
+            ordinal=game.phases.count() + 1,
         )
         primary_member = game.members.first()
         phase.phase_states.create(member=primary_member)
