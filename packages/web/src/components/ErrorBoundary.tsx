@@ -4,8 +4,9 @@ import { DiplicityLogo } from "./DiplicityLogo";
 import { Button } from "@/components/ui/button";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineNotice } from "./OfflineNotice";
+import { NotFoundNotice } from "./NotFoundNotice";
 import { isStaleChunkError, reloadForStaleChunk } from "@/utils/staleChunk";
-import { isNetworkError } from "@/utils/network";
+import { isNetworkError, isNotFoundError } from "@/utils/network";
 
 const reloadApp = () => window.location.reload();
 
@@ -16,6 +17,10 @@ interface ErrorFallbackUIProps {
 export const ErrorFallbackUI: React.FC<ErrorFallbackUIProps> = ({ error }) => {
   if (isNetworkError(error)) {
     return <OfflineNotice fullScreen onRetry={reloadApp} />;
+  }
+
+  if (isNotFoundError(error)) {
+    return <NotFoundNotice fullScreen />;
   }
 
   return (
