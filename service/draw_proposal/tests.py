@@ -245,6 +245,30 @@ class TestDrawProposalProcessAcceptance:
         assert phase.status == PhaseStatus.COMPLETED
         assert phase.scheduled_resolution is None
 
+    def test_completes_every_phase_of_the_game(
+        self, game_factory, phase_factory, member_factory, draw_proposal_factory
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        future = timezone.now() + timezone.timedelta(hours=20)
+        stale_phase = phase_factory(game=game, scheduled_resolution=future)
+        phase = phase_factory(game=game, ordinal=stale_phase.ordinal + 1, scheduled_resolution=future)
+        m1 = member_factory(game=game)
+        m2 = member_factory(game=game)
+
+        proposal = draw_proposal_factory(
+            game=game, created_by=m1, phase=phase,
+            included_member_ids=[m1.id, m2.id],
+        )
+        for vote in proposal.votes.all():
+            vote.accepted = True
+            vote.save()
+
+        assert proposal.process_acceptance() is not None
+
+        stale_phase.refresh_from_db()
+        assert stale_phase.status == PhaseStatus.COMPLETED
+        assert stale_phase.scheduled_resolution is None
+
     def test_cd_member_not_in_victory(
         self, game_factory, phase_factory, member_factory
     ):
