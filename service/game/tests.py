@@ -1980,7 +1980,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 45
+        assert query_count == 47
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -2000,7 +2000,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 45
+        assert query_count == 47
 
 
 class TestGamePrivateFiltering:
@@ -2422,7 +2422,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 55
+        assert query_count == 57
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2443,7 +2443,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 55
+        assert query_count == 57
 
 
 class TestSandboxGameFiltering:
@@ -2943,6 +2943,47 @@ class TestGameCloneToSandbox:
         large_query_count = len(connection.queries)
 
         assert large_query_count == small_query_count
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_twice_creates_two_games(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            first_response = authenticated_client.post(url)
+            second_response = authenticated_client.post(url)
+
+        assert first_response.status_code == status.HTTP_201_CREATED
+        assert second_response.status_code == status.HTTP_201_CREATED
+        assert first_response.data["id"] != second_response.data["id"]
+
+
+class TestGameIdGeneration:
+
+    @pytest.mark.django_db
+    def test_unique_name_keeps_slug_id(self, classical_variant):
+        game = Game.objects.create(name="A Unique Name", variant=classical_variant)
+        assert game.id == "a-unique-name"
+
+    @pytest.mark.django_db
+    def test_duplicate_name_is_suffixed(self, classical_variant):
+        first = Game.objects.create(name="Shared Name", variant=classical_variant)
+        second = Game.objects.create(name="Shared Name", variant=classical_variant)
+
+        assert first.id == "shared-name"
+        assert second.id.startswith("shared-name-")
+
+    @pytest.mark.django_db
+    def test_id_taken_after_availability_check_is_retried(self, classical_variant):
+        existing = Game.objects.create(name="Shared Name", variant=classical_variant)
+
+        with patch.object(Game, "_generate_id", return_value=existing.id):
+            game = Game.objects.create(name="Shared Name", variant=classical_variant)
+
+        assert game.id != existing.id
+        assert game.id.startswith("shared-name-")
+        assert Game.objects.filter(name="Shared Name").count() == 2
 
 
 pause_viewname = "game-pause"
