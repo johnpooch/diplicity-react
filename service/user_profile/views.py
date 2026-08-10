@@ -42,7 +42,9 @@ class UserAccountDeleteView(generics.DestroyAPIView):
 
     def perform_destroy(self, instance):
         with transaction.atomic():
-            RetainedCommitment.objects.retain(instance.email, instance.profile.commitment)
+            profile = UserProfile.objects.filter(user=instance).first()
+            if profile is not None:
+                RetainedCommitment.objects.retain(instance.email, profile.commitment)
             user_members = Member.objects.filter(user=instance)
             pending_game_ids = list(
                 user_members.filter(game__status=GameStatus.PENDING).values_list(

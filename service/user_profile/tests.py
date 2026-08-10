@@ -256,6 +256,19 @@ class TestUserAccountDelete:
 
         assert RetainedCommitment.objects.commitment_for("retained@example.com") == Commitment.LOW
 
+    @pytest.mark.django_db
+    def test_delete_account_without_profile(self, authenticated_client_factory):
+        user = User.objects.create_user(
+            username="profileless", email="profileless@example.com", password="testpass123"
+        )
+        client = authenticated_client_factory(user)
+
+        url = reverse("user-delete")
+        response = client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not User.objects.filter(id=user.id).exists()
+
 
 class TestRetainedCommitment:
 

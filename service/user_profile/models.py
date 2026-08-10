@@ -1,14 +1,15 @@
-import hashlib
-
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.crypto import salted_hmac
 
 from common.constants import Commitment
 from common.models import BaseModel
 
 
 def hash_email(email):
-    return hashlib.sha256(email.strip().lower().encode()).hexdigest()
+    return salted_hmac(
+        "user_profile.retained_commitment", email.strip().lower(), algorithm="sha256"
+    ).hexdigest()
 
 
 class UserProfileQuerySet(models.QuerySet):
