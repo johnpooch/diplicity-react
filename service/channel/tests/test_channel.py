@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 from channel.models import Channel, ChannelMessage
+from nation.models import Nation
 from bot_profile.utils import get_bot_user
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
@@ -34,6 +35,30 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_201_CREATED
         assert "id" in response.data
         assert response.data["name"] == "England, France"
+
+    @pytest.mark.django_db
+    def test_create_channel_name_longer_than_250_characters(
+        self, authenticated_client, active_game_with_phase_state, classical_variant
+    ):
+        nations = [
+            Nation.objects.create(
+                nation_id=f"long-name-nation-{index:02d}",
+                name=f"Nation With A Long Name {index:02d}",
+                color="#000000",
+                variant=classical_variant,
+            )
+            for index in range(12)
+        ]
+        members = [active_game_with_phase_state.members.create(nation=nation) for nation in nations]
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [member.id for member in members]}
+        response = authenticated_client.post(url, payload, format="json")
+
+        expected_name = ", ".join(sorted(["England"] + [nation.name for nation in nations]))
+        assert len(expected_name) > 250
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == expected_name
 
     @pytest.mark.django_db
     def test_create_channel_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
@@ -560,6 +585,61 @@ class TestChannelMarkReadView:
 
         response2 = authenticated_client.post(url)
         assert response2.status_code == status.HTTP_204_NO_CONTENT
+
+
+class TestChannelPendingGameAccess:
+
+    @pytest.mark.django_db
+    def test_list_channels_allowed_for_pending_game(
+        self, authenticated_client, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["name"] == "Public Press"
+
+    @pytest.mark.django_db
+    def test_message_create_allowed_for_pending_game_member(
+        self, authenticated_client, pending_game_created_by_secondary_user, in_memory_procrastinate
+    ):
+        game = pending_game_created_by_secondary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        authenticated_client.post(reverse("game-join", args=[game.id]))
+
+        url = reverse("channel-message-create", args=[game.id, public_channel.id])
+        response = authenticated_client.post(url, {"body": "Hello staging"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["sender"]["nation"] is None
+
+    @pytest.mark.django_db
+    def test_message_create_blocked_for_non_member_in_pending_game(
+        self, authenticated_client_for_tertiary_user, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse("channel-message-create", args=[game.id, public_channel.id])
+        response = authenticated_client_for_tertiary_user.post(url, {"body": "Nope"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_mark_read_allowed_for_pending_game_member(
+        self, authenticated_client, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        authenticated_client.post(reverse("game-join", args=[game.id]))
+
+        url = reverse("channel-mark-read", args=[game.id, public_channel.id])
+        response = authenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
 class TestChannelUnreadCount:

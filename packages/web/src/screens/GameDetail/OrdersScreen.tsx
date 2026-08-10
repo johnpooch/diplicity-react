@@ -11,6 +11,7 @@ import {
   Star,
   UserX,
   Handshake,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -190,9 +191,13 @@ const OrdersScreen: React.FC = () => {
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safePhaseStates = Array.isArray(phaseStates) ? phaseStates : [];
   const currentMember = members.find(m => m.isCurrentUser);
+  const isSpectator = !currentMember;
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
-    isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
+    !isSpectator &&
+    isActivePhase &&
+    !isGameFinished &&
+    !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -315,17 +320,24 @@ const OrdersScreen: React.FC = () => {
     );
   })();
 
-  const emptyState = isActivePhase
+  const emptyState = !isActivePhase
     ? {
-        icon: Inbox,
-        title: "No orders required",
-        message: "You do not need to submit any orders during this phase",
-      }
-    : {
         icon: SearchX,
         title: "No orders created",
         message: "No orders were created by any nation in this phase.",
-      };
+      }
+    : isSpectator
+      ? {
+          icon: Eye,
+          title: "Spectating",
+          message:
+            "You are not playing in this game. Orders become visible once the phase resolves.",
+        }
+      : {
+          icon: Inbox,
+          title: "No orders required",
+          message: "You do not need to submit any orders during this phase",
+        };
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

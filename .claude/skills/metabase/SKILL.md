@@ -45,6 +45,7 @@ To save to the root "Our analytics" collection, pass `collection_id=null`.
 
 - `phase_phase.completed_at` is **always NULL** — use `status = 'completed'` to identify resolved phases
 - `phase_phase.updated_at` is **unreliable for time-bucketing** — batch operations reset it, clustering all historical data in recent weeks. Use `scheduled_resolution` instead
-- `phase_phase.scheduled_resolution IS NOT NULL` is required — ~21% of phases have no deadline (manual-resolution games)
+- `phase_phase.scheduled_resolution IS NOT NULL` is required — 9.36% of phases have no deadline (manual-resolution games). Those phases are a biased pocket, not a random sample: they account for only 0.47% of rated phase-seats but NMR at 95%
+- `phase_phase.scheduled_resolution` is *when resolution was scheduled*, not when it happened — it mis-times 53.5% of completed phases, which resolve early once everyone confirms (median divergence 55 min, p90 ~24 h). The bias runs one way: phases where everyone confirmed are the ones shifted earliest, so low-NMR periods land in the wrong bucket. Prefer `phase_phase.resolved_at` once it exists
 - `phase_phase.started_at` is always NULL
 - Two-hop FK joins (`phase_phasestate → phase_phase → game_game`) require native SQL — implicit FK fails with "missing FROM-clause entry"

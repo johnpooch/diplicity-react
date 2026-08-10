@@ -527,6 +527,10 @@ class Game(BaseModel):
     def anonymity_active(self):
         return self.anonymous and self.status != GameStatus.COMPLETED
 
+    @property
+    def bot_members(self):
+        return self.members.filter(user__bot_profile__isnull=False).select_related("user")
+
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
             return self.movement_phase_duration_seconds

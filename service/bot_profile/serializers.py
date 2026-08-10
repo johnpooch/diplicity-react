@@ -17,21 +17,25 @@ class AvailableBotSerializer(serializers.Serializer):
 class BotMemberCreateSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(write_only=True)
 
-    def validate_user_id(self, value):
+    def _resolve_available_bot(self, user_id):
         game = self.context["game"]
         bot_profile = (
-            BotProfile.objects.available_for_game(game).filter(user_id=value).first()
+            BotProfile.objects.available_for_game(game).filter(user_id=user_id).first()
         )
         if bot_profile is None:
             raise serializers.ValidationError(
                 "This bot is not available to add to this game."
             )
-        self._bot_user = bot_profile.user
+        return bot_profile
+
+    def validate_user_id(self, value):
+        self._resolve_available_bot(value)
         return value
 
     def create(self, validated_data):
         game = self.context["game"]
-        member = game.members.create(user=self._bot_user)
+        bot_profile = self._resolve_available_bot(validated_data["user_id"])
+        member = game.members.create(user=bot_profile.user)
         public_channels = game.channels.filter(private=False)
         ChannelMember.objects.bulk_create(
             [ChannelMember(member=member, channel=ch) for ch in public_channels]

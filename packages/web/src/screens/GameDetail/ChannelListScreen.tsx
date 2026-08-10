@@ -34,7 +34,7 @@ const getLatestMessagePreview = (
   const latestMessage = messages[messages.length - 1];
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
-    : latestMessage.sender.nation.name;
+    : (latestMessage.sender.nation?.name ?? latestMessage.sender.name);
   return `${senderLabel}: ${latestMessage.body}`;
 };
 
@@ -47,8 +47,8 @@ const ChannelListScreen: React.FC = () => {
   const { data: channels } = useGamesChannelsListSuspense(gameId);
   const variant = useGameVariant(game);
 
-  const currentNationName =
-    game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentNationName = currentMember?.nation ?? undefined;
   const variantNations = variant?.nations ?? [];
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
@@ -121,7 +121,7 @@ const ChannelListScreen: React.FC = () => {
               </ItemGroup>
             )}
           </Panel.Content>
-          {!isSandboxGame && !isNoPressActiveGame && (
+          {currentMember && !isSandboxGame && !isNoPressActiveGame && (
             <>
               <Separator />
               <Panel.Footer>

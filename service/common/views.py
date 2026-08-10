@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.apps import apps
 
@@ -6,17 +7,23 @@ Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
 
 
-def resolve_game(request, game_id):
+def resolve_game(request, game_id, lock=False):
     """Fetch the Game once per request, regardless of how many permission
     classes and mixins ask for it. Several views combine 2-3 permission
     checks + a mixin (e.g. orders create chains IsActiveGame +
     IsActiveGameMember + CurrentPhaseMixin), each of which would otherwise
-    issue an independent SELECT against game_game."""
+    issue an independent SELECT against game_game.
+
+    Pass lock=True to re-fetch the row FOR UPDATE and replace what the cache
+    holds, so checks that re-run after it see committed state rather than the
+    snapshot the request started from."""
     cache = getattr(request, "_game_cache", None)
     if cache is None:
         cache = {}
         request._game_cache = cache
-    if game_id not in cache:
+    if lock:
+        cache[game_id] = get_object_or_404(Game.objects.select_for_update(), id=game_id)
+    elif game_id not in cache:
         cache[game_id] = get_object_or_404(Game, id=game_id)
     return cache[game_id]
 
@@ -47,6 +54,16 @@ class SelectedGameMixin:
         context = super().get_serializer_context()
         context["game"] = self.get_game()
         return context
+
+
+class SeatClaimMixin(SelectedGameMixin):
+
+    def perform_create(self, serializer):
+        with transaction.atomic():
+            game = resolve_game(self.request, self.kwargs.get("game_id"), lock=True)
+            self.check_permissions(self.request)
+            serializer.save()
+            game.start_if_full()
 
 
 class SelectedPhaseMixin:

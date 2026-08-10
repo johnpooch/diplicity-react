@@ -58,9 +58,25 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   status, and dispatches to the executor. One AgentTask may span several
   Inference calls. A periodic agent.reconcile task re-drives rows whose job
   was lost or stalled (pending or stuck in running past a timeout), so a
-  hand-inserted row runs on the next sweep.
+  hand-inserted row runs on the next sweep. A bot plans when a phase starts
+  and finalizes (submits *and* confirms) once no human is still pending, which
+  both specs decide through the shared `Phase.has_unconfirmed_human` check: normally that
+  lands on phase_state_confirmed, but a phase where no human has possible
+  orders — a retreat only a bot must answer, an all-bot game — already
+  satisfies it at phase_started, so PhaseStartedSpec queues finalize instead
+  of plan for those seats rather than waiting for an event that never comes.
 - bot_profile — BotProfile persona (disposition, voice), roster-management
   endpoints, get_bot_user, and the roster seed.
+
+**Personas are currently switched off.** No prompt receives a `disposition` or a
+`voice` block; production and the evals now run the same neutral system prompt,
+which is the only prompt the `EVAL_RESULTS.md` baseline has ever measured. The
+roster, its columns and its seed migrations are deliberately kept — the plan
+([#1131](https://github.com/johnpooch/diplicity-react/issues/1131)) is to re-add
+disposition first (into both `select_orders` and `reply`, gated on a larger
+ranked fixture set) and voice second (into `reply` only, rewritten as
+register-only), measuring each layer before the next. Do not re-inject either
+half without that measurement.
 
 Where does new code go? Deterministic + model-shaped → harness. Touches
 Django/game/queue/side-effects → agent. Model-call mechanics/records →
@@ -137,7 +153,7 @@ adjudication does not receive two order sets for one nation. Finally it queues a
 
 A kicked member's phase states are created with `has_possible_orders=False`, which
 keeps a replaced seat out of the "is everyone done?" checks — early resolution
-(`filter_due_phases`), the bot finalize trigger (`when_humans_confirmed`), NMR
+(`filter_due_phases`), the bot finalize trigger (`Phase.has_unconfirmed_human`), NMR
 extensions and deadline warnings all key off that flag.
 
 A replaced player keeps their account, so every write path has to lock them out.
@@ -250,6 +266,34 @@ python -m pytest <file> -v          # single file (preferred)
 python -m pytest -n auto --reuse-db # full suite
 ```
 
+### Design playground (`/packages/design-playground/`)
+```bash
+npm run dev           # dev server at :5175
+npm run build         # production build
+npm run lint          # ESLint
+```
+
+---
+
+## Design playground
+
+`packages/design-playground/` is a standalone app for prototyping screens before
+we build them. It deploys independently to `design.diplicity.com`, has no
+backend and no real data, and nothing in it ever ships to users.
+
+**The rules in this file do not apply under `packages/design-playground/`.** That
+directory has its own `CLAUDE.md`, which overrides this one — most importantly it
+requires no tests, mandates duplication instead of reuse, and expects several
+parallel variants of the same screen to coexist. Read it before working there.
+
+Two rules bind from this side:
+
+- **`packages/web` must never import from the playground.** The dependency
+  direction is one-way, and prototype code is rewritten into the app rather than
+  promoted out of it.
+- **Design gallery screens belong in the playground, not the app.** Do not add
+  fixture-driven component galleries to `packages/web`.
+
 ---
 
 ## Development Guidelines
@@ -266,7 +310,8 @@ python -m pytest -n auto --reuse-db # full suite
 8. **Write tests alongside features** — not as an afterthought. All tests for a single app live in that app's `tests.py`; do not split them across multiple test modules (e.g. `tests_emit.py`).
 9. **Self-review non-trivial PRs with `/review-pr`** before requesting human review. Address or explicitly respond to all findings. Trivial PRs (typo fixes, dep bumps, doc-only) are exempt.
 10. **PR description must match the diff** — run `git diff main` and confirm every described change is visible. Do not describe work from a prior PR or session.
-11. **Python imports go at module top-level** — do not add an inline `import` inside a function/method body, even if you find an existing one nearby to copy. The only exception is breaking a genuine circular import, and that exception should be rare enough to call out in a PR description when used.
+11. **Never add a vacuous permission class** — if a Django REST `BasePermission` check's condition covers every possible value of the field it inspects (e.g. every `GameStatus`), it always evaluates `True` and gates nothing. Before adding a new permission class, check whether it excludes at least one real case; if it doesn't, don't add it — use `permissions.AllowAny` (or omit the check) instead.
+12. **Python imports go at module top-level** — do not add an inline `import` inside a function/method body, even if you find an existing one nearby to copy. The only exception is breaking a genuine circular import, and that exception should be rare enough to call out in a PR description when used.
 
 ---
 

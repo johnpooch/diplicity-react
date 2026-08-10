@@ -8,6 +8,7 @@ from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
 from bot_profile.models import BotProfile
 from game.models import Game
+from member.views import MemberCreateView
 from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile
@@ -185,6 +186,50 @@ def test_join_game_max_players(
     url = reverse(join_viewname, args=[game.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_join_game_rejects_request_whose_seat_is_taken_by_the_same_user_after_its_checks(
+    authenticated_client, pending_game_created_by_secondary_user, italy_vs_germany_variant, primary_user
+):
+    game = pending_game_created_by_secondary_user
+    game.variant = italy_vs_germany_variant
+    game.save()
+
+    original_perform_create = MemberCreateView.perform_create
+
+    def perform_create_after_competing_join(view, serializer):
+        game.members.create(user=primary_user)
+        return original_perform_create(view, serializer)
+
+    url = reverse(join_viewname, args=[game.id])
+    with patch.object(MemberCreateView, "perform_create", perform_create_after_competing_join):
+        response = authenticated_client.post(url)
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert game.members.filter(user=primary_user).count() == 1
+
+
+@pytest.mark.django_db
+def test_join_game_rejects_request_whose_last_seat_is_taken_after_its_checks(
+    authenticated_client, pending_game_created_by_secondary_user, italy_vs_germany_variant, tertiary_user
+):
+    game = pending_game_created_by_secondary_user
+    game.variant = italy_vs_germany_variant
+    game.save()
+
+    original_perform_create = MemberCreateView.perform_create
+
+    def perform_create_after_competing_join(view, serializer):
+        game.members.create(user=tertiary_user)
+        return original_perform_create(view, serializer)
+
+    url = reverse(join_viewname, args=[game.id])
+    with patch.object(MemberCreateView, "perform_create", perform_create_after_competing_join):
+        response = authenticated_client.post(url)
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert game.members.count() == 2
 
 
 # Leave/Delete Member Tests

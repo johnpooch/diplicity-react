@@ -3369,6 +3369,37 @@ def test_f_25_cut_support_last():
     assert _datc_has_unit(result, "germany", "Army", "nwy")
 
 
+def test_doomed_attack_on_convoying_fleet_does_not_disrupt_convoy():
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Army", "hol")
+        .with_unit("france", "Fleet", "nth")
+        .with_unit("france", "Fleet", "eng")
+        .with_unit("england", "Fleet", "lon")
+        .with_unit("england", "Fleet", "nrg")
+        .with_unit("germany", "Fleet", "hel")
+        .with_order("france", "hol", "Move", target="lon")
+        .with_order("france", "nth", "Convoy", aux="hol", target="lon")
+        .with_order("france", "eng", "Support", aux="hol", target="lon")
+        .with_order("england", "lon", "Support", aux="nrg", target="nth")
+        .with_order("england", "nrg", "Move", target="nth")
+        .with_order("germany", "hel", "Support", aux="nth")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert _datc_resolution_for(result, "hol") == "OK"
+    assert _datc_has_unit(result, "france", "Army", "lon")
+    assert _datc_has_unit(result, "france", "Fleet", "nth")
+    assert not _datc_is_dislodged(result, "nth")
+    assert _datc_is_dislodged(result, "lon")
+    assert _datc_resolution_for(result, "nrg") == "BOUNCE"
+    assert _datc_resolution_for(result, "lon") == "CUT"
+
+
 # === DATC 6.G: CONVOYING TO ADJACENT PROVINCES ===
 
 
@@ -10938,6 +10969,69 @@ def test_options_adjustment_no_disbands_for_non_playable_nation():
     )
     options = get_options(state)
     assert [o for o in options if o.order_type == "Disband"] == []
+
+
+def test_options_retreat_no_options_for_non_playable_nation():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    assert get_options(state) == []
+
+
+def test_options_retreat_still_emitted_for_playable_nation_alongside_non_playable():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="iso",
+                dislodged=True,
+                dislodged_from="sea",
+            ),
+        ],
+    )
+    assert {o.source for o in get_options(state)} == {"iso"}
+
+
+def test_retreat_dislodged_non_playable_unit_is_removed_without_orders():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    result = Engine().adjudicate(state)
+    assert [u for u in result[0].units if u.nation == SOUTH] == []
 
 
 def _with_neutral_auto_build(variant: Variant) -> Variant:

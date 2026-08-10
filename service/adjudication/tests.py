@@ -976,6 +976,73 @@ class TestAdjudicationService:
         italy_options = data["options"].get("Italy", {})
         assert italy_options != {}
 
+    @pytest.mark.django_db
+    def test_resolve_cd_retreat_phase_is_skipped_when_dislodger_shares_province(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        member_germany.civil_disorder = True
+        member_germany.save()
+
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_italy, "ber")
+        create_supply_center(phase_state_italy, "mun")
+        create_supply_center(phase_state_germany, "kie")
+
+        create_unit(phase_state_germany, "kie", "Fleet")
+        create_unit(phase_state_italy, "ber", "Army")
+        create_unit(phase_state_italy, "mun", "Army")
+
+        create_order(phase_state_italy, "ber", OrderType.MOVE, "kie")
+        create_order(phase_state_italy, "mun", OrderType.SUPPORT, "kie", "ber")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
+
+        germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
+        assert germany_units == []
+
+    @pytest.mark.django_db
+    def test_resolve_neutral_retreat_phase_is_skipped(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+    ):
+        variant = phase_spring_1901_movement.variant
+        nation_germany = variant.nations.get(name="Germany")
+        nation_germany.non_playable = True
+        nation_germany.save()
+
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+
+        create_supply_center(phase_state_italy, "ber")
+        create_supply_center(phase_state_italy, "mun")
+        create_unit(phase_state_italy, "ber", "Army")
+        create_unit(phase_state_italy, "mun", "Army")
+
+        kiel = variant.provinces.get(province_id="kie")
+        phase_spring_1901_movement.supply_centers.create(province=kiel, nation=nation_germany)
+        phase_spring_1901_movement.units.create(province=kiel, type=UnitType.FLEET, nation=nation_germany)
+
+        create_order(phase_state_italy, "ber", OrderType.MOVE, "kie")
+        create_order(phase_state_italy, "mun", OrderType.SUPPORT, "kie", "ber")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
+
+        germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
+        assert germany_units == []
+
 
 class TestUserUploadedVariant:
     """Regression: prior to dropping the godip HTTP adjudicator, creating a

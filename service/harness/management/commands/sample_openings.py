@@ -163,7 +163,6 @@ class Command(BaseCommand):
                 "position": "classical Spring 1901 Movement",
                 "model": options["model"],
                 "samples_per_nation": options["samples"],
-                "persona": None,
             },
             "nations": nations,
         }
