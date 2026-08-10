@@ -45,8 +45,6 @@ from adjudication import service as adjudication_service
 
 tracer = trace.get_tracer(__name__)
 
-ID_GENERATION_ATTEMPTS = 3
-
 
 class GameQuerySet(models.QuerySet):
 
@@ -486,17 +484,12 @@ class Game(BaseModel):
         self.id = self._generate_id(base_id)
         kwargs.setdefault("force_insert", True)
 
-        for _ in range(ID_GENERATION_ATTEMPTS):
-            try:
-                with transaction.atomic():
-                    super().save(*args, **kwargs)
-                return
-            except IntegrityError:
-                if not Game.objects.filter(id=self.id).exists():
-                    raise
-                self.id = self._suffixed_id(base_id)
-
-        raise IntegrityError(f"Could not generate a unique id for game {self.name}")
+        try:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+        except IntegrityError:
+            self.id = self._suffixed_id(base_id)
+            super().save(*args, **kwargs)
 
     def _generate_base_id(self):
         base_id = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
