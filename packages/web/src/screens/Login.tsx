@@ -273,7 +273,7 @@ const Login: React.FC = () => {
                   <img
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                     alt="Get it on Google Play"
-                    className="absolute"
+                    className="absolute max-w-none"
                     style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
                   />
                 </a>
@@ -430,7 +430,7 @@ const Login: React.FC = () => {
                 <img
                   src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                   alt="Get it on Google Play"
-                  className="absolute"
+                  className="absolute max-w-none"
                   style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
                 />
               </a>
