@@ -7,7 +7,6 @@ from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
-from user_profile.commitment import commitment_allows_requirement
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter

@@ -827,16 +827,18 @@ class TestReplaceableSerialization:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "commitment,commitment_requirement,allowed",
+    "commitment,commitment_requirement,private,allowed",
     [
-        (Commitment.HIGH, CommitmentRequirement.OPEN, True),
-        (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
-        (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
-        (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
-        (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
-        (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
-        (Commitment.LOW, CommitmentRequirement.OPEN, False),
-        (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
+        (Commitment.HIGH, CommitmentRequirement.OPEN, False, True),
+        (Commitment.HIGH, CommitmentRequirement.COMMITTED, False, True),
+        (Commitment.MEDIUM, CommitmentRequirement.OPEN, False, True),
+        (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False, False),
+        (Commitment.UNDEFINED, CommitmentRequirement.OPEN, False, True),
+        (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False, False),
+        (Commitment.LOW, CommitmentRequirement.OPEN, False, False),
+        (Commitment.LOW, CommitmentRequirement.COMMITTED, False, False),
+        (Commitment.LOW, CommitmentRequirement.OPEN, True, True),
+        (Commitment.LOW, CommitmentRequirement.COMMITTED, True, False),
     ],
 )
 def test_join_game_commitment_requirement(
@@ -846,11 +848,13 @@ def test_join_game_commitment_requirement(
     set_commitment,
     commitment,
     commitment_requirement,
+    private,
     allowed,
 ):
     game = pending_game_created_by_secondary_user
     game.commitment_requirement = commitment_requirement
-    game.save(update_fields=["commitment_requirement"])
+    game.private = private
+    game.save(update_fields=["commitment_requirement", "private"])
     set_commitment(primary_user, commitment)
     url = reverse(join_viewname, args=[game.id])
 

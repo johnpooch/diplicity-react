@@ -78,8 +78,8 @@ def recompute_commitment(user):
     return profile.commitment
 
 
-def commitment_allows_requirement(commitment, commitment_requirement):
-    if commitment == Commitment.LOW:
+def commitment_allows_requirement(commitment, commitment_requirement, private):
+    if commitment == Commitment.LOW and not private:
         return False
     if commitment_requirement == CommitmentRequirement.COMMITTED:
         return commitment == Commitment.HIGH
