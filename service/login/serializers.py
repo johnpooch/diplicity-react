@@ -4,7 +4,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from user_profile.models import UserProfile
+from user_profile.models import RetainedCommitment, UserProfile
 
 from email_service.utils import send_email
 from .models import AuthUser
@@ -53,7 +53,11 @@ class AuthSerializer(serializers.Serializer):
             user.save(update_fields=["is_active"])
         profile, created = UserProfile.objects.get_or_create(
             user=user,
-            defaults={"name": name, "picture": id_info.get("picture")},
+            defaults={
+                "name": name,
+                "picture": id_info.get("picture"),
+                "commitment": RetainedCommitment.objects.commitment_for(user.email),
+            },
         )
         if not created:
             profile.picture = id_info.get("picture")
@@ -85,7 +89,13 @@ class AppleAuthSerializer(serializers.Serializer):
         if not user.is_active:
             user.is_active = True
             user.save(update_fields=["is_active"])
-        profile, profile_created = UserProfile.objects.get_or_create(user=user, defaults={"name": name})
+        profile, profile_created = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={
+                "name": name,
+                "commitment": RetainedCommitment.objects.commitment_for(user.email),
+            },
+        )
         if not profile_created and (validated_data.get("first_name") or validated_data.get("last_name")):
             profile.name = name
             profile.save(update_fields=["name"])
@@ -115,7 +125,11 @@ class RegisterSerializer(serializers.Serializer):
             password=validated_data["password"],
             is_active=False,
         )
-        UserProfile.objects.create(user=user, name=validated_data["display_name"])
+        UserProfile.objects.create(
+            user=user,
+            name=validated_data["display_name"],
+            commitment=RetainedCommitment.objects.commitment_for(user.email),
+        )
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)

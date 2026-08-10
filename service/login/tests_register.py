@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
-from user_profile.models import UserProfile
+from common.constants import Commitment
+from user_profile.models import RetainedCommitment, UserProfile
 
 User = get_user_model()
 
@@ -110,6 +111,61 @@ class TestRegister:
         assert call_kwargs["to"] == "verify@example.com"
         assert call_kwargs["subject"] == "Verify your Diplicity account"
         assert "verify-email" in call_kwargs["html"]
+
+    def test_retained_commitment_restored(self, unauthenticated_client, mock_send_email):
+        RetainedCommitment.objects.retain("returning@example.com", Commitment.LOW)
+
+        url = reverse(register_viewname)
+        response = unauthenticated_client.post(
+            url,
+            {
+                "email": "returning@example.com",
+                "password": "strongpass123",
+                "display_name": "Returning Player",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        profile = UserProfile.objects.get(user__email="returning@example.com")
+        assert profile.commitment == Commitment.LOW
+
+    def test_commitment_survives_delete_and_re_registration(
+        self, unauthenticated_client, mock_send_email, user_factory, authenticated_client_factory
+    ):
+        user = user_factory(email="rejoin@example.com")
+        user.profile.commitment = Commitment.LOW
+        user.profile.save(update_fields=["commitment"])
+        authenticated_client_factory(user).delete(reverse("user-delete"))
+
+        url = reverse(register_viewname)
+        unauthenticated_client.post(
+            url,
+            {
+                "email": "rejoin@example.com",
+                "password": "strongpass123",
+                "display_name": "Rejoining Player",
+            },
+            format="json",
+        )
+
+        profile = UserProfile.objects.get(user__email="rejoin@example.com")
+        assert profile.commitment == Commitment.LOW
+
+    def test_registration_without_retained_commitment_is_undefined(self, unauthenticated_client, mock_send_email):
+        url = reverse(register_viewname)
+        unauthenticated_client.post(
+            url,
+            {
+                "email": "fresh@example.com",
+                "password": "strongpass123",
+                "display_name": "Fresh Player",
+            },
+            format="json",
+        )
+
+        profile = UserProfile.objects.get(user__email="fresh@example.com")
+        assert profile.commitment == Commitment.UNDEFINED
 
 
 @pytest.mark.django_db

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from game.models import Game
 from member.models import Member
 from common.constants import GameStatus
-from .models import UserProfile
+from .models import RetainedCommitment, UserProfile
 from .serializers import UserProfileSerializer, PublicUserProfileSerializer
 
 
@@ -42,6 +42,7 @@ class UserAccountDeleteView(generics.DestroyAPIView):
 
     def perform_destroy(self, instance):
         with transaction.atomic():
+            RetainedCommitment.objects.retain(instance.email, instance.profile.commitment)
             user_members = Member.objects.filter(user=instance)
             pending_game_ids = list(
                 user_members.filter(game__status=GameStatus.PENDING).values_list(

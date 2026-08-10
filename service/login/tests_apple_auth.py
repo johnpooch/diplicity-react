@@ -2,7 +2,8 @@ import pytest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from user_profile.models import UserProfile
+from common.constants import Commitment
+from user_profile.models import RetainedCommitment, UserProfile
 
 User = get_user_model()
 
@@ -143,3 +144,15 @@ def test_subsequent_login_preserves_existing_profile(
 
     user_profile = UserProfile.objects.get(user=user)
     assert user_profile.name == "Existing Name"
+
+
+@pytest.mark.django_db
+def test_retained_commitment_restored(unauthenticated_client, mock_apple_auth, mock_refresh_token):
+    RetainedCommitment.objects.retain("apple@example.com", Commitment.LOW)
+
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "apple_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    user_profile = UserProfile.objects.get(user__email="apple@example.com")
+    assert user_profile.commitment == Commitment.LOW

@@ -14,7 +14,7 @@ from user_profile.commitment import (
     recompute_commitment,
     score_commitment,
 )
-from user_profile.models import UserProfile
+from user_profile.models import RetainedCommitment, UserProfile
 from member.models import Member
 from victory.models import Victory
 
@@ -243,6 +243,45 @@ class TestUserAccountDelete:
         assert Game.objects.filter(id=game.id).exists()
         assert Member.objects.filter(id=other_member.id).exists()
         assert not Member.objects.filter(game=game, user_id=user_id).exists()
+
+    @pytest.mark.django_db
+    def test_commitment_retained_for_email(self, user_factory, authenticated_client_factory):
+        user = user_factory(email="retained@example.com")
+        user.profile.commitment = Commitment.LOW
+        user.profile.save(update_fields=["commitment"])
+        client = authenticated_client_factory(user)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert RetainedCommitment.objects.commitment_for("retained@example.com") == Commitment.LOW
+
+
+class TestRetainedCommitment:
+
+    @pytest.mark.django_db
+    def test_unknown_email_is_undefined(self):
+        assert RetainedCommitment.objects.commitment_for("nobody@example.com") == Commitment.UNDEFINED
+
+    @pytest.mark.django_db
+    def test_email_matched_case_and_whitespace_insensitively(self):
+        RetainedCommitment.objects.retain("Player@Example.com", Commitment.LOW)
+
+        assert RetainedCommitment.objects.commitment_for("  player@example.com ") == Commitment.LOW
+
+    @pytest.mark.django_db
+    def test_retaining_again_overwrites_previous_commitment(self):
+        RetainedCommitment.objects.retain("player@example.com", Commitment.LOW)
+        RetainedCommitment.objects.retain("player@example.com", Commitment.HIGH)
+
+        assert RetainedCommitment.objects.count() == 1
+        assert RetainedCommitment.objects.commitment_for("player@example.com") == Commitment.HIGH
+
+    @pytest.mark.django_db
+    def test_blank_email_is_not_retained(self):
+        assert RetainedCommitment.objects.retain("", Commitment.LOW) is None
+        assert RetainedCommitment.objects.commitment_for("") == Commitment.UNDEFINED
+        assert not RetainedCommitment.objects.exists()
 
 
 class TestWelcomeSandboxGameCreation:

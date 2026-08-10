@@ -6,7 +6,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from google.auth.exceptions import GoogleAuthError
-from user_profile.models import UserProfile
+from common.constants import Commitment
+from user_profile.models import RetainedCommitment, UserProfile
 
 User = get_user_model()
 
@@ -296,3 +297,26 @@ def test_create_test_user_custom_arguments(capsys, unauthenticated_client):
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+def test_retained_commitment_restored(unauthenticated_client, mock_google_auth, mock_refresh_token):
+    RetainedCommitment.objects.retain("test@example.com", Commitment.LOW)
+
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    user_profile = UserProfile.objects.get(user__email="test@example.com")
+    assert user_profile.commitment == Commitment.LOW
+
+
+@pytest.mark.django_db
+def test_sign_in_without_retained_commitment_is_undefined(
+    unauthenticated_client, mock_google_auth, mock_refresh_token
+):
+    url = reverse(viewname)
+    unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+
+    user_profile = UserProfile.objects.get(user__email="test@example.com")
+    assert user_profile.commitment == Commitment.UNDEFINED
