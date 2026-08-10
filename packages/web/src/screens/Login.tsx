@@ -266,11 +266,13 @@ const Login: React.FC = () => {
                   href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
                   target="_blank"
                   rel="noreferrer"
+                  className="inline-flex h-10 overflow-hidden"
                 >
+                  {/* Google's badge asset has ~16% built-in vertical padding, unlike Apple's; scale up and crop to match its visible height */}
                   <img
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                     alt="Get it on Google Play"
-                    className="h-10"
+                    className="h-[59.5px] -mt-[9.8px]"
                   />
                 </a>
               )}
@@ -419,11 +421,13 @@ const Login: React.FC = () => {
                 href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
                 target="_blank"
                 rel="noreferrer"
+                className="inline-flex h-10 overflow-hidden"
               >
+                {/* Google's badge asset has ~16% built-in vertical padding, unlike Apple's; scale up and crop to match its visible height */}
                 <img
                   src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                   alt="Get it on Google Play"
-                  className="h-10"
+                  className="h-[59.5px] -mt-[9.8px]"
                 />
               </a>
             )}
