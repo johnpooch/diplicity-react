@@ -69,6 +69,8 @@ class ResolutionCode:
     MISSING_SUPPORT_UNIT: ClassVar[str] = "ErrMissingSupportUnit"
     MISSING_UNIT: ClassVar[str] = "ErrMissingUnit"
     SUPPORT_BROKEN: ClassVar[str] = "ErrSupportBroken"
+    MISSING_CONVOY_PATH: ClassVar[str] = "ErrMissingConvoyPath"
+    CONVOY_DISLODGED: ClassVar[str] = "ErrConvoyDislodged"
 
 
 class OrderType:

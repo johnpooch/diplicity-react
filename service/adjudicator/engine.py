@@ -875,15 +875,15 @@ class ApplyCivilDisorderReducer(Reducer):
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
     Support orders read their final status from support_cut and
-    support_matched in that precedence: a cut support reports CUT
-    (matching godip's ErrSupportBroken), an uncut but unmatched support
-    reports ILLEGAL (the supportee was not ordered to perform the
-    supported action, matching godip's ErrInvalidSupporteeOrder), and a
-    matched uncut support reports OK. Convoy orders whose convoying
-    fleet was dislodged by a successful attack report BOUNCE with a
-    disruption reason (matches godip's ErrConvoyDislodged). All other
-    still-undecided orders become OK. After this runs, every entry in
-    order_status is one of Status.{OK,ILLEGAL,BOUNCE,CUT}."""
+    support_matched in that precedence: a cut support reports CUT with
+    SUPPORT_BROKEN, an uncut but unmatched support reports ILLEGAL with
+    INVALID_SUPPORT_ORDER (the supportee was not ordered to perform the
+    supported action), and a matched uncut support reports OK. Convoy
+    orders whose convoying fleet was dislodged by a successful attack
+    report BOUNCE with CONVOY_DISLODGED, which distinguishes them from a
+    convoy that simply lost a contest. All other still-undecided orders
+    become OK. After this runs, every entry in order_status is one of
+    Status.{OK,ILLEGAL,BOUNCE,CUT}."""
 
     ACTION = Actions.FinalizeStatuses
 
@@ -908,7 +908,7 @@ class FinalizeStatusesReducer(Reducer):
                     resolutions[i] = replace(
                         r,
                         status=Status.ILLEGAL,
-                        code=ResolutionCode.ILLEGAL_MOVE,
+                        code=ResolutionCode.INVALID_SUPPORT_ORDER,
                         failure_reason="The supported unit was not ordered to perform the supported action.",
                     )
                 continue
@@ -918,7 +918,7 @@ class FinalizeStatusesReducer(Reducer):
                 resolutions[i] = replace(
                     r,
                     status=Status.BOUNCE,
-                    code=ResolutionCode.BOUNCED,
+                    code=ResolutionCode.CONVOY_DISLODGED,
                     failure_reason="The convoying fleet was dislodged.",
                 )
                 continue
