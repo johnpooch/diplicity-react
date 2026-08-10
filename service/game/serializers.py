@@ -504,20 +504,21 @@ class GameCreateSerializer(serializers.Serializer):
                 {"game_master": "A Game Master is only available in private games."}
             )
 
-        if not attrs.get("game_master"):
-            request = self.context["request"]
-            commitment = request.user.profile.commitment
-            if commitment == Commitment.LOW:
-                raise serializers.ValidationError(
-                    {"commitment_requirement": "Your commitment rating does not allow creating games."}
-                )
-            if (
-                attrs["commitment_requirement"] == CommitmentRequirement.COMMITTED
-                and commitment != Commitment.HIGH
-            ):
-                raise serializers.ValidationError(
-                    {"commitment_requirement": "Only players with high commitment can require committed players."}
-                )
+        commitment = self.context["request"].user.profile.commitment
+
+        if not attrs.get("private") and commitment == Commitment.LOW:
+            raise serializers.ValidationError(
+                {"private": "Your commitment rating only allows creating private games."}
+            )
+
+        if (
+            not attrs.get("game_master")
+            and attrs["commitment_requirement"] == CommitmentRequirement.COMMITTED
+            and commitment != Commitment.HIGH
+        ):
+            raise serializers.ValidationError(
+                {"commitment_requirement": "Only players with high commitment can require committed players."}
+            )
 
         deadline_mode = attrs["deadline_mode"]
 

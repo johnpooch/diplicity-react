@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { toast } from "sonner";
 
 class ResizeObserverMock {
   observe() {}
@@ -865,6 +866,109 @@ describe("CreateGame — variant category toggle", () => {
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
     expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
       "homebrew"
+    );
+  });
+});
+
+describe("CreateGame — low commitment creator", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: { ...mockUserProfile, commitment: "low" },
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+
+    stubFindSimilar(null);
+  });
+
+  const selectMode = async (
+    user: ReturnType<typeof userEvent.setup>,
+    mode: RegExp
+  ) => {
+    await user.click(screen.getByRole("combobox", { name: /mode/i }));
+    await user.click(screen.getByRole("option", { name: mode }));
+  };
+
+  it("checks and disables the private checkbox with an explanation", () => {
+    renderCreateGame();
+
+    const privateCheckbox = screen.getByRole("checkbox", { name: /private/i });
+    expect(privateCheckbox).toBeChecked();
+    expect(privateCheckbox).toBeDisabled();
+    expect(
+      screen.getByText(/Your commitment rating is Low, so games you create/i)
+    ).toBeInTheDocument();
+  });
+
+  it("leaves the game master checkbox available", () => {
+    renderCreateGame();
+
+    expect(
+      screen.getByRole("checkbox", { name: /game master/i })
+    ).toBeEnabled();
+  });
+
+  it("sends private true in the create payload", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.private).toBe(true);
+  });
+
+  it("restores the forced private state after leaving sandbox mode", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await selectMode(user, /sandbox/i);
+    expect(screen.getByRole("checkbox", { name: /private/i })).not.toBeChecked();
+
+    await selectMode(user, /standard/i);
+    expect(screen.getByRole("checkbox", { name: /private/i })).toBeChecked();
+  });
+
+  it("surfaces the server message when creation is rejected", async () => {
+    const toastErrorSpy = vi.spyOn(toast, "error");
+    createGameMutateAsync.mockRejectedValue({
+      response: {
+        data: {
+          private: ["Your commitment rating only allows creating private games."],
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() =>
+      expect(toastErrorSpy).toHaveBeenCalledWith(
+        "Your commitment rating only allows creating private games."
+      )
     );
   });
 });

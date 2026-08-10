@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AxiosError } from "axios";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -118,6 +119,15 @@ const modeToBackendFields = (mode: "standard" | "gunboat") =>
     anonymous: mode === "gunboat",
     pressType: mode === "gunboat" ? "no_press" : "full_press",
   }) as const;
+
+const serverErrorMessage = (error: unknown): string | undefined => {
+  const data = (error as AxiosError<Record<string, unknown>>).response?.data;
+  if (!data || typeof data !== "object") return undefined;
+  const first = Object.values(data)[0];
+  if (typeof first === "string") return first;
+  if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+  return undefined;
+};
 
 interface MetadataRow {
   label: string;
@@ -417,14 +427,20 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   const initialCategory: VariantCategory =
     defaultVariant && !defaultVariant.official ? "community" : "official";
 
+  const isLowCommitment = creatorCommitment === "low";
+  const defaultMode = initialMode ?? "standard";
+
   const form = useForm<GameFormValues>({
     resolver: zodResolver(gameSchema),
     defaultValues: {
       name: randomGameName(),
       variantId: defaultVariantId,
-      mode: initialMode ?? "standard",
+      mode: defaultMode,
       nationAssignment: "random" as NationAssignmentEnum,
-      private: initialPrivate ?? false,
+      private:
+        isLowCommitment && defaultMode !== "sandbox"
+          ? true
+          : (initialPrivate ?? false),
       gameMaster: false,
       deadlineMode: "fixed_time",
       movementPhaseDuration: "24 hours",
@@ -521,6 +537,8 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                       if (value === "sandbox") {
                         form.setValue("private", false);
                         form.setValue("gameMaster", false);
+                      } else if (isLowCommitment) {
+                        form.setValue("private", true);
                       }
                     }}
                     value={field.value}
@@ -580,15 +598,19 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                         }
                       }}
                       disabled={
-                        isSubmitting || isInitialVariantDraft || isSandbox
+                        isSubmitting ||
+                        isInitialVariantDraft ||
+                        isSandbox ||
+                        isLowCommitment
                       }
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>Private</FormLabel>
                     <FormDescription>
-                      Make this game private (only accessible via direct link,
-                      not shown in public listings)
+                      {isLowCommitment && !isSandbox
+                        ? "Your commitment rating is Low, so games you create must be private — only accessible via direct link, not shown in public listings."
+                        : "Make this game private (only accessible via direct link, not shown in public listings)"}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -1055,8 +1077,8 @@ const CreateGame: React.FC = () => {
       toast.success("Game created successfully");
       checkNotificationPermission();
       navigate(`/game-info/${game.id}`);
-    } catch {
-      toast.error("Failed to create game");
+    } catch (error) {
+      toast.error(serverErrorMessage(error) ?? "Failed to create game");
     }
   };
 
