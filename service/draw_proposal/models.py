@@ -3,6 +3,7 @@ from common.models import BaseModel
 from common.constants import GameStatus
 from draw_proposal.constants import DrawProposalStatus
 from emit import emit
+from phase.models import Phase
 from victory.models import Victory
 
 
@@ -129,6 +130,9 @@ class DrawProposal(BaseModel):
             return None
 
         with transaction.atomic():
+            if Phase.objects.lock_if_active(self.phase_id) is None:
+                return None
+
             victory = Victory.objects.create(
                 game=self.game,
                 winning_phase=self.phase,
