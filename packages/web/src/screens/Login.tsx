@@ -73,6 +73,24 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const PlayStoreBadge: React.FC = () => (
+  <a
+    href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
+    target="_blank"
+    rel="noreferrer"
+    className="relative inline-block box-border overflow-hidden rounded-[6px] border border-[#a6a6a6]"
+    style={{ width: 134, height: 40 }}
+  >
+    {/* Google's badge asset bakes in padding and a soft, over-thick border unlike Apple's crisp SVG; crop past both and redraw a matching 1px #a6a6a6 border so the two badges read the same */}
+    <img
+      src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+      alt="Get it on Google Play"
+      className="absolute max-w-none"
+      style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
+    />
+  </a>
+);
+
 const Login: React.FC = () => {
   const { login } = useAuth();
   const appleLoginMutation = useAuthAppleLoginCreate();
@@ -261,23 +279,7 @@ const Login: React.FC = () => {
                   className="h-10"
                 />
               </a>
-              {!isNativePlatform() && (
-                <a
-                  href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="relative inline-block box-border overflow-hidden rounded-[6px] border border-[#a6a6a6]"
-                  style={{ width: 134, height: 40 }}
-                >
-                  {/* Google's badge asset bakes in padding and a soft, over-thick border unlike Apple's crisp SVG; crop past both and redraw a matching 1px #a6a6a6 border so the two badges read the same */}
-                  <img
-                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                    alt="Get it on Google Play"
-                    className="absolute max-w-none"
-                    style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
-                  />
-                </a>
-              )}
+              {!isNativePlatform() && <PlayStoreBadge />}
             </div>
           )}
         </div>
@@ -418,23 +420,7 @@ const Login: React.FC = () => {
                 className="h-10"
               />
             </a>
-            {!isNativePlatform() && (
-              <a
-                href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
-                target="_blank"
-                rel="noreferrer"
-                className="relative inline-block box-border overflow-hidden rounded-[6px] border border-[#a6a6a6]"
-                style={{ width: 134, height: 40 }}
-              >
-                {/* Google's badge asset bakes in padding and a soft, over-thick border unlike Apple's crisp SVG; crop past both and redraw a matching 1px #a6a6a6 border so the two badges read the same */}
-                <img
-                  src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                  alt="Get it on Google Play"
-                  className="absolute max-w-none"
-                  style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
-                />
-              </a>
-            )}
+            {!isNativePlatform() && <PlayStoreBadge />}
           </div>
         )}
 
