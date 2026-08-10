@@ -11,8 +11,9 @@ before applying any habit learned from the main app.
 ## What this is
 
 A standalone React app for prototyping screens before we build them. It builds
-and deploys independently to its own Netlify site at `design.diplicity.com`. It
-has no backend, no API client, no authentication and no real data.
+and deploys independently to its own Netlify site at
+`diplicity-design-playground.netlify.app`. It has no backend, no API client, no
+authentication and no real data.
 
 Nothing here ever ships to users. Prototype code exists to be argued about and
 then deleted.
