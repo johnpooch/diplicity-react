@@ -10,8 +10,7 @@ const goHome = () => {
 };
 
 const title = "This game is no longer available";
-const message =
-  "It may have been deleted, or this link may point to a phase that no longer exists.";
+const message = "It may have been deleted.";
 
 interface NotFoundNoticeProps {
   fullScreen?: boolean;
@@ -23,7 +22,7 @@ const NotFoundNotice: React.FC<NotFoundNoticeProps> = ({ fullScreen }) => {
       <div className="max-w-sm mx-auto">
         <SafeAreaView className="flex flex-col items-center justify-center min-h-screen text-center gap-6">
           <DiplicityLogo />
-          <h1 className="text-2xl font-bold">{title}</h1>
+          <h1 className="text-2xl font-bold text-center">{title}</h1>
           <p className="text-muted-foreground">{message}</p>
           <Button variant="outline" onClick={goHome}>
             Go to my games
