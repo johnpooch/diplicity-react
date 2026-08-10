@@ -717,20 +717,28 @@ class TestScoreCommitment:
 class TestCommitmentAllowsRequirement:
 
     @pytest.mark.parametrize(
-        "commitment,commitment_requirement,expected",
+        "commitment,commitment_requirement,private,expected",
         [
-            (Commitment.HIGH, CommitmentRequirement.OPEN, True),
-            (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
-            (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
-            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
-            (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
-            (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
-            (Commitment.LOW, CommitmentRequirement.OPEN, False),
-            (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
+            (Commitment.HIGH, CommitmentRequirement.OPEN, False, True),
+            (Commitment.HIGH, CommitmentRequirement.COMMITTED, False, True),
+            (Commitment.MEDIUM, CommitmentRequirement.OPEN, False, True),
+            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False, False),
+            (Commitment.UNDEFINED, CommitmentRequirement.OPEN, False, True),
+            (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False, False),
+            (Commitment.LOW, CommitmentRequirement.OPEN, False, False),
+            (Commitment.LOW, CommitmentRequirement.COMMITTED, False, False),
+            (Commitment.LOW, CommitmentRequirement.OPEN, True, True),
+            (Commitment.LOW, CommitmentRequirement.COMMITTED, True, False),
+            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, True, False),
         ],
     )
-    def test_commitment_allows_requirement(self, commitment, commitment_requirement, expected):
-        assert commitment_allows_requirement(commitment, commitment_requirement) is expected
+    def test_commitment_allows_requirement(
+        self, commitment, commitment_requirement, private, expected
+    ):
+        assert (
+            commitment_allows_requirement(commitment, commitment_requirement, private)
+            is expected
+        )
 
 
 class TestRecomputeCommitment:

@@ -583,7 +583,7 @@ class Game(BaseModel):
         if not user.is_authenticated:
             return None
         commitment = user.profile.commitment
-        if commitment == Commitment.LOW:
+        if commitment == Commitment.LOW and not self.private:
             return CommitmentEligibility.LOW_LOCKED
         if (
             self.commitment_requirement == CommitmentRequirement.COMMITTED

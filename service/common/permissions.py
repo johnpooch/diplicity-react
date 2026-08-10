@@ -130,7 +130,7 @@ class MeetsCommitmentRequirement(BasePermission):
         if not request.user.is_authenticated:
             return False
         return commitment_allows_requirement(
-            request.user.profile.commitment, game.commitment_requirement
+            request.user.profile.commitment, game.commitment_requirement, game.private
         )
 
 
