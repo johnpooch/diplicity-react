@@ -227,6 +227,80 @@ class TestUserAccountDelete:
         assert not Game.objects.filter(id=game_id).exists()
 
     @pytest.mark.django_db
+    def test_current_phase_state_no_longer_has_possible_orders(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        phase = base_active_phase(game)
+        member = game.members.create(user=user)
+        phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        phase_state.refresh_from_db()
+        assert phase_state.has_possible_orders is False
+
+    @pytest.mark.django_db
+    def test_completed_phase_state_is_untouched(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        phase = base_active_phase(game)
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        member = game.members.create(user=user)
+        phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        phase_state.refresh_from_db()
+        assert phase_state.has_possible_orders is True
+
+    @pytest.mark.django_db
+    def test_deleted_member_no_longer_blocks_early_resolution(
+        self, user_factory, authenticated_client_factory, active_game_with_confirmed_phase_state, classical_france_nation
+    ):
+        game = active_game_with_confirmed_phase_state
+        phase = game.current_phase
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        member = game.members.create(user=user, nation=classical_france_nation)
+        phase.phase_states.create(member=member, has_possible_orders=True)
+
+        assert not Phase.objects.filter_due_phases().filter(id=phase.id).exists()
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert Phase.objects.filter_due_phases().filter(id=phase.id).exists()
+
+    @pytest.mark.django_db
+    def test_deleted_member_does_not_consume_nmr_extensions(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        phase = base_active_phase(game)
+        phase.scheduled_resolution = timezone.now()
+        phase.save()
+        member = game.members.create(user=user, nmr_extensions_remaining=1)
+        phase.phase_states.create(member=member, has_possible_orders=True)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert Phase.objects._check_and_apply_nmr_extensions(phase) is None
+        member.refresh_from_db()
+        assert member.nmr_extensions_remaining == 1
+
+    @pytest.mark.django_db
     def test_pending_game_with_other_members_is_preserved(
         self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user, secondary_user
     ):
