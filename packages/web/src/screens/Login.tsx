@@ -266,13 +266,15 @@ const Login: React.FC = () => {
                   href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-10 overflow-hidden"
+                  className="relative inline-block box-border overflow-hidden rounded-[6px] border border-[#a6a6a6]"
+                  style={{ width: 134, height: 40 }}
                 >
-                  {/* Google's badge asset has ~16% built-in vertical padding, unlike Apple's; scale up and crop to match its visible height */}
+                  {/* Google's badge asset bakes in padding and a soft, over-thick border unlike Apple's crisp SVG; crop past both and redraw a matching 1px #a6a6a6 border so the two badges read the same */}
                   <img
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                     alt="Get it on Google Play"
-                    className="h-[59.5px] -mt-[9.8px]"
+                    className="absolute"
+                    style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
                   />
                 </a>
               )}
@@ -421,13 +423,15 @@ const Login: React.FC = () => {
                 href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 overflow-hidden"
+                className="relative inline-block box-border overflow-hidden rounded-[6px] border border-[#a6a6a6]"
+                style={{ width: 134, height: 40 }}
               >
-                {/* Google's badge asset has ~16% built-in vertical padding, unlike Apple's; scale up and crop to match its visible height */}
+                {/* Google's badge asset bakes in padding and a soft, over-thick border unlike Apple's crisp SVG; crop past both and redraw a matching 1px #a6a6a6 border so the two badges read the same */}
                 <img
                   src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                   alt="Get it on Google Play"
-                  className="h-[59.5px] -mt-[9.8px]"
+                  className="absolute"
+                  style={{ width: 154, height: 59.8, top: -10.8, left: -11 }}
                 />
               </a>
             )}
