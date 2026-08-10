@@ -1,10 +1,12 @@
 import pytest
+from unittest.mock import patch
 from django.urls import reverse
 from rest_framework import status
 
 from bot_profile.constants import BotKind
 from bot_profile.models import BotProfile
 from bot_profile.utils import get_bot_user
+from bot_profile.views import BotMemberCreateView
 from common.constants import GameStatus, PhaseStatus
 from game.models import Game
 
@@ -271,3 +273,47 @@ class TestAddBot:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_rejects_request_whose_bot_is_seated_after_its_checks(
+        self, authenticated_client, classical_variant, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_game_via_api(authenticated_client, classical_variant.id)
+        bot_user = _first_roster_bot_user()
+
+        original_perform_create = BotMemberCreateView.perform_create
+
+        def perform_create_after_competing_add(view, serializer):
+            game.members.create(user=bot_user)
+            return original_perform_create(view, serializer)
+
+        with patch.object(BotMemberCreateView, "perform_create", perform_create_after_competing_add):
+            response = authenticated_client.post(
+                reverse(add_bot_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+            )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert game.members.filter(user=bot_user).count() == 1
+
+    @pytest.mark.django_db
+    def test_rejects_request_whose_last_seat_is_taken_after_its_checks(
+        self, authenticated_client, italy_vs_germany_variant, secondary_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_game_via_api(authenticated_client, italy_vs_germany_variant.id)
+        bot_user = _first_roster_bot_user()
+
+        original_perform_create = BotMemberCreateView.perform_create
+
+        def perform_create_after_competing_join(view, serializer):
+            game.members.create(user=secondary_user)
+            return original_perform_create(view, serializer)
+
+        with patch.object(BotMemberCreateView, "perform_create", perform_create_after_competing_join):
+            response = authenticated_client.post(
+                reverse(add_bot_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+            )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.members.count() == 2

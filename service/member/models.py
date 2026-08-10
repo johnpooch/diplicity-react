@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
-from common.constants import GameStatus, PhaseStatus
+from common.constants import GameStatus
 from common.models import BaseModel
 
 User = get_user_model()
@@ -31,8 +31,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             member.replaced_by = replacement
             member.save(update_fields=["kicked", "replaced_by"])
 
-            phase = member.game.current_phase
-            if phase is not None and phase.status == PhaseStatus.ACTIVE:
+            phase = self._lock_active_phase(member.game)
+            if phase is not None:
                 self._vacate_phase(member, phase)
                 PhaseState.objects.create(
                     member=replacement,
@@ -51,9 +51,17 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             member.kicked = True
             member.save(update_fields=["kicked"])
 
-            phase = member.game.current_phase
-            if phase is not None and phase.status == PhaseStatus.ACTIVE:
+            phase = self._lock_active_phase(member.game)
+            if phase is not None:
                 self._vacate_phase(member, phase)
+
+    def _lock_active_phase(self, game):
+        Phase = apps.get_model("phase", "Phase")
+
+        phase = game.current_phase
+        if phase is None or Phase.objects.lock_if_active(phase.id) is None:
+            return None
+        return phase
 
     def _vacate_phase(self, member, phase):
         Order = apps.get_model("order", "Order")

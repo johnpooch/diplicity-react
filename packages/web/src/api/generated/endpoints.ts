@@ -103,7 +103,7 @@ export interface ChannelMember {
   readonly isBot: boolean;
   /** @nullable */
   readonly commitment: string | null;
-  nation: Nation;
+  nation: Nation | null;
 }
 
 export interface ChannelMessage {
@@ -769,6 +769,7 @@ export interface PatchedVariantWrite {
 /**
  * * `pending` - Pending
  * `active` - Active
+ * `processing` - Processing
  * `completed` - Completed
  * `template` - Template
  */
@@ -777,6 +778,7 @@ export type StatusEnum = (typeof StatusEnum)[keyof typeof StatusEnum];
 export const StatusEnum = {
   pending: "pending",
   active: "active",
+  processing: "processing",
   completed: "completed",
   template: "template",
 } as const;

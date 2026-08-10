@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "packages/web/**"
+  workflow_dispatch:
 
 concurrency:
   group: ios-release

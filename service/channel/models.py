@@ -84,7 +84,7 @@ class Channel(BaseModel):
 
     objects = ChannelManager()
 
-    name = models.CharField(max_length=250)
+    name = models.CharField(max_length=1000)
     private = models.BooleanField(default=False)
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="channels")
     members = models.ManyToManyField(

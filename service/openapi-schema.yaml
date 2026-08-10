@@ -1125,6 +1125,7 @@ paths:
       - games
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1876,7 +1877,9 @@ components:
           nullable: true
           readOnly: true
         nation:
-          $ref: '#/components/schemas/Nation'
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          nullable: true
       required:
       - commitment
       - id
@@ -3432,12 +3435,14 @@ components:
       enum:
       - pending
       - active
+      - processing
       - completed
       - template
       type: string
       description: |-
         * `pending` - Pending
         * `active` - Active
+        * `processing` - Processing
         * `completed` - Completed
         * `template` - Template
     StepEnum:

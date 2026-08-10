@@ -273,7 +273,7 @@ class Register(TypedDict):
 type RetreatFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
-type StatusEnum = Literal['pending', 'active', 'completed', 'template']
+type StatusEnum = Literal['pending', 'active', 'processing', 'completed', 'template']
 
 
 type StepEnum = Literal[

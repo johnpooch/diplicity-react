@@ -299,6 +299,35 @@ python -m pytest <file> -v          # single file (preferred)
 python -m pytest -n auto --reuse-db # full suite
 ```
 
+### Design playground (`/packages/design-playground/`)
+```bash
+npm run dev           # dev server at :5175
+npm run build         # production build
+npm run lint          # ESLint
+```
+
+---
+
+## Design playground
+
+`packages/design-playground/` is a standalone app for prototyping screens before
+we build them. It deploys independently to
+`diplicity-design-playground.netlify.app`, has no backend and no real data, and
+nothing in it ever ships to users.
+
+**The rules in this file do not apply under `packages/design-playground/`.** That
+directory has its own `CLAUDE.md`, which overrides this one — most importantly it
+requires no tests, mandates duplication instead of reuse, and expects several
+parallel variants of the same screen to coexist. Read it before working there.
+
+Two rules bind from this side:
+
+- **`packages/web` must never import from the playground.** The dependency
+  direction is one-way, and prototype code is rewritten into the app rather than
+  promoted out of it.
+- **Design gallery screens belong in the playground, not the app.** Do not add
+  fixture-driven component galleries to `packages/web`.
+
 ---
 
 ## Development Guidelines
@@ -315,7 +344,8 @@ python -m pytest -n auto --reuse-db # full suite
 8. **Write tests alongside features** — not as an afterthought. All tests for a single app live in that app's `tests.py`; do not split them across multiple test modules (e.g. `tests_emit.py`).
 9. **Self-review non-trivial PRs with `/review-pr`** before requesting human review. Address or explicitly respond to all findings. Trivial PRs (typo fixes, dep bumps, doc-only) are exempt.
 10. **PR description must match the diff** — run `git diff main` and confirm every described change is visible. Do not describe work from a prior PR or session.
-11. **Python imports go at module top-level** — do not add an inline `import` inside a function/method body, even if you find an existing one nearby to copy. The only exception is breaking a genuine circular import, and that exception should be rare enough to call out in a PR description when used.
+11. **Never add a vacuous permission class** — if a Django REST `BasePermission` check's condition covers every possible value of the field it inspects (e.g. every `GameStatus`), it always evaluates `True` and gates nothing. Before adding a new permission class, check whether it excludes at least one real case; if it doesn't, don't add it — use `permissions.AllowAny` (or omit the check) instead.
+12. **Python imports go at module top-level** — do not add an inline `import` inside a function/method body, even if you find an existing one nearby to copy. The only exception is breaking a genuine circular import, and that exception should be rare enough to call out in a PR description when used.
 
 ---
 

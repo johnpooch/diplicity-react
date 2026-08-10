@@ -4,9 +4,9 @@ from django.db import transaction
 from agent.constants import AgentTaskKind
 from agent.models import AgentTask
 from bot_profile.models import BotProfile
-from common.constants import PhaseStatus
 from game.models import Game
 from member.models import Member
+from phase.models import Phase
 
 
 class Command(BaseCommand):
@@ -42,7 +42,7 @@ class Command(BaseCommand):
             replacement = Member.objects.hand_over_seat(member, bot_profile.user)
 
             phase = game.current_phase
-            if phase is not None and phase.status == PhaseStatus.ACTIVE:
+            if phase is not None and Phase.objects.lock_if_active(phase.id) is not None:
                 AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=replacement, phase=phase)
 
         self.stdout.write(
