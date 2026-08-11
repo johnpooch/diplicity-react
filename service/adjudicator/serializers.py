@@ -308,6 +308,7 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
             Resolution(
                 province=r["province"],
                 resolution=r["resolution"],
+                code=r.get("code"),
                 reason=r.get("reason"),
             )
             for r in resolutions_raw
@@ -381,6 +382,7 @@ def serialize_game_state(state: State) -> Dict[str, Any]:
                 {
                     "province": r.province,
                     "resolution": r.resolution,
+                    "code": r.code,
                     "reason": r.reason,
                 }
                 for r in state.resolutions

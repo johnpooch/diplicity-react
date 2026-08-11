@@ -150,6 +150,38 @@ class TestCommitmentRequirementSerializerExposure:
         listed = next(g for g in response.data["results"] if g["id"] == game.id)
         assert listed["commitment_eligibility"] == expected
 
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "commitment_requirement,expected",
+        [
+            (CommitmentRequirement.OPEN, "eligible"),
+            (CommitmentRequirement.COMMITTED, "committed_locked"),
+        ],
+    )
+    def test_private_game_is_not_low_locked(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        game_factory,
+        base_pending_phase,
+        set_commitment,
+        commitment_requirement,
+        expected,
+    ):
+        set_commitment(primary_user, Commitment.LOW)
+        game = game_factory(
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            private=True,
+            commitment_requirement=commitment_requirement,
+        )
+        base_pending_phase(game)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["commitment_eligibility"] == expected
+
 
 class TestEligibleOnlyFilter:
 

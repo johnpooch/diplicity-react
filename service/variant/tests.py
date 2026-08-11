@@ -86,6 +86,33 @@ def test_list_variants_returns_304_when_etag_matches(authenticated_client):
 
 
 @pytest.mark.django_db
+def test_list_variants_returns_304_when_weakened_etag_matches(authenticated_client):
+    response1 = authenticated_client.get(reverse(viewname))
+    etag = response1["ETag"]
+
+    response2 = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+    assert response2.status_code == status.HTTP_304_NOT_MODIFIED
+
+
+@pytest.mark.django_db
+def test_list_variants_returns_200_when_weakened_etag_is_stale(authenticated_client):
+    response = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH='W/"stale"')
+
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_retrieve_variant_returns_304_when_weakened_etag_matches(authenticated_client):
+    url = reverse("variant-detail", args=["classical"])
+    etag = authenticated_client.get(url)["ETag"]
+
+    response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+    assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+
+@pytest.mark.django_db
 def test_list_variants_includes_svg_url(authenticated_client):
     response = authenticated_client.get(reverse(viewname))
 

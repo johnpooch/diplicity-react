@@ -87,6 +87,7 @@ from .types import (
     MoveOrder,
     Order,
     OrderResolution,
+    ResolutionCode,
     Status,
     StateView,
     SupportHoldOrder,
@@ -119,7 +120,7 @@ class _Decision:
     `parsed_orders` index the decision is about. `value` is `None` while
     unresolved; once decided, it holds the per-kind answer (a `Status`
     string for `support_cut`, an `int` for the strength kinds, or a
-    `(status, failure_reason)` tuple for `move_status`). `dependencies`
+    `(status, code, failure_reason)` tuple for `move_status`). `dependencies`
     is the set of other decision keys this one reads from — computed
     statically when the decision is enumerated.
     """
@@ -654,7 +655,7 @@ class _Solver:
 
     def _compute_move_status(
         self, i: int
-    ) -> Optional[Tuple[str, Optional[str]]]:
+    ) -> Optional[Tuple[str, str, Optional[str]]]:
         parsed = self._parsed
         variant = self._variant
         resolutions = self._initial_resolutions
@@ -670,6 +671,7 @@ class _Solver:
             if not intact:
                 return (
                     Status.BOUNCE,
+                    ResolutionCode.MISSING_CONVOY_PATH,
                     "The convoy was disrupted.",
                 )
         target_parent = variant.parent_of(order.target)
@@ -691,6 +693,7 @@ class _Solver:
         if attack <= max_prevent:
             return (
                 Status.BOUNCE,
+                ResolutionCode.BOUNCED,
                 "The attack was prevented by a competing move of equal or greater strength.",
             )
         h2h_index = _head_to_head_opponent_index(self._state, i)
@@ -701,6 +704,7 @@ class _Solver:
             if attack <= opp_defense:
                 return (
                     Status.BOUNCE,
+                    ResolutionCode.BOUNCED,
                     "The head-to-head attack failed to overpower the opposing unit.",
                 )
             opponent = parsed[h2h_index]
@@ -708,12 +712,13 @@ class _Solver:
             if opponent.nation == order.nation:
                 return (
                     Status.BOUNCE,
+                    ResolutionCode.BOUNCED,
                     "A unit cannot dislodge a unit of its own nation.",
                 )
-            return (Status.OK, None)
+            return (Status.OK, ResolutionCode.SUCCEEDED, None)
         defender_idx = _defender_order_index(self._state, i)
         if defender_idx is None:
-            return (Status.OK, None)
+            return (Status.OK, ResolutionCode.SUCCEEDED, None)
         defender_order = parsed[defender_idx]
         defender_initial_status = resolutions[defender_idx].status
         if (
@@ -727,21 +732,23 @@ class _Solver:
         else:
             defender_status = defender_initial_status
         if isinstance(defender_order, MoveOrder) and defender_status == Status.OK:
-            return (Status.OK, None)
+            return (Status.OK, ResolutionCode.SUCCEEDED, None)
         hold = self._dec_value((_HOLD_STRENGTH, defender_idx))
         if hold is None:
             return None
         if attack <= hold:
             return (
                 Status.BOUNCE,
+                ResolutionCode.BOUNCED,
                 "The attack was not strong enough to dislodge the defender.",
             )
         if defender_order.nation == order.nation:
             return (
                 Status.BOUNCE,
+                ResolutionCode.BOUNCED,
                 "A unit cannot dislodge a unit of its own nation.",
             )
-        return (Status.OK, None)
+        return (Status.OK, ResolutionCode.SUCCEEDED, None)
 
     def _compute_convoy_path_intact(self, i: int) -> Optional[bool]:
         """Three-valued convoy path: True if a chain through known-alive
@@ -888,7 +895,8 @@ class _Solver:
             for j in cycle:
                 key = (_MOVE_STATUS, j)
                 self._decisions[key] = replace(
-                    self._decisions[key], value=(Status.OK, None)
+                    self._decisions[key],
+                    value=(Status.OK, ResolutionCode.SUCCEEDED, None),
                 )
                 seen_in_resolved_cycle.add(j)
                 self._enqueue_dependents(key)
@@ -1185,7 +1193,7 @@ class _Solver:
             if forced_reason is None:
                 continue
             self._decisions[key] = replace(
-                decision, value=(Status.BOUNCE, forced_reason)
+                decision, value=(Status.BOUNCE, ResolutionCode.BOUNCED, forced_reason)
             )
             self._enqueue_dependents(key)
             changed = True
@@ -1230,8 +1238,8 @@ class _Solver:
             elif kind == _HOLD_STRENGTH:
                 r = replace(r, hold_strength=value)
             elif kind == _MOVE_STATUS:
-                status, reason = value
-                r = replace(r, status=status, failure_reason=reason)
+                status, code, reason = value
+                r = replace(r, status=status, code=code, failure_reason=reason)
             elif kind == _CONVOY_PATH_INTACT:
                 r = replace(r, convoy_path_intact=value)
             resolutions[idx] = r

@@ -90,13 +90,13 @@ class GameQuerySet(models.QuerySet):
         )
 
         current_phase_ids = (
-            Phase.objects.order_by("game_id", "-ordinal")
+            Phase.objects.order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
         latest_completed_phase_ids = (
             Phase.objects.filter(status=PhaseStatus.COMPLETED)
-            .order_by("game_id", "-ordinal")
+            .order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
@@ -155,13 +155,13 @@ class GameQuerySet(models.QuerySet):
         )
 
         current_phase_ids = (
-            Phase.objects.order_by("game_id", "-ordinal")
+            Phase.objects.order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
         latest_completed_phase_ids = (
             Phase.objects.filter(status=PhaseStatus.COMPLETED)
-            .order_by("game_id", "-ordinal")
+            .order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
@@ -500,7 +500,7 @@ class Game(BaseModel):
                 phases = list(self.phases.all())
                 return phases[-1] if phases else None
 
-            return self.phases.order_by("ordinal").last()
+            return self.phases.order_by("ordinal", "id").last()
 
     @property
     def movement_phase_duration_seconds(self):
@@ -583,7 +583,7 @@ class Game(BaseModel):
         if not user.is_authenticated:
             return None
         commitment = user.profile.commitment
-        if commitment == Commitment.LOW:
+        if commitment == Commitment.LOW and not self.private:
             return CommitmentEligibility.LOW_LOCKED
         if (
             self.commitment_requirement == CommitmentRequirement.COMMITTED
@@ -733,6 +733,17 @@ class Game(BaseModel):
 
             emit("game_start", game=self)
             emit("phase_started", phase=current_phase)
+
+    def finish(self, status):
+        with transaction.atomic():
+            self.status = status
+            self.finished_at = timezone.now()
+            self.save()
+
+            for phase in self.phases.exclude(status=PhaseStatus.COMPLETED):
+                phase.status = PhaseStatus.COMPLETED
+                phase.scheduled_resolution = None
+                phase.save()
 
     def emit_game_ended(self):
         try:

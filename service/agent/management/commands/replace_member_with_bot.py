@@ -5,10 +5,9 @@ from agent.constants import AgentTaskKind
 from agent.models import AgentTask
 from bot_profile.models import BotProfile
 from channel.models import ChannelMember
-from common.constants import PhaseStatus
 from game.models import Game
 from order.models import Order
-from phase.models import PhaseState
+from phase.models import Phase, PhaseState
 
 
 class Command(BaseCommand):
@@ -54,7 +53,7 @@ class Command(BaseCommand):
             member.save(update_fields=["kicked", "replaced_by"])
 
             phase = game.current_phase
-            if phase is not None and phase.status == PhaseStatus.ACTIVE:
+            if phase is not None and Phase.objects.lock_if_active(phase.id) is not None:
                 replaced_states = phase.phase_states.filter(member=member)
                 Order.objects.filter(phase_state__in=replaced_states).delete()
                 replaced_states.update(has_possible_orders=False)

@@ -125,6 +125,58 @@ class PhaseManager(models.Manager):
 
             return phases_to_resolve
 
+    def lock_if_active(self, phase_id):
+        return (
+            self.defer("options")
+            .select_for_update()
+            .filter(pk=phase_id, status=PhaseStatus.ACTIVE)
+            .first()
+        )
+
+    def claim_for_processing(self, phase):
+        extension_members = self._check_and_apply_nmr_extensions(phase)
+        if extension_members:
+            return False
+
+        claimed = self.filter(pk=phase.pk, status=PhaseStatus.ACTIVE).update(
+            status=PhaseStatus.PROCESSING, processing_started_at=timezone.now()
+        )
+        if not claimed:
+            logger.info(f"Phase {phase.pk} is no longer active; skipping resolve")
+            return False
+
+        phase.status = PhaseStatus.PROCESSING
+        return True
+
+    def release_from_processing(self, phase_id):
+        return self.filter(pk=phase_id, status=PhaseStatus.PROCESSING).update(
+            status=PhaseStatus.ACTIVE, processing_started_at=None
+        )
+
+    def recover_stalled_processing(self):
+        timeout = getattr(settings, "PHASE_PROCESSING_TIMEOUT_SECONDS", 300)
+        cutoff = timezone.now() - timedelta(seconds=timeout)
+        stalled = list(
+            self.filter(status=PhaseStatus.PROCESSING, processing_started_at__lt=cutoff)
+            .values_list("id", "game_id")
+        )
+        if not stalled:
+            return 0
+
+        for phase_id, game_id in stalled:
+            logger.error(
+                f"Phase {phase_id} (game {game_id}) has been processing for over {timeout}s; "
+                f"returning it to active so the sweep can retry it"
+            )
+            sentry_sdk.capture_message(
+                f"Phase stalled in processing: phase {phase_id} game {game_id}",
+                level="error",
+            )
+
+        return self.filter(id__in=[phase_id for phase_id, _ in stalled]).update(
+            status=PhaseStatus.ACTIVE, processing_started_at=None
+        )
+
     def resolve_if_due(self, phase_id):
         with tracer.start_as_current_span("phase.manager.resolve_if_due") as span:
             span.set_attribute("phase.id", phase_id)
@@ -137,8 +189,10 @@ class PhaseManager(models.Manager):
                     logger.info(f"Phase {phase_id} not due on re-check; skipping resolve")
                     return None
                 phase = self.with_adjudication_data().get(pk=phase_id)
+                if not self.claim_for_processing(phase):
+                    return phase
                 logger.info(f"Resolving due phase {phase.id} ({phase.name}) for game {phase.game_id}")
-                return self.resolve(phase)
+            return self._resolve_claimed(phase)
 
     def resolve_due_phases(self, canary=False):
         with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
@@ -194,6 +248,7 @@ class PhaseManager(models.Manager):
             return result
 
     def sweep_due_phases(self):
+        self.recover_stalled_processing()
         return self.resolve_due_phases(canary=True)
 
     def _check_and_apply_nmr_extensions(self, phase):
@@ -545,53 +600,47 @@ class PhaseManager(models.Manager):
         return all(m.civil_disorder for m in active_members)
 
     def resolve(self, phase):
+        if not self.claim_for_processing(phase):
+            return phase
+        return self._resolve_claimed(phase)
+
+    def _resolve_claimed(self, phase):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
             span.set_attribute("phase.id", phase.id)
             span.set_attribute("game.id", str(phase.game.id))
 
-            extension_members = self._check_and_apply_nmr_extensions(phase)
-            if extension_members:
-                return phase
+            try:
+                with tracer.start_as_current_span("phase.transaction_atomic"):
+                    with transaction.atomic():
+                        self._set_orders_outcome(phase)
+                        newly_cd_members = self._check_civil_disorder(phase)
+                        adjudication_data = resolve(phase)
 
-            with tracer.start_as_current_span("phase.transaction_atomic"):
-                with transaction.atomic():
-                    self._set_orders_outcome(phase)
-                    newly_cd_members = self._check_civil_disorder(phase)
-                    adjudication_data = resolve(phase)
+                        surviving_cd_members = self._reconcile_civil_disorder_eliminations(
+                            newly_cd_members, adjudication_data
+                        )
+                        new_phase = self.create_from_adjudication_data(phase, adjudication_data)
+                        self._check_eliminations(phase, new_phase)
+                        self._notify_civil_disorder(phase, surviving_cd_members)
+                        self._recompute_commitment(phase)
 
-                    surviving_cd_members = self._reconcile_civil_disorder_eliminations(
-                        newly_cd_members, adjudication_data
-                    )
-                    new_phase = self.create_from_adjudication_data(phase, adjudication_data)
-                    self._check_eliminations(phase, new_phase)
-                    self._notify_civil_disorder(phase, surviving_cd_members)
-                    self._recompute_commitment(phase)
+                        victory = Victory.objects.try_create_victory(new_phase)
 
-                    victory = Victory.objects.try_create_victory(new_phase)
+                        if victory:
+                            new_phase.game.finish(GameStatus.COMPLETED)
+                            new_phase.game.emit_game_ended()
+                        elif self._check_abandonment(new_phase.game):
+                            new_phase.game.finish(GameStatus.ABANDONED)
 
-                    if victory:
-                        new_phase.game.status = GameStatus.COMPLETED
-                        new_phase.game.finished_at = timezone.now()
-                        new_phase.game.save()
+                        new_phase.refresh_from_db()
 
-                        new_phase.status = PhaseStatus.COMPLETED
-                        new_phase.scheduled_resolution = None
-                        new_phase.save()
+                        if new_phase.status == PhaseStatus.ACTIVE:
+                            emit("phase_started", phase=new_phase)
 
-                        new_phase.game.emit_game_ended()
-                    elif self._check_abandonment(new_phase.game):
-                        new_phase.game.status = GameStatus.ABANDONED
-                        new_phase.game.finished_at = timezone.now()
-                        new_phase.game.save()
-
-                        new_phase.status = PhaseStatus.COMPLETED
-                        new_phase.scheduled_resolution = None
-                        new_phase.save()
-
-                    if new_phase.status == PhaseStatus.ACTIVE:
-                        emit("phase_started", phase=new_phase)
-
-                    return new_phase
+                        return new_phase
+            except Exception:
+                self.release_from_processing(phase.pk)
+                raise
 
     def _emit_phase_resolved(self, phase):
         resolved_early = (
@@ -876,6 +925,7 @@ class Phase(BaseModel):
     status = models.CharField(max_length=20, choices=PhaseStatus.STATUS_CHOICES, default=PhaseStatus.PENDING)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    processing_started_at = models.DateTimeField(null=True, blank=True, editable=False)
     season = models.CharField(max_length=10)
     year = models.IntegerField()
     type = models.CharField(max_length=10)
@@ -884,7 +934,14 @@ class Phase(BaseModel):
     options = models.JSONField(default=dict)
 
     class Meta:
-        ordering = ["ordinal"]
+        ordering = ["ordinal", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["game", "ordinal"],
+                condition=~Q(status=PhaseStatus.COMPLETED),
+                name="unique_live_phase_ordinal_per_game",
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.game.name if self.game else '-'})"
