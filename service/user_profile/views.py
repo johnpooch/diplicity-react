@@ -4,7 +4,8 @@ from django.shortcuts import get_object_or_404
 
 from game.models import Game
 from member.models import Member
-from common.constants import GameStatus
+from phase.models import PhaseState
+from common.constants import GameStatus, PhaseStatus
 from .models import RetainedCommitment, UserProfile
 from .serializers import UserProfileSerializer, PublicUserProfileSerializer
 
@@ -52,9 +53,13 @@ class UserAccountDeleteView(generics.DestroyAPIView):
                 )
             )
             user_members.filter(game__status=GameStatus.PENDING).delete()
-            user_members.filter(
+            ongoing_members = user_members.filter(
                 game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
-            ).update(kicked=True)
+            )
+            ongoing_members.update(kicked=True)
+            PhaseState.objects.filter(
+                member__in=ongoing_members, phase__status=PhaseStatus.ACTIVE
+            ).update(has_possible_orders=False)
             for game in Game.objects.filter(id__in=pending_game_ids):
                 game.delete_if_empty_pending()
             instance.delete()

@@ -671,7 +671,7 @@ class _Solver:
             if not intact:
                 return (
                     Status.BOUNCE,
-                    ResolutionCode.BOUNCED,
+                    ResolutionCode.MISSING_CONVOY_PATH,
                     "The convoy was disrupted.",
                 )
         target_parent = variant.parent_of(order.target)

@@ -5,6 +5,7 @@ from common.permissions import (
     IsActiveGame,
     IsActiveOrCompletedGame,
     IsActiveGameMember,
+    IsCurrentPhaseActive,
     IsNotSandboxGame,
 )
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
@@ -31,6 +32,7 @@ class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics
         IsActiveGame,
         IsActiveGameMember,
         IsNotSandboxGame,
+        IsCurrentPhaseActive,
     ]
     serializer_class = DrawProposalSerializer
 
@@ -41,6 +43,7 @@ class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
         IsActiveGame,
         IsActiveGameMember,
         IsNotSandboxGame,
+        IsCurrentPhaseActive,
     ]
     serializer_class = DrawVoteUpdateSerializer
 

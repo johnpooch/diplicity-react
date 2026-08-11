@@ -7749,6 +7749,33 @@ def test_bounced_move_reports_bounced_code():
     assert _c2_code(result, "rhs") == ResolutionCode.BOUNCED
 
 
+def test_unmatched_support_reports_invalid_support_order_code():
+    """An uncut support whose supportee never ordered the supported
+    action is ILLEGAL like any rejected order, but reports its own code
+    rather than the generic one."""
+    state = _c2_movement_state(
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Hold"),
+            RawOrder(
+                nation=NORTH,
+                source="mid",
+                order_type="Support",
+                aux="lhs",
+                target="rhs",
+            ),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "mid") == Status.ILLEGAL
+    assert _c2_code(result, "mid") == ResolutionCode.INVALID_SUPPORT_ORDER
+
+
 def test_cut_support_reports_support_broken_code():
     """A support cut by an attack on the supporter reports the
     support-broken code rather than the generic bounce code."""

@@ -263,6 +263,8 @@ class OrderResolutionStatus:
     MISSING_SUPPORT_UNIT = ResolutionCode.MISSING_SUPPORT_UNIT
     MISSING_UNIT = ResolutionCode.MISSING_UNIT
     SUPPORT_BROKEN = ResolutionCode.SUPPORT_BROKEN
+    MISSING_CONVOY_PATH = ResolutionCode.MISSING_CONVOY_PATH
+    CONVOY_DISLODGED = ResolutionCode.CONVOY_DISLODGED
 
     STATUS_CHOICES = (
         (SUCCEEDED, "Succeeded"),
@@ -275,4 +277,6 @@ class OrderResolutionStatus:
         (MISSING_SUPPORT_UNIT, "Missing support unit"),
         (MISSING_UNIT, "Missing unit"),
         (SUPPORT_BROKEN, "Support broken"),
+        (MISSING_CONVOY_PATH, "Missing convoy path"),
+        (CONVOY_DISLODGED, "Convoy dislodged"),
     )
