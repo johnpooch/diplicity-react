@@ -1,6 +1,4 @@
-from bot_profile.constants import BotKind
-from bot_profile.models import BotProfile
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, UserKind
 
 from agent.constants import AgentTaskKind
 
@@ -27,7 +25,7 @@ def _finalize_tasks(phase):
     bot_phase_states = phase.phase_states.filter(
         has_possible_orders=True,
         orders_confirmed=False,
-        member__user__bot_profile__isnull=False,
+        member__user__profile__kind__in=UserKind.BOT_KINDS,
     ).select_related("member")
     return [
         {"kind": AgentTaskKind.FINALIZE, "member": phase_state.member, "phase": phase}
@@ -75,9 +73,9 @@ class PhaseStateConfirmedSpec(AgentTaskSpec):
 class ChannelMessageSpec(AgentTaskSpec):
     def get_tasks(self):
         actor = self.context.actor
-        if actor is None or BotProfile.objects.filter(user=actor).exists():
+        if actor is None or actor.profile.is_bot:
             return []
-        bot_members = self.context.channel.members.filter(user__bot_profile__kind=BotKind.LLM).select_related("user")
+        bot_members = self.context.channel.members.filter(user__profile__kind=UserKind.LLM).select_related("user")
         return [
             {
                 "kind": AgentTaskKind.REPLY,

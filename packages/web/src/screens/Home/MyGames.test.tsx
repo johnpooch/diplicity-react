@@ -25,7 +25,7 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
       data: { id: 1, email: "test@example.com", name: "Test", picture: null },
     }),
     useGamePhaseRetrieve: (...args: unknown[]) => mockUseGamePhaseRetrieve(...args),
-    useGameJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useGameMemberJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
     useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
     getDevicesListQueryKey: () => ["devices"],
   };

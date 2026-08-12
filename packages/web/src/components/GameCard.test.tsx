@@ -33,7 +33,7 @@ vi.mock("@/api/generated/endpoints", async () => {
   const actual = await vi.importActual("@/api/generated/endpoints");
   return {
     ...actual,
-    useGameJoinCreate: () => ({
+    useGameMemberJoinCreate: () => ({
       mutateAsync: vi.fn(),
       isPending: false,
     }),

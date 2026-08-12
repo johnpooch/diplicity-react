@@ -1,10 +1,8 @@
 from rest_framework import serializers
-from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus
-
-ChannelMember = apps.get_model("channel", "ChannelMember")
+from user_profile.models import UserProfile
 
 
 class BaseMemberSerializer(serializers.Serializer):
@@ -25,7 +23,7 @@ class BaseMemberSerializer(serializers.Serializer):
         return obj.user == request.user
 
     def _is_bot(self, obj):
-        return obj.user is not None and hasattr(obj.user, "bot_profile")
+        return obj.user is not None and obj.user.profile.is_bot
 
     def _is_masked(self, obj):
         game = self._get_game(obj)
@@ -100,12 +98,27 @@ class MemberSerializer(BaseMemberSerializer):
         game = self._get_game(obj)
         return obj.user_id is not None and obj.user_id == game.created_by_id
 
+
+class MemberJoinSerializer(MemberSerializer):
     def create(self, validated_data):
-        game = self.context["game"]
-        user = self.context["request"].user
-        member = game.members.create(user=user)
-        public_channels = game.channels.filter(private=False)
-        ChannelMember.objects.bulk_create(
-            [ChannelMember(member=member, channel=ch) for ch in public_channels]
-        )
-        return member
+        return self.context["game"].seat(self.context["request"].user)
+
+
+class MemberCreateSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(write_only=True)
+
+    def _resolve_addable_user(self, user_id):
+        profile = UserProfile.objects.addable_to_game(self.context["game"]).filter(user_id=user_id).first()
+        if profile is None:
+            raise serializers.ValidationError("This user cannot be added to this game.")
+        return profile.user
+
+    def validate_user_id(self, value):
+        self._resolve_addable_user(value)
+        return value
+
+    def create(self, validated_data):
+        return self.context["game"].seat(self._resolve_addable_user(validated_data["user_id"]))
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data

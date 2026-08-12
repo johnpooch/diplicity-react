@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import {
   useGameRetrieveSuspense,
-  useGameJoinCreate,
+  useGameMemberJoinCreate,
   useGameLeaveDestroy,
   useUserRetrieveSuspense,
   getGameRetrieveQueryKey,
@@ -30,7 +30,7 @@ const GameInfo: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
   const { data: userProfile } = useUserRetrieveSuspense();
-  const joinGameMutation = useGameJoinCreate();
+  const joinGameMutation = useGameMemberJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
 
@@ -38,7 +38,7 @@ const GameInfo: React.FC = () => {
 
   const handleJoinGame = async () => {
     try {
-      await joinGameMutation.mutateAsync({ gameId, data: {} });
+      await joinGameMutation.mutateAsync({ gameId });
       await queryClient.invalidateQueries({ queryKey: getGameRetrieveQueryKey(gameId) });
       toast.success("Game joined successfully");
       if (!game.sandbox) {
