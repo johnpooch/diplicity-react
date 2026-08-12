@@ -5580,11 +5580,13 @@ class TestDislodgedByAttribution:
         phase = self._build_phase(classical_variant, primary_user, secondary_user)
         dislodger = phase.units.get(province__province_id="mos")
 
-        new_phase = Phase.objects.resolve(phase)
+        with patch("phase.models.sentry_sdk.capture_message") as capture_message:
+            new_phase = Phase.objects.resolve(phase)
 
         dislodged = list(new_phase.units.filter(dislodged=True).select_related("province"))
         assert {u.province.province_id for u in dislodged} == {"stp", "stp/sc"}
         assert {u.dislodged_by_id for u in dislodged} == {dislodger.id}
+        assert "Two dislodged units occupy stp" in capture_message.call_args.args[0]
 
     @pytest.mark.django_db
     def test_two_standing_units_in_one_province_are_reported(
@@ -5605,5 +5607,5 @@ class TestDislodgedByAttribution:
         with patch("phase.models.sentry_sdk.capture_message") as capture_message:
             Phase.objects.create_from_adjudication_data(phase, adjudication_data)
 
-        assert capture_message.call_count == 1
-        assert "Two standing units occupy stp" in capture_message.call_args.args[0]
+        messages = [call.args[0] for call in capture_message.call_args_list]
+        assert any("Two standing units occupy stp" in message for message in messages)

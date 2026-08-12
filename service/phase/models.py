@@ -655,19 +655,18 @@ class PhaseManager(models.Manager):
         province_id_by_pk = {p.pk: p.province_id for p in province_lookup.values()}
         occupant_by_parent = {}
         for unit in units:
-            if unit.dislodged:
-                continue
             location = unit.province.province_id
             parent = province_id_by_pk.get(unit.province.parent_id, location)
-            occupant = occupant_by_parent.get(parent)
+            occupant = occupant_by_parent.get((parent, unit.dislodged))
             if occupant is not None:
+                state = "dislodged" if unit.dislodged else "standing"
                 message = (
-                    f"Two standing units occupy {parent} in phase {phase.id} "
+                    f"Two {state} units occupy {parent} in phase {phase.id} "
                     f"(game {phase.game_id}): {occupant} and {location}"
                 )
                 logger.error(message)
                 sentry_sdk.capture_message(message, level="error")
-            occupant_by_parent[parent] = location
+            occupant_by_parent[(parent, unit.dislodged)] = location
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
