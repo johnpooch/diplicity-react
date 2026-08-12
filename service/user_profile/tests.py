@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from common.constants import Commitment, CommitmentRequirement, GameStatus, PhaseStatus, PhaseType
 from game.models import Game
 from phase.models import Phase, PhaseState

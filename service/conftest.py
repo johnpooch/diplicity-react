@@ -9,7 +9,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMember, ChannelMessage
 from common.constants import (
     DeadlineMode,
