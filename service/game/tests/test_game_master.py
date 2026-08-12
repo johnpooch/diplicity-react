@@ -7,7 +7,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
 from game.models import Game
 from notification.models import Notification, NotificationDelivery

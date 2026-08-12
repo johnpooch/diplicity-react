@@ -41,7 +41,7 @@ from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMember, ChannelMessage
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 
 tracer = trace.get_tracer(__name__)
 

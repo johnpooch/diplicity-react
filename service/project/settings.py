@@ -98,7 +98,6 @@ INSTALLED_APPS = [
     "unit",
     "supply_center",
     "channel",
-    "adjudication",
     "notification",
     "emit",
     "integration",

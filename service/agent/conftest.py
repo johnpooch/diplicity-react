@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from bot_profile.utils import get_bot_user
 from common.constants import DeadlineMode, MovementPhaseDuration, NationAssignment
 from game.models import Game

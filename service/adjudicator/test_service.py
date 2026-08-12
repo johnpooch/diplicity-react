@@ -2,7 +2,7 @@ import pytest
 from phase.models import Phase
 from game.models import Game
 from member.models import Member
-import adjudication.service as adjudication_service
+import adjudicator.service as adjudication_service
 from common.constants import GameStatus, OrderResolutionStatus, OrderType, UnitType
 
 
