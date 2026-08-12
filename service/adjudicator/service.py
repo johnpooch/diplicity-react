@@ -19,14 +19,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from opentelemetry import trace
 
-from adjudicator.domain import State, Variant
-from adjudicator.engine import Engine
-from adjudicator.options import get_options
-from adjudicator.serializers import deserialize_game_state, deserialize_variant
 from phase.utils import phase_to_canonical_game_state
 from variant.utils import variant_to_canonical_dict
 
+from .domain import State, Variant
+from .engine import Engine
+from .options import get_options
 from .options_adapter import python_options_to_godip_dict
+from .serializers import deserialize_game_state, deserialize_variant
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -34,7 +34,7 @@ tracer = trace.get_tracer(__name__)
 
 def start(phase) -> Dict[str, Any]:
     logger.info(f"Starting adjudication for phase {phase.id} of game {phase.game.id}")
-    with tracer.start_as_current_span("adjudication.start") as span:
+    with tracer.start_as_current_span("adjudicator.start") as span:
         span.set_attribute("phase.id", phase.id)
         span.set_attribute("game.id", str(phase.game.id))
         span.set_attribute("variant.id", phase.variant.id)
@@ -96,7 +96,7 @@ def _should_skip(options, units, supply_centers, skip_nations, nation_name_by_id
 
 def resolve(phase) -> Dict[str, Any]:
     logger.info(f"Resolving phase {phase.id} of game {phase.game.id}")
-    with tracer.start_as_current_span("adjudication.resolve") as span:
+    with tracer.start_as_current_span("adjudicator.resolve") as span:
         span.set_attribute("phase.id", phase.id)
         span.set_attribute("game.id", str(phase.game.id))
         span.set_attribute("variant.id", phase.variant.id)

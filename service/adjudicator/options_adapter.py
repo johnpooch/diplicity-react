@@ -26,7 +26,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple
 
-from adjudicator.domain import OrderOption, SupplyCenter, Unit, Variant
+from .domain import OrderOption, SupplyCenter, Unit, Variant
 
 
 _PROVINCE = "Province"
