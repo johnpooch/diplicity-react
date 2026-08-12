@@ -57,5 +57,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            "DROP TABLE IF EXISTS bot_llmcall",
+            reverse_sql=migrations.RunSQL.noop,
+        ),
+        migrations.RunSQL(
+            "DROP TABLE IF EXISTS bot_botprofile",
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.RunPython(seed_roster, remove_roster),
     ]
