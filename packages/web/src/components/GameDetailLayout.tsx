@@ -15,7 +15,11 @@ import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { useGameRetrieve } from "@/api/generated/endpoints";
+import { useAuth } from "@/auth";
+import {
+  useGameRetrieve,
+  useGameChannelUnreadRetrieve,
+} from "@/api/generated/endpoints";
 
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
@@ -39,12 +43,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     phaseId: string;
   }>();
 
-  const { data: game } = useGameRetrieve(gameId, {
+  const { loggedIn } = useAuth();
+  const { data: game } = useGameRetrieve(gameId);
+  const { data: unread } = useGameChannelUnreadRetrieve(gameId, {
     query: {
-      refetchInterval: (query) =>
-        query.state.data?.status === "active" ? 5000 : false,
+      enabled: loggedIn && !game?.sandbox,
+      refetchInterval: game?.status === "active" ? 5000 : false,
     },
   });
+  const totalUnreadMessageCount = unread?.totalUnreadMessageCount ?? 0;
 
   const [searchParams] = useSearchParams();
 
@@ -60,9 +67,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
       const badge =
-        (item.label === "Chat" &&
-          game?.totalUnreadMessageCount &&
-          game.totalUnreadMessageCount > 0) ||
+        (item.label === "Chat" && totalUnreadMessageCount > 0) ||
         (item.label === "Orders" &&
           Array.isArray(game?.members) &&
           game.members.some(m => m.isCurrentUser && m.civilDisorder))
@@ -87,7 +92,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
+  }, [gameId, phaseId, searchParams, location.pathname, totalUnreadMessageCount, game?.sandbox, game?.members]);
 
   // Filter out Map for desktop sidebar since map is already visible in right
   // panel. Unlike the bottom nav, the sidebar Chat icon should return to the

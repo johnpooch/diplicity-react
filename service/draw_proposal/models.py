@@ -8,15 +8,6 @@ from victory.models import Victory
 
 
 class DrawProposalQuerySet(models.QuerySet):
-    def active(self):
-        return self.filter(cancelled=False)
-
-    def for_game(self, game):
-        return self.filter(game=game)
-
-    def pending_for_phase(self, phase):
-        return self.active().filter(phase=phase)
-
     def with_related_data(self):
         return self.select_related(
             "game",
@@ -32,15 +23,6 @@ class DrawProposalQuerySet(models.QuerySet):
 class DrawProposalManager(models.Manager):
     def get_queryset(self):
         return DrawProposalQuerySet(self.model, using=self._db)
-
-    def active(self):
-        return self.get_queryset().active()
-
-    def for_game(self, game):
-        return self.get_queryset().for_game(game)
-
-    def pending_for_phase(self, phase):
-        return self.get_queryset().pending_for_phase(phase)
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
@@ -60,26 +42,15 @@ class DrawProposalManager(models.Manager):
 
         emit("draw_proposal", draw_proposal=proposal)
 
-        votes_to_create = []
-        for member in all_active_members:
-            if member.civil_disorder:
-                votes_to_create.append(
-                    DrawVote(
-                        proposal=proposal,
-                        member=member,
-                        included=False,
-                        accepted=True,
-                    )
-                )
-            else:
-                votes_to_create.append(
-                    DrawVote(
-                        proposal=proposal,
-                        member=member,
-                        included=True,
-                        accepted=True if member.id == created_by.id else None,
-                    )
-                )
+        votes_to_create = [
+            DrawVote(
+                proposal=proposal,
+                member=member,
+                included=not member.civil_disorder,
+                accepted=True if member.civil_disorder or member.id == created_by.id else None,
+            )
+            for member in all_active_members
+        ]
 
         DrawVote.objects.bulk_create(votes_to_create)
 

@@ -16,6 +16,9 @@ import {
 
 const mockNavigate = vi.fn();
 const mockUseIsMobile = vi.fn();
+const mockUnreadData = vi.fn<
+  () => { gameId: string; totalUnreadMessageCount: number }[]
+>(() => []);
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -37,6 +40,7 @@ vi.mock("@/api/generated/endpoints", async () => {
       mutateAsync: vi.fn(),
       isPending: false,
     }),
+    useGameUnreadListSuspense: () => ({ data: mockUnreadData() }),
     getGamesListQueryKey: () => ["games"],
   };
 });
@@ -64,6 +68,8 @@ describe("GameCard", () => {
     mockNavigate.mockReset();
     mockUseIsMobile.mockReset();
     mockUseIsMobile.mockReturnValue(false);
+    mockUnreadData.mockReset();
+    mockUnreadData.mockReturnValue([]);
   });
 
   describe("click navigation", () => {
@@ -171,34 +177,32 @@ describe("GameCard", () => {
 
   describe("unread message indicator", () => {
     it("shows the unread count for active games", () => {
-      renderGameCard({
-        game: { ...mockGames[0], totalUnreadMessageCount: 4 },
-        ...defaultProps,
-      });
+      mockUnreadData.mockReturnValue([
+        { gameId: mockGames[0].id, totalUnreadMessageCount: 4 },
+      ]);
+      renderGameCard({ game: mockGames[0], ...defaultProps });
       expect(screen.getByText(/4 new/)).toBeInTheDocument();
     });
 
     it("shows the unread count for finished games", () => {
-      renderGameCard({
-        game: { ...mockCompletedGames[0], totalUnreadMessageCount: 2 },
-        ...defaultProps,
-      });
+      mockUnreadData.mockReturnValue([
+        { gameId: mockCompletedGames[0].id, totalUnreadMessageCount: 2 },
+      ]);
+      renderGameCard({ game: mockCompletedGames[0], ...defaultProps });
       expect(screen.getByText(/2 new/)).toBeInTheDocument();
     });
 
-    it("does not show an indicator when there are no unread messages", () => {
-      renderGameCard({
-        game: { ...mockGames[0], totalUnreadMessageCount: 0 },
-        ...defaultProps,
-      });
+    it("does not show an indicator when the game has no unread entry", () => {
+      mockUnreadData.mockReturnValue([]);
+      renderGameCard({ game: mockGames[0], ...defaultProps });
       expect(screen.queryByText(/new/)).not.toBeInTheDocument();
     });
 
     it("does not show an indicator for sandbox games", () => {
-      renderGameCard({
-        game: { ...mockSandboxGames[0], totalUnreadMessageCount: 3 },
-        ...defaultProps,
-      });
+      mockUnreadData.mockReturnValue([
+        { gameId: mockSandboxGames[0].id, totalUnreadMessageCount: 3 },
+      ]);
+      renderGameCard({ game: mockSandboxGames[0], ...defaultProps });
       expect(screen.queryByText(/new/)).not.toBeInTheDocument();
     });
   });

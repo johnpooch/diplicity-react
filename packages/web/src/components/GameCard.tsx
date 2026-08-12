@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,6 +35,7 @@ import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameMemberJoinCreate,
+  useGameUnreadListSuspense,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
@@ -79,6 +80,26 @@ const ORDER_STATUS_CONFIG: Record<
     icon: <Check className="size-3" />,
     tooltip: "No orders are needed from you this phase",
   },
+};
+
+interface UnreadBadgeProps {
+  gameId: string;
+}
+
+const UnreadBadge: React.FC<UnreadBadgeProps> = ({ gameId }) => {
+  const { data: unread } = useGameUnreadListSuspense({
+    query: { refetchInterval: 30000 },
+  });
+  const count =
+    unread.find(entry => entry.gameId === gameId)?.totalUnreadMessageCount ?? 0;
+  if (count === 0) return null;
+
+  return (
+    <Badge variant="default" className="gap-1">
+      <Mail className="size-3" />
+      <span className="relative top-px">{count} new</span>
+    </Badge>
+  );
 };
 
 const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
@@ -282,14 +303,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     </div>
   );
 
-  const unreadPill = !game.sandbox &&
-    (isActive || isFinished) &&
-    game.totalUnreadMessageCount > 0 && (
-      <Badge variant="default" className="gap-1">
-        <Mail className="size-3" />
-        <span className="relative top-px">{game.totalUnreadMessageCount} new</span>
-      </Badge>
-    );
+  const unreadPill = !game.sandbox && (isActive || isFinished) && (
+    <Suspense fallback={null}>
+      <UnreadBadge gameId={game.id} />
+    </Suspense>
+  );
 
   return (
     <Card className="w-full flex flex-col md:flex-row overflow-hidden p-0">

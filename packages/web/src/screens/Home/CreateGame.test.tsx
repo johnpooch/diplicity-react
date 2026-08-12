@@ -205,7 +205,6 @@ const matchedGame: GameList = {
   minReliability: "open",
   commitmentRequirement: "open",
   commitmentEligibility: "eligible",
-  totalUnreadMessageCount: 0,
   orderStatus: null,
   memberStatus: [],
 };

@@ -26,7 +26,6 @@ import {
   getGamesChannelsListQueryKey,
   useGameRetrieveSuspense,
   useGamesChannelsCreateCreate,
-  type Channel,
 } from "@/api/generated/endpoints";
 
 const ChannelCreateScreen: React.FC = () => {
@@ -57,10 +56,9 @@ const ChannelCreateScreen: React.FC = () => {
           memberIds: selectedMembers,
         },
       });
-      queryClient.setQueryData<Channel[]>(
-        getGamesChannelsListQueryKey(gameId),
-        (old) => [...(old ?? []), response]
-      );
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelsListQueryKey(gameId),
+      });
       toast.success("Channel created successfully");
       if (response) {
         navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);

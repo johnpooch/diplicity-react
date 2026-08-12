@@ -2,7 +2,6 @@ from zoneinfo import ZoneInfo
 
 from rest_framework import serializers
 from django.db import transaction
-from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
@@ -16,9 +15,6 @@ from victory.serializers import VictorySerializer
 from variant.models import Variant
 from member.models import Member
 from .models import Game
-
-ChannelMember = apps.get_model("channel", "ChannelMember")
-ChannelMessage = apps.get_model("channel", "ChannelMessage")
 
 tracer = trace.get_tracer(__name__)
 
@@ -107,7 +103,6 @@ class GameListSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
-    total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -268,7 +263,6 @@ class GameRetrieveSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
-    total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(
         choices=[
@@ -280,30 +274,6 @@ class GameRetrieveSerializer(serializers.Serializer):
     ))
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
-
-    @extend_schema_field(serializers.IntegerField)
-    def get_total_unread_message_count(self, obj):
-        annotated = getattr(obj, "total_unread_message_count", None)
-        if annotated is not None:
-            return annotated
-        user = self.context["request"].user
-        if not user.is_authenticated:
-            return 0
-        return (
-            ChannelMessage.objects.filter(
-                channel__game=obj,
-                channel__member_channels__member__user=user,
-                created_at__gt=Subquery(
-                    ChannelMember.objects.filter(
-                        channel=OuterRef("channel"),
-                        member__user=user,
-                    ).values("last_read_at")[:1]
-                ),
-            )
-            .exclude(sender__user=user)
-            .distinct()
-            .count()
-        )
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):

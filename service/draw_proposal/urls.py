@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     DrawProposalListView,
     DrawProposalCreateView,
-    DrawProposalVoteView,
+    DrawProposalVoteUpdateView,
     DrawProposalCancelView,
 )
 
@@ -19,7 +19,7 @@ urlpatterns = [
     ),
     path(
         "games/<str:game_id>/draw-proposals/<int:proposal_id>/vote/",
-        DrawProposalVoteView.as_view(),
+        DrawProposalVoteUpdateView.as_view(),
         name="draw-proposal-vote",
     ),
     path(

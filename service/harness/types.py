@@ -1,7 +1,7 @@
 from typing import NotRequired, TypedDict
 
 from harness.generated.api import (
-    Channel as ApiChannel,
+    ChannelMessage as ApiChannelMessage,
     FlatOrderOption,
     Member as ApiMember,
     PhaseState as ApiPhaseState,
@@ -9,6 +9,13 @@ from harness.generated.api import (
     Unit as ApiUnit,
     VariantProvince as ApiVariantProvince,
 )
+
+
+class ApiChannel(TypedDict):
+    id: int
+    name: str
+    private: bool
+    messages: list[ApiChannelMessage]
 
 
 class ApiGame(TypedDict):

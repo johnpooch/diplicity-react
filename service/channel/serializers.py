@@ -2,8 +2,10 @@ from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 
-from .models import Channel, ChannelMessage, ChannelMember
+from .models import Channel, ChannelMessage
+from common.pagination import ChannelMessageCursorPagination
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
 from emit import emit
@@ -43,12 +45,24 @@ class ChannelMessageSerializer(serializers.Serializer):
         return message
 
 
-class ChannelSerializer(serializers.Serializer):
+class ChannelPreviewSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
     private = serializers.BooleanField(read_only=True)
-    messages = ChannelMessageSerializer(many=True, read_only=True)
-    unread_message_count = serializers.IntegerField(read_only=True, default=0)
+    latest_message = serializers.SerializerMethodField()
+
+    @extend_schema_field(ChannelMessageSerializer(allow_null=True))
+    def get_latest_message(self, obj):
+        latest_messages = getattr(obj, "latest_messages", [])
+        if not latest_messages:
+            return None
+        return ChannelMessageSerializer(latest_messages[0], context=self.context).data
+
+
+class ChannelCreateSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    private = serializers.BooleanField(read_only=True)
 
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
 
@@ -76,11 +90,41 @@ class ChannelSerializer(serializers.Serializer):
         return Channel.objects.create_from_member_ids(request.user, validated_data["member_ids"], game)
 
 
+class PaginatedChannelMessageListSerializer(serializers.Serializer):
+    next = serializers.CharField(read_only=True, allow_null=True)
+    previous = serializers.CharField(read_only=True, allow_null=True)
+    results = ChannelMessageSerializer(many=True, read_only=True)
+
+
+class ChannelRetrieveSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    private = serializers.BooleanField(read_only=True)
+    messages = serializers.SerializerMethodField()
+
+    @extend_schema_field(PaginatedChannelMessageListSerializer)
+    def get_messages(self, obj):
+        request = self.context["request"]
+        paginator = ChannelMessageCursorPagination()
+        page = paginator.paginate_queryset(obj.messages.with_sender_data(), request)
+        return {
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link(),
+            "results": ChannelMessageSerializer(page, many=True, context=self.context).data,
+        }
+
+
 class ChannelMarkReadSerializer(serializers.Serializer):
-    def create(self, validated_data):
-        channel = self.context["channel"]
-        member = self.context["current_game_member"]
-        channel_member = ChannelMember.objects.get(member=member, channel=channel)
-        channel_member.last_read_at = timezone.now()
-        channel_member.save(update_fields=["last_read_at"])
-        return channel_member
+    def update(self, instance, validated_data):
+        instance.last_read_at = timezone.now()
+        instance.save(update_fields=["last_read_at"])
+        return instance
+
+
+class ChannelUnreadSerializer(serializers.Serializer):
+    total_unread_message_count = serializers.IntegerField(read_only=True)
+
+
+class GameUnreadSerializer(serializers.Serializer):
+    game_id = serializers.CharField(source="channel__game_id", read_only=True)
+    total_unread_message_count = serializers.IntegerField(read_only=True)

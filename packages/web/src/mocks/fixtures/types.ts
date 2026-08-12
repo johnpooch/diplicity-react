@@ -1,5 +1,5 @@
 import type {
-  Channel,
+  ChannelMessage,
   DrawProposal,
   GameList,
   Order,
@@ -8,13 +8,20 @@ import type {
   PhaseState,
 } from "@/api/generated/endpoints";
 
+export interface ChannelFixture {
+  id: number;
+  name: string;
+  private: boolean;
+  messages: ChannelMessage[];
+}
+
 export interface GameFixture {
   description: string;
   game: GameList;
   phases: PhaseRetrieve[];
   ordersByPhase: Record<number, Order[]>;
   phaseStates: PhaseState[];
-  channels: Channel[];
+  channels: ChannelFixture[];
   drawProposals: DrawProposal[];
   options: OrderOptionsResponse;
   totalUnreadMessageCount: number;

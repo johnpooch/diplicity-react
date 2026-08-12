@@ -150,8 +150,7 @@ const buildActiveMovement = () => {
           "Agreed — I'm heading north anyway.",
           "2026-05-01T12:10:00Z"
         ),
-      ],
-      { unreadMessageCount: 1 }
+      ]
     ),
   ];
   return makeFixture({

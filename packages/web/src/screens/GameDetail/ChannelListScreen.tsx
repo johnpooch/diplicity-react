@@ -28,10 +28,9 @@ import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 
 const getLatestMessagePreview = (
-  messages: readonly ChannelMessage[]
+  latestMessage: ChannelMessage | null
 ): string => {
-  if (messages.length === 0) return "No messages";
-  const latestMessage = messages[messages.length - 1];
+  if (!latestMessage) return "No messages";
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
     : (latestMessage.sender.nation?.name ?? latestMessage.sender.name);
@@ -103,14 +102,9 @@ const ChannelListScreen: React.FC = () => {
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}
-                            {channel.unreadMessageCount > 0 && (
-                              <Badge variant="default">
-                                {channel.unreadMessageCount}
-                              </Badge>
-                            )}
                           </ItemTitle>
                           <ItemDescription>
-                            {getLatestMessagePreview(channel.messages)}
+                            {getLatestMessagePreview(channel.latestMessage)}
                           </ItemDescription>
                         </ItemContent>
                       </Link>

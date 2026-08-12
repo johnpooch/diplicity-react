@@ -242,9 +242,8 @@ class TestAnonymousGames:
         assert len(response.data) >= 1
 
         public_channel = next(c for c in response.data if c["name"] == "Public Press")
-        assert len(public_channel["messages"]) == 1
 
-        sender = public_channel["messages"][0]["sender"]
+        sender = public_channel["latest_message"]["sender"]
         assert sender["name"] == "Anonymous"
         assert sender["picture"] is None
 

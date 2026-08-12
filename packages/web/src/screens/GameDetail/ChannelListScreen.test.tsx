@@ -57,80 +57,93 @@ const renderChannelList = () =>
   );
 
 describe("ChannelListScreen", () => {
-  it("shows unread badge when channel has unread messages", () => {
+  it("shows the latest message preview with the sender nation", () => {
     mockChannelsData.mockReturnValue([
       {
         id: 1,
         name: "Secret Alliance",
         private: true,
-        memberIds: [1, 2],
-        unreadMessageCount: 5,
-        messages: [
-          {
+        latestMessage: {
+          id: 1,
+          body: "Hello",
+          sender: {
             id: 1,
-            body: "Hello",
-            sender: {
-              id: 1,
-              name: "Alice",
-              picture: null,
-              nation: { name: "Austria" },
-              isCurrentUser: false,
-            },
-            createdAt: "2024-01-15T12:00:00Z",
+            name: "Alice",
+            picture: null,
+            nation: { name: "Austria" },
+            isCurrentUser: false,
           },
-        ],
+          createdAt: "2024-01-15T12:00:00Z",
+        },
       },
     ]);
 
     renderChannelList();
 
-    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("Austria: Hello")).toBeInTheDocument();
   });
 
-  it("does not show unread badge when count is zero", () => {
+  it("labels the preview 'You' when the latest message is the current user's", () => {
     mockChannelsData.mockReturnValue([
       {
         id: 1,
         name: "Secret Alliance",
         private: true,
-        memberIds: [1, 2],
-        unreadMessageCount: 0,
-        messages: [],
+        latestMessage: {
+          id: 1,
+          body: "See you there",
+          sender: {
+            id: 1,
+            name: "Alice",
+            picture: null,
+            nation: { name: "Austria" },
+            isCurrentUser: true,
+          },
+          createdAt: "2024-01-15T12:00:00Z",
+        },
+      },
+    ]);
+
+    renderChannelList();
+
+    expect(screen.getByText("You: See you there")).toBeInTheDocument();
+  });
+
+  it("shows 'No messages' when the channel has no latest message", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "Secret Alliance",
+        private: true,
+        latestMessage: null,
       },
     ]);
 
     renderChannelList();
 
     expect(screen.getByText("Secret Alliance")).toBeInTheDocument();
-    expect(screen.queryByText("0")).not.toBeInTheDocument();
+    expect(screen.getByText("No messages")).toBeInTheDocument();
   });
 
-  it("shows multiple badges for multiple channels with unread counts", () => {
+  it("marks public channels with a badge", () => {
     mockChannelsData.mockReturnValue([
       {
         id: 1,
         name: "Private Chat",
         private: true,
-        memberIds: [1, 2],
-        unreadMessageCount: 3,
-        messages: [],
+        latestMessage: null,
       },
       {
         id: 2,
         name: "Public Press",
         private: false,
-        memberIds: [1, 2, 3],
-        unreadMessageCount: 0,
-        messages: [],
+        latestMessage: null,
       },
     ]);
 
     renderChannelList();
 
-    expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Public")).toBeInTheDocument();
-    // No badge for zero unread
-    expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
   it("shows create channel button for a member", () => {

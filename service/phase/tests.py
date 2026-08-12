@@ -9,6 +9,8 @@ from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
 from rest_framework import status
+import emit
+from channel.models import Channel, ChannelEvent
 from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency
 from game.models import Game
 from .models import Phase, PhaseState
@@ -5525,3 +5527,32 @@ class TestKickedMemberPhaseStates:
 
         assert new_phase.phase_states.get(member=kicked).has_possible_orders is False
         assert new_phase.phase_states.get(member__nation__name="Germany").has_possible_orders is True
+
+
+class TestPhaseResolvedChannelEvent:
+
+    @pytest.mark.django_db
+    def test_phase_resolved_creates_channel_event_on_public_press_channel(
+        self, game_factory, classical_variant, in_memory_procrastinate
+    ):
+        game = game_factory(variant=classical_variant)
+        public = Channel.objects.create(game=game, name="Public Press", private=False)
+        private = Channel.objects.create(game=game, name="Secret", private=True)
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+
+        emit.emit("phase_resolved", phase=phase)
+
+        events = ChannelEvent.objects.filter(type="phase_resolved")
+        assert events.count() == 1
+        event = events.first()
+        assert event.channel_id == public.id
+        assert event.phase_id == phase.id
+        assert not ChannelEvent.objects.filter(channel=private).exists()

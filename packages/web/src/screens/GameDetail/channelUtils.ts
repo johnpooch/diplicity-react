@@ -1,6 +1,8 @@
-import { Channel, Member } from "@/api/generated/endpoints";
+import { Member } from "@/api/generated/endpoints";
 
 export type ChannelNation = { flagUrl: string | null; color: string };
+
+export type ChannelIdentity = { name: string; private: boolean };
 
 // Normalise any hex colour to 6-digit form (#RRGGBB). Falls back to grey for
 // non-hex values (e.g. rgb()) so callers can safely concatenate an alpha byte.
@@ -22,7 +24,7 @@ export const brightnessByColor = (hex: string): number => {
 
 // Private channel names are formatted by the backend as "Nation1, Nation2, ..."
 export const getChannelDisplayName = (
-  channel: Channel,
+  channel: ChannelIdentity,
   currentNationName: string | undefined
 ): string => {
   if (!channel.private || !currentNationName) return channel.name;
@@ -34,7 +36,7 @@ export const getChannelDisplayName = (
 };
 
 export const getChannelFlagUrls = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[],
   currentNationName: string | undefined,
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
