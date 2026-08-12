@@ -4,11 +4,10 @@ from django.urls import reverse
 from rest_framework import status
 
 from agent import tasks
-from bot_profile.constants import BotKind
-from bot_profile.models import BotProfile
-from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseType
+from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseType, UserKind
 from game.models import Game
 from integration.scoring import sum_of_squares
+from user_profile.models import UserProfile
 
 pytestmark = pytest.mark.skipif(
     not settings.BOT_ANTHROPIC_API_KEY,
@@ -43,14 +42,14 @@ def _create_match_game(client, variant_id, name, llm_seats, dumbbot_seats):
     assert response.status_code == status.HTTP_201_CREATED
     game = Game.objects.get(id=response.data["id"])
 
-    available = BotProfile.objects.available_for_game(game)
-    profiles = list(available.filter(kind=BotKind.LLM)[:llm_seats])
-    profiles += list(available.filter(kind=BotKind.DUMBBOT)[:dumbbot_seats])
+    available = UserProfile.objects.addable_to_game(game)
+    profiles = list(available.filter(kind=UserKind.LLM)[:llm_seats])
+    profiles += list(available.filter(kind=UserKind.DUMBBOT)[:dumbbot_seats])
     assert len(profiles) == llm_seats + dumbbot_seats
 
     for profile in profiles:
         add_response = client.post(
-            reverse("game-add-bot", args=[game.id]), {"user_id": profile.user_id}, format="json"
+            reverse("game-member-create", args=[game.id]), {"user_id": profile.user_id}, format="json"
         )
         assert add_response.status_code == status.HTTP_201_CREATED
 

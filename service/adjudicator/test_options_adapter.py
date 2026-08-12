@@ -11,7 +11,7 @@ from adjudicator.domain import (
     Unit,
     Variant,
 )
-from adjudication.options_adapter import python_options_to_godip_dict
+from adjudicator.options_adapter import python_options_to_godip_dict
 from phase.utils import transform_options
 
 

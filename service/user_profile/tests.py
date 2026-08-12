@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from common.constants import Commitment, CommitmentRequirement, GameStatus, PhaseStatus, PhaseType
 from game.models import Game
 from phase.models import Phase, PhaseState
@@ -983,3 +983,91 @@ class TestCanCreateBotGamesFlag:
         response = authenticated_client.get(reverse("user-profile"))
         assert response.status_code == status.HTTP_200_OK
         assert response.data["can_create_bot_games"] is False
+
+
+class TestAddableUserList:
+
+    def _create_game(self, client, variant_id):
+        response = client.post(
+            reverse("game-create"),
+            {
+                "name": "Bot Seat Game",
+                "variant_id": variant_id,
+                "nation_assignment": "random",
+                "private": False,
+                "deadline_mode": "duration",
+                "movement_phase_duration": "24 hours",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        return Game.objects.get(id=response.data["id"])
+
+    @pytest.mark.django_db
+    def test_lists_bots_sorted_by_name(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = self._create_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [user["name"] for user in response.data]
+        assert names == sorted(names)
+        assert all(user["user_id"] for user in response.data)
+
+    @pytest.mark.django_db
+    def test_excludes_humans(self, authenticated_client, classical_variant, secondary_user, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = self._create_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert secondary_user.id not in [user["user_id"] for user in response.data]
+
+    @pytest.mark.django_db
+    def test_excludes_bots_already_in_the_game(
+        self, authenticated_client, classical_variant, bot_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = self._create_game(authenticated_client, classical_variant.id)
+        game.members.create(user=bot_user)
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert bot_user.id not in [user["user_id"] for user in response.data]
+
+    @pytest.mark.django_db
+    def test_non_manager_forbidden(
+        self, authenticated_client, authenticated_client_for_secondary_user, classical_variant, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com", "secondary@example.com"]
+        game = self._create_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client_for_secondary_user.get(
+            reverse("game-addable-user-list", args=[game.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_user_off_the_allowlist_forbidden(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = self._create_game(authenticated_client, classical_variant.id)
+        settings.BOT_OPPONENT_ALLOWLIST = []
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_non_pending_game_forbidden(
+        self, authenticated_client, active_game_created_by_primary_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+
+        response = authenticated_client.get(
+            reverse("game-addable-user-list", args=[active_game_created_by_primary_user.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN

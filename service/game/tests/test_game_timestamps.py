@@ -8,7 +8,7 @@ from phase.models import Phase, PhaseState
 from member.models import Member
 from draw_proposal.models import DrawProposal, DrawVote
 from common.constants import GameStatus, PhaseStatus, PhaseType, MovementPhaseDuration, DeadlineMode
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from user_profile.models import UserProfile
 
 User = get_user_model()

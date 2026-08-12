@@ -10,21 +10,21 @@ from agent.fallback import first_legal_options
 from agent.models import AgentTask
 from agent.orders import option_to_selected
 from agent.orchestration import run_dumbbot_orders, run_reply, run_select_orders
-from bot_profile.constants import BotKind
-from bot_profile.models import BotProfile
 from channel.models import Channel
+from common.constants import UserKind
 from dumbbot.exceptions import DumbbotError
 from harness.adapter import orders_to_options
 from harness.exceptions import ContextError, ParsingError
 from inference.exceptions import InferenceError
 from member.models import Member
 from phase.models import Phase
+from user_profile.models import UserProfile
 
 logger = logging.getLogger(__name__)
 
 
 def _bot_kind(user_id):
-    profile = BotProfile.objects.filter(user_id=user_id).first()
+    profile = UserProfile.objects.filter(user_id=user_id).first()
     if profile is None:
         return None
     return profile.kind
@@ -44,7 +44,7 @@ def _member(game_id, user_id):
 def _submit_orders_from_context(api, data, game_id, user_id, label, kind):
     options = orders_to_options(data["orders"])
     try:
-        if kind == BotKind.DUMBBOT:
+        if kind == UserKind.DUMBBOT:
             orders = run_dumbbot_orders(data=data)
         else:
             orders = run_select_orders(

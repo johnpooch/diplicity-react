@@ -1,4 +1,4 @@
-from adjudication.service import resolve
+from adjudicator.service import resolve
 import json
 import pytest
 from django.db import IntegrityError, DatabaseError, transaction

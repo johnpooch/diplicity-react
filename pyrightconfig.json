@@ -9,6 +9,8 @@
         "**/dist",
         "**/build"
     ],
+    "venvPath": "service",
+    "venv": ".venv",
     "pythonVersion": "3.12",
     "pythonPlatform": "Darwin",
     "typeCheckingMode": "basic",

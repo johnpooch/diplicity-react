@@ -5,20 +5,23 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberSerializer
+from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 
 
+@extend_schema(responses={201: MemberSerializer})
 class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
-    serializer_class = MemberSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
+    serializer_class = MemberCreateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, IsSpaceAvailable, CanUseBotOpponent]
 
-    @extend_schema(request=EmptySerializer)
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+
+@extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
+class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
+    serializer_class = MemberJoinSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
@@ -53,7 +56,7 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     def perform_destroy(self, instance):
         game = instance.game
         user_id = instance.user_id
-        is_bot = instance.user is not None and hasattr(instance.user, "bot_profile")
+        is_bot = instance.user is not None and instance.user.profile.is_bot
         with transaction.atomic():
             instance.delete()
             if user_id and not is_bot:

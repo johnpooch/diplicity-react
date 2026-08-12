@@ -1,11 +1,10 @@
 from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from bot_profile.utils import user_can_use_bot_opponent
 from common.constants import GameStatus, MinReliability, PressType
 from common.views import resolve_game
 from user_profile.commitment import commitment_allows_requirement
-from user_profile.utils import get_player_stats, tier_allows_min_reliability
+from user_profile.utils import get_player_stats, tier_allows_min_reliability, user_can_use_bot_opponent
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
