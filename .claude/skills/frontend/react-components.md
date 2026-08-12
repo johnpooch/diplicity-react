@@ -21,6 +21,7 @@ Evaluate the code against the following rules:
 In React 19, Context objects can be rendered directly as providers without using the `.Provider` property.
 
 **✅ DO: Render Context directly**
+
 ```tsx
 export const ThemeContext = createContext<Theme | null>(null);
 
@@ -31,6 +32,7 @@ export const ThemeProvider = ({ children }: PropsWithChildren) => {
 ```
 
 **❌ DON'T: Use deprecated `.Provider` syntax**
+
 ```tsx
 // This is deprecated in React 19
 return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
@@ -45,6 +47,7 @@ return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeConte
 In React 19, never use `forwardRef` - always pass `ref` as a regular prop instead.
 
 **✅ DO: Pass ref as a regular prop**
+
 ```tsx
 interface ButtonProps {
   ref?: React.Ref<HTMLButtonElement>;
@@ -57,92 +60,12 @@ function Button({ ref, children }: ButtonProps) {
 ```
 
 **❌ DON'T: Use forwardRef (deprecated in React 19)**
+
 ```tsx
 // This pattern is no longer needed in React 19
 const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
   return <button ref={ref}>{props.children}</button>;
 });
-```
-
-## Component Structure Guidelines
-
-### File Organization
-```
-src/components/
-├── Button/
-│   ├── Button.tsx
-│   ├── Button.test.tsx
-│   └── index.ts
-├── GameBoard/
-│   ├── GameBoard.tsx
-│   ├── GameBoardControls.tsx  // Compound component
-│   ├── GameBoardCanvas.tsx     // Compound component
-│   └── index.ts
-```
-
-### Compound Components Pattern
-Use compound components for complex UI elements that have multiple related parts:
-
-```tsx
-// GameBoard.tsx
-export const GameBoard = ({ children }: { children: React.ReactNode }) => {
-  const [state, setState] = useState(initialState);
-  return (
-    <GameBoardContext value={{ state, setState }}>
-      <div className="game-board">{children}</div>
-    </GameBoardContext>
-  );
-};
-
-GameBoard.Controls = GameBoardControls;
-GameBoard.Canvas = GameBoardCanvas;
-
-// Usage
-<GameBoard>
-  <GameBoard.Controls />
-  <GameBoard.Canvas />
-</GameBoard>
-```
-
-## Material UI to Radix UI Migration
-
-Since the project is transitioning from Material UI to Radix UI with Tailwind:
-
-1. **Check for existing Radix components** before using Material UI
-2. **When creating new components**, prefer Radix UI primitives
-3. **For styling**, use Tailwind CSS classes with `clsx` and `tailwind-merge`
-4. **Use `class-variance-authority`** for component variants
-
-Example migration pattern:
-```tsx
-// Instead of Material UI Button
-import Button from '@mui/material/Button';
-
-// Use Radix UI + Tailwind
-import { Slot } from '@radix-ui/react-slot';
-import { cva } from 'class-variance-authority';
-import { cn } from '@/utils/cn';
-
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        outline: 'border border-input hover:bg-accent',
-      },
-      size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
-  }
-);
 ```
 
 ## TypeScript Best Practices
@@ -167,6 +90,7 @@ export function DataTable<T>({ data, columns, onRowClick }: DataTableProps<T>) {
 ## Performance Considerations
 
 1. **Code splitting**: Use lazy loading for large components
+
    ```tsx
    const GameBoard = lazy(() => import('./GameBoard'));
    ```
