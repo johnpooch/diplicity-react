@@ -10,7 +10,7 @@ class Unit(BaseModel):
     province = models.ForeignKey("province.Province", on_delete=models.CASCADE, related_name="units")
     phase = models.ForeignKey("phase.Phase", on_delete=models.CASCADE, related_name="units")
     dislodged = models.BooleanField(default=False)
-    dislodged_by = models.OneToOneField(
+    dislodged_by = models.ForeignKey(
         "unit.Unit", on_delete=models.CASCADE, related_name="dislodges", null=True, blank=True
     )
 
