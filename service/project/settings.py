@@ -107,7 +107,6 @@ INSTALLED_APPS = [
     "email_service",
     "inference",
     "agent",
-    "bot_profile",
     "harness",
     "dumbbot",
     "drf_spectacular",

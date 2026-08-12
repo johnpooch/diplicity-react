@@ -29,11 +29,10 @@ Diplicity React is a full-stack web app for the Diplomacy board game:
 
 ## AI player architecture
 
-The AI player system is four apps with a strict one-way dependency graph:
+The AI player system is three apps with a strict one-way dependency graph:
 
     agent → harness → (nothing in prod)
     agent → inference
-    agent → bot_profile
     harness → inference   (eval/test code only)
 
 Governing rule: **harness is pure; agent is where the world touches it.**
@@ -65,24 +64,25 @@ Governing rule: **harness is pure; agent is where the world touches it.**
   orders — a retreat only a bot must answer, an all-bot game — already
   satisfies it at phase_started, so PhaseStartedSpec queues finalize instead
   of plan for those seats rather than waiting for an event that never comes.
-- bot_profile — BotProfile persona (disposition, voice), roster-management
-  endpoints, get_bot_user, and the roster seed.
 
-**Personas are currently switched off.** No prompt receives a `disposition` or a
-`voice` block; production and the evals now run the same neutral system prompt,
-which is the only prompt the `EVAL_RESULTS.md` baseline has ever measured. The
-roster, its columns and its seed migrations are deliberately kept — the plan
-([#1131](https://github.com/johnpooch/diplicity-react/issues/1131)) is to re-add
-disposition first (into both `select_orders` and `reply`, gated on a larger
-ranked fixture set) and voice second (into `reply` only, rewritten as
-register-only), measuring each layer before the next. Do not re-inject either
-half without that measurement.
+**A bot is a user.** There is no separate bot model: `UserProfile.kind` is the
+one discriminant (`human` | `llm` | `dumbbot`, in `common.constants.UserKind`),
+`profile.is_bot` derives the boolean, and the roster is seeded as ordinary
+users by a `user_profile` data migration. Ordinary signup produces `human`;
+only seeds and management commands create bots. Never reintroduce a sidecar
+model or a magic bot account — filter on `user__profile__kind`.
+
+Personas are gone. Prompts carry no `disposition` or `voice`, and neither does
+the roster; production and the evals run the same neutral system prompt, which
+is the only prompt the `EVAL_RESULTS.md` baseline has ever measured. Bringing
+personas back ([#1131](https://github.com/johnpooch/diplicity-react/issues/1131))
+means designing them afresh and measuring each layer before adding the next.
 
 Where does new code go? Deterministic + model-shaped → harness. Touches
 Django/game/queue/side-effects → agent. Model-call mechanics/records →
-inference. Persona/roster → bot_profile. If you want to eval something in
-agent, a reasoning decision has leaked out of harness. If you want a plain
-deterministic assertion in harness, that logic belongs in agent.
+inference. If you want to eval something in agent, a reasoning decision has
+leaked out of harness. If you want a plain deterministic assertion in harness,
+that logic belongs in agent.
 
 ### Running the harness evals
 
