@@ -2,14 +2,13 @@ from unittest.mock import patch
 
 import pytest
 
-from adjudication import service as adjudication_service
-from bot_profile.utils import get_bot_user
+from adjudicator import service as adjudication_service
 from common.constants import DeadlineMode, MovementPhaseDuration, NationAssignment
 from game.models import Game
 
 
 @pytest.fixture
-def bot_game_factory(db, primary_user, italy_vs_germany_variant, adjudication_data_italy_vs_germany):
+def bot_game_factory(db, primary_user, bot_user, italy_vs_germany_variant, adjudication_data_italy_vs_germany):
     def _create():
         game = Game.objects.create_from_template(
             italy_vs_germany_variant,
@@ -20,7 +19,7 @@ def bot_game_factory(db, primary_user, italy_vs_germany_variant, adjudication_da
             created_by=primary_user,
         )
         game.members.create(user=primary_user)
-        game.members.create(user=get_bot_user())
+        game.members.create(user=bot_user)
 
         with patch.object(
             adjudication_service, "start", return_value=adjudication_data_italy_vs_germany

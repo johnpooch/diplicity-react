@@ -17,7 +17,7 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
     ...(actual as Record<string, unknown>),
     useGameRetrieveSuspense: (...args: unknown[]) =>
       mockUseGameRetrieveSuspense(...args),
-    useGameJoinCreate: () => ({
+    useGameMemberJoinCreate: () => ({
       mutateAsync: mockJoinMutateAsync,
       isPending: false,
     }),
@@ -184,7 +184,6 @@ describe("GameInfoScreen", () => {
 
       expect(mockJoinMutateAsync).toHaveBeenCalledWith({
         gameId: pendingGameCanJoin.id,
-        data: {},
       });
     });
 

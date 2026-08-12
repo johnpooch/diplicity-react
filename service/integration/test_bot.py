@@ -11,8 +11,8 @@ from province.models import Province
 from agent import tasks
 from agent.fallback import first_legal_options
 from agent.orders import option_to_selected
-from bot_profile.models import BotProfile
 from harness.adapter import orders_to_options
+from user_profile.models import UserProfile
 
 
 def _submit_first_legal_orders(client, game_id):
@@ -37,9 +37,9 @@ def _create_bot_game(client, variant_id):
     assert response.status_code == status.HTTP_201_CREATED
     game = Game.objects.get(id=response.data["id"])
 
-    bot_user = BotProfile.objects.available_for_game(game).first().user
+    bot_user = UserProfile.objects.addable_to_game(game).first().user
     add_response = client.post(
-        reverse("game-add-bot", args=[game.id]), {"user_id": bot_user.id}, format="json"
+        reverse("game-member-create", args=[game.id]), {"user_id": bot_user.id}, format="json"
     )
     assert add_response.status_code == status.HTTP_201_CREATED
 

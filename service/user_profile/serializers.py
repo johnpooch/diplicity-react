@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from bot_profile.utils import user_can_use_bot_opponent
-from .utils import get_player_stats
+from .utils import get_player_stats, user_can_use_bot_opponent
 
 
 class UserProfileSerializer(serializers.Serializer):
@@ -41,6 +40,12 @@ class UserProfileSerializer(serializers.Serializer):
         )
         instance.save()
         return instance
+
+
+class AddableUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    name = serializers.CharField(read_only=True)
+    picture = serializers.CharField(read_only=True, allow_null=True)
 
 
 class PublicUserProfileSerializer(serializers.Serializer):

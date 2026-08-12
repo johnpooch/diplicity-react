@@ -15,24 +15,24 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  AvailableBot,
-  getGameAvailableBotsListQueryKey,
+  AddableUser,
+  getGameAddableUserListQueryKey,
   getGameRetrieveQueryKey,
-  useGameAddBotCreate,
-  useGameAvailableBotsListSuspense,
+  useGameAddableUserListSuspense,
+  useGameMemberCreate,
 } from "@/api/generated/endpoints";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface AvailableBotListProps {
+interface AddableBotListProps {
   gameId: string;
 }
 
-const AvailableBotList: React.FC<AvailableBotListProps> = ({ gameId }) => {
-  const { data: bots } = useGameAvailableBotsListSuspense(gameId);
+const AddableBotList: React.FC<AddableBotListProps> = ({ gameId }) => {
+  const { data: bots } = useGameAddableUserListSuspense(gameId);
   const queryClient = useQueryClient();
-  const addBotMutation = useGameAddBotCreate();
+  const addBotMutation = useGameMemberCreate();
 
-  const handleAdd = async (bot: AvailableBot) => {
+  const handleAdd = async (bot: AddableUser) => {
     try {
       await addBotMutation.mutateAsync({
         gameId,
@@ -43,7 +43,7 @@ const AvailableBotList: React.FC<AvailableBotListProps> = ({ gameId }) => {
           queryKey: getGameRetrieveQueryKey(gameId),
         }),
         queryClient.invalidateQueries({
-          queryKey: getGameAvailableBotsListQueryKey(gameId),
+          queryKey: getGameAddableUserListQueryKey(gameId),
         }),
       ]);
       toast.success(`${bot.name} joined the game`);
@@ -84,7 +84,7 @@ const AvailableBotList: React.FC<AvailableBotListProps> = ({ gameId }) => {
   );
 };
 
-const AvailableBotListSkeleton: React.FC = () => (
+const AddableBotListSkeleton: React.FC = () => (
   <div className="flex flex-col divide-y">
     {Array.from({ length: 6 }, (_, index) => (
       <div key={index} className="flex items-center gap-4 py-3 px-2">
@@ -123,8 +123,8 @@ export const AddBotSheet: React.FC<AddBotSheetProps> = ({
         </SheetHeader>
         <div className="overflow-y-auto px-4 pb-4">
           <QueryErrorBoundary>
-            <Suspense fallback={<AvailableBotListSkeleton />}>
-              <AvailableBotList gameId={gameId} />
+            <Suspense fallback={<AddableBotListSkeleton />}>
+              <AddableBotList gameId={gameId} />
             </Suspense>
           </QueryErrorBoundary>
         </div>

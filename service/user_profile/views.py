@@ -6,8 +6,10 @@ from game.models import Game
 from member.models import Member
 from phase.models import PhaseState
 from common.constants import GameStatus, PhaseStatus
+from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame
+from common.views import SelectedGameMixin
 from .models import UserProfile
-from .serializers import UserProfileSerializer, PublicUserProfileSerializer
+from .serializers import AddableUserSerializer, UserProfileSerializer, PublicUserProfileSerializer
 
 
 class UserProfileRetrieveView(generics.RetrieveAPIView):
@@ -33,6 +35,14 @@ class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
     def get_object(self):
         user_id = self.kwargs["user_id"]
         return get_object_or_404(UserProfile.objects.with_related_data(), user_id=user_id)
+
+
+class AddableUserListView(SelectedGameMixin, generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, CanUseBotOpponent]
+    serializer_class = AddableUserSerializer
+
+    def get_queryset(self):
+        return UserProfile.objects.addable_to_game(self.get_game())
 
 
 class UserAccountDeleteView(generics.DestroyAPIView):

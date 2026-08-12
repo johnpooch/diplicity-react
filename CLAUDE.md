@@ -100,7 +100,3 @@ Issues have three sections (enforced by the `create-issue` skill): **Goal** (alw
 ## Maintaining this document
 
 When you establish a convention or make an architectural decision, update this file or the relevant file in `.claude/rules/` in the same session — do not park lasting guidance only in a walkthrough ledger.
-
-Keep this file under 200 lines. It holds facts needed in *every* session. Guidance that only applies to part of the codebase belongs in a path-scoped rule; multi-step procedures belong in a skill.
-
-Large planned refactors from a codebase walkthrough are tracked in `docs/codebase-walkthrough-ledger.md` (work items only — not preferences).

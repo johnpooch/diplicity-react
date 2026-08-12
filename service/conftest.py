@@ -9,7 +9,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMember, ChannelMessage
 from common.constants import (
     DeadlineMode,
@@ -20,6 +20,7 @@ from common.constants import (
     PhaseStatus,
     PhaseType,
     UnitType,
+    UserKind,
 )
 from draw_proposal.models import DrawProposal, DrawVote
 from game import models
@@ -117,6 +118,11 @@ def user_factory(db):
         return user
 
     return _create
+
+
+@pytest.fixture
+def bot_user(db):
+    return UserProfile.objects.filter(kind=UserKind.LLM).order_by("name").first().user
 
 
 @pytest.fixture(scope="session")
@@ -1047,7 +1053,8 @@ def pending_game_created_by_secondary_user(
     base_pending_game_for_secondary_user.created_by = secondary_user
     base_pending_game_for_secondary_user.admin = secondary_user
     base_pending_game_for_secondary_user.save()
-    base_pending_game_for_secondary_user.members.create(user=secondary_user)
+    base_pending_game_for_secondary_user.channels.create(name="Public Press", private=False)
+    base_pending_game_for_secondary_user.seat(secondary_user)
     return base_pending_game_for_secondary_user
 
 
@@ -1063,7 +1070,8 @@ def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for
     base_pending_game_for_primary_user.created_by = primary_user
     base_pending_game_for_primary_user.admin = primary_user
     base_pending_game_for_primary_user.save()
-    base_pending_game_for_primary_user.members.create(user=primary_user)
+    base_pending_game_for_primary_user.channels.create(name="Public Press", private=False)
+    base_pending_game_for_primary_user.seat(primary_user)
     return base_pending_game_for_primary_user
 
 

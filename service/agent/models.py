@@ -12,7 +12,7 @@ RUNNING_RECONCILE_AFTER = timedelta(minutes=10)
 
 class AgentTaskManager(models.Manager):
     def create_from_event(self, event_type, context):
-        # Local import: agent.registry imports member/bot_profile models.
+        # Local import: agent.registry imports member/user_profile models.
         from agent.registry import get_spec
 
         spec = get_spec(event_type, context)

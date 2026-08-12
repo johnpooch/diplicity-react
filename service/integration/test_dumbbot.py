@@ -6,12 +6,11 @@ from django.urls import reverse
 from rest_framework import status
 
 from agent import tasks
-from bot_profile.constants import BotKind
-from bot_profile.models import BotProfile
-from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
+from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus, UserKind
 from game.models import Game
 from inference.models import Inference
 from integration.scoring import sum_of_squares
+from user_profile.models import UserProfile
 
 
 @pytest.fixture
@@ -41,7 +40,7 @@ def _create_game_master_game(client, variant_id):
 def _add_bots(client, game, profiles):
     for profile in profiles:
         response = client.post(
-            reverse("game-add-bot", args=[game.id]), {"user_id": profile.user_id}, format="json"
+            reverse("game-member-create", args=[game.id]), {"user_id": profile.user_id}, format="json"
         )
         assert response.status_code == status.HTTP_201_CREATED
     game.refresh_from_db()
@@ -64,7 +63,7 @@ def _seeded_orchestration_rng():
 @pytest.mark.django_db
 def test_all_dumbbot_game_plays_phases_without_inference(game_master_client, classical_variant):
     game = _create_game_master_game(game_master_client, classical_variant.id)
-    dumbbots = list(BotProfile.objects.available_for_game(game).filter(kind=BotKind.DUMBBOT)[:7])
+    dumbbots = list(UserProfile.objects.addable_to_game(game).filter(kind=UserKind.DUMBBOT)[:7])
     assert len(dumbbots) == 7
     _add_bots(game_master_client, game, dumbbots)
 
@@ -93,16 +92,16 @@ def test_all_dumbbot_game_plays_phases_without_inference(game_master_client, cla
     assert Inference.objects.count() == 0
 
     score = sum_of_squares(game.current_phase)
-    assert set(score.kinds.values()) == {BotKind.DUMBBOT}
+    assert set(score.kinds.values()) == {UserKind.DUMBBOT}
     assert score.total > 0
     assert all(count >= 0 for count in score.centers.values())
-    assert score.cohorts == {BotKind.DUMBBOT: score.total}
+    assert score.cohorts == {UserKind.DUMBBOT: score.total}
 
 
 @pytest.mark.django_db
 def test_dumbbot_game_submits_orders_for_every_unit(game_master_client, classical_variant):
     game = _create_game_master_game(game_master_client, classical_variant.id)
-    dumbbots = list(BotProfile.objects.available_for_game(game).filter(kind=BotKind.DUMBBOT)[:7])
+    dumbbots = list(UserProfile.objects.addable_to_game(game).filter(kind=UserKind.DUMBBOT)[:7])
     _add_bots(game_master_client, game, dumbbots)
 
     patcher = _seeded_orchestration_rng()

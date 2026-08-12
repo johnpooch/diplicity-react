@@ -10,8 +10,8 @@ from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType
-from adjudication.service import resolve
+from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind
+from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
 from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
@@ -1001,8 +1001,7 @@ class Phase(BaseModel):
         return self.phase_states.filter(
             has_possible_orders=True,
             orders_confirmed=False,
-            member__user__bot_profile__isnull=True,
-        ).exists()
+        ).exclude(member__user__profile__kind__in=UserKind.BOT_KINDS).exists()
 
     @property
     def previous_phase_id(self):

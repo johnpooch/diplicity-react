@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-from bot_profile.models import BotProfile
-
-HUMAN_KIND = "human"
+from common.constants import UserKind
 
 
 @dataclass
@@ -20,16 +18,15 @@ def sum_of_squares(phase):
         centers[supply_center.nation.name] = centers.get(supply_center.nation.name, 0) + 1
 
     kinds: dict[str, str] = {}
-    for member in phase.game.members.select_related("nation"):
+    for member in phase.game.members.select_related("nation", "user__profile"):
         if member.nation is None or member.user_id is None:
             continue
-        profile = BotProfile.objects.filter(user_id=member.user_id).first()
-        kinds[member.nation.name] = profile.kind if profile else HUMAN_KIND
+        kinds[member.nation.name] = member.user.profile.kind
 
     scores = {nation: count**2 for nation, count in centers.items()}
     cohorts: dict[str, int] = {}
     for nation, score in scores.items():
-        kind = kinds.get(nation, HUMAN_KIND)
+        kind = kinds.get(nation, UserKind.HUMAN)
         cohorts[kind] = cohorts.get(kind, 0) + score
 
     return GameScore(

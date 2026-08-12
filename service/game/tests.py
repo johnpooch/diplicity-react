@@ -1,5 +1,5 @@
 import pytest
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from unittest.mock import patch
 from django.urls import reverse
 from django.test.utils import override_settings
@@ -14,7 +14,6 @@ from phase.models import Phase
 from nation.models import Nation
 from province.models import Province
 from user_profile.models import UserProfile
-from bot_profile.utils import get_bot_user
 from .models import Game
 
 retrieve_viewname = "game-retrieve"
@@ -222,6 +221,7 @@ class TestGameRetrieveView:
         secondary_user,
         classical_england_nation,
         classical_france_nation,
+        bot_user,
     ):
         game = Game.objects.create(
             name="Replaced Member Game",
@@ -230,7 +230,7 @@ class TestGameRetrieveView:
         )
         game.members.create(user=primary_user, nation=classical_england_nation)
         replaced = game.members.create(user=secondary_user, nation=classical_france_nation)
-        replacement = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+        replacement = game.members.create(user=bot_user, nation=classical_france_nation)
         replaced.kicked = True
         replaced.replaced_by = replacement
         replaced.save(update_fields=["kicked", "replaced_by"])
@@ -458,11 +458,12 @@ class TestGameListView:
         base_pending_phase,
         primary_user,
         classical_england_nation,
+        bot_user,
     ):
         game = Game.objects.create(name="Replaced Member Game", variant=classical_variant, status=GameStatus.ACTIVE)
         base_pending_phase(game)
         replaced = game.members.create(user=primary_user, nation=classical_england_nation)
-        replacement = game.members.create(user=get_bot_user(), nation=classical_england_nation)
+        replacement = game.members.create(user=bot_user, nation=classical_england_nation)
         replaced.kicked = True
         replaced.replaced_by = replacement
         replaced.save(update_fields=["kicked", "replaced_by"])
@@ -2416,7 +2417,7 @@ class TestSandboxGameCreateViewPerformance:
         connection.queries_log.clear()
 
         with override_settings(DEBUG=True):
-            with patch("adjudication.service.start") as mock_start:
+            with patch("adjudicator.service.start") as mock_start:
                 mock_start.return_value = adjudication_data_italy_vs_germany
                 response = authenticated_client.post(url, payload, format="json")
 
@@ -2437,7 +2438,7 @@ class TestSandboxGameCreateViewPerformance:
         connection.queries_log.clear()
 
         with override_settings(DEBUG=True):
-            with patch("adjudication.service.start") as mock_start:
+            with patch("adjudicator.service.start") as mock_start:
                 mock_start.return_value = adjudication_data_classical
                 response = authenticated_client.post(url, payload, format="json")
 
@@ -2740,7 +2741,7 @@ class TestGameCreator:
         self, authenticated_client, active_game_with_phase_state, adjudication_data_classical, primary_user
     ):
         url = reverse("game-clone-to-sandbox", args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2759,7 +2760,7 @@ class TestGameCloneToSandbox:
         self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2771,7 +2772,7 @@ class TestGameCloneToSandbox:
         self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2784,7 +2785,7 @@ class TestGameCloneToSandbox:
     ):
         source_units_count = active_game_with_phase_state.current_phase.units.count()
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2797,7 +2798,7 @@ class TestGameCloneToSandbox:
     ):
         source_sc_count = active_game_with_phase_state.current_phase.supply_centers.count()
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2810,7 +2811,7 @@ class TestGameCloneToSandbox:
     ):
         source_phase = active_game_with_phase_state.current_phase
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2826,7 +2827,7 @@ class TestGameCloneToSandbox:
     ):
         nations_count = active_game_with_phase_state.variant.nations.count()
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2839,7 +2840,7 @@ class TestGameCloneToSandbox:
         self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
@@ -2872,7 +2873,7 @@ class TestGameCloneToSandbox:
         oldest_sandbox_id = existing_sandboxes[0]
 
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
 

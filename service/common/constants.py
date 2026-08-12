@@ -134,6 +134,20 @@ class Commitment:
     )
 
 
+class UserKind:
+    HUMAN = "human"
+    LLM = "llm"
+    DUMBBOT = "dumbbot"
+
+    KIND_CHOICES = (
+        (HUMAN, "Human"),
+        (LLM, "LLM"),
+        (DUMBBOT, "DumbBot"),
+    )
+
+    BOT_KINDS = (LLM, DUMBBOT)
+
+
 class CommitmentRequirement:
     OPEN = "open"
     COMMITTED = "committed"
