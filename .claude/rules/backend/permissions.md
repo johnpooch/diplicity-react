@@ -37,6 +37,7 @@ Check the existing classes before writing a new one:
 | `IsCurrentPhaseActive` | Current phase status is `ACTIVE` |
 | `IsUserPhaseStateExists` | User has a phase state for the current phase |
 | `IsSandboxGame` / `IsNotSandboxGame` | Game is / is not a sandbox |
+| `IsOwnedDraftForWrite` | Draft variant owned by request user (works on `Variant` or `Nation`) |
 
 ## Permissions vs validation
 

@@ -1,7 +1,7 @@
 import pytest
 
 from common.constants import VariantStatus
-from nation.models import Nation
+from nation.models import Nation, NationFlag
 from variant.models import Variant
 
 
@@ -39,3 +39,9 @@ def minimal_flag_svg():
         '<rect width="10" height="10" fill="#ff0000"/>'
         "</svg>"
     )
+
+
+@pytest.fixture
+def primary_flag(db, draft_variant_for_primary, minimal_flag_svg):
+    nation = draft_variant_for_primary.nations.get(nation_id="reds")
+    return NationFlag.objects.create(nation=nation, svg=minimal_flag_svg)
