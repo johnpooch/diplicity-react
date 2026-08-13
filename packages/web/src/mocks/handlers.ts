@@ -5,6 +5,7 @@ import type {
   PhaseList,
   Version,
 } from "@/api/generated/endpoints";
+import type { GameFixture } from "./fixtures";
 import {
   allVariants,
   botRoster,
@@ -76,6 +77,17 @@ const gameOr404 = (gameId: string | readonly string[]) => {
 const notFound = () =>
   HttpResponse.json({ detail: "Not found." }, { status: 404 });
 
+const unreadChannels = (fixture: GameFixture) =>
+  fixture.channels
+    .filter(c => (c.unreadMessageCount ?? 0) > 0)
+    .map(c => ({
+      channelId: c.id,
+      unreadMessageCount: c.unreadMessageCount ?? 0,
+    }));
+
+const unreadTotal = (fixture: GameFixture) =>
+  unreadChannels(fixture).reduce((sum, c) => sum + c.unreadMessageCount, 0);
+
 const recoveredCivilDisorderGames = new Set<string>();
 
 export const handlers = [
@@ -124,12 +136,11 @@ export const handlers = [
       Object.values(fixtureByGameId)
         .filter(
           f =>
-            f.totalUnreadMessageCount > 0 &&
-            f.game.members.some(m => m.isCurrentUser)
+            unreadTotal(f) > 0 && f.game.members.some(m => m.isCurrentUser)
         )
         .map(f => ({
           gameId: f.game.id,
-          totalUnreadMessageCount: f.totalUnreadMessageCount,
+          totalUnreadMessageCount: unreadTotal(f),
         }))
     )
   ),
@@ -138,7 +149,8 @@ export const handlers = [
     const fixture = gameOr404(params.gameId as string);
     if (!fixture) return notFound();
     return HttpResponse.json({
-      totalUnreadMessageCount: fixture.totalUnreadMessageCount,
+      totalUnreadMessageCount: unreadTotal(fixture),
+      channels: unreadChannels(fixture),
     });
   }),
 

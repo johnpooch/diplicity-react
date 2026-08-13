@@ -21,6 +21,10 @@ beforeAll(() => {
 
 const mockChannelsData = vi.fn();
 const mockMembersData = vi.fn(() => [{ id: 1, nation: "Austria", isCurrentUser: true }]);
+const mockUnreadData = vi.fn(() => ({
+  totalUnreadMessageCount: 0,
+  channels: [] as { channelId: number; unreadMessageCount: number }[],
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
@@ -34,6 +38,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   }),
   useGamesChannelsListSuspense: () => ({
     data: mockChannelsData(),
+  }),
+  useGameChannelUnreadRetrieveSuspense: () => ({
+    data: mockUnreadData(),
   }),
   useVariantsListSuspense: () => ({
     data: [],
@@ -146,8 +153,57 @@ describe("ChannelListScreen", () => {
     expect(screen.getByText("Public")).toBeInTheDocument();
   });
 
+  it("shows the unread count for a channel with unread messages", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "Private Chat",
+        private: true,
+        latestMessage: null,
+      },
+    ]);
+    mockUnreadData.mockReturnValue({
+      totalUnreadMessageCount: 3,
+      channels: [{ channelId: 1, unreadMessageCount: 3 }],
+    });
+
+    renderChannelList();
+
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("shows no unread count for a channel that is fully read", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "Private Chat",
+        private: true,
+        latestMessage: null,
+      },
+      {
+        id: 2,
+        name: "Other Chat",
+        private: true,
+        latestMessage: null,
+      },
+    ]);
+    mockUnreadData.mockReturnValue({
+      totalUnreadMessageCount: 2,
+      channels: [{ channelId: 2, unreadMessageCount: 2 }],
+    });
+
+    renderChannelList();
+
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
   it("shows create channel button for a member", () => {
     mockChannelsData.mockReturnValue([]);
+    mockUnreadData.mockReturnValue({
+      totalUnreadMessageCount: 0,
+      channels: [],
+    });
 
     renderChannelList();
 

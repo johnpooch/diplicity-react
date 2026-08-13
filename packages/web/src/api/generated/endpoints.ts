@@ -138,8 +138,14 @@ export interface ChannelRetrieve {
   readonly messages: PaginatedChannelMessageList;
 }
 
+export interface ChannelUnreadCount {
+  readonly channelId: number;
+  readonly unreadMessageCount: number;
+}
+
 export interface ChannelUnread {
   readonly totalUnreadMessageCount: number;
+  readonly channels: readonly ChannelUnreadCount[];
 }
 
 /**
@@ -2807,10 +2813,6 @@ export function useGameRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameAddableUserList = (gameId: string, signal?: AbortSignal) => {
   return customInstance<AddableUser[]>({
     url: `/game/${gameId}/addable-user/`,
@@ -3087,9 +3089,6 @@ export function useGameAddableUserListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Retrieve the total number of unread channel messages for the current user in a game.
- */
 export const gameChannelUnreadRetrieve = (
   gameId: string,
   signal?: AbortSignal
@@ -3372,10 +3371,6 @@ export function useGameChannelUnreadRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameCloneToSandboxCreate = (
   gameId: string,
   gameCloneToSandbox: NonReadonly<GameCloneToSandbox>,
@@ -3459,10 +3454,6 @@ export const useGameCloneToSandboxCreate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameConfirmPhaseUpdate = (
   gameId: string,
   phaseState: NonReadonly<PhaseState>,
@@ -3542,10 +3533,6 @@ export const useGameConfirmPhaseUpdate = <TError = unknown, TContext = unknown>(
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameConfirmPhasePartialUpdate = (
   gameId: string,
   patchedPhaseState: NonReadonly<PatchedPhaseState>,
@@ -3629,10 +3616,6 @@ export const useGameConfirmPhasePartialUpdate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameDeleteDestroy = (gameId: string, signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/game/${gameId}/delete/`,
@@ -3703,10 +3686,6 @@ export const useGameDeleteDestroy = <TError = unknown, TContext = unknown>(
   return useMutation(getGameDeleteDestroyMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameExtendDeadlineUpdate = (
   gameId: string,
   gameExtendDeadline: GameExtendDeadline,
@@ -3789,10 +3768,6 @@ export const useGameExtendDeadlineUpdate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameExtendDeadlinePartialUpdate = (
   gameId: string,
   patchedGameExtendDeadline: PatchedGameExtendDeadline,
@@ -3876,10 +3851,6 @@ export const useGameExtendDeadlinePartialUpdate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameKickDestroy = (
   gameId: string,
   memberId: number,
@@ -3954,10 +3925,6 @@ export const useGameKickDestroy = <TError = unknown, TContext = unknown>(
   return useMutation(getGameKickDestroyMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameLeaveDestroy = (gameId: string, signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/game/${gameId}/leave/`,
@@ -4028,10 +3995,6 @@ export const useGameLeaveDestroy = <TError = unknown, TContext = unknown>(
   return useMutation(getGameLeaveDestroyMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameMemberCreate = (
   gameId: string,
   memberCreate: MemberCreate,
@@ -4108,10 +4071,6 @@ export const useGameMemberCreate = <TError = unknown, TContext = unknown>(
   return useMutation(getGameMemberCreateMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameMemberJoinCreate = (gameId: string, signal?: AbortSignal) => {
   return customInstance<Member>({
     url: `/game/${gameId}/member/join/`,
@@ -4185,10 +4144,6 @@ export const useGameMemberJoinCreate = <TError = unknown, TContext = unknown>(
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_phase
-method that returns the current phase for the game. Also adds phase to the serializer context.
- */
 export const gameOptionsRetrieve = (gameId: string, signal?: AbortSignal) => {
   return customInstance<OrderOptionsResponse>({
     url: `/game/${gameId}/options/`,
@@ -4465,10 +4420,6 @@ export function useGameOptionsRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_phase
-method that returns the current phase for the game. Also adds phase to the serializer context.
- */
 export const gameOrdersCreate = (
   gameId: string,
   order: NonReadonly<Order>,
@@ -4545,10 +4496,6 @@ export const useGameOrdersCreate = <TError = unknown, TContext = unknown>(
   return useMutation(getGameOrdersCreateMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a phase parameter in the URL. Provides a get_phase
-method that returns the phase object. Also adds phase to the serializer context.
- */
 export const gameOrdersList = (
   gameId: string,
   phaseId: number,
@@ -4820,10 +4767,6 @@ export function useGameOrdersListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_phase
-method that returns the current phase for the game. Also adds phase to the serializer context.
- */
 export const gameOrdersDeleteDestroy = (
   gameId: string,
   sourceId: string,
@@ -4904,10 +4847,6 @@ export const useGameOrdersDeleteDestroy = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamePauseUpdate = (gameId: string, signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/game/${gameId}/pause/`,
@@ -4978,10 +4917,6 @@ export const useGamePauseUpdate = <TError = unknown, TContext = unknown>(
   return useMutation(getGamePauseUpdateMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamePausePartialUpdate = (
   gameId: string,
   signal?: AbortSignal
@@ -5058,10 +4993,6 @@ export const useGamePausePartialUpdate = <TError = unknown, TContext = unknown>(
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamePhaseStatesList = (gameId: string, signal?: AbortSignal) => {
   return customInstance<PhaseState[]>({
     url: `/game/${gameId}/phase-states/`,
@@ -5636,10 +5567,6 @@ export function useGamePhaseRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamePhasesList = (gameId: string, signal?: AbortSignal) => {
   return customInstance<PhaseList[]>({
     url: `/game/${gameId}/phases/`,
@@ -5891,10 +5818,6 @@ export function useGamePhasesListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameRecoverFromCivilDisorderCreate = (
   gameId: string,
   signal?: AbortSignal
@@ -5974,10 +5897,6 @@ export const useGameRecoverFromCivilDisorderCreate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameResolvePhaseCreate = (
   gameId: string,
   signal?: AbortSignal
@@ -6054,10 +5973,6 @@ export const useGameResolvePhaseCreate = <TError = unknown, TContext = unknown>(
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameUnpauseUpdate = (gameId: string, signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/game/${gameId}/unpause/`,
@@ -6128,10 +6043,6 @@ export const useGameUnpauseUpdate = <TError = unknown, TContext = unknown>(
   return useMutation(getGameUnpauseUpdateMutationOptions(options), queryClient);
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameUnpausePartialUpdate = (
   gameId: string,
   signal?: AbortSignal
@@ -6211,9 +6122,6 @@ export const useGameUnpausePartialUpdate = <
   );
 };
 
-/**
- * List the current user's games that have unread channel messages, with their unread counts.
- */
 export const gameUnreadList = (signal?: AbortSignal) => {
   return customInstance<GameUnread[]>({
     url: `/game/unread/`,
@@ -6693,9 +6601,6 @@ export function useGamesListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * List the channels of a game visible to the current user, with a preview of the latest message.
- */
 export const gamesChannelsList = (gameId: string, signal?: AbortSignal) => {
   return customInstance<ChannelPreview[]>({
     url: `/games/${gameId}/channels/`,
@@ -6972,9 +6877,6 @@ export function useGamesChannelsListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Retrieve a channel with a cursor-paginated page of its messages.
- */
 export const gamesChannelsRetrieve = (
   gameId: string,
   channelId: number,
@@ -7293,9 +7195,6 @@ export function useGamesChannelsRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Mark every message in a channel as read for the current member.
- */
 export const gamesChannelsMarkReadUpdate = (
   gameId: string,
   channelId: number,
@@ -7376,9 +7275,6 @@ export const useGamesChannelsMarkReadUpdate = <
   );
 };
 
-/**
- * Mark every message in a channel as read for the current member.
- */
 export const gamesChannelsMarkReadPartialUpdate = (
   gameId: string,
   channelId: number,
@@ -7459,9 +7355,6 @@ export const useGamesChannelsMarkReadPartialUpdate = <
   );
 };
 
-/**
- * Send a message to a channel as the current member.
- */
 export const gamesChannelsMessagesCreateCreate = (
   gameId: string,
   channelId: number,
@@ -7546,9 +7439,6 @@ export const useGamesChannelsMessagesCreateCreate = <
   );
 };
 
-/**
- * Create a private channel between the current member and the given members.
- */
 export const gamesChannelsCreateCreate = (
   gameId: string,
   channelCreate: NonReadonly<ChannelCreate>,
@@ -7631,10 +7521,6 @@ export const useGamesChannelsCreateCreate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamesDrawProposalsList = (
   gameId: string,
   signal?: AbortSignal
@@ -7914,9 +7800,6 @@ export function useGamesDrawProposalsListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * Cancel a draw proposal created by the current member.
- */
 export const gamesDrawProposalsCancelUpdate = (
   gameId: string,
   proposalId: number,
@@ -7997,9 +7880,6 @@ export const useGamesDrawProposalsCancelUpdate = <
   );
 };
 
-/**
- * Cancel a draw proposal created by the current member.
- */
 export const gamesDrawProposalsCancelPartialUpdate = (
   gameId: string,
   proposalId: number,
@@ -8080,10 +7960,6 @@ export const useGamesDrawProposalsCancelPartialUpdate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamesDrawProposalsVoteUpdate = (
   gameId: string,
   proposalId: number,
@@ -8167,10 +8043,6 @@ export const useGamesDrawProposalsVoteUpdate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamesDrawProposalsVotePartialUpdate = (
   gameId: string,
   proposalId: number,
@@ -8255,10 +8127,6 @@ export const useGamesDrawProposalsVotePartialUpdate = <
   );
 };
 
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gamesDrawProposalsCreateCreate = (
   gameId: string,
   drawProposal: NonReadonly<DrawProposal>,

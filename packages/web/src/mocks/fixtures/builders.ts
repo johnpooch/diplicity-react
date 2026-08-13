@@ -287,6 +287,5 @@ export const makeFixture = (
   channels: [],
   drawProposals: [],
   options: { orders: [], fieldOrder: {} },
-  totalUnreadMessageCount: 0,
   ...fixture,
 });

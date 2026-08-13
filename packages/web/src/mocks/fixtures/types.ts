@@ -13,6 +13,7 @@ export interface ChannelFixture {
   name: string;
   private: boolean;
   messages: ChannelMessage[];
+  unreadMessageCount?: number;
 }
 
 export interface GameFixture {
@@ -24,5 +25,4 @@ export interface GameFixture {
   channels: ChannelFixture[];
   drawProposals: DrawProposal[];
   options: OrderOptionsResponse;
-  totalUnreadMessageCount: number;
 }

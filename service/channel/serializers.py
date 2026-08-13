@@ -121,8 +121,14 @@ class ChannelMarkReadSerializer(serializers.Serializer):
         return instance
 
 
+class ChannelUnreadCountSerializer(serializers.Serializer):
+    channel_id = serializers.IntegerField(read_only=True)
+    unread_message_count = serializers.IntegerField(read_only=True)
+
+
 class ChannelUnreadSerializer(serializers.Serializer):
     total_unread_message_count = serializers.IntegerField(read_only=True)
+    channels = ChannelUnreadCountSerializer(many=True, read_only=True)
 
 
 class GameUnreadSerializer(serializers.Serializer):

@@ -20,6 +20,7 @@ import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
 import {
   ChannelMessage,
+  useGameChannelUnreadRetrieveSuspense,
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
 } from "@/api/generated/endpoints";
@@ -44,7 +45,14 @@ const ChannelListScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: unread } = useGameChannelUnreadRetrieveSuspense(gameId, {
+    query: { refetchInterval: 5000 },
+  });
   const variant = useGameVariant(game);
+
+  const unreadByChannelId = new Map(
+    unread.channels.map(c => [c.channelId, c.unreadMessageCount])
+  );
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
@@ -101,6 +109,11 @@ const ChannelListScreen: React.FC = () => {
                             {getChannelDisplayName(channel, currentNationName)}
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
+                            )}
+                            {(unreadByChannelId.get(channel.id) ?? 0) > 0 && (
+                              <Badge variant="default">
+                                {unreadByChannelId.get(channel.id)}
+                              </Badge>
                             )}
                           </ItemTitle>
                           <ItemDescription>

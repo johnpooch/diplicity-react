@@ -984,6 +984,56 @@ class TestChannelUnreadRetrieveView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == 0
+        assert response.data["channels"] == []
+
+    @pytest.mark.django_db
+    def test_unread_count_broken_down_per_channel(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        primary_member = game.members.first()
+        secondary_member = game.members.exclude(id=primary_member.id).first()
+
+        private_channel = Channel.objects.create(game=game, name="Private Channel", private=True)
+        private_channel.members.add(primary_member, secondary_member)
+        ChannelMessage.objects.create(channel=private_channel, sender=secondary_member, body="Private msg")
+
+        public_channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        counts = {row["channel_id"]: row["unread_message_count"] for row in response.data["channels"]}
+        assert counts == {public_channel.id: 2, private_channel.id: 1}
+        assert response.data["total_unread_message_count"] == 3
+
+    @pytest.mark.django_db
+    def test_channels_with_no_unread_are_omitted(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        authenticated_client.patch(reverse("channel-mark-read", args=[game.id, channel.id]))
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.data["channels"] == []
+
+    @pytest.mark.django_db
+    def test_breakdown_excludes_channels_from_other_games(
+        self, authenticated_client, game_with_public_channel_and_messages, active_game_factory, secondary_user
+    ):
+        game = game_with_public_channel_and_messages
+        other_game = active_game_factory()
+        other_member = other_game.members.first()
+        other_channel = Channel.objects.create(game=other_game, name="Public Press", private=False)
+        ChannelMember.objects.create(member=other_member, channel=other_channel)
+        ChannelMessage.objects.create(channel=other_channel, sender=other_member, body="Other game msg")
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        channel_ids = {row["channel_id"] for row in response.data["channels"]}
+        assert other_channel.id not in channel_ids
 
 
 class TestGameUnreadListView:

@@ -150,7 +150,8 @@ const buildActiveMovement = () => {
           "Agreed — I'm heading north anyway.",
           "2026-05-01T12:10:00Z"
         ),
-      ]
+      ],
+      { unreadMessageCount: 1 }
     ),
   ];
   return makeFixture({
@@ -189,7 +190,6 @@ const buildActiveMovement = () => {
       makePhaseState(members[6], ["con", "ank", "smy"]),
     ],
     channels,
-    totalUnreadMessageCount: 1,
   });
 };
 
@@ -264,7 +264,6 @@ const buildActiveNamedCoast = () => {
       makePhaseState(members[5], ["mos", "war", "sev"]),
     ],
     channels: [makeChannel("Public Press", members, [])],
-    totalUnreadMessageCount: 0,
   });
 };
 

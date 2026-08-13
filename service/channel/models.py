@@ -82,6 +82,21 @@ class Channel(BaseModel):
 
 
 class ChannelMemberQuerySet(models.QuerySet):
+    def unread_counts_by_channel(self, user):
+        return (
+            self.filter(member__user=user)
+            .order_by()
+            .values("channel_id")
+            .annotate(
+                unread_message_count=Count(
+                    "channel__messages",
+                    filter=Q(channel__messages__created_at__gt=F("last_read_at"))
+                    & ~Q(channel__messages__sender__user=user),
+                    distinct=True,
+                )
+            )
+        )
+
     def unread_counts_by_game(self, user):
         return (
             self.filter(member__user=user)

@@ -39,8 +39,9 @@ class ChannelCreate(TypedDict):
     member_ids: list[int]
 
 
-class ChannelUnread(TypedDict):
-    total_unread_message_count: int
+class ChannelUnreadCount(TypedDict):
+    channel_id: int
+    unread_message_count: int
 
 
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
@@ -411,6 +412,11 @@ class ChannelPreview(TypedDict):
     name: str
     private: bool
     latest_message: ChannelMessage | None
+
+
+class ChannelUnread(TypedDict):
+    total_unread_message_count: int
+    channels: list[ChannelUnreadCount]
 
 
 class DrawProposal(TypedDict):

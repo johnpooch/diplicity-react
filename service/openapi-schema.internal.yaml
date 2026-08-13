@@ -5,7 +5,7 @@ info:
 paths:
   /api/schema/:
     get:
-      operationId: apiSchemaRetrieve
+      operationId: api_schema_retrieve
       description: |-
         OpenApi3 schema for this API. Format can be selected via content negotiation.
 
@@ -151,7 +151,7 @@ paths:
           description: ''
   /api/token/refresh/:
     post:
-      operationId: apiTokenRefreshCreate
+      operationId: api_token_refresh_create
       description: |-
         Takes a refresh type JSON web token and returns an access type JSON web
         token if the refresh token is valid.
@@ -172,7 +172,7 @@ paths:
           description: ''
   /auth/apple-login/:
     post:
-      operationId: authAppleLoginCreate
+      operationId: auth_apple_login_create
       tags:
       - auth
       requestBody:
@@ -193,7 +193,7 @@ paths:
           description: ''
   /auth/email-login/:
     post:
-      operationId: authEmailLoginCreate
+      operationId: auth_email_login_create
       tags:
       - auth
       requestBody:
@@ -214,7 +214,7 @@ paths:
           description: ''
   /auth/login/:
     post:
-      operationId: authLoginCreate
+      operationId: auth_login_create
       tags:
       - auth
       requestBody:
@@ -235,7 +235,7 @@ paths:
           description: ''
   /auth/password-reset/:
     post:
-      operationId: authPasswordResetCreate
+      operationId: auth_password_reset_create
       tags:
       - auth
       requestBody:
@@ -256,7 +256,7 @@ paths:
           description: ''
   /auth/password-reset/confirm/:
     post:
-      operationId: authPasswordResetConfirmCreate
+      operationId: auth_password_reset_confirm_create
       tags:
       - auth
       requestBody:
@@ -277,7 +277,7 @@ paths:
           description: ''
   /auth/register/:
     post:
-      operationId: authRegisterCreate
+      operationId: auth_register_create
       tags:
       - auth
       requestBody:
@@ -298,7 +298,7 @@ paths:
           description: ''
   /auth/verify-email/:
     post:
-      operationId: authVerifyEmailCreate
+      operationId: auth_verify_email_create
       tags:
       - auth
       requestBody:
@@ -319,7 +319,7 @@ paths:
           description: ''
   /devices/:
     get:
-      operationId: devicesList
+      operationId: devices_list
       tags:
       - devices
       security:
@@ -334,7 +334,7 @@ paths:
                   $ref: '#/components/schemas/FCMDevice'
           description: ''
     post:
-      operationId: devicesCreate
+      operationId: devices_create
       tags:
       - devices
       requestBody:
@@ -353,7 +353,7 @@ paths:
                 $ref: '#/components/schemas/FCMDevice'
           description: ''
     put:
-      operationId: devicesUpdate
+      operationId: devices_update
       tags:
       - devices
       requestBody:
@@ -373,7 +373,7 @@ paths:
           description: ''
   /game/:
     post:
-      operationId: gameCreate
+      operationId: game_create
       tags:
       - game
       requestBody:
@@ -391,12 +391,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameCreate'
           description: ''
-  /game/{gameId}/:
+  /game/{game_id}/:
     get:
-      operationId: gameRetrieve
+      operationId: game_retrieve
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -412,12 +412,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameRetrieve'
           description: ''
-  /game/{gameId}/addable-user/:
+  /game/{game_id}/addable-user/:
     get:
-      operationId: gameAddableUserList
+      operationId: game_addable_user_list
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -434,12 +434,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/AddableUser'
           description: ''
-  /game/{gameId}/channel/unread/:
+  /game/{game_id}/channel/unread/:
     get:
-      operationId: gameChannelUnreadRetrieve
+      operationId: game_channel_unread_retrieve
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -454,12 +454,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChannelUnread'
           description: ''
-  /game/{gameId}/clone-to-sandbox/:
+  /game/{game_id}/clone-to-sandbox/:
     post:
-      operationId: gameCloneToSandboxCreate
+      operationId: game_clone_to_sandbox_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -479,12 +479,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameCloneToSandbox'
           description: ''
-  /game/{gameId}/confirm-phase/:
+  /game/{game_id}/confirm-phase/:
     put:
-      operationId: gameConfirmPhaseUpdate
+      operationId: game_confirm_phase_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -505,10 +505,10 @@ paths:
                 $ref: '#/components/schemas/PhaseState'
           description: ''
     patch:
-      operationId: gameConfirmPhasePartialUpdate
+      operationId: game_confirm_phase_partial_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -528,12 +528,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseState'
           description: ''
-  /game/{gameId}/delete/:
+  /game/{game_id}/delete/:
     delete:
-      operationId: gameDeleteDestroy
+      operationId: game_delete_destroy
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -544,12 +544,12 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/extend-deadline/:
+  /game/{game_id}/extend-deadline/:
     put:
-      operationId: gameExtendDeadlineUpdate
+      operationId: game_extend_deadline_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -571,10 +571,10 @@ paths:
                 $ref: '#/components/schemas/GameExtendDeadline'
           description: ''
     patch:
-      operationId: gameExtendDeadlinePartialUpdate
+      operationId: game_extend_deadline_partial_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -594,17 +594,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameExtendDeadline'
           description: ''
-  /game/{gameId}/kick/{memberId}/:
+  /game/{game_id}/kick/{member_id}/:
     delete:
-      operationId: gameKickDestroy
+      operationId: game_kick_destroy
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: memberId
+        name: member_id
         schema:
           type: integer
         required: true
@@ -615,12 +615,12 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/leave/:
+  /game/{game_id}/leave/:
     delete:
-      operationId: gameLeaveDestroy
+      operationId: game_leave_destroy
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -631,12 +631,12 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/member/:
+  /game/{game_id}/member/:
     post:
-      operationId: gameMemberCreate
+      operationId: game_member_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -657,12 +657,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
-  /game/{gameId}/member/join/:
+  /game/{game_id}/member/join/:
     post:
-      operationId: gameMemberJoinCreate
+      operationId: game_member_join_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -677,12 +677,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
-  /game/{gameId}/options/:
+  /game/{game_id}/options/:
     get:
-      operationId: gameOptionsRetrieve
+      operationId: game_options_retrieve
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -697,12 +697,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrderOptionsResponse'
           description: ''
-  /game/{gameId}/orders/:
+  /game/{game_id}/orders/:
     post:
-      operationId: gameOrdersCreate
+      operationId: game_orders_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -722,17 +722,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
           description: ''
-  /game/{gameId}/orders/{phaseId}:
+  /game/{game_id}/orders/{phase_id}:
     get:
-      operationId: gameOrdersList
+      operationId: game_orders_list
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: phaseId
+        name: phase_id
         schema:
           type: integer
         required: true
@@ -749,17 +749,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/Order'
           description: ''
-  /game/{gameId}/orders/delete/{sourceId}:
+  /game/{game_id}/orders/delete/{source_id}:
     delete:
-      operationId: gameOrdersDeleteDestroy
+      operationId: game_orders_delete_destroy
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: sourceId
+        name: source_id
         schema:
           type: string
         required: true
@@ -770,12 +770,12 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/pause/:
+  /game/{game_id}/pause/:
     put:
-      operationId: gamePauseUpdate
+      operationId: game_pause_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -787,10 +787,10 @@ paths:
         '200':
           description: No response body
     patch:
-      operationId: gamePausePartialUpdate
+      operationId: game_pause_partial_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -801,12 +801,12 @@ paths:
       responses:
         '200':
           description: No response body
-  /game/{gameId}/phase-states/:
+  /game/{game_id}/phase-states/:
     get:
-      operationId: gamePhaseStatesList
+      operationId: game_phase_states_list
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -823,17 +823,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/PhaseState'
           description: ''
-  /game/{gameId}/phase/{phaseId}/:
+  /game/{game_id}/phase/{phase_id}/:
     get:
-      operationId: gamePhaseRetrieve
+      operationId: game_phase_retrieve
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: phaseId
+        name: phase_id
         schema:
           type: integer
         required: true
@@ -849,12 +849,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseRetrieve'
           description: ''
-  /game/{gameId}/phases/:
+  /game/{game_id}/phases/:
     get:
-      operationId: gamePhasesList
+      operationId: game_phases_list
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -871,12 +871,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/PhaseList'
           description: ''
-  /game/{gameId}/recover-from-civil-disorder/:
+  /game/{game_id}/recover-from-civil-disorder/:
     post:
-      operationId: gameRecoverFromCivilDisorderCreate
+      operationId: game_recover_from_civil_disorder_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -891,12 +891,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
-  /game/{gameId}/resolve-phase/:
+  /game/{game_id}/resolve-phase/:
     post:
-      operationId: gameResolvePhaseCreate
+      operationId: game_resolve_phase_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -911,12 +911,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseList'
           description: ''
-  /game/{gameId}/unpause/:
+  /game/{game_id}/unpause/:
     put:
-      operationId: gameUnpauseUpdate
+      operationId: game_unpause_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -928,10 +928,10 @@ paths:
         '200':
           description: No response body
     patch:
-      operationId: gameUnpausePartialUpdate
+      operationId: game_unpause_partial_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -944,7 +944,7 @@ paths:
           description: No response body
   /game/unread/:
     get:
-      operationId: gameUnreadList
+      operationId: game_unread_list
       tags:
       - game
       security:
@@ -960,7 +960,7 @@ paths:
           description: ''
   /games/:
     get:
-      operationId: gamesList
+      operationId: games_list
       parameters:
       - in: query
         name: can_join
@@ -1043,12 +1043,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedGameListList'
           description: ''
-  /games/{gameId}/channels/:
+  /games/{game_id}/channels/:
     get:
-      operationId: gamesChannelsList
+      operationId: games_channels_list
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1066,12 +1066,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/ChannelPreview'
           description: ''
-  /games/{gameId}/channels/{channelId}/:
+  /games/{game_id}/channels/{channel_id}/:
     get:
-      operationId: gamesChannelsRetrieve
+      operationId: games_channels_retrieve
       parameters:
       - in: path
-        name: channelId
+        name: channel_id
         schema:
           type: integer
         required: true
@@ -1080,7 +1080,7 @@ paths:
         schema:
           type: string
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1096,17 +1096,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChannelRetrieve'
           description: ''
-  /games/{gameId}/channels/{channelId}/mark-read/:
+  /games/{game_id}/channels/{channel_id}/mark-read/:
     put:
-      operationId: gamesChannelsMarkReadUpdate
+      operationId: games_channels_mark_read_update
       parameters:
       - in: path
-        name: channelId
+        name: channel_id
         schema:
           type: integer
         required: true
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1118,15 +1118,15 @@ paths:
         '200':
           description: No response body
     patch:
-      operationId: gamesChannelsMarkReadPartialUpdate
+      operationId: games_channels_mark_read_partial_update
       parameters:
       - in: path
-        name: channelId
+        name: channel_id
         schema:
           type: integer
         required: true
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1137,17 +1137,17 @@ paths:
       responses:
         '200':
           description: No response body
-  /games/{gameId}/channels/{channelId}/messages/create/:
+  /games/{game_id}/channels/{channel_id}/messages/create/:
     post:
-      operationId: gamesChannelsMessagesCreateCreate
+      operationId: games_channels_messages_create_create
       parameters:
       - in: path
-        name: channelId
+        name: channel_id
         schema:
           type: integer
         required: true
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1168,12 +1168,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChannelMessage'
           description: ''
-  /games/{gameId}/channels/create/:
+  /games/{game_id}/channels/create/:
     post:
-      operationId: gamesChannelsCreateCreate
+      operationId: games_channels_create_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1194,12 +1194,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChannelCreate'
           description: ''
-  /games/{gameId}/draw-proposals/:
+  /games/{game_id}/draw-proposals/:
     get:
-      operationId: gamesDrawProposalsList
+      operationId: games_draw_proposals_list
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1216,17 +1216,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/DrawProposal'
           description: ''
-  /games/{gameId}/draw-proposals/{proposalId}/cancel/:
+  /games/{game_id}/draw-proposals/{proposal_id}/cancel/:
     put:
-      operationId: gamesDrawProposalsCancelUpdate
+      operationId: games_draw_proposals_cancel_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: proposalId
+        name: proposal_id
         schema:
           type: integer
         required: true
@@ -1242,15 +1242,15 @@ paths:
                 $ref: '#/components/schemas/DrawProposal'
           description: ''
     patch:
-      operationId: gamesDrawProposalsCancelPartialUpdate
+      operationId: games_draw_proposals_cancel_partial_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: proposalId
+        name: proposal_id
         schema:
           type: integer
         required: true
@@ -1265,17 +1265,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/DrawProposal'
           description: ''
-  /games/{gameId}/draw-proposals/{proposalId}/vote/:
+  /games/{game_id}/draw-proposals/{proposal_id}/vote/:
     put:
-      operationId: gamesDrawProposalsVoteUpdate
+      operationId: games_draw_proposals_vote_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: proposalId
+        name: proposal_id
         schema:
           type: integer
         required: true
@@ -1297,15 +1297,15 @@ paths:
                 $ref: '#/components/schemas/DrawVoteUpdate'
           description: ''
     patch:
-      operationId: gamesDrawProposalsVotePartialUpdate
+      operationId: games_draw_proposals_vote_partial_update
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
       - in: path
-        name: proposalId
+        name: proposal_id
         schema:
           type: integer
         required: true
@@ -1325,12 +1325,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/DrawVoteUpdate'
           description: ''
-  /games/{gameId}/draw-proposals/create/:
+  /games/{game_id}/draw-proposals/create/:
     post:
-      operationId: gamesDrawProposalsCreateCreate
+      operationId: games_draw_proposals_create_create
       parameters:
       - in: path
-        name: gameId
+        name: game_id
         schema:
           type: string
         required: true
@@ -1352,7 +1352,7 @@ paths:
           description: ''
   /games/find-similar/:
     get:
-      operationId: gamesFindSimilarRetrieve
+      operationId: games_find_similar_retrieve
       parameters:
       - in: query
         name: movement_phase_duration
@@ -1377,7 +1377,7 @@ paths:
           description: ''
   /phase/resolve/:
     post:
-      operationId: phaseResolveCreate
+      operationId: phase_resolve_create
       tags:
       - phase
       security:
@@ -1387,7 +1387,7 @@ paths:
           description: No response body
   /sandbox-game/:
     post:
-      operationId: sandboxGameCreate
+      operationId: sandbox_game_create
       tags:
       - sandbox-game
       requestBody:
@@ -1407,7 +1407,7 @@ paths:
           description: ''
   /user/:
     get:
-      operationId: userRetrieve
+      operationId: user_retrieve
       tags:
       - user
       security:
@@ -1421,7 +1421,7 @@ paths:
           description: ''
   /user/delete/:
     delete:
-      operationId: userDeleteDestroy
+      operationId: user_delete_destroy
       tags:
       - user
       security:
@@ -1431,7 +1431,7 @@ paths:
           description: No response body
   /user/update/:
     put:
-      operationId: userUpdateUpdate
+      operationId: user_update_update
       tags:
       - user
       requestBody:
@@ -1450,7 +1450,7 @@ paths:
                 $ref: '#/components/schemas/UserProfile'
           description: ''
     patch:
-      operationId: userUpdatePartialUpdate
+      operationId: user_update_partial_update
       tags:
       - user
       requestBody:
@@ -1467,12 +1467,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
           description: ''
-  /users/{userId}/:
+  /users/{user_id}/:
     get:
-      operationId: usersRetrieve
+      operationId: users_retrieve
       parameters:
       - in: path
-        name: userId
+        name: user_id
         schema:
           type: integer
         required: true
@@ -1489,7 +1489,7 @@ paths:
           description: ''
   /variants/:
     get:
-      operationId: variantsList
+      operationId: variants_list
       tags:
       - variants
       security:
@@ -1505,7 +1505,7 @@ paths:
                   $ref: '#/components/schemas/Variant'
           description: ''
     post:
-      operationId: variantsCreate
+      operationId: variants_create
       tags:
       - variants
       requestBody:
@@ -1525,7 +1525,7 @@ paths:
           description: ''
   /variants/{id}/:
     get:
-      operationId: variantsRetrieve
+      operationId: variants_retrieve
       parameters:
       - in: path
         name: id
@@ -1544,7 +1544,7 @@ paths:
                 $ref: '#/components/schemas/Variant'
           description: ''
     put:
-      operationId: variantsUpdate
+      operationId: variants_update
       parameters:
       - in: path
         name: id
@@ -1569,7 +1569,7 @@ paths:
                 $ref: '#/components/schemas/VariantWrite'
           description: ''
     patch:
-      operationId: variantsPartialUpdate
+      operationId: variants_partial_update
       parameters:
       - in: path
         name: id
@@ -1593,7 +1593,7 @@ paths:
                 $ref: '#/components/schemas/VariantWrite'
           description: ''
     delete:
-      operationId: variantsDestroy
+      operationId: variants_destroy
       parameters:
       - in: path
         name: id
@@ -1607,12 +1607,12 @@ paths:
       responses:
         '204':
           description: No response body
-  /variants/{variantId}/dvar/:
+  /variants/{variant_id}/dvar/:
     get:
-      operationId: variantsDvarRetrieve
+      operationId: variants_dvar_retrieve
       parameters:
       - in: path
-        name: variantId
+        name: variant_id
         schema:
           type: string
         required: true
@@ -1627,17 +1627,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Variant'
           description: ''
-  /variants/{variantId}/nations/{nationId}/flag/:
+  /variants/{variant_id}/nations/{nation_id}/flag/:
     put:
-      operationId: variantsNationsFlagUpdate
+      operationId: variants_nations_flag_update
       parameters:
       - in: path
-        name: nationId
+        name: nation_id
         schema:
           type: string
         required: true
       - in: path
-        name: variantId
+        name: variant_id
         schema:
           type: string
         required: true
@@ -1659,15 +1659,15 @@ paths:
                 $ref: '#/components/schemas/Nation'
           description: ''
     delete:
-      operationId: variantsNationsFlagDestroy
+      operationId: variants_nations_flag_destroy
       parameters:
       - in: path
-        name: nationId
+        name: nation_id
         schema:
           type: string
         required: true
       - in: path
-        name: variantId
+        name: variant_id
         schema:
           type: string
         required: true
@@ -1680,7 +1680,7 @@ paths:
           description: No response body
   /variants/mine/:
     get:
-      operationId: variantsMineList
+      operationId: variants_mine_list
       tags:
       - variants
       security:
@@ -1696,7 +1696,7 @@ paths:
           description: ''
   /version/:
     get:
-      operationId: versionRetrieve
+      operationId: version_retrieve
       tags:
       - version
       security:
@@ -1713,7 +1713,7 @@ components:
     AddableUser:
       type: object
       properties:
-        userId:
+        user_id:
           type: integer
           readOnly: true
         name:
@@ -1726,17 +1726,17 @@ components:
       required:
       - name
       - picture
-      - userId
+      - user_id
     AppleAuth:
       type: object
       properties:
-        idToken:
+        id_token:
           type: string
           writeOnly: true
-        firstName:
+        first_name:
           type: string
           writeOnly: true
-        lastName:
+        last_name:
           type: string
           writeOnly: true
         id:
@@ -1748,23 +1748,23 @@ components:
         name:
           type: string
           readOnly: true
-        accessToken:
+        access_token:
           type: string
           readOnly: true
-        refreshToken:
+        refresh_token:
           type: string
           readOnly: true
       required:
-      - accessToken
+      - access_token
       - email
       - id
-      - idToken
+      - id_token
       - name
-      - refreshToken
+      - refresh_token
     Auth:
       type: object
       properties:
-        idToken:
+        id_token:
           type: string
           writeOnly: true
         id:
@@ -1776,19 +1776,19 @@ components:
         name:
           type: string
           readOnly: true
-        accessToken:
+        access_token:
           type: string
           readOnly: true
-        refreshToken:
+        refresh_token:
           type: string
           readOnly: true
       required:
-      - accessToken
+      - access_token
       - email
       - id
-      - idToken
+      - id_token
       - name
-      - refreshToken
+      - refresh_token
     ChannelCreate:
       type: object
       properties:
@@ -1801,14 +1801,14 @@ components:
         private:
           type: boolean
           readOnly: true
-        memberIds:
+        member_ids:
           type: array
           items:
             type: integer
           writeOnly: true
       required:
       - id
-      - memberIds
+      - member_ids
       - name
       - private
     ChannelMember:
@@ -1817,7 +1817,7 @@ components:
         id:
           type: integer
           readOnly: true
-        userId:
+        user_id:
           type: integer
           nullable: true
           readOnly: true
@@ -1828,10 +1828,10 @@ components:
           type: string
           nullable: true
           readOnly: true
-        isCurrentUser:
+        is_current_user:
           type: boolean
           readOnly: true
-        isBot:
+        is_bot:
           type: boolean
           readOnly: true
         commitment:
@@ -1845,12 +1845,12 @@ components:
       required:
       - commitment
       - id
-      - isBot
-      - isCurrentUser
+      - is_bot
+      - is_current_user
       - name
       - nation
       - picture
-      - userId
+      - user_id
     ChannelMessage:
       type: object
       properties:
@@ -1864,13 +1864,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/ChannelMember'
           readOnly: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
           readOnly: true
       required:
       - body
-      - createdAt
+      - created_at
       - id
       - sender
     ChannelPreview:
@@ -1885,14 +1885,14 @@ components:
         private:
           type: boolean
           readOnly: true
-        latestMessage:
+        latest_message:
           allOf:
           - $ref: '#/components/schemas/ChannelMessage'
           nullable: true
           readOnly: true
       required:
       - id
-      - latestMessage
+      - latest_message
       - name
       - private
     ChannelRetrieve:
@@ -1919,7 +1919,7 @@ components:
     ChannelUnread:
       type: object
       properties:
-        totalUnreadMessageCount:
+        total_unread_message_count:
           type: integer
           readOnly: true
         channels:
@@ -1929,19 +1929,19 @@ components:
           readOnly: true
       required:
       - channels
-      - totalUnreadMessageCount
+      - total_unread_message_count
     ChannelUnreadCount:
       type: object
       properties:
-        channelId:
+        channel_id:
           type: integer
           readOnly: true
-        unreadMessageCount:
+        unread_message_count:
           type: integer
           readOnly: true
       required:
-      - channelId
-      - unreadMessageCount
+      - channel_id
+      - unread_message_count
     CommitmentEligibilityEnum:
       enum:
       - eligible
@@ -1974,61 +1974,61 @@ components:
         id:
           type: integer
           readOnly: true
-        createdBy:
+        created_by:
           allOf:
           - $ref: '#/components/schemas/DrawVoteMember'
           readOnly: true
         status:
           type: string
           readOnly: true
-        acceptedCount:
+        accepted_count:
           type: integer
           readOnly: true
-        rejectedCount:
+        rejected_count:
           type: integer
           readOnly: true
-        pendingCount:
+        pending_count:
           type: integer
           readOnly: true
-        totalVotes:
+        total_votes:
           type: integer
           readOnly: true
-        includedMemberIds:
+        included_member_ids:
           type: array
           items:
             type: integer
           readOnly: true
-        myVote:
+        my_vote:
           allOf:
           - $ref: '#/components/schemas/MyVote'
           nullable: true
           readOnly: true
-        phaseId:
+        phase_id:
           type: integer
           readOnly: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
           readOnly: true
       required:
-      - acceptedCount
-      - createdAt
-      - createdBy
+      - accepted_count
+      - created_at
+      - created_by
       - id
-      - includedMemberIds
-      - myVote
-      - pendingCount
-      - phaseId
-      - rejectedCount
+      - included_member_ids
+      - my_vote
+      - pending_count
+      - phase_id
+      - rejected_count
       - status
-      - totalVotes
+      - total_votes
     DrawVoteMember:
       type: object
       properties:
         id:
           type: integer
           readOnly: true
-        userId:
+        user_id:
           type: integer
           nullable: true
           readOnly: true
@@ -2039,10 +2039,10 @@ components:
           type: string
           nullable: true
           readOnly: true
-        isCurrentUser:
+        is_current_user:
           type: boolean
           readOnly: true
-        isBot:
+        is_bot:
           type: boolean
           readOnly: true
         commitment:
@@ -2055,12 +2055,12 @@ components:
       required:
       - commitment
       - id
-      - isBot
-      - isCurrentUser
+      - is_bot
+      - is_current_user
       - name
       - nation
       - picture
-      - userId
+      - user_id
     DrawVoteUpdate:
       type: object
       properties:
@@ -2109,19 +2109,19 @@ components:
         name:
           type: string
           readOnly: true
-        accessToken:
+        access_token:
           type: string
           readOnly: true
-        refreshToken:
+        refresh_token:
           type: string
           readOnly: true
       required:
-      - accessToken
+      - access_token
       - email
       - id
       - name
       - password
-      - refreshToken
+      - refresh_token
     FCMDevice:
       type: object
       properties:
@@ -2132,10 +2132,10 @@ components:
           type: string
           nullable: true
           maxLength: 255
-        registrationId:
+        registration_id:
           type: string
           title: Registration token
-        deviceId:
+        device_id:
           type: string
           nullable: true
           description: Unique device identifier
@@ -2145,7 +2145,7 @@ components:
           default: true
           title: Is active
           description: Inactive devices will not be sent notifications
-        dateCreated:
+        date_created:
           type: string
           format: date-time
           readOnly: true
@@ -2154,9 +2154,9 @@ components:
         type:
           $ref: '#/components/schemas/TypeEnum'
       required:
-      - dateCreated
+      - date_created
       - id
-      - registrationId
+      - registration_id
       - type
     FieldValue:
       type: object
@@ -2175,7 +2175,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/FieldValue'
           nullable: true
-        orderType:
+        order_type:
           allOf:
           - $ref: '#/components/schemas/FieldValue'
           nullable: true
@@ -2187,21 +2187,21 @@ components:
           allOf:
           - $ref: '#/components/schemas/FieldValue'
           nullable: true
-        unitType:
+        unit_type:
           allOf:
           - $ref: '#/components/schemas/FieldValue'
           nullable: true
-        namedCoast:
+        named_coast:
           allOf:
           - $ref: '#/components/schemas/FieldValue'
           nullable: true
       required:
       - aux
-      - namedCoast
-      - orderType
+      - named_coast
+      - order_type
       - source
       - target
-      - unitType
+      - unit_type
     GameCloneToSandbox:
       type: object
       properties:
@@ -2218,15 +2218,15 @@ components:
           readOnly: true
         name:
           type: string
-        variantId:
+        variant_id:
           type: string
-        nationAssignment:
+        nation_assignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
-        movementPhaseDuration:
+        movement_phase_duration:
           allOf:
           - $ref: '#/components/schemas/DurationEnum'
           default: 24 hours
-        retreatPhaseDuration:
+        retreat_phase_duration:
           nullable: true
           oneOf:
           - $ref: '#/components/schemas/DurationEnum'
@@ -2236,54 +2236,54 @@ components:
         anonymous:
           type: boolean
           default: false
-        gameMaster:
+        game_master:
           type: boolean
           default: false
-        deadlineMode:
+        deadline_mode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
           default: fixed_time
-        fixedDeadlineTime:
+        fixed_deadline_time:
           type: string
           format: time
           nullable: true
-        fixedDeadlineTimezone:
+        fixed_deadline_timezone:
           type: string
           nullable: true
           maxLength: 50
-        movementFrequency:
+        movement_frequency:
           nullable: true
           oneOf:
           - $ref: '#/components/schemas/MovementFrequencyEnum'
           - $ref: '#/components/schemas/NullEnum'
-        retreatFrequency:
+        retreat_frequency:
           nullable: true
           oneOf:
           - $ref: '#/components/schemas/RetreatFrequencyEnum'
           - $ref: '#/components/schemas/NullEnum'
-        nmrExtensionsAllowed:
+        nmr_extensions_allowed:
           type: integer
           maximum: 2
           minimum: 0
           default: 0
-        pressType:
+        press_type:
           allOf:
           - $ref: '#/components/schemas/PressTypeEnum'
           default: full_press
-        minReliability:
+        min_reliability:
           allOf:
           - $ref: '#/components/schemas/MinReliabilityEnum'
           default: open
-        commitmentRequirement:
+        commitment_requirement:
           allOf:
           - $ref: '#/components/schemas/CommitmentRequirementEnum'
           default: open
       required:
       - id
       - name
-      - nationAssignment
+      - nation_assignment
       - private
-      - variantId
+      - variant_id
     GameCreateSandbox:
       type: object
       properties:
@@ -2292,12 +2292,12 @@ components:
           readOnly: true
         name:
           type: string
-        variantId:
+        variant_id:
           type: string
       required:
       - id
       - name
-      - variantId
+      - variant_id
     GameExtendDeadline:
       type: object
       properties:
@@ -2326,28 +2326,28 @@ components:
         status:
           type: string
           readOnly: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
           readOnly: true
-        canJoin:
+        can_join:
           type: boolean
           readOnly: true
-        canLeave:
+        can_leave:
           type: boolean
           readOnly: true
-        canDelete:
+        can_delete:
           type: boolean
           readOnly: true
-        canManage:
+        can_manage:
           type: boolean
           readOnly: true
-        gameMaster:
+        game_master:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
           readOnly: true
           nullable: true
-        variantId:
+        variant_id:
           type: string
           readOnly: true
         phases:
@@ -2355,25 +2355,25 @@ components:
           items:
             type: integer
           readOnly: true
-        currentPhaseId:
+        current_phase_id:
           type: integer
           nullable: true
           readOnly: true
-        currentPhase:
+        current_phase:
           allOf:
           - $ref: '#/components/schemas/GameListCurrentPhase'
           nullable: true
           readOnly: true
-        phaseConfirmed:
+        phase_confirmed:
           type: boolean
           readOnly: true
-        orderStatus:
+        order_status:
           nullable: true
           readOnly: true
           oneOf:
           - $ref: '#/components/schemas/OrderStatusEnum'
           - $ref: '#/components/schemas/NullEnum'
-        memberStatus:
+        member_status:
           type: array
           items:
             $ref: '#/components/schemas/MemberStatusEnum'
@@ -2385,15 +2385,15 @@ components:
         anonymous:
           type: boolean
           readOnly: true
-        movementPhaseDuration:
+        movement_phase_duration:
           type: string
           readOnly: true
           nullable: true
-        retreatPhaseDuration:
+        retreat_phase_duration:
           type: string
           readOnly: true
           nullable: true
-        nationAssignment:
+        nation_assignment:
           type: string
           readOnly: true
         members:
@@ -2409,47 +2409,47 @@ components:
         sandbox:
           type: boolean
           readOnly: true
-        isPaused:
+        is_paused:
           type: boolean
           readOnly: true
-        pausedAt:
+        paused_at:
           type: string
           format: date-time
           readOnly: true
           nullable: true
-        nmrExtensionsAllowed:
+        nmr_extensions_allowed:
           type: integer
           readOnly: true
-        deadlineMode:
+        deadline_mode:
           type: string
           readOnly: true
-        fixedDeadlineTime:
+        fixed_deadline_time:
           type: string
           format: time
           readOnly: true
           nullable: true
-        fixedDeadlineTimezone:
+        fixed_deadline_timezone:
           type: string
           readOnly: true
           nullable: true
-        movementFrequency:
+        movement_frequency:
           type: string
           readOnly: true
           nullable: true
-        retreatFrequency:
+        retreat_frequency:
           type: string
           readOnly: true
           nullable: true
-        pressType:
+        press_type:
           type: string
           readOnly: true
-        minReliability:
+        min_reliability:
           type: string
           readOnly: true
-        commitmentRequirement:
+        commitment_requirement:
           type: string
           readOnly: true
-        commitmentEligibility:
+        commitment_eligibility:
           nullable: true
           readOnly: true
           oneOf:
@@ -2457,40 +2457,40 @@ components:
           - $ref: '#/components/schemas/NullEnum'
       required:
       - anonymous
-      - canDelete
-      - canJoin
-      - canLeave
-      - canManage
-      - commitmentEligibility
-      - commitmentRequirement
-      - createdAt
-      - currentPhase
-      - currentPhaseId
-      - deadlineMode
-      - fixedDeadlineTime
-      - fixedDeadlineTimezone
-      - gameMaster
+      - can_delete
+      - can_join
+      - can_leave
+      - can_manage
+      - commitment_eligibility
+      - commitment_requirement
+      - created_at
+      - current_phase
+      - current_phase_id
+      - deadline_mode
+      - fixed_deadline_time
+      - fixed_deadline_timezone
+      - game_master
       - id
-      - isPaused
-      - memberStatus
+      - is_paused
+      - member_status
       - members
-      - minReliability
-      - movementFrequency
-      - movementPhaseDuration
+      - min_reliability
+      - movement_frequency
+      - movement_phase_duration
       - name
-      - nationAssignment
-      - nmrExtensionsAllowed
-      - orderStatus
-      - pausedAt
-      - phaseConfirmed
+      - nation_assignment
+      - nmr_extensions_allowed
+      - order_status
+      - paused_at
+      - phase_confirmed
       - phases
-      - pressType
+      - press_type
       - private
-      - retreatFrequency
-      - retreatPhaseDuration
+      - retreat_frequency
+      - retreat_phase_duration
       - sandbox
       - status
-      - variantId
+      - variant_id
       - victory
     GameListBoardNation:
       type: object
@@ -2532,12 +2532,12 @@ components:
         status:
           type: string
           readOnly: true
-        scheduledResolution:
+        scheduled_resolution:
           type: string
           format: date-time
           readOnly: true
           nullable: true
-        remainingTime:
+        remaining_time:
           type: integer
           readOnly: true
         units:
@@ -2545,7 +2545,7 @@ components:
           items:
             $ref: '#/components/schemas/GameListUnit'
           readOnly: true
-        supplyCenters:
+        supply_centers:
           type: array
           items:
             $ref: '#/components/schemas/GameListSupplyCenter'
@@ -2554,11 +2554,11 @@ components:
       - id
       - name
       - ordinal
-      - remainingTime
-      - scheduledResolution
+      - remaining_time
+      - scheduled_resolution
       - season
       - status
-      - supplyCenters
+      - supply_centers
       - type
       - units
       - year
@@ -2601,7 +2601,7 @@ components:
     GameMaster:
       type: object
       properties:
-        userId:
+        user_id:
           type: integer
           readOnly: true
         name:
@@ -2614,7 +2614,7 @@ components:
       required:
       - name
       - picture
-      - userId
+      - user_id
     GameRetrieve:
       type: object
       properties:
@@ -2627,23 +2627,23 @@ components:
         status:
           type: string
           readOnly: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
           readOnly: true
-        canJoin:
+        can_join:
           type: boolean
           readOnly: true
-        canLeave:
+        can_leave:
           type: boolean
           readOnly: true
-        canDelete:
+        can_delete:
           type: boolean
           readOnly: true
-        canManage:
+        can_manage:
           type: boolean
           readOnly: true
-        gameMaster:
+        game_master:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
           readOnly: true
@@ -2653,7 +2653,7 @@ components:
           items:
             type: integer
           readOnly: true
-        currentPhaseId:
+        current_phase_id:
           type: integer
           nullable: true
           readOnly: true
@@ -2670,32 +2670,32 @@ components:
           - $ref: '#/components/schemas/Victory'
           readOnly: true
           nullable: true
-        variantId:
+        variant_id:
           type: string
           readOnly: true
-        nationAssignment:
+        nation_assignment:
           type: string
           readOnly: true
-        phaseConfirmed:
+        phase_confirmed:
           type: boolean
           readOnly: true
-        orderStatus:
+        order_status:
           nullable: true
           readOnly: true
           oneOf:
           - $ref: '#/components/schemas/OrderStatusEnum'
           - $ref: '#/components/schemas/NullEnum'
-        memberStatus:
+        member_status:
           type: array
           items:
             $ref: '#/components/schemas/MemberStatusEnum'
           nullable: true
           readOnly: true
-        movementPhaseDuration:
+        movement_phase_duration:
           type: string
           readOnly: true
           nullable: true
-        retreatPhaseDuration:
+        retreat_phase_duration:
           type: string
           readOnly: true
           nullable: true
@@ -2705,47 +2705,47 @@ components:
         anonymous:
           type: boolean
           readOnly: true
-        isPaused:
+        is_paused:
           type: boolean
           readOnly: true
-        pausedAt:
+        paused_at:
           type: string
           format: date-time
           readOnly: true
           nullable: true
-        nmrExtensionsAllowed:
+        nmr_extensions_allowed:
           type: integer
           readOnly: true
-        deadlineMode:
+        deadline_mode:
           type: string
           readOnly: true
-        fixedDeadlineTime:
+        fixed_deadline_time:
           type: string
           format: time
           readOnly: true
           nullable: true
-        fixedDeadlineTimezone:
+        fixed_deadline_timezone:
           type: string
           readOnly: true
           nullable: true
-        movementFrequency:
+        movement_frequency:
           type: string
           readOnly: true
           nullable: true
-        retreatFrequency:
+        retreat_frequency:
           type: string
           readOnly: true
           nullable: true
-        pressType:
+        press_type:
           type: string
           readOnly: true
-        minReliability:
+        min_reliability:
           type: string
           readOnly: true
-        commitmentRequirement:
+        commitment_requirement:
           type: string
           readOnly: true
-        commitmentEligibility:
+        commitment_eligibility:
           nullable: true
           readOnly: true
           oneOf:
@@ -2753,59 +2753,59 @@ components:
           - $ref: '#/components/schemas/NullEnum'
       required:
       - anonymous
-      - canDelete
-      - canJoin
-      - canLeave
-      - canManage
-      - commitmentEligibility
-      - commitmentRequirement
-      - createdAt
-      - currentPhaseId
-      - deadlineMode
-      - fixedDeadlineTime
-      - fixedDeadlineTimezone
-      - gameMaster
+      - can_delete
+      - can_join
+      - can_leave
+      - can_manage
+      - commitment_eligibility
+      - commitment_requirement
+      - created_at
+      - current_phase_id
+      - deadline_mode
+      - fixed_deadline_time
+      - fixed_deadline_timezone
+      - game_master
       - id
-      - isPaused
-      - memberStatus
+      - is_paused
+      - member_status
       - members
-      - minReliability
-      - movementFrequency
-      - movementPhaseDuration
+      - min_reliability
+      - movement_frequency
+      - movement_phase_duration
       - name
-      - nationAssignment
-      - nmrExtensionsAllowed
-      - orderStatus
-      - pausedAt
-      - phaseConfirmed
+      - nation_assignment
+      - nmr_extensions_allowed
+      - order_status
+      - paused_at
+      - phase_confirmed
       - phases
-      - pressType
+      - press_type
       - private
-      - retreatFrequency
-      - retreatPhaseDuration
+      - retreat_frequency
+      - retreat_phase_duration
       - sandbox
       - status
-      - variantId
+      - variant_id
       - victory
     GameUnread:
       type: object
       properties:
-        gameId:
+        game_id:
           type: string
           readOnly: true
-        totalUnreadMessageCount:
+        total_unread_message_count:
           type: integer
           readOnly: true
       required:
-      - gameId
-      - totalUnreadMessageCount
+      - game_id
+      - total_unread_message_count
     Member:
       type: object
       properties:
         id:
           type: integer
           readOnly: true
-        userId:
+        user_id:
           type: integer
           nullable: true
           readOnly: true
@@ -2816,10 +2816,10 @@ components:
           type: string
           nullable: true
           readOnly: true
-        isCurrentUser:
+        is_current_user:
           type: boolean
           readOnly: true
-        isBot:
+        is_bot:
           type: boolean
           readOnly: true
         commitment:
@@ -2836,45 +2836,45 @@ components:
         kicked:
           type: boolean
           readOnly: true
-        isGameCreator:
+        is_game_creator:
           type: boolean
           readOnly: true
-        nmrExtensionsRemaining:
+        nmr_extensions_remaining:
           type: integer
           readOnly: true
-        civilDisorder:
+        civil_disorder:
           type: boolean
           readOnly: true
-        seekingReplacement:
+        seeking_replacement:
           type: boolean
           readOnly: true
         replaceable:
           type: boolean
           readOnly: true
       required:
-      - civilDisorder
+      - civil_disorder
       - commitment
       - eliminated
       - id
-      - isBot
-      - isCurrentUser
-      - isGameCreator
+      - is_bot
+      - is_current_user
+      - is_game_creator
       - kicked
       - name
       - nation
-      - nmrExtensionsRemaining
+      - nmr_extensions_remaining
       - picture
       - replaceable
-      - seekingReplacement
-      - userId
+      - seeking_replacement
+      - user_id
     MemberCreate:
       type: object
       properties:
-        userId:
+        user_id:
           type: integer
           writeOnly: true
       required:
-      - userId
+      - user_id
     MemberStatusEnum:
       enum:
       - nmr
@@ -2921,26 +2921,26 @@ components:
     Nation:
       type: object
       properties:
-        nationId:
+        nation_id:
           type: string
         name:
           type: string
         color:
           type: string
           readOnly: true
-        nonPlayable:
+        non_playable:
           type: boolean
-        flagUrl:
+        flag_url:
           type: string
           format: uri
           nullable: true
           readOnly: true
       required:
       - color
-      - flagUrl
+      - flag_url
       - name
-      - nationId
-      - nonPlayable
+      - nation_id
+      - non_playable
     NationAssignmentEnum:
       enum:
       - random
@@ -2968,7 +2968,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
-        sourceCoast:
+        source_coast:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
@@ -2977,7 +2977,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
-        targetCoast:
+        target_coast:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
@@ -2986,7 +2986,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
-        namedCoast:
+        named_coast:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
@@ -2994,11 +2994,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/OrderResolution'
           readOnly: true
-        orderType:
+        order_type:
           allOf:
           - $ref: '#/components/schemas/OrderTypeEnum'
           readOnly: true
-        unitType:
+        unit_type:
           allOf:
           - $ref: '#/components/schemas/UnitTypeEnum'
           readOnly: true
@@ -3006,7 +3006,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Nation'
           readOnly: true
-        isImplicit:
+        is_implicit:
           type: boolean
           readOnly: true
         complete:
@@ -3034,19 +3034,19 @@ components:
       required:
       - aux
       - complete
-      - isImplicit
-      - namedCoast
+      - is_implicit
+      - named_coast
       - nation
-      - orderType
+      - order_type
       - resolution
       - source
-      - sourceCoast
+      - source_coast
       - step
       - summary
       - target
-      - targetCoast
+      - target_coast
       - title
-      - unitType
+      - unit_type
     OrderOptionsResponse:
       type: object
       properties:
@@ -3054,14 +3054,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FlatOrderOption'
-        fieldOrder:
+        field_order:
           type: object
           additionalProperties:
             type: array
             items:
               type: string
       required:
-      - fieldOrder
+      - field_order
       - orders
     OrderResolution:
       type: object
@@ -3166,17 +3166,17 @@ components:
         token:
           type: string
           writeOnly: true
-        newPassword:
+        new_password:
           type: string
           writeOnly: true
           minLength: 8
-        confirmPassword:
+        confirm_password:
           type: string
           writeOnly: true
           minLength: 8
       required:
-      - confirmPassword
-      - newPassword
+      - confirm_password
+      - new_password
       - token
       - uid
     PatchedDrawVoteUpdate:
@@ -3195,13 +3195,13 @@ components:
         id:
           type: string
           readOnly: true
-        ordersConfirmed:
+        orders_confirmed:
           type: boolean
           readOnly: true
         eliminated:
           type: boolean
           readOnly: true
-        orderableProvinces:
+        orderable_provinces:
           type: array
           items:
             $ref: '#/components/schemas/Province'
@@ -3210,7 +3210,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
-        maxOrders:
+        max_orders:
           type: integer
           nullable: true
           readOnly: true
@@ -3220,7 +3220,7 @@ components:
         id:
           type: integer
           readOnly: true
-        userId:
+        user_id:
           type: integer
           readOnly: true
         name:
@@ -3234,12 +3234,12 @@ components:
         email:
           type: string
           readOnly: true
-        emailNotificationsEnabled:
+        email_notifications_enabled:
           type: boolean
-        canCreateBotGames:
+        can_create_bot_games:
           type: boolean
           readOnly: true
-        reliabilityTier:
+        reliability_tier:
           type: string
           readOnly: true
           nullable: true
@@ -3297,9 +3297,9 @@ components:
           type: string
         type:
           type: string
-        remainingTime:
+        remaining_time:
           type: integer
-        scheduledResolution:
+        scheduled_resolution:
           type: string
           format: date-time
         status:
@@ -3308,31 +3308,31 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Unit'
-        supplyCenters:
+        supply_centers:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
-        previousPhaseId:
+        previous_phase_id:
           type: integer
           nullable: true
-        nextPhaseId:
+        next_phase_id:
           type: integer
           nullable: true
-        provinceNations:
+        province_nations:
           type: string
           readOnly: true
       required:
       - id
       - name
-      - nextPhaseId
+      - next_phase_id
       - ordinal
-      - previousPhaseId
-      - provinceNations
-      - remainingTime
-      - scheduledResolution
+      - previous_phase_id
+      - province_nations
+      - remaining_time
+      - scheduled_resolution
       - season
       - status
-      - supplyCenters
+      - supply_centers
       - type
       - units
       - year
@@ -3342,13 +3342,13 @@ components:
         id:
           type: string
           readOnly: true
-        ordersConfirmed:
+        orders_confirmed:
           type: boolean
           readOnly: true
         eliminated:
           type: boolean
           readOnly: true
-        orderableProvinces:
+        orderable_provinces:
           type: array
           items:
             $ref: '#/components/schemas/Province'
@@ -3357,17 +3357,17 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
-        maxOrders:
+        max_orders:
           type: integer
           nullable: true
           readOnly: true
       required:
       - eliminated
       - id
-      - maxOrders
+      - max_orders
       - member
-      - orderableProvinces
-      - ordersConfirmed
+      - orderable_provinces
+      - orders_confirmed
     PressTypeEnum:
       enum:
       - full_press
@@ -3385,12 +3385,12 @@ components:
           type: string
         type:
           type: string
-        supplyCenter:
+        supply_center:
           type: boolean
-        parentId:
+        parent_id:
           type: string
           nullable: true
-        namedCoastIds:
+        named_coast_ids:
           type: array
           items:
             type: string
@@ -3398,9 +3398,9 @@ components:
       required:
       - id
       - name
-      - namedCoastIds
-      - parentId
-      - supplyCenter
+      - named_coast_ids
+      - parent_id
+      - supply_center
       - type
     PublicUserProfile:
       type: object
@@ -3415,14 +3415,14 @@ components:
           type: string
           readOnly: true
           nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
           readOnly: true
-        totalGames:
+        total_games:
           type: integer
           readOnly: true
-        soloWins:
+        solo_wins:
           type: integer
           readOnly: true
         draws:
@@ -3431,15 +3431,15 @@ components:
         losses:
           type: integer
           readOnly: true
-        nmrRate:
+        nmr_rate:
           type: number
           format: double
           readOnly: true
-        cdRate:
+        cd_rate:
           type: number
           format: double
           readOnly: true
-        reliabilityTier:
+        reliability_tier:
           type: string
           readOnly: true
           nullable: true
@@ -3447,18 +3447,18 @@ components:
           type: string
           readOnly: true
       required:
-      - cdRate
+      - cd_rate
       - commitment
-      - createdAt
+      - created_at
       - draws
       - id
       - losses
       - name
-      - nmrRate
+      - nmr_rate
       - picture
-      - reliabilityTier
-      - soloWins
-      - totalGames
+      - reliability_tier
+      - solo_wins
+      - total_games
     Register:
       type: object
       properties:
@@ -3470,11 +3470,11 @@ components:
           type: string
           writeOnly: true
           minLength: 8
-        displayName:
+        display_name:
           type: string
           writeOnly: true
       required:
-      - displayName
+      - display_name
       - email
       - password
     RetreatFrequencyEnum:
@@ -3562,14 +3562,14 @@ components:
           $ref: '#/components/schemas/Province'
         dislodged:
           type: boolean
-        dislodgedBy:
+        dislodged_by:
           type: object
           additionalProperties: {}
           nullable: true
           readOnly: true
       required:
       - dislodged
-      - dislodgedBy
+      - dislodged_by
       - nation
       - province
       - type
@@ -3587,7 +3587,7 @@ components:
         id:
           type: integer
           readOnly: true
-        userId:
+        user_id:
           type: integer
           readOnly: true
         name:
@@ -3601,12 +3601,12 @@ components:
         email:
           type: string
           readOnly: true
-        emailNotificationsEnabled:
+        email_notifications_enabled:
           type: boolean
-        canCreateBotGames:
+        can_create_bot_games:
           type: boolean
           readOnly: true
-        reliabilityTier:
+        reliability_tier:
           type: string
           readOnly: true
           nullable: true
@@ -3614,14 +3614,14 @@ components:
           type: string
           readOnly: true
       required:
-      - canCreateBotGames
+      - can_create_bot_games
       - commitment
       - email
       - id
       - name
       - picture
-      - reliabilityTier
-      - userId
+      - reliability_tier
+      - user_id
     Variant:
       type: object
       properties:
@@ -3641,20 +3641,20 @@ components:
         official:
           type: boolean
           readOnly: true
-        ownerId:
+        owner_id:
           type: integer
           readOnly: true
           nullable: true
-        ownerUsername:
+        owner_username:
           type: string
           nullable: true
           readOnly: true
-        canEdit:
+        can_edit:
           type: boolean
           readOnly: true
-        victoryConditions:
+        victory_conditions:
           $ref: '#/components/schemas/VictoryConditions'
-        svgUrl:
+        svg_url:
           type: string
           nullable: true
           readOnly: true
@@ -3666,23 +3666,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VariantProvince'
-        templatePhase:
+        template_phase:
           $ref: '#/components/schemas/VariantTemplatePhase'
       required:
-      - canEdit
+      - can_edit
       - description
       - id
       - name
       - nations
       - official
-      - ownerId
-      - ownerUsername
+      - owner_id
+      - owner_username
       - provinces
       - rules
       - status
-      - svgUrl
-      - templatePhase
-      - victoryConditions
+      - svg_url
+      - template_phase
+      - victory_conditions
     VariantProvince:
       type: object
       properties:
@@ -3692,9 +3692,9 @@ components:
           type: string
         type:
           type: string
-        supplyCenter:
+        supply_center:
           type: boolean
-        parentId:
+        parent_id:
           type: string
           nullable: true
         adjacencies:
@@ -3706,8 +3706,8 @@ components:
       - adjacencies
       - id
       - name
-      - parentId
-      - supplyCenter
+      - parent_id
+      - supply_center
       - type
     VariantProvinceAdjacency:
       type: object
@@ -3735,12 +3735,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VariantTemplateUnit'
-        supplyCenters:
+        supply_centers:
           type: array
           items:
             $ref: '#/components/schemas/VariantTemplateSupplyCenter'
       required:
-      - supplyCenters
+      - supply_centers
       - units
       - year
     VariantTemplateProvinceRef:
@@ -3821,7 +3821,7 @@ components:
         type:
           type: string
           readOnly: true
-        winningPhaseId:
+        winning_phase_id:
           type: integer
           readOnly: true
         members:
@@ -3833,22 +3833,22 @@ components:
       - id
       - members
       - type
-      - winningPhaseId
+      - winning_phase_id
     VictoryConditions:
       type: object
       properties:
-        soloVictorySupplyCenters:
+        solo_victory_supply_centers:
           type: integer
-        gameEndsYear:
+        game_ends_year:
           type: integer
           nullable: true
-        drawAfterYear:
+        draw_after_year:
           type: integer
           nullable: true
       required:
-      - drawAfterYear
-      - gameEndsYear
-      - soloVictorySupplyCenters
+      - draw_after_year
+      - game_ends_year
+      - solo_victory_supply_centers
   securitySchemes:
     jwtAuth:
       type: http
