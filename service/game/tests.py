@@ -2970,7 +2970,7 @@ class TestGameCloneToSandbox:
         self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
-        with patch("adjudication.service.start") as mock_start:
+        with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             first_response = authenticated_client.post(url)
             second_response = authenticated_client.post(url)
