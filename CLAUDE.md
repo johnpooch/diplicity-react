@@ -82,7 +82,7 @@ npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render
 ## Always
 
 - **Follow existing patterns.** New code should be indistinguishable from existing code in style and structure. Raise deviations as a discussion; do not silently deviate.
-- **Do not add comments or docstrings**, including in tests. Do not annotate assertions to explain their values. The only exception is DRF view docstrings, which are extracted for OpenAPI.
+- **Do not add comments or docstrings**, including in tests and DRF views. Do not annotate assertions to explain their values. The OpenAPI schema is internal, so it needs no operation descriptions.
 - **Never suppress lint or type violations** — no `eslint-disable`, `@ts-ignore`, `# noqa`, `pytest.mark.skip`. The only exception is the mutation-in-`useEffect` pattern documented in `.claude/rules/frontend.md`.
 - **Write tests alongside features**, not as an afterthought.
 - **Absent beats dormant scaffolding.** Do not leave unused domain, apps, or wire fields “for later” — remove them and re-add when the feature is real. Backend detail in `.claude/rules/backend/`.

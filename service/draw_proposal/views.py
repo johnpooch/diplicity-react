@@ -79,8 +79,6 @@ class DrawProposalVoteUpdateView(SelectedGameMixin, CurrentGameMemberMixin, gene
     patch=extend_schema(responses=DrawProposalSerializer),
 )
 class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
-    """Cancel a draw proposal created by the current member."""
-
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
