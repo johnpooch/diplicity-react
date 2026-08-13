@@ -9,7 +9,11 @@ paths:
 
 ## Keep an app's tests in one `tests.py`
 
-Do not split an app across modules like `tests_emit.py` or `tests_permissions.py`.
+Every app has a single `tests.py`. Do not add a `tests/` package or split across modules like `tests_emit.py` or `tests_permissions.py`. When migrating legacy split tests, consolidate into `tests.py` rather than adding new modules.
+
+Do not test models, managers, querysets, or migrations directly. Assert behaviour through HTTP endpoints. Do not add tests whose primary assertion is migration or backfill output.
+
+Custom admin logic — a `ModelForm` with validation beyond basic Django admin — may be tested by instantiating the form class directly. Name the test class after the form (e.g. `TestNationFlagAdminForm`). Standard list/filter/display admin configuration does not need tests.
 
 ## Name tests for the capability under test
 
@@ -27,9 +31,9 @@ Call endpoints and assert on the response. Treat view, serializer, and manager i
 
 **Bad:** Call `BotMemberCreateView` directly, or assert `Member.objects.filter(...).exists()` without going through the API
 
-## One test class per view
+## One test class per view (or custom admin form)
 
-Name it `Test<ViewName>`. A cross-cutting concern — ordering, character limits, permission variants, mode-specific rules — belongs in the test class of the view that exposes it, not in a class of its own. There are no test classes for models, managers, or querysets: if behaviour cannot be observed through an endpoint, either it is dead or the endpoint is missing.
+Name view test classes `Test<ViewName>`. A cross-cutting concern — ordering, character limits, permission variants, mode-specific rules — belongs in the test class of the view that exposes it, not in a class of its own.
 
 ## Prefer shared fixtures over inline setup
 

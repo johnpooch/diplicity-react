@@ -6,7 +6,7 @@ paths:
 
 # Permissions
 
-Custom permissions live in `service/common/permissions.py`. Each class checks exactly one thing and carries a descriptive `message`.
+Custom permissions live in `service/common/permissions.py` — never in a per-app `permissions.py`. Each class checks exactly one thing and carries a descriptive `message`. Before adding a new class, check whether an existing one already covers the same rule on a related object (e.g. draft-variant ownership checked on `Variant` vs on `Nation` via `nation.variant`); deduplicate rather than copy.
 
 ```python
 class IsGameMaster(BasePermission):

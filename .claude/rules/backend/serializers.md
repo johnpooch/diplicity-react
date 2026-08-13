@@ -27,4 +27,6 @@ Validation: `validate_<field>` for field-level, `validate()` for cross-field.
 
 Context keys from mixins: `self.context["request"]`, `self.context["game"]` (`SelectedGameMixin`), `self.context["phase"]` (`SelectedPhaseMixin` / `CurrentPhaseMixin`), `self.context["channel"]` (`SelectedChannelMixin`), `self.context["current_game_member"]` (`CurrentGameMemberMixin`).
 
+Do not use `SerializerMethodField` for a bare attribute pass-through — declare the field with `read_only=True` instead. Reserve `SerializerMethodField` for logic that genuinely depends on serializer context (e.g. `can_join`) or composes model properties (e.g. absolute URL from a model's path property plus `request.build_absolute_uri`).
+
 **Review check:** `serializers.Serializer` base? all fields explicit, with `read_only=True` on computed fields? every `SerializerMethodField` annotated with `@extend_schema_field`? `to_representation` delegates to another serializer when returning a different shape?
