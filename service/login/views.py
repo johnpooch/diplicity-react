@@ -3,8 +3,8 @@ from rest_framework.permissions import AllowAny
 
 from .serializers import (
     AppleAuthSerializer,
-    AuthSerializer,
     EmailLoginSerializer,
+    GoogleAuthSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetSerializer,
     RegisterSerializer,
@@ -17,8 +17,8 @@ class AppleAuthView(CreateAPIView):
     permission_classes = [AllowAny]
 
 
-class AuthView(CreateAPIView):
-    serializer_class = AuthSerializer
+class GoogleAuthView(CreateAPIView):
+    serializer_class = GoogleAuthSerializer
     permission_classes = [AllowAny]
 
 

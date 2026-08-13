@@ -221,7 +221,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Auth'
+              $ref: '#/components/schemas/GoogleAuth'
         required: true
       security:
       - jwtAuth: []
@@ -231,7 +231,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Auth'
+                $ref: '#/components/schemas/GoogleAuth'
           description: ''
   /auth/password-reset/:
     post:
@@ -1761,34 +1761,6 @@ components:
       - idToken
       - name
       - refreshToken
-    Auth:
-      type: object
-      properties:
-        idToken:
-          type: string
-          writeOnly: true
-        id:
-          type: integer
-          readOnly: true
-        email:
-          type: string
-          readOnly: true
-        name:
-          type: string
-          readOnly: true
-        accessToken:
-          type: string
-          readOnly: true
-        refreshToken:
-          type: string
-          readOnly: true
-      required:
-      - accessToken
-      - email
-      - id
-      - idToken
-      - name
-      - refreshToken
     ChannelCreate:
       type: object
       properties:
@@ -2799,6 +2771,34 @@ components:
       required:
       - gameId
       - totalUnreadMessageCount
+    GoogleAuth:
+      type: object
+      properties:
+        idToken:
+          type: string
+          writeOnly: true
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        accessToken:
+          type: string
+          readOnly: true
+        refreshToken:
+          type: string
+          readOnly: true
+      required:
+      - accessToken
+      - email
+      - id
+      - idToken
+      - name
+      - refreshToken
     Member:
       type: object
       properties:

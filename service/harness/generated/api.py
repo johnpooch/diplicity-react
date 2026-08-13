@@ -23,15 +23,6 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
-class Auth(TypedDict):
-    id_token: str
-    id: int
-    email: str
-    name: str
-    access_token: str
-    refresh_token: str
-
-
 class ChannelCreate(TypedDict):
     id: int
     name: str
@@ -149,6 +140,15 @@ class GameMaster(TypedDict):
 class GameUnread(TypedDict):
     game_id: str
     total_unread_message_count: int
+
+
+class GoogleAuth(TypedDict):
+    id_token: str
+    id: int
+    email: str
+    name: str
+    access_token: str
+    refresh_token: str
 
 
 class Member(TypedDict):

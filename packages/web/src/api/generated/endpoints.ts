@@ -69,15 +69,6 @@ export interface AppleAuth {
   readonly refreshToken: string;
 }
 
-export interface Auth {
-  idToken: string;
-  readonly id: number;
-  readonly email: string;
-  readonly name: string;
-  readonly accessToken: string;
-  readonly refreshToken: string;
-}
-
 export interface ChannelCreate {
   readonly id: number;
   readonly name: string;
@@ -629,6 +620,15 @@ export interface GameRetrieve {
 export interface GameUnread {
   readonly gameId: string;
   readonly totalUnreadMessageCount: number;
+}
+
+export interface GoogleAuth {
+  idToken: string;
+  readonly id: number;
+  readonly email: string;
+  readonly name: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
 }
 
 export interface MemberCreate {
@@ -1713,14 +1713,14 @@ export const useAuthEmailLoginCreate = <TError = unknown, TContext = unknown>(
 };
 
 export const authLoginCreate = (
-  auth: NonReadonly<Auth>,
+  googleAuth: NonReadonly<GoogleAuth>,
   signal?: AbortSignal
 ) => {
-  return customInstance<Auth>({
+  return customInstance<GoogleAuth>({
     url: `/auth/login/`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    data: auth,
+    data: googleAuth,
     signal,
   });
 };
@@ -1732,13 +1732,13 @@ export const getAuthLoginCreateMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof authLoginCreate>>,
     TError,
-    { data: NonReadonly<Auth> },
+    { data: NonReadonly<GoogleAuth> },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof authLoginCreate>>,
   TError,
-  { data: NonReadonly<Auth> },
+  { data: NonReadonly<GoogleAuth> },
   TContext
 > => {
   const mutationKey = ["authLoginCreate"];
@@ -1752,7 +1752,7 @@ export const getAuthLoginCreateMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof authLoginCreate>>,
-    { data: NonReadonly<Auth> }
+    { data: NonReadonly<GoogleAuth> }
   > = props => {
     const { data } = props ?? {};
 
@@ -1765,7 +1765,7 @@ export const getAuthLoginCreateMutationOptions = <
 export type AuthLoginCreateMutationResult = NonNullable<
   Awaited<ReturnType<typeof authLoginCreate>>
 >;
-export type AuthLoginCreateMutationBody = NonReadonly<Auth>;
+export type AuthLoginCreateMutationBody = NonReadonly<GoogleAuth>;
 export type AuthLoginCreateMutationError = unknown;
 
 export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
@@ -1773,7 +1773,7 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof authLoginCreate>>,
       TError,
-      { data: NonReadonly<Auth> },
+      { data: NonReadonly<GoogleAuth> },
       TContext
     >;
   },
@@ -1781,7 +1781,7 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof authLoginCreate>>,
   TError,
-  { data: NonReadonly<Auth> },
+  { data: NonReadonly<GoogleAuth> },
   TContext
 > => {
   return useMutation(getAuthLoginCreateMutationOptions(options), queryClient);
