@@ -23,15 +23,6 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
-class Auth(TypedDict):
-    id_token: str
-    id: int
-    email: str
-    name: str
-    access_token: str
-    refresh_token: str
-
-
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
 
 
@@ -132,6 +123,15 @@ class GameMaster(TypedDict):
     user_id: int
     name: str
     picture: str | None
+
+
+class GoogleAuth(TypedDict):
+    id_token: str
+    id: int
+    email: str
+    name: str
+    access_token: str
+    refresh_token: str
 
 
 class Member(TypedDict):

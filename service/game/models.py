@@ -4,7 +4,7 @@ import re
 import uuid
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.db.models import (
     Count,
@@ -477,17 +477,32 @@ class Game(BaseModel):
     )
 
     def save(self, *args, **kwargs):
-        if not self.id:
-            self.id = self._generate_id()
-        super().save(*args, **kwargs)
+        if self.id:
+            super().save(*args, **kwargs)
+            return
 
-    def _generate_id(self):
+        base_id = self._generate_base_id()
+        self.id = self._generate_id(base_id)
+        kwargs.setdefault("force_insert", True)
+
+        try:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+        except IntegrityError:
+            self.id = self._suffixed_id(base_id)
+            super().save(*args, **kwargs)
+
+    def _generate_base_id(self):
         base_id = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
-        base_id = re.sub(r"^-+|-+$", "", base_id)
+        return re.sub(r"^-+|-+$", "", base_id)
 
-        if not Game.objects.filter(id=base_id).exists():
-            return base_id
+    def _generate_id(self, base_id):
+        if Game.objects.filter(id=base_id).exists():
+            return self._suffixed_id(base_id)
 
+        return base_id
+
+    def _suffixed_id(self, base_id):
         return f"{base_id}-{str(uuid.uuid4())[:8]}"
 
     @property

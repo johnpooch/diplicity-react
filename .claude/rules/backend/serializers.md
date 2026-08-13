@@ -23,7 +23,7 @@ class GameListSerializer(serializers.Serializer):
 
 Different operations get different serializers: `GameListSerializer`, `GameRetrieveSerializer`, `GameCreateSerializer`, `GamePauseSerializer`.
 
-Validation: `validate_<field>` for field-level, `validate()` for cross-field.
+Validation: `validate_<field>` for anything that depends only on that field; `validate()` when the check needs another field's value. Placement decides the error shape clients see (`{"uid": [...]}` vs `non_field_errors`) — moving a check between them is an API change.
 
 Context keys from mixins: `self.context["request"]`, `self.context["game"]` (`SelectedGameMixin`), `self.context["phase"]` (`SelectedPhaseMixin` / `CurrentPhaseMixin`), `self.context["channel"]` (`SelectedChannelMixin`), `self.context["current_game_member"]` (`CurrentGameMemberMixin`).
 
