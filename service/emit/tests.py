@@ -83,6 +83,20 @@ class TestEmitDispatch:
         assert _deliver_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
+    def test_no_notification_or_job_created_for_sandbox_games(
+        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+    ):
+        game = game_factory(variant=classical_variant, sandbox=True)
+        member = member_factory(game=game, user=user_factory())
+
+        emit.emit("game_start", game=game)
+        emit.emit("elimination", game=game, recipients=[member.user_id])
+
+        assert not Notification.objects.exists()
+        assert not NotificationDelivery.objects.exists()
+        assert _deliver_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
     def test_manager_label_and_deadline_are_inferred_into_copy(
         self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
     ):
