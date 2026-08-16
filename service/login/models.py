@@ -8,12 +8,12 @@ from django.conf import settings
 class AuthUserManager(models.Manager):
     def create_from_google_id_info(self, id_info):
         email = id_info.get("email")
-        name = id_info.get("name")
+        name = id_info.get("name") or email.split("@")[0]
 
         user, created = self.get_or_create(
             email=email, defaults={"username": self.generate_username(name), "password": settings.SOCIAL_AUTH_PASSWORD}
         )
-        return user, created
+        return user, created, name
 
     def create_from_apple_id_info(self, decoded_token, first_name=None, last_name=None):
         email = decoded_token.get("email")

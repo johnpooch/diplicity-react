@@ -5,24 +5,38 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberSerializer
+from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
-from common.views import SelectedGameMixin
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 
 
-class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
-    serializer_class = MemberSerializer
+@extend_schema(responses={201: MemberSerializer})
+class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
+    serializer_class = MemberCreateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, IsSpaceAvailable, CanUseBotOpponent]
+
+
+@extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
+class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
+    serializer_class = MemberJoinSerializer
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
 
-    @extend_schema(request=EmptySerializer)
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
-    def perform_create(self, serializer):
-        member = serializer.save()
-        member.game.start_if_full()
+@extend_schema(exclude=True)
+class LegacyMemberJoinView(MemberJoinView):
+    """Serves POST /game/<id>/join/ for mobile builds shipped before the seating
+    endpoints moved under /member/. Kept out of the schema so codegen only ever
+    emits the current path. Remove once those builds are out of circulation."""
+
+
+@extend_schema(exclude=True)
+class LegacyMemberCreateView(MemberCreateView):
+    """Serves POST /game/<id>/add-bot/ for mobile builds shipped before the
+    seating endpoints moved under /member/. Kept out of the schema so codegen
+    only ever emits the current path. Remove once those builds are out of
+    circulation."""
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
@@ -57,7 +71,7 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     def perform_destroy(self, instance):
         game = instance.game
         user_id = instance.user_id
-        is_bot = instance.user is not None and hasattr(instance.user, "bot_profile")
+        is_bot = instance.user is not None and instance.user.profile.is_bot
         with transaction.atomic():
             instance.delete()
             if user_id and not is_bot:

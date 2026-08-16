@@ -4,7 +4,7 @@ import re
 import uuid
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.db.models import (
     Count,
@@ -30,6 +30,7 @@ from common.constants import (
     PhaseStatus,
     PhaseType,
     PressType,
+    UserKind,
     duration_to_seconds,
 )
 from common.models import BaseModel
@@ -41,7 +42,7 @@ from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMember, ChannelMessage
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 
 tracer = trace.get_tracer(__name__)
 
@@ -81,22 +82,22 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation", "user__profile", "user__bot_profile"),
+            queryset=Member.objects.not_replaced().select_related("nation", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation"),
+            queryset=Member.objects.select_related("user__profile", "nation"),
         )
 
         current_phase_ids = (
-            Phase.objects.order_by("game_id", "-ordinal")
+            Phase.objects.order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
         latest_completed_phase_ids = (
             Phase.objects.filter(status=PhaseStatus.COMPLETED)
-            .order_by("game_id", "-ordinal")
+            .order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
@@ -146,22 +147,22 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile", "user__bot_profile"),
+            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
         current_phase_ids = (
-            Phase.objects.order_by("game_id", "-ordinal")
+            Phase.objects.order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
         latest_completed_phase_ids = (
             Phase.objects.filter(status=PhaseStatus.COMPLETED)
-            .order_by("game_id", "-ordinal")
+            .order_by("game_id", "-ordinal", "-id")
             .distinct("game_id")
             .values("id")
         )
@@ -233,12 +234,12 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile", "user__bot_profile"),
+            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
         return self.select_related("victory", "game_master__profile").prefetch_related(
@@ -476,17 +477,32 @@ class Game(BaseModel):
     )
 
     def save(self, *args, **kwargs):
-        if not self.id:
-            self.id = self._generate_id()
-        super().save(*args, **kwargs)
+        if self.id:
+            super().save(*args, **kwargs)
+            return
 
-    def _generate_id(self):
+        base_id = self._generate_base_id()
+        self.id = self._generate_id(base_id)
+        kwargs.setdefault("force_insert", True)
+
+        try:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+        except IntegrityError:
+            self.id = self._suffixed_id(base_id)
+            super().save(*args, **kwargs)
+
+    def _generate_base_id(self):
         base_id = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
-        base_id = re.sub(r"^-+|-+$", "", base_id)
+        return re.sub(r"^-+|-+$", "", base_id)
 
-        if not Game.objects.filter(id=base_id).exists():
-            return base_id
+    def _generate_id(self, base_id):
+        if Game.objects.filter(id=base_id).exists():
+            return self._suffixed_id(base_id)
 
+        return base_id
+
+    def _suffixed_id(self, base_id):
         return f"{base_id}-{str(uuid.uuid4())[:8]}"
 
     @property
@@ -500,7 +516,7 @@ class Game(BaseModel):
                 phases = list(self.phases.all())
                 return phases[-1] if phases else None
 
-            return self.phases.order_by("ordinal").last()
+            return self.phases.order_by("ordinal", "id").last()
 
     @property
     def movement_phase_duration_seconds(self):
@@ -526,6 +542,10 @@ class Game(BaseModel):
     @property
     def anonymity_active(self):
         return self.anonymous and self.status != GameStatus.COMPLETED
+
+    @property
+    def bot_members(self):
+        return self.members.filter(user__profile__kind__in=UserKind.BOT_KINDS).select_related("user")
 
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
@@ -579,7 +599,7 @@ class Game(BaseModel):
         if not user.is_authenticated:
             return None
         commitment = user.profile.commitment
-        if commitment == Commitment.LOW:
+        if commitment == Commitment.LOW and not self.private:
             return CommitmentEligibility.LOW_LOCKED
         if (
             self.commitment_requirement == CommitmentRequirement.COMMITTED
@@ -615,6 +635,14 @@ class Game(BaseModel):
     def can_manage(self, user):
         with tracer.start_as_current_span("game.models.can_manage"):
             return self.admin_id == user.id
+
+    def get_public_press(self):
+        return self.channels.get(private=False)
+
+    def seat(self, user):
+        member = self.members.create(user=user)
+        self.get_public_press().member_channels.create(member=member)
+        return member
 
     def reassign_admin(self):
         with tracer.start_as_current_span("game.models.reassign_admin"):
@@ -730,6 +758,17 @@ class Game(BaseModel):
             emit("game_start", game=self)
             emit("phase_started", phase=current_phase)
 
+    def finish(self, status):
+        with transaction.atomic():
+            self.status = status
+            self.finished_at = timezone.now()
+            self.save()
+
+            for phase in self.phases.exclude(status=PhaseStatus.COMPLETED):
+                phase.status = PhaseStatus.COMPLETED
+                phase.scheduled_resolution = None
+                phase.save()
+
     def emit_game_ended(self):
         try:
             victory = Victory.objects.prefetch_related("members").get(game=self)
@@ -777,7 +816,8 @@ class Game(BaseModel):
         self.save()
 
     def delete_if_empty_pending(self):
-        if self.status == GameStatus.PENDING and not self.members.filter(user__bot_profile__isnull=True).exists():
+        human_members = self.members.exclude(user__profile__kind__in=UserKind.BOT_KINDS)
+        if self.status == GameStatus.PENDING and not human_members.exists():
             self.delete()
             return True
         return False

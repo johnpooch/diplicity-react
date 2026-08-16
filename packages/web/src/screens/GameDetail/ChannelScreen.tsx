@@ -62,17 +62,19 @@ const buildMessageItems = (
   messages: readonly ChannelMessageType[]
 ): MessageDisplayItem[] => {
   return messages.map((msg, index) => {
-    const showAvatar =
-      index === 0 ||
-      messages[index - 1].sender.nation.name !== msg.sender.nation.name;
+    const nationName = msg.sender.nation?.name ?? msg.sender.name;
+    const previousNationName = index > 0
+      ? messages[index - 1].sender.nation?.name ?? messages[index - 1].sender.name
+      : null;
+    const showAvatar = index === 0 || previousNationName !== nationName;
 
     return {
       id: msg.id,
       body: msg.body,
       createdAt: msg.createdAt,
       sender: {
-        nationName: msg.sender.nation.name,
-        nationColor: msg.sender.nation.color,
+        nationName,
+        nationColor: msg.sender.nation?.color ?? "#808080",
         picture: msg.sender.picture,
       },
       isCurrentUser: msg.sender.isCurrentUser,
@@ -321,29 +323,33 @@ const ChannelScreen: React.FC = () => {
               )}
             </div>
           </Panel.Content>
-          <Separator />
-          <Panel.Footer>
-            <div className="flex gap-2 w-full">
-              <Textarea
-                placeholder="Type a message"
-                value={message}
-                rows={1}
-                maxLength={500}
-                enterKeyHint="enter"
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={createMessageMutation.isPending}
-                className="flex-1 min-h-0 max-h-32 resize-none py-2"
-              />
-              <Button
-                onClick={handleSubmit}
-                disabled={!message.trim() || createMessageMutation.isPending}
-                size="icon"
-              >
-                <Send className="size-4" />
-              </Button>
-            </div>
-          </Panel.Footer>
+          {currentMember && (
+            <>
+              <Separator />
+              <Panel.Footer>
+                <div className="flex gap-2 w-full">
+                  <Textarea
+                    placeholder="Type a message"
+                    value={message}
+                    rows={1}
+                    maxLength={500}
+                    enterKeyHint="enter"
+                    onChange={e => setMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={createMessageMutation.isPending}
+                    className="flex-1 min-h-0 max-h-32 resize-none py-2"
+                  />
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!message.trim() || createMessageMutation.isPending}
+                    size="icon"
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </div>
+              </Panel.Footer>
+            </>
+          )}
         </Panel>
       </div>
     </div>

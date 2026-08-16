@@ -29,6 +29,7 @@ from .types import (
     Order,
     OrderResolution,
     OrderType,
+    ResolutionCode,
     RetreatOrder,
     StateView,
     Status,
@@ -438,9 +439,10 @@ class ParseAdjustmentOrdersReducer(Reducer):
 class ApplyLegalityChecksReducer(Reducer):
     """Walk parsed_orders in index order and apply each order's
     LEGALITY_CHECKS against the input state. The first failing check's
-    MESSAGE becomes the order's failure_reason; its status becomes
-    ILLEGAL. Checks are pure predicates over the input state and do not
-    see the resolutions of other orders in this phase."""
+    MESSAGE becomes the order's failure_reason and its CODE the order's
+    code; its status becomes ILLEGAL. Checks are pure predicates over the
+    input state and do not see the resolutions of other orders in this
+    phase."""
 
     ACTION = Actions.ApplyLegalityChecks
 
@@ -455,6 +457,7 @@ class ApplyLegalityChecksReducer(Reducer):
                     resolutions[i] = replace(
                         resolutions[i],
                         status=Status.ILLEGAL,
+                        code=check_cls.CODE,
                         failure_reason=check_cls.MESSAGE,
                     )
                     break
@@ -494,6 +497,7 @@ class MarkRedundantConvoysIllegalReducer(Reducer):
                     resolutions[k] = replace(
                         resolutions[k],
                         status=Status.ILLEGAL,
+                        code=ResolutionCode.ILLEGAL_MOVE,
                         failure_reason="Convoy fleet is not necessary for any convoy route.",
                     )
         return state.replace(resolutions=tuple(resolutions))
@@ -550,7 +554,7 @@ class MarkConvoyedMovesReachableReducer(Reducer):
                 ):
                     continue
                 resolutions[i] = replace(
-                    r, status=None, failure_reason=None, via_convoy=True
+                    r, status=None, code=None, failure_reason=None, via_convoy=True
                 )
                 continue
             if r.status is not None:
@@ -597,6 +601,7 @@ class EnforceUniqueAdjustmentTargetsReducer(Reducer):
                     resolutions[i] = replace(
                         resolutions[i],
                         status=Status.ILLEGAL,
+                        code=ResolutionCode.ILLEGAL_MOVE,
                         failure_reason="Another build for this province has already been ordered.",
                     )
                 else:
@@ -607,6 +612,7 @@ class EnforceUniqueAdjustmentTargetsReducer(Reducer):
                     resolutions[i] = replace(
                         resolutions[i],
                         status=Status.ILLEGAL,
+                        code=ResolutionCode.ILLEGAL_MOVE,
                         failure_reason="This unit has already been ordered to disband.",
                     )
                 else:
@@ -748,6 +754,7 @@ class ResolveRetreatBouncesReducer(Reducer):
                 resolutions[i] = replace(
                     resolutions[i],
                     status=Status.BOUNCE,
+                    code=ResolutionCode.BOUNCED,
                     failure_reason="Multiple units retreat to the same province; all disband.",
                 )
         return state.replace(resolutions=tuple(resolutions))
@@ -777,6 +784,7 @@ class EnforceBuildLimitsReducer(Reducer):
                 resolutions[i] = replace(
                     resolutions[i],
                     status=Status.ILLEGAL,
+                    code=ResolutionCode.ILLEGAL_MOVE,
                     failure_reason="Nation has already built its allowed number of units.",
                 )
             else:
@@ -808,6 +816,7 @@ class EnforceDisbandLimitsReducer(Reducer):
                 resolutions[i] = replace(
                     resolutions[i],
                     status=Status.ILLEGAL,
+                    code=ResolutionCode.ILLEGAL_MOVE,
                     failure_reason="Nation has already disbanded its required number of units.",
                 )
             else:
@@ -866,15 +875,15 @@ class ApplyCivilDisorderReducer(Reducer):
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
     Support orders read their final status from support_cut and
-    support_matched in that precedence: a cut support reports CUT
-    (matching godip's ErrSupportBroken), an uncut but unmatched support
-    reports ILLEGAL (the supportee was not ordered to perform the
-    supported action, matching godip's ErrInvalidSupporteeOrder), and a
-    matched uncut support reports OK. Convoy orders whose convoying
-    fleet was dislodged by a successful attack report BOUNCE with a
-    disruption reason (matches godip's ErrConvoyDislodged). All other
-    still-undecided orders become OK. After this runs, every entry in
-    order_status is one of Status.{OK,ILLEGAL,BOUNCE,CUT}."""
+    support_matched in that precedence: a cut support reports CUT with
+    SUPPORT_BROKEN, an uncut but unmatched support reports ILLEGAL with
+    INVALID_SUPPORT_ORDER (the supportee was not ordered to perform the
+    supported action), and a matched uncut support reports OK. Convoy
+    orders whose convoying fleet was dislodged by a successful attack
+    report BOUNCE with CONVOY_DISLODGED, which distinguishes them from a
+    convoy that simply lost a contest. All other still-undecided orders
+    become OK. After this runs, every entry in order_status is one of
+    Status.{OK,ILLEGAL,BOUNCE,CUT}."""
 
     ACTION = Actions.FinalizeStatuses
 
@@ -888,13 +897,18 @@ class FinalizeStatusesReducer(Reducer):
                 continue
             if isinstance(order, (SupportHoldOrder, SupportMoveOrder)):
                 if r.support_cut == Status.CUT:
-                    resolutions[i] = replace(r, status=Status.CUT)
+                    resolutions[i] = replace(
+                        r, status=Status.CUT, code=ResolutionCode.SUPPORT_BROKEN
+                    )
                 elif r.support_matched:
-                    resolutions[i] = replace(r, status=Status.OK)
+                    resolutions[i] = replace(
+                        r, status=Status.OK, code=ResolutionCode.SUCCEEDED
+                    )
                 else:
                     resolutions[i] = replace(
                         r,
                         status=Status.ILLEGAL,
+                        code=ResolutionCode.INVALID_SUPPORT_ORDER,
                         failure_reason="The supported unit was not ordered to perform the supported action.",
                     )
                 continue
@@ -904,10 +918,13 @@ class FinalizeStatusesReducer(Reducer):
                 resolutions[i] = replace(
                     r,
                     status=Status.BOUNCE,
+                    code=ResolutionCode.CONVOY_DISLODGED,
                     failure_reason="The convoying fleet was dislodged.",
                 )
                 continue
-            resolutions[i] = replace(r, status=Status.OK)
+            resolutions[i] = replace(
+                r, status=Status.OK, code=ResolutionCode.SUCCEEDED
+            )
         return state.replace(resolutions=tuple(resolutions))
 
     @classmethod
@@ -1475,6 +1492,7 @@ class Engine:
                 Resolution(
                     province=order.source_province(),
                     resolution=resolution.status or Status.OK,
+                    code=resolution.code or ResolutionCode.SUCCEEDED,
                     reason=resolution.failure_reason,
                 )
             )
@@ -1483,6 +1501,7 @@ class Engine:
                 Resolution(
                     province=location,
                     resolution=Status.OK,
+                    code=ResolutionCode.SUCCEEDED,
                     reason="Disbanded due to civil disorder.",
                 )
             )

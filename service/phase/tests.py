@@ -1,4 +1,4 @@
-from adjudication.service import resolve
+from adjudicator.service import resolve
 import json
 import pytest
 from django.db import IntegrityError, DatabaseError, transaction
@@ -113,7 +113,8 @@ def test_list_orderable_provinces_sandbox_game(authenticated_client, sandbox_gam
 def test_list_orderable_provinces_not_member(authenticated_client, active_game_created_by_secondary_user):
     url = reverse("phase-state-list", args=[active_game_created_by_secondary_user.id])
     response = authenticated_client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == []
 
 
 @pytest.mark.django_db
@@ -195,7 +196,7 @@ def test_resolve_due_phases_with_scheduled_time(active_game_with_phase_state):
     past_time = timezone.now() - timedelta(hours=1)
     phase.scheduled_resolution = past_time
     phase.save()
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 1
         assert result["failed"] == 0
@@ -213,7 +214,7 @@ def test_resolve_due_phases_with_immediate_resolution(active_game_with_phase_sta
     phase_state = phase.phase_states.first()
     phase_state.has_possible_orders = False
     phase_state.save()
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 1
         assert result["failed"] == 0
@@ -228,7 +229,7 @@ def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state, g
     phase.scheduled_resolution = future_time
     phase.options = godip_options_england_london_hold
     phase.save()
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 0
         assert result["failed"] == 0
@@ -256,7 +257,7 @@ def test_resolve_due_phases_skips_sandbox_games(db, classical_variant, primary_u
     assert phase.scheduled_resolution is None
     assert phase.status == PhaseStatus.ACTIVE
 
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 0
         assert result["failed"] == 0
@@ -1659,6 +1660,14 @@ class TestPhaseListView:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    @pytest.mark.django_db
+    def test_list_phases_not_member(self, authenticated_client, active_game_created_by_secondary_user):
+        url = reverse("phase-list", args=[active_game_created_by_secondary_user.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+
 
 class TestPhaseListViewPerformance:
 
@@ -1685,7 +1694,7 @@ class TestPhaseListViewPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 3  # was 6 before resolve_game cache eliminated the dup phase fetches
+        assert query_count == 2
 
 
 class TestPhaseRetrieveViewQueryPerformance:
@@ -2070,6 +2079,123 @@ class TestResolveTransactionSafety:
         active_phases = Phase.objects.filter(game=game, status=PhaseStatus.ACTIVE)
         assert active_phases.count() == 1
         assert active_phases.first().id == phase.id
+
+
+class TestUniqueLivePhaseOrdinal:
+
+    def _duplicate(self, phase, status):
+        return Phase.objects.create(
+            game=phase.game,
+            variant=phase.variant,
+            season=phase.season,
+            year=phase.year,
+            type=phase.type,
+            ordinal=phase.ordinal,
+            status=status,
+        )
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("status", [PhaseStatus.ACTIVE, PhaseStatus.PROCESSING, PhaseStatus.PENDING])
+    def test_second_live_phase_at_same_ordinal_is_rejected(self, italy_vs_germany_phase_with_orders, status):
+        phase = italy_vs_germany_phase_with_orders
+
+        with pytest.raises(IntegrityError):
+            with transaction.atomic():
+                self._duplicate(phase, status)
+
+    @pytest.mark.django_db
+    def test_completed_phase_at_same_ordinal_is_allowed(self, italy_vs_germany_phase_with_orders):
+        phase = italy_vs_germany_phase_with_orders
+
+        duplicate = self._duplicate(phase, PhaseStatus.COMPLETED)
+
+        assert Phase.objects.filter(game=phase.game, ordinal=phase.ordinal).count() == 2
+        assert phase.game.current_phase.id == max(phase.id, duplicate.id)
+
+
+class TestGameEndingFinalisesPhases:
+
+    def _stale_active_phase(self, game, ordinal):
+        return Phase.objects.create(
+            game=game,
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=ordinal,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=timezone.now() + timedelta(days=1),
+        )
+
+    @pytest.mark.django_db
+    def test_victory_completes_every_phase(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+        stale_phase = self._stale_active_phase(game, ordinal=phase.ordinal + 2)
+
+        with patch("phase.models.resolve", return_value=mock_adjudication_data_basic):
+            with patch("phase.models.Victory.objects.try_create_victory", return_value=Mock()):
+                Phase.objects.resolve(phase)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.COMPLETED
+        assert not game.phases.exclude(status=PhaseStatus.COMPLETED).exists()
+
+        stale_phase.refresh_from_db()
+        assert stale_phase.status == PhaseStatus.COMPLETED
+        assert stale_phase.scheduled_resolution is None
+
+    @pytest.mark.django_db
+    def test_abandonment_completes_every_phase(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+        stale_phase = self._stale_active_phase(game, ordinal=phase.ordinal + 2)
+
+        for member in game.members.all():
+            member.civil_disorder = True
+            member.save()
+
+        with patch("phase.models.resolve", return_value=mock_adjudication_data_basic):
+            with patch("phase.models.Victory.objects.try_create_victory", return_value=None):
+                Phase.objects.resolve(phase)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+        assert not game.phases.exclude(status=PhaseStatus.COMPLETED).exists()
+
+        stale_phase.refresh_from_db()
+        assert stale_phase.status == PhaseStatus.COMPLETED
+        assert stale_phase.scheduled_resolution is None
+
+    @pytest.mark.django_db
+    def test_finish_cancels_armed_resolution_job(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        job_id = phase.resolution_job_id
+
+        phase.game.finish(GameStatus.COMPLETED)
+
+        assert in_memory_procrastinate.jobs[job_id]["status"] == "cancelled"
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+        assert phase.scheduled_resolution is None
+        assert phase.resolution_job_id is None
 
 
 class TestFilterDuePhasesBasicFiltering:

@@ -1,0 +1,28 @@
+name: Lint Design Playground
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: packages/design-playground/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: packages/design-playground
+
+      - name: Lint
+        run: npm run lint
+        working-directory: packages/design-playground

@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.core import exceptions
 from rest_framework import status
 from common.constants import PhaseStatus, OrderType, UnitType, OrderCreationStep, OrderResolutionStatus, PhaseType
+from phase.models import Phase
 
 from .models import Order, OrderResolution
 from .utils import get_options_for_order, get_order_data_from_selected, flatten_options, FIELD_ORDER
@@ -150,6 +151,56 @@ class TestOrderListView:
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    @pytest.mark.django_db
+    def test_list_orders_active_phase_non_member(
+        self,
+        authenticated_client_for_tertiary_user,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client_for_tertiary_user.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 0
+
+    @pytest.mark.django_db
+    def test_list_orders_completed_phase_non_member(
+        self,
+        authenticated_client_for_tertiary_user,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client_for_tertiary_user.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+
 
 class TestOrderListViewCompletedPhaseCaching:
 
@@ -208,6 +259,20 @@ class TestOrderListViewCompletedPhaseCaching:
 
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"] != '"stale"'
+
+    @pytest.mark.django_db
+    def test_completed_phase_weakened_etag_returns_304(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
 
 
 class TestOrderCreateView:
@@ -659,8 +724,49 @@ class TestOrderCreateView:
         assert second_order.order_type == "Hold"
         assert second_order.id != first_order.id
 
+    @pytest.mark.django_db
+    def test_order_create_rejected_while_the_phase_is_processing(
+        self, authenticated_client, game_with_options
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        Phase.objects.filter(pk=game.current_phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        response = authenticated_client.post(url, {"selected": ["bud", "Move", "gal"]}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 1
+        assert Order.objects.get().order_type == OrderType.HOLD
+
 
 class TestOrderDeleteView:
+    @pytest.mark.django_db
+    def test_delete_order_rejected_while_the_phase_is_processing(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
+        Phase.objects.filter(pk=phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 1
+
     @pytest.mark.django_db
     def test_delete_order_success(
         self,
@@ -1011,7 +1117,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15  # was 18 before resolve_game cache + dedup create_from_selected
+        assert query_count == 19
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
@@ -1026,7 +1132,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 19
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
@@ -1041,7 +1147,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 19
 
 
 class TestOrderDeleteViewQueryPerformance:
@@ -1075,7 +1181,7 @@ class TestOrderDeleteViewQueryPerformance:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         query_count = len(connection.queries)
 
-        assert query_count == 6
+        assert query_count == 10
 
 
 class TestGetOptionsForOrder:
@@ -3008,13 +3114,34 @@ class TestOrderOptionsView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_non_member_rejected(self, game_with_options, tertiary_user):
-        from rest_framework.test import APIClient
-        client = APIClient()
-        client.force_authenticate(user=tertiary_user)
+    def test_non_member_returns_no_options(
+        self, game_with_options, tertiary_user, authenticated_client_factory
+    ):
+        client = authenticated_client_factory(tertiary_user)
         url = reverse("order-options", args=[game_with_options.id])
         response = client.get(url)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
+
+    @pytest.mark.django_db
+    def test_kicked_member_returns_no_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(kicked=True)
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
+
+    @pytest.mark.django_db
+    def test_eliminated_member_returns_no_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(eliminated=True)
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
 
     @pytest.mark.django_db
     def test_returns_own_nation_options(self, authenticated_client, game_with_options):

@@ -221,7 +221,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Auth'
+              $ref: '#/components/schemas/GoogleAuth'
         required: true
       security:
       - jwtAuth: []
@@ -231,7 +231,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Auth'
+                $ref: '#/components/schemas/GoogleAuth'
           description: ''
   /auth/password-reset/:
     post:
@@ -412,38 +412,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameRetrieve'
           description: ''
-  /game/{gameId}/add-bot/:
-    post:
-      operationId: gameAddBotCreate
-      description: |-
-        Used by views that have a game parameter in the URL. Provides a get_game
-        method that returns the game object. Also adds game to the serializer context.
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      tags:
-      - game
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BotMemberCreate'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Member'
-          description: ''
-  /game/{gameId}/available-bots/:
+  /game/{gameId}/addable-user/:
     get:
-      operationId: gameAvailableBotsList
+      operationId: gameAddableUserList
       description: |-
         Used by views that have a game parameter in the URL. Provides a get_game
         method that returns the game object. Also adds game to the serializer context.
@@ -464,7 +435,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AvailableBot'
+                  $ref: '#/components/schemas/AddableUser'
           description: ''
   /game/{gameId}/clone-to-sandbox/:
     post:
@@ -624,34 +595,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameExtendDeadline'
           description: ''
-  /game/{gameId}/join/:
-    post:
-      operationId: gameJoinCreate
-      description: |-
-        Used by views that have a game parameter in the URL. Provides a get_game
-        method that returns the game object. Also adds game to the serializer context.
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      tags:
-      - game
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Member'
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Member'
-          description: ''
   /game/{gameId}/kick/{memberId}/:
     delete:
       operationId: gameKickDestroy
@@ -695,6 +638,58 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{gameId}/member/:
+    post:
+      operationId: gameMemberCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+  /game/{gameId}/member/join/:
+    post:
+      operationId: gameMemberJoinCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
   /game/{gameId}/options/:
     get:
       operationId: gameOptionsRetrieve
@@ -1097,6 +1092,7 @@ paths:
       - games
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1696,6 +1692,23 @@ paths:
           description: ''
 components:
   schemas:
+    AddableUser:
+      type: object
+      properties:
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - name
+      - picture
+      - userId
     AppleAuth:
       type: object
       properties:
@@ -1730,63 +1743,6 @@ components:
       - idToken
       - name
       - refreshToken
-    Auth:
-      type: object
-      properties:
-        idToken:
-          type: string
-          writeOnly: true
-        id:
-          type: integer
-          readOnly: true
-        email:
-          type: string
-          readOnly: true
-        name:
-          type: string
-          readOnly: true
-        accessToken:
-          type: string
-          readOnly: true
-        refreshToken:
-          type: string
-          readOnly: true
-      required:
-      - accessToken
-      - email
-      - id
-      - idToken
-      - name
-      - refreshToken
-    AvailableBot:
-      type: object
-      properties:
-        userId:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          readOnly: true
-        picture:
-          type: string
-          readOnly: true
-          nullable: true
-        kind:
-          type: string
-          readOnly: true
-      required:
-      - kind
-      - name
-      - picture
-      - userId
-    BotMemberCreate:
-      type: object
-      properties:
-        userId:
-          type: integer
-          writeOnly: true
-      required:
-      - userId
     Channel:
       type: object
       properties:
@@ -1848,7 +1804,9 @@ components:
           nullable: true
           readOnly: true
         nation:
-          $ref: '#/components/schemas/Nation'
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          nullable: true
       required:
       - commitment
       - id
@@ -2734,6 +2692,34 @@ components:
       - totalUnreadMessageCount
       - variantId
       - victory
+    GoogleAuth:
+      type: object
+      properties:
+        idToken:
+          type: string
+          writeOnly: true
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        accessToken:
+          type: string
+          readOnly: true
+        refreshToken:
+          type: string
+          readOnly: true
+      required:
+      - accessToken
+      - email
+      - id
+      - idToken
+      - name
+      - refreshToken
     Member:
       type: object
       properties:
@@ -2801,6 +2787,14 @@ components:
       - picture
       - replaceable
       - seekingReplacement
+      - userId
+    MemberCreate:
+      type: object
+      properties:
+        userId:
+          type: integer
+          writeOnly: true
+      required:
       - userId
     MemberStatusEnum:
       enum:
@@ -3400,12 +3394,14 @@ components:
       enum:
       - pending
       - active
+      - processing
       - completed
       - template
       type: string
       description: |-
         * `pending` - Pending
         * `active` - Active
+        * `processing` - Processing
         * `completed` - Completed
         * `template` - Template
     StepEnum:

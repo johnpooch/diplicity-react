@@ -1,12 +1,12 @@
-Django>=6.0.7,<7.0
-djangorestframework>=3.17.1,<4.0
+Django>=6.1,<6.2
+djangorestframework>=3.18.0,<4.0
 django-cors-headers>=4.9.0,<5.0
 djangorestframework-camel-case>=1.4.2,<2.0
 djangorestframework-simplejwt>=5.5.1,<6.0
 drf-spectacular>=0.30.0,<1.0
 gunicorn>=23.0.0,<24.0
 psycopg2-binary
-google-auth>=2.56.2,<3.0
+google-auth>=2.56.3,<3.0
 cryptography>=38.0.4,<49.0
 PyJWT>=2.13.0,<3.0
 fcm-django>=2.3.1,<4.0
@@ -26,6 +26,6 @@ opentelemetry-instrumentation-psycopg>=0.65b0,<1.0
 opentelemetry-instrumentation-requests>=0.65b0,<1.0
 resend>=2.35.0,<3.0
 jsonschema>=4.26.0,<5.0
-anthropic>=0.120.2,<1.0
+anthropic>=0.121.0,<1.0
 PyYAML>=6.0.3,<7.0
 lxml>=6.1.1,<7.0

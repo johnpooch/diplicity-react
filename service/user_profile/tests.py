@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from common.constants import Commitment, CommitmentRequirement, GameStatus, PhaseStatus, PhaseType
 from game.models import Game
 from phase.models import Phase, PhaseState
@@ -225,6 +225,80 @@ class TestUserAccountDelete:
         client.delete(url)
 
         assert not Game.objects.filter(id=game_id).exists()
+
+    @pytest.mark.django_db
+    def test_current_phase_state_no_longer_has_possible_orders(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        phase = base_active_phase(game)
+        member = game.members.create(user=user)
+        phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        phase_state.refresh_from_db()
+        assert phase_state.has_possible_orders is False
+
+    @pytest.mark.django_db
+    def test_completed_phase_state_is_untouched(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        phase = base_active_phase(game)
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        member = game.members.create(user=user)
+        phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        phase_state.refresh_from_db()
+        assert phase_state.has_possible_orders is True
+
+    @pytest.mark.django_db
+    def test_deleted_member_no_longer_blocks_early_resolution(
+        self, user_factory, authenticated_client_factory, active_game_with_confirmed_phase_state, classical_france_nation
+    ):
+        game = active_game_with_confirmed_phase_state
+        phase = game.current_phase
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        member = game.members.create(user=user, nation=classical_france_nation)
+        phase.phase_states.create(member=member, has_possible_orders=True)
+
+        assert not Phase.objects.filter_due_phases().filter(id=phase.id).exists()
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert Phase.objects.filter_due_phases().filter(id=phase.id).exists()
+
+    @pytest.mark.django_db
+    def test_deleted_member_does_not_consume_nmr_extensions(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        phase = base_active_phase(game)
+        phase.scheduled_resolution = timezone.now()
+        phase.save()
+        member = game.members.create(user=user, nmr_extensions_remaining=1)
+        phase.phase_states.create(member=member, has_possible_orders=True)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert Phase.objects._check_and_apply_nmr_extensions(phase) is None
+        member.refresh_from_db()
+        assert member.nmr_extensions_remaining == 1
 
     @pytest.mark.django_db
     def test_pending_game_with_other_members_is_preserved(
@@ -717,20 +791,28 @@ class TestScoreCommitment:
 class TestCommitmentAllowsRequirement:
 
     @pytest.mark.parametrize(
-        "commitment,commitment_requirement,expected",
+        "commitment,commitment_requirement,private,expected",
         [
-            (Commitment.HIGH, CommitmentRequirement.OPEN, True),
-            (Commitment.HIGH, CommitmentRequirement.COMMITTED, True),
-            (Commitment.MEDIUM, CommitmentRequirement.OPEN, True),
-            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False),
-            (Commitment.UNDEFINED, CommitmentRequirement.OPEN, True),
-            (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False),
-            (Commitment.LOW, CommitmentRequirement.OPEN, False),
-            (Commitment.LOW, CommitmentRequirement.COMMITTED, False),
+            (Commitment.HIGH, CommitmentRequirement.OPEN, False, True),
+            (Commitment.HIGH, CommitmentRequirement.COMMITTED, False, True),
+            (Commitment.MEDIUM, CommitmentRequirement.OPEN, False, True),
+            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False, False),
+            (Commitment.UNDEFINED, CommitmentRequirement.OPEN, False, True),
+            (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False, False),
+            (Commitment.LOW, CommitmentRequirement.OPEN, False, False),
+            (Commitment.LOW, CommitmentRequirement.COMMITTED, False, False),
+            (Commitment.LOW, CommitmentRequirement.OPEN, True, True),
+            (Commitment.LOW, CommitmentRequirement.COMMITTED, True, False),
+            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, True, False),
         ],
     )
-    def test_commitment_allows_requirement(self, commitment, commitment_requirement, expected):
-        assert commitment_allows_requirement(commitment, commitment_requirement) is expected
+    def test_commitment_allows_requirement(
+        self, commitment, commitment_requirement, private, expected
+    ):
+        assert (
+            commitment_allows_requirement(commitment, commitment_requirement, private)
+            is expected
+        )
 
 
 class TestRecomputeCommitment:
@@ -901,3 +983,145 @@ class TestCanCreateBotGamesFlag:
         response = authenticated_client.get(reverse("user-profile"))
         assert response.status_code == status.HTTP_200_OK
         assert response.data["can_create_bot_games"] is False
+
+
+def _create_bot_seat_game(client, variant_id):
+    response = client.post(
+        reverse("game-create"),
+        {
+            "name": "Bot Seat Game",
+            "variant_id": variant_id,
+            "nation_assignment": "random",
+            "private": False,
+            "deadline_mode": "duration",
+            "movement_phase_duration": "24 hours",
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    return Game.objects.get(id=response.data["id"])
+
+
+class TestAddableUserList:
+
+    @pytest.mark.django_db
+    def test_lists_bots_sorted_by_name(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [user["name"] for user in response.data]
+        assert names == sorted(names)
+        assert all(user["user_id"] for user in response.data)
+
+    @pytest.mark.django_db
+    def test_excludes_humans(self, authenticated_client, classical_variant, secondary_user, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert secondary_user.id not in [user["user_id"] for user in response.data]
+
+    @pytest.mark.django_db
+    def test_excludes_bots_already_in_the_game(
+        self, authenticated_client, classical_variant, bot_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+        game.members.create(user=bot_user)
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert bot_user.id not in [user["user_id"] for user in response.data]
+
+    @pytest.mark.django_db
+    def test_non_manager_forbidden(
+        self, authenticated_client, authenticated_client_for_secondary_user, classical_variant, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com", "secondary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client_for_secondary_user.get(
+            reverse("game-addable-user-list", args=[game.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_user_off_the_allowlist_forbidden(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+        settings.BOT_OPPONENT_ALLOWLIST = []
+
+        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_non_pending_game_forbidden(
+        self, authenticated_client, active_game_created_by_primary_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+
+        response = authenticated_client.get(
+            reverse("game-addable-user-list", args=[active_game_created_by_primary_user.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestLegacyAvailableBotListView:
+
+    def test_serves_the_path_shipped_mobile_builds_call(self):
+        assert reverse("game-available-bots-legacy", args=["abc123"]) == "/game/abc123/available-bots/"
+
+    @pytest.mark.django_db
+    def test_lists_bots_sorted_by_name(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+
+        response = authenticated_client.get(reverse("game-available-bots-legacy", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [user["name"] for user in response.data]
+        assert names == sorted(names)
+        assert all(user["user_id"] for user in response.data)
+
+    @pytest.mark.django_db
+    def test_excludes_bots_already_in_the_game(
+        self, authenticated_client, classical_variant, bot_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+        game.members.create(user=bot_user)
+
+        response = authenticated_client.get(reverse("game-available-bots-legacy", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert bot_user.id not in [user["user_id"] for user in response.data]
+
+    @pytest.mark.django_db
+    def test_user_off_the_allowlist_forbidden(self, authenticated_client, classical_variant, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
+        settings.BOT_OPPONENT_ALLOWLIST = []
+
+        response = authenticated_client.get(reverse("game-available-bots-legacy", args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_non_pending_game_forbidden(
+        self, authenticated_client, active_game_created_by_primary_user, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+
+        response = authenticated_client.get(
+            reverse("game-available-bots-legacy", args=[active_game_created_by_primary_user.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN

@@ -222,6 +222,38 @@ describe("OrdersScreen confirm orders button", () => {
   });
 });
 
+describe("OrdersScreen spectating", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+    mockOrdersData.mockReturnValue([]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ isCurrentUser: false })],
+    });
+  });
+
+  it("shows the spectating notice when the user is not a member", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByText(/spectating/i)).toBeInTheDocument();
+  });
+
+  it("hides the confirm orders button when the user is not a member", () => {
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /orders confirmed/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+  });
+});
+
 describe("OrdersScreen resilience to malformed list data", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
@@ -244,7 +276,7 @@ describe("OrdersScreen resilience to malformed list data", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByText(/no orders required/i)).toBeInTheDocument();
+    expect(screen.getByText(/spectating/i)).toBeInTheDocument();
   });
 
   it("falls back to an unmatched member instead of crashing when game.members is not an array and there are past orders to group by nation", () => {

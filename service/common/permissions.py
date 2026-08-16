@@ -1,11 +1,10 @@
 from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from bot_profile.utils import user_can_use_bot_opponent
 from common.constants import GameStatus, MinReliability, PressType
 from common.views import resolve_game
 from user_profile.commitment import commitment_allows_requirement
-from user_profile.utils import get_player_stats, tier_allows_min_reliability
+from user_profile.utils import get_player_stats, tier_allows_min_reliability, user_can_use_bot_opponent
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -49,16 +48,6 @@ class IsNotKickedGameMember(BasePermission):
             self.message = "Cannot perform action for kicked players."
             return False
         return True
-
-
-class IsGameMemberOrGameMaster(BasePermission):
-    message = "User is not a member of the game."
-
-    def has_permission(self, request, view):
-        game = resolve_game(request, view.kwargs.get("game_id"))
-        if game.game_master_id is not None and game.game_master_id == request.user.id:
-            return True
-        return game.members.filter(user=request.user).exists()
 
 
 class IsActiveGameMember(BasePermission):
@@ -140,7 +129,7 @@ class MeetsCommitmentRequirement(BasePermission):
         if not request.user.is_authenticated:
             return False
         return commitment_allows_requirement(
-            request.user.profile.commitment, game.commitment_requirement
+            request.user.profile.commitment, game.commitment_requirement, game.private
         )
 
 

@@ -22,7 +22,7 @@ class ChannelQuerySet(models.QuerySet):
 
     def with_related_data(self):
         return self.prefetch_related(
-            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__bot_profile", "members", "members__user", "members__user__bot_profile"
+            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile", "members", "members__user", "members__user__profile"
         )
 
     def order_for_list(self):
@@ -84,7 +84,7 @@ class Channel(BaseModel):
 
     objects = ChannelManager()
 
-    name = models.CharField(max_length=250)
+    name = models.CharField(max_length=1000)
     private = models.BooleanField(default=False)
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="channels")
     members = models.ManyToManyField(
@@ -119,7 +119,7 @@ class ChannelMessageQuerySet(models.QuerySet):
         return self.filter(channel=channel)
 
     def with_sender_data(self):
-        return self.select_related("sender", "sender__user", "sender__user__bot_profile")
+        return self.select_related("sender", "sender__user", "sender__user__profile")
 
 
 class ChannelMessage(BaseModel):

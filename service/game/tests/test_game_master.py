@@ -7,7 +7,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
 from game.models import Game
 from notification.models import Notification, NotificationDelivery
@@ -163,13 +163,14 @@ class TestGameMasterInGameAccess:
         assert response.data == []
 
     @pytest.mark.django_db
-    def test_non_member_cannot_list_phase_states(
+    def test_non_member_lists_no_phase_states(
         self, authenticated_client_for_secondary_user, active_game_with_game_master_factory
     ):
         game = active_game_with_game_master_factory()
         url = reverse(phase_state_list_viewname, args=[game.id])
         response = authenticated_client_for_secondary_user.get(url)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
 
 
 class TestGameMasterPowers:

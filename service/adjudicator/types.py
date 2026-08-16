@@ -43,6 +43,36 @@ class Status:
     CUT: ClassVar[str] = "CUT"
 
 
+class ResolutionCode:
+    """Outcome codes written into OrderResolution.code and propagated
+    verbatim to the external Resolution records, which persist them as
+    OrderResolution.status (see common.constants.OrderResolutionStatus,
+    which takes its values from here).
+
+    Distinct from `Status`: `Status` is the solver's control-flow value
+    and stays deliberately coarse, while these codes are the reporting
+    vocabulary and may name any number of distinct failures per status.
+    Every site that assigns a final status assigns a code alongside it,
+    so nothing downstream has to infer one from the other.
+
+    The values are godip's wire-format strings. godip is gone, but its
+    codes are what every stored OrderResolution row already holds and
+    what the recorded games in `integration/fixtures` assert against."""
+
+    SUCCEEDED: ClassVar[str] = "OK"
+    ILLEGAL_MOVE: ClassVar[str] = "ErrIllegalMove"
+    ILLEGAL_DESTINATION: ClassVar[str] = "ErrIllegalDestination"
+    BOUNCED: ClassVar[str] = "ErrBounce"
+    INVALID_SUPPORT_ORDER: ClassVar[str] = "ErrInvalidSupporteeOrder"
+    ILLEGAL_SUPPORT_DESTINATION: ClassVar[str] = "ErrIllegalSupportDestination"
+    INVALID_DESTINATION: ClassVar[str] = "ErrInvalidDestination"
+    MISSING_SUPPORT_UNIT: ClassVar[str] = "ErrMissingSupportUnit"
+    MISSING_UNIT: ClassVar[str] = "ErrMissingUnit"
+    SUPPORT_BROKEN: ClassVar[str] = "ErrSupportBroken"
+    MISSING_CONVOY_PATH: ClassVar[str] = "ErrMissingConvoyPath"
+    CONVOY_DISLODGED: ClassVar[str] = "ErrConvoyDislodged"
+
+
 class OrderType:
     """Wire-format order-type ids accepted in the prototype slice. Any
     raw order whose `order_type` is not one of these raises
@@ -94,8 +124,9 @@ class Action:
 
 class Check:
     """Stateless predicate over (StateView, Order). Subclasses declare
-    the MESSAGE shown to players when the check fails and a classmethod
-    `check` returning True iff the order satisfies the rule.
+    the MESSAGE shown to players when the check fails, the CODE reported
+    for that failure, and a classmethod `check` returning True iff the
+    order satisfies the rule.
 
     Composed into Order subclasses via the LEGALITY_CHECKS class attribute
     and applied by the `ApplyLegalityChecks` reducer. Checks are pure
@@ -107,6 +138,11 @@ class Check:
     """
 
     MESSAGE: ClassVar[str] = ""
+    CODE: ClassVar[str] = ResolutionCode.ILLEGAL_MOVE
+    """Outcome code reported when this check rejects an order. Most
+    rejections are indistinguishable to a player, so the base supplies
+    the generic code and a subclass overrides it only where the
+    reporting vocabulary names its rule specifically."""
 
     @classmethod
     def check(cls, state: "StateView", order: Order) -> bool:
@@ -844,6 +880,12 @@ class OrderResolution:
     legality checks, retreat bounces, build/disband limits, the strength
     resolver, and FinalizeStatuses."""
 
+    code: Optional[str] = None
+    """Per-order outcome code from ResolutionCode — the reported form of
+    `status`, finer-grained than the four control-flow values. Assigned
+    by whichever step assigns `status`, and cleared with it. After
+    FinalizeStatuses it is guaranteed non-None."""
+
     failure_reason: Optional[str] = None
     """Per-order failure message. Populated alongside ILLEGAL / BOUNCE
     statuses; None for OK orders."""
@@ -1063,16 +1105,16 @@ class NationView:
         )
 
     def allowed_builds(self) -> int:
-        if self._is_non_playable():
+        if self.is_non_playable():
             return 0
         return max(0, len(self.owned_supply_centers()) - self.standing_unit_count())
 
     def required_disbands(self) -> int:
-        if self._is_non_playable():
+        if self.is_non_playable():
             return 0
         return max(0, self.standing_unit_count() - len(self.owned_supply_centers()))
 
-    def _is_non_playable(self) -> bool:
+    def is_non_playable(self) -> bool:
         for nation in self._state.variant.nations:
             if nation.id == self._nation:
                 return nation.non_playable

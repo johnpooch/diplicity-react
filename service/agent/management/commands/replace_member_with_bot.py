@@ -3,12 +3,11 @@ from django.db import transaction
 
 from agent.constants import AgentTaskKind
 from agent.models import AgentTask
-from bot_profile.models import BotProfile
 from channel.models import ChannelMember
-from common.constants import PhaseStatus
 from game.models import Game
 from order.models import Order
-from phase.models import PhaseState
+from phase.models import Phase, PhaseState
+from user_profile.models import UserProfile
 
 
 class Command(BaseCommand):
@@ -31,10 +30,10 @@ class Command(BaseCommand):
         )
         if member is None:
             raise CommandError(f"game '{game.id}' has no member for nation '{options['nation']}'")
-        if member.user is not None and hasattr(member.user, "bot_profile"):
+        if member.user is not None and member.user.profile.is_bot:
             raise CommandError(f"{member.nation.name} in game '{game.id}' is already played by a bot")
 
-        available = BotProfile.objects.available_for_game(game)
+        available = UserProfile.objects.addable_to_game(game)
         bot_profile = available.filter(user__username=options["bot"]).first()
         if bot_profile is None:
             usernames = ", ".join(profile.user.username for profile in available)
@@ -54,7 +53,7 @@ class Command(BaseCommand):
             member.save(update_fields=["kicked", "replaced_by"])
 
             phase = game.current_phase
-            if phase is not None and phase.status == PhaseStatus.ACTIVE:
+            if phase is not None and Phase.objects.lock_if_active(phase.id) is not None:
                 replaced_states = phase.phase_states.filter(member=member)
                 Order.objects.filter(phase_state__in=replaced_states).delete()
                 replaced_states.update(has_possible_orders=False)
@@ -66,5 +65,5 @@ class Command(BaseCommand):
                 AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=replacement, phase=phase)
 
         self.stdout.write(
-            self.style.SUCCESS(f"{bot_profile.user.profile.name} now plays {member.nation.name} in '{game.id}'.")
+            self.style.SUCCESS(f"{bot_profile.name} now plays {member.nation.name} in '{game.id}'.")
         )

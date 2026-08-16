@@ -54,9 +54,11 @@ from .types import (
     ConvoyOrder,
     HoldOrder,
     MoveOrder,
+    MoveTargetIsReachableCheck,
     Order,
     OrderResolution,
     OrderType,
+    ResolutionCode,
     StateView,
     SupportHoldOrder,
     SupportMoveOrder,
@@ -3367,6 +3369,37 @@ def test_f_25_cut_support_last():
     assert _datc_has_unit(result, "england", "Army", "hol")
     assert _datc_has_unit(result, "england", "Army", "bel")
     assert _datc_has_unit(result, "germany", "Army", "nwy")
+
+
+def test_doomed_attack_on_convoying_fleet_does_not_disrupt_convoy():
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Army", "hol")
+        .with_unit("france", "Fleet", "nth")
+        .with_unit("france", "Fleet", "eng")
+        .with_unit("england", "Fleet", "lon")
+        .with_unit("england", "Fleet", "nrg")
+        .with_unit("germany", "Fleet", "hel")
+        .with_order("france", "hol", "Move", target="lon")
+        .with_order("france", "nth", "Convoy", aux="hol", target="lon")
+        .with_order("france", "eng", "Support", aux="hol", target="lon")
+        .with_order("england", "lon", "Support", aux="nrg", target="nth")
+        .with_order("england", "nrg", "Move", target="nth")
+        .with_order("germany", "hel", "Support", aux="nth")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert _datc_resolution_for(result, "hol") == "OK"
+    assert _datc_has_unit(result, "france", "Army", "lon")
+    assert _datc_has_unit(result, "france", "Fleet", "nth")
+    assert not _datc_is_dislodged(result, "nth")
+    assert _datc_is_dislodged(result, "lon")
+    assert _datc_resolution_for(result, "nrg") == "BOUNCE"
+    assert _datc_resolution_for(result, "lon") == "CUT"
 
 
 # === DATC 6.G: CONVOYING TO ADJACENT PROVINCES ===
@@ -7625,6 +7658,13 @@ def _c2_failure_reason(states: List[State], province: str) -> Optional[str]:
     return None
 
 
+def _c2_code(states: List[State], province: str) -> Optional[str]:
+    for r in states[0].resolutions or []:
+        if r.province == province:
+            return r.code
+    return None
+
+
 def _c2_unit_at(states: List[State], location: str) -> Optional[Unit]:
     for u in states[0].units:
         if u.location == location and not u.dislodged:
@@ -7651,6 +7691,111 @@ def _c2_convoy_matched_at(adj: AdjudicationState, source: str) -> Optional[bool]
         if isinstance(order, ConvoyOrder) and order.source == source:
             return res.convoy_matched
     return None
+
+
+# === Outcome codes ===
+
+
+def test_successful_order_reports_succeeded_code():
+    """An uncontested move carries the success code, not an absent one."""
+    state = _c2_movement_state(
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "lhs") == Status.OK
+    assert _c2_code(result, "lhs") == ResolutionCode.SUCCEEDED
+
+
+def test_illegal_order_reports_the_code_declared_by_the_check_that_rejected_it():
+    """The code travels from the failing Check's CODE attribute through
+    to the external Resolution — nothing downstream re-derives it from
+    the status."""
+    state = _c2_movement_state(
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="far"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "lhs") == Status.ILLEGAL
+    assert _c2_code(result, "lhs") == MoveTargetIsReachableCheck.CODE
+
+
+def test_bounced_move_reports_bounced_code():
+    """Two armies contest mid; both bounce and both carry the bounce
+    code, which is distinct from the illegal-order code."""
+    state = _c2_movement_state(
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(nation=SOUTH, source="rhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "lhs") == Status.BOUNCE
+    assert _c2_code(result, "lhs") == ResolutionCode.BOUNCED
+    assert _c2_code(result, "rhs") == ResolutionCode.BOUNCED
+
+
+def test_unmatched_support_reports_invalid_support_order_code():
+    """An uncut support whose supportee never ordered the supported
+    action is ILLEGAL like any rejected order, but reports its own code
+    rather than the generic one."""
+    state = _c2_movement_state(
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Hold"),
+            RawOrder(
+                nation=NORTH,
+                source="mid",
+                order_type="Support",
+                aux="lhs",
+                target="rhs",
+            ),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "mid") == Status.ILLEGAL
+    assert _c2_code(result, "mid") == ResolutionCode.INVALID_SUPPORT_ORDER
+
+
+def test_cut_support_reports_support_broken_code():
+    """A support cut by an attack on the supporter reports the
+    support-broken code rather than the generic bounce code."""
+    state = _c2_movement_state(
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Hold"),
+            RawOrder(nation=NORTH, source="mid", order_type="Support", aux="lhs"),
+            RawOrder(nation=SOUTH, source="rhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _c2_resolution(result, "mid") == Status.CUT
+    assert _c2_code(result, "mid") == ResolutionCode.SUPPORT_BROKEN
 
 
 # === Custom chain variant for multi-sea path tests ===
@@ -10938,6 +11083,69 @@ def test_options_adjustment_no_disbands_for_non_playable_nation():
     )
     options = get_options(state)
     assert [o for o in options if o.order_type == "Disband"] == []
+
+
+def test_options_retreat_no_options_for_non_playable_nation():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    assert get_options(state) == []
+
+
+def test_options_retreat_still_emitted_for_playable_nation_alongside_non_playable():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="iso",
+                dislodged=True,
+                dislodged_from="sea",
+            ),
+        ],
+    )
+    assert {o.source for o in get_options(state)} == {"iso"}
+
+
+def test_retreat_dislodged_non_playable_unit_is_removed_without_orders():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(
+                nation=SOUTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    result = Engine().adjudicate(state)
+    assert [u for u in result[0].units if u.nation == SOUTH] == []
 
 
 def _with_neutral_auto_build(variant: Variant) -> Variant:

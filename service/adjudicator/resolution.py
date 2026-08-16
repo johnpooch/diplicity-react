@@ -27,20 +27,21 @@ The internal representation is an explicit Decision graph:
         strictly exceeds every external competitor's prevent, all
         members succeed (DATC 6.F.4).
 
+      - Guaranteed bounces: a Move whose maximum possible attack
+        strength cannot exceed a resolved competitor's prevent
+        strength, or the resolved hold strength of the unit at its
+        target, is beaten however the rest of the graph settles and
+        is forced to bounce; the rest of the cycle then collapses
+        through normal propagation. This covers contested rotations
+        (DATC 6.C) and doomed attacks on convoying fleets.
+
       - Convoy paradoxes (Szykman's rule): cycles in the dependency
         graph that involve at least one `_CONVOY_PATH_INTACT`
         decision are broken by forcing all such decisions in the
         cycle to False, disrupting the relevant convoys (DATC
         Szykman's rule, 6.F.13ff). This matches the modern
-        adjudication consensus.
-
-      - Contested rotations: a rotational cycle (DATC 6.C) whose
-        members are attacked from outside by an equal-or-greater
-        force is not clean, but each member is still individually
-        determined. Any member whose maximum possible attack
-        strength cannot exceed a resolved competitor's prevent is
-        forced to bounce; the rest of the cycle then collapses
-        through normal propagation.
+        adjudication consensus. It is tried last, because a cycle
+        that some other breaker can decide is not a paradox.
 
     Cycles that match none of these shapes are unresolvable in the
     current solver and will exhaust the `_MAX_CYCLE_PASSES` cap, raising
@@ -86,6 +87,7 @@ from .types import (
     MoveOrder,
     Order,
     OrderResolution,
+    ResolutionCode,
     Status,
     StateView,
     SupportHoldOrder,
@@ -118,7 +120,7 @@ class _Decision:
     `parsed_orders` index the decision is about. `value` is `None` while
     unresolved; once decided, it holds the per-kind answer (a `Status`
     string for `support_cut`, an `int` for the strength kinds, or a
-    `(status, failure_reason)` tuple for `move_status`). `dependencies`
+    `(status, code, failure_reason)` tuple for `move_status`). `dependencies`
     is the set of other decision keys this one reads from — computed
     statically when the decision is enumerated.
     """
@@ -193,12 +195,12 @@ class _Solver:
                 if passes > self._MAX_CYCLE_PASSES:
                     raise RuntimeError("Decision graph did not converge")
                 continue
-            if self._try_resolve_szykman_paradoxes():
+            if self._try_resolve_guaranteed_bounces():
                 passes += 1
                 if passes > self._MAX_CYCLE_PASSES:
                     raise RuntimeError("Decision graph did not converge")
                 continue
-            if self._try_resolve_guaranteed_bounces():
+            if self._try_resolve_szykman_paradoxes():
                 passes += 1
                 if passes > self._MAX_CYCLE_PASSES:
                     raise RuntimeError("Decision graph did not converge")
@@ -653,7 +655,7 @@ class _Solver:
 
     def _compute_move_status(
         self, i: int
-    ) -> Optional[Tuple[str, Optional[str]]]:
+    ) -> Optional[Tuple[str, str, Optional[str]]]:
         parsed = self._parsed
         variant = self._variant
         resolutions = self._initial_resolutions
@@ -669,6 +671,7 @@ class _Solver:
             if not intact:
                 return (
                     Status.BOUNCE,
+                    ResolutionCode.MISSING_CONVOY_PATH,
                     "The convoy was disrupted.",
                 )
         target_parent = variant.parent_of(order.target)
@@ -690,6 +693,7 @@ class _Solver:
         if attack <= max_prevent:
             return (
                 Status.BOUNCE,
+                ResolutionCode.BOUNCED,
                 "The attack was prevented by a competing move of equal or greater strength.",
             )
         h2h_index = _head_to_head_opponent_index(self._state, i)
@@ -700,6 +704,7 @@ class _Solver:
             if attack <= opp_defense:
                 return (
                     Status.BOUNCE,
+                    ResolutionCode.BOUNCED,
                     "The head-to-head attack failed to overpower the opposing unit.",
                 )
             opponent = parsed[h2h_index]
@@ -707,12 +712,13 @@ class _Solver:
             if opponent.nation == order.nation:
                 return (
                     Status.BOUNCE,
+                    ResolutionCode.BOUNCED,
                     "A unit cannot dislodge a unit of its own nation.",
                 )
-            return (Status.OK, None)
+            return (Status.OK, ResolutionCode.SUCCEEDED, None)
         defender_idx = _defender_order_index(self._state, i)
         if defender_idx is None:
-            return (Status.OK, None)
+            return (Status.OK, ResolutionCode.SUCCEEDED, None)
         defender_order = parsed[defender_idx]
         defender_initial_status = resolutions[defender_idx].status
         if (
@@ -726,21 +732,23 @@ class _Solver:
         else:
             defender_status = defender_initial_status
         if isinstance(defender_order, MoveOrder) and defender_status == Status.OK:
-            return (Status.OK, None)
+            return (Status.OK, ResolutionCode.SUCCEEDED, None)
         hold = self._dec_value((_HOLD_STRENGTH, defender_idx))
         if hold is None:
             return None
         if attack <= hold:
             return (
                 Status.BOUNCE,
+                ResolutionCode.BOUNCED,
                 "The attack was not strong enough to dislodge the defender.",
             )
         if defender_order.nation == order.nation:
             return (
                 Status.BOUNCE,
+                ResolutionCode.BOUNCED,
                 "A unit cannot dislodge a unit of its own nation.",
             )
-        return (Status.OK, None)
+        return (Status.OK, ResolutionCode.SUCCEEDED, None)
 
     def _compute_convoy_path_intact(self, i: int) -> Optional[bool]:
         """Three-valued convoy path: True if a chain through known-alive
@@ -887,7 +895,8 @@ class _Solver:
             for j in cycle:
                 key = (_MOVE_STATUS, j)
                 self._decisions[key] = replace(
-                    self._decisions[key], value=(Status.OK, None)
+                    self._decisions[key],
+                    value=(Status.OK, ResolutionCode.SUCCEEDED, None),
                 )
                 seen_in_resolved_cycle.add(j)
                 self._enqueue_dependents(key)
@@ -1105,22 +1114,32 @@ class _Solver:
         possibly enter its target regardless of how the remaining
         decisions settle.
 
-        A Move needs its attack strength to *strictly exceed* every
-        competitor's prevent strength. The most attack strength a Move
-        could ever muster is one plus each of its matched supports —
-        support cuts and the own-nation exclusion only ever reduce it.
-        So if that ceiling is no greater than some already-resolved
-        competitor's prevent strength, the Move is beaten no matter what
-        the unresolved decisions turn out to be, and it bounces.
+        A Move needs its attack strength to *strictly exceed* both every
+        competitor's prevent strength and the defender's hold strength.
+        The most attack strength a Move could ever muster is one plus
+        each of its matched supports — support cuts and the own-nation
+        exclusion only ever reduce it. So if that ceiling is no greater
+        than an already-resolved competitor's prevent strength, or no
+        greater than the already-resolved hold strength of the unit at
+        its target, the Move is beaten no matter what the unresolved
+        decisions turn out to be, and it bounces.
 
-        This is the last-resort breaker: it runs only after the clean-
-        cycle and Szykman handlers have declined. It resolves rotational
-        cycles (DATC 6.C) whose members are contested from outside by an
-        equal-or-greater attack — the external competition makes the
-        cycle un-clean (so the clean-cycle handler rejects it) while
-        leaving each member individually determined. Forcing the beaten
-        member to bounce collapses the rest of the cycle through normal
-        propagation.
+        It runs after the clean-cycle handler has declined but *before*
+        Szykman. Order matters: a doomed attack on a convoying fleet
+        puts a `_CONVOY_PATH_INTACT` decision in a dependency cycle even
+        though the cycle has a unique solution (the convoy survives,
+        because the attack could never have dislodged the fleet). Szykman
+        would break that cycle by disrupting the convoy, which is wrong —
+        a cyclic dependency is not the same thing as a paradox. Deciding
+        the doomed attack first dissolves the cycle and leaves the
+        paradox rule for genuine paradoxes.
+
+        It also resolves rotational cycles (DATC 6.C) whose members are
+        contested from outside by an equal-or-greater attack — the
+        external competition makes the cycle un-clean (so the clean-cycle
+        handler rejects it) while leaving each member individually
+        determined. Forcing the beaten member to bounce collapses the
+        rest of the cycle through normal propagation.
 
         Only fires for a convoyed Move once its convoy path is known
         intact, so a broken-convoy failure is never mislabelled as a
@@ -1143,6 +1162,7 @@ class _Solver:
                 continue
             ceiling = 1 + len(_matching_attack_supports(self._state, i))
             target_parent = variant.parent_of(order.target)
+            forced_reason: Optional[str] = None
             for j, other in enumerate(parsed):
                 if j == i:
                     continue
@@ -1156,17 +1176,27 @@ class _Solver:
                 if prevent is None:
                     continue
                 if ceiling <= prevent:
-                    self._decisions[key] = replace(
-                        decision,
-                        value=(
-                            Status.BOUNCE,
-                            "The attack was prevented by a competing move "
-                            "of equal or greater strength.",
-                        ),
+                    forced_reason = (
+                        "The attack was prevented by a competing move "
+                        "of equal or greater strength."
                     )
-                    self._enqueue_dependents(key)
-                    changed = True
                     break
+            if forced_reason is None:
+                defender_idx = _defender_order_index(self._state, i)
+                if defender_idx is not None:
+                    hold = self._dec_value((_HOLD_STRENGTH, defender_idx))
+                    if hold is not None and ceiling <= hold:
+                        forced_reason = (
+                            "The attack was not strong enough to dislodge "
+                            "the defender."
+                        )
+            if forced_reason is None:
+                continue
+            self._decisions[key] = replace(
+                decision, value=(Status.BOUNCE, ResolutionCode.BOUNCED, forced_reason)
+            )
+            self._enqueue_dependents(key)
+            changed = True
         return changed
 
     # --- Completeness check ---
@@ -1208,8 +1238,8 @@ class _Solver:
             elif kind == _HOLD_STRENGTH:
                 r = replace(r, hold_strength=value)
             elif kind == _MOVE_STATUS:
-                status, reason = value
-                r = replace(r, status=status, failure_reason=reason)
+                status, code, reason = value
+                r = replace(r, status=status, code=code, failure_reason=reason)
             elif kind == _CONVOY_PATH_INTACT:
                 r = replace(r, convoy_path_intact=value)
             resolutions[idx] = r

@@ -4,6 +4,16 @@ This file describes the architecture of the Diplomacy adjudicator in `engine.py`
 
 **The optimization target is pattern consistency.** This codebase is structured so that the location and shape of any piece of code can be inferred mechanically from its category. If you find yourself wanting to write something that doesn't fit a category, the answer is to ask, not to improvise.
 
+## The Django adapter edge
+
+`service.py` and `options_adapter.py` are the adapter edge between Django and the engine, not part of the engine. `service.py` exposes `start(phase)` / `resolve(phase)`, which turn a `Phase` row into engine input and the engine's output back into the godip-shaped dict `Phase.objects.create_from_adjudication_data` consumes; `options_adapter.py` reshapes the engine's flat option list into godip's nested wire format.
+
+The Redux purity rules in the rest of this document govern `engine.py` and the modules it builds on. They do not apply to these two — they are ordinary imperative Python, they log, and they emit OTel spans.
+
+They may import from Django-side utility modules (`phase.utils`, `variant.utils`), but must **not** import `phase.models` or `game.models`: those models import `adjudicator.service`, so importing them back would create a cycle.
+
+They are deliberately not re-exported from `adjudicator/__init__.py` — the package's public facade stays the pure `adjudicate(variant, game_state)` function. Import them as `adjudicator.service` / `adjudicator.options_adapter`.
+
 ## Architectural model: pure Position-1 Redux
 
 State is immutable. Every state transition is a named action dispatched against a pure reducer. Every derived value is computed by a method on a View. There are no exceptions to this. There is no mutation, no in-place update, no global state, no hidden flow of data.

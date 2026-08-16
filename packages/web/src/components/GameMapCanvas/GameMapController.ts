@@ -11,6 +11,7 @@ import {
   wrappedXNear,
 } from "../InteractiveMap/mapWrap";
 import { createLoadingSpinnerElement } from "../ui/loading-spinner";
+import { createSafeMap } from "./safeMap";
 
 export type MapMode = "static" | "pannable" | "interactive";
 
@@ -165,7 +166,7 @@ export class GameMapController {
         }) as L.CRS)
       : L.CRS.Simple;
 
-    this.map = L.map(container, {
+    this.map = createSafeMap(container, {
       crs,
       attributionControl: false,
       zoomControl: false,

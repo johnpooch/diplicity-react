@@ -34,7 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
-  useGameJoinCreate,
+  useGameMemberJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
@@ -88,7 +88,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const phase = game.currentPhase;
   const members = Array.isArray(game.members) ? game.members : [];
   const playerNation = members.find(m => m.isCurrentUser)?.nation ?? null;
-  const joinGameMutation = useGameJoinCreate();
+  const joinGameMutation = useGameMemberJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
   const isActive = game.status === "active";
@@ -115,7 +115,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   const handleJoinGame = async () => {
     try {
-      await joinGameMutation.mutateAsync({ gameId: game.id, data: {} });
+      await joinGameMutation.mutateAsync({ gameId: game.id });
       toast.success("Successfully joined game");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
       if (!game.sandbox) {

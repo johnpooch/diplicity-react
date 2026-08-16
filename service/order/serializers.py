@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from django.core import exceptions
+from django.db import transaction
+from common.permissions import IsCurrentPhaseActive
 from order.utils import get_options_for_order
+from phase.models import Phase
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
 from .models import Order
@@ -89,13 +92,16 @@ class OrderSerializer(serializers.Serializer):
             )
 
         if order.complete:
-            Order.objects.delete_existing_for_source(order.phase_state, order.source)
-            if self.context["phase"].type == PhaseType.ADJUSTMENT:
-                try:
-                    order.clean()
-                except exceptions.ValidationError as e:
-                    raise serializers.ValidationError(e.messages)
-            order.save()
+            with transaction.atomic():
+                if Phase.objects.lock_if_active(self.context["phase"].id) is None:
+                    raise serializers.ValidationError(IsCurrentPhaseActive.message)
+                Order.objects.delete_existing_for_source(order.phase_state, order.source)
+                if self.context["phase"].type == PhaseType.ADJUSTMENT:
+                    try:
+                        order.clean()
+                    except exceptions.ValidationError as e:
+                        raise serializers.ValidationError(e.messages)
+                order.save()
             return Order.objects.with_related_data().get(id=order.id)
 
         return order

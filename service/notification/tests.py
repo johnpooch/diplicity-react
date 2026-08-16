@@ -5,7 +5,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from adjudication import service as adjudication_service
+from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMessage
 from channel.serializers import ChannelMessageSerializer
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus

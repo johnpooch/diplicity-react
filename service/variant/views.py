@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from common.constants import VariantStatus
+from common.etag import if_none_match
 from nation.models import NationFlag
 from province.models import Province
 from .models import Variant, VariantSvg
@@ -79,7 +80,7 @@ class VariantListCreateView(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         variant_max, flag_max = _variants_list_cache_inputs()
         etag = _variants_list_etag(variant_max, flag_max)
-        if request.headers.get("If-None-Match") == etag:
+        if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
             response = Response(self._published_variants_data(variant_max, flag_max))
@@ -124,7 +125,7 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         etag = _variant_detail_etag(instance, request.user)
-        if request.headers.get("If-None-Match") == etag:
+        if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
             response = Response(self.get_serializer(instance).data)
