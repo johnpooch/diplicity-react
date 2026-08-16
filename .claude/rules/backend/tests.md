@@ -31,6 +31,20 @@ Call endpoints and assert on the response. Treat view, serializer, and manager i
 
 **Bad:** Call `BotMemberCreateView` directly, or assert `Member.objects.filter(...).exists()` without going through the API
 
+## Infrastructure apps are tested at their own entry point
+
+Apps with no views of their own — `notification`, `emit`, `email_service`, `harness` — are
+tested by calling their public entry point directly (`emit.emit`, a registry spec, a
+procrastinate task) and asserting the resulting rows. Registry, resolver, rendering, and
+task behaviour belongs in that app's `tests.py`, covered once per rule rather than once
+per calling app.
+
+An app that *causes* a notification asserts it with the shared `assert_notification`
+fixture, alongside the HTTP test for the action that triggered it. Do not assert on
+`mock_send_notification_to_users` call arguments — that pins the FCM transport, not the
+notification — and do not re-derive recipient-resolution rules that `notification/tests.py`
+already covers.
+
 ## One test class per view (or custom admin form)
 
 Name view test classes `Test<ViewName>`. A cross-cutting concern — ordering, character limits, permission variants, mode-specific rules — belongs in the test class of the view that exposes it, not in a class of its own.
