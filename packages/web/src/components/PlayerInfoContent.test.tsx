@@ -11,6 +11,13 @@ const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
 const mockUserProfileData = vi.fn();
 const mockKickMutateAsync = vi.fn();
+const mockChannelsData = vi.fn();
+const mockCreateChannelMutateAsync = vi.fn();
+const mockIsMobile = vi.fn();
+
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => mockIsMobile(),
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -22,8 +29,17 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockKickMutateAsync,
     isPending: false,
   }),
+  useGamesChannelsList: () => ({
+    data: mockChannelsData(),
+    isLoading: false,
+  }),
+  useGamesChannelsCreateCreate: () => ({
+    mutateAsync: mockCreateChannelMutateAsync,
+    isPending: false,
+  }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameAddableUserListQueryKey: () => ["addable-user"],
+  getGamesChannelsListQueryKey: () => ["channels"],
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -41,12 +57,20 @@ vi.mock("@/components/AddBotSheet", () => ({
     open ? <div data-testid="add-bot-sheet" /> : null,
 }));
 
-const renderPlayerInfo = () =>
+const renderPlayerInfo = (initialEntry = "/game/game-1") =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/game/game-1"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/game/:gameId" element={<PlayerInfoContent />} />
+          <Route
+            path="/game/:gameId/phase/:phaseId/overview"
+            element={<PlayerInfoContent />}
+          />
+          <Route
+            path="/game/:gameId/phase/:phaseId/chat/channel/:channelId"
+            element={<div data-testid="channel-screen" />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -79,8 +103,10 @@ describe("PlayerInfoContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVariantsData.mockReturnValue([classicalVariant]);
-    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [] });
+    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [], units: [] });
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true });
+    mockChannelsData.mockReturnValue([]);
+    mockIsMobile.mockReturnValue(false);
   });
 
   it("shows the civil disorder badge for members in civil disorder", () => {
@@ -115,6 +141,268 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
+  });
+
+  it("shows unit and supply-center counts from the current phase", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "France" } },
+      ],
+      supplyCenters: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("2 units")).toBeInTheDocument();
+    expect(screen.getByText("3 centers")).toBeInTheDocument();
+  });
+
+  it("uses the nation as the in-game title and puts player details in a popover", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      nmrExtensionsAllowed: 2,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, commitment: "high", nmrExtensionsRemaining: 1 },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(screen.getByText("England")).toBeInTheDocument();
+    expect(screen.queryByText("Alice")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Commitment: High")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("1 extension remaining")
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "View England player details" })
+    );
+
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByLabelText("Commitment: High")).toBeInTheDocument();
+    expect(screen.getByText("1 extension remaining")).toBeInTheDocument();
+    expect(screen.queryByText("Player")).not.toBeInTheDocument();
+  });
+
+  it("shows eliminated as the player's status", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, eliminated: true, civilDisorder: true }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("Eliminated")).toBeInTheDocument();
+    expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
+  });
+
+  it("dims and moves eliminated and civil-disorder powers to the bottom", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, nation: "England", eliminated: true },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+        },
+        {
+          ...baseMember,
+          id: 3,
+          name: "Carol",
+          nation: "Germany",
+          isCurrentUser: false,
+          civilDisorder: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /View .* player details/ })
+        .map(button => button.getAttribute("aria-label"))
+    ).toEqual([
+      "View France player details",
+      "View England player details",
+      "View Germany player details",
+    ]);
+    expect(screen.getByText("France").closest(".gap-4")).not.toHaveClass(
+      "opacity-[0.7]"
+    );
+    expect(screen.getByText("England").closest(".gap-4")).toHaveClass(
+      "opacity-[0.7]"
+    );
+    expect(screen.getByText("Germany").closest(".gap-4")).toHaveClass(
+      "opacity-[0.7]"
+    );
+  });
+
+  it("moves the winner to the top when the game is completed", () => {
+    const winner = {
+      ...baseMember,
+      id: 3,
+      name: "Carol",
+      nation: "Germany",
+      isCurrentUser: false,
+      eliminated: true,
+    };
+
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      nmrExtensionsAllowed: 0,
+      victory: {
+        id: 1,
+        type: "solo",
+        winningPhaseId: 1,
+        members: [winner],
+      },
+      phases: [{ id: 1, status: "completed" }],
+      members: [
+        { ...baseMember, nation: "England", eliminated: true },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+        },
+        winner,
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /View .* player details/ })
+        .map(button => button.getAttribute("aria-label"))
+    ).toEqual([
+      "View Germany player details",
+      "View France player details",
+      "View England player details",
+    ]);
+  });
+
+  it("opens an existing one-to-one chat with another human player", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+    mockChannelsData.mockReturnValue([
+      { id: 42, private: true, memberIds: [1, 2] },
+    ]);
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+    await user.click(screen.getByLabelText("Message Bob"));
+
+    expect(await screen.findByTestId("channel-screen")).toBeInTheDocument();
+    expect(mockCreateChannelMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("marks a player's chat shortcut when their direct channel is unread", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+    mockChannelsData.mockReturnValue([
+      {
+        id: 42,
+        private: true,
+        memberIds: [1, 2],
+        unreadMessageCount: 2,
+      },
+    ]);
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen.getByRole("button", {
+        name: "Message Bob, 2 unread messages",
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("creates a one-to-one chat when one does not exist", async () => {
+    const user = userEvent.setup();
+    mockCreateChannelMutateAsync.mockResolvedValue({
+      id: 43,
+      private: true,
+      memberIds: [1, 2],
+    });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+    await user.click(screen.getByLabelText("Message Bob"));
+
+    expect(mockCreateChannelMutateAsync).toHaveBeenCalledWith({
+      gameId: "game-1",
+      data: { memberIds: [2] },
+    });
+    expect(await screen.findByTestId("channel-screen")).toBeInTheDocument();
   });
 
   it("shows the game master above the players when one is set", () => {

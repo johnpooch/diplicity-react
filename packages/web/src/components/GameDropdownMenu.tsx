@@ -67,7 +67,7 @@ interface GameDropdownMenuProps {
     | "status"
   >;
   onNavigateToGameInfo: () => void;
-  onNavigateToPlayerInfo: () => void;
+  onNavigateToPlayerInfo?: () => void;
 }
 
 export function GameDropdownMenu({
@@ -208,10 +208,12 @@ export function GameDropdownMenu({
           <Info />
           Game info
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onNavigateToPlayerInfo}>
-          <Users />
-          Player info
-        </DropdownMenuItem>
+        {onNavigateToPlayerInfo && (
+          <DropdownMenuItem onClick={onNavigateToPlayerInfo}>
+            <Users />
+            Player info
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {

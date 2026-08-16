@@ -22,10 +22,6 @@ const MapScreen: React.FC = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
   };
 
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
@@ -40,7 +36,6 @@ const MapScreen: React.FC = () => {
             <GameDropdownMenu
               game={game}
               onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
             />
           </div>
         }

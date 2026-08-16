@@ -18,7 +18,7 @@ const PlayerProfileScreen: React.FC = () => {
       <GameDetailAppBar
         title="Player Profile"
         onNavigateBack={() =>
-          navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
+          navigate(`/game/${gameId}/phase/${phaseId}/overview`)
         }
         variant="secondary"
       />

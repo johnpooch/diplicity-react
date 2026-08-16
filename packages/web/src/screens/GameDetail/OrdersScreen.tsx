@@ -10,13 +10,11 @@ import {
   SearchX,
   Star,
   UserX,
-  Handshake,
   Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -37,7 +35,6 @@ import {
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { NationBadge } from "@/components/NationBadge";
-import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseSelect } from "@/components/PhaseSelect";
@@ -54,7 +51,6 @@ import {
   useGameConfirmPhasePartialUpdate,
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
-  useGamesDrawProposalsListSuspense,
   useGameRecoverFromCivilDisorderCreate,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
@@ -134,26 +130,6 @@ const buildNationGroups = (
       })),
     };
   });
-};
-
-const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }> = ({
-  gameId,
-  currentMemberId,
-}) => {
-  const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-  if (currentMemberId === undefined) return null;
-  const count = proposals.filter(
-    p => p.status === "pending" && p.myVote !== null && p.myVote.accepted === null
-  ).length;
-  if (count === 0) return null;
-  return (
-    <Badge
-      variant="destructive"
-      className="absolute -top-1 -right-1 h-4 w-4 p-0 justify-center text-[10px]"
-    >
-      {count}
-    </Badge>
-  );
 };
 
 const OrdersScreen: React.FC = () => {
@@ -265,14 +241,6 @@ const OrdersScreen: React.FC = () => {
     }
   };
 
-  const handleNavigateToGameInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
-  };
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   const nationGroups = buildNationGroups(
     isActivePhase,
     safePhaseStates,
@@ -281,16 +249,6 @@ const OrdersScreen: React.FC = () => {
     members
   );
   const hasContent = nationGroups.length > 0;
-
-  const isStartedGame =
-    game.status === "active" ||
-    game.status === "completed" ||
-    game.status === "abandoned";
-  const showDrawProposalsButton = !game.sandbox && isStartedGame;
-
-  const handleNavigateToDrawProposals = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
-  };
 
   const rightFooterButton = (() => {
     if (!canModifyOrders) return null;
@@ -343,18 +301,11 @@ const OrdersScreen: React.FC = () => {
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
-              <Suspense fallback={null}>
-                <PhaseGuidance />
-              </Suspense>
-            </div>
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
+          <div className="flex flex-col items-center gap-0.5">
+            <PhaseSelect />
+            <Suspense fallback={null}>
+              <PhaseGuidance />
+            </Suspense>
           </div>
         }
         onNavigateBack={() => navigate("/")}
@@ -478,27 +429,9 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {!isCurrentMemberInCivilDisorder && (rightFooterButton || showDrawProposalsButton) && (
+          {!isCurrentMemberInCivilDisorder && rightFooterButton && (
             <Panel.Footer divider>
-              <div className="flex w-full items-center">
-                <div className="flex-1">
-                  {showDrawProposalsButton && (
-                    <Button
-                      variant="outline"
-                      onClick={handleNavigateToDrawProposals}
-                      className="relative"
-                    >
-                      <Handshake className="size-4" />
-                      Draw proposals
-                      <Suspense fallback={null}>
-                        <DrawProposalsBadge
-                          gameId={gameId}
-                          currentMemberId={currentMember?.id}
-                        />
-                      </Suspense>
-                    </Button>
-                  )}
-                </div>
+              <div className="flex w-full justify-end">
                 {rightFooterButton}
               </div>
             </Panel.Footer>

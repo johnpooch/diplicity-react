@@ -3,6 +3,10 @@ import { lazyScreen } from "../../utils/lazyScreen";
 export const GameDetail = {
   MapScreen: lazyScreen(() => import("./MapScreen"), "MapScreen"),
   OrdersScreen: lazyScreen(() => import("./OrdersScreen"), "OrdersScreen"),
+  OverviewScreen: lazyScreen(
+    () => import("./OverviewScreen"),
+    "OverviewScreen"
+  ),
   ChannelListScreen: lazyScreen(
     () => import("./ChannelListScreen"),
     "ChannelListScreen"
