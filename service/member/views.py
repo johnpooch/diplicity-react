@@ -24,6 +24,21 @@ class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
 
 
+@extend_schema(exclude=True)
+class LegacyMemberJoinView(MemberJoinView):
+    """Serves POST /game/<id>/join/ for mobile builds shipped before the seating
+    endpoints moved under /member/. Kept out of the schema so codegen only ever
+    emits the current path. Remove once those builds are out of circulation."""
+
+
+@extend_schema(exclude=True)
+class LegacyMemberCreateView(MemberCreateView):
+    """Serves POST /game/<id>/add-bot/ for mobile builds shipped before the
+    seating endpoints moved under /member/. Kept out of the schema so codegen
+    only ever emits the current path. Remove once those builds are out of
+    circulation."""
+
+
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMember]
