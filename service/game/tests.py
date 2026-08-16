@@ -14,6 +14,7 @@ from channel.models import ChannelMember
 from phase.models import Phase
 from nation.models import Nation
 from province.models import Province
+from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile
 from .models import Game
 
@@ -2381,6 +2382,20 @@ class TestSandboxGameCreation:
         assert game.current_phase.phase_states.count() == 7
 
     @pytest.mark.django_db
+    def test_create_sandbox_game_does_not_notify(
+        self, authenticated_client, classical_variant, in_memory_procrastinate
+    ):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Notification.objects.count() == 0
+        assert NotificationDelivery.objects.count() == 0
+
+    @pytest.mark.django_db
     def test_create_sandbox_game_missing_name(self, authenticated_client, classical_variant):
         url = reverse(sandbox_create_viewname)
         payload = {
@@ -2443,7 +2458,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 56
+        assert query_count == 51
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2464,7 +2479,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 56
+        assert query_count == 51
 
 
 class TestSandboxGameFiltering:
@@ -2899,6 +2914,22 @@ class TestGameCloneToSandbox:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert not Game.objects.filter(id=oldest_sandbox_id).exists()
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_does_not_notify(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
+        in_memory_procrastinate,
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudicator.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Notification.objects.count() == 0
+        assert NotificationDelivery.objects.count() == 0
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_unauthenticated(

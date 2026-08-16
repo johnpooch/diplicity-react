@@ -18,6 +18,8 @@ User = get_user_model()
 
 join_viewname = "game-join"
 seat_viewname = "game-member-create"
+legacy_join_viewname = "game-join-legacy"
+legacy_seat_viewname = "game-add-bot-legacy"
 retrieve_viewname = "game-retrieve"
 recovery_viewname = "civil-disorder-recovery"
 
@@ -1210,3 +1212,110 @@ class TestSeatMember:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert game.members.count() == 2
+
+
+class TestLegacyMemberJoinView:
+
+    def test_serves_the_path_shipped_mobile_builds_call(self):
+        assert reverse(legacy_join_viewname, args=["abc123"]) == "/game/abc123/join/"
+
+    @pytest.mark.django_db
+    def test_join_game_success(
+        self, authenticated_client, pending_game_created_by_secondary_user, primary_user
+    ):
+        url = reverse(legacy_join_viewname, args=[pending_game_created_by_secondary_user.id])
+        response = authenticated_client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == primary_user.profile.name
+        assert response.data["is_current_user"] is True
+        assert pending_game_created_by_secondary_user.members.filter(user=primary_user).exists()
+
+    @pytest.mark.django_db
+    def test_join_game_unauthenticated(self, unauthenticated_client, pending_game_created_by_secondary_user):
+        url = reverse(legacy_join_viewname, args=[pending_game_created_by_secondary_user.id])
+        response = unauthenticated_client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_join_game_already_member(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(legacy_join_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_join_game_non_pending(self, authenticated_client, pending_game_created_by_secondary_user):
+        game = pending_game_created_by_secondary_user
+        game.status = GameStatus.ACTIVE
+        game.save()
+
+        url = reverse(legacy_join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_join_game_not_found(self, authenticated_client):
+        url = reverse(legacy_join_viewname, args=[999])
+        response = authenticated_client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_joining_the_last_seat_starts_the_game(
+        self, authenticated_client, pending_game_created_by_secondary_user, italy_vs_germany_variant
+    ):
+        game = pending_game_created_by_secondary_user
+        game.variant = italy_vs_germany_variant
+        game.save()
+
+        url = reverse(legacy_join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+
+class TestLegacyMemberCreateView:
+
+    def test_serves_the_path_shipped_mobile_builds_call(self):
+        assert reverse(legacy_seat_viewname, args=["abc123"]) == "/game/abc123/add-bot/"
+
+    @pytest.mark.django_db
+    def test_manager_can_seat_a_bot(self, allowlisted_client, classical_variant, bot_user):
+        game = _create_game_via_api(allowlisted_client, classical_variant.id)
+
+        response = allowlisted_client.post(
+            reverse(legacy_seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["is_bot"] is True
+        member = game.members.get(user=bot_user)
+        assert game.get_public_press().member_channels.filter(member=member).exists()
+
+    @pytest.mark.django_db
+    def test_human_user_is_rejected(self, allowlisted_client, classical_variant, secondary_user):
+        game = _create_game_via_api(allowlisted_client, classical_variant.id)
+
+        response = allowlisted_client.post(
+            reverse(legacy_seat_viewname, args=[game.id]), {"user_id": secondary_user.id}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_user_off_the_allowlist_cannot_seat_a_bot(
+        self, allowlisted_client, classical_variant, bot_user, settings
+    ):
+        game = _create_game_via_api(allowlisted_client, classical_variant.id)
+        settings.BOT_OPPONENT_ALLOWLIST = []
+
+        response = allowlisted_client.post(
+            reverse(legacy_seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN

@@ -11,6 +11,8 @@ class NotificationManager(models.Manager):
         # Local import: notification.registry imports this module at top level.
         from notification.registry import get_spec
 
+        if context.game is not None and context.game.sandbox:
+            return []
         spec = get_spec(event_type, context)
         if spec is None:
             return []
