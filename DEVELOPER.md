@@ -17,7 +17,7 @@ You do **not** need any secrets, API keys, or a `.env` file to run the app local
 1. Clone the repo and `cd` into it.
 2. Start every service:
    ```bash
-   docker compose up service web db worker phase-resolver
+   docker compose up service web db worker
    ```
    The first run builds the images and can take several minutes. Leave this terminal open — it streams logs from all the containers, which is useful for debugging.
 3. Open http://localhost:5173 in your browser.
@@ -26,15 +26,14 @@ That's it. If you see the Diplicity home page, the stack is running.
 
 ### What each service does
 
-The command above starts five containers, all on one Docker network:
+The command above starts four containers, all on one Docker network:
 
 | Service | What it is | Where |
 | --- | --- | --- |
 | `web` | React frontend (Vite dev server, hot reload) | http://localhost:5173 |
 | `service` | Django REST API | http://localhost:8000 |
 | `db` | PostgreSQL database | localhost:5432 |
-| `worker` | Procrastinate background worker (notifications, bot moves, scheduled jobs) | — |
-| `phase-resolver` | Polls the API every 10s to advance game phases whose deadline has passed | — |
+| `worker` | Procrastinate background worker (notifications, bot moves, phase resolution) | — |
 
 Plain `docker compose up` (no service list) also works and additionally runs a one-off `codegen` container. That container regenerates the API types and then exits with code `0` — that exit is expected, not an error.
 
@@ -77,7 +76,7 @@ That gives `test@example.com` / `password` admin rights. (If you prefer the stan
 
 1. Go to http://localhost:5173.
 2. Log in with **email** `test@example.com` and password `password`.
-3. Create a game, join it, and submit orders to check the flow end to end. The `phase-resolver` service advances phases automatically once a deadline passes.
+3. Create a game, join it, and submit orders to check the flow end to end. The `worker` service advances phases automatically: each phase has a `phase.resolve_phase` job armed for the earlier of its deadline and the moment every player has confirmed.
 
 To exercise multiplayer flows (multiple players in one game), create extra users with different emails and log in as each in a separate browser or a private/incognito window:
 
