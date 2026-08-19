@@ -80,7 +80,11 @@ const recoveredCivilDisorderGames = new Set<string>();
 
 export const handlers = [
   http.get("*/version/", () =>
-    HttpResponse.json({ environment: "mock", version: "mock" } satisfies Version)
+    HttpResponse.json({
+      environment: "mock",
+      version: "mock",
+      minimumClientVersion: "0.0.0",
+    } satisfies Version)
   ),
 
   http.get("*/variants/", () =>

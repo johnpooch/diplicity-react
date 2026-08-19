@@ -322,6 +322,7 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 VERSION = os.getenv("GIT_SHA", "0.0.0")
+MINIMUM_CLIENT_VERSION = os.getenv("MINIMUM_CLIENT_VERSION", "0.0.0")
 
 if DEBUG:
     ROOT_LOG_LEVEL = "INFO"

@@ -969,6 +969,7 @@ export interface VerifyEmail {
 export interface Version {
   environment: string;
   version: string;
+  minimumClientVersion: string;
 }
 
 export type ApiSchemaRetrieveParams = {

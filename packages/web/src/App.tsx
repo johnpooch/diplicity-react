@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
 import { MaintenanceMode } from "./components/MaintenanceMode";
+import { UpdateGate } from "./components/UpdateGate";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./auth";
 import { Toaster } from "./components/ui/sonner";
@@ -117,16 +118,18 @@ function App() {
       ) : (
         <MaybeGoogleOAuthProvider>
           <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <AppContent />
-              <Toaster
-                position="top-center"
-                closeButton
-                richColors
-                duration={1200}
-                mobileOffset={{ top: "calc(72px + env(safe-area-inset-top, 0px))" }}
-              />
-            </AuthProvider>
+            <UpdateGate>
+              <AuthProvider>
+                <AppContent />
+                <Toaster
+                  position="top-center"
+                  closeButton
+                  richColors
+                  duration={1200}
+                  mobileOffset={{ top: "calc(72px + env(safe-area-inset-top, 0px))" }}
+                />
+              </AuthProvider>
+            </UpdateGate>
           </QueryClientProvider>
         </MaybeGoogleOAuthProvider>
       )}
