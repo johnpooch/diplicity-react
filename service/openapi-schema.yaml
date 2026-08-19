@@ -3710,8 +3710,11 @@ components:
           type: string
         version:
           type: string
+        minimumClientVersion:
+          type: string
       required:
       - environment
+      - minimumClientVersion
       - version
     Victory:
       type: object

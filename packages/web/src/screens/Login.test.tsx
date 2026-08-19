@@ -15,7 +15,8 @@ vi.mock("@/auth", () => ({
   useAuth: () => ({ login: mockLogin }),
 }));
 
-vi.mock("@/api/generated/endpoints", () => ({
+vi.mock("@/api/generated/endpoints", async () => ({
+  ...(await vi.importActual("@/api/generated/endpoints")),
   useAuthAppleLoginCreate: () => ({
     mutateAsync: mockAppleMutateAsync,
     isPending: false,
