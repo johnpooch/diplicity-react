@@ -100,3 +100,5 @@ Issues have three sections (enforced by the `create-issue` skill): **Goal** (alw
 ## Maintaining this document
 
 When you establish a convention or make an architectural decision, update this file or the relevant file in `.claude/rules/` in the same session — do not park lasting guidance only in a walkthrough ledger.
+
+**Guidance states rules, never inventories.** Do not write out a list or table of what exists in the codebase — classes, fixtures, endpoints, components, settings. Claude reads the code; a copy in a guidance document only goes stale and is wrong the moment someone adds a class without updating it. Say which file to read instead. Illustrative examples of a pattern are fine; an enumeration meant to be exhaustive is not.
