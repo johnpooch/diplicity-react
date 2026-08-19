@@ -6,7 +6,7 @@ paths:
 
 # Permissions
 
-Custom permissions live in `service/common/permissions.py` — never in a per-app `permissions.py`. Each class checks exactly one thing and carries a descriptive `message`. Before adding a new class, check whether an existing one already covers the same rule on a related object (e.g. draft-variant ownership checked on `Variant` vs on `Nation` via `nation.variant`); deduplicate rather than copy.
+Custom permissions live in `service/common/permissions.py` — never in a per-app `permissions.py`. Each class checks exactly one thing and carries a descriptive `message`. Read that file before adding a new class: an existing one often already covers the rule, sometimes on a related object (e.g. draft-variant ownership checked on `Variant` vs on `Nation` via `nation.variant`). Deduplicate rather than copy.
 
 ```python
 class IsGameMaster(BasePermission):
@@ -21,22 +21,6 @@ class IsGameMaster(BasePermission):
             return False
         return member.is_game_master
 ```
-
-Check the existing classes before writing a new one:
-
-| Class | Checks |
-| --- | --- |
-| `IsActiveGame` | Game status is `ACTIVE` |
-| `IsActiveOrCompletedGame` | Status is `ACTIVE`, `COMPLETED`, or `ABANDONED` |
-| `IsPendingGame` | Status is `PENDING` |
-| `IsGameMember` / `IsNotGameMember` | User is / is not a member |
-| `IsActiveGameMember` | Non-eliminated, non-kicked member |
-| `IsGameMaster` | User is the game master |
-| `IsChannelMember` | Member of the channel (public channels always pass) |
-| `IsSpaceAvailable` | Fewer members than variant nations |
-| `IsCurrentPhaseActive` | Current phase status is `ACTIVE` |
-| `IsUserPhaseStateExists` | User has a phase state for the current phase |
-| `IsSandboxGame` / `IsNotSandboxGame` | Game is / is not a sandbox |
 
 ## Permissions vs validation
 

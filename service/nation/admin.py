@@ -3,7 +3,7 @@ from django.contrib import admin
 from lxml import etree
 
 from .models import Nation, NationFlag
-from .views import FLAG_MAX_BYTES
+from .utils import FLAG_MAX_BYTES
 
 
 @admin.register(Nation)
