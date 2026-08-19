@@ -1,6 +1,6 @@
 from django.apps import apps
 from django.db import models
-from django.db.models import Q, Prefetch, ObjectDoesNotExist
+from django.db.models import Q, Prefetch
 from django.core import exceptions
 
 from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep, PhaseType
@@ -72,15 +72,6 @@ class OrderManager(models.Manager):
     def delete_existing_for_source(self, phase_state, source):
         existing_orders = self.for_source_in_phase(phase_state, source)
         existing_orders.delete()
-
-    def try_get_province(self, phase, province_id):
-        # DEPRECATED: Use province_lookup dictionary instead to avoid N+1 queries.
-        # This method performs a database query for each call.
-        # Prefer building a province_lookup dict once and passing it to create_from_selected.
-        try:
-            return phase.variant.provinces.get(province_id=province_id)
-        except ObjectDoesNotExist:
-            raise exceptions.ValidationError(f"Province {province_id} not found")
 
     def create_from_selected(self, user, phase, selected, province_lookup=None):
         order_data = get_order_data_from_selected(selected)
