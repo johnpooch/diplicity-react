@@ -651,6 +651,23 @@ class PhaseManager(models.Manager):
         event_type = "phase_resolved_early" if resolved_early else "phase_resolved"
         emit(event_type, phase=phase)
 
+    def _report_co_occupied_provinces(self, phase, units, province_lookup):
+        province_id_by_pk = {p.pk: p.province_id for p in province_lookup.values()}
+        occupant_by_parent = {}
+        for unit in units:
+            location = unit.province.province_id
+            parent = province_id_by_pk.get(unit.province.parent_id, location)
+            occupant = occupant_by_parent.get((parent, unit.dislodged))
+            if occupant is not None:
+                state = "dislodged" if unit.dislodged else "standing"
+                message = (
+                    f"Two {state} units occupy {parent} in phase {phase.id} "
+                    f"(game {phase.game_id}): {occupant} and {location}"
+                )
+                logger.error(message)
+                sentry_sdk.capture_message(message, level="error")
+            occupant_by_parent[(parent, unit.dislodged)] = location
+
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
             span.set_attribute("previous_phase.id", previous_phase.id)
@@ -861,6 +878,8 @@ class PhaseManager(models.Manager):
                             )
                         else:
                             logger.error(f"Failed to find province {unit['province']} or nation {unit['nation']}")
+
+                    self._report_co_occupied_provinces(new_phase, units_to_create, province_lookup)
 
                     # Bulk create all units
                     Unit.objects.bulk_create(units_to_create)

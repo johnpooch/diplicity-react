@@ -5525,3 +5525,87 @@ class TestKickedMemberPhaseStates:
 
         assert new_phase.phase_states.get(member=kicked).has_possible_orders is False
         assert new_phase.phase_states.get(member__nation__name="Germany").has_possible_orders is True
+
+
+class TestDislodgedByAttribution:
+
+    def _build_phase(self, variant, primary_user, secondary_user):
+        game = Game.objects.create(
+            name="Co-occupied province game",
+            variant=variant,
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
+        )
+        russia = Nation.objects.get(name="Russia", variant=variant)
+        germany = Nation.objects.get(name="Germany", variant=variant)
+        phase = Phase.objects.create(
+            game=game,
+            variant=variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+
+        def province(province_id):
+            return Province.objects.get(variant=variant, province_id=province_id)
+
+        phase.units.create(type=UnitType.ARMY, nation=russia, province=province("stp"))
+        phase.units.create(type=UnitType.FLEET, nation=germany, province=province("stp/sc"))
+        phase.units.create(type=UnitType.ARMY, nation=germany, province=province("mos"))
+        phase.units.create(type=UnitType.ARMY, nation=germany, province=province("lvn"))
+        phase.supply_centers.create(nation=russia, province=province("stp"))
+        phase.supply_centers.create(nation=germany, province=province("mos"))
+
+        russia_member = game.members.create(user=primary_user, nation=russia)
+        germany_member = game.members.create(user=secondary_user, nation=germany)
+        phase.phase_states.create(member=russia_member, has_possible_orders=True)
+        germany_state = phase.phase_states.create(member=germany_member, has_possible_orders=True)
+        germany_state.orders.create(
+            order_type=OrderType.MOVE, source=province("mos"), target=province("stp")
+        )
+        germany_state.orders.create(
+            order_type=OrderType.SUPPORT,
+            source=province("lvn"),
+            aux=province("mos"),
+            target=province("stp"),
+        )
+        return phase
+
+    @pytest.mark.django_db
+    def test_one_unit_dislodging_two_units_creates_the_phase(
+        self, classical_variant, primary_user, secondary_user
+    ):
+        phase = self._build_phase(classical_variant, primary_user, secondary_user)
+        dislodger = phase.units.get(province__province_id="mos")
+
+        with patch("phase.models.sentry_sdk.capture_message") as capture_message:
+            new_phase = Phase.objects.resolve(phase)
+
+        dislodged = list(new_phase.units.filter(dislodged=True).select_related("province"))
+        assert {u.province.province_id for u in dislodged} == {"stp", "stp/sc"}
+        assert {u.dislodged_by_id for u in dislodged} == {dislodger.id}
+        assert "Two dislodged units occupy stp" in capture_message.call_args.args[0]
+
+    @pytest.mark.django_db
+    def test_two_standing_units_in_one_province_are_reported(
+        self, classical_variant, primary_user, secondary_user
+    ):
+        phase = self._build_phase(classical_variant, primary_user, secondary_user)
+        adjudication_data = resolve(phase)
+        adjudication_data["units"].append(
+            {
+                "province": "stp/nc",
+                "type": UnitType.FLEET,
+                "nation": "Russia",
+                "dislodged": False,
+                "dislodged_by": None,
+            }
+        )
+
+        with patch("phase.models.sentry_sdk.capture_message") as capture_message:
+            Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        messages = [call.args[0] for call in capture_message.call_args_list]
+        assert any("Two standing units occupy stp" in message for message in messages)
