@@ -354,6 +354,7 @@ class VerifyEmail(TypedDict):
 class Version(TypedDict):
     environment: str
     version: str
+    minimum_client_version: str
 
 
 class Victory(TypedDict):
