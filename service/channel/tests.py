@@ -1,22 +1,70 @@
 import pytest
 from datetime import timedelta
-from unittest.mock import patch
 from django.apps import apps
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APIRequestFactory
-from channel.models import Channel, ChannelMessage
+from channel.models import Channel, ChannelMember, ChannelMessage
 from nation.models import Nation
-from game.models import Game
-from game.serializers import GameRetrieveSerializer
 from notification.models import Notification
 
-from common.constants import GameStatus
+from common.constants import GameStatus, PressType
 
 
 def _channel_message_notifications():
     return Notification.objects.filter(event_type="channel_message")
+
+
+@pytest.fixture
+def no_press_active_game(db, primary_user, classical_variant, classical_england_nation):
+    Game = apps.get_model("game", "Game")
+    game = Game.objects.create(
+        name="No Press Active Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        press_type=PressType.NO_PRESS,
+    )
+    game.members.create(user=primary_user, nation=classical_england_nation)
+    return game
+
+
+@pytest.fixture
+def no_press_active_game_with_channel(no_press_active_game):
+    channel = Channel.objects.create(game=no_press_active_game, name="Public Press", private=False)
+    channel.members.add(no_press_active_game.members.first())
+    return no_press_active_game
+
+
+@pytest.fixture
+def no_press_completed_game(db, primary_user, classical_variant, classical_england_nation):
+    Game = apps.get_model("game", "Game")
+    Phase = apps.get_model("phase", "Phase")
+    game = Game.objects.create(
+        name="No Press Completed Game",
+        variant=classical_variant,
+        status=GameStatus.COMPLETED,
+        press_type=PressType.NO_PRESS,
+    )
+    Phase.objects.create(
+        game=game,
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        ordinal=1,
+        status="Completed",
+    )
+    game.members.create(user=primary_user, nation=classical_england_nation)
+    return game
+
+
+@pytest.fixture
+def no_press_completed_game_with_channel(no_press_completed_game, secondary_user, classical_france_nation):
+    game = no_press_completed_game
+    game.members.create(user=secondary_user, nation=classical_france_nation)
+    channel = Channel.objects.create(game=game, name="Public Press", private=False)
+    channel.members.add(game.members.first())
+    return game
 
 
 class TestChannelCreateView:
@@ -87,19 +135,8 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_create_channel_inactive_game(
-        self, authenticated_client, classical_variant, primary_user, classical_england_nation
-    ):
-        Game = apps.get_model("game", "Game")
-
-        inactive_game = Game.objects.create(
-            name="Inactive Game",
-            variant=classical_variant,
-            status=GameStatus.PENDING,
-        )
-        inactive_game.members.create(user=primary_user, nation=classical_england_nation)
-
-        url = reverse("channel-create", args=[inactive_game.id])
+    def test_create_channel_pending_game(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse("channel-create", args=[pending_game_created_by_primary_user.id])
         payload = {"member_ids": []}
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -120,6 +157,51 @@ class TestChannelCreateView:
         payload = {"member_ids": []}
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_create_channel_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
+    ):
+        game = active_game_with_kicked_member
+        url = reverse("channel-create", args=[game.id])
+        payload = {"member_ids": [game.members.get(kicked=False).id]}
+        response = authenticated_client_for_secondary_user.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not Channel.objects.filter(game=game).exists()
+
+    @pytest.mark.django_db
+    def test_active_no_press_game_blocks_channel_creation(
+        self, authenticated_client, no_press_active_game
+    ):
+        url = reverse("channel-create", args=[no_press_active_game.id])
+        payload = {"member_ids": []}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_completed_no_press_game_allows_channel_creation(
+        self, authenticated_client, no_press_completed_game, secondary_user, classical_france_nation
+    ):
+        other_member = no_press_completed_game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        url = reverse("channel-create", args=[no_press_completed_game.id])
+        payload = {"member_ids": [other_member.id]}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_full_press_active_game_allows_channel_creation(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    ):
+        other_member = active_game_with_phase_state.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [other_member.id]}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
 
 
 class TestChannelListView:
@@ -159,23 +241,58 @@ class TestChannelListView:
 
     @pytest.mark.django_db
     def test_list_channels_unauthenticated_is_current_user_false(self, unauthenticated_client, active_game_with_channels):
-        url = reverse("channel-list", args=[active_game_with_channels.id])
+        game = active_game_with_channels
+        public_channel = Channel.objects.get(game=game, name="Public Channel")
+        ChannelMessage.objects.create(channel=public_channel, sender=game.members.first(), body="Public message")
+
+        url = reverse("channel-list", args=[game.id])
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        for channel in response.data:
-            for msg in channel.get("messages", []):
-                assert msg["sender"]["is_current_user"] is False
+        channel = next(ch for ch in response.data if ch["name"] == "Public Channel")
+        assert channel["latest_message"]["sender"]["is_current_user"] is False
 
     @pytest.mark.django_db
-    def test_list_channels_with_messages(self, authenticated_client, active_game_with_channels):
+    def test_list_channels_includes_latest_message_preview(self, authenticated_client, active_game_with_channels):
         url = reverse("channel-list", args=[active_game_with_channels.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
         private_channel = next(ch for ch in response.data if ch["name"] == "Private Member")
-        assert len(private_channel["messages"]) == 1
-        assert private_channel["messages"][0]["body"] == "Test message"
-        assert private_channel["messages"][0]["sender"]["is_current_user"] == True
+        assert private_channel["latest_message"]["body"] == "Test message"
+        assert private_channel["latest_message"]["sender"]["is_current_user"] is True
+
+        public_channel = next(ch for ch in response.data if ch["name"] == "Public Channel")
+        assert public_channel["latest_message"] is None
+
+    @pytest.mark.django_db
+    def test_list_channels_preview_is_most_recent_message(self, authenticated_client, active_game_with_channels):
+        game = active_game_with_channels
+        private_channel = Channel.objects.get(game=game, name="Private Member")
+        ChannelMessage.objects.create(channel=private_channel, sender=game.members.first(), body="Newer message")
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        channel = next(ch for ch in response.data if ch["name"] == "Private Member")
+        assert channel["latest_message"]["body"] == "Newer message"
+
+    @pytest.mark.django_db
+    def test_list_channels_query_count_is_constant(
+        self, authenticated_client, active_game_with_channels, django_assert_num_queries
+    ):
+        game = active_game_with_channels
+        member = game.members.first()
+        private_channel = Channel.objects.get(game=game, name="Private Member")
+        public_channel = Channel.objects.get(game=game, name="Public Channel")
+        for index in range(10):
+            ChannelMessage.objects.create(channel=private_channel, sender=member, body=f"private {index}")
+            ChannelMessage.objects.create(channel=public_channel, sender=member, body=f"public {index}")
+
+        url = reverse("channel-list", args=[game.id])
+        with django_assert_num_queries(4):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
 
     @pytest.mark.django_db
     def test_list_channels_excludes_other_games_channels(
@@ -200,9 +317,6 @@ class TestChannelListView:
         assert "Other Game Channel" not in channel_names
         assert "Private Member" in channel_names
         assert "Public Channel" in channel_names
-
-
-class TestChannelListOrdering:
 
     @pytest.mark.django_db
     def test_public_channel_first_even_with_older_activity(
@@ -274,6 +388,141 @@ class TestChannelListOrdering:
         names = [ch["name"] for ch in response.data]
         assert names == ["Public Press", "With Message", "Without Message"]
 
+    @pytest.mark.django_db
+    def test_list_channels_allowed_for_pending_game(
+        self, authenticated_client, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["name"] == "Public Press"
+
+    @pytest.mark.django_db
+    def test_active_no_press_game_allows_channel_list(
+        self, authenticated_client, no_press_active_game_with_channel
+    ):
+        url = reverse("channel-list", args=[no_press_active_game_with_channel.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+
+class TestChannelRetrieveView:
+
+    @pytest.mark.django_db
+    def test_retrieve_channel_with_messages(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("channel-retrieve", args=[game.id, channel.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == channel.id
+        assert response.data["name"] == "Public Press"
+        assert response.data["private"] is False
+        bodies = [message["body"] for message in response.data["messages"]["results"]]
+        assert bodies == ["Message 2", "Message 1"]
+        assert response.data["messages"]["next"] is None
+
+    @pytest.mark.django_db
+    def test_retrieve_channel_messages_are_cursor_paginated(
+        self, authenticated_client, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+        member = game.members.first()
+        for index in range(25):
+            ChannelMessage.objects.create(channel=channel, sender=member, body=f"Message {index + 3}")
+
+        url = reverse("channel-retrieve", args=[game.id, channel.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["messages"]["results"]) == 20
+        assert response.data["messages"]["results"][0]["body"] == "Message 27"
+        assert response.data["messages"]["next"] is not None
+
+        next_response = authenticated_client.get(response.data["messages"]["next"])
+        assert next_response.status_code == status.HTTP_200_OK
+        assert len(next_response.data["messages"]["results"]) == 7
+        assert next_response.data["messages"]["next"] is None
+
+    @pytest.mark.django_db
+    def test_retrieve_channel_query_count_independent_of_message_count(
+        self, authenticated_client, game_with_public_channel_and_messages, django_assert_num_queries
+    ):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+        member = game.members.first()
+        for index in range(18):
+            ChannelMessage.objects.create(channel=channel, sender=member, body=f"Message {index + 3}")
+
+        url = reverse("channel-retrieve", args=[game.id, channel.id])
+        with django_assert_num_queries(5):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["messages"]["results"]) == 20
+
+    @pytest.mark.django_db
+    def test_retrieve_private_channel_as_non_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        url = reverse("channel-retrieve", args=[game.id, channel.id])
+        response = authenticated_client_for_secondary_user.get(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_retrieve_private_channel_unauthenticated_forbidden(
+        self, unauthenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        url = reverse("channel-retrieve", args=[game.id, channel.id])
+        response = unauthenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_retrieve_public_channel_unauthenticated(
+        self, unauthenticated_client, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("channel-retrieve", args=[game.id, channel.id])
+        response = unauthenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        for message in response.data["messages"]["results"]:
+            assert message["sender"]["is_current_user"] is False
+
+    @pytest.mark.django_db
+    def test_retrieve_nonexistent_channel(self, authenticated_client, active_game_with_phase_state):
+        url = reverse("channel-retrieve", args=[active_game_with_phase_state.id, 999])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_retrieve_channel_from_other_game_not_found(
+        self, authenticated_client, game_with_public_channel_and_messages, game_factory
+    ):
+        channel = Channel.objects.get(game=game_with_public_channel_and_messages, name="Public Press")
+        other_game = game_factory()
+
+        url = reverse("channel-retrieve", args=[other_game.id, channel.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 class TestChannelMessageCreateView:
 
@@ -290,7 +539,6 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        # Author is the only channel member, so there is no one to notify.
         assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
@@ -308,7 +556,6 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        # Author is the only game member, so there is no one to notify.
         assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
@@ -346,7 +593,6 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        # The other game member is not in this private channel, so is not notified.
         assert not _channel_message_notifications().exists()
 
     @pytest.mark.django_db
@@ -454,151 +700,54 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-class TestChannelModels:
-
     @pytest.mark.django_db
-    def test_channel_queryset_accessible_to_user_as_member(self, active_game_with_channels, primary_user):
-        game = active_game_with_channels
-        channels = Channel.objects.accessible_to_user(primary_user, game)
-
-        assert channels.count() == 2
-        channel_names = [ch.name for ch in channels]
-        assert "Private Member" in channel_names
-        assert "Public Channel" in channel_names
-        assert "Private Non-Member" not in channel_names
-
-    @pytest.mark.django_db
-    def test_channel_queryset_accessible_to_user_as_non_member(self, active_game_with_channels, tertiary_user):
-        game = active_game_with_channels
-        channels = Channel.objects.accessible_to_user(tertiary_user, game)
-
-        assert channels.count() == 1
-        assert channels.first().name == "Public Channel"
-
-    @pytest.mark.django_db
-    def test_channel_queryset_with_related_data(self, active_game_with_channels):
-        channels = Channel.objects.with_related_data()
-
-        for channel in channels:
-            for message in channel.messages.all():
-                assert message.sender is not None
-
-    @pytest.mark.django_db
-    def test_channel_queryset_accessible_to_user_excludes_other_games(
-        self, active_game_with_channels, primary_user, classical_variant, classical_england_nation
+    def test_create_message_as_kicked_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member, in_memory_procrastinate
     ):
-        Game = apps.get_model("game", "Game")
+        game = active_game_with_kicked_member
+        channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        channel.members.add(game.members.get(kicked=True))
 
-        other_game = Game.objects.create(
-            name="Other Game",
-            variant=classical_variant,
-            status=GameStatus.ACTIVE,
-        )
-        other_game.members.create(user=primary_user, nation=classical_england_nation)
-
-        other_game_public_channel = Channel.objects.create(game=other_game, name="Other Game Public", private=False)
-        other_game_private_channel = Channel.objects.create(game=other_game, name="Other Game Private", private=True)
-        other_game_private_channel.members.add(other_game.members.first())
-
-        channels = Channel.objects.accessible_to_user(primary_user, active_game_with_channels)
-
-        channel_names = [ch.name for ch in channels]
-        assert "Other Game Public" not in channel_names
-        assert "Other Game Private" not in channel_names
-        assert "Private Member" in channel_names
-        assert "Public Channel" in channel_names
-
-
-@pytest.fixture
-def mock_immediate_on_commit():
-    def immediate_on_commit(func):
-        func()  # Execute immediately instead of deferring
-
-    with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
-        yield
-
-
-class TestChannelMarkReadView:
-
-    @pytest.mark.django_db
-    def test_mark_read_success(self, authenticated_client, game_with_public_channel_and_messages):
-        game = game_with_public_channel_and_messages
-        channel = Channel.objects.get(game=game, name="Public Press")
-        primary_member = game.members.first()
-
-        from channel.models import ChannelMember
-        channel_member = ChannelMember.objects.get(member=primary_member, channel=channel)
-        original_last_read_at = channel_member.last_read_at
-
-        url = reverse("channel-mark-read", args=[game.id, channel.id])
-        response = authenticated_client.post(url)
-
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-
-        channel_member.refresh_from_db()
-        assert channel_member.last_read_at > original_last_read_at
-
-    @pytest.mark.django_db
-    def test_mark_read_unauthenticated(self, unauthenticated_client, game_with_public_channel_and_messages):
-        game = game_with_public_channel_and_messages
-        channel = Channel.objects.get(game=game, name="Public Press")
-
-        url = reverse("channel-mark-read", args=[game.id, channel.id])
-        response = unauthenticated_client.post(url)
-
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    @pytest.mark.django_db
-    def test_mark_read_non_game_member(
-        self, authenticated_client_for_tertiary_user, game_with_public_channel_and_messages
-    ):
-        game = game_with_public_channel_and_messages
-        channel = Channel.objects.get(game=game, name="Public Press")
-
-        url = reverse("channel-mark-read", args=[game.id, channel.id])
-        response = authenticated_client_for_tertiary_user.post(url)
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+        response = authenticated_client_for_secondary_user.post(url, {"body": "Still here"}, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not ChannelMessage.objects.filter(channel=channel).exists()
 
     @pytest.mark.django_db
-    def test_mark_read_non_channel_member_private_channel(
-        self, authenticated_client_for_secondary_user, active_game_with_private_channel
+    def test_message_over_limit_rejected(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+    ):
+        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.post(
+            url, {"body": "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 1)}, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert f"{settings.CHAT_MESSAGE_MAX_CHARS} characters" in response.data["body"][0]
+
+    @pytest.mark.django_db
+    def test_message_at_limit_accepted(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+    ):
+        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.post(
+            url, {"body": "x" * settings.CHAT_MESSAGE_MAX_CHARS}, format="json"
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_message_stamped_with_current_phase(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
     ):
         game = active_game_with_private_channel
-        private_channel = Channel.objects.get(game=game, private=True)
+        channel = Channel.objects.get(game=game, private=True)
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+        authenticated_client.post(url, {"body": "hello"}, format="json")
 
-        url = reverse("channel-mark-read", args=[game.id, private_channel.id])
-        response = authenticated_client_for_secondary_user.post(url)
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    @pytest.mark.django_db
-    def test_mark_read_idempotent(self, authenticated_client, game_with_public_channel_and_messages):
-        game = game_with_public_channel_and_messages
-        channel = Channel.objects.get(game=game, name="Public Press")
-
-        url = reverse("channel-mark-read", args=[game.id, channel.id])
-        response1 = authenticated_client.post(url)
-        assert response1.status_code == status.HTTP_204_NO_CONTENT
-
-        response2 = authenticated_client.post(url)
-        assert response2.status_code == status.HTTP_204_NO_CONTENT
-
-
-class TestChannelPendingGameAccess:
-
-    @pytest.mark.django_db
-    def test_list_channels_allowed_for_pending_game(
-        self, authenticated_client, pending_game_created_by_secondary_user
-    ):
-        game = pending_game_created_by_secondary_user
-
-        url = reverse("channel-list", args=[game.id])
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data[0]["name"] == "Public Press"
+        message = channel.messages.get()
+        assert message.phase_id == game.current_phase.id
 
     @pytest.mark.django_db
     def test_message_create_allowed_for_pending_game_member(
@@ -627,6 +776,119 @@ class TestChannelPendingGameAccess:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
+    def test_active_no_press_game_blocks_message_sending(
+        self, authenticated_client, no_press_active_game_with_channel
+    ):
+        channel = Channel.objects.get(game=no_press_active_game_with_channel)
+        url = reverse(
+            "channel-message-create",
+            args=[no_press_active_game_with_channel.id, channel.id],
+        )
+        payload = {"body": "This should be blocked"}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_completed_no_press_game_allows_message_sending(
+        self,
+        authenticated_client,
+        no_press_completed_game_with_channel,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        channel = Channel.objects.get(game=no_press_completed_game_with_channel)
+        url = reverse(
+            "channel-message-create",
+            args=[no_press_completed_game_with_channel.id, channel.id],
+        )
+        payload = {"body": "Debriefing after the game!"}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_full_press_game_allows_message_sending(
+        self,
+        authenticated_client,
+        active_game_with_private_channel,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse(
+            "channel-message-create",
+            args=[active_game_with_private_channel.id, channel.id],
+        )
+        payload = {"body": "Hello, world!"}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+
+class TestChannelMarkReadView:
+
+    @pytest.mark.django_db
+    def test_mark_read_success(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+        primary_member = game.members.first()
+
+        channel_member = ChannelMember.objects.get(member=primary_member, channel=channel)
+        original_last_read_at = channel_member.last_read_at
+
+        url = reverse("channel-mark-read", args=[game.id, channel.id])
+        response = authenticated_client.patch(url)
+
+        assert response.status_code == status.HTTP_200_OK
+
+        channel_member.refresh_from_db()
+        assert channel_member.last_read_at > original_last_read_at
+
+    @pytest.mark.django_db
+    def test_mark_read_unauthenticated(self, unauthenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("channel-mark-read", args=[game.id, channel.id])
+        response = unauthenticated_client.patch(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_mark_read_non_game_member(
+        self, authenticated_client_for_tertiary_user, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("channel-mark-read", args=[game.id, channel.id])
+        response = authenticated_client_for_tertiary_user.patch(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_mark_read_non_channel_member_private_channel(
+        self, authenticated_client_for_secondary_user, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        private_channel = Channel.objects.get(game=game, private=True)
+
+        url = reverse("channel-mark-read", args=[game.id, private_channel.id])
+        response = authenticated_client_for_secondary_user.patch(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_mark_read_idempotent(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("channel-mark-read", args=[game.id, channel.id])
+        response1 = authenticated_client.patch(url)
+        assert response1.status_code == status.HTTP_200_OK
+
+        response2 = authenticated_client.patch(url)
+        assert response2.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
     def test_mark_read_allowed_for_pending_game_member(
         self, authenticated_client, pending_game_created_by_secondary_user
     ):
@@ -635,46 +897,38 @@ class TestChannelPendingGameAccess:
         authenticated_client.post(reverse("game-join", args=[game.id]))
 
         url = reverse("channel-mark-read", args=[game.id, public_channel.id])
-        response = authenticated_client.post(url)
+        response = authenticated_client.patch(url)
 
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert response.status_code == status.HTTP_200_OK
 
 
-class TestChannelUnreadCount:
+class TestChannelUnreadRetrieveView:
 
     @pytest.mark.django_db
-    def test_channel_list_includes_unread_count(self, authenticated_client, game_with_public_channel_and_messages):
+    def test_unread_count_for_game(self, authenticated_client, game_with_public_channel_and_messages):
         game = game_with_public_channel_and_messages
-        url = reverse("channel-list", args=[game.id])
+        url = reverse("game-channel-unread", args=[game.id])
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        channel_data = next(ch for ch in response.data if ch["name"] == "Public Press")
-        assert channel_data["unread_message_count"] == 2
+        assert response.data["total_unread_message_count"] == 2
 
     @pytest.mark.django_db
-    def test_unread_count_resets_after_mark_read(self, authenticated_client, game_with_public_channel_and_messages):
+    def test_unread_count_single_query(
+        self, authenticated_client, game_with_public_channel_and_messages, django_assert_num_queries
+    ):
         game = game_with_public_channel_and_messages
-        channel = Channel.objects.get(game=game, name="Public Press")
-
-        mark_read_url = reverse("channel-mark-read", args=[game.id, channel.id])
-        authenticated_client.post(mark_read_url)
-
-        list_url = reverse("channel-list", args=[game.id])
-        response = authenticated_client.get(list_url)
-
-        channel_data = next(ch for ch in response.data if ch["name"] == "Public Press")
-        assert channel_data["unread_message_count"] == 0
-
-    @pytest.mark.django_db
-    def test_unread_count_zero_for_anonymous(self, unauthenticated_client, game_with_public_channel_and_messages):
-        game = game_with_public_channel_and_messages
-        url = reverse("channel-list", args=[game.id])
-        response = unauthenticated_client.get(url)
+        url = reverse("game-channel-unread", args=[game.id])
+        with django_assert_num_queries(1):
+            response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        for channel_data in response.data:
-            assert channel_data["unread_message_count"] == 0
+
+    @pytest.mark.django_db
+    def test_unread_count_unauthenticated(self, unauthenticated_client, game_with_public_channel_and_messages):
+        url = reverse("game-channel-unread", args=[game_with_public_channel_and_messages.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
     def test_own_messages_not_counted_as_unread(self, authenticated_client, game_with_public_channel_and_messages):
@@ -683,14 +937,25 @@ class TestChannelUnreadCount:
         channel = Channel.objects.get(game=game, name="Public Press")
         ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
 
-        url = reverse("channel-list", args=[game.id])
+        url = reverse("game-channel-unread", args=[game.id])
         response = authenticated_client.get(url)
 
-        channel_data = next(ch for ch in response.data if ch["name"] == "Public Press")
-        assert channel_data["unread_message_count"] == 2
+        assert response.data["total_unread_message_count"] == 2
 
     @pytest.mark.django_db
-    def test_unread_count_per_channel_independence(
+    def test_unread_count_resets_after_mark_read(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        authenticated_client.patch(reverse("channel-mark-read", args=[game.id, channel.id]))
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.data["total_unread_message_count"] == 0
+
+    @pytest.mark.django_db
+    def test_unread_count_sums_channels_independently(
         self, authenticated_client, game_with_public_channel_and_messages
     ):
         game = game_with_public_channel_and_messages
@@ -703,219 +968,119 @@ class TestChannelUnreadCount:
         ChannelMessage.objects.create(channel=private_channel, sender=secondary_member, body="Private msg")
 
         public_channel = Channel.objects.get(game=game, name="Public Press")
-        mark_read_url = reverse("channel-mark-read", args=[game.id, public_channel.id])
-        authenticated_client.post(mark_read_url)
+        authenticated_client.patch(reverse("channel-mark-read", args=[game.id, public_channel.id]))
 
-        list_url = reverse("channel-list", args=[game.id])
-        response = authenticated_client.get(list_url)
-
-        public_data = next(ch for ch in response.data if ch["name"] == "Public Press")
-        private_data = next(ch for ch in response.data if ch["name"] == "Private Channel")
-
-        assert public_data["unread_message_count"] == 0
-        assert private_data["unread_message_count"] == 1
-
-
-class TestGameRetrieveUnreadCount:
-
-    @pytest.mark.django_db
-    def test_game_retrieve_includes_total_unread_count(
-        self, authenticated_client, game_with_public_channel_and_messages
-    ):
-        game = game_with_public_channel_and_messages
-        url = reverse("game-retrieve", args=[game.id])
+        url = reverse("game-channel-unread", args=[game.id])
         response = authenticated_client.get(url)
 
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["total_unread_message_count"] == 2
+        assert response.data["total_unread_message_count"] == 1
 
     @pytest.mark.django_db
-    def test_game_retrieve_unread_count_zero_for_anonymous(
-        self, unauthenticated_client, game_with_public_channel_and_messages
+    def test_unread_count_zero_for_non_member(
+        self, authenticated_client_for_tertiary_user, game_with_public_channel_and_messages
     ):
-        game = game_with_public_channel_and_messages
-        url = reverse("game-retrieve", args=[game.id])
-        response = unauthenticated_client.get(url)
+        url = reverse("game-channel-unread", args=[game_with_public_channel_and_messages.id])
+        response = authenticated_client_for_tertiary_user.get(url)
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == 0
+        assert response.data["channels"] == []
 
     @pytest.mark.django_db
-    def test_own_messages_not_counted_in_total_unread(
-        self, authenticated_client, game_with_public_channel_and_messages
+    def test_unread_count_broken_down_per_channel(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        primary_member = game.members.first()
+        secondary_member = game.members.exclude(id=primary_member.id).first()
+
+        private_channel = Channel.objects.create(game=game, name="Private Channel", private=True)
+        private_channel.members.add(primary_member, secondary_member)
+        ChannelMessage.objects.create(channel=private_channel, sender=secondary_member, body="Private msg")
+
+        public_channel = Channel.objects.get(game=game, name="Public Press")
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        counts = {row["channel_id"]: row["unread_message_count"] for row in response.data["channels"]}
+        assert counts == {public_channel.id: 2, private_channel.id: 1}
+        assert response.data["total_unread_message_count"] == 3
+
+    @pytest.mark.django_db
+    def test_channels_with_no_unread_are_omitted(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+
+        authenticated_client.patch(reverse("channel-mark-read", args=[game.id, channel.id]))
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.data["channels"] == []
+
+    @pytest.mark.django_db
+    def test_breakdown_excludes_channels_from_other_games(
+        self, authenticated_client, game_with_public_channel_and_messages, active_game_factory, secondary_user
     ):
+        game = game_with_public_channel_and_messages
+        other_game = active_game_factory()
+        other_member = other_game.members.first()
+        other_channel = Channel.objects.create(game=other_game, name="Public Press", private=False)
+        ChannelMember.objects.create(member=other_member, channel=other_channel)
+        ChannelMessage.objects.create(channel=other_channel, sender=other_member, body="Other game msg")
+
+        url = reverse("game-channel-unread", args=[game.id])
+        response = authenticated_client.get(url)
+
+        channel_ids = {row["channel_id"] for row in response.data["channels"]}
+        assert other_channel.id not in channel_ids
+
+
+class TestGameUnreadListView:
+
+    @pytest.mark.django_db
+    def test_lists_games_with_unread_counts(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        url = reverse("game-unread-list")
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == [{"game_id": game.id, "total_unread_message_count": 2}]
+
+    @pytest.mark.django_db
+    def test_omits_games_without_unread(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+        authenticated_client.patch(reverse("channel-mark-read", args=[game.id, channel.id]))
+
+        url = reverse("game-unread-list")
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+    @pytest.mark.django_db
+    def test_single_query(
+        self, authenticated_client, game_with_public_channel_and_messages, django_assert_num_queries
+    ):
+        url = reverse("game-unread-list")
+        with django_assert_num_queries(1):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client):
+        response = unauthenticated_client.get(reverse("game-unread-list"))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_own_messages_not_counted(self, authenticated_client, game_with_public_channel_and_messages):
         game = game_with_public_channel_and_messages
         primary_member = game.members.first()
         channel = Channel.objects.get(game=game, name="Public Press")
         ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
 
-        url = reverse("game-retrieve", args=[game.id])
-        response = authenticated_client.get(url)
+        response = authenticated_client.get(reverse("game-unread-list"))
 
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["total_unread_message_count"] == 2
-
-    @pytest.mark.django_db
-    def test_game_retrieve_unread_count_resets_after_mark_read(
-        self, authenticated_client, game_with_public_channel_and_messages
-    ):
-        game = game_with_public_channel_and_messages
-        channel = Channel.objects.get(game=game, name="Public Press")
-
-        mark_read_url = reverse("channel-mark-read", args=[game.id, channel.id])
-        authenticated_client.post(mark_read_url)
-
-        url = reverse("game-retrieve", args=[game.id])
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["total_unread_message_count"] == 0
-
-    @pytest.mark.django_db
-    def test_retrieve_serializer_computes_unread_without_annotation(
-        self, game_with_public_channel_and_messages, primary_user
-    ):
-        game = Game.objects.get(pk=game_with_public_channel_and_messages.pk)
-        request = APIRequestFactory().get("/")
-        request.user = primary_user
-
-        data = GameRetrieveSerializer(game, context={"request": request}).data
-
-        assert data["total_unread_message_count"] == 2
-
-
-class TestChannelMessageCharLimit:
-
-    @pytest.mark.django_db
-    def test_message_over_limit_rejected(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
-    ):
-        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
-        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
-        response = authenticated_client.post(
-            url, {"body": "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 1)}, format="json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert f"{settings.CHAT_MESSAGE_MAX_CHARS} characters" in response.data["body"][0]
-
-    @pytest.mark.django_db
-    def test_message_at_limit_accepted(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
-    ):
-        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
-        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
-        response = authenticated_client.post(
-            url, {"body": "x" * settings.CHAT_MESSAGE_MAX_CHARS}, format="json"
-        )
-        assert response.status_code == status.HTTP_201_CREATED
-
-
-class TestChannelMessagePhaseStamping:
-
-    @pytest.mark.django_db
-    def test_message_stamped_with_current_phase(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
-    ):
-        game = active_game_with_private_channel
-        channel = Channel.objects.get(game=game, private=True)
-        url = reverse("channel-message-create", args=[game.id, channel.id])
-        authenticated_client.post(url, {"body": "hello"}, format="json")
-
-        message = channel.messages.get()
-        assert message.phase_id == game.current_phase.id
-
-
-class TestChannelMessageBotChannel:
-
-    @pytest.mark.django_db
-    def test_no_message_cap_in_bot_channel(
-        self,
-        authenticated_client,
-        active_game_with_phase_state,
-        classical_france_nation,
-        bot_user,
-        in_memory_procrastinate,
-    ):
-        game = active_game_with_phase_state
-        bot_member = game.members.create(user=bot_user, nation=classical_france_nation)
-        channel = Channel.objects.create(game=game, name="Bot Channel", private=True)
-        channel.members.add(game.members.first(), bot_member)
-        url = reverse("channel-message-create", args=[game.id, channel.id])
-
-        for _ in range(20):
-            response = authenticated_client.post(url, {"body": "hello"}, format="json")
-            assert response.status_code == status.HTTP_201_CREATED
-
-
-class TestChannelMemberAutoCreation:
-
-    @pytest.mark.django_db
-    def test_game_creation_creates_channel_member_for_creator(self, authenticated_client, classical_variant):
-        from channel.models import ChannelMember
-        from common.constants import NationAssignment, DeadlineMode
-
-        url = reverse("game-create")
-        payload = {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
-            "private": False,
-            "deadline_mode": DeadlineMode.DURATION,
-        }
-        response = authenticated_client.post(url, payload, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-
-        from django.apps import apps
-        Game = apps.get_model("game", "Game")
-        game = Game.objects.get(id=response.data["id"])
-        public_channel = game.channels.get(private=False)
-        creator_member = game.members.first()
-
-        assert ChannelMember.objects.filter(member=creator_member, channel=public_channel).exists()
-
-    @pytest.mark.django_db
-    def test_member_join_creates_channel_members_for_public_channels(
-        self, authenticated_client, pending_game_created_by_secondary_user
-    ):
-        from channel.models import ChannelMember
-
-        game = pending_game_created_by_secondary_user
-        public_channel = game.get_public_press()
-
-        url = reverse("game-join", args=[game.id])
-        response = authenticated_client.post(url, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-
-        new_member = game.members.filter(user__username="primaryuser").first()
-        assert ChannelMember.objects.filter(member=new_member, channel=public_channel).exists()
-
-
-class TestKickedMemberCannotChat:
-
-    @pytest.mark.django_db
-    def test_create_message_as_kicked_member_forbidden(
-        self, authenticated_client_for_secondary_user, active_game_with_kicked_member, in_memory_procrastinate
-    ):
-        game = active_game_with_kicked_member
-        channel = Channel.objects.create(game=game, name="Public Press", private=False)
-        channel.members.add(game.members.get(kicked=True))
-
-        url = reverse("channel-message-create", args=[game.id, channel.id])
-        response = authenticated_client_for_secondary_user.post(url, {"body": "Still here"}, format="json")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert not ChannelMessage.objects.filter(channel=channel).exists()
-
-    @pytest.mark.django_db
-    def test_create_channel_as_kicked_member_forbidden(
-        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
-    ):
-        game = active_game_with_kicked_member
-        url = reverse("channel-create", args=[game.id])
-        payload = {"member_ids": [game.members.get(kicked=False).id]}
-        response = authenticated_client_for_secondary_user.post(url, payload, format="json")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert not Channel.objects.filter(game=game).exists()
+        assert response.data == [{"game_id": game.id, "total_unread_message_count": 2}]

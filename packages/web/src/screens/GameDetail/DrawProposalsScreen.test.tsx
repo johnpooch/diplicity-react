@@ -36,7 +36,7 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockVoteMutation,
     isPending: false,
   }),
-  useGamesDrawProposalsCancelDestroy: () => ({
+  useGamesDrawProposalsCancelPartialUpdate: () => ({
     mutateAsync: mockCancelMutation,
     isPending: false,
   }),

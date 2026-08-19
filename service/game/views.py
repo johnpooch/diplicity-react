@@ -33,11 +33,7 @@ class GameRetrieveView(generics.RetrieveAPIView):
     serializer_class = GameRetrieveSerializer
 
     def get_object(self):
-        queryset = (
-            Game.objects.all()
-            .with_retrieve_data()
-            .with_total_unread_counts(self.request.user)
-        )
+        queryset = Game.objects.all().with_retrieve_data()
         return get_object_or_404(queryset, id=self.kwargs.get("game_id"))
 
 
@@ -52,7 +48,6 @@ class GameListView(generics.ListAPIView):
         queryset = (
             Game.objects.all()
             .with_list_data()
-            .with_total_unread_counts(self.request.user)
             .order_by("-created_at")
         )
 

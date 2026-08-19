@@ -26,9 +26,9 @@ from project import settings
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
+    path("", include("channel.urls")),
     path("", include("game.urls")),
     path("", include("member.urls")),
-    path("", include("channel.urls")),
     path("", include("order.urls")),
     path("", include("phase.urls")),
     path("", include("version.urls")),

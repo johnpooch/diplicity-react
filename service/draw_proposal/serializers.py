@@ -57,12 +57,8 @@ class DrawProposalSerializer(serializers.Serializer):
         game = self.context["game"]
         current_member = self.context["current_game_member"]
 
-        if game.sandbox:
-            raise serializers.ValidationError(
-                "Draw proposals are not allowed in sandbox games."
-            )
-
-        existing_proposal = DrawProposal.objects.active().filter(
+        existing_proposal = DrawProposal.objects.filter(
+            cancelled=False,
             game=game,
             created_by=current_member,
             phase=game.current_phase,
@@ -83,6 +79,16 @@ class DrawProposalSerializer(serializers.Serializer):
             game=game,
             created_by=current_member,
         )
+
+
+class DrawProposalCancelSerializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        instance.cancelled = True
+        instance.save()
+        return instance
+
+    def to_representation(self, instance):
+        return DrawProposalSerializer(instance, context=self.context).data
 
 
 class DrawVoteUpdateSerializer(serializers.Serializer):

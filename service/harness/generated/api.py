@@ -23,6 +23,18 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
+class ChannelCreate(TypedDict):
+    id: int
+    name: str
+    private: bool
+    member_ids: list[int]
+
+
+class ChannelUnreadCount(TypedDict):
+    channel_id: int
+    unread_message_count: int
+
+
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
 
 
@@ -123,6 +135,11 @@ class GameMaster(TypedDict):
     user_id: int
     name: str
     picture: str | None
+
+
+class GameUnread(TypedDict):
+    game_id: str
+    total_unread_message_count: int
 
 
 class GoogleAuth(TypedDict):
@@ -289,6 +306,9 @@ class TokenRefresh(TypedDict):
     refresh: str
 
 
+type TypeEnum = Literal['ios', 'android', 'web']
+
+
 class Unit(TypedDict):
     type: str
     nation: Nation
@@ -387,6 +407,18 @@ class ChannelMessage(TypedDict):
     created_at: str
 
 
+class ChannelPreview(TypedDict):
+    id: int
+    name: str
+    private: bool
+    latest_message: ChannelMessage | None
+
+
+class ChannelUnread(TypedDict):
+    total_unread_message_count: int
+    channels: list[ChannelUnreadCount]
+
+
 class DrawProposal(TypedDict):
     id: int
     created_by: DrawVoteMember
@@ -399,6 +431,16 @@ class DrawProposal(TypedDict):
     my_vote: MyVote | None
     phase_id: int
     created_at: str
+
+
+class FCMDevice(TypedDict):
+    id: int
+    name: NotRequired[str | None]
+    registration_id: str
+    device_id: NotRequired[str | None]
+    active: NotRequired[bool]
+    date_created: str | None
+    type: TypeEnum
 
 
 class GameCreate(TypedDict):
@@ -472,12 +514,17 @@ class GameRetrieve(TypedDict):
     min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
-    total_unread_message_count: int
 
 
 class OrderResolution(TypedDict):
     status: str
     by: Province | None
+
+
+class PaginatedChannelMessageList(TypedDict):
+    next: str | None
+    previous: str | None
+    results: list[ChannelMessage]
 
 
 class PatchedPhaseState(TypedDict):
@@ -540,13 +587,11 @@ class VariantTemplatePhase(TypedDict):
     supply_centers: list[VariantTemplateSupplyCenter]
 
 
-class Channel(TypedDict):
+class ChannelRetrieve(TypedDict):
     id: int
     name: str
     private: bool
-    messages: list[ChannelMessage]
-    unread_message_count: int
-    member_ids: list[int]
+    messages: PaginatedChannelMessageList
 
 
 class GameList(TypedDict):
@@ -586,7 +631,6 @@ class GameList(TypedDict):
     min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
-    total_unread_message_count: int
 
 
 class Order(TypedDict):

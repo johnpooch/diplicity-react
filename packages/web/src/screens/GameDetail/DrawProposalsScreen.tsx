@@ -30,7 +30,7 @@ import {
   useGameRetrieveSuspense,
   useGamesDrawProposalsListSuspense,
   useGamesDrawProposalsVotePartialUpdate,
-  useGamesDrawProposalsCancelDestroy,
+  useGamesDrawProposalsCancelPartialUpdate,
   getGamesDrawProposalsListQueryKey,
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
@@ -183,7 +183,7 @@ const DrawProposalsScreen: React.FC = () => {
   const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
   const variant = useGameVariant(game);
   const voteMutation = useGamesDrawProposalsVotePartialUpdate();
-  const cancelMutation = useGamesDrawProposalsCancelDestroy();
+  const cancelMutation = useGamesDrawProposalsCancelPartialUpdate();
 
   const currentMember = game.members.find(m => m.isCurrentUser);
 

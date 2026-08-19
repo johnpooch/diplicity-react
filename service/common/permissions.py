@@ -79,6 +79,8 @@ class IsChannelMember(BasePermission):
         channel_id = view.kwargs.get("channel_id")
         channel = get_object_or_404(Channel, id=channel_id)
         if channel.private:
+            if not request.user.is_authenticated:
+                return False
             return channel.members.filter(user=request.user).exists()
         else:
             return True

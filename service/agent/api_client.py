@@ -65,7 +65,24 @@ class ApiClient:
         response = self._client.get(reverse("channel-list", args=[game_id]))
         if response.status_code != 200:
             raise ApiClientError(f"channel list request failed: {response.status_code}")
-        return list(response.data)
+        channels = []
+        for channel in response.data:
+            retrieve_response = self._client.get(
+                reverse("channel-retrieve", args=[game_id, channel["id"]])
+            )
+            if retrieve_response.status_code != 200:
+                raise ApiClientError(
+                    f"channel retrieve failed: {retrieve_response.status_code}"
+                )
+            channels.append(
+                {
+                    "id": channel["id"],
+                    "name": channel["name"],
+                    "private": channel["private"],
+                    "messages": list(reversed(retrieve_response.data["messages"]["results"])),
+                }
+            )
+        return channels
 
     def submit_orders(self, game_id, selections):
         create_url = reverse("order-create", args=[game_id])

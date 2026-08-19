@@ -1,6 +1,10 @@
-import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
+import React, { Suspense, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  useQueryClient,
+  useSuspenseInfiniteQuery,
+} from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
@@ -23,14 +27,40 @@ import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
-  useGamesChannelsListSuspense,
   useGamesChannelsMessagesCreateCreate,
-  useGamesChannelsMarkReadCreate,
-  getGamesChannelsListQueryKey,
-  getGameRetrieveQueryKey,
+  useGamesChannelsMarkReadPartialUpdate,
+  gamesChannelsRetrieve,
+  getGamesChannelsRetrieveQueryKey,
+  getGameChannelUnreadRetrieveQueryKey,
+  getGameUnreadListQueryKey,
   ChannelMessage as ChannelMessageType,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+
+const getNextPageParam = (
+  lastPage: Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+): string | undefined => {
+  if (!lastPage.messages.next) return undefined;
+  const url = new URL(lastPage.messages.next, window.location.origin);
+  return url.searchParams.get("cursor") ?? undefined;
+};
+
+const channelRetrieveInfiniteQueryOptions = (
+  gameId: string,
+  channelId: number
+) =>
+  infiniteQueryOptions({
+    queryKey: [...getGamesChannelsRetrieveQueryKey(gameId, channelId), "infinite"],
+    queryFn: ({ pageParam }) =>
+      gamesChannelsRetrieve(
+        gameId,
+        channelId,
+        pageParam ? { cursor: pageParam } : undefined
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam,
+    refetchInterval: 5000,
+  });
 
 type MessageDisplayItem = {
   id: number;
@@ -86,14 +116,6 @@ const buildMessageItems = (
 
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
 
-const NewMessagesDivider: React.FC = () => (
-  <div className="flex items-center gap-2 my-1">
-    <div className="flex-1 h-px bg-border" />
-    <span className="text-xs text-muted-foreground font-medium">New messages</span>
-    <div className="flex-1 h-px bg-border" />
-  </div>
-);
-
 const ChannelScreen: React.FC = () => {
   const { gameId, phaseId, channelId } = useRequiredParams<{
     gameId: string;
@@ -108,14 +130,17 @@ const ChannelScreen: React.FC = () => {
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: channels } = useGamesChannelsListSuspense(gameId, {
-    query: {
-      refetchInterval: 5000,
-    },
-  });
+  const {
+    data: channelPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSuspenseInfiniteQuery(
+    channelRetrieveInfiniteQueryOptions(gameId, parseInt(channelId))
+  );
   const variant = useGameVariant(game);
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
-  const markReadMutation = useGamesChannelsMarkReadCreate();
+  const markReadMutation = useGamesChannelsMarkReadPartialUpdate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -127,15 +152,14 @@ const ChannelScreen: React.FC = () => {
     }, { replace: true });
   }, [channelId, setSearchParams]);
 
-  const channel = channels.find(c => c.id === parseInt(channelId));
-  if (!channel) throw new Error("Channel not found");
-
-  const [firstUnreadIndex] = useState<number | null>(() => {
-    const count = channel.unreadMessageCount;
-    if (count <= 0) return null;
-    const idx = channel.messages.length - count;
-    return idx > 0 ? idx : null;
-  });
+  const channel = channelPages.pages[0];
+  const messages = useMemo(
+    () =>
+      [...channelPages.pages]
+        .reverse()
+        .flatMap(page => [...page.messages.results].reverse()),
+    [channelPages.pages]
+  );
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
@@ -160,10 +184,10 @@ const ChannelScreen: React.FC = () => {
       channelId: parseInt(channelId),
     }).then(() => {
       queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
+        queryKey: getGameChannelUnreadRetrieveQueryKey(gameId),
       });
       queryClient.invalidateQueries({
-        queryKey: getGameRetrieveQueryKey(gameId),
+        queryKey: getGameUnreadListQueryKey(),
       });
     }).catch(() => {
       // Fire-and-forget: silently ignore mark-read failures
@@ -171,12 +195,14 @@ const ChannelScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object excluded per project convention (not referentially stable); fire once on mount
   }, [gameId, channelId]);
 
+  const latestMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
-  }, [channel.messages]);
+  }, [latestMessageId]);
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
@@ -189,7 +215,7 @@ const ChannelScreen: React.FC = () => {
       });
       setMessage("");
       queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
+        queryKey: getGamesChannelsRetrieveQueryKey(gameId, parseInt(channelId)),
       });
     } catch {
       toast.error("Failed to send message");
@@ -209,10 +235,7 @@ const ChannelScreen: React.FC = () => {
     game.status !== "completed" &&
     game.status !== "abandoned";
 
-  const messageItems = useMemo(
-    () => buildMessageItems(channel.messages),
-    [channel.messages]
-  );
+  const messageItems = useMemo(() => buildMessageItems(messages), [messages]);
 
   if (isNoPressActiveGame) {
     return (
@@ -250,7 +273,7 @@ const ChannelScreen: React.FC = () => {
         <Panel>
           <Panel.Content>
             <div className="h-full flex flex-col">
-              {channel.messages.length === 0 ? (
+              {messages.length === 0 ? (
                 <Notice
                   icon={MessageCircle}
                   title="No messages yet"
@@ -262,11 +285,17 @@ const ChannelScreen: React.FC = () => {
                   ref={messagesContainerRef}
                   className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2"
                 >
-                  {messageItems.map((item, index) => (
+                  {hasNextPage && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                    >
+                      Load older messages
+                    </Button>
+                  )}
+                  {messageItems.map(item => (
                     <React.Fragment key={item.id}>
-                      {firstUnreadIndex !== null && index === firstUnreadIndex && (
-                        <NewMessagesDivider />
-                      )}
                       <Message
                         className={
                           item.isCurrentUser ? "flex-row-reverse" : undefined

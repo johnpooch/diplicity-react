@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
+from channel.models import ChannelMember
 from game.models import Game
 from member.views import MemberCreateView, MemberJoinView
 from notification.models import Notification
@@ -124,6 +125,22 @@ def test_join_game_success(authenticated_client, pending_game_created_by_seconda
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["name"] == primary_user.profile.name
     assert response.data["is_current_user"] is True
+
+
+@pytest.mark.django_db
+def test_join_game_creates_channel_members_for_public_channels(
+    authenticated_client, pending_game_created_by_secondary_user
+):
+    game = pending_game_created_by_secondary_user
+    public_channel = game.get_public_press()
+
+    url = reverse(join_viewname, args=[game.id])
+    response = authenticated_client.post(url, format="json")
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+    new_member = game.members.filter(user__username="primaryuser").first()
+    assert ChannelMember.objects.filter(member=new_member, channel=public_channel).exists()
 
 
 @pytest.mark.django_db

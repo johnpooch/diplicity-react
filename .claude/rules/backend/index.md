@@ -5,7 +5,7 @@ paths:
 
 # Backend conventions (`service/`)
 
-- **No docstrings or comments:** including in tests. Do not annotate assertions to explain their values; when a query-count assertion changes, update the number only. **The one exception is DRF view docstrings**, which are extracted into the OpenAPI schema — write those.
+- **No docstrings or comments:** including in tests and DRF views. Do not annotate assertions to explain their values; when a query-count assertion changes, update the number only. A view docstring becomes the operation `description` in the OpenAPI schema, and the schema is consumed only by our own generated clients — it needs no prose.
 
 - **Imports go at module top level:** No inline `import` inside a function or method body, even if you find an existing one nearby to copy. The only exception is breaking a genuine circular import — call it out in the PR description when you use it. Do not assume a circular import exists; resolve one only when it actually appears. For circular imports at module level, use `apps.get_model()`.
 

@@ -20,6 +20,7 @@ import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
 import {
   ChannelMessage,
+  useGameChannelUnreadRetrieveSuspense,
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
 } from "@/api/generated/endpoints";
@@ -28,10 +29,9 @@ import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 
 const getLatestMessagePreview = (
-  messages: readonly ChannelMessage[]
+  latestMessage: ChannelMessage | null
 ): string => {
-  if (messages.length === 0) return "No messages";
-  const latestMessage = messages[messages.length - 1];
+  if (!latestMessage) return "No messages";
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
     : (latestMessage.sender.nation?.name ?? latestMessage.sender.name);
@@ -45,7 +45,14 @@ const ChannelListScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: unread } = useGameChannelUnreadRetrieveSuspense(gameId, {
+    query: { refetchInterval: 5000 },
+  });
   const variant = useGameVariant(game);
+
+  const unreadByChannelId = new Map(
+    unread.channels.map(c => [c.channelId, c.unreadMessageCount])
+  );
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
@@ -103,14 +110,14 @@ const ChannelListScreen: React.FC = () => {
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}
-                            {channel.unreadMessageCount > 0 && (
+                            {(unreadByChannelId.get(channel.id) ?? 0) > 0 && (
                               <Badge variant="default">
-                                {channel.unreadMessageCount}
+                                {unreadByChannelId.get(channel.id)}
                               </Badge>
                             )}
                           </ItemTitle>
                           <ItemDescription>
-                            {getLatestMessagePreview(channel.messages)}
+                            {getLatestMessagePreview(channel.latestMessage)}
                           </ItemDescription>
                         </ItemContent>
                       </Link>

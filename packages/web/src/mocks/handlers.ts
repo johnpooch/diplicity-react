@@ -5,6 +5,7 @@ import type {
   PhaseList,
   Version,
 } from "@/api/generated/endpoints";
+import type { GameFixture } from "./fixtures";
 import {
   allVariants,
   botRoster,
@@ -76,6 +77,17 @@ const gameOr404 = (gameId: string | readonly string[]) => {
 const notFound = () =>
   HttpResponse.json({ detail: "Not found." }, { status: 404 });
 
+const unreadChannels = (fixture: GameFixture) =>
+  fixture.channels
+    .filter(c => (c.unreadMessageCount ?? 0) > 0)
+    .map(c => ({
+      channelId: c.id,
+      unreadMessageCount: c.unreadMessageCount ?? 0,
+    }));
+
+const unreadTotal = (fixture: GameFixture) =>
+  unreadChannels(fixture).reduce((sum, c) => sum + c.unreadMessageCount, 0);
+
 const recoveredCivilDisorderGames = new Set<string>();
 
 export const handlers = [
@@ -119,12 +131,32 @@ export const handlers = [
 
   http.get("*/games/find-similar/", () => HttpResponse.json({ game: null })),
 
+  http.get("*/game/unread/", () =>
+    HttpResponse.json(
+      Object.values(fixtureByGameId)
+        .filter(
+          f =>
+            unreadTotal(f) > 0 && f.game.members.some(m => m.isCurrentUser)
+        )
+        .map(f => ({
+          gameId: f.game.id,
+          totalUnreadMessageCount: unreadTotal(f),
+        }))
+    )
+  ),
+
+  http.get("*/game/:gameId/channel/unread/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    return HttpResponse.json({
+      totalUnreadMessageCount: unreadTotal(fixture),
+      channels: unreadChannels(fixture),
+    });
+  }),
+
   http.get("*/games/", ({ request }) => {
     const url = new URL(request.url);
-    let games = Object.values(fixtureByGameId).map(f => ({
-      ...f.game,
-      totalUnreadMessageCount: f.totalUnreadMessageCount,
-    }));
+    let games = Object.values(fixtureByGameId).map(f => ({ ...f.game }));
     const mine = url.searchParams.get("mine");
     if (mine !== null) {
       games = games.filter(
@@ -163,7 +195,6 @@ export const handlers = [
     return HttpResponse.json({
       ...game,
       members,
-      totalUnreadMessageCount: fixture.totalUnreadMessageCount,
     });
   }),
 
@@ -201,7 +232,36 @@ export const handlers = [
 
   http.get("*/games/:gameId/channels/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);
-    return fixture ? HttpResponse.json(fixture.channels) : notFound();
+    if (!fixture) return notFound();
+    return HttpResponse.json(
+      fixture.channels.map(channel => ({
+        id: channel.id,
+        name: channel.name,
+        private: channel.private,
+        latestMessage:
+          channel.messages.length > 0
+            ? channel.messages[channel.messages.length - 1]
+            : null,
+      }))
+    );
+  }),
+
+  http.get("*/games/:gameId/channels/:channelId/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    const channel = fixture?.channels.find(
+      c => c.id === Number(params.channelId)
+    );
+    if (!channel) return notFound();
+    return HttpResponse.json({
+      id: channel.id,
+      name: channel.name,
+      private: channel.private,
+      messages: {
+        next: null,
+        previous: null,
+        results: [...channel.messages].reverse(),
+      },
+    });
   }),
 
   http.get("*/games/:gameId/draw-proposals/", ({ params }) => {
@@ -301,7 +361,7 @@ export const handlers = [
   http.post("*/games/:gameId/channels/create/", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
-      { id: 999, name: "New Channel", private: true, messages: [], unreadMessageCount: 0, ...body },
+      { id: 999, name: "New Channel", private: true, ...body },
       { status: 201 }
     );
   }),
@@ -312,7 +372,7 @@ export const handlers = [
       return HttpResponse.json(body, { status: 201 });
     }
   ),
-  http.post("*/games/:gameId/channels/:channelId/mark-read/", () =>
+  http.patch("*/games/:gameId/channels/:channelId/mark-read/", () =>
     HttpResponse.json({})
   ),
 
@@ -322,8 +382,8 @@ export const handlers = [
   http.patch("*/games/:gameId/draw-proposals/:proposalId/vote/", () =>
     HttpResponse.json({})
   ),
-  http.delete("*/games/:gameId/draw-proposals/:proposalId/cancel/", () =>
-    new HttpResponse(null, { status: 204 })
+  http.patch("*/games/:gameId/draw-proposals/:proposalId/cancel/", () =>
+    HttpResponse.json({})
   ),
 
   http.patch("*/user/update/", () => HttpResponse.json(currentUserProfile)),

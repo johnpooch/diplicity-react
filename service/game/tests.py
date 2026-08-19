@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from rest_framework import status
 from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency, UnitType
 
+from channel.models import ChannelMember
 from phase.models import Phase
 from nation.models import Nation
 from province.models import Province
@@ -1225,7 +1226,6 @@ class TestGameListViewQueryPerformance:
         queryset = (
             Game.objects.filter(id__in=created_game_ids)
             .with_list_data()
-            .with_total_unread_counts(primary_user)
             .order_by("-created_at")
         )
         games = list(queryset)
@@ -1478,6 +1478,26 @@ class TestGameCreateView:
         ]
         for field in required_fields:
             assert field in response.data
+
+    @pytest.mark.django_db
+    def test_create_game_creates_channel_member_for_creator(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        public_channel = game.channels.get(private=False)
+        creator_member = game.members.first()
+
+        assert ChannelMember.objects.filter(member=creator_member, channel=public_channel).exists()
 
     @pytest.mark.django_db
     def test_create_game_unauthenticated(self, unauthenticated_client, classical_variant):
@@ -1982,7 +2002,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 47
+        assert query_count == 46
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -2002,7 +2022,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 47
+        assert query_count == 46
 
 
 class TestGamePrivateFiltering:
@@ -2438,7 +2458,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 52
+        assert query_count == 51
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2459,7 +2479,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 52
+        assert query_count == 51
 
 
 class TestSandboxGameFiltering:

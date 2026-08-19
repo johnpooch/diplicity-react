@@ -1,5 +1,4 @@
 import type {
-  Channel,
   ChannelMessage,
   GameList,
   GameListCurrentPhase,
@@ -14,7 +13,7 @@ import type {
   Unit,
   UnitTypeEnum,
 } from "@/api/generated/endpoints";
-import type { GameFixture } from "./types";
+import type { ChannelFixture, GameFixture } from "./types";
 import {
   classicalStartSupplyCenters,
   classicalStartUnits,
@@ -128,7 +127,6 @@ export const makeGame = (
     minReliability: "open",
     commitmentRequirement: "open",
     commitmentEligibility: "eligible",
-    totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
     ...overrides,
@@ -269,16 +267,14 @@ export const makeMessage = (
 
 export const makeChannel = (
   name: string,
-  members: Member[],
+  _members: Member[],
   messages: ChannelMessage[],
-  overrides: Partial<Channel> = {}
-): Channel => ({
+  overrides: Partial<ChannelFixture> = {}
+): ChannelFixture => ({
   id: ++channelIdCounter,
   name,
   private: name !== "Public Press",
   messages,
-  unreadMessageCount: 0,
-  memberIds: members.map(m => m.id),
   ...overrides,
 });
 
@@ -291,6 +287,5 @@ export const makeFixture = (
   channels: [],
   drawProposals: [],
   options: { orders: [], fieldOrder: {} },
-  totalUnreadMessageCount: 0,
   ...fixture,
 });

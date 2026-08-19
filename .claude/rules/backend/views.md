@@ -39,8 +39,8 @@ Mutating a row that already exists is an `UpdateAPIView`, whatever the operation
 
 Resolving the object is the view's job, in `get_object()` — not the serializer's. Prefer DRF's default response over an overridden `create()` / `update()` / `destroy()`: an override to change the status code costs a view body and an `@extend_schema` annotation to keep the schema honest.
 
-Every view needs a docstring. drf-spectacular extracts it, and without one it picks up the mixin's — which is why unrelated endpoints in the committed schema are described as "Used by views that have a game parameter in the URL".
+No view docstrings. The schema is consumed only by our own generated clients, so operation descriptions earn nothing. Keep `common/views.py` docstring-free too: drf-spectacular falls back to the mixin's docstring, so one there leaks into every endpoint that uses the mixin.
 
-**Review check:** using a DRF generic, not a raw `APIView`? permission classes declared rather than checked in the body? view is thin? mixins used for shared context? queryset uses a QuerySet method (`with_list_data()`, etc.)? generic matches the mutation, with no body override just to change the status code? docstring present?
+**Review check:** using a DRF generic, not a raw `APIView`? permission classes declared rather than checked in the body? view is thin? mixins used for shared context? queryset uses a QuerySet method (`with_list_data()`, etc.)? generic matches the mutation, with no body override just to change the status code?
 
 - When two endpoints differ only in a small input (who is seated) or authz, share one create path. Thin wrappers are fine when the public API wants distinct operations.

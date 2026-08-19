@@ -1,6 +1,7 @@
 from rest_framework import permissions, generics
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from common.permissions import (
     IsActiveGame,
     IsActiveOrCompletedGame,
@@ -10,7 +11,11 @@ from common.permissions import (
 )
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from .models import DrawProposal
-from .serializers import DrawProposalSerializer, DrawVoteUpdateSerializer
+from .serializers import (
+    DrawProposalSerializer,
+    DrawProposalCancelSerializer,
+    DrawVoteUpdateSerializer,
+)
 
 
 class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
@@ -20,7 +25,8 @@ class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.L
     def get_queryset(self):
         game = self.get_game()
         current_phase = game.current_phase
-        return DrawProposal.objects.active().filter(
+        return DrawProposal.objects.filter(
+            cancelled=False,
             game=game,
             phase=current_phase,
         ).with_related_data()
@@ -37,7 +43,7 @@ class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics
     serializer_class = DrawProposalSerializer
 
 
-class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+class DrawProposalVoteUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
@@ -52,6 +58,7 @@ class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
         return get_object_or_404(
             DrawProposal.objects.with_related_data(),
             id=proposal_id,
+            game=self.get_game(),
         )
 
     def update(self, request, *args, **kwargs):
@@ -67,25 +74,25 @@ class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
         return Response(response_serializer.data)
 
 
-class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics.DestroyAPIView):
+@extend_schema_view(
+    put=extend_schema(responses=DrawProposalSerializer),
+    patch=extend_schema(responses=DrawProposalSerializer),
+)
+class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
         IsActiveGameMember,
         IsNotSandboxGame,
     ]
-    serializer_class = DrawProposalSerializer
+    serializer_class = DrawProposalCancelSerializer
 
     def get_object(self):
         current_member = self.get_current_game_member()
         proposal_id = self.kwargs.get("proposal_id")
         return get_object_or_404(
-            DrawProposal,
+            DrawProposal.objects.with_related_data(),
             id=proposal_id,
             created_by=current_member,
             cancelled=False,
         )
-
-    def perform_destroy(self, instance):
-        instance.cancelled = True
-        instance.save()

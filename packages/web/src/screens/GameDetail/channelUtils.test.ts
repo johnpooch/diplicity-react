@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { Channel, Member } from "@/api/generated/endpoints";
-import { getChannelFlagUrls } from "./channelUtils";
+import type { Member } from "@/api/generated/endpoints";
+import { getChannelFlagUrls, type ChannelIdentity } from "./channelUtils";
 
 const member = (id: number, nation: string, overrides: Partial<Member> = {}) =>
   ({
@@ -22,7 +22,7 @@ const member = (id: number, nation: string, overrides: Partial<Member> = {}) =>
     ...overrides,
   }) as Member;
 
-const publicChannel = { id: 1, name: "Public Press", private: false } as Channel;
+const publicChannel: ChannelIdentity = { name: "Public Press", private: false };
 
 const variantNations = [
   { name: "England", flagUrl: "england.svg", color: "#ff0000" },
@@ -46,7 +46,7 @@ describe("getChannelFlagUrls", () => {
   });
 
   it("takes private channel flags from the channel name rather than the member list", () => {
-    const privateChannel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const privateChannel: ChannelIdentity = { name: "England, Italy", private: true };
 
     expect(
       getChannelFlagUrls(privateChannel, [], "England", variantNations)

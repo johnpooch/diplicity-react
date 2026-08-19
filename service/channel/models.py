@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F
+from django.db.models import Q, Count, F, OuterRef, Prefetch, Subquery
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from channel import registry as channel_registry
@@ -17,37 +17,26 @@ class ChannelQuerySet(models.QuerySet):
         except:
             return queryset.filter(private=False)
 
-    def for_game(self, game):
-        return self.filter(game=game)
-
-    def with_related_data(self):
-        return self.prefetch_related(
-            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile", "members", "members__user", "members__user__profile"
+    def with_preview_data(self):
+        return self.annotate(
+            latest_message_at=Subquery(
+                ChannelMessage.objects.filter(channel=OuterRef("pk"))
+                .order_by("-created_at")
+                .values("created_at")[:1]
+            )
+        ).prefetch_related(
+            Prefetch(
+                "messages",
+                queryset=ChannelMessage.objects.with_sender_data().order_by("-created_at")[:1],
+                to_attr="latest_messages",
+            )
         )
 
     def order_for_list(self):
-        return self.annotate(last_activity=Max("messages__created_at")).order_by(
+        return self.order_by(
             "private",
-            F("last_activity").desc(nulls_last=True),
+            F("latest_message_at").desc(nulls_last=True),
             "-created_at",
-        )
-
-    def with_unread_counts(self, user):
-        if not user.is_authenticated:
-            return self.annotate(unread_message_count=Value(0, output_field=IntegerField()))
-        last_read_subquery = Subquery(
-            ChannelMember.objects.filter(
-                channel=OuterRef("pk"),
-                member__user=user,
-            ).values("last_read_at")[:1]
-        )
-        return self.annotate(
-            unread_message_count=Count(
-                "messages",
-                filter=Q(messages__created_at__gt=last_read_subquery)
-                & ~Q(messages__sender__user=user),
-                distinct=True,
-            )
         )
 
 
@@ -67,14 +56,8 @@ class ChannelManager(models.Manager):
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)
 
-    def for_game(self, game):
-        return self.get_queryset().for_game(game)
-
-    def with_related_data(self):
-        return self.get_queryset().with_related_data()
-
-    def with_unread_counts(self, user):
-        return self.get_queryset().with_unread_counts(user)
+    def with_preview_data(self):
+        return self.get_queryset().with_preview_data()
 
     def order_for_list(self):
         return self.get_queryset().order_for_list()
@@ -99,8 +82,35 @@ class Channel(BaseModel):
 
 
 class ChannelMemberQuerySet(models.QuerySet):
-    def for_channel(self, channel):
-        return self.filter(channel=channel)
+    def unread_counts_by_channel(self, user):
+        return (
+            self.filter(member__user=user)
+            .order_by()
+            .values("channel_id")
+            .annotate(
+                unread_message_count=Count(
+                    "channel__messages",
+                    filter=Q(channel__messages__created_at__gt=F("last_read_at"))
+                    & ~Q(channel__messages__sender__user=user),
+                    distinct=True,
+                )
+            )
+        )
+
+    def unread_counts_by_game(self, user):
+        return (
+            self.filter(member__user=user)
+            .order_by()
+            .values("channel__game_id")
+            .annotate(
+                total_unread_message_count=Count(
+                    "channel__messages",
+                    filter=Q(channel__messages__created_at__gt=F("last_read_at"))
+                    & ~Q(channel__messages__sender__user=user),
+                    distinct=True,
+                )
+            )
+        )
 
 
 class ChannelMember(BaseModel):
@@ -115,11 +125,12 @@ class ChannelMember(BaseModel):
 
 
 class ChannelMessageQuerySet(models.QuerySet):
-    def for_channel(self, channel):
-        return self.filter(channel=channel)
-
     def with_sender_data(self):
-        return self.select_related("sender", "sender__user", "sender__user__profile")
+        return self.select_related(
+            "sender__user__profile",
+            "sender__nation",
+            "sender__nation__flag",
+        )
 
 
 class ChannelMessage(BaseModel):
@@ -134,6 +145,9 @@ class ChannelMessage(BaseModel):
 
     class Meta:
         ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["channel", "created_at"]),
+        ]
 
 
 class ChannelEventManager(models.Manager):

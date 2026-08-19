@@ -8,15 +8,6 @@ Channel = apps.get_model("channel", "Channel")
 
 
 def resolve_game(request, game_id, lock=False):
-    """Fetch the Game once per request, regardless of how many permission
-    classes and mixins ask for it. Several views combine 2-3 permission
-    checks + a mixin (e.g. orders create chains IsActiveGame +
-    IsActiveGameMember + CurrentPhaseMixin), each of which would otherwise
-    issue an independent SELECT against game_game.
-
-    Pass lock=True to re-fetch the row FOR UPDATE and replace what the cache
-    holds, so checks that re-run after it see committed state rather than the
-    snapshot the request started from."""
     cache = getattr(request, "_game_cache", None)
     if cache is None:
         cache = {}
@@ -29,7 +20,6 @@ def resolve_game(request, game_id, lock=False):
 
 
 def resolve_phase(request, game_id, phase_id):
-    """Cache the Phase fetch per request alongside resolve_game."""
     cache = getattr(request, "_phase_cache", None)
     if cache is None:
         cache = {}
@@ -41,10 +31,6 @@ def resolve_phase(request, game_id, phase_id):
 
 
 class SelectedGameMixin:
-    """
-    Used by views that have a game parameter in the URL. Provides a get_game
-    method that returns the game object. Also adds game to the serializer context.
-    """
 
     def get_game(self):
         game_id = self.kwargs.get("game_id")
@@ -67,10 +53,6 @@ class SeatClaimMixin(SelectedGameMixin):
 
 
 class SelectedPhaseMixin:
-    """
-    Used by views that have a phase parameter in the URL. Provides a get_phase
-    method that returns the phase object. Also adds phase to the serializer context.
-    """
 
     def get_phase(self):
         game_id = self.kwargs.get("game_id")
@@ -84,10 +66,6 @@ class SelectedPhaseMixin:
 
 
 class CurrentPhaseMixin:
-    """
-    Used by views that have a game parameter in the URL. Provides a get_phase
-    method that returns the current phase for the game. Also adds phase to the serializer context.
-    """
 
     def get_phase(self):
         game_id = self.kwargs.get("game_id")
@@ -101,10 +79,6 @@ class CurrentPhaseMixin:
 
 
 class SelectedChannelMixin:
-    """
-    Used by views that have a channel parameter in the URL. Provides a get_channel
-    method that returns the channel object. Also adds channel to the serializer context.
-    """
 
     def get_channel(self):
         game_id = self.kwargs.get("game_id")
@@ -118,10 +92,6 @@ class SelectedChannelMixin:
 
 
 class CurrentGameMemberMixin:
-    """
-    Used by views that have a game parameter in the URL. Provides a get_current_game_member
-    method that returns the user's member for the game. Also adds game member to the serializer context.
-    """
 
     def get_current_game_member(self):
         game = self.get_game()
