@@ -1135,6 +1135,7 @@ class TestGameListViewQueryPerformance:
         classical_variant,
         primary_user,
         secondary_user,
+        tertiary_user,
         classical_england_nation,
         classical_france_nation,
         classical_edinburgh_province,
@@ -1148,7 +1149,7 @@ class TestGameListViewQueryPerformance:
             )
             member1 = game.members.create(user=primary_user, nation=classical_england_nation)
             member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
-            member3 = game.members.create(user=secondary_user, nation=classical_germany_nation)
+            member3 = game.members.create(user=tertiary_user, nation=classical_germany_nation)
 
             phase = game.phases.create(
                 game=game,
