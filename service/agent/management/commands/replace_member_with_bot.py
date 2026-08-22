@@ -3,10 +3,10 @@ from django.db import transaction
 
 from agent.constants import AgentTaskKind
 from agent.models import AgentTask
-from bot_profile.models import BotProfile
 from game.models import Game
 from member.models import Member
 from phase.models import Phase
+from user_profile.models import UserProfile
 
 
 class Command(BaseCommand):
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         if member.is_bot:
             raise CommandError(f"{member.nation.name} in game '{game.id}' is already played by a bot")
 
-        available = BotProfile.objects.available_for_game(game)
+        available = UserProfile.objects.addable_to_game(game)
         bot_profile = available.filter(user__username=options["bot"]).first()
         if bot_profile is None:
             usernames = ", ".join(profile.user.username for profile in available)
@@ -46,5 +46,5 @@ class Command(BaseCommand):
                 AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=replacement, phase=phase)
 
         self.stdout.write(
-            self.style.SUCCESS(f"{bot_profile.user.profile.name} now plays {member.nation.name} in '{game.id}'.")
+            self.style.SUCCESS(f"{bot_profile.name} now plays {member.nation.name} in '{game.id}'.")
         )

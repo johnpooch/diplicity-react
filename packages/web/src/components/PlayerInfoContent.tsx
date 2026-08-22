@@ -46,7 +46,7 @@ import {
   useGamePhaseRetrieve,
   useGameKickDestroy,
   useUserRetrieveSuspense,
-  getGameAvailableBotsListQueryKey,
+  getGameAddableUserListQueryKey,
   getGameRetrieveQueryKey,
   Member,
 } from "@/api/generated/endpoints";
@@ -116,7 +116,7 @@ export const PlayerInfoContent: React.FC = () => {
           queryKey: getGameRetrieveQueryKey(gameId),
         }),
         queryClient.invalidateQueries({
-          queryKey: getGameAvailableBotsListQueryKey(gameId),
+          queryKey: getGameAddableUserListQueryKey(gameId),
         }),
       ]);
       toast.success(`${member.name} removed from the game`);

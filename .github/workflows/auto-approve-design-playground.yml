@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Approve if the pull request only touches the design playground
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const prefix = "packages/design-playground/";

@@ -5,17 +5,17 @@ import { describe, it, expect, vi } from "vitest";
 
 import { AddBotSheet } from "./AddBotSheet";
 
-const mockAvailableBots = vi.fn();
+const mockAddableBots = vi.fn();
 const mockAddBotMutateAsync = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
-  useGameAvailableBotsListSuspense: () => ({ data: mockAvailableBots() }),
-  useGameAddBotCreate: () => ({
+  useGameAddableUserListSuspense: () => ({ data: mockAddableBots() }),
+  useGameMemberCreate: () => ({
     mutateAsync: mockAddBotMutateAsync,
     isPending: false,
   }),
   getGameRetrieveQueryKey: () => ["game"],
-  getGameAvailableBotsListQueryKey: () => ["available-bots"],
+  getGameAddableUserListQueryKey: () => ["addable-user"],
 }));
 
 vi.mock("@/hooks/use-mobile", () => ({
@@ -32,7 +32,7 @@ const renderSheet = (open = true) =>
 describe("AddBotSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAvailableBots.mockReturnValue([
+    mockAddableBots.mockReturnValue([
       { userId: 101, name: "The Dealmaker", picture: null },
       { userId: 102, name: "The Iron Lady", picture: null },
     ]);
@@ -59,7 +59,7 @@ describe("AddBotSheet", () => {
   });
 
   it("shows an empty state when every bot is already in the game", async () => {
-    mockAvailableBots.mockReturnValue([]);
+    mockAddableBots.mockReturnValue([]);
 
     renderSheet();
 

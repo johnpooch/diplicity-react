@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory
 from channel.models import Channel, ChannelMessage
 from nation.models import Nation
-from bot_profile.utils import get_bot_user
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
 from notification.models import Notification
@@ -594,7 +593,6 @@ class TestChannelPendingGameAccess:
         self, authenticated_client, pending_game_created_by_secondary_user
     ):
         game = pending_game_created_by_secondary_user
-        Channel.objects.create(game=game, name="Public Press", private=False)
 
         url = reverse("channel-list", args=[game.id])
         response = authenticated_client.get(url)
@@ -607,7 +605,7 @@ class TestChannelPendingGameAccess:
         self, authenticated_client, pending_game_created_by_secondary_user, in_memory_procrastinate
     ):
         game = pending_game_created_by_secondary_user
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel = game.get_public_press()
         authenticated_client.post(reverse("game-join", args=[game.id]))
 
         url = reverse("channel-message-create", args=[game.id, public_channel.id])
@@ -621,7 +619,7 @@ class TestChannelPendingGameAccess:
         self, authenticated_client_for_tertiary_user, pending_game_created_by_secondary_user
     ):
         game = pending_game_created_by_secondary_user
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel = game.get_public_press()
 
         url = reverse("channel-message-create", args=[game.id, public_channel.id])
         response = authenticated_client_for_tertiary_user.post(url, {"body": "Nope"}, format="json")
@@ -633,7 +631,7 @@ class TestChannelPendingGameAccess:
         self, authenticated_client, pending_game_created_by_secondary_user
     ):
         game = pending_game_created_by_secondary_user
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel = game.get_public_press()
         authenticated_client.post(reverse("game-join", args=[game.id]))
 
         url = reverse("channel-mark-read", args=[game.id, public_channel.id])
@@ -835,10 +833,11 @@ class TestChannelMessageBotChannel:
         authenticated_client,
         active_game_with_phase_state,
         classical_france_nation,
+        bot_user,
         in_memory_procrastinate,
     ):
         game = active_game_with_phase_state
-        bot_member = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+        bot_member = game.members.create(user=bot_user, nation=classical_france_nation)
         channel = Channel.objects.create(game=game, name="Bot Channel", private=True)
         channel.members.add(game.members.first(), bot_member)
         url = reverse("channel-message-create", args=[game.id, channel.id])
@@ -882,7 +881,7 @@ class TestChannelMemberAutoCreation:
         from channel.models import ChannelMember
 
         game = pending_game_created_by_secondary_user
-        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel = game.get_public_press()
 
         url = reverse("game-join", args=[game.id])
         response = authenticated_client.post(url, format="json")

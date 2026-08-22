@@ -10,25 +10,10 @@ from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from common.constants import VariantStatus
+from common.permissions import IsOwnedDraftForWrite
 from .models import Nation, NationFlag
 from .serializers import NationFlagUploadSerializer, NationSerializer
-
-
-FLAG_MAX_BYTES = 256 * 1024
-
-
-class IsNationVariantOwnedDraft(permissions.BasePermission):
-    message = "Only the owner of a draft variant can modify its nation flags."
-
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return (
-            obj.variant.status == VariantStatus.DRAFT
-            and obj.variant.owner_id is not None
-            and obj.variant.owner_id == request.user.id
-        )
+from .utils import FLAG_MAX_BYTES
 
 
 @extend_schema(
@@ -38,7 +23,7 @@ class IsNationVariantOwnedDraft(permissions.BasePermission):
 )
 @extend_schema(responses={204: None}, methods=["DELETE"])
 class NationFlagUploadView(generics.GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsNationVariantOwnedDraft]
+    permission_classes = [permissions.IsAuthenticated, IsOwnedDraftForWrite]
     parser_classes = [MultiPartParser]
     queryset = Nation.objects.select_related("variant")
     serializer_class = NationFlagUploadSerializer

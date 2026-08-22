@@ -247,6 +247,7 @@ class SupplyCenter:
 class Resolution:
     province: str
     resolution: str
+    code: Optional[str] = None
     reason: Optional[str] = None
 
 

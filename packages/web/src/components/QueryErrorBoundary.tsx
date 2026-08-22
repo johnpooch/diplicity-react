@@ -4,7 +4,8 @@ import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/Notice";
 import { OfflineNotice } from "@/components/OfflineNotice";
-import { isNetworkError } from "@/utils/network";
+import { NotFoundNotice } from "@/components/NotFoundNotice";
+import { isNetworkError, isNotFoundError } from "@/utils/network";
 import { AlertCircle } from "lucide-react";
 
 interface QueryErrorFallbackProps {
@@ -20,6 +21,14 @@ const QueryErrorFallback: React.FC<QueryErrorFallbackProps> = ({
     return (
       <div className="flex flex-col items-center justify-center p-8">
         <OfflineNotice onRetry={onReset} />
+      </div>
+    );
+  }
+
+  if (isNotFoundError(error)) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <NotFoundNotice />
       </div>
     );
   }
@@ -65,7 +74,7 @@ class ErrorBoundaryClass extends Component<
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryClassState {
-    if (!isNetworkError(error)) {
+    if (!isNetworkError(error) && !isNotFoundError(error)) {
       Sentry.captureException(error);
     }
     return { hasError: true, error };

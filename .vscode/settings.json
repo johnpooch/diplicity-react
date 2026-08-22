@@ -35,6 +35,9 @@
   "cursorpyright.analysis.extraPaths": [
     "./service"
   ],
-  "cursorpyright.analysis.typeCheckingMode": "basic"
+  "cursorpyright.analysis.typeCheckingMode": "basic",
+  "[markdown]": {
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+  }
 }
 

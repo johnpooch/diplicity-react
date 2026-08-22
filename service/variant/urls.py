@@ -1,6 +1,4 @@
-from django.urls import path
-
-from nation.views import NationFlagSvgView, NationFlagUploadView
+from django.urls import include, path
 
 from .views import (
     VariantDetailView,
@@ -24,14 +22,5 @@ urlpatterns = [
         VariantSvgView.as_view(),
         name="variant-svg",
     ),
-    path(
-        "variants/<str:variant_id>/nations/<str:nation_id>/flag/<str:content_hash>.svg",
-        NationFlagSvgView.as_view(),
-        name="nation-flag-svg",
-    ),
-    path(
-        "variants/<str:variant_id>/nations/<str:nation_id>/flag/",
-        NationFlagUploadView.as_view(),
-        name="nation-flag",
-    ),
+    path("", include("nation.urls")),
 ]

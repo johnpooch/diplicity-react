@@ -81,7 +81,11 @@ const recoveredCivilDisorderGames = new Set<string>();
 
 export const handlers = [
   http.get("*/version/", () =>
-    HttpResponse.json({ environment: "mock", version: "mock" } satisfies Version)
+    HttpResponse.json({
+      environment: "mock",
+      version: "mock",
+      minimumClientVersion: "0.0.0",
+    } satisfies Version)
   ),
 
   http.get("*/variants/", () =>
@@ -233,10 +237,10 @@ export const handlers = [
     );
   }),
 
-  http.post("*/game/:gameId/join/", () =>
+  http.post("*/game/:gameId/member/join/", () =>
     HttpResponse.json({}, { status: 201 })
   ),
-  http.get("*/game/:gameId/available-bots/", ({ params }) => {
+  http.get("*/game/:gameId/addable-user/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);
     if (!fixture) return notFound();
     const memberUserIds = new Set(fixture.game.members.map(m => m.userId));
@@ -244,14 +248,14 @@ export const handlers = [
       botRoster.filter(bot => !memberUserIds.has(bot.userId))
     );
   }),
-  http.post("*/game/:gameId/add-bot/", async ({ params, request }) => {
+  http.post("*/game/:gameId/member/", async ({ params, request }) => {
     const fixture = gameOr404(params.gameId as string);
     if (!fixture) return notFound();
     const body = (await request.json()) as { userId: number };
     const bot = botRoster.find(b => b.userId === body.userId);
     if (!bot) {
       return HttpResponse.json(
-        { userId: ["This bot is not available to add to this game."] },
+        { userId: ["This user cannot be added to this game."] },
         { status: 400 }
       );
     }

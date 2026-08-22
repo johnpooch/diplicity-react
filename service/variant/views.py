@@ -7,12 +7,14 @@ from django.db import transaction
 from django.db.models import Max
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from common.constants import VariantStatus
+from common.etag import if_none_match
+from common.permissions import IsOwnedDraftForWrite
 from nation.models import NationFlag
 from province.models import Province
 from .models import Variant, VariantSvg
@@ -23,19 +25,6 @@ from .utils import variant_to_canonical_dict
 # content-version inputs, so entries self-invalidate whenever a variant or flag
 # changes. The timeout only bounds memory for keys that are never re-requested.
 _VARIANTS_LIST_CACHE_TIMEOUT = 60 * 60 * 24
-
-
-class IsOwnedDraftForWrite(permissions.BasePermission):
-    message = "Only the owner of a draft variant can modify it."
-
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return (
-            obj.status == VariantStatus.DRAFT
-            and obj.owner_id is not None
-            and obj.owner_id == request.user.id
-        )
 
 
 def _variants_list_cache_inputs():
@@ -79,7 +68,7 @@ class VariantListCreateView(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         variant_max, flag_max = _variants_list_cache_inputs()
         etag = _variants_list_etag(variant_max, flag_max)
-        if request.headers.get("If-None-Match") == etag:
+        if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
             response = Response(self._published_variants_data(variant_max, flag_max))
@@ -124,7 +113,7 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         etag = _variant_detail_etag(instance, request.user)
-        if request.headers.get("If-None-Match") == etag:
+        if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
             response = Response(self.get_serializer(instance).data)

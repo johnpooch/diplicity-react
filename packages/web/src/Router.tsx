@@ -24,7 +24,7 @@ import { useIsMobile } from "./hooks/use-mobile";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
-import { isNetworkError } from "./utils/network";
+import { isNetworkError, isNotFoundError } from "./utils/network";
 
 const RouteFallback: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
@@ -36,7 +36,7 @@ const RootErrorBoundary: React.FC = () => {
   const error = useRouteError() as Error;
 
   React.useEffect(() => {
-    if (error && !isNetworkError(error)) {
+    if (error && !isNetworkError(error) && !isNotFoundError(error)) {
       Sentry.captureException(error);
     }
   }, [error]);

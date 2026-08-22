@@ -1,11 +1,10 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from bot_profile.utils import user_can_use_bot_opponent
-from common.constants import GameStatus, MinReliability, PressType
+from common.constants import GameStatus, MinReliability, PressType, VariantStatus
 from common.views import resolve_game
 from user_profile.commitment import commitment_allows_requirement
-from user_profile.utils import get_player_stats, tier_allows_min_reliability
+from user_profile.utils import get_player_stats, tier_allows_min_reliability, user_can_use_bot_opponent
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -138,7 +137,7 @@ class MeetsCommitmentRequirement(BasePermission):
         if not request.user.is_authenticated:
             return False
         return commitment_allows_requirement(
-            request.user.profile.commitment, game.commitment_requirement
+            request.user.profile.commitment, game.commitment_requirement, game.private
         )
 
 
@@ -257,3 +256,21 @@ class IsInCivilDisorder(BasePermission):
             self.message = "User is not a member of the game."
             return False
         return member.civil_disorder
+
+
+def _variant_for_owned_draft_check(obj):
+    return getattr(obj, "variant", obj)
+
+
+class IsOwnedDraftForWrite(BasePermission):
+    message = "Only the owner of a draft variant can modify it."
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        variant = _variant_for_owned_draft_check(obj)
+        return (
+            variant.status == VariantStatus.DRAFT
+            and variant.owner_id is not None
+            and variant.owner_id == request.user.id
+        )

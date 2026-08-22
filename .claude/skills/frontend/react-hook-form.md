@@ -3,16 +3,19 @@
 ## Relationship with react-zod Guidance
 
 **This File (react-hook-form):**
+
 - Focuses on form state management and React Hook Form patterns
 - Covers form submission, field registration, and form utilities
 - Addresses prop drilling, performance optimization, and error handling within forms
 
 **react-zod File:**
+
 - Focuses on schema validation and type safety with Zod
 - Covers API response validation and data parsing patterns
 - Includes React Hook Form integration specifically for validation schemas
 
 **When Both Apply:**
+
 - For forms with complex validation, both files provide recommendations
 - react-hook-form for form structure and state management
 - react-zod for schema definition and validation integration
@@ -74,12 +77,14 @@ return (
 ### 2. Integrate Zod Schema for Validation (When Appropriate)
 
 **When to Use Zod with React Hook Form:**
+
 - When forms map closely to API request/response schemas
 - When you need to share validation logic between frontend and backend
 - When forms have complex validation requirements
 - When type safety is critical for form data
 
 **When Plain React Hook Form May Suffice:**
+
 - Simple forms with basic validation
 - Forms that don't correspond to API schemas
 - One-off forms with unique validation logic
@@ -242,6 +247,7 @@ const { handleSubmit } = useForm();
 Since the project uses both Material UI (transitioning away) and Radix UI:
 
 ### Material UI Integration
+
 ```tsx
 import { TextField } from '@mui/material';
 import { Controller } from 'react-hook-form';
@@ -261,6 +267,7 @@ import { Controller } from 'react-hook-form';
 ```
 
 ### Radix UI Integration (Preferred for new components)
+
 ```tsx
 import * as Label from '@radix-ui/react-label';
 

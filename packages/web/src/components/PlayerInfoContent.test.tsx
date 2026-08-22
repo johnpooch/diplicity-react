@@ -23,7 +23,7 @@ vi.mock("@/api/generated/endpoints", () => ({
     isPending: false,
   }),
   getGameRetrieveQueryKey: () => ["game"],
-  getGameAvailableBotsListQueryKey: () => ["available-bots"],
+  getGameAddableUserListQueryKey: () => ["addable-user"],
 }));
 
 vi.mock("@/components/NationFlag", () => ({

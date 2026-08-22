@@ -6,6 +6,12 @@ from __future__ import annotations
 from typing import Any, Literal, NotRequired, TypedDict
 
 
+class AddableUser(TypedDict):
+    user_id: int
+    name: str
+    picture: str | None
+
+
 class AppleAuth(TypedDict):
     id_token: str
     first_name: NotRequired[str]
@@ -15,26 +21,6 @@ class AppleAuth(TypedDict):
     name: str
     access_token: str
     refresh_token: str
-
-
-class Auth(TypedDict):
-    id_token: str
-    id: int
-    email: str
-    name: str
-    access_token: str
-    refresh_token: str
-
-
-class AvailableBot(TypedDict):
-    user_id: int
-    name: str
-    picture: str | None
-    kind: str
-
-
-class BotMemberCreate(TypedDict):
-    user_id: int
 
 
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
@@ -139,6 +125,15 @@ class GameMaster(TypedDict):
     picture: str | None
 
 
+class GoogleAuth(TypedDict):
+    id_token: str
+    id: int
+    email: str
+    name: str
+    access_token: str
+    refresh_token: str
+
+
 class Member(TypedDict):
     id: int
     user_id: int | None
@@ -156,6 +151,10 @@ class Member(TypedDict):
     seeking_replacement: bool
     replaceable: bool
     removable: bool
+
+
+class MemberCreate(TypedDict):
+    user_id: int
 
 
 type MemberStatusEnum = Literal['nmr', 'civil_disorder']
@@ -356,6 +355,7 @@ class VerifyEmail(TypedDict):
 class Version(TypedDict):
     environment: str
     version: str
+    minimum_client_version: str
 
 
 class Victory(TypedDict):
@@ -379,7 +379,7 @@ class ChannelMember(TypedDict):
     is_current_user: bool
     is_bot: bool
     commitment: str | None
-    nation: Nation
+    nation: Nation | None
 
 
 class ChannelMessage(TypedDict):

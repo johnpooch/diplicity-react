@@ -51,6 +51,13 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
     }
   : DistributeReadOnlyOverUnions<T>;
 
+export interface AddableUser {
+  readonly userId: number;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+}
+
 export interface AppleAuth {
   idToken: string;
   firstName?: string;
@@ -60,27 +67,6 @@ export interface AppleAuth {
   readonly name: string;
   readonly accessToken: string;
   readonly refreshToken: string;
-}
-
-export interface Auth {
-  idToken: string;
-  readonly id: number;
-  readonly email: string;
-  readonly name: string;
-  readonly accessToken: string;
-  readonly refreshToken: string;
-}
-
-export interface AvailableBot {
-  readonly userId: number;
-  readonly name: string;
-  /** @nullable */
-  readonly picture: string | null;
-  readonly kind: string;
-}
-
-export interface BotMemberCreate {
-  userId: number;
 }
 
 export interface Nation {
@@ -604,6 +590,19 @@ export interface GameRetrieve {
   readonly totalUnreadMessageCount: number;
 }
 
+export interface GoogleAuth {
+  idToken: string;
+  readonly id: number;
+  readonly email: string;
+  readonly name: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+}
+
+export interface MemberCreate {
+  userId: number;
+}
+
 export interface NationFlagUpload {
   flag: string;
 }
@@ -971,6 +970,7 @@ export interface VerifyEmail {
 export interface Version {
   environment: string;
   version: string;
+  minimumClientVersion: string;
 }
 
 export type ApiSchemaRetrieveParams = {
@@ -1678,14 +1678,14 @@ export const useAuthEmailLoginCreate = <TError = unknown, TContext = unknown>(
 };
 
 export const authLoginCreate = (
-  auth: NonReadonly<Auth>,
+  googleAuth: NonReadonly<GoogleAuth>,
   signal?: AbortSignal
 ) => {
-  return customInstance<Auth>({
+  return customInstance<GoogleAuth>({
     url: `/auth/login/`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    data: auth,
+    data: googleAuth,
     signal,
   });
 };
@@ -1697,13 +1697,13 @@ export const getAuthLoginCreateMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof authLoginCreate>>,
     TError,
-    { data: NonReadonly<Auth> },
+    { data: NonReadonly<GoogleAuth> },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof authLoginCreate>>,
   TError,
-  { data: NonReadonly<Auth> },
+  { data: NonReadonly<GoogleAuth> },
   TContext
 > => {
   const mutationKey = ["authLoginCreate"];
@@ -1717,7 +1717,7 @@ export const getAuthLoginCreateMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof authLoginCreate>>,
-    { data: NonReadonly<Auth> }
+    { data: NonReadonly<GoogleAuth> }
   > = props => {
     const { data } = props ?? {};
 
@@ -1730,7 +1730,7 @@ export const getAuthLoginCreateMutationOptions = <
 export type AuthLoginCreateMutationResult = NonNullable<
   Awaited<ReturnType<typeof authLoginCreate>>
 >;
-export type AuthLoginCreateMutationBody = NonReadonly<Auth>;
+export type AuthLoginCreateMutationBody = NonReadonly<GoogleAuth>;
 export type AuthLoginCreateMutationError = unknown;
 
 export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
@@ -1738,7 +1738,7 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof authLoginCreate>>,
       TError,
-      { data: NonReadonly<Auth> },
+      { data: NonReadonly<GoogleAuth> },
       TContext
     >;
   },
@@ -1746,7 +1746,7 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof authLoginCreate>>,
   TError,
-  { data: NonReadonly<Auth> },
+  { data: NonReadonly<GoogleAuth> },
   TContext
 > => {
   return useMutation(getAuthLoginCreateMutationOptions(options), queryClient);
@@ -2782,107 +2782,27 @@ export function useGameRetrieveSuspense<
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
-export const gameAddBotCreate = (
-  gameId: string,
-  botMemberCreate: BotMemberCreate,
-  signal?: AbortSignal
-) => {
-  return customInstance<Member>({
-    url: `/game/${gameId}/add-bot/`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: botMemberCreate,
-    signal,
-  });
-};
-
-export const getGameAddBotCreateMutationOptions = <
-  TError = unknown,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof gameAddBotCreate>>,
-    TError,
-    { gameId: string; data: BotMemberCreate },
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof gameAddBotCreate>>,
-  TError,
-  { gameId: string; data: BotMemberCreate },
-  TContext
-> => {
-  const mutationKey = ["gameAddBotCreate"];
-  const { mutation: mutationOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof gameAddBotCreate>>,
-    { gameId: string; data: BotMemberCreate }
-  > = props => {
-    const { gameId, data } = props ?? {};
-
-    return gameAddBotCreate(gameId, data);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type GameAddBotCreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof gameAddBotCreate>>
->;
-export type GameAddBotCreateMutationBody = BotMemberCreate;
-export type GameAddBotCreateMutationError = unknown;
-
-export const useGameAddBotCreate = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof gameAddBotCreate>>,
-      TError,
-      { gameId: string; data: BotMemberCreate },
-      TContext
-    >;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof gameAddBotCreate>>,
-  TError,
-  { gameId: string; data: BotMemberCreate },
-  TContext
-> => {
-  return useMutation(getGameAddBotCreateMutationOptions(options), queryClient);
-};
-
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
-export const gameAvailableBotsList = (gameId: string, signal?: AbortSignal) => {
-  return customInstance<AvailableBot[]>({
-    url: `/game/${gameId}/available-bots/`,
+export const gameAddableUserList = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<AddableUser[]>({
+    url: `/game/${gameId}/addable-user/`,
     method: "GET",
     signal,
   });
 };
 
-export const getGameAvailableBotsListQueryKey = (gameId: string) => {
-  return [`/game/${gameId}/available-bots/`] as const;
+export const getGameAddableUserListQueryKey = (gameId: string) => {
+  return [`/game/${gameId}/addable-user/`] as const;
 };
 
-export const getGameAvailableBotsListQueryOptions = <
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export const getGameAddableUserListQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -2892,11 +2812,11 @@ export const getGameAvailableBotsListQueryOptions = <
   const { query: queryOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGameAvailableBotsListQueryKey(gameId);
+    queryOptions?.queryKey ?? getGameAddableUserListQueryKey(gameId);
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof gameAvailableBotsList>>
-  > = ({ signal }) => gameAvailableBotsList(gameId, signal);
+    Awaited<ReturnType<typeof gameAddableUserList>>
+  > = ({ signal }) => gameAddableUserList(gameId, signal);
 
   return {
     queryKey,
@@ -2904,35 +2824,35 @@ export const getGameAvailableBotsListQueryOptions = <
     enabled: !!gameId,
     ...queryOptions,
   } as UseQueryOptions<
-    Awaited<ReturnType<typeof gameAvailableBotsList>>,
+    Awaited<ReturnType<typeof gameAddableUserList>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type GameAvailableBotsListQueryResult = NonNullable<
-  Awaited<ReturnType<typeof gameAvailableBotsList>>
+export type GameAddableUserListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameAddableUserList>>
 >;
-export type GameAvailableBotsListQueryError = unknown;
+export type GameAddableUserListQueryError = unknown;
 
-export function useGameAvailableBotsList<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserList<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options: {
     query: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof gameAvailableBotsList>>,
+          Awaited<ReturnType<typeof gameAddableUserList>>,
           TError,
-          Awaited<ReturnType<typeof gameAvailableBotsList>>
+          Awaited<ReturnType<typeof gameAddableUserList>>
         >,
         "initialData"
       >;
@@ -2941,24 +2861,24 @@ export function useGameAvailableBotsList<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-export function useGameAvailableBotsList<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserList<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof gameAvailableBotsList>>,
+          Awaited<ReturnType<typeof gameAddableUserList>>,
           TError,
-          Awaited<ReturnType<typeof gameAvailableBotsList>>
+          Awaited<ReturnType<typeof gameAddableUserList>>
         >,
         "initialData"
       >;
@@ -2967,15 +2887,15 @@ export function useGameAvailableBotsList<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-export function useGameAvailableBotsList<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserList<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -2986,15 +2906,15 @@ export function useGameAvailableBotsList<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 
-export function useGameAvailableBotsList<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserList<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -3004,7 +2924,7 @@ export function useGameAvailableBotsList<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getGameAvailableBotsListQueryOptions(gameId, options);
+  const queryOptions = getGameAddableUserListQueryOptions(gameId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -3014,15 +2934,15 @@ export function useGameAvailableBotsList<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGameAvailableBotsListSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export const getGameAddableUserListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -3032,33 +2952,33 @@ export const getGameAvailableBotsListSuspenseQueryOptions = <
   const { query: queryOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGameAvailableBotsListQueryKey(gameId);
+    queryOptions?.queryKey ?? getGameAddableUserListQueryKey(gameId);
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof gameAvailableBotsList>>
-  > = ({ signal }) => gameAvailableBotsList(gameId, signal);
+    Awaited<ReturnType<typeof gameAddableUserList>>
+  > = ({ signal }) => gameAddableUserList(gameId, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof gameAvailableBotsList>>,
+    Awaited<ReturnType<typeof gameAddableUserList>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type GameAvailableBotsListSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof gameAvailableBotsList>>
+export type GameAddableUserListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameAddableUserList>>
 >;
-export type GameAvailableBotsListSuspenseQueryError = unknown;
+export type GameAddableUserListSuspenseQueryError = unknown;
 
-export function useGameAvailableBotsListSuspense<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserListSuspense<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options: {
     query: Partial<
       UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -3068,15 +2988,15 @@ export function useGameAvailableBotsListSuspense<
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-export function useGameAvailableBotsListSuspense<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserListSuspense<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -3086,15 +3006,15 @@ export function useGameAvailableBotsListSuspense<
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-export function useGameAvailableBotsListSuspense<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserListSuspense<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -3105,15 +3025,15 @@ export function useGameAvailableBotsListSuspense<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 
-export function useGameAvailableBotsListSuspense<
-  TData = Awaited<ReturnType<typeof gameAvailableBotsList>>,
+export function useGameAddableUserListSuspense<
+  TData = Awaited<ReturnType<typeof gameAddableUserList>>,
   TError = unknown,
 >(
   gameId: string,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof gameAvailableBotsList>>,
+        Awaited<ReturnType<typeof gameAddableUserList>>,
         TError,
         TData
       >
@@ -3123,7 +3043,7 @@ export function useGameAvailableBotsListSuspense<
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getGameAvailableBotsListSuspenseQueryOptions(
+  const queryOptions = getGameAddableUserListSuspenseQueryOptions(
     gameId,
     options
   );
@@ -3646,86 +3566,6 @@ export const useGameExtendDeadlinePartialUpdate = <
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
-export const gameJoinCreate = (
-  gameId: string,
-  member: NonReadonly<Member>,
-  signal?: AbortSignal
-) => {
-  return customInstance<Member>({
-    url: `/game/${gameId}/join/`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: member,
-    signal,
-  });
-};
-
-export const getGameJoinCreateMutationOptions = <
-  TError = unknown,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof gameJoinCreate>>,
-    TError,
-    { gameId: string; data: NonReadonly<Member> },
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof gameJoinCreate>>,
-  TError,
-  { gameId: string; data: NonReadonly<Member> },
-  TContext
-> => {
-  const mutationKey = ["gameJoinCreate"];
-  const { mutation: mutationOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof gameJoinCreate>>,
-    { gameId: string; data: NonReadonly<Member> }
-  > = props => {
-    const { gameId, data } = props ?? {};
-
-    return gameJoinCreate(gameId, data);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type GameJoinCreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof gameJoinCreate>>
->;
-export type GameJoinCreateMutationBody = NonReadonly<Member>;
-export type GameJoinCreateMutationError = unknown;
-
-export const useGameJoinCreate = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof gameJoinCreate>>,
-      TError,
-      { gameId: string; data: NonReadonly<Member> },
-      TContext
-    >;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof gameJoinCreate>>,
-  TError,
-  { gameId: string; data: NonReadonly<Member> },
-  TContext
-> => {
-  return useMutation(getGameJoinCreateMutationOptions(options), queryClient);
-};
-
-/**
- * Used by views that have a game parameter in the URL. Provides a get_game
-method that returns the game object. Also adds game to the serializer context.
- */
 export const gameKickDestroy = (
   gameId: string,
   memberId: number,
@@ -3872,6 +3712,163 @@ export const useGameLeaveDestroy = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   return useMutation(getGameLeaveDestroyMutationOptions(options), queryClient);
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameMemberCreate = (
+  gameId: string,
+  memberCreate: MemberCreate,
+  signal?: AbortSignal
+) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/member/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: memberCreate,
+    signal,
+  });
+};
+
+export const getGameMemberCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberCreate>>,
+    TError,
+    { gameId: string; data: MemberCreate },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberCreate>>,
+  TError,
+  { gameId: string; data: MemberCreate },
+  TContext
+> => {
+  const mutationKey = ["gameMemberCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberCreate>>,
+    { gameId: string; data: MemberCreate }
+  > = props => {
+    const { gameId, data } = props ?? {};
+
+    return gameMemberCreate(gameId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberCreate>>
+>;
+export type GameMemberCreateMutationBody = MemberCreate;
+export type GameMemberCreateMutationError = unknown;
+
+export const useGameMemberCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberCreate>>,
+      TError,
+      { gameId: string; data: MemberCreate },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberCreate>>,
+  TError,
+  { gameId: string; data: MemberCreate },
+  TContext
+> => {
+  return useMutation(getGameMemberCreateMutationOptions(options), queryClient);
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameMemberJoinCreate = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/member/join/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameMemberJoinCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberJoinCreate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberJoinCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameMemberJoinCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberJoinCreate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameMemberJoinCreate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberJoinCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberJoinCreate>>
+>;
+
+export type GameMemberJoinCreateMutationError = unknown;
+
+export const useGameMemberJoinCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberJoinCreate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberJoinCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(
+    getGameMemberJoinCreateMutationOptions(options),
+    queryClient
+  );
 };
 
 /**

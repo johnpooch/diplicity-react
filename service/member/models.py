@@ -106,7 +106,7 @@ class Member(BaseModel):
 
     @property
     def is_bot(self):
-        return self.user is not None and hasattr(self.user, "bot_profile")
+        return self.user is not None and self.user.profile.is_bot
 
     @property
     def name(self):

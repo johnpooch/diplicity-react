@@ -38,7 +38,17 @@ const processQueue = (error: Error | null) => {
 };
 
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (!response.status) {
+      throw new AxiosError(
+        'Network Error',
+        AxiosError.ERR_NETWORK,
+        response.config,
+        response.request
+      );
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 

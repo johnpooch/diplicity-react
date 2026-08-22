@@ -10,6 +10,7 @@ from .models import Order
 from .serializers import OrderSerializer, OrderOptionsResponseSerializer
 from .utils import flatten_options, build_move_coast_lookup, FIELD_ORDER
 from common.constants import PhaseStatus
+from common.etag import if_none_match
 from common.permissions import IsActiveGame, IsActiveGameMember, IsCurrentPhaseActive
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
 from common.serializers import EmptySerializer
@@ -37,7 +38,7 @@ class OrderListView(SelectedPhaseMixin, generics.ListAPIView):
         phase = self.get_phase()
         if phase.status == PhaseStatus.COMPLETED:
             etag = _completed_phase_orders_etag(phase)
-            if request.headers.get("If-None-Match") == etag:
+            if if_none_match(request, etag):
                 response = Response(status=status.HTTP_304_NOT_MODIFIED)
             else:
                 response = self._build_orders_response()
