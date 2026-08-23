@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameStatus, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -107,7 +107,25 @@ class GameListSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
+    muster_required = serializers.BooleanField(read_only=True)
+    muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["confirmation_required", "confirmed"],
+        allow_null=True,
+    ))
+    def get_muster_status(self, obj):
+        if obj.status != GameStatus.MUSTERING:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        for member in obj.members.all():
+            if member.user_id == user.id:
+                return "confirmed" if member.mustered_at is not None else "confirmation_required"
+        return None
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -268,7 +286,25 @@ class GameRetrieveSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
+    muster_required = serializers.BooleanField(read_only=True)
+    muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["confirmation_required", "confirmed"],
+        allow_null=True,
+    ))
+    def get_muster_status(self, obj):
+        if obj.status != GameStatus.MUSTERING:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        for member in obj.members.all():
+            if member.user_id == user.id:
+                return "confirmed" if member.mustered_at is not None else "confirmation_required"
+        return None
 
     @extend_schema_field(serializers.ChoiceField(
         choices=[
@@ -467,6 +503,8 @@ class GameCreateSerializer(serializers.Serializer):
         choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
         default=CommitmentRequirement.OPEN,
     )
+    muster_required = serializers.BooleanField(default=False)
+
     def validate_variant_id(self, value):
         try:
             self._validated_variant = Variant.objects.get(
@@ -541,6 +579,9 @@ class GameCreateSerializer(serializers.Serializer):
             attrs["movement_frequency"] = None
             attrs["retreat_frequency"] = None
 
+        if not attrs.get("private"):
+            attrs["muster_required"] = True
+
         return attrs
 
     def create(self, validated_data):
@@ -570,6 +611,7 @@ class GameCreateSerializer(serializers.Serializer):
                 press_type=validated_data["press_type"],
                 min_reliability=validated_data["min_reliability"],
                 commitment_requirement=validated_data["commitment_requirement"],
+                muster_required=validated_data["muster_required"],
             )
 
             public_channel = game.channels.create(name="Public Press", private=False)

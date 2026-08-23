@@ -12,7 +12,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
+from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline, get_warning_threshold
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -218,25 +218,6 @@ class PhaseManager(models.Manager):
         return members_with_extensions
 
     def send_deadline_warnings(self):
-        WARNING_THRESHOLDS = {
-            3600: 900,
-            12 * 3600: 3600,
-            24 * 3600: 3600,
-            48 * 3600: 7200,
-            72 * 3600: 7200,
-            96 * 3600: 7200,
-            168 * 3600: 14400,
-            336 * 3600: 14400,
-        }
-
-        def get_warning_threshold(duration_seconds):
-            if not duration_seconds:
-                return 3600
-            for phase_duration, warning in sorted(WARNING_THRESHOLDS.items()):
-                if duration_seconds <= phase_duration:
-                    return warning
-            return 14400
-
         now = timezone.now()
 
         active_phases = self.filter(
@@ -451,7 +432,7 @@ class PhaseManager(models.Manager):
         staging_members = list(
             Member.objects.filter(
                 user_id__in=user_ids,
-                game__status=GameStatus.PENDING,
+                game__status__in=[GameStatus.PENDING, GameStatus.MUSTERING],
             )
             .exclude(game__created_by_id=F("user_id"))
             .select_related("game")
@@ -470,7 +451,10 @@ class PhaseManager(models.Manager):
             emit("removed_from_staging", game=m.game, recipients=[m.user_id])
 
         from game.models import Game
-        for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
+        for game in Game.objects.filter(
+            id__in=game_ids, status__in=[GameStatus.PENDING, GameStatus.MUSTERING]
+        ):
+            game.return_to_pending()
             game.delete_if_empty_pending()
 
     def _check_eliminations(self, previous_phase, new_phase):

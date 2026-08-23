@@ -92,12 +92,28 @@ class IsPendingGame(BasePermission):
         return game.status == GameStatus.PENDING
 
 
+class IsMusteringGame(BasePermission):
+    message = "Game is not in mustering status."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.status == GameStatus.MUSTERING
+
+
+class IsPendingOrMusteringGame(BasePermission):
+    message = "Game has already started."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+
+
 class IsPendingOrActiveGame(BasePermission):
     message = "This game is not in progress."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.status in (GameStatus.PENDING, GameStatus.ACTIVE)
+        return game.status in (GameStatus.PENDING, GameStatus.MUSTERING, GameStatus.ACTIVE)
 
 
 class IsNotGameMember(BasePermission):

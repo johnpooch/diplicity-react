@@ -30,7 +30,7 @@ def _create_bot_game(client, variant_id):
             "name": "Bot Integration Game",
             "variant_id": variant_id,
             "nation_assignment": NationAssignment.ORDERED,
-            "private": False,
+            "private": True,
             "deadline_mode": DeadlineMode.DURATION,
         },
         format="json",

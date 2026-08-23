@@ -43,8 +43,10 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         return replacement
 
     def remove(self, member):
-        if member.game.status == GameStatus.PENDING:
-            member.delete()
+        if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
+            with transaction.atomic():
+                member.delete()
+                member.game.return_to_pending()
             return
 
         with transaction.atomic():
@@ -83,6 +85,7 @@ class Member(BaseModel):
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
     civil_disorder = models.BooleanField(default=False)
     seeking_replacement = models.BooleanField(default=False)
+    mustered_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
         null=True,

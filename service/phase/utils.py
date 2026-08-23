@@ -6,6 +6,27 @@ from django.utils import timezone
 from common.constants import OrderType, PhaseFrequency, PhaseType, ProvinceType
 
 
+WARNING_THRESHOLDS = {
+    3600: 900,
+    12 * 3600: 3600,
+    24 * 3600: 3600,
+    48 * 3600: 7200,
+    72 * 3600: 7200,
+    96 * 3600: 7200,
+    168 * 3600: 14400,
+    336 * 3600: 14400,
+}
+
+
+def get_warning_threshold(duration_seconds):
+    if not duration_seconds:
+        return 3600
+    for phase_duration, warning in sorted(WARNING_THRESHOLDS.items()):
+        if duration_seconds <= phase_duration:
+            return warning
+    return 14400
+
+
 def format_time_remaining(seconds):
     if seconds >= 2 * 3600:
         return f"{int(seconds // 3600)} hours"

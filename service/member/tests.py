@@ -1532,7 +1532,9 @@ class TestSeatMember:
     def test_seating_the_last_seat_starts_the_game(
         self, allowlisted_client, italy_vs_germany_variant, bot_user
     ):
-        game = _create_game_via_api(allowlisted_client, italy_vs_germany_variant.id)
+        game = _create_game_via_api(
+            allowlisted_client, italy_vs_germany_variant.id, private=True
+        )
 
         response = allowlisted_client.post(
             reverse(seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"

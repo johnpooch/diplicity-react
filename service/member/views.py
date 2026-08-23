@@ -2,15 +2,17 @@ from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
 from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
+from game.models import Game
 from phase.models import Phase
 
 
@@ -43,7 +45,7 @@ class LegacyMemberCreateView(MemberCreateView):
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsPendingOrMusteringGame, IsGameMember]
 
     def get_object(self):
         game = self.get_game()
@@ -54,6 +56,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         user_id = instance.user_id
         with transaction.atomic():
             super().perform_destroy(instance)
+            game.return_to_pending()
             if user_id == game.admin_id:
                 game.reassign_admin()
             game.delete_if_empty_pending()
@@ -75,7 +78,9 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
         user_id = instance.user_id
         is_bot = instance.is_bot
         event_type = (
-            "kicked_from_staging" if game.status == GameStatus.PENDING else "removed_from_game"
+            "kicked_from_staging"
+            if game.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            else "removed_from_game"
         )
         with transaction.atomic():
             Member.objects.remove(instance)
@@ -104,6 +109,30 @@ class MemberReplaceView(SelectedGameMixin, generics.CreateAPIView):
     @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
+
+
+class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
+    serializer_class = EmptySerializer
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsMusteringGame,
+        IsGameMember,
+    ]
+
+    @extend_schema(request=EmptySerializer, responses={200: MemberSerializer})
+    def post(self, request, *args, **kwargs):
+        """Confirm the requesting user's seat in a mustering game."""
+        game = self.get_game()
+        member = get_object_or_404(Member, game=game, user=request.user)
+
+        if member.mustered_at is None:
+            member.mustered_at = timezone.now()
+            member.save(update_fields=["mustered_at"])
+
+        Game.objects.arm_muster(game)
+
+        serializer = MemberSerializer(member, context=self.get_serializer_context())
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):

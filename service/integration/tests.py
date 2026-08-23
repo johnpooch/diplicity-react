@@ -31,7 +31,7 @@ def create_active_game(authenticated_client, authenticated_client_for_secondary_
         "name": "Italy vs Germany Test",
         "variant_id": italy_vs_germany_variant.id,
         "nation_assignment": NationAssignment.ORDERED,
-        "private": False,
+        "private": True,
         "deadline_mode": DeadlineMode.DURATION,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
@@ -136,7 +136,7 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
         "name": "Italy vs Germany Test",
         "variant_id": italy_vs_germany_variant.id,
         "nation_assignment": NationAssignment.RANDOM,
-        "private": False,
+        "private": True,
         "deadline_mode": DeadlineMode.DURATION,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
@@ -818,7 +818,7 @@ def create_active_hundred_game(
         "name": "Hundred Variant Test",
         "variant_id": hundred_variant.id,
         "nation_assignment": NationAssignment.ORDERED,
-        "private": False,
+        "private": True,
         "deadline_mode": DeadlineMode.DURATION,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
