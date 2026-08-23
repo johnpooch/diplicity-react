@@ -7,6 +7,7 @@ from agent import tasks
 from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseType, UserKind
 from game.models import Game
 from integration.scoring import sum_of_squares
+from integration.utils import run_due_resolution_jobs
 from user_profile.models import UserProfile
 
 pytestmark = pytest.mark.skipif(
@@ -75,8 +76,7 @@ def _drive_to_target(client, game):
         for phase_state in phase_states.order_by("member_id"):
             tasks.finalize(user_id=phase_state.member.user_id, game_id=game.id)
 
-        response = client.post(reverse("phase-resolve-all"))
-        assert response.status_code == status.HTTP_200_OK
+        assert run_due_resolution_jobs() >= 1
 
         game.refresh_from_db()
         if game.status == GameStatus.ACTIVE:

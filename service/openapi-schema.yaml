@@ -1357,16 +1357,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameFindSimilar'
           description: ''
-  /phase/resolve/:
-    post:
-      operationId: phaseResolveCreate
-      tags:
-      - phase
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /sandbox-game/:
     post:
       operationId: sandboxGameCreate

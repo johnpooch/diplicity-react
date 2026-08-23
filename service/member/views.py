@@ -10,6 +10,7 @@ from common.serializers import EmptySerializer
 from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
+from phase.models import Phase
 
 
 @extend_schema(responses={201: MemberSerializer})
@@ -101,6 +102,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
                 current_phase.phase_states.filter(member=member).update(
                     orders_confirmed=False
                 )
+                Phase.objects.arm_resolution(current_phase)
 
             emit("civil_disorder_recovery", game=game, actor=request.user)
 

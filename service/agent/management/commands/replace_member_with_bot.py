@@ -63,6 +63,7 @@ class Command(BaseCommand):
                     has_possible_orders=member.nation.name in phase.nations_with_possible_orders,
                 )
                 AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=replacement, phase=phase)
+                Phase.objects.arm_resolution(phase)
 
         self.stdout.write(
             self.style.SUCCESS(f"{bot_profile.name} now plays {member.nation.name} in '{game.id}'.")

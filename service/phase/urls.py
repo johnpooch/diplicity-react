@@ -27,5 +27,4 @@ urlpatterns = [
         views.PhaseResolveView.as_view(),
         name="game-resolve-phase",
     ),
-    path("phase/resolve/", views.PhaseResolveAllView.as_view(), name="phase-resolve-all"),
 ]
