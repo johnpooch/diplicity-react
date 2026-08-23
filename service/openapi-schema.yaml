@@ -667,6 +667,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
+  /game/{gameId}/member/{memberId}/nation/:
+    put:
+      operationId: gameMemberNationUpdate
+      description: |-
+        Pin a nation to a member of a pending game, or unpin it. Game master
+        only; pinned nations are kept when the game starts.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: memberId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberNationAssign'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+    delete:
+      operationId: gameMemberNationDestroy
+      description: |-
+        Pin a nation to a member of a pending game, or unpin it. Game master
+        only; pinned nations are kept when the game starts.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: memberId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{gameId}/member/join/:
     post:
       operationId: gameMemberJoinCreate
@@ -689,6 +746,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Member'
+          description: ''
+  /game/{gameId}/member/nation-preference/:
+    get:
+      operationId: gameMemberNationPreferenceRetrieve
+      description: |-
+        Read or replace the requesting member's ranked nation preferences for a
+        pending game. Array position determines rank; an empty list means no
+        preference.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberNationPreference'
+          description: ''
+    put:
+      operationId: gameMemberNationPreferenceUpdate
+      description: |-
+        Read or replace the requesting member's ranked nation preferences for a
+        pending game. Array position determines rank; an empty list means no
+        preference.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberNationPreference'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberNationPreference'
           description: ''
   /game/{gameId}/members/{memberId}/replace/:
     post:
@@ -2144,8 +2254,6 @@ components:
           type: string
         variantId:
           type: string
-        nationAssignment:
-          $ref: '#/components/schemas/NationAssignmentEnum'
         movementPhaseDuration:
           allOf:
           - $ref: '#/components/schemas/DurationEnum'
@@ -2205,7 +2313,6 @@ components:
       required:
       - id
       - name
-      - nationAssignment
       - private
       - variantId
     GameCreateSandbox:
@@ -2317,9 +2424,6 @@ components:
           type: string
           readOnly: true
           nullable: true
-        nationAssignment:
-          type: string
-          readOnly: true
         members:
           type: array
           items:
@@ -2406,7 +2510,6 @@ components:
       - movementFrequency
       - movementPhaseDuration
       - name
-      - nationAssignment
       - nmrExtensionsAllowed
       - orderStatus
       - pausedAt
@@ -2602,9 +2705,6 @@ components:
         variantId:
           type: string
           readOnly: true
-        nationAssignment:
-          type: string
-          readOnly: true
         phaseConfirmed:
           type: boolean
           readOnly: true
@@ -2705,7 +2805,6 @@ components:
       - movementFrequency
       - movementPhaseDuration
       - name
-      - nationAssignment
       - nmrExtensionsAllowed
       - orderStatus
       - pausedAt
@@ -2828,6 +2927,23 @@ components:
           writeOnly: true
       required:
       - userId
+    MemberNationAssign:
+      type: object
+      properties:
+        nationId:
+          type: string
+          writeOnly: true
+      required:
+      - nationId
+    MemberNationPreference:
+      type: object
+      properties:
+        nationIds:
+          type: array
+          items:
+            type: string
+      required:
+      - nationIds
     MemberStatusEnum:
       enum:
       - nmr
@@ -2894,14 +3010,6 @@ components:
       - name
       - nationId
       - nonPlayable
-    NationAssignmentEnum:
-      enum:
-      - random
-      - ordered
-      type: string
-      description: |-
-        * `random` - Random
-        * `ordered` - Ordered
     NationFlagUpload:
       type: object
       properties:

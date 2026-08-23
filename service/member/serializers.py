@@ -133,6 +133,63 @@ class MemberCreateSerializer(serializers.Serializer):
         return MemberSerializer(instance, context=self.context).data
 
 
+class MemberNationPreferenceSerializer(serializers.Serializer):
+    nation_ids = serializers.ListField(child=serializers.CharField())
+
+    def validate_nation_ids(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Duplicate nations in preference list.")
+        game = self.context["game"]
+        nations = {n.nation_id: n for n in game.variant.nations.all() if not n.non_playable}
+        invalid = [nation_id for nation_id in value if nation_id not in nations]
+        if invalid:
+            raise serializers.ValidationError(
+                f"Invalid nations for this variant: {', '.join(invalid)}."
+            )
+        self._validated_nations = [nations[nation_id] for nation_id in value]
+        return value
+
+    def update(self, instance, validated_data):
+        Member.objects.set_nation_preferences(instance, self._validated_nations)
+        return instance
+
+    def to_representation(self, instance):
+        return {
+            "nation_ids": [
+                preference.nation.nation_id
+                for preference in instance.nation_preferences.all()
+            ]
+        }
+
+
+class MemberNationAssignSerializer(serializers.Serializer):
+    nation_id = serializers.CharField(write_only=True)
+
+    def validate_nation_id(self, value):
+        game = self.context["game"]
+        nations = {n.nation_id: n for n in game.variant.nations.all() if not n.non_playable}
+        nation = nations.get(value)
+        if nation is None:
+            raise serializers.ValidationError("Invalid nation for this variant.")
+        taken = (
+            game.members.not_replaced()
+            .filter(nation=nation)
+            .exclude(id=self.instance.id)
+            .exists()
+        )
+        if taken:
+            raise serializers.ValidationError("This nation is already assigned to another player.")
+        self._validated_nation = nation
+        return value
+
+    def update(self, instance, validated_data):
+        Member.objects.assign_nation(instance, self._validated_nation)
+        return instance
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data
+
+
 class MemberReplaceSerializer(serializers.Serializer):
 
     def create(self, validated_data):

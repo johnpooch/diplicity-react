@@ -157,6 +157,14 @@ class MemberCreate(TypedDict):
     user_id: int
 
 
+class MemberNationAssign(TypedDict):
+    nation_id: str
+
+
+class MemberNationPreference(TypedDict):
+    nation_ids: list[str]
+
+
 type MemberStatusEnum = Literal['nmr', 'civil_disorder']
 
 
@@ -177,9 +185,6 @@ class Nation(TypedDict):
     color: str
     non_playable: bool
     flag_url: str | None
-
-
-type NationAssignmentEnum = Literal['random', 'ordered']
 
 
 class NationFlagUpload(TypedDict):
@@ -288,6 +293,9 @@ class SupplyCenter(TypedDict):
 class TokenRefresh(TypedDict):
     access: str
     refresh: str
+
+
+type TypeEnum = Literal['ios', 'android', 'web']
 
 
 class Unit(TypedDict):
@@ -403,11 +411,20 @@ class DrawProposal(TypedDict):
     created_at: str
 
 
+class FCMDevice(TypedDict):
+    id: int
+    name: NotRequired[str | None]
+    registration_id: str
+    device_id: NotRequired[str | None]
+    active: NotRequired[bool]
+    date_created: str | None
+    type: TypeEnum
+
+
 class GameCreate(TypedDict):
     id: str
     name: str
     variant_id: str
-    nation_assignment: NationAssignmentEnum
     movement_phase_duration: NotRequired[DurationEnum]
     retreat_phase_duration: NotRequired[DurationEnum | NullEnum | None]
     private: bool
@@ -454,7 +471,6 @@ class GameRetrieve(TypedDict):
     sandbox: bool
     victory: Victory | None
     variant_id: str
-    nation_assignment: str
     phase_confirmed: bool
     order_status: OrderStatusEnum | NullEnum | None
     member_status: list[MemberStatusEnum] | None
@@ -572,7 +588,6 @@ class GameList(TypedDict):
     anonymous: bool
     movement_phase_duration: str | None
     retreat_phase_duration: str | None
-    nation_assignment: str
     members: list[Member]
     victory: Victory | None
     sandbox: bool

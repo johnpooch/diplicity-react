@@ -112,11 +112,13 @@ export const pendingGameAlmostFull = makeFixture({
 
 export const gameMasterGame = makeFixture({
   description:
-    "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster.",
+    "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster. One player has a nation pinned by the GM.",
   game: makeGame(
     "game-master",
     "Master of Ceremonies",
-    players.slice(1, 4).map(player => makeMember(player, null)),
+    players
+      .slice(1, 4)
+      .map((player, index) => makeMember(player, index === 0 ? "England" : null)),
     [],
     {
       status: "pending",

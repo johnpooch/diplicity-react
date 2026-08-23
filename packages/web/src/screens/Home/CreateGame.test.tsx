@@ -154,7 +154,6 @@ const matchedGame: GameList = {
   anonymous: false,
   movementPhaseDuration: "24 hours",
   retreatPhaseDuration: null,
-  nationAssignment: "random",
   members: [
     {
       id: 99,

@@ -32,7 +32,6 @@ def game_master_payload(variant_id, **overrides):
     payload = {
         "name": "GM Game",
         "variant_id": variant_id,
-        "nation_assignment": "random",
         "private": True,
         "game_master": True,
         "deadline_mode": "duration",

@@ -991,7 +991,6 @@ def _create_bot_seat_game(client, variant_id):
         {
             "name": "Bot Seat Game",
             "variant_id": variant_id,
-            "nation_assignment": "random",
             "private": False,
             "deadline_mode": "duration",
             "movement_phase_duration": "24 hours",
