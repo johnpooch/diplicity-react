@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus
@@ -157,7 +157,7 @@ class MemberNationPreferenceSerializer(serializers.Serializer):
         return {
             "nation_ids": [
                 preference.nation.nation_id
-                for preference in instance.nation_preferences.all()
+                for preference in instance.nation_preferences.select_related("nation")
             ]
         }
 
@@ -183,7 +183,13 @@ class MemberNationAssignSerializer(serializers.Serializer):
         return value
 
     def update(self, instance, validated_data):
-        Member.objects.assign_nation(instance, self._validated_nation)
+        try:
+            with transaction.atomic():
+                Member.objects.assign_nation(instance, self._validated_nation)
+        except IntegrityError:
+            raise serializers.ValidationError(
+                {"nation_id": "This nation is already assigned to another player."}
+            )
         return instance
 
     def to_representation(self, instance):

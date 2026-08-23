@@ -2,9 +2,10 @@ import random
 
 
 def assign_nations(seed, members, nations):
+    nations_by_id = {n.id: n for n in nations}
     taken = {m.nation_id for m in members if m.nation_id is not None}
     available = {n.id: n for n in nations if n.id not in taken}
-    result = {m.id: m.nation for m in members if m.nation_id is not None}
+    result = {m.id: nations_by_id[m.nation_id] for m in members if m.nation_id is not None}
 
     unassigned = [m for m in members if m.nation_id is None]
     rng = random.Random(seed)
