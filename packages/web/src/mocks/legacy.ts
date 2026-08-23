@@ -39,6 +39,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
   {
@@ -56,6 +57,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
   {
@@ -73,6 +75,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
   {
@@ -90,6 +93,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
   {
@@ -107,6 +111,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
   {
@@ -124,6 +129,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
   {
@@ -141,6 +147,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    removable: false,
   commitment: "high",
   },
 ];
