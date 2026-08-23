@@ -296,7 +296,7 @@ class TestUserAccountDelete:
         url = reverse("user-delete")
         client.delete(url)
 
-        assert Phase.objects._check_and_apply_nmr_extensions(phase) is None
+        assert Phase.objects._apply_nmr_extensions(phase) is None
         member.refresh_from_db()
         assert member.nmr_extensions_remaining == 1
 

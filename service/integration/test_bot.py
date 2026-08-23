@@ -9,6 +9,7 @@ from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseSt
 from game.models import Game
 from province.models import Province
 from agent import tasks
+from integration.utils import run_due_resolution_jobs
 from agent.fallback import first_legal_options
 from agent.orders import option_to_selected
 from harness.adapter import orders_to_options
@@ -78,9 +79,7 @@ def test_bot_game_starts_on_creation_and_plays_phase(
     bot_phase_state.refresh_from_db()
     assert bot_phase_state.orders_confirmed is True
 
-    resolve_response = human_client.post(reverse("phase-resolve-all"))
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     game.refresh_from_db()
     second_phase = game.current_phase
@@ -138,7 +137,7 @@ def test_bot_can_play_the_next_phase(allowlisted_human, italy_vs_germany_variant
     _submit_first_legal_orders(human_client, game.id)
     human_client.put(reverse("game-confirm-phase", args=[game.id]))
     tasks.finalize(user_id=bot_user.id, game_id=game.id)
-    human_client.post(reverse("phase-resolve-all"))
+    run_due_resolution_jobs()
 
     game.refresh_from_db()
     second_phase = game.current_phase

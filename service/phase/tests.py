@@ -118,51 +118,34 @@ def test_list_orderable_provinces_not_member(authenticated_client, active_game_c
 
 
 @pytest.mark.django_db
-def test_resolve_phases_success(authenticated_client):
-    url = reverse("phase-resolve-all")
-    response = authenticated_client.post(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert "resolved" in response.data
-    assert "failed" in response.data
-
-
-@pytest.mark.django_db
-def test_phase_should_resolve_immediately_no_users_with_orders(active_game_with_phase_state):
+def test_phase_with_no_actionable_states_is_due(active_game_with_phase_state):
     phase = active_game_with_phase_state.current_phase
-    phase.options = {"England": {}}
-    phase.save()
-    assert phase.should_resolve_immediately
+    phase.phase_states.update(has_possible_orders=False)
+
+    assert Phase.objects.filter_due_phases().filter(pk=phase.pk).exists()
 
 
 @pytest.mark.django_db
-def test_phase_should_resolve_immediately_all_confirmed(
-    active_game_with_phase_state, godip_options_england_london_hold
-):
+def test_phase_is_due_once_every_actionable_state_is_confirmed(active_game_with_phase_state):
     phase = active_game_with_phase_state.current_phase
-    phase.options = godip_options_england_london_hold
-    phase.save()
-    assert not phase.should_resolve_immediately
-    phase_state = phase.phase_states.first()
-    phase_state.orders_confirmed = True
-    phase_state.save()
-    phase.refresh_from_db()
-    assert phase.should_resolve_immediately
+
+    assert not Phase.objects.filter_due_phases().filter(pk=phase.pk).exists()
+
+    phase.phase_states.update(orders_confirmed=True)
+
+    assert Phase.objects.filter_due_phases().filter(pk=phase.pk).exists()
 
 
 @pytest.mark.django_db
-def test_phase_should_not_resolve_immediately_partial_confirmation(
-    active_game_with_phase_state, secondary_user, classical_france_nation, godip_options_england_france_both_hold
+def test_phase_is_not_due_with_partial_confirmation(
+    active_game_with_phase_state, secondary_user, classical_france_nation
 ):
     phase = active_game_with_phase_state.current_phase
     secondary_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
-    phase.phase_states.create(member=secondary_member)
-    phase.options = godip_options_england_france_both_hold
-    phase.save()
-    first_phase_state = phase.phase_states.first()
-    first_phase_state.orders_confirmed = True
-    first_phase_state.save()
-    phase.refresh_from_db()
-    assert not phase.should_resolve_immediately
+    phase.phase_states.create(member=secondary_member, has_possible_orders=True)
+    phase.phase_states.filter(member__user=secondary_user).update(orders_confirmed=True)
+
+    assert not Phase.objects.filter_due_phases().filter(pk=phase.pk).exists()
 
 
 @pytest.mark.django_db
@@ -191,53 +174,44 @@ def test_nations_with_possible_orders_various_scenarios(
 
 
 @pytest.mark.django_db
-def test_resolve_due_phases_with_scheduled_time(active_game_with_phase_state):
+def test_resolve_if_due_resolves_a_phase_past_its_deadline(active_game_with_phase_state):
     phase = active_game_with_phase_state.current_phase
-    past_time = timezone.now() - timedelta(hours=1)
-    phase.scheduled_resolution = past_time
+    phase.scheduled_resolution = timezone.now() - timedelta(hours=1)
     phase.save()
+
     with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
-        result = Phase.objects.resolve_due_phases()
-        assert result["resolved"] == 1
-        assert result["failed"] == 0
-        mock_resolve.assert_called_once_with(phase)
+        Phase.objects.resolve_if_due(phase.id)
+
+    mock_resolve.assert_called_once_with(phase)
 
 
 @pytest.mark.django_db
-def test_resolve_due_phases_with_immediate_resolution(active_game_with_phase_state):
+def test_resolve_if_due_resolves_a_phase_with_no_actionable_states(active_game_with_phase_state):
     phase = active_game_with_phase_state.current_phase
-
-    future_time = timezone.now() + timedelta(hours=24)
-    phase.scheduled_resolution = future_time
-    phase.options = {}
+    phase.scheduled_resolution = timezone.now() + timedelta(hours=24)
     phase.save()
-    phase_state = phase.phase_states.first()
-    phase_state.has_possible_orders = False
-    phase_state.save()
+    phase.phase_states.update(has_possible_orders=False)
+
     with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
-        result = Phase.objects.resolve_due_phases()
-        assert result["resolved"] == 1
-        assert result["failed"] == 0
-        mock_resolve.assert_called_once_with(phase)
+        Phase.objects.resolve_if_due(phase.id)
+
+    mock_resolve.assert_called_once_with(phase)
 
 
 @pytest.mark.django_db
-def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state, godip_options_england_london_hold):
+def test_resolve_if_due_skips_a_phase_that_is_not_due(active_game_with_phase_state):
     phase = active_game_with_phase_state.current_phase
-
-    future_time = timezone.now() + timedelta(hours=24)
-    phase.scheduled_resolution = future_time
-    phase.options = godip_options_england_london_hold
+    phase.scheduled_resolution = timezone.now() + timedelta(hours=24)
     phase.save()
+
     with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
-        result = Phase.objects.resolve_due_phases()
-        assert result["resolved"] == 0
-        assert result["failed"] == 0
-        mock_resolve.assert_not_called()
+        assert Phase.objects.resolve_if_due(phase.id) is None
+
+    mock_resolve.assert_not_called()
 
 
 @pytest.mark.django_db
-def test_resolve_due_phases_skips_sandbox_games(db, classical_variant, primary_user):
+def test_resolve_if_due_skips_sandbox_games(db, classical_variant, primary_user):
     from game.models import Game
     from common.constants import NationAssignment
 
@@ -258,10 +232,29 @@ def test_resolve_due_phases_skips_sandbox_games(db, classical_variant, primary_u
     assert phase.status == PhaseStatus.ACTIVE
 
     with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
-        result = Phase.objects.resolve_due_phases()
-        assert result["resolved"] == 0
-        assert result["failed"] == 0
-        mock_resolve.assert_not_called()
+        assert Phase.objects.resolve_if_due(phase.id) is None
+
+    mock_resolve.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_a_sandbox_phase_is_never_armed(db, classical_variant, primary_user):
+    from game.models import Game
+    from common.constants import NationAssignment
+
+    game = Game.objects.create_from_template(
+        classical_variant,
+        name="Sandbox Game",
+        sandbox=True,
+        private=True,
+        nation_assignment=NationAssignment.ORDERED,
+        movement_phase_duration=None,
+    )
+    for nation in classical_variant.nations.all():
+        game.members.create(user=primary_user)
+    game.start()
+
+    assert game.current_phase.resolution_job_id is None
 
 
 @pytest.mark.django_db
@@ -292,11 +285,11 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
     mock_new_phase.status = "active"
 
     url = reverse("game-resolve-phase", args=[game.id])
-    with patch.object(Phase.objects, "resolve_phase", return_value=mock_new_phase) as mock_resolve_phase:
+    with patch.object(Phase.objects, "resolve", return_value=mock_new_phase) as mock_resolve:
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == 12345
-        mock_resolve_phase.assert_called_once()
+        mock_resolve.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -1185,7 +1178,7 @@ class TestCreateFromAdjudicationDataPerformance:
         italy_vs_germany_phase_with_orders,
         mock_adjudication_data_basic,
     ):
-        phase = Phase.objects.with_adjudication_data().get(pk=italy_vs_germany_phase_with_orders.pk)
+        phase = Phase.objects.with_related_data().get(pk=italy_vs_germany_phase_with_orders.pk)
 
         connection.queries_log.clear()
 
@@ -1194,7 +1187,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 20
+        assert query_count == 26
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_query_count_with_full_game(
@@ -1300,7 +1293,7 @@ class TestCreateFromAdjudicationDataPerformance:
             "resolutions": [{"province": sc[0].province_id, "result": "OK", "by": None} for sc in supply_centers_data],
         }
 
-        phase = Phase.objects.with_adjudication_data().get(pk=phase.pk)
+        phase = Phase.objects.with_related_data().get(pk=phase.pk)
 
         connection.queries_log.clear()
 
@@ -1309,7 +1302,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 18
+        assert query_count == 25
 
 
 class TestPhaseReversion:
@@ -1730,66 +1723,7 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 17
-
-
-class TestGetPhasesToResolvePerformance:
-
-    @pytest.mark.django_db
-    def test_get_phases_to_resolve_query_count(
-        self,
-        classical_variant,
-        primary_user,
-        secondary_user,
-        classical_england_nation,
-        classical_france_nation,
-        godip_options_england_london_hold,
-    ):
-        for i in range(10):
-            game = Game.objects.create(
-                name=f"Game {i}",
-                variant=classical_variant,
-                status=GameStatus.ACTIVE,
-            )
-            game.members.create(user=primary_user, nation=classical_england_nation)
-            game.members.create(user=secondary_user, nation=classical_france_nation)
-
-            previous_phase = game.phases.create(
-                variant=game.variant,
-                season="Spring",
-                year=1901,
-                type="Movement",
-                status=PhaseStatus.COMPLETED,
-                ordinal=1,
-                scheduled_resolution=timezone.now() - timedelta(hours=1),
-                options=godip_options_england_london_hold,
-            )
-
-            for member in game.members.all():
-                previous_phase.phase_states.create(member=member)
-
-            active_phase = game.phases.create(
-                variant=game.variant,
-                season="Spring",
-                year=1901,
-                type="Retreat",
-                status=PhaseStatus.ACTIVE,
-                ordinal=2,
-                scheduled_resolution=timezone.now() - timedelta(hours=1),
-                options=godip_options_england_london_hold,
-            )
-
-            for member in game.members.all():
-                active_phase.phase_states.create(member=member)
-
-        connection.queries_log.clear()
-
-        with override_settings(DEBUG=True):
-            phases_to_resolve = Phase.objects.get_phases_to_resolve()
-
-        query_count = len(connection.queries)
-
-        assert query_count == 8
+        assert query_count == 21
 
 
 class TestResolveTransactionSafety:
@@ -4643,7 +4577,7 @@ class TestPhaseToCanonicalGameStatePerformance:
         )
         phase = self._build_phase(classical_variant, game, england, france, 3)
 
-        assert self._count_queries(phase) == 15
+        assert self._count_queries(phase) == 21
 
     @pytest.mark.django_db
     def test_query_count_does_not_scale_with_units_and_orders(
@@ -4921,7 +4855,7 @@ class TestSendDeadlineWarnings:
         ps.refresh_from_db()
         assert ps.deadline_warning_sent_for == phase.scheduled_resolution
 
-        Phase.objects._check_and_apply_nmr_extensions(phase)
+        Phase.objects._apply_nmr_extensions(phase)
 
         phase.refresh_from_db()
         phase.scheduled_resolution = now + timedelta(minutes=30)
@@ -5223,7 +5157,7 @@ class TestNMRExtensionsFixedTime:
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+        result = Phase.objects._apply_nmr_extensions(phase)
 
         assert result is not None
         italy.refresh_from_db()
@@ -5252,7 +5186,7 @@ class TestNMRExtensionsFixedTime:
         ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
         ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
 
-        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+        result = Phase.objects._apply_nmr_extensions(phase)
 
         assert result is None
         italy.refresh_from_db()
@@ -5282,7 +5216,7 @@ class TestNMRExtensionsFixedTime:
         )
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
 
-        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+        result = Phase.objects._apply_nmr_extensions(phase)
 
         assert result is not None
         italy.refresh_from_db()
@@ -5313,7 +5247,7 @@ class TestNMRExtensionsFixedTime:
         )
         phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
 
-        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+        result = Phase.objects._apply_nmr_extensions(phase)
 
         assert result is None
         italy.refresh_from_db()

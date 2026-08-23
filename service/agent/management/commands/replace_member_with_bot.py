@@ -44,6 +44,7 @@ class Command(BaseCommand):
             phase = game.current_phase
             if phase is not None and Phase.objects.lock_if_active(phase.id) is not None:
                 AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=replacement, phase=phase)
+                Phase.objects.arm_resolution(phase)
 
         self.stdout.write(
             self.style.SUCCESS(f"{bot_profile.name} now plays {member.nation.name} in '{game.id}'.")

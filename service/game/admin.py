@@ -15,6 +15,7 @@ class GameAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "private", "variant", "deadline_mode")
     search_fields = ("name", "id")
+    readonly_fields = ("status", "paused_at", "sandbox")
     actions = ["start_game", "resolve_game"]
 
     def get_queryset(self, request):
