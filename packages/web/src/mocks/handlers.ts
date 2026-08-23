@@ -138,7 +138,8 @@ export const handlers = [
     }
     const status = url.searchParams.get("status");
     if (status) {
-      games = games.filter(g => g.status === status);
+      const statuses = status.split(",");
+      games = games.filter(g => statuses.includes(g.status));
     }
     const canJoin = url.searchParams.get("can_join");
     if (canJoin !== null) {

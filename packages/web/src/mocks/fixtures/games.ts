@@ -110,6 +110,18 @@ export const pendingGameAlmostFull = makeFixture({
   ),
 });
 
+export const musteringGame = makeFixture({
+  description:
+    "Full public game in mustering: it starts once every player confirms their seat, and unconfirmed seats are vacated at the deadline. The current user has not confirmed yet.",
+  game: makeGame("mustering-game", "Roll Call", makePendingMembers(7), [], {
+    status: "mustering",
+    canLeave: true,
+    musterRequired: true,
+    musterDeadline: futureIso(20 * 60 * 60),
+    musterStatus: "confirmation_required",
+  }),
+});
+
 export const gameMasterGame = makeFixture({
   description:
     "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster.",

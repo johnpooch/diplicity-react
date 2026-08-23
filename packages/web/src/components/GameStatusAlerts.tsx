@@ -43,6 +43,23 @@ export function GameStatusAlerts({ game, variant, action }: GameStatusAlertsProp
         </Alert>
       )}
 
+      {game.status === "mustering" && (
+        <Alert className="p-5">
+          <Info className="size-4" />
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <AlertDescription>
+              This game is full. It starts once every player confirms they're
+              ready. Confirm before the deadline or you'll lose your seat.
+            </AlertDescription>
+            {action && (
+              <div className="shrink-0 w-full sm:w-auto">
+                {action}
+              </div>
+            )}
+          </div>
+        </Alert>
+      )}
+
       {game.isPaused && (
         <Alert>
           <Pause className="size-4" />
