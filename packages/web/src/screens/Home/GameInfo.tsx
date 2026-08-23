@@ -1,7 +1,7 @@
 import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { Bot, Share } from "lucide-react";
+import { Bot, Check, Share } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRequiredParams } from "@/hooks";
 
@@ -11,6 +11,7 @@ import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import {
   useGameRetrieveSuspense,
   useGameMemberJoinCreate,
+  useGameMusterCreate,
   useGameLeaveDestroy,
   useUserRetrieveSuspense,
   getGameRetrieveQueryKey,
@@ -32,6 +33,7 @@ const GameInfo: React.FC = () => {
   const variant = useGameVariant(game);
   const { data: userProfile } = useUserRetrieveSuspense();
   const joinGameMutation = useGameMemberJoinCreate();
+  const musterMutation = useGameMusterCreate();
   const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
 
@@ -57,6 +59,16 @@ const GameInfo: React.FC = () => {
       toast.success("Game left successfully");
     } catch {
       toast.error("Failed to leave game");
+    }
+  };
+
+  const handleConfirmMuster = async () => {
+    try {
+      await musterMutation.mutateAsync({ gameId });
+      await queryClient.invalidateQueries({ queryKey: getGameRetrieveQueryKey(gameId) });
+      toast.success("Seat confirmed");
+    } catch {
+      toast.error("Failed to confirm seat");
     }
   };
 
@@ -125,6 +137,29 @@ const GameInfo: React.FC = () => {
         </p>
       </div>
     ) : null
+  ) : game.status === "mustering" && (game.musterStatus || game.canLeave) ? (
+    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+      {game.musterStatus === "confirmation_required" && (
+        <Button
+          onClick={handleConfirmMuster}
+          disabled={musterMutation.isPending}
+          className="flex-1 sm:flex-none"
+        >
+          <Check className="size-4" />
+          Confirm you're ready
+        </Button>
+      )}
+      {game.canLeave && (
+        <Button
+          onClick={handleLeaveGame}
+          disabled={leaveGameMutation.isPending}
+          variant="outline"
+          className="flex-1 sm:flex-none"
+        >
+          Leave
+        </Button>
+      )}
+    </div>
   ) : null;
 
   return (

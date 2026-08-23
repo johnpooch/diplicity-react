@@ -377,6 +377,7 @@ export interface GameCreate {
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
   commitmentRequirement?: CommitmentRequirementEnum;
+  musterRequired?: boolean;
 }
 
 export interface GameCreateSandbox {
@@ -489,6 +490,18 @@ export interface Victory {
   readonly members: readonly Member[];
 }
 
+/**
+ * * `confirmation_required` - confirmation_required
+ * `confirmed` - confirmed
+ */
+export type MusterStatusEnum =
+  (typeof MusterStatusEnum)[keyof typeof MusterStatusEnum];
+
+export const MusterStatusEnum = {
+  confirmation_required: "confirmation_required",
+  confirmed: "confirmed",
+} as const;
+
 export interface GameList {
   readonly id: string;
   readonly name: string;
@@ -535,6 +548,10 @@ export interface GameList {
   readonly minReliability: string;
   readonly commitmentRequirement: string;
   readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
+  readonly musterRequired: boolean;
+  /** @nullable */
+  readonly musterDeadline: string | null;
+  readonly musterStatus: MusterStatusEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -587,6 +604,10 @@ export interface GameRetrieve {
   readonly minReliability: string;
   readonly commitmentRequirement: string;
   readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
+  readonly musterRequired: boolean;
+  /** @nullable */
+  readonly musterDeadline: string | null;
+  readonly musterStatus: MusterStatusEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -3953,6 +3974,79 @@ export const useGameMembersReplaceCreate = <
     getGameMembersReplaceCreateMutationOptions(options),
     queryClient
   );
+};
+
+/**
+ * Confirm the requesting user's seat in a mustering game.
+ */
+export const gameMusterCreate = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/muster/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameMusterCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMusterCreate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMusterCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameMusterCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMusterCreate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameMusterCreate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMusterCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMusterCreate>>
+>;
+
+export type GameMusterCreateMutationError = unknown;
+
+export const useGameMusterCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMusterCreate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMusterCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGameMusterCreateMutationOptions(options), queryClient);
 };
 
 /**

@@ -4,7 +4,12 @@ import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MyGames } from "./MyGames";
-import { mockActiveGames, mockPhaseMovement, mockVariants } from "@/mocks/legacy";
+import {
+  mockActiveGames,
+  mockPendingGames,
+  mockPhaseMovement,
+  mockVariants,
+} from "@/mocks/legacy";
 
 const mockUseGamesListInfinite = vi.fn();
 const mockUseGamePhaseRetrieve = vi.fn();
@@ -160,6 +165,76 @@ describe("MyGames eliminated games", () => {
 
     await screen.findByText(game.name);
     expect(screen.queryByRole("heading", { name: "Eliminated", level: 3 })).not.toBeInTheDocument();
+  });
+});
+
+describe("MyGames mustering section", () => {
+  const pendingGame = mockPendingGames[0];
+  const musteringGame = {
+    ...pendingGame,
+    id: "mustering-game",
+    name: "Mustering Game",
+    status: "mustering",
+    musterStatus: "confirmation_required" as const,
+    musterDeadline: new Date(Date.now() + 3600_000).toISOString(),
+  };
+
+  const openStagingTab = async (user: ReturnType<typeof userEvent.setup>) => {
+    const stagingTab = await screen.findByRole("tab", { name: /staging/i });
+    await user.click(stagingTab);
+  };
+
+  it("shows mustering games under a Ready to start section above waiting games", async () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: [pendingGame, musteringGame], next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+    const user = userEvent.setup();
+
+    renderMyGames();
+    await openStagingTab(user);
+
+    expect(
+      await screen.findByRole("heading", { name: "Ready to start", level: 3 })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/These games are full and begin once every player confirms/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Waiting for players", level: 3 })
+    ).toBeInTheDocument();
+
+    const musteringName = screen.getByText("Mustering Game");
+    const pendingName = screen.getByText(pendingGame.name);
+    expect(
+      musteringName.compareDocumentPosition(pendingName) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it("does not show the section when no games are mustering", async () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: [pendingGame], next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+    const user = userEvent.setup();
+
+    renderMyGames();
+    await openStagingTab(user);
+
+    await screen.findByText(pendingGame.name);
+    expect(
+      screen.queryByRole("heading", { name: "Ready to start", level: 3 })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Waiting for players", level: 3 })
+    ).not.toBeInTheDocument();
   });
 });
 

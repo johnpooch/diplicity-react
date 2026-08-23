@@ -16,6 +16,7 @@ import {
 
 const mockNavigate = vi.fn();
 const mockUseIsMobile = vi.fn();
+const mockMusterMutateAsync = vi.fn();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -35,6 +36,10 @@ vi.mock("@/api/generated/endpoints", async () => {
     ...actual,
     useGameMemberJoinCreate: () => ({
       mutateAsync: vi.fn(),
+      isPending: false,
+    }),
+    useGameMusterCreate: () => ({
+      mutateAsync: mockMusterMutateAsync,
       isPending: false,
     }),
     getGamesListQueryKey: () => ["games"],
@@ -346,6 +351,68 @@ describe("GameCard", () => {
       expect(
         screen.getByText(`${mockPendingGames[0].members.length}/${mockNations.length} joined`)
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("mustering games", () => {
+    const musteringGame = {
+      ...mockPendingGames[0],
+      status: "mustering",
+      musterStatus: "confirmation_required" as const,
+      musterDeadline: new Date(Date.now() + 3600_000).toISOString(),
+    };
+
+    beforeEach(() => {
+      mockMusterMutateAsync.mockReset();
+      mockMusterMutateAsync.mockResolvedValue({});
+    });
+
+    it("shows the confirmation required badge", () => {
+      renderGameCard({ game: musteringGame, ...defaultProps });
+      expect(screen.getByText("Confirmation required")).toBeInTheDocument();
+    });
+
+    it("shows the ready badge once confirmed", () => {
+      renderGameCard({
+        game: { ...musteringGame, musterStatus: "confirmed" as const },
+        ...defaultProps,
+      });
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+      expect(screen.queryByText("Confirmation required")).not.toBeInTheDocument();
+    });
+
+    it("shows no muster badge for non-members", () => {
+      renderGameCard({
+        game: { ...musteringGame, musterStatus: null },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("Confirmation required")).not.toBeInTheDocument();
+      expect(screen.queryByText("Ready")).not.toBeInTheDocument();
+    });
+
+    it("shows a countdown to the muster deadline", () => {
+      renderGameCard({ game: musteringGame, ...defaultProps });
+      expect(
+        screen.getByText(/Starts when every player confirms/)
+      ).toBeInTheDocument();
+    });
+
+    it("confirms the seat from the inline button", async () => {
+      renderGameCard({ game: musteringGame, ...defaultProps });
+      await userEvent.click(screen.getByRole("button", { name: "Confirm seat" }));
+      expect(mockMusterMutateAsync).toHaveBeenCalledWith({
+        gameId: musteringGame.id,
+      });
+    });
+
+    it("hides the confirm button once confirmed", () => {
+      renderGameCard({
+        game: { ...musteringGame, musterStatus: "confirmed" as const },
+        ...defaultProps,
+      });
+      expect(
+        screen.queryByRole("button", { name: "Confirm seat" })
+      ).not.toBeInTheDocument();
     });
   });
 

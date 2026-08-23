@@ -8,7 +8,7 @@ import { GameCard } from "@/components/GameCard";
 import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
-import { Inbox, Loader2 } from "lucide-react";
+import { Inbox, Loader2, UserCheck } from "lucide-react";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import type { GameList } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
@@ -16,7 +16,12 @@ import { useGameVariant } from "@/hooks/useGameVariant";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 const statuses = [
-  { value: "pending", label: "Staging", statusFilter: "pending", ordering: undefined },
+  {
+    value: "pending",
+    label: "Staging",
+    statusFilter: "pending,mustering",
+    ordering: undefined,
+  },
   { value: "active", label: "Started", statusFilter: "active", ordering: "deadline" },
   {
     value: "completed",
@@ -147,9 +152,37 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
         )
       : -1;
 
+  const musteringGames =
+    status === "pending" ? games.filter(game => game.status === "mustering") : [];
+  const listedGames =
+    status === "pending"
+      ? games.filter(game => game.status !== "mustering")
+      : games;
+
   return (
     <div className="space-y-4">
-      {games.map((game, index) => (
+      {musteringGames.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 pt-2">
+            <UserCheck className="size-4" />
+            <h3 className="text-sm font-semibold">Ready to start</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            These games are full and begin once every player confirms. Confirm
+            before the deadline or you'll lose your seat.
+          </p>
+          {musteringGames.map(game => (
+            <MyGameCard key={game.id} game={game} />
+          ))}
+          {listedGames.length > 0 && (
+            <div className="flex items-center gap-2 pt-2">
+              <Inbox className="size-4" />
+              <h3 className="text-sm font-semibold">Waiting for players</h3>
+            </div>
+          )}
+        </>
+      )}
+      {listedGames.map((game, index) => (
         <Fragment key={game.id}>
           {index === firstEliminatedIndex && (
             <h3 className="text-sm font-semibold pt-2">Eliminated</h3>

@@ -166,6 +166,9 @@ type MinReliabilityEnum = Literal['open', 'reliable_and_new', 'reliable_only']
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
+type MusterStatusEnum = Literal['confirmation_required', 'confirmed']
+
+
 class MyVote(TypedDict):
     included: bool
     accepted: bool | None
@@ -290,6 +293,9 @@ class TokenRefresh(TypedDict):
     refresh: str
 
 
+type TypeEnum = Literal['ios', 'android', 'web']
+
+
 class Unit(TypedDict):
     type: str
     nation: Nation
@@ -403,6 +409,16 @@ class DrawProposal(TypedDict):
     created_at: str
 
 
+class FCMDevice(TypedDict):
+    id: int
+    name: NotRequired[str | None]
+    registration_id: str
+    device_id: NotRequired[str | None]
+    active: NotRequired[bool]
+    date_created: str | None
+    type: TypeEnum
+
+
 class GameCreate(TypedDict):
     id: str
     name: str
@@ -422,6 +438,7 @@ class GameCreate(TypedDict):
     press_type: NotRequired[PressTypeEnum]
     min_reliability: NotRequired[MinReliabilityEnum]
     commitment_requirement: NotRequired[CommitmentRequirementEnum]
+    muster_required: NotRequired[bool]
 
 
 class GameListCurrentPhase(TypedDict):
@@ -474,6 +491,9 @@ class GameRetrieve(TypedDict):
     min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    muster_required: bool
+    muster_deadline: str | None
+    muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
 
 
@@ -588,6 +608,9 @@ class GameList(TypedDict):
     min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    muster_required: bool
+    muster_deadline: str | None
+    muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
 
 

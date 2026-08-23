@@ -131,6 +131,9 @@ export const makeGame = (
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    musterRequired: false,
+    musterDeadline: null,
+    musterStatus: null,
     ...overrides,
   };
 };

@@ -35,6 +35,7 @@ import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameMemberJoinCreate,
+  useGameMusterCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
@@ -81,6 +82,24 @@ const ORDER_STATUS_CONFIG: Record<
   },
 };
 
+const MUSTER_STATUS_CONFIG: Record<
+  string,
+  { label: string; badgeClassName: string; icon: React.ReactNode; tooltip: string }
+> = {
+  confirmation_required: {
+    label: "Confirmation required",
+    badgeClassName: "bg-amber-500 text-white hover:bg-amber-500",
+    icon: <Clock className="size-3" />,
+    tooltip: "Confirm you're ready to play before the deadline or you'll lose your seat",
+  },
+  confirmed: {
+    label: "Ready",
+    badgeClassName: "bg-green-600 text-white hover:bg-green-600",
+    icon: <Check className="size-3" />,
+    tooltip: "You've confirmed — the game starts once every player is ready",
+  },
+};
+
 const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -89,10 +108,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const members = Array.isArray(game.members) ? game.members : [];
   const playerNation = members.find(m => m.isCurrentUser)?.nation ?? null;
   const joinGameMutation = useGameMemberJoinCreate();
+  const musterMutation = useGameMusterCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
   const isActive = game.status === "active";
   const isPending = game.status === "pending";
+  const isMustering = game.status === "mustering";
   const isAbandoned = game.status === "abandoned";
   const isFinished = game.status === "completed" || isAbandoned;
   const currentMember = members.find(m => m.isCurrentUser);
@@ -126,6 +147,16 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     }
   };
 
+  const handleConfirmMuster = async () => {
+    try {
+      await musterMutation.mutateAsync({ gameId: game.id });
+      toast.success("Seat confirmed");
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+    } catch {
+      toast.error("Failed to confirm seat");
+    }
+  };
+
   const isCommitmentLocked =
     game.commitmentEligibility === "committed_locked" ||
     game.commitmentEligibility === "low_locked";
@@ -154,8 +185,26 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       </Tooltip>
     ));
 
+  const confirmMusterButton = game.musterStatus === "confirmation_required" && (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button onClick={handleConfirmMuster} aria-label="Confirm seat">
+          <Check className="size-4" />
+          Confirm
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Confirm you're ready to play</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+
   const orderStatusConfig = game.orderStatus
     ? ORDER_STATUS_CONFIG[game.orderStatus]
+    : undefined;
+
+  const musterStatusConfig = game.musterStatus
+    ? MUSTER_STATUS_CONFIG[game.musterStatus]
     : undefined;
 
   const gunboatIcon = game.pressType === "no_press" && (
@@ -258,6 +307,17 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           <TooltipContent>{orderStatusConfig.tooltip}</TooltipContent>
         </Tooltip>
       )}
+      {isMustering && musterStatusConfig && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge className={`gap-1 ${musterStatusConfig.badgeClassName}`}>
+              {musterStatusConfig.icon}
+              {musterStatusConfig.label}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>{musterStatusConfig.tooltip}</TooltipContent>
+        </Tooltip>
+      )}
       {isActive && game.memberStatus?.includes("nmr") && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -316,6 +376,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
             <div className="flex items-center gap-2 shrink-0">
               {unreadPill}
               {joinGameButton}
+              {confirmMusterButton}
               <GameDropdownMenu
                 game={game}
                 onNavigateToGameInfo={handleClickGameInfo}
@@ -338,6 +399,23 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
             </div>
             {isPending ? (
               <p>Created {formatTimeAgo(game.createdAt)}</p>
+            ) : isMustering ? (
+              <p className="flex items-center gap-1">
+                <span>Starts when every player confirms</span>
+                {game.musterDeadline && (
+                  <>
+                    <span>•</span>
+                    <RemainingTimeDisplay
+                      remainingTime={Math.max(
+                        0,
+                        (new Date(game.musterDeadline).getTime() - Date.now()) /
+                          1000
+                      )}
+                      scheduledResolution={game.musterDeadline}
+                    />
+                  </>
+                )}
+              </p>
             ) : phase ? (
               <p className="flex items-center gap-1">
                 <span>
@@ -401,7 +479,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           )}
         </CardHeader>
 
-        {(game.sandbox || isActive || isFinished) && badgeCluster}
+        {(game.sandbox || isActive || isFinished || (isMustering && musterStatusConfig)) &&
+          badgeCluster}
 
         {showAvatars && (
           <CardFooter className="p-0 mt-auto flex-col items-stretch gap-2">

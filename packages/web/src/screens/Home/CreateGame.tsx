@@ -108,6 +108,7 @@ const gameSchema = z.object({
     .nullable(),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   committedOnly: z.boolean(),
+  musterRequired: z.boolean(),
 });
 
 type GameFormValues = z.infer<typeof gameSchema>;
@@ -435,6 +436,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       retreatFrequency: null,
       nmrExtensionsAllowed: "0",
       committedOnly: false,
+      musterRequired: false,
     },
   });
 
@@ -934,6 +936,31 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="musterRequired"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Switch
+                      checked={isPrivate ? field.value : true}
+                      onCheckedChange={field.onChange}
+                      disabled={isSubmitting || !isPrivate}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Confirm before start</FormLabel>
+                    <FormDescription>
+                      {isPrivate
+                        ? "When the game fills, every player confirms they're ready before it starts. Unconfirmed seats open up for other players."
+                        : "When the game fills, every player confirms they're ready before it starts. Always on for public games."}
+                    </FormDescription>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         )}
 
@@ -1050,6 +1077,7 @@ const CreateGame: React.FC = () => {
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
           commitmentRequirement: data.committedOnly ? "committed" : "open",
+          musterRequired: data.private ? data.musterRequired : true,
         },
       });
       toast.success("Game created successfully");

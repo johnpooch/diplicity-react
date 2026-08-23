@@ -210,6 +210,9 @@ const matchedGame: GameList = {
   totalUnreadMessageCount: 0,
   orderStatus: null,
   memberStatus: [],
+  musterRequired: false,
+  musterDeadline: null,
+  musterStatus: null,
 };
 
 const renderCreateGame = () => {
@@ -704,7 +707,7 @@ describe("CreateGame — committed players switch", () => {
     renderCreateGame();
 
     await goToAdvancedStep(user);
-    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("switch", { name: /committed players only/i }));
     await user.click(screen.getByRole("button", { name: /create game/i }));
 
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
@@ -722,10 +725,104 @@ describe("CreateGame — committed players switch", () => {
 
     await goToAdvancedStep(user);
 
-    expect(screen.getByRole("switch")).toBeDisabled();
+    expect(
+      screen.getByRole("switch", { name: /committed players only/i })
+    ).toBeDisabled();
     expect(
       screen.getByText(/Only available to players with high commitment/i)
     ).toBeInTheDocument();
+  });
+});
+
+describe("CreateGame — confirm before start switch", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+
+    stubFindSimilar(null);
+  });
+
+  const goToAdvancedStep = async (
+    user: ReturnType<typeof userEvent.setup>
+  ) => {
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+  };
+
+  it("is checked and disabled on public games", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await goToAdvancedStep(user);
+
+    const musterSwitch = screen.getByRole("switch", {
+      name: /confirm before start/i,
+    });
+    expect(musterSwitch).toBeDisabled();
+    expect(musterSwitch).toBeChecked();
+    expect(screen.getByText(/Always on for public games/i)).toBeInTheDocument();
+  });
+
+  it("sends musterRequired true for public games", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await goToAdvancedStep(user);
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.musterRequired).toBe(true);
+  });
+
+  it("is editable and defaults off on private games", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await goToAdvancedStep(user);
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.musterRequired).toBe(false);
+  });
+
+  it("sends musterRequired true when enabled on a private game", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await goToAdvancedStep(user);
+    const musterSwitch = screen.getByRole("switch", {
+      name: /confirm before start/i,
+    });
+    expect(musterSwitch).toBeEnabled();
+    await user.click(musterSwitch);
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    const payload = createGameMutateAsync.mock.calls[0][0].data;
+    expect(payload.musterRequired).toBe(true);
+    expect(payload.private).toBe(true);
   });
 });
 
