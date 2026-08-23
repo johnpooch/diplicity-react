@@ -150,6 +150,7 @@ class Member(TypedDict):
     civil_disorder: bool
     seeking_replacement: bool
     replaceable: bool
+    removable: bool
 
 
 class MemberCreate(TypedDict):

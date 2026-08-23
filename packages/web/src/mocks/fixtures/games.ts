@@ -655,3 +655,65 @@ const buildActiveCivilDisorder = () => {
 };
 
 export const activeGameCivilDisorder = buildActiveCivilDisorder();
+
+const makeSeatOpenMembers = (idBase: number): Member[] =>
+  makeActiveMembers().map((m, index) => ({
+    ...m,
+    id: idBase + index,
+    ...(m.nation === "Turkey" ? { kicked: true, replaceable: true } : {}),
+    ...(m.nation === "Italy" ? { removable: true } : {}),
+  }));
+
+const buildActiveSeatOpen = () => {
+  const members = makeSeatOpenMembers(1101);
+  const phase = makePhase(1101, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 18 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game where the game master has removed the Turkey player. The current user (England) manages the game and can remove players or share the takeover link.",
+    game: makeGame("active-seat-open", "The Ottoman Vacancy", members, [phase], {
+      canManage: true,
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1101: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameSeatOpen = buildActiveSeatOpen();
+
+const buildActiveSeatOpenSpectator = () => {
+  const members = makeSeatOpenMembers(1201).map((m, index) => ({
+    ...m,
+    userId: 200 + index,
+    name: m.isCurrentUser ? "Grace" : m.name,
+    isCurrentUser: false,
+  }));
+  const phase = makePhase(1201, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 18 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game with an open Turkey seat that the current user is not a member of. Used to demo the takeover link landing screen.",
+    game: makeGame("seat-open-spectator", "The Open Seat", members, [phase], {
+      orderStatus: "no_orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1201: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameSeatOpenSpectator = buildActiveSeatOpenSpectator();
