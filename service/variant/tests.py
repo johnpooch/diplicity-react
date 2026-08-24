@@ -327,6 +327,12 @@ class TestVariantToCanonicalDict:
         deserialize_variant(canonical)
 
     @pytest.mark.django_db
+    def test_any_home_center_builds_modifier_accepted(self, classical_variant):
+        canonical = variant_to_canonical_dict(classical_variant)
+        canonical["adjudicationModifiers"] = ["allow-builds-in-any-home-center"]
+        deserialize_variant(canonical)
+
+    @pytest.mark.django_db
     def test_unknown_modifier_raises_variant_validation_error(self, classical_variant):
         canonical = variant_to_canonical_dict(classical_variant)
         canonical["adjudicationModifiers"] = ["not-a-real-modifier"]

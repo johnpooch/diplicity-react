@@ -67,7 +67,6 @@ import {
   getGamesFindSimilarRetrieveQueryOptions,
   GameList,
   Variant,
-  NationAssignmentEnum,
 } from "@/api/generated/endpoints";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -90,7 +89,6 @@ const gameSchema = z.object({
     .max(100, "Game name must be less than 100 characters"),
   variantId: z.string().min(1, "Please select a variant"),
   mode: z.enum(["standard", "gunboat", "sandbox"] as const),
-  nationAssignment: z.enum(["random", "ordered"] as const),
   private: z.boolean(),
   gameMaster: z.boolean(),
   deadlineMode: z.enum(["duration", "fixed_time"] as const),
@@ -424,7 +422,6 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       name: randomGameName(),
       variantId: defaultVariantId,
       mode: initialMode ?? "standard",
-      nationAssignment: "random" as NationAssignmentEnum,
       private: initialPrivate ?? false,
       gameMaster: false,
       deadlineMode: "fixed_time",
@@ -1050,7 +1047,6 @@ const CreateGame: React.FC = () => {
         data: {
           name: data.name,
           variantId: data.variantId,
-          nationAssignment: data.nationAssignment,
           private: data.private,
           gameMaster: data.gameMaster,
           ...modeToBackendFields(

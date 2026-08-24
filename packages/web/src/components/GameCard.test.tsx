@@ -338,6 +338,57 @@ describe("GameCard", () => {
     });
   });
 
+  describe("nation seat pill", () => {
+    const pendingSeatGame = (overrides: Record<string, unknown>) => ({
+      ...mockPendingGames[0],
+      members: [{ ...mockMembers[6], isCurrentUser: true, nation: null, ...overrides }],
+    });
+
+    it("invites the current user to set preferences", async () => {
+      const user = userEvent.setup();
+      const game = pendingSeatGame({});
+      renderGameCard({ game, ...defaultProps });
+
+      await user.click(screen.getByRole("button", { name: /Choose nation/ }));
+
+      expect(mockNavigate).toHaveBeenCalledWith(`/nation-preference/${game.id}`);
+    });
+
+    it("names the top choice and counts the rest", () => {
+      renderGameCard({
+        game: pendingSeatGame({ nationPreferenceIds: ["austria", "england"] }),
+        ...defaultProps,
+      });
+
+      expect(
+        screen.getByRole("button", { name: /Austria \+1/ })
+      ).toBeInTheDocument();
+    });
+
+    it("names a nation assigned by the game master", () => {
+      renderGameCard({
+        game: pendingSeatGame({ nation: "Austria" }),
+        ...defaultProps,
+      });
+
+      expect(screen.getByRole("button", { name: /Austria/ })).toBeInTheDocument();
+    });
+
+    it("is not shown to a non-member", () => {
+      renderGameCard({
+        game: {
+          ...mockPendingGames[0],
+          members: [{ ...mockMembers[0], isCurrentUser: false, nation: null }],
+        },
+        ...defaultProps,
+      });
+
+      expect(
+        screen.queryByRole("button", { name: /Choose nation/ })
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("non-playing game master", () => {
     it("renders a separate game master avatar without counting it toward joined", () => {
       renderGameCard({

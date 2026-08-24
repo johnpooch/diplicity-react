@@ -667,6 +667,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
+  /game/{game_id}/member/{member_id}/nation/:
+    put:
+      operationId: game_member_nation_update
+      description: |-
+        Pin a nation to a member of a pending game, or unpin it. Game master
+        only; pinned nations are kept when the game starts.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberNationAssign'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+    delete:
+      operationId: game_member_nation_destroy
+      description: |-
+        Pin a nation to a member of a pending game, or unpin it. Game master
+        only; pinned nations are kept when the game starts.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{game_id}/member/join/:
     post:
       operationId: game_member_join_create
@@ -689,6 +746,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Member'
+          description: ''
+  /game/{game_id}/member/nation-preference/:
+    get:
+      operationId: game_member_nation_preference_retrieve
+      description: |-
+        Read or replace the requesting member's ranked nation preferences for a
+        pending game. Array position determines rank; an empty list means no
+        preference.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberNationPreference'
+          description: ''
+    put:
+      operationId: game_member_nation_preference_update
+      description: |-
+        Read or replace the requesting member's ranked nation preferences for a
+        pending game. Array position determines rank; an empty list means no
+        preference.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberNationPreference'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberNationPreference'
           description: ''
   /game/{game_id}/members/{member_id}/replace/:
     post:
@@ -2155,8 +2265,6 @@ components:
           type: string
         variant_id:
           type: string
-        nation_assignment:
-          $ref: '#/components/schemas/NationAssignmentEnum'
         movement_phase_duration:
           allOf:
           - $ref: '#/components/schemas/DurationEnum'
@@ -2219,7 +2327,6 @@ components:
       required:
       - id
       - name
-      - nation_assignment
       - private
       - variant_id
     GameCreateSandbox:
@@ -2331,9 +2438,6 @@ components:
           type: string
           readOnly: true
           nullable: true
-        nation_assignment:
-          type: string
-          readOnly: true
         members:
           type: array
           items:
@@ -2437,7 +2541,6 @@ components:
       - muster_required
       - muster_status
       - name
-      - nation_assignment
       - nmr_extensions_allowed
       - order_status
       - paused_at
@@ -2633,9 +2736,6 @@ components:
         variant_id:
           type: string
           readOnly: true
-        nation_assignment:
-          type: string
-          readOnly: true
         phase_confirmed:
           type: boolean
           readOnly: true
@@ -2753,7 +2853,6 @@ components:
       - muster_required
       - muster_status
       - name
-      - nation_assignment
       - nmr_extensions_allowed
       - order_status
       - paused_at
@@ -2851,6 +2950,11 @@ components:
         removable:
           type: boolean
           readOnly: true
+        nation_preference_ids:
+          type: array
+          items:
+            type: string
+          readOnly: true
       required:
       - civil_disorder
       - commitment
@@ -2862,6 +2966,7 @@ components:
       - kicked
       - name
       - nation
+      - nation_preference_ids
       - nmr_extensions_remaining
       - picture
       - removable
@@ -2876,6 +2981,23 @@ components:
           writeOnly: true
       required:
       - user_id
+    MemberNationAssign:
+      type: object
+      properties:
+        nation_id:
+          type: string
+          writeOnly: true
+      required:
+      - nation_id
+    MemberNationPreference:
+      type: object
+      properties:
+        nation_ids:
+          type: array
+          items:
+            type: string
+      required:
+      - nation_ids
     MemberStatusEnum:
       enum:
       - nmr
@@ -2950,14 +3072,6 @@ components:
       - name
       - nation_id
       - non_playable
-    NationAssignmentEnum:
-      enum:
-      - random
-      - ordered
-      type: string
-      description: |-
-        * `random` - Random
-        * `ordered` - Ordered
     NationFlagUpload:
       type: object
       properties:

@@ -41,6 +41,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 2,
@@ -59,6 +60,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 3,
@@ -77,6 +79,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 4,
@@ -95,6 +98,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 5,
@@ -113,6 +117,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 6,
@@ -131,6 +136,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 7,
@@ -149,6 +155,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
 ];
 
@@ -356,7 +363,6 @@ export const mockGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "24 hours",
     retreatPhaseDuration: null,
-    nationAssignment: "manual",
     members: mockMembers,
     victory: null,
     sandbox: false,
@@ -398,7 +404,6 @@ export const mockGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "12 hours",
     retreatPhaseDuration: null,
-    nationAssignment: "random",
     members: mockMembers,
     victory: null,
     sandbox: false,
@@ -440,7 +445,6 @@ export const mockGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "48 hours",
     retreatPhaseDuration: null,
-    nationAssignment: "random",
     members: mockMembers.slice(0, 2),
     victory: null,
     sandbox: false,
@@ -482,7 +486,6 @@ export const mockGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "24 hours",
     retreatPhaseDuration: "12 hours",
-    nationAssignment: "manual",
     members: mockMembers.slice(0, 3),
     victory: null,
     sandbox: false,
@@ -524,7 +527,6 @@ export const mockGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "24 hours",
     retreatPhaseDuration: null,
-    nationAssignment: "manual",
     members: mockMembers,
     victory: {
       id: 1,
@@ -571,7 +573,6 @@ export const mockGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "48 hours",
     retreatPhaseDuration: null,
-    nationAssignment: "random",
     members: mockMembers,
     victory: {
       id: 2,
@@ -636,7 +637,6 @@ export const mockSandboxGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "manual",
     retreatPhaseDuration: null,
-    nationAssignment: "random",
     members: mockMembers,
     victory: null,
     sandbox: true,
@@ -678,7 +678,6 @@ export const mockSandboxGames: GameList[] = [
     anonymous: false,
     movementPhaseDuration: "manual",
     retreatPhaseDuration: null,
-    nationAssignment: "random",
     members: mockMembers,
     victory: null,
     sandbox: true,

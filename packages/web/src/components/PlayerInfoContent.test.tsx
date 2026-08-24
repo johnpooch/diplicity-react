@@ -6,6 +6,15 @@ import { describe, it, expect, vi } from "vitest";
 
 import { PlayerInfoContent } from "./PlayerInfoContent";
 
+const mockNavigate = vi.fn();
+vi.mock("react-router", async importOriginal => {
+  const actual = await importOriginal<typeof import("react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 const mockGameData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
@@ -77,13 +86,17 @@ const baseMember = {
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
   removable: false,
+  nationPreferenceIds: [],
 };
 
 const classicalVariant = {
   id: "classical",
   name: "Classical",
   nations: Array.from({ length: 7 }, (_, index) => ({
+    nationId: `nation-${index}`,
     name: `Nation ${index}`,
+    color: "#cccccc",
+    flagUrl: null,
     nonPlayable: false,
   })),
 };
@@ -549,5 +562,137 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.getByRole("button", { name: "Replace" })).toBeInTheDocument();
+  });
+  it("does not announce assigned nations while pending with a pin", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", nation: "England" },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, nation: null },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.queryByText(/the game master has assigned some nations/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("names the assigned nation on the current user's seat while pending", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      members: [{ ...baseMember, nation: "England" }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByRole("button", { name: /England/ })).toBeInTheDocument();
+  });
+
+  it("invites the current user to set preferences while pending", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      members: [
+        { ...baseMember, nation: null },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, nation: null },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    const seat = screen.getAllByRole("button", { name: /choose nation preferences/i });
+    expect(seat).toHaveLength(1);
+
+    await user.click(seat[0]);
+
+    expect(mockNavigate).toHaveBeenCalledWith("/nation-preference/game-1");
+  });
+
+  it("marks the current user's seat once preferences are provided", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      members: [
+        { ...baseMember, nation: null, nationPreferenceIds: ["nation-1", "nation-2"] },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.getByRole("button", { name: /nation preferences provided/i })
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer nation preferences once the game is active", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.queryByRole("button", { name: /nation preferences/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers nation assignment to the game master while pending", () => {
+    mockUserProfileData.mockReturnValue({ canCreateBotGames: true, userId: 9 });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      gameMaster: { userId: 9, name: "GM", picture: null },
+      members: [{ ...baseMember, isCurrentUser: false, nation: null }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.getByRole("button", { name: /assign nations/i })
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer nation assignment to players", () => {
+    mockUserProfileData.mockReturnValue({ canCreateBotGames: true, userId: 1 });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      gameMaster: { userId: 9, name: "GM", picture: null },
+      members: [{ ...baseMember, nation: null }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.queryByRole("button", { name: /assign nations/i })
+    ).not.toBeInTheDocument();
   });
 });

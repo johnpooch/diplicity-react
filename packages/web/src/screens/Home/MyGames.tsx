@@ -27,7 +27,7 @@ const statuses = [
     value: "completed",
     label: "Finished",
     statusFilter: "completed,abandoned",
-    ordering: undefined,
+    ordering: "finished",
   },
 ] as const;
 

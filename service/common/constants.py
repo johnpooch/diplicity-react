@@ -127,16 +127,6 @@ class PressType:
     )
 
 
-class NationAssignment:
-    RANDOM = "random"
-    ORDERED = "ordered"
-
-    NATION_ASSIGNMENT_CHOICES = (
-        (RANDOM, "Random"),
-        (ORDERED, "Ordered"),
-    )
-
-
 class MinReliability:
     OPEN = "open"
     RELIABLE_AND_NEW = "reliable_and_new"

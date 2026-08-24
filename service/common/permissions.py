@@ -216,6 +216,14 @@ class IsGameManager(BasePermission):
         return game.admin_id == request.user.id
 
 
+class IsGameMaster(BasePermission):
+    message = "Only the game master can perform this action."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.game_master_id is not None and game.game_master_id == request.user.id
+
+
 class IsNotGameMaster(BasePermission):
     message = "The game master cannot join the game as a player."
 

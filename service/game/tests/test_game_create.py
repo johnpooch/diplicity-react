@@ -13,7 +13,6 @@ def fixed_time_payload(variant_id):
     return {
         "name": "Test Fixed Time Game",
         "variant_id": variant_id,
-        "nation_assignment": "random",
         "private": False,
         "deadline_mode": "fixed_time",
         "fixed_deadline_time": "09:00:00",
@@ -27,7 +26,6 @@ def duration_payload(variant_id):
     return {
         "name": "Test Duration Game",
         "variant_id": variant_id,
-        "nation_assignment": "random",
         "private": False,
         "deadline_mode": "duration",
         "movement_phase_duration": "12 hours",

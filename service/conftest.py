@@ -991,18 +991,18 @@ def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, cla
 
 
 @pytest.fixture
-def active_game_with_eliminated_member(db, active_game_with_phase_state, secondary_user, classical_england_nation):
+def active_game_with_eliminated_member(db, active_game_with_phase_state, secondary_user, classical_france_nation):
     member = active_game_with_phase_state.members.create(
-        user=secondary_user, eliminated=True, nation=classical_england_nation
+        user=secondary_user, eliminated=True, nation=classical_france_nation
     )
     active_game_with_phase_state.current_phase.phase_states.create(member=member)
     return active_game_with_phase_state
 
 
 @pytest.fixture
-def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_user, classical_england_nation):
+def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_user, classical_france_nation):
     member = active_game_with_phase_state.members.create(
-        user=secondary_user, kicked=True, nation=classical_england_nation
+        user=secondary_user, kicked=True, nation=classical_france_nation
     )
     active_game_with_phase_state.current_phase.phase_states.create(member=member)
     return active_game_with_phase_state

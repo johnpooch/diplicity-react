@@ -16,6 +16,7 @@ from django.db.models import (
     Q,
     Subquery,
     Value,
+    prefetch_related_objects,
 )
 from procrastinate.contrib.django import app as procrastinate_app
 from django.db.models.functions import Coalesce
@@ -29,7 +30,6 @@ from common.constants import (
     MinReliability,
     MusterJob,
     MovementPhaseDuration,
-    NationAssignment,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
@@ -47,6 +47,7 @@ from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMember, ChannelMessage
 from adjudicator import service as adjudication_service
+from game.utils import assign_nations
 
 tracer = trace.get_tracer(__name__)
 
@@ -86,7 +87,9 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -151,7 +154,9 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation__flag", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -245,7 +250,9 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation__flag", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -445,7 +452,6 @@ class GameManager(models.Manager):
     def create_sandbox(self, user, *, name, variant, **kwargs):
         kwargs.setdefault("sandbox", True)
         kwargs.setdefault("private", True)
-        kwargs.setdefault("nation_assignment", NationAssignment.ORDERED)
         kwargs.setdefault("movement_phase_duration", None)
 
         with transaction.atomic():
@@ -472,7 +478,6 @@ class GameManager(models.Manager):
             name=name,
             sandbox=True,
             private=True,
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=None,
         )
 
@@ -571,11 +576,6 @@ class Game(BaseModel):
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
         null=True,
         blank=True,
-    )
-    nation_assignment = models.CharField(
-        max_length=20,
-        choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
-        default=NationAssignment.RANDOM,
     )
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
@@ -867,6 +867,7 @@ class Game(BaseModel):
                 current_phase = self.current_phase
             if members is None:
                 members = list(self.members.all())
+            prefetch_related_objects(members, "nation_preferences")
 
             adjudication_data = adjudication_service.start(current_phase)
 
@@ -880,14 +881,11 @@ class Game(BaseModel):
             # Accessing .all() on a prefetched queryset doesn't trigger a new query
             nations = [n for n in self.variant.nations.all() if not n.non_playable]
 
-            if self.nation_assignment == NationAssignment.RANDOM:
-                random.shuffle(members)
-            elif self.nation_assignment == NationAssignment.ORDERED:
-                members.sort(key=lambda m: m.id)
+            assignments = assign_nations(self.id, members, nations)
 
             now = timezone.now()
-            for member, nation in zip(members, nations):
-                member.nation = nation
+            for member in members:
+                member.nation = assignments[member.id]
                 member.nmr_extensions_remaining = self.nmr_extensions_allowed
                 member.updated_at = now
 
