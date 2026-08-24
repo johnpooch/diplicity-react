@@ -1021,6 +1021,42 @@ class TestGameListViewOrdering:
         assert italy_game.id not in ordered_ids
         assert ordered_ids.index(classical_full.id) < ordered_ids.index(classical_empty.id)
 
+    @pytest.mark.django_db
+    def test_ordering_finished_most_recently_finished_first(
+        self, authenticated_client, primary_user, classical_variant, base_pending_phase
+    ):
+        completed_first = Game.objects.create(
+            name="Completed First",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+        )
+        base_pending_phase(completed_first)
+        completed_first.members.create(user=primary_user)
+
+        abandoned_later = Game.objects.create(
+            name="Abandoned Later",
+            variant=classical_variant,
+            status=GameStatus.ABANDONED,
+        )
+        base_pending_phase(abandoned_later)
+        abandoned_later.members.create(user=primary_user)
+
+        Game.objects.filter(id=completed_first.id).update(
+            finished_at=timezone.now() - timedelta(days=2)
+        )
+        Game.objects.filter(id=abandoned_later.id).update(
+            finished_at=timezone.now() - timedelta(days=1)
+        )
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(
+            url, {"mine": "true", "status": "completed,abandoned", "ordering": "finished"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        ordered_ids = [g["id"] for g in response.data["results"]]
+        assert ordered_ids.index(abandoned_later.id) < ordered_ids.index(completed_first.id)
+
 
 class TestGameListViewQueryPerformance:
 
