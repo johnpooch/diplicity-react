@@ -18,6 +18,8 @@ body:
       description: >
         Describe the problem you are facing in as much detail as you can. The more detail, the
         better.
+      placeholder: |
+        I agree a support with Italy on Sunday night, sit down to write orders on Monday, and I cannot remember whether it was Burgundy or Belgium. I have to leave the order screen, find the thread, and scroll back through the weekend. I've submitted the wrong support twice this month because I reconstructed the deal from memory.
     validations:
       required: true
 
@@ -31,7 +33,7 @@ body:
         there. This constraint is deliberate: it's usually the one that produces the best
         answer, and the cheapest one to build.
       placeholder: |
-        1. (no new UI) ...
+        1. ...
         2. ...
         3. ...
     validations:
@@ -42,7 +44,6 @@ body:
     attributes:
       label: Which would you pick, and what do you lose with the others?
       description: >
-        This is the most useful box on the form. Comparing the options forces out what actually
-        matters to you about the problem, which is the thing we can't guess from the outside.
+        Comparing the options forces out what actually matters to you about the problem.
     validations:
       required: true
