@@ -3,6 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver =
+  globalThis.ResizeObserver ??
+  (ResizeObserverMock as unknown as typeof ResizeObserver);
+
 import { GameCard } from "./GameCard";
 import {
   mockGames,
