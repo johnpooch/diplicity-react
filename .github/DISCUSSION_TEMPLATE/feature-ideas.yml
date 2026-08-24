@@ -1,0 +1,55 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to write this up.
+
+        A couple of things worth saying up front:
+
+        - **This is a discussion, not a ticket.** Nothing here is committed to being built. If
+          we work out together that it's a good idea, I'll convert it into an issue. And then
+          implement it.
+        - **The questions below are mostly about the problem, not the fix.** Understanding the
+          problem you are facing is more useful than a proposed solution. We may well end up
+          solving it in a way nobody here suggested.
+        - **As the author, try to gather feedback from other players.** This is a great way to
+          get a sense of how widespread a problem is, and to get ideas from other players.
+        - **Other players: please pile in.** Upvote if you've hit this too, and reply if it
+          bites you differently. Working out how widely a problem is felt is most of what this
+          space is for.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Describe the problem you are facing
+      description: >
+        Describe the problem you are facing in as much detail as you can. The more detail, the
+        better.
+    validations:
+      required: true
+
+  - type: textarea
+    id: approaches
+    attributes:
+      label: Two or three ways this could work
+      description: >
+        Please make them **different in kind**, not variations on the same idea — and include
+        **at least one that adds nothing new to the screen**, reusing something that's already
+        there. This constraint is deliberate: it's usually the one that produces the best
+        answer, and the cheapest one to build.
+      placeholder: |
+        1. (no new UI) ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: preference
+    attributes:
+      label: Which would you pick, and what do you lose with the others?
+      description: >
+        This is the most useful box on the form. Comparing the options forces out what actually
+        matters to you about the problem, which is the thing we can't guess from the outside.
+    validations:
+      required: true
