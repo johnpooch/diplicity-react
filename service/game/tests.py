@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency, UnitType
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, PhaseFrequency, UnitType
 
 from phase.models import Phase
 from nation.models import Nation
@@ -35,7 +35,6 @@ class TestGameRetrieveView:
         assert response.data["name"] == pending_game_created_by_primary_user.name
         assert response.data["status"] == pending_game_created_by_primary_user.status
         assert response.data["movement_phase_duration"] == pending_game_created_by_primary_user.movement_phase_duration
-        assert response.data["nation_assignment"] == pending_game_created_by_primary_user.nation_assignment
         assert response.data["can_join"] == False
         assert response.data["can_leave"] == True
         assert response.data["phase_confirmed"] == False
@@ -70,7 +69,6 @@ class TestGameRetrieveView:
             "name",
             "status",
             "movement_phase_duration",
-            "nation_assignment",
             "can_join",
             "can_leave",
             "phases",
@@ -231,10 +229,12 @@ class TestGameRetrieveView:
         )
         game.members.create(user=primary_user, nation=classical_england_nation)
         replaced = game.members.create(user=secondary_user, nation=classical_france_nation)
-        replacement = game.members.create(user=bot_user, nation=classical_france_nation)
+        replacement = game.members.create(user=bot_user)
         replaced.kicked = True
         replaced.replaced_by = replacement
         replaced.save(update_fields=["kicked", "replaced_by"])
+        replacement.nation = classical_france_nation
+        replacement.save(update_fields=["nation"])
 
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -282,7 +282,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -323,7 +323,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -392,7 +392,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        assert query_count == 5
 
 
 class TestGameCurrentPhase:
@@ -464,10 +464,12 @@ class TestGameListView:
         game = Game.objects.create(name="Replaced Member Game", variant=classical_variant, status=GameStatus.ACTIVE)
         base_pending_phase(game)
         replaced = game.members.create(user=primary_user, nation=classical_england_nation)
-        replacement = game.members.create(user=bot_user, nation=classical_england_nation)
+        replacement = game.members.create(user=bot_user)
         replaced.kicked = True
         replaced.replaced_by = replacement
         replaced.save(update_fields=["kicked", "replaced_by"])
+        replacement.nation = classical_england_nation
+        replacement.save(update_fields=["nation"])
 
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
@@ -532,7 +534,6 @@ class TestGameListView:
                 "name",
                 "status",
                 "movement_phase_duration",
-                "nation_assignment",
                 "can_join",
                 "can_leave",
                 "phases",
@@ -1069,7 +1070,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -1110,7 +1111,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -1161,7 +1162,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -1210,7 +1211,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_hydrates_units_for_current_phase_only(
@@ -1489,7 +1490,6 @@ class TestGameCreateView:
         payload = {
             "name": "New Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1504,7 +1504,6 @@ class TestGameCreateView:
             "name",
             "status",
             "movement_phase_duration",
-            "nation_assignment",
             "can_join",
             "can_leave",
             "phases",
@@ -1521,7 +1520,6 @@ class TestGameCreateView:
         payload = {
             "name": "New Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1529,27 +1527,10 @@ class TestGameCreateView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_create_game_with_ordered_nation_assignment(self, authenticated_client, classical_variant):
-        url = reverse(create_viewname)
-        payload = {
-            "name": "Ordered Game",
-            "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.ORDERED,
-            "private": False,
-            "deadline_mode": DeadlineMode.DURATION,
-        }
-        response = authenticated_client.post(url, payload, format="json")
-        assert response.status_code == status.HTTP_201_CREATED
-
-        game = Game.objects.get(id=response.data["id"])
-        assert game.nation_assignment == NationAssignment.ORDERED
-
-    @pytest.mark.django_db
     def test_create_game_missing_name(self, authenticated_client, classical_variant):
         url = reverse(create_viewname)
         payload = {
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1562,26 +1543,12 @@ class TestGameCreateView:
         url = reverse(create_viewname)
         payload = {
             "name": "Test Game",
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "variant_id" in response.data
-
-    @pytest.mark.django_db
-    def test_create_game_missing_nation_assignment(self, authenticated_client, classical_variant):
-        url = reverse(create_viewname)
-        payload = {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "private": False,
-            "deadline_mode": DeadlineMode.DURATION,
-        }
-        response = authenticated_client.post(url, payload, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "nation_assignment" in response.data
 
     @pytest.mark.django_db
     def test_create_game_invalid_variant_id(self, authenticated_client):
@@ -1589,7 +1556,6 @@ class TestGameCreateView:
         payload = {
             "name": "Test Game",
             "variant_id": "non-existent-variant",
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1598,25 +1564,11 @@ class TestGameCreateView:
         assert "variant_id" in response.data
 
     @pytest.mark.django_db
-    def test_create_game_invalid_nation_assignment(self, authenticated_client, classical_variant):
-        url = reverse(create_viewname)
-        payload = {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "nation_assignment": "invalid-assignment",
-            "private": False,
-            "deadline_mode": DeadlineMode.DURATION,
-        }
-        response = authenticated_client.post(url, payload, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    @pytest.mark.django_db
     def test_create_game_empty_name(self, authenticated_client, classical_variant):
         url = reverse(create_viewname)
         payload = {
             "name": "",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1629,7 +1581,6 @@ class TestGameCreateView:
         payload = {
             "name": "Membership Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1646,7 +1597,6 @@ class TestGameCreateView:
         payload = {
             "name": "Channel Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1664,7 +1614,6 @@ class TestGameCreateView:
         payload = {
             "name": "Phase Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1684,7 +1633,6 @@ class TestGameCreateView:
         payload = {
             "name": "Unique ID Test",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1702,7 +1650,6 @@ class TestGameCreateView:
         payload = {
             "name": "Test Game! @#$%^&*()",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1716,7 +1663,6 @@ class TestGameCreateView:
         payload = {
             "name": "Тест Игра 测试游戏 🎮",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1731,14 +1677,12 @@ class TestGameCreateView:
         payload1 = {
             "name": "Game 1",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
         payload2 = {
             "name": "Game 2",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1765,7 +1709,6 @@ class TestGameCreateView:
         payload = {
             "name": "Join Leave Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1785,7 +1728,6 @@ class TestGameCreateView:
         payload = {
             "name": "Private Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": True,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1803,7 +1745,6 @@ class TestGameCreateView:
         payload = {
             "name": "Public Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -1817,7 +1758,6 @@ class TestGameCreateView:
         payload = {
             "name": "Default Deadline Mode Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "fixed_deadline_time": "21:00:00",
             "fixed_deadline_timezone": "America/New_York",
@@ -1839,7 +1779,6 @@ class TestGameCreateView:
         payload = {
             "name": "Fixed Time Game Missing Time",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.FIXED_TIME,
             "fixed_deadline_timezone": "America/New_York",
@@ -1855,7 +1794,6 @@ class TestGameCreateView:
         payload = {
             "name": "Fixed Time Game Missing Timezone",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.FIXED_TIME,
             "fixed_deadline_time": "21:00:00",
@@ -1871,7 +1809,6 @@ class TestGameCreateView:
         payload = {
             "name": "Fixed Time Game Missing Frequency",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.FIXED_TIME,
             "fixed_deadline_time": "21:00:00",
@@ -1887,7 +1824,6 @@ class TestGameCreateView:
         payload = {
             "name": "Fixed Time Game Invalid Timezone",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.FIXED_TIME,
             "fixed_deadline_time": "21:00:00",
@@ -1904,7 +1840,6 @@ class TestGameCreateView:
         payload = {
             "name": "Fixed Time Game Success",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.FIXED_TIME,
             "fixed_deadline_time": "21:00:00",
@@ -1933,7 +1868,6 @@ class TestGameCreateView:
         payload = {
             "name": "Duration Mode Clears Fixed Fields",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
             "fixed_deadline_time": "21:00:00",
@@ -1960,7 +1894,6 @@ class TestGameCreateView:
         payload = {
             "name": "Test Fixed Deadline Fields In Response",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.FIXED_TIME,
             "fixed_deadline_time": "09:00:00",
@@ -2006,7 +1939,6 @@ class TestGameCreateViewPerformance:
         payload = {
             "name": "Performance Test Game",
             "variant_id": italy_vs_germany_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -2018,7 +1950,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 47
+        assert query_count == 48
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -2026,7 +1958,6 @@ class TestGameCreateViewPerformance:
         payload = {
             "name": "Classical Performance Test",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -2038,7 +1969,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 47
+        assert query_count == 48
 
 
 class TestGamePrivateFiltering:
@@ -2049,7 +1980,6 @@ class TestGamePrivateFiltering:
         private_game = Game.objects.create_from_template(
             classical_variant,
             name="Private Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=True,
         )
         private_game.members.create(user=secondary_user)
@@ -2058,7 +1988,6 @@ class TestGamePrivateFiltering:
         public_game = Game.objects.create_from_template(
             classical_variant,
             name="Public Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=False,
         )
         public_game.members.create(user=secondary_user)
@@ -2078,7 +2007,6 @@ class TestGamePrivateFiltering:
         private_game = Game.objects.create_from_template(
             classical_variant,
             name="My Private Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=True,
         )
         private_game.members.create(user=primary_user)
@@ -2097,7 +2025,6 @@ class TestGamePrivateFiltering:
         private_game = Game.objects.create_from_template(
             classical_variant,
             name="Private Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=True,
         )
         private_game.members.create(user=secondary_user)
@@ -2186,7 +2113,6 @@ class TestGameDurationOptions:
         payload = {
             "name": f"Test Game {duration}",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "movement_phase_duration": duration,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
@@ -2207,7 +2133,6 @@ class TestRetreatPhaseDuration:
         payload = {
             "name": "Game with Retreat Duration",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
             "retreat_phase_duration": MovementPhaseDuration.TWELVE_HOURS,
             "private": False,
@@ -2227,7 +2152,6 @@ class TestRetreatPhaseDuration:
         payload = {
             "name": "Game without Retreat Duration",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "movement_phase_duration": MovementPhaseDuration.FORTY_EIGHT_HOURS,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
@@ -2296,7 +2220,6 @@ class TestRetreatPhaseDuration:
         game = Game.objects.create_from_template(
             classical_variant,
             name="API Response Test",
-            nation_assignment=NationAssignment.RANDOM,
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
             private=False,
@@ -2390,7 +2313,6 @@ class TestSandboxGameCreation:
         assert game.sandbox is True
         assert game.private is True
         assert game.movement_phase_duration is None
-        assert game.nation_assignment == NationAssignment.ORDERED
         assert game.members.count() == 7
         assert all(member.user == primary_user for member in game.members.all())
         assert game.channels.count() == 0
@@ -2474,7 +2396,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 52
+        assert query_count == 54
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2495,7 +2417,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 52
+        assert query_count == 54
 
 
 class TestSandboxGameFiltering:
@@ -2505,7 +2427,6 @@ class TestSandboxGameFiltering:
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=False,
         )
         regular_game.members.create(user=primary_user)
@@ -2515,7 +2436,6 @@ class TestSandboxGameFiltering:
             name="Sandbox Game",
             sandbox=True,
             private=True,
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=None,
         )
         sandbox_game.members.create(user=primary_user)
@@ -2533,7 +2453,6 @@ class TestSandboxGameFiltering:
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=False,
         )
         regular_game.members.create(user=primary_user)
@@ -2543,7 +2462,6 @@ class TestSandboxGameFiltering:
             name="Sandbox Game",
             sandbox=True,
             private=True,
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=None,
         )
         sandbox_game.members.create(user=primary_user)
@@ -2561,7 +2479,6 @@ class TestSandboxGameFiltering:
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=False,
         )
         regular_game.members.create(user=primary_user)
@@ -2571,7 +2488,6 @@ class TestSandboxGameFiltering:
             name="Sandbox Game",
             sandbox=True,
             private=True,
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=None,
         )
         sandbox_game.members.create(user=primary_user)
@@ -2589,7 +2505,6 @@ class TestSandboxGameFiltering:
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
-            nation_assignment=NationAssignment.RANDOM,
             private=False,
         )
         regular_game.members.create(user=primary_user)
@@ -2599,7 +2514,6 @@ class TestSandboxGameFiltering:
             name="Sandbox Game",
             sandbox=True,
             private=True,
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=None,
         )
         sandbox_game.members.create(user=primary_user)
@@ -2736,7 +2650,6 @@ class TestGameCreator:
         payload = {
             "name": "Game Creator Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -2753,7 +2666,6 @@ class TestGameCreator:
         payload = {
             "name": "Game Creator API Test",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }
@@ -2915,7 +2827,6 @@ class TestGameCloneToSandbox:
                 name=f"Existing Sandbox {len(existing_sandboxes)}",
                 sandbox=True,
                 private=True,
-                nation_assignment=NationAssignment.ORDERED,
                 movement_phase_duration=None,
             )
             sandbox.members.create(user=primary_user)
@@ -3505,7 +3416,6 @@ class TestGameNmrExtensions:
         response = authenticated_client.post(url, {
             "name": "Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "movement_phase_duration": "24 hours",
             "private": False,
             "nmr_extensions_allowed": 2,
@@ -3522,7 +3432,6 @@ class TestGameNmrExtensions:
         response = authenticated_client.post(url, {
             "name": "Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "movement_phase_duration": "24 hours",
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
@@ -3538,7 +3447,6 @@ class TestGameNmrExtensions:
         response = authenticated_client.post(url, {
             "name": "Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "movement_phase_duration": "24 hours",
             "private": False,
             "nmr_extensions_allowed": 3,
@@ -3554,7 +3462,6 @@ class TestGameNmrExtensions:
         response = authenticated_client.post(url, {
             "name": "Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "movement_phase_duration": "24 hours",
             "private": False,
             "nmr_extensions_allowed": -1,
@@ -3719,7 +3626,6 @@ class TestCreateSandboxManagerMethod:
         assert game.private is True
         assert game.status == GameStatus.ACTIVE
         assert game.movement_phase_duration is None
-        assert game.nation_assignment == NationAssignment.ORDERED
         assert game.name == "Test Sandbox"
         assert game.variant == classical_variant
 

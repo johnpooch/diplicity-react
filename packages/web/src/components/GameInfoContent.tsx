@@ -1,13 +1,19 @@
 import React from "react";
-import { BookOpen, Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, ShieldCheck, MessageSquare, MessageSquareOff } from "lucide-react";
+import { useNavigate } from "react-router";
+import { BookOpen, Calendar, Clock, Users, Flag, Lock, Unlock, User, Map, Trophy, Pause, Shield, ShieldCheck, MessageSquare, MessageSquareOff } from "lucide-react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { getNationSeatState } from "@/components/NationSeat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
+import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
+  useUserRetrieveSuspense,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
@@ -67,8 +73,14 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
+  const navigate = useNavigate();
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: userProfile } = useUserRetrieveSuspense();
   const variant = useGameVariant(game);
+  const currentMember = game.members.find(m => m.isCurrentUser);
+  const isPending = game.status === "pending";
+  const isGameMaster =
+    !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -77,9 +89,41 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
     { query: { enabled: !!currentPhaseId } }
   );
 
+  const nationSeatAlert = isPending && currentMember && (
+    <Alert>
+      <Flag className="size-4" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <AlertDescription>
+          {
+            {
+              assigned: `The Game Master assigned you ${currentMember.nation}.`,
+              ranked: "You have provided nation preferences.",
+              unset: "You have not chosen which nations you want to play.",
+            }[getNationSeatState(currentMember.nation, currentMember.nationPreferenceIds)]
+          }
+        </AlertDescription>
+        {!currentMember.nation && (
+          <div className="shrink-0 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => navigate(`/nation-preference/${gameId}`)}
+            >
+              {(currentMember.nationPreferenceIds?.length ?? 0) > 0
+                ? "Edit Preferences"
+                : "Set Nation Preferences"}
+            </Button>
+          </div>
+        )}
+      </div>
+    </Alert>
+  );
+
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
+      {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
+      {nationSeatAlert}
       <ScreenCard>
         <ScreenCardHeader>
           <CardTitle>{game.name}</CardTitle>

@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.urls import reverse
 from rest_framework import status
 
-from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseStatus
+from common.constants import DeadlineMode, GameStatus, PhaseStatus
 from game.models import Game
 from province.models import Province
 from agent import tasks
@@ -28,7 +28,6 @@ def _create_bot_game(client, variant_id):
         {
             "name": "Bot Integration Game",
             "variant_id": variant_id,
-            "nation_assignment": NationAssignment.ORDERED,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         },

@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from adjudicator import service as adjudication_service
-from common.constants import DeadlineMode, MovementPhaseDuration, NationAssignment
+from common.constants import DeadlineMode, MovementPhaseDuration
 from game.models import Game
 
 
@@ -13,7 +13,6 @@ def bot_game_factory(db, primary_user, bot_user, italy_vs_germany_variant, adjud
         game = Game.objects.create_from_template(
             italy_vs_germany_variant,
             name="Bot Game",
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             deadline_mode=DeadlineMode.DURATION,
             created_by=primary_user,

@@ -1,5 +1,7 @@
 import pytest
 from unittest.mock import patch
+from django.db import connection
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -13,7 +15,7 @@ from notification.models import Notification
 from order.models import Order
 from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile
-from common.constants import Commitment, CommitmentRequirement, GameStatus, NationAssignment, OrderType, PhaseStatus, UserKind
+from common.constants import Commitment, CommitmentRequirement, GameStatus, OrderType, PhaseStatus, UserKind
 
 User = get_user_model()
 
@@ -22,6 +24,7 @@ seat_viewname = "game-member-create"
 legacy_join_viewname = "game-join-legacy"
 legacy_seat_viewname = "game-add-bot-legacy"
 retrieve_viewname = "game-retrieve"
+list_viewname = "game-list"
 recovery_viewname = "civil-disorder-recovery"
 
 
@@ -926,7 +929,6 @@ def test_game_start_phase_not_immediately_resolvable(classical_variant, primary_
     game = Game.objects.create_from_template(
         classical_variant,
         name="Test Duration Game",
-        nation_assignment=NationAssignment.ORDERED,
         deadline_mode=DeadlineMode.DURATION,
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
@@ -1499,7 +1501,6 @@ def _create_game_via_api(client, variant_id, **overrides):
     payload = {
         "name": "Bot Seat Game",
         "variant_id": variant_id,
-        "nation_assignment": NationAssignment.RANDOM,
         "private": False,
         "deadline_mode": "duration",
         "movement_phase_duration": "24 hours",
@@ -1759,3 +1760,295 @@ class TestLegacyMemberCreateView:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+preference_viewname = "game-member-nation-preference"
+assign_viewname = "game-member-nation-assign"
+
+
+class TestMemberNationPreferenceView:
+
+    @pytest.mark.django_db
+    def test_get_defaults_to_empty_list(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["nation_ids"] == []
+
+    @pytest.mark.django_db
+    def test_put_and_get_roundtrip(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.put(url, {"nation_ids": ["france", "england"]}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["nation_ids"] == ["france", "england"]
+        response = authenticated_client.get(url)
+        assert response.data["nation_ids"] == ["france", "england"]
+
+    @pytest.mark.django_db
+    def test_put_replaces_existing_ranking(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        authenticated_client.put(url, {"nation_ids": ["france", "england"]}, format="json")
+        response = authenticated_client.put(url, {"nation_ids": ["england", "france", "turkey"]}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["nation_ids"] == ["england", "france", "turkey"]
+
+    @pytest.mark.django_db
+    def test_put_empty_list_clears_preferences(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        authenticated_client.put(url, {"nation_ids": ["france"]}, format="json")
+        response = authenticated_client.put(url, {"nation_ids": []}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["nation_ids"] == []
+
+    @pytest.mark.django_db
+    def test_duplicate_nations_rejected(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.put(url, {"nation_ids": ["france", "france"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_nation_from_another_variant_rejected(
+        self, authenticated_client, pending_game_created_by_primary_user, italy_vs_germany_variant
+    ):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.put(url, {"nation_ids": ["nonexistent-nation"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_non_playable_nation_rejected(self, authenticated_client, pending_game_created_by_primary_user):
+        game = pending_game_created_by_primary_user
+        game.variant.nations.create(nation_id="neutral", name="Neutral", color="#000000", non_playable=True)
+        url = reverse(preference_viewname, args=[game.id])
+        response = authenticated_client.put(url, {"nation_ids": ["neutral"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_non_member_forbidden(
+        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+    ):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client_for_secondary_user.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_game_master_forbidden(self, authenticated_client, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
+        url = reverse(preference_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_active_game_forbidden(self, authenticated_client, active_game_with_phase_state):
+        url = reverse(preference_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client.put(url, {"nation_ids": ["france"]}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestMemberNationPreferenceIdsField:
+
+    @pytest.mark.django_db
+    def test_defaults_to_empty_list(self, authenticated_client, pending_game_created_by_primary_user):
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["nation_preference_ids"] == []
+
+    @pytest.mark.django_db
+    def test_own_preferences_are_listed_in_rank_order(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        authenticated_client.put(url, {"nation_ids": ["turkey", "france", "england"]}, format="json")
+
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
+
+        assert response.data["members"][0]["nation_preference_ids"] == ["turkey", "france", "england"]
+
+    @pytest.mark.django_db
+    def test_another_members_preferences_are_not_exposed(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_primary_user
+        game.seat(secondary_user)
+        authenticated_client_for_secondary_user.put(
+            reverse(preference_viewname, args=[game.id]), {"nation_ids": ["france"]}, format="json"
+        )
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        preferences = {
+            member["name"]: member["nation_preference_ids"] for member in response.data["members"]
+        }
+        assert preferences[secondary_user.profile.name] == []
+
+    @pytest.mark.django_db
+    def test_exposed_in_the_games_list(self, authenticated_client, pending_game_created_by_primary_user):
+        authenticated_client.put(
+            reverse(preference_viewname, args=[pending_game_created_by_primary_user.id]),
+            {"nation_ids": ["russia"]},
+            format="json",
+        )
+
+        response = authenticated_client.get(reverse("game-list"), {"mine": "true"})
+
+        game = next(
+            g for g in response.data["results"] if g["id"] == pending_game_created_by_primary_user.id
+        )
+        assert game["members"][0]["nation_preference_ids"] == ["russia"]
+
+    @pytest.mark.django_db
+    def test_listing_does_not_query_per_member(
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        user_factory,
+        classical_france_nation,
+        classical_england_nation,
+    ):
+        game = pending_game_created_by_primary_user
+
+        def rank(member):
+            Member.objects.set_nation_preferences(
+                member, [classical_france_nation, classical_england_nation]
+            )
+
+        def list_query_count():
+            connection.queries_log.clear()
+            with override_settings(DEBUG=True):
+                response = authenticated_client.get(reverse(list_viewname))
+            assert response.status_code == status.HTTP_200_OK
+            return len(connection.queries)
+
+        for member in game.members.all():
+            rank(member)
+        few_members_count = list_query_count()
+
+        for index in range(5):
+            rank(game.members.create(user=user_factory(f"ranker{index}")))
+        many_members_count = list_query_count()
+
+        assert many_members_count == few_members_count
+
+
+class TestMemberNationAssignView:
+
+    def _game_with_member(self, factory, secondary_user):
+        game = factory()
+        member = game.members.create(user=secondary_user)
+        return game, member
+
+    @pytest.mark.django_db
+    def test_game_master_can_pin_nation(
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user
+    ):
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        response = authenticated_client.put(url, {"nation_id": "france"}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        member.refresh_from_db()
+        assert member.nation.nation_id == "france"
+
+    @pytest.mark.django_db
+    def test_game_master_can_repin_same_member(
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user
+    ):
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        authenticated_client.put(url, {"nation_id": "france"}, format="json")
+        response = authenticated_client.put(url, {"nation_id": "england"}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        member.refresh_from_db()
+        assert member.nation.nation_id == "england"
+
+    @pytest.mark.django_db
+    def test_game_master_can_unpin_nation(
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user
+    ):
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        authenticated_client.put(url, {"nation_id": "france"}, format="json")
+        response = authenticated_client.delete(url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        member.refresh_from_db()
+        assert member.nation is None
+
+    @pytest.mark.django_db
+    def test_pinning_nation_held_by_another_member_rejected(
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user, tertiary_user
+    ):
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        other = game.members.create(user=tertiary_user)
+        authenticated_client.put(reverse(assign_viewname, args=[game.id, member.id]), {"nation_id": "france"}, format="json")
+        response = authenticated_client.put(
+            reverse(assign_viewname, args=[game.id, other.id]), {"nation_id": "france"}, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        other.refresh_from_db()
+        assert other.nation is None
+
+    @pytest.mark.django_db
+    def test_constraint_holds_when_validation_bypassed(
+        self, db, pending_game_with_game_master_factory, secondary_user, tertiary_user, classical_france_nation
+    ):
+        from django.db import IntegrityError
+
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        Member.objects.assign_nation(member, classical_france_nation)
+        with pytest.raises(IntegrityError):
+            game.members.create(user=tertiary_user, nation=classical_france_nation)
+
+    @pytest.mark.django_db
+    def test_invalid_nation_rejected(
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user
+    ):
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        response = authenticated_client.put(url, {"nation_id": "not-a-nation"}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_non_game_master_member_forbidden(
+        self, authenticated_client_for_secondary_user, pending_game_with_game_master_factory, secondary_user
+    ):
+        game, member = self._game_with_member(pending_game_with_game_master_factory, secondary_user)
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_secondary_user.put(url, {"nation_id": "france"}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_no_game_master_forbidden(self, authenticated_client, pending_game_created_by_primary_user, primary_user):
+        game = pending_game_created_by_primary_user
+        member = game.members.get(user=primary_user)
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        response = authenticated_client.put(url, {"nation_id": "france"}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_active_game_forbidden(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
+        member = game.members.first()
+        url = reverse(assign_viewname, args=[game.id, member.id])
+        response = authenticated_client.put(url, {"nation_id": "france"}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_unknown_member_returns_404(
+        self, authenticated_client, pending_game_with_game_master_factory
+    ):
+        game = pending_game_with_game_master_factory()
+        url = reverse(assign_viewname, args=[game.id, 999999])
+        response = authenticated_client.put(url, {"nation_id": "france"}, format="json")
+        assert response.status_code == status.HTTP_404_NOT_FOUND

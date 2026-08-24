@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from agent import tasks
-from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus, UserKind
+from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, PhaseStatus, UserKind
 from game.models import Game
 from inference.models import Inference
 from integration.scoring import sum_of_squares
@@ -25,7 +25,6 @@ def _create_game_master_game(client, variant_id):
         {
             "name": "Dumbbot Integration Game",
             "variant_id": variant_id,
-            "nation_assignment": NationAssignment.ORDERED,
             "private": True,
             "game_master": True,
             "deadline_mode": DeadlineMode.DURATION,

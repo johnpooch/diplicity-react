@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
-import { NationFlag, findNationColor, findNationFlagUrl } from "./NationFlag";
+import { NationSeatPill } from "./NationSeat";
 import {
   UserPlus,
   Info,
@@ -291,31 +291,29 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     <div className="flex flex-wrap items-center gap-2">{badges}</div>
   );
 
-  const nationColor = findNationColor(variant.nations, playerNation);
-  const nationFlagUrl = findNationFlagUrl(variant.nations, playerNation);
+  const seatPillPosition = "absolute bottom-2 left-2 md:left-auto md:right-2";
 
   const nationPill = !game.sandbox &&
-    (isActive || isFinished) &&
-    playerNation && (
-      <div
-        className="pointer-events-none absolute bottom-2 left-2 md:left-auto md:right-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-full border bg-background px-2 py-1"
-        style={{ borderColor: nationColor ?? undefined }}
-      >
-        {nationFlagUrl ? (
-          <NationFlag
-            flagUrl={nationFlagUrl}
-            size="sm"
-            className="shrink-0 ring-1 ring-black/10"
-          />
-        ) : (
-          <span
-            className="size-4 shrink-0 rounded-full ring-1 ring-black/10"
-            style={{ backgroundColor: nationColor ?? undefined }}
-          />
-        )}
-        <span className="truncate text-xs font-medium">{playerNation}</span>
-      </div>
-    );
+    currentMember &&
+    (isPending ? (
+      <NationSeatPill
+        nations={variant.nations}
+        nation={playerNation}
+        preferenceIds={currentMember.nationPreferenceIds}
+        className={seatPillPosition}
+        onClick={() => navigate(`/nation-preference/${game.id}`)}
+      />
+    ) : (
+      (isActive || isFinished) &&
+      playerNation && (
+        <NationSeatPill
+          nations={variant.nations}
+          nation={playerNation}
+          preferenceIds={[]}
+          className={seatPillPosition}
+        />
+      )
+    ));
 
   const unreadPill = !game.sandbox &&
     (isActive || isFinished) &&
