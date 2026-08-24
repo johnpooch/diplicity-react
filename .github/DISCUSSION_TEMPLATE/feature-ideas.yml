@@ -6,17 +6,10 @@ body:
 
         A couple of things worth saying up front:
 
-        - **This is a discussion, not a ticket.** Nothing here is committed to being built. If
-          we work out together that it's a good idea, I'll convert it into an issue. And then
-          implement it.
-        - **The questions below are mostly about the problem, not the fix.** Understanding the
-          problem you are facing is more useful than a proposed solution. We may well end up
-          solving it in a way nobody here suggested.
-        - **As the author, try to gather feedback from other players.** This is a great way to
-          get a sense of how widespread a problem is, and to get ideas from other players.
-        - **Other players: please pile in.** Upvote if you've hit this too, and reply if it
-          bites you differently. Working out how widely a problem is felt is most of what this
-          space is for.
+        - **This is a discussion, not a ticket.** Nothing here is committed to being built. If we work out together that it's a good idea, I'll convert it into an issue. And then implement it.
+        - **The questions below are mostly about the problem, not the fix.** Understanding the problem you are facing is more useful than a proposed solution. We may well end up solving it in a way nobody here suggested.
+        - **As the author, try to gather feedback from other players.** This is a great way to get a sense of how widespread a problem is, and to get ideas from other players.
+        - **Other players: please pile in.** Upvote if you've hit this too, and reply if it bites you differently. Working out how widely a problem is felt is most of what this space is for.
 
   - type: textarea
     id: problem
