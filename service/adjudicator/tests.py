@@ -5118,14 +5118,21 @@ def _edges(*pairs) -> dict:
     return by_loc
 
 
-def make_variant(*, allow_non_home: bool = False) -> Variant:
+def make_variant(
+    *,
+    allow_non_home: bool = False,
+    any_home: bool = False,
+    neutral_home: bool = False,
+) -> Variant:
     """Construct the minimal test variant used across all engine tests.
 
     Provinces:
       - "lhs", "rhs", "ldd" : land. lhs and rhs are home SCs; ldd is a
         landlocked home SC of north (used for the fleet-in-landlocked
         build test).
-      - "mid"               : coastal SC, no home nation (neutral SC).
+      - "mid"               : coastal SC, no home nation (neutral SC),
+        unless `neutral_home` is set, in which case it is a home center
+        of the non-playable "neutral" nation.
       - "mlc"               : coastal SC, home of north, with two named
         coasts (mlc/nc, mlc/sc) — used for the fleet-multi-coast test.
       - "iso", "far"        : coastal non-SC; iso is adjacent to mid,
@@ -5135,6 +5142,13 @@ def make_variant(*, allow_non_home: bool = False) -> Variant:
     The `allow_non_home` flag adds the adjudication modifier that
     permits builds in any owned supply center, exercising the
     BuildLocationIsHomeCenter check from both sides.
+
+    The `any_home` flag adds the adjudication modifier that permits
+    builds in any owned supply center that is a home center of any
+    nation, including non-playable neutral nations.
+
+    The `neutral_home` flag makes "mid" a home center of a non-playable
+    "neutral" nation instead of having no home nation.
     """
     edges = _edges(
         ("lhs", "rhs", "both"),
@@ -5159,7 +5173,11 @@ def make_variant(*, allow_non_home: bool = False) -> Variant:
             "rhs", ProvinceType.LAND, sc=True, home=SOUTH, adj=edges.get("rhs", ())
         ),
         "mid": _province(
-            "mid", ProvinceType.COASTAL, sc=True, home=None, adj=edges.get("mid", ())
+            "mid",
+            ProvinceType.COASTAL,
+            sc=True,
+            home="neutral" if neutral_home else None,
+            adj=edges.get("mid", ()),
         ),
         "ldd": _province(
             "ldd", ProvinceType.LAND, sc=True, home=NORTH, adj=edges.get("ldd", ())
@@ -5207,6 +5225,19 @@ def make_variant(*, allow_non_home: bool = False) -> Variant:
             ),
         ),
     )
+    modifiers = []
+    if allow_non_home:
+        modifiers.append("allow-builds-in-non-home-centers")
+    if any_home:
+        modifiers.append("allow-builds-in-any-home-center")
+    nations = [
+        Nation(id=NORTH, name="North", color="#000000"),
+        Nation(id=SOUTH, name="South", color="#ffffff"),
+    ]
+    if neutral_home:
+        nations.append(
+            Nation(id="neutral", name="Neutral", color="#888888", non_playable=True)
+        )
     return Variant(
         id="test",
         name="Test",
@@ -5214,14 +5245,9 @@ def make_variant(*, allow_non_home: bool = False) -> Variant:
         author="",
         victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
         rules=None,
-        adjudication_modifiers=(
-            ("allow-builds-in-non-home-centers",) if allow_non_home else ()
-        ),
+        adjudication_modifiers=tuple(modifiers),
         phase_progression=progression,
-        nations=(
-            Nation(id=NORTH, name="North", color="#000000"),
-            Nation(id=SOUTH, name="South", color="#ffffff"),
-        ),
+        nations=tuple(nations),
         provinces=provinces,
         named_coasts=named_coasts,
         dominance_rules=(),
@@ -7007,6 +7033,112 @@ def test_build_at_non_home_center_with_modifier_is_ok():
 
     assert _resolution(result, "mid") == Status.OK
     assert _unit_at(result, "mid") is not None
+
+
+def test_build_at_captured_enemy_home_center_without_modifier_is_illegal():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="lhs"),
+        ],
+        orders=[
+            RawOrder(
+                nation=SOUTH,
+                source="lhs",
+                order_type="Build",
+                target="lhs",
+                unit_type=Unit.ARMY,
+            )
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "lhs") == Status.ILLEGAL
+
+
+def test_build_at_captured_enemy_home_center_with_any_home_modifier_is_ok():
+    variant = make_variant(any_home=True)
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="lhs"),
+        ],
+        orders=[
+            RawOrder(
+                nation=SOUTH,
+                source="lhs",
+                order_type="Build",
+                target="lhs",
+                unit_type=Unit.ARMY,
+            )
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "lhs") == Status.OK
+    assert _unit_at(result, "lhs") is not None
+
+
+def test_build_at_neutral_home_center_with_any_home_modifier_is_ok():
+    variant = make_variant(any_home=True, neutral_home=True)
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=NORTH, province="lhs"),
+            SupplyCenter(nation=NORTH, province="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="mid",
+                order_type="Build",
+                target="mid",
+                unit_type=Unit.ARMY,
+            )
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "mid") == Status.OK
+    assert _unit_at(result, "mid") is not None
+
+
+def test_build_at_no_home_nation_sc_with_any_home_modifier_is_illegal():
+    variant = make_variant(any_home=True)
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=NORTH, province="lhs"),
+            SupplyCenter(nation=NORTH, province="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="mid",
+                order_type="Build",
+                target="mid",
+                unit_type=Unit.ARMY,
+            )
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "mid") == Status.ILLEGAL
 
 
 def test_build_at_occupied_province_is_illegal():
@@ -10965,6 +11097,24 @@ def test_options_adjustment_build_excludes_non_home_sc_without_modifier():
     build_sources = {o.source for o in options if o.order_type == "Build"}
     assert "mid" not in build_sources
     assert "lhs" in build_sources
+
+
+def test_options_adjustment_build_with_any_home_modifier_offers_captured_home_excludes_no_home():
+    variant = make_variant(any_home=True)
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="lhs"),
+            SupplyCenter(nation=SOUTH, province="mid"),
+        ],
+    )
+    options = get_options(state)
+    build_sources = {o.source for o in options if o.order_type == "Build"}
+    assert "lhs" in build_sources
+    assert "mid" not in build_sources
 
 
 def test_options_adjustment_no_builds_when_no_allowed_builds():
