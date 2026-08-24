@@ -172,6 +172,7 @@ const matchedGame: GameList = {
       replaceable: false,
     removable: false,
     commitment: "high",
+      nationPreferenceIds: [],
     },
     {
       id: 100,
@@ -190,6 +191,7 @@ const matchedGame: GameList = {
       replaceable: false,
     removable: false,
     commitment: "high",
+      nationPreferenceIds: [],
     },
   ],
   victory: null,

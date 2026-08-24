@@ -434,10 +434,15 @@ class TestGameMasterQueryCounts:
 
     @pytest.mark.django_db
     def test_retrieve_query_count_unchanged_by_game_master(
-        self, authenticated_client, pending_game_factory, pending_game_with_game_master_factory
+        self,
+        authenticated_client,
+        pending_game_factory,
+        pending_game_with_game_master_factory,
+        secondary_user,
     ):
         game_without = pending_game_factory()
         game_with = pending_game_with_game_master_factory()
+        game_with.seat(secondary_user)
 
         url_without = reverse(retrieve_viewname, args=[game_without.id])
         url_with = reverse(retrieve_viewname, args=[game_with.id])

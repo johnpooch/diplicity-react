@@ -151,6 +151,7 @@ class Member(TypedDict):
     seeking_replacement: bool
     replaceable: bool
     removable: bool
+    nation_preference_ids: list[str]
 
 
 class MemberCreate(TypedDict):

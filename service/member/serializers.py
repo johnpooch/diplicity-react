@@ -95,10 +95,17 @@ class MemberSerializer(BaseMemberSerializer):
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
     removable = serializers.SerializerMethodField()
+    nation_preference_ids = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.BooleanField)
     def get_removable(self, obj):
         return self._get_game(obj).can_remove_member(obj)
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_nation_preference_ids(self, obj):
+        if not self._is_current_user(obj):
+            return []
+        return [preference.nation.nation_id for preference in obj.nation_preferences.all()]
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):

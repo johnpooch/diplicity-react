@@ -84,7 +84,9 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -149,7 +151,9 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation__flag", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -236,7 +240,9 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation__flag", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Bot,
-  Flag,
+  ChevronRight,
   Link2,
   MoreVertical,
   Shield,
@@ -19,9 +19,10 @@ import { AddBotSheet } from "@/components/AddBotSheet";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { CommitmentBadge } from "@/components/CommitmentBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
+import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import { KickedBadge } from "@/components/KickedBadge";
-import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { NationSeatFlag, getNationSeatLabel } from "@/components/NationSeat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
@@ -102,8 +103,6 @@ export const PlayerInfoContent: React.FC = () => {
   const canRemove = (member: Member) =>
     game.canManage && !member.isCurrentUser && member.removable;
 
-  const anyNationPinned = isPending && game.members.some(m => m.nation);
-
   const profilePath = (member: Member) =>
     phaseId
       ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
@@ -132,14 +131,7 @@ export const PlayerInfoContent: React.FC = () => {
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} />
-
-      {anyNationPinned && (
-        <Notice
-          icon={Flag}
-          title="Nations assigned"
-          message="The Game Master has assigned some nations. Unassigned players will be assigned when the game starts."
-        />
-      )}
+      {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
 
       <ScreenCard>
         <ScreenCardContent className="divide-y">
@@ -163,17 +155,6 @@ export const PlayerInfoContent: React.FC = () => {
                   Game Master
                 </Badge>
               </div>
-              {isGameMaster && isPending && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ml-auto"
-                  onClick={() => navigate(`/nation-assignment/${gameId}`)}
-                >
-                  <Flag />
-                  Assign nations
-                </Button>
-              )}
             </div>
           )}
           {game.members.map(member => {
@@ -185,14 +166,23 @@ export const PlayerInfoContent: React.FC = () => {
                 key={member.id}
                 className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
               >
-                {member.nation && variant && (
-                  <NationFlag
-                    flagUrl={findNationFlagUrl(variant.nations, member.nation)}
-                    alt={member.nation}
-                    size="lg"
-                    className="size-8"
-                    color={findNationColor(variant.nations, member.nation)}
+                {isPending && member.isCurrentUser && variant ? (
+                  <NationSeatFlag
+                    nations={variant.nations}
+                    nation={member.nation}
+                    preferenceIds={member.nationPreferenceIds}
                   />
+                ) : (
+                  member.nation &&
+                  variant && (
+                    <NationFlag
+                      flagUrl={findNationFlagUrl(variant.nations, member.nation)}
+                      alt={member.nation}
+                      size="lg"
+                      className="size-8"
+                      color={findNationColor(variant.nations, member.nation)}
+                    />
+                  )
                 )}
 
                 <div className="flex-1 min-w-0">
@@ -232,7 +222,7 @@ export const PlayerInfoContent: React.FC = () => {
                     {member.civilDisorder && <CivilDisorderBadge />}
                   </div>
 
-                  {member.nation && (
+                  {member.nation && !isPending && (
                     <div className="text-sm text-muted-foreground mt-1">
                       <span className="inline-flex items-center gap-2">
                         <span>{member.nation}</span>
@@ -256,16 +246,13 @@ export const PlayerInfoContent: React.FC = () => {
                   )}
 
                   {member.isCurrentUser && isPending && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/nation-preference/${gameId}`)}
-                      >
-                        <Flag />
-                        Nation preferences
-                      </Button>
-                    </div>
+                    <button
+                      onClick={() => navigate(`/nation-preference/${gameId}`)}
+                      className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {getNationSeatLabel(member.nation, member.nationPreferenceIds)}
+                      <ChevronRight className="size-3.5" />
+                    </button>
                   )}
 
                   {member.replaceable && (

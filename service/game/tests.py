@@ -282,7 +282,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -323,7 +323,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -392,7 +392,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        assert query_count == 5
 
 
 class TestGameCurrentPhase:
@@ -1070,7 +1070,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -1111,7 +1111,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -1162,7 +1162,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -1211,7 +1211,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_games_hydrates_units_for_current_phase_only(
@@ -1950,7 +1950,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 47
+        assert query_count == 48
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1969,7 +1969,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 47
+        assert query_count == 48
 
 
 class TestGamePrivateFiltering:
@@ -2396,7 +2396,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 53
+        assert query_count == 54
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2417,7 +2417,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 53
+        assert query_count == 54
 
 
 class TestSandboxGameFiltering:

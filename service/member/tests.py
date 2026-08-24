@@ -1,5 +1,7 @@
 import pytest
 from unittest.mock import patch
+from django.db import connection
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -22,6 +24,7 @@ seat_viewname = "game-member-create"
 legacy_join_viewname = "game-join-legacy"
 legacy_seat_viewname = "game-add-bot-legacy"
 retrieve_viewname = "game-retrieve"
+list_viewname = "game-list"
 recovery_viewname = "civil-disorder-recovery"
 
 
@@ -1845,6 +1848,99 @@ class TestMemberNationPreferenceView:
         url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestMemberNationPreferenceIdsField:
+
+    @pytest.mark.django_db
+    def test_defaults_to_empty_list(self, authenticated_client, pending_game_created_by_primary_user):
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["nation_preference_ids"] == []
+
+    @pytest.mark.django_db
+    def test_own_preferences_are_listed_in_rank_order(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        url = reverse(preference_viewname, args=[pending_game_created_by_primary_user.id])
+        authenticated_client.put(url, {"nation_ids": ["turkey", "france", "england"]}, format="json")
+
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
+
+        assert response.data["members"][0]["nation_preference_ids"] == ["turkey", "france", "england"]
+
+    @pytest.mark.django_db
+    def test_another_members_preferences_are_not_exposed(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_primary_user
+        game.seat(secondary_user)
+        authenticated_client_for_secondary_user.put(
+            reverse(preference_viewname, args=[game.id]), {"nation_ids": ["france"]}, format="json"
+        )
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        preferences = {
+            member["name"]: member["nation_preference_ids"] for member in response.data["members"]
+        }
+        assert preferences[secondary_user.profile.name] == []
+
+    @pytest.mark.django_db
+    def test_exposed_in_the_games_list(self, authenticated_client, pending_game_created_by_primary_user):
+        authenticated_client.put(
+            reverse(preference_viewname, args=[pending_game_created_by_primary_user.id]),
+            {"nation_ids": ["russia"]},
+            format="json",
+        )
+
+        response = authenticated_client.get(reverse("game-list"), {"mine": "true"})
+
+        game = next(
+            g for g in response.data["results"] if g["id"] == pending_game_created_by_primary_user.id
+        )
+        assert game["members"][0]["nation_preference_ids"] == ["russia"]
+
+    @pytest.mark.django_db
+    def test_listing_does_not_query_per_member(
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        user_factory,
+        classical_france_nation,
+        classical_england_nation,
+    ):
+        game = pending_game_created_by_primary_user
+
+        def rank(member):
+            Member.objects.set_nation_preferences(
+                member, [classical_france_nation, classical_england_nation]
+            )
+
+        def list_query_count():
+            connection.queries_log.clear()
+            with override_settings(DEBUG=True):
+                response = authenticated_client.get(reverse(list_viewname))
+            assert response.status_code == status.HTTP_200_OK
+            return len(connection.queries)
+
+        for member in game.members.all():
+            rank(member)
+        few_members_count = list_query_count()
+
+        for index in range(5):
+            rank(game.members.create(user=user_factory(f"ranker{index}")))
+        many_members_count = list_query_count()
+
+        assert many_members_count == few_members_count
 
 
 class TestMemberNationAssignView:

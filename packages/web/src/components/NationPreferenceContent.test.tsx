@@ -6,8 +6,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { NationPreferenceContent } from "./NationPreferenceContent";
 
+const mockNavigate = vi.fn();
+vi.mock("react-router", async importOriginal => {
+  const actual = await importOriginal<typeof import("react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 const mockPreferenceMutateAsync = vi.fn();
 const mockPreferenceRetrieve = vi.fn();
+const mockGameRetrieve = vi.fn();
 
 const nations = ["Austria", "England", "France"].map(name => ({
   nationId: name.toLowerCase(),
@@ -18,9 +28,7 @@ const nations = ["Austria", "England", "France"].map(name => ({
 }));
 
 vi.mock("@/api/generated/endpoints", () => ({
-  useGameRetrieveSuspense: () => ({
-    data: { id: "pending-1", status: "pending", variantId: "classical", members: [] },
-  }),
+  useGameRetrieveSuspense: () => ({ data: mockGameRetrieve() }),
   useGameMemberNationPreferenceRetrieveSuspense: () => ({
     data: mockPreferenceRetrieve(),
   }),
@@ -58,6 +66,12 @@ describe("NationPreferenceContent", () => {
     vi.clearAllMocks();
     mockPreferenceRetrieve.mockReturnValue({ nationIds: [] });
     mockPreferenceMutateAsync.mockResolvedValue({});
+    mockGameRetrieve.mockReturnValue({
+      id: "pending-1",
+      status: "pending",
+      variantId: "classical",
+      members: [],
+    });
   });
 
   it("assigns ranks in tap order", async () => {
@@ -123,5 +137,36 @@ describe("NationPreferenceContent", () => {
     expect(
       within(screen.getByRole("button", { name: /france/i })).getByText("1")
     ).toBeInTheDocument();
+  });
+
+  it("returns to the game once preferences are saved", async () => {
+    const user = userEvent.setup();
+    renderContent();
+
+    await user.click(screen.getByRole("button", { name: /england/i }));
+    await user.click(screen.getByRole("button", { name: /save preferences/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/game-info/pending-1");
+  });
+
+  it("explains a nation assigned by the game master instead of ranking", () => {
+    mockGameRetrieve.mockReturnValue({
+      id: "pending-1",
+      status: "pending",
+      variantId: "classical",
+      members: [{ id: 1, isCurrentUser: true, nation: "France" }],
+    });
+
+    renderContent();
+
+    expect(
+      screen.getByText("The Game Master assigned you France")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /austria/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /save preferences/i })
+    ).not.toBeInTheDocument();
   });
 });

@@ -41,6 +41,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 2,
@@ -59,6 +60,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 3,
@@ -77,6 +79,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 4,
@@ -95,6 +98,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 5,
@@ -113,6 +117,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 6,
@@ -131,6 +136,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
   {
     id: 7,
@@ -149,6 +155,7 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+    nationPreferenceIds: [],
   },
 ];
 

@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { Flag } from "lucide-react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { NationFlag } from "@/components/NationFlag";
+import { Notice } from "@/components/Notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -19,6 +22,7 @@ import { useRequiredParams } from "@/hooks";
 export const NationPreferenceContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
+  const navigate = useNavigate();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
   const { data: preference } = useGameMemberNationPreferenceRetrieveSuspense(gameId);
@@ -30,6 +34,8 @@ export const NationPreferenceContent: React.FC = () => {
   const playableNations = variant
     ? variant.nations.filter(n => !n.nonPlayable)
     : [];
+
+  const assignedNation = game.members.find(m => m.isCurrentUser)?.nation;
 
   const toggleNation = (nationId: string) => {
     setRankedIds(current =>
@@ -54,17 +60,26 @@ export const NationPreferenceContent: React.FC = () => {
         }),
       ]);
       toast.success("Nation preferences saved");
+      navigate(`/game-info/${gameId}`);
     } catch {
       toast.error("Failed to save nation preferences");
     }
   };
 
+  if (assignedNation) {
+    return (
+      <Notice
+        icon={Flag}
+        title={`The Game Master assigned you ${assignedNation}`}
+        message="Your nation is already set, so preferences do not apply to this game."
+      />
+    );
+  }
+
   return (
     <>
       <p className="text-sm text-muted-foreground">
-        Tap nations in the order you would most like to play them. If all your
-        ranked nations are taken, one of the unranked nations may still be
-        assigned to you when the game starts.
+        Tap nations in the order you would most like to play them.
       </p>
 
       <ScreenCard>

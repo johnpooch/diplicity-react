@@ -467,6 +467,7 @@ export interface Member {
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
   readonly removable: boolean;
+  readonly nationPreferenceIds: readonly string[];
 }
 
 export interface Victory {

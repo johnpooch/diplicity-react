@@ -55,6 +55,7 @@ export const makeMember = (
   replaceable: false,
   removable: false,
   commitment: "high",
+  nationPreferenceIds: [],
   ...overrides,
 });
 
