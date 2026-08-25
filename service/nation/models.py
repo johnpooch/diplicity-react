@@ -1,6 +1,7 @@
 import hashlib
 
 from django.db import models
+from django.urls import reverse
 
 from common.models import BaseModel
 
@@ -15,6 +16,21 @@ class Nation(models.Model):
     class Meta:
         ordering = ["name"]
         unique_together = [["name", "variant"], ["nation_id", "variant"]]
+
+    @property
+    def flag_path(self) -> str | None:
+        try:
+            flag = self.flag
+        except NationFlag.DoesNotExist:
+            return None
+        return reverse(
+            "nation-flag-svg",
+            kwargs={
+                "variant_id": self.variant_id,
+                "nation_id": self.nation_id,
+                "content_hash": flag.content_hash,
+            },
+        )
 
     def __str__(self):
         return f"{self.name} ({self.variant.name})"

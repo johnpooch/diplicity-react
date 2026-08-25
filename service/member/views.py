@@ -5,9 +5,10 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberSerializer
+from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.constants import GameStatus
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 
@@ -59,11 +60,11 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager]
+    permission_classes = [permissions.IsAuthenticated, IsPendingOrActiveGame, IsGameManager, IsRemovableMember]
 
     def get_object(self):
         game = self.get_game()
-        member = get_object_or_404(Member, game=game, id=self.kwargs["member_id"])
+        member = get_object_or_404(Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"])
         if member.user == self.request.user:
             self.permission_denied(self.request, message="Cannot kick yourself from the game.")
         return member
@@ -71,11 +72,84 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     def perform_destroy(self, instance):
         game = instance.game
         user_id = instance.user_id
-        is_bot = instance.user is not None and instance.user.profile.is_bot
+        is_bot = instance.is_bot
+        event_type = (
+            "kicked_from_staging" if game.status == GameStatus.PENDING else "removed_from_game"
+        )
         with transaction.atomic():
-            instance.delete()
+            Member.objects.remove(instance)
             if user_id and not is_bot:
-                emit("kicked_from_staging", game=game, recipients=[user_id])
+                emit(event_type, game=game, recipients=[user_id])
+
+
+class MemberReplaceView(SelectedGameMixin, generics.CreateAPIView):
+    serializer_class = MemberReplaceSerializer
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsActiveGame,
+        IsNotGameMember,
+        IsNotGameMaster,
+        IsReplaceableMember,
+        MeetsCommitmentRequirement,
+    ]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["replaced_member"] = get_object_or_404(
+            Member, game=self.get_game(), id=self.kwargs["member_id"]
+        )
+        return context
+
+    @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class MemberNationPreferenceView(SelectedGameMixin, generics.GenericAPIView):
+    """Read or replace the requesting member's ranked nation preferences for a
+    pending game. Array position determines rank; an empty list means no
+    preference."""
+
+    serializer_class = MemberNationPreferenceSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMember]
+
+    def get_object(self):
+        game = self.get_game()
+        return get_object_or_404(Member, game=game, user=self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class MemberNationAssignView(SelectedGameMixin, generics.GenericAPIView):
+    """Pin a nation to a member of a pending game, or unpin it. Game master
+    only; pinned nations are kept when the game starts."""
+
+    serializer_class = MemberNationAssignSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMaster]
+
+    def get_object(self):
+        game = self.get_game()
+        return get_object_or_404(Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"])
+
+    @extend_schema(responses={200: MemberSerializer})
+    def put(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @extend_schema(request=None, responses={204: None})
+    def delete(self, request, *args, **kwargs):
+        Member.objects.clear_nation(self.get_object())
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):

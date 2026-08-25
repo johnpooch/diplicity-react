@@ -17,7 +17,6 @@ def game_payload(variant_id, **overrides):
     payload = {
         "name": "Admin Test Game",
         "variant_id": variant_id,
-        "nation_assignment": "random",
         "private": False,
         "deadline_mode": "duration",
         "movement_phase_duration": "24 hours",

@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from agent import tasks
-from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, NationAssignment, PhaseType, UserKind
+from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, PhaseType, UserKind
 from game.models import Game
 from integration.scoring import sum_of_squares
 from user_profile.models import UserProfile
@@ -31,7 +31,6 @@ def _create_match_game(client, variant_id, name, llm_seats, dumbbot_seats):
         {
             "name": name,
             "variant_id": variant_id,
-            "nation_assignment": NationAssignment.ORDERED,
             "private": True,
             "game_master": True,
             "deadline_mode": DeadlineMode.DURATION,

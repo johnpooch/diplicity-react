@@ -276,18 +276,6 @@ export interface GameCloneToSandbox {
   readonly id: string;
 }
 
-/**
- * * `random` - Random
- * `ordered` - Ordered
- */
-export type NationAssignmentEnum =
-  (typeof NationAssignmentEnum)[keyof typeof NationAssignmentEnum];
-
-export const NationAssignmentEnum = {
-  random: "random",
-  ordered: "ordered",
-} as const;
-
 export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
 
 export const NullEnum = {} as const;
@@ -353,7 +341,6 @@ export interface GameCreate {
   readonly id: string;
   name: string;
   variantId: string;
-  nationAssignment: NationAssignmentEnum;
   movementPhaseDuration?: DurationEnum;
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
@@ -479,6 +466,8 @@ export interface Member {
   readonly civilDisorder: boolean;
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
+  readonly removable: boolean;
+  readonly nationPreferenceIds: readonly string[];
 }
 
 export interface Victory {
@@ -513,7 +502,6 @@ export interface GameList {
   readonly movementPhaseDuration: string | null;
   /** @nullable */
   readonly retreatPhaseDuration: string | null;
-  readonly nationAssignment: string;
   readonly members: readonly Member[];
   readonly victory: Victory | null;
   readonly sandbox: boolean;
@@ -558,7 +546,6 @@ export interface GameRetrieve {
   readonly sandbox: boolean;
   readonly victory: Victory | null;
   readonly variantId: string;
-  readonly nationAssignment: string;
   readonly phaseConfirmed: boolean;
   readonly orderStatus: OrderStatusEnum | NullEnum | null;
   /** @nullable */
@@ -600,6 +587,14 @@ export interface GoogleAuth {
 
 export interface MemberCreate {
   userId: number;
+}
+
+export interface MemberNationAssign {
+  nationId: string;
+}
+
+export interface MemberNationPreference {
+  nationIds: string[];
 }
 
 export interface NationFlagUpload {
@@ -969,6 +964,7 @@ export interface VerifyEmail {
 export interface Version {
   environment: string;
   version: string;
+  minimumClientVersion: string;
 }
 
 export type ApiSchemaRetrieveParams = {
@@ -3793,6 +3789,174 @@ export const useGameMemberCreate = <TError = unknown, TContext = unknown>(
 };
 
 /**
+ * Pin a nation to a member of a pending game, or unpin it. Game master
+only; pinned nations are kept when the game starts.
+ */
+export const gameMemberNationUpdate = (
+  gameId: string,
+  memberId: number,
+  memberNationAssign: MemberNationAssign,
+  signal?: AbortSignal
+) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/member/${memberId}/nation/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: memberNationAssign,
+    signal,
+  });
+};
+
+export const getGameMemberNationUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberNationUpdate>>,
+    TError,
+    { gameId: string; memberId: number; data: MemberNationAssign },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberNationUpdate>>,
+  TError,
+  { gameId: string; memberId: number; data: MemberNationAssign },
+  TContext
+> => {
+  const mutationKey = ["gameMemberNationUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberNationUpdate>>,
+    { gameId: string; memberId: number; data: MemberNationAssign }
+  > = props => {
+    const { gameId, memberId, data } = props ?? {};
+
+    return gameMemberNationUpdate(gameId, memberId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberNationUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberNationUpdate>>
+>;
+export type GameMemberNationUpdateMutationBody = MemberNationAssign;
+export type GameMemberNationUpdateMutationError = unknown;
+
+export const useGameMemberNationUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberNationUpdate>>,
+      TError,
+      { gameId: string; memberId: number; data: MemberNationAssign },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberNationUpdate>>,
+  TError,
+  { gameId: string; memberId: number; data: MemberNationAssign },
+  TContext
+> => {
+  return useMutation(
+    getGameMemberNationUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Pin a nation to a member of a pending game, or unpin it. Game master
+only; pinned nations are kept when the game starts.
+ */
+export const gameMemberNationDestroy = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/member/${memberId}/nation/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getGameMemberNationDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberNationDestroy>>,
+    TError,
+    { gameId: string; memberId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberNationDestroy>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  const mutationKey = ["gameMemberNationDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberNationDestroy>>,
+    { gameId: string; memberId: number }
+  > = props => {
+    const { gameId, memberId } = props ?? {};
+
+    return gameMemberNationDestroy(gameId, memberId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberNationDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberNationDestroy>>
+>;
+
+export type GameMemberNationDestroyMutationError = unknown;
+
+export const useGameMemberNationDestroy = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberNationDestroy>>,
+      TError,
+      { gameId: string; memberId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberNationDestroy>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  return useMutation(
+    getGameMemberNationDestroyMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
@@ -3865,6 +4029,467 @@ export const useGameMemberJoinCreate = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(
     getGameMemberJoinCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Read or replace the requesting member's ranked nation preferences for a
+pending game. Array position determines rank; an empty list means no
+preference.
+ */
+export const gameMemberNationPreferenceRetrieve = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<MemberNationPreference>({
+    url: `/game/${gameId}/member/nation-preference/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGameMemberNationPreferenceRetrieveQueryKey = (
+  gameId: string
+) => {
+  return [`/game/${gameId}/member/nation-preference/`] as const;
+};
+
+export const getGameMemberNationPreferenceRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGameMemberNationPreferenceRetrieveQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>
+  > = ({ signal }) => gameMemberNationPreferenceRetrieve(gameId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!gameId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberNationPreferenceRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>
+>;
+export type GameMemberNationPreferenceRetrieveQueryError = unknown;
+
+export function useGameMemberNationPreferenceRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberNationPreferenceRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberNationPreferenceRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberNationPreferenceRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberNationPreferenceRetrieveQueryOptions(
+    gameId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGameMemberNationPreferenceRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGameMemberNationPreferenceRetrieveQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>
+  > = ({ signal }) => gameMemberNationPreferenceRetrieve(gameId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberNationPreferenceRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>
+>;
+export type GameMemberNationPreferenceRetrieveSuspenseQueryError = unknown;
+
+export function useGameMemberNationPreferenceRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberNationPreferenceRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberNationPreferenceRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberNationPreferenceRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberNationPreferenceRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions =
+    getGameMemberNationPreferenceRetrieveSuspenseQueryOptions(gameId, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Read or replace the requesting member's ranked nation preferences for a
+pending game. Array position determines rank; an empty list means no
+preference.
+ */
+export const gameMemberNationPreferenceUpdate = (
+  gameId: string,
+  memberNationPreference: MemberNationPreference,
+  signal?: AbortSignal
+) => {
+  return customInstance<MemberNationPreference>({
+    url: `/game/${gameId}/member/nation-preference/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: memberNationPreference,
+    signal,
+  });
+};
+
+export const getGameMemberNationPreferenceUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberNationPreferenceUpdate>>,
+    TError,
+    { gameId: string; data: MemberNationPreference },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberNationPreferenceUpdate>>,
+  TError,
+  { gameId: string; data: MemberNationPreference },
+  TContext
+> => {
+  const mutationKey = ["gameMemberNationPreferenceUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberNationPreferenceUpdate>>,
+    { gameId: string; data: MemberNationPreference }
+  > = props => {
+    const { gameId, data } = props ?? {};
+
+    return gameMemberNationPreferenceUpdate(gameId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberNationPreferenceUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberNationPreferenceUpdate>>
+>;
+export type GameMemberNationPreferenceUpdateMutationBody =
+  MemberNationPreference;
+export type GameMemberNationPreferenceUpdateMutationError = unknown;
+
+export const useGameMemberNationPreferenceUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberNationPreferenceUpdate>>,
+      TError,
+      { gameId: string; data: MemberNationPreference },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberNationPreferenceUpdate>>,
+  TError,
+  { gameId: string; data: MemberNationPreference },
+  TContext
+> => {
+  return useMutation(
+    getGameMemberNationPreferenceUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameMembersReplaceCreate = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/members/${memberId}/replace/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameMembersReplaceCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+    TError,
+    { gameId: string; memberId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  const mutationKey = ["gameMembersReplaceCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+    { gameId: string; memberId: number }
+  > = props => {
+    const { gameId, memberId } = props ?? {};
+
+    return gameMembersReplaceCreate(gameId, memberId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMembersReplaceCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMembersReplaceCreate>>
+>;
+
+export type GameMembersReplaceCreateMutationError = unknown;
+
+export const useGameMembersReplaceCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+      TError,
+      { gameId: string; memberId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMembersReplaceCreate>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  return useMutation(
+    getGameMembersReplaceCreateMutationOptions(options),
     queryClient
   );
 };

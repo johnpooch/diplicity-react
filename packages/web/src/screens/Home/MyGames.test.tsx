@@ -121,6 +121,19 @@ describe("MyGames empty states", () => {
   });
 });
 
+describe("MyGames ordering", () => {
+  it("requests the finished tab ordered by most recently finished", async () => {
+    const user = userEvent.setup();
+    renderMyGames();
+    const finishedTab = await screen.findByRole("tab", { name: /finished/i });
+    await user.click(finishedTab);
+
+    expect(mockUseGamesListInfinite).toHaveBeenLastCalledWith(
+      expect.objectContaining({ ordering: "finished" })
+    );
+  });
+});
+
 describe("MyGames eliminated games", () => {
   it("shows 'Eliminated' section header before eliminated games in the active tab", async () => {
     const activeGame = mockActiveGames[0];

@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from common.constants import DeadlineMode, GameStatus, NationAssignment
+from common.constants import DeadlineMode, GameStatus
 from game.models import Game
 from victory.models import Victory
 
@@ -28,7 +28,6 @@ class GameSession:
             {
                 "name": name,
                 "variant_id": variant.id,
-                "nation_assignment": NationAssignment.ORDERED,
                 "private": False,
                 "deadline_mode": DeadlineMode.DURATION,
             },

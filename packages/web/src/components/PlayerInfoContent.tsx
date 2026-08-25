@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import {
   Bot,
+  ChevronRight,
+  Link2,
   MessageCircle,
+  MoreVertical,
   Shield,
   Star,
   Swords,
   Trophy,
   User,
+  UserMinus,
   UserPlus,
-  X,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -18,9 +21,32 @@ import { AddBotSheet } from "@/components/AddBotSheet";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { CommitmentBadge } from "@/components/CommitmentBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
+import { KickedBadge } from "@/components/KickedBadge";
+import {
+  NationFlag,
+  findNationFlagUrl,
+  findNationColor,
+} from "@/components/NationFlag";
+import { NationSeatFlag, getNationSeatLabel } from "@/components/NationSeat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -46,6 +72,7 @@ import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { copyLink } from "@/utils/copyLink";
 
 export const PlayerInfoContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -61,6 +88,7 @@ export const PlayerInfoContent: React.FC = () => {
   const createChannelMutation = useGamesChannelsCreateCreate();
 
   const [addBotOpen, setAddBotOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -108,6 +136,10 @@ export const PlayerInfoContent: React.FC = () => {
   const winnerIds = game.victory?.members?.map(m => m.id) || [];
 
   const isPending = game.status === "pending";
+  const isGameMaster =
+    !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
+  const canTakeOverSeat =
+    !game.members.some(m => m.isCurrentUser) && !isGameMaster;
   const playableSeats = variant
     ? variant.nations.filter(n => !n.nonPlayable).length
     : 0;
@@ -129,7 +161,18 @@ export const PlayerInfoContent: React.FC = () => {
     );
   });
 
-  const handleRemoveBot = async (member: Member) => {
+  const canRemove = (member: Member) =>
+    game.canManage && !member.isCurrentUser && member.removable;
+
+  const profilePath = (member: Member) =>
+    phaseId
+      ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
+      : `/player/${member.userId}`;
+
+  const handleRemove = async () => {
+    const member = memberToRemove;
+    setMemberToRemove(null);
+    if (!member) return;
     try {
       await kickMutation.mutateAsync({ gameId, memberId: member.id });
       await Promise.all([
@@ -142,7 +185,7 @@ export const PlayerInfoContent: React.FC = () => {
       ]);
       toast.success(`${member.name} removed from the game`);
     } catch {
-      toast.error("Failed to remove AI player");
+      toast.error("Failed to remove player");
     }
   };
 
@@ -176,6 +219,7 @@ export const PlayerInfoContent: React.FC = () => {
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} />
+      {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
 
       <ScreenCard>
         <ScreenCardContent className="divide-y">
@@ -231,9 +275,14 @@ export const PlayerInfoContent: React.FC = () => {
                     : ""
                 }`}
               >
-                {member.nation &&
-                  variant &&
-                  (flagUrl ? (
+                {isPending && member.isCurrentUser && variant ? (
+                  <NationSeatFlag
+                    nations={variant.nations}
+                    nation={member.nation}
+                    preferenceIds={member.nationPreferenceIds}
+                  />
+                ) : member.nation && variant ? (
+                  flagUrl ? (
                     <NationFlag
                       flagUrl={flagUrl}
                       alt={member.nation}
@@ -248,7 +297,8 @@ export const PlayerInfoContent: React.FC = () => {
                       className="size-8 shrink-0 rounded-full border"
                       style={{ backgroundColor: nationColor ?? undefined }}
                     />
-                  ))}
+                  )
+                ) : null}
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -256,7 +306,7 @@ export const PlayerInfoContent: React.FC = () => {
                       <span className="font-medium">{member.nation}</span>
                     ) : member.userId ? (
                       <Link
-                        to={`/player/${member.userId}`}
+                        to={profilePath(member)}
                         className="font-medium text-primary underline-offset-4 hover:underline"
                       >
                         {member.name}
@@ -287,6 +337,7 @@ export const PlayerInfoContent: React.FC = () => {
                         {game.victory?.type === "solo" ? "Winner" : "Draw"}
                       </Badge>
                     )}
+                    {member.kicked && <KickedBadge />}
                     {member.eliminated ? (
                       <Badge variant="secondary">Eliminated</Badge>
                     ) : (
@@ -294,7 +345,7 @@ export const PlayerInfoContent: React.FC = () => {
                     )}
                   </div>
 
-                  {member.nation && (
+                  {member.nation && !isPending && (
                     <div className="text-sm text-muted-foreground mt-1">
                       <span className="inline-flex items-center gap-2">
                         {!showNationFocusedLayout && (
@@ -323,115 +374,176 @@ export const PlayerInfoContent: React.FC = () => {
                       </span>
                     </div>
                   )}
+
+                  {member.isCurrentUser && isPending && (
+                    <button
+                      onClick={() => navigate(`/nation-preference/${gameId}`)}
+                      className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {getNationSeatLabel(
+                        member.nation,
+                        member.nationPreferenceIds
+                      )}
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                  )}
+
+                  {member.replaceable && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {canTakeOverSeat && (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/game/${gameId}/replace/${member.id}`)
+                          }
+                        >
+                          <UserPlus />
+                          Replace
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          copyLink(`/game/${gameId}/replace/${member.id}`)
+                        }
+                      >
+                        <Link2 />
+                        Invite replacement
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                {showNationFocusedLayout && (
-                  <div className="flex shrink-0 items-center">
-                    {showChatShortcut && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative"
-                        aria-label={
-                          unreadMessageCount > 0
-                            ? `Message ${member.name}, ${unreadMessageCount} unread ${
-                                unreadMessageCount === 1
-                                  ? "message"
-                                  : "messages"
-                              }`
-                            : `Message ${member.name}`
-                        }
-                        disabled={
-                          channelsQuery.isLoading ||
-                          createChannelMutation.isPending
-                        }
-                        onClick={() => handleOpenChat(member)}
-                      >
-                        <MessageCircle className="size-4" />
-                        {unreadMessageCount > 0 && (
-                          <span
-                            aria-hidden="true"
-                            className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background"
-                          />
-                        )}
-                      </Button>
-                    )}
-
-                    <Popover>
-                      <PopoverTrigger asChild>
+                <div className="flex shrink-0 items-center">
+                  {showNationFocusedLayout && (
+                    <>
+                      {showChatShortcut && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`View ${member.nation} player details`}
+                          className="relative"
+                          aria-label={
+                            unreadMessageCount > 0
+                              ? `Message ${member.name}, ${unreadMessageCount} unread ${
+                                  unreadMessageCount === 1
+                                    ? "message"
+                                    : "messages"
+                                }`
+                              : `Message ${member.name}`
+                          }
+                          disabled={
+                            channelsQuery.isLoading ||
+                            createChannelMutation.isPending
+                          }
+                          onClick={() => handleOpenChat(member)}
                         >
-                          <User className="size-4" />
+                          <MessageCircle className="size-4" />
+                          {unreadMessageCount > 0 && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background"
+                            />
+                          )}
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        side={isMobile ? "left" : "right"}
-                        align="center"
-                        sideOffset={8}
-                        collisionPadding={8}
-                        className="w-max max-w-[calc(100vw-1rem)] p-3"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            {member.userId ? (
-                              <Link
-                                to={`/game/${gameId}/phase/${phaseId}/player/${member.userId}`}
-                                className="whitespace-nowrap font-medium text-primary underline-offset-4 hover:underline"
-                              >
-                                {member.name}
-                              </Link>
-                            ) : (
-                              <p className="whitespace-nowrap font-medium">
-                                {member.name}
+                      )}
+
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`View ${member.nation} player details`}
+                          >
+                            <User className="size-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          side={isMobile ? "left" : "right"}
+                          align="center"
+                          sideOffset={8}
+                          collisionPadding={8}
+                          className="w-max max-w-[calc(100vw-1rem)] p-3"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {member.userId ? (
+                                <Link
+                                  to={`/game/${gameId}/phase/${phaseId}/player/${member.userId}`}
+                                  className="whitespace-nowrap font-medium text-primary underline-offset-4 hover:underline"
+                                >
+                                  {member.name}
+                                </Link>
+                              ) : (
+                                <p className="whitespace-nowrap font-medium">
+                                  {member.name}
+                                </p>
+                              )}
+                              {!member.isBot && member.commitment && (
+                                <CommitmentBadge
+                                  commitment={member.commitment}
+                                />
+                              )}
+                            </div>
+                            {game.nmrExtensionsAllowed > 0 && (
+                              <p className="whitespace-nowrap text-sm text-muted-foreground">
+                                {member.nmrExtensionsRemaining}{" "}
+                                {member.nmrExtensionsRemaining === 1
+                                  ? "extension"
+                                  : "extensions"}{" "}
+                                remaining
                               </p>
                             )}
-                            {!member.isBot && member.commitment && (
-                              <CommitmentBadge commitment={member.commitment} />
-                            )}
                           </div>
-                          {game.nmrExtensionsAllowed > 0 && (
-                            <p className="whitespace-nowrap text-sm text-muted-foreground">
-                              {member.nmrExtensionsRemaining}{" "}
-                              {member.nmrExtensionsRemaining === 1
-                                ? "extension"
-                                : "extensions"}{" "}
-                              remaining
-                            </p>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
+                        </PopoverContent>
+                      </Popover>
+                    </>
+                  )}
 
-                {!showNationFocusedLayout && showChatShortcut && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Message ${member.name}`}
-                    disabled={
-                      channelsQuery.isLoading || createChannelMutation.isPending
-                    }
-                    onClick={() => handleOpenChat(member)}
-                  >
-                    <MessageCircle className="size-4" />
-                  </Button>
-                )}
+                  {!showNationFocusedLayout && showChatShortcut && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Message ${member.name}`}
+                      disabled={
+                        channelsQuery.isLoading ||
+                        createChannelMutation.isPending
+                      }
+                      onClick={() => handleOpenChat(member)}
+                    >
+                      <MessageCircle className="size-4" />
+                    </Button>
+                  )}
 
-                {isPending && game.canManage && member.isBot && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Remove ${member.name}`}
-                    disabled={kickMutation.isPending}
-                    onClick={() => handleRemoveBot(member)}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Options for ${member.name}`}
+                      >
+                        <MoreVertical />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        disabled={!member.userId}
+                        onClick={() => navigate(profilePath(member))}
+                      >
+                        <User />
+                        View Profile
+                      </DropdownMenuItem>
+                      {canRemove(member) && (
+                        <DropdownMenuItem
+                          onClick={() => setMemberToRemove(member)}
+                        >
+                          <UserMinus />
+                          Remove Player
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             );
           })}
@@ -461,6 +573,28 @@ export const PlayerInfoContent: React.FC = () => {
           )}
         </ScreenCardContent>
       </ScreenCard>
+
+      <AlertDialog
+        open={memberToRemove !== null}
+        onOpenChange={open => !open && setMemberToRemove(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Remove {memberToRemove?.nation ?? memberToRemove?.name}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isPending
+                ? `${memberToRemove?.name} is removed from the lobby. They can join again while the game has an open seat.`
+                : "Their orders for this phase are discarded and the seat opens for a replacement. They can view the game but cannot rejoin."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemove}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {canAddBots && (
         <AddBotSheet

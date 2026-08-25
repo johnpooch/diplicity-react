@@ -112,11 +112,13 @@ export const pendingGameAlmostFull = makeFixture({
 
 export const gameMasterGame = makeFixture({
   description:
-    "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster.",
+    "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster. One player has a nation pinned by the GM.",
   game: makeGame(
     "game-master",
     "Master of Ceremonies",
-    players.slice(1, 4).map(player => makeMember(player, null)),
+    players
+      .slice(1, 4)
+      .map((player, index) => makeMember(player, index === 0 ? "England" : null)),
     [],
     {
       status: "pending",
@@ -655,3 +657,65 @@ const buildActiveCivilDisorder = () => {
 };
 
 export const activeGameCivilDisorder = buildActiveCivilDisorder();
+
+const makeSeatOpenMembers = (idBase: number): Member[] =>
+  makeActiveMembers().map((m, index) => ({
+    ...m,
+    id: idBase + index,
+    ...(m.nation === "Turkey" ? { kicked: true, replaceable: true } : {}),
+    ...(m.nation === "Italy" ? { removable: true } : {}),
+  }));
+
+const buildActiveSeatOpen = () => {
+  const members = makeSeatOpenMembers(1101);
+  const phase = makePhase(1101, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 18 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game where the game master has removed the Turkey player. The current user (England) manages the game and can remove players or share the takeover link.",
+    game: makeGame("active-seat-open", "The Ottoman Vacancy", members, [phase], {
+      canManage: true,
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1101: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameSeatOpen = buildActiveSeatOpen();
+
+const buildActiveSeatOpenSpectator = () => {
+  const members = makeSeatOpenMembers(1201).map((m, index) => ({
+    ...m,
+    userId: 200 + index,
+    name: m.isCurrentUser ? "Grace" : m.name,
+    isCurrentUser: false,
+  }));
+  const phase = makePhase(1201, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 18 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game with an open Turkey seat that the current user is not a member of. Used to demo the takeover link landing screen.",
+    game: makeGame("seat-open-spectator", "The Open Seat", members, [phase], {
+      orderStatus: "no_orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1201: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameSeatOpenSpectator = buildActiveSeatOpenSpectator();

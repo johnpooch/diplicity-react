@@ -1,5 +1,10 @@
 import { DurationEnum } from "@/api/generated/endpoints";
 
+export const APP_STORE_URL = "https://apps.apple.com/app/id6759169536";
+
+export const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.diplicityreact.app";
+
 export const DURATION_OPTIONS = [
   { value: "1 hour", label: "1 hour" },
   { value: "2 hours", label: "2 hours" },

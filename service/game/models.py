@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import cached_property
 import random
 import re
 import uuid
@@ -14,6 +15,7 @@ from django.db.models import (
     Q,
     Subquery,
     Value,
+    prefetch_related_objects,
 )
 from django.db.models.functions import Coalesce
 from opentelemetry import trace
@@ -25,7 +27,6 @@ from common.constants import (
     GameStatus,
     MinReliability,
     MovementPhaseDuration,
-    NationAssignment,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
@@ -43,6 +44,7 @@ from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMember, ChannelMessage
 from adjudicator import service as adjudication_service
+from game.utils import assign_nations
 
 tracer = trace.get_tracer(__name__)
 
@@ -82,7 +84,9 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -147,7 +151,9 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation__flag", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -234,7 +240,9 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced().select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.not_replaced()
+            .select_related("nation__flag", "user__profile")
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
@@ -320,7 +328,6 @@ class GameManager(models.Manager):
     def create_sandbox(self, user, *, name, variant, **kwargs):
         kwargs.setdefault("sandbox", True)
         kwargs.setdefault("private", True)
-        kwargs.setdefault("nation_assignment", NationAssignment.ORDERED)
         kwargs.setdefault("movement_phase_duration", None)
 
         with transaction.atomic():
@@ -347,7 +354,6 @@ class GameManager(models.Manager):
             name=name,
             sandbox=True,
             private=True,
-            nation_assignment=NationAssignment.ORDERED,
             movement_phase_duration=None,
         )
 
@@ -447,11 +453,6 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
-    nation_assignment = models.CharField(
-        max_length=20,
-        choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
-        default=NationAssignment.RANDOM,
-    )
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     paused_at = models.DateTimeField(null=True, blank=True)
@@ -547,6 +548,19 @@ class Game(BaseModel):
     def bot_members(self):
         return self.members.filter(user__profile__kind__in=UserKind.BOT_KINDS).select_related("user")
 
+    @cached_property
+    def nmrd_member_ids(self):
+        with tracer.start_as_current_span("game.models.nmrd_member_ids"):
+            completed = [p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED]
+            if not completed:
+                return set()
+            latest = max(completed, key=lambda p: p.ordinal)
+            return {
+                phase_state.member_id
+                for phase_state in latest.phase_states.all()
+                if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
+            }
+
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
             return self.movement_phase_duration_seconds
@@ -636,6 +650,18 @@ class Game(BaseModel):
         with tracer.start_as_current_span("game.models.can_manage"):
             return self.admin_id == user.id
 
+    def can_remove_member(self, member):
+        with tracer.start_as_current_span("game.models.can_remove_member"):
+            if member.kicked or member.replaced_by_id is not None:
+                return False
+            if self.status == GameStatus.PENDING:
+                return True
+            if self.status != GameStatus.ACTIVE:
+                return False
+            if member.is_bot:
+                return True
+            return member.civil_disorder or member.id in self.nmrd_member_ids
+
     def get_public_press(self):
         return self.channels.get(private=False)
 
@@ -713,6 +739,7 @@ class Game(BaseModel):
                 current_phase = self.current_phase
             if members is None:
                 members = list(self.members.all())
+            prefetch_related_objects(members, "nation_preferences")
 
             adjudication_data = adjudication_service.start(current_phase)
 
@@ -726,14 +753,11 @@ class Game(BaseModel):
             # Accessing .all() on a prefetched queryset doesn't trigger a new query
             nations = [n for n in self.variant.nations.all() if not n.non_playable]
 
-            if self.nation_assignment == NationAssignment.RANDOM:
-                random.shuffle(members)
-            elif self.nation_assignment == NationAssignment.ORDERED:
-                members.sort(key=lambda m: m.id)
+            assignments = assign_nations(self.id, members, nations)
 
             now = timezone.now()
-            for member, nation in zip(members, nations):
-                member.nation = nation
+            for member in members:
+                member.nation = assignments[member.id]
                 member.nmr_extensions_remaining = self.nmr_extensions_allowed
                 member.updated_at = now
 

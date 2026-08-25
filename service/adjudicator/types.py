@@ -90,11 +90,15 @@ class OrderType:
 # Variant modifier id permitting builds in any owned supply center.
 ALLOW_NON_HOME_BUILDS: str = "allow-builds-in-non-home-centers"
 
+# Variant modifier id permitting builds in any owned supply center that is a
+# home center of any nation, including non-playable neutral nations.
+ANY_HOME_CENTER_BUILDS: str = "allow-builds-in-any-home-center"
+
 # Variant modifier id enabling auto-rebuild for non-playable nations.
 NEUTRAL_NATIONS_AUTO_BUILD: str = "neutral-nations-auto-build"
 
 SUPPORTED_ADJUDICATION_MODIFIERS: frozenset = frozenset(
-    {ALLOW_NON_HOME_BUILDS, NEUTRAL_NATIONS_AUTO_BUILD}
+    {ALLOW_NON_HOME_BUILDS, ANY_HOME_CENTER_BUILDS, NEUTRAL_NATIONS_AUTO_BUILD}
 )
 
 
@@ -547,7 +551,10 @@ class BuildLocationIsOwnedCheck(Check):
 class BuildLocationIsHomeCenterCheck(Check):
     """The build location's parent supply center must be a home center of
     the building nation, unless the variant declares the
-    `allow-builds-in-non-home-centers` adjudication modifier."""
+    `allow-builds-in-non-home-centers` adjudication modifier (any owned
+    supply center) or the `allow-builds-in-any-home-center` adjudication
+    modifier (any owned supply center that is a home center of any nation,
+    including non-playable neutral nations)."""
 
     MESSAGE = "Build location is not a home supply center for this nation."
 
@@ -558,6 +565,8 @@ class BuildLocationIsHomeCenterCheck(Check):
             return True
         parent = state.variant().parent_of(order.location)
         province = state.variant().provinces.get(parent)
+        if ANY_HOME_CENTER_BUILDS in state.variant().adjudication_modifiers:
+            return province is not None and province.home_nation is not None
         return province is not None and province.home_nation == order.nation
 
 

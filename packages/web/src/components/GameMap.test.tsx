@@ -131,7 +131,6 @@ const mockGame = {
   members: [] as { nation: string; civilDisorder: boolean; kicked: boolean }[],
   sandbox: false,
   victory: null,
-  nationAssignment: "random",
   phaseConfirmed: false,
   movementPhaseDuration: null,
   retreatPhaseDuration: null,

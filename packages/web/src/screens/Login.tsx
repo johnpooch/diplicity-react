@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { GuideContent } from "@/components/GuideContent";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/constants";
 import {
   Form,
   FormControl,
@@ -75,7 +76,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const PlayStoreBadge: React.FC = () => (
   <a
-    href="https://play.google.com/store/apps/details?id=com.diplicityreact.app"
+    href={PLAY_STORE_URL}
     target="_blank"
     rel="noreferrer"
     className="relative inline-block box-border overflow-hidden rounded-[6px] border border-[#a6a6a6]"
@@ -269,7 +270,7 @@ const Login: React.FC = () => {
           {(!isNativePlatform() || isIosPlatform()) && (
             <div className="flex items-center gap-3 mt-8">
               <a
-                href="https://apps.apple.com/app/id6759169536"
+                href={APP_STORE_URL}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -410,7 +411,7 @@ const Login: React.FC = () => {
         {(!isNativePlatform() || isIosPlatform()) && (
           <div className="relative z-10 lg:hidden mt-6 flex items-center gap-3">
             <a
-              href="https://apps.apple.com/app/id6759169536"
+              href={APP_STORE_URL}
               target="_blank"
               rel="noreferrer"
             >

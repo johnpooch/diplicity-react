@@ -16,6 +16,7 @@ from notification.models import Notification, NotificationDelivery
 from notification.registry import REGISTRY as NOTIFICATION_REGISTRY
 from notification.registry import ChannelMessageSpec
 from notification.tasks import PRUNE_AFTER_DAYS, deliver, prune
+from notification.utils import PUSH_TTL, build_push_message
 from phase.models import Phase
 from user_profile.models import UserProfile
 from victory.models import Victory
@@ -195,7 +196,9 @@ class TestRegistry:
             "game_resumed",
             "game_deadline_extended",
             "kicked_from_staging",
+            "removed_from_game",
             "removed_from_staging",
+            "seat_filled",
             "civil_disorder",
             "civil_disorder_recovery",
             "elimination",
@@ -365,6 +368,7 @@ class TestExplicitResolvers:
         "event_type",
         [
             "kicked_from_staging",
+            "removed_from_game",
             "removed_from_staging",
             "elimination",
             "deadline_warning",
@@ -850,3 +854,22 @@ class TestNotificationPrune:
 
         assert not Notification.objects.filter(id=old.id).exists()
         assert Notification.objects.filter(id=recent.id).exists()
+
+
+class TestBuildPushMessage:
+    def test_sets_matching_expiry_on_every_transport(self):
+        now = timezone.now()
+        with patch("notification.utils.timezone.now", return_value=now):
+            message = build_push_message("Game", "Started", "game_start")
+
+        assert message.android.ttl == PUSH_TTL
+        assert message.apns.headers["apns-expiration"] == str(int((now + PUSH_TTL).timestamp()))
+        assert message.webpush.headers["TTL"] == str(int(PUSH_TTL.total_seconds()))
+
+    def test_adds_event_type_to_data_without_mutating_the_delivery_payload(self):
+        data = {"game_id": "1"}
+
+        message = build_push_message("Game", "Started", "game_start", data)
+
+        assert message.data == {"game_id": "1", "type": "game_start"}
+        assert data == {"game_id": "1"}

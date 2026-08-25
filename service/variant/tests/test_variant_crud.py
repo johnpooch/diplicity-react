@@ -359,7 +359,6 @@ def test_game_create_rejects_draft_variant(authenticated_client, primary_user, c
         {
             "name": "Game on draft",
             "variant_id": variant_id,
-            "nation_assignment": "random",
             "private": False,
             "deadline_mode": "duration",
         },

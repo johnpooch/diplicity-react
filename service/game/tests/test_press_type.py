@@ -18,7 +18,6 @@ class TestPressTypeCreate:
         payload = {
             "name": "No Press Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "private": False,
             "deadline_mode": "duration",
             "press_type": PressType.NO_PRESS,
@@ -36,7 +35,6 @@ class TestPressTypeCreate:
         payload = {
             "name": "Default Press Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "private": False,
             "deadline_mode": "duration",
         }
@@ -50,7 +48,6 @@ class TestPressTypeCreate:
         payload = {
             "name": "Full Press Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": "random",
             "private": False,
             "deadline_mode": "duration",
             "press_type": PressType.FULL_PRESS,

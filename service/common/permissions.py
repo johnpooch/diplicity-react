@@ -1,7 +1,7 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from common.constants import GameStatus, MinReliability, PressType
+from common.constants import GameStatus, MinReliability, PressType, VariantStatus
 from common.views import resolve_game
 from user_profile.commitment import commitment_allows_requirement
 from user_profile.utils import get_player_stats, tier_allows_min_reliability, user_can_use_bot_opponent
@@ -90,6 +90,14 @@ class IsPendingGame(BasePermission):
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
         return game.status == GameStatus.PENDING
+
+
+class IsPendingOrActiveGame(BasePermission):
+    message = "This game is not in progress."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.status in (GameStatus.PENDING, GameStatus.ACTIVE)
 
 
 class IsNotGameMember(BasePermission):
@@ -192,12 +200,43 @@ class IsGameManager(BasePermission):
         return game.admin_id == request.user.id
 
 
+class IsGameMaster(BasePermission):
+    message = "Only the game master can perform this action."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.game_master_id is not None and game.game_master_id == request.user.id
+
+
 class IsNotGameMaster(BasePermission):
     message = "The game master cannot join the game as a player."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
         return game.game_master_id is None or game.game_master_id != request.user.id
+
+
+class IsReplaceableMember(BasePermission):
+    message = "This seat is not open for replacement."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(id=view.kwargs.get("member_id")).first()
+        if not member:
+            self.message = "Member is not part of the game."
+            return False
+        return member.replaceable
+
+
+class IsRemovableMember(BasePermission):
+    message = "This player has not missed any orders."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(id=view.kwargs.get("member_id")).first()
+        if not member:
+            return True
+        return game.can_remove_member(member)
 
 
 class CanDeleteGame(BasePermission):
@@ -225,3 +264,21 @@ class IsInCivilDisorder(BasePermission):
             self.message = "User is not a member of the game."
             return False
         return member.civil_disorder
+
+
+def _variant_for_owned_draft_check(obj):
+    return getattr(obj, "variant", obj)
+
+
+class IsOwnedDraftForWrite(BasePermission):
+    message = "Only the owner of a draft variant can modify it."
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        variant = _variant_for_owned_draft_check(obj)
+        return (
+            variant.status == VariantStatus.DRAFT
+            and variant.owner_id is not None
+            and variant.owner_id == request.user.id
+        )
