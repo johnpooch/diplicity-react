@@ -221,7 +221,7 @@ const retreatFlag = (cx: number, cy: number, scale: number): string =>
 
 const civilDisorderBadge = (cx: number, cy: number, scale: number): string =>
   `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9 * scale)}, ${formatCoord(cy - 9 * scale)})">` +
-  `<circle cx="0" cy="0" r="${7 * scale}" fill="white" stroke="black" stroke-width="1.5"/>` +
+  `<circle cx="0" cy="0" r="${7 * scale}" fill="white" stroke="black" stroke-width="${1.5 * scale}"/>` +
   `<g transform="translate(${-5 * scale}, ${-5 * scale}) scale(${0.417 * scale})" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">` +
   `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>` +
   `<circle cx="9" cy="7" r="4"/>` +
@@ -240,7 +240,7 @@ const unitToken = (
 ): string => {
   const label = type === "Army" ? "A" : "F";
   return (
-    `<circle cx="${formatCoord(cx)}" cy="${formatCoord(cy)}" r="${UNIT_RADIUS * scale}" fill="${color}" stroke="black" stroke-width="2"${opacityAttr(circleOpacity)}/>` +
+    `<circle cx="${formatCoord(cx)}" cy="${formatCoord(cy)}" r="${UNIT_RADIUS * scale}" fill="${color}" stroke="black" stroke-width="${2 * scale}"${opacityAttr(circleOpacity)}/>` +
     `<text x="${formatCoord(cx)}" y="${formatCoord(cy + 5)}" font-size="${15 * scale}" font-weight="bold" fill="black" text-anchor="middle"${opacityAttr(textOpacity)}>${label}</text>`
   );
 };
@@ -310,7 +310,7 @@ const failureCross = (x: number, y: number, scale: number): string =>
     angle: FAILED_CROSS_ANGLE,
     fill: "red",
     stroke: "black",
-    strokeWidth: 2,
+    strokeWidth: 2 * scale,
   });
 
 const holdMarkup = (order: OrderState, position: Point, scale: number): string =>
@@ -350,7 +350,7 @@ const buildMarkup = (
     angle: ORDER_MARKER_ANGLE,
     fill: "green",
     stroke: "white",
-    strokeWidth: 1,
+    strokeWidth: scale,
   });
   return `<g>${token}${marker}</g>`;
 };
@@ -364,7 +364,7 @@ const disbandMarkup = (position: Point, scale: number): string =>
     angle: ORDER_MARKER_ANGLE,
     fill: "red",
     stroke: "white",
-    strokeWidth: 1,
+    strokeWidth: scale,
   });
 
 const headToHeadControlPoints = (
