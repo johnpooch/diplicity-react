@@ -77,6 +77,7 @@ class VariantSerializer(serializers.Serializer):
     description = serializers.CharField()
     author = serializers.CharField(required=False)
     rules = serializers.CharField(allow_blank=True)
+    unit_scaling = serializers.FloatField()
     status = serializers.CharField(read_only=True)
     official = serializers.BooleanField(read_only=True)
     owner_id = serializers.IntegerField(read_only=True, allow_null=True)

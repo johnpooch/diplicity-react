@@ -936,6 +936,7 @@ export interface Variant {
   description: string;
   author?: string;
   rules: string;
+  unitScaling: number;
   readonly status: string;
   readonly official: boolean;
   /** @nullable */
