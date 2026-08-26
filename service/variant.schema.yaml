@@ -69,6 +69,18 @@ properties:
     examples:
       - "Allan B. Calhamer"
 
+  unitScaling:
+    type: number
+    minimum: 0.1
+    maximum: 10
+    default: 1
+    description: |
+      Optional multiplier applied to unit and order icon sizes in the map
+      renderer, letting variant creators shrink or enlarge units without
+      resizing the map itself. Defaults to 1 (no scaling) when absent.
+    examples:
+      - 0.75
+
   victoryConditions:
     type: array
     minItems: 1

@@ -3682,6 +3682,9 @@ components:
           type: string
         rules:
           type: string
+        unitScaling:
+          type: number
+          format: double
         status:
           type: string
           readOnly: true
@@ -3729,6 +3732,7 @@ components:
       - status
       - svgUrl
       - templatePhase
+      - unitScaling
       - victoryConditions
     VariantProvince:
       type: object

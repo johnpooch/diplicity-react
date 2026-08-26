@@ -429,6 +429,54 @@ describe("DiplicityMap orders", () => {
   });
 });
 
+describe("DiplicityMap unit scaling", () => {
+  test("defaults to unscaled unit and order sizes when unitScale is omitted", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nationColors: { England: "#1b4f9c" },
+      units: [{ province: "alpha", nation: "England", type: "Army" }],
+    });
+    expect(svg).toBe(
+      new DiplicityMap(TOY_DSVG, 1).render({
+        nationColors: { England: "#1b4f9c" },
+        units: [{ province: "alpha", nation: "England", type: "Army" }],
+      })
+    );
+  });
+
+  test("scales the unit token radius and label size", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { England: "#1b4f9c" },
+      units: [{ province: "alpha", nation: "England", type: "Army" }],
+    });
+    expect(svg).toContain('cx="150" cy="130" r="20" fill="#1b4f9c"');
+    expect(svg).toContain('font-size="30"');
+  });
+
+  test("scales order line and stroke width", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Move", nation: "England", source: "alpha", target: "beta" },
+      ],
+    });
+    expect(svg).toContain('stroke-width="16"');
+  });
+
+  test("does not scale supply-center marker radius", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 3).render({
+      nationColors: { England: "#1b4f9c" },
+      supplyCenters: [{ province: "alpha", nation: "England" }],
+    });
+    expect(svg).toContain('r="7"');
+    expect(svg).toContain('r="4"');
+  });
+
+  test("does not scale the selected province's stroke width", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 3).render({ selected: ["beta"] });
+    expect(svg).toContain('stroke-width="5"');
+  });
+});
+
 describe("DiplicityMap layering", () => {
   test("composes the visible layers in z-order", () => {
     const svg = new DiplicityMap(TOY_DSVG).render(TOY_STATE);

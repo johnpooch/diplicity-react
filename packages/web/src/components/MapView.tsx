@@ -21,7 +21,7 @@ const GameMapCanvas = lazy(() =>
 type MapPhase = PhaseRetrieve | VariantTemplatePhase | GameListCurrentPhase;
 
 interface MapViewProps {
-  variant: Pick<Variant, "id" | "nations" | "svgUrl">;
+  variant: Pick<Variant, "id" | "nations" | "svgUrl" | "unitScaling">;
   phase: MapPhase;
   orders?: Order[];
   selected?: string[];
@@ -40,7 +40,7 @@ interface MapViewProps {
 // Static render path: the composed board SVG, lazily rendered once it scrolls
 // into view. No Leaflet — this keeps the many thumbnails on list screens light.
 const StaticMap: React.FC<{
-  variant: Pick<Variant, "nations" | "svgUrl">;
+  variant: Pick<Variant, "nations" | "svgUrl" | "unitScaling">;
   phase: MapPhase;
   cover?: boolean;
   style?: React.CSSProperties;
@@ -78,7 +78,7 @@ const StaticMap: React.FC<{
   const svg = useMemo(() => {
     if (!dsvg) return null;
     const renderState = toRenderState(variant, phase, [], [], []);
-    const rendered = new DiplicityMap(dsvg).render(renderState);
+    const rendered = new DiplicityMap(dsvg, variant.unitScaling).render(renderState);
     if (cover) {
       return rendered.replace(
         "<svg ",
