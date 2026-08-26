@@ -452,6 +452,41 @@ describe("DiplicityMap unit scaling", () => {
     expect(svg).toContain('font-size="30"');
   });
 
+  test("scales the unit token's outline stroke width along with its radius", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { England: "#1b4f9c" },
+      units: [{ province: "alpha", nation: "England", type: "Army" }],
+    });
+    expect(svg).toContain('stroke="black" stroke-width="4"');
+  });
+
+  test("scales a failed order's cross-out stroke width", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      orders: [{ type: "Hold", nation: "England", source: "alpha", failed: true }],
+    });
+    expect(svg).toContain('stroke="black" stroke-width="14"');
+  });
+
+  test("scales the civil-disorder badge's outline stroke width", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { France: "#3b9c3b" },
+      units: [
+        { province: "beta", nation: "France", type: "Fleet", civilDisorder: true },
+      ],
+    });
+    expect(svg).toContain('stroke="black" stroke-width="3"/>');
+  });
+
+  test("scales a Build order marker's outline stroke width", () => {
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { France: "#3b9c3b" },
+      orders: [
+        { type: "Build", nation: "France", source: "gamma", unitType: "Fleet" },
+      ],
+    });
+    expect(svg).toContain('stroke="white" stroke-width="10"');
+  });
+
   test("scales order line and stroke width", () => {
     const svg = new DiplicityMap(TOY_DSVG, 2).render({
       nationColors: { England: "#1b4f9c" },

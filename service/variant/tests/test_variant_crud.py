@@ -551,6 +551,36 @@ def test_update_variant_preserves_unit_scaling(
 
 
 @pytest.mark.django_db
+def test_create_variant_rejects_unit_scaling_below_minimum(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "unit-scaling-too-small"
+    dvar["unitScaling"] = 0.05
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_create_variant_rejects_unit_scaling_above_maximum(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "unit-scaling-too-large"
+    dvar["unitScaling"] = 11
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
 def test_sandbox_game_accepts_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-sandbox"
