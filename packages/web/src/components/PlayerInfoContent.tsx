@@ -28,6 +28,7 @@ import {
   findNationFlagUrl,
   findNationColor,
 } from "@/components/NationFlag";
+import { NationBadge } from "@/components/NationBadge";
 import { NationSeatFlag, getNationSeatLabel } from "@/components/NationSeat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -149,6 +150,10 @@ export const PlayerInfoContent: React.FC = () => {
   const canAddBots =
     isPending && game.canManage && userProfile.canCreateBotGames;
   const sortedMembers = [...game.members].sort((a, b) => {
+    const supplyCenterOrder =
+      (getSupplyCenterCount(b) ?? 0) - (getSupplyCenterCount(a) ?? 0);
+    if (supplyCenterOrder !== 0) return supplyCenterOrder;
+
     if (game.status === "completed") {
       const winnerOrder =
         Number(winnerIds.includes(b.id)) - Number(winnerIds.includes(a.id));
@@ -303,7 +308,17 @@ export const PlayerInfoContent: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {showNationFocusedLayout ? (
-                      <span className="font-medium">{member.nation}</span>
+                      <>
+                        <span className="font-medium">{member.nation}</span>
+                        {member.isCurrentUser && variant && (
+                          <NationBadge
+                            nations={variant.nations}
+                            nation={member.nation}
+                          >
+                            you
+                          </NationBadge>
+                        )}
+                      </>
                     ) : member.userId ? (
                       <Link
                         to={profilePath(member)}
@@ -515,34 +530,27 @@ export const PlayerInfoContent: React.FC = () => {
                     </Button>
                   )}
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Options for ${member.name}`}
-                      >
-                        <MoreVertical />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        disabled={!member.userId}
-                        onClick={() => navigate(profilePath(member))}
-                      >
-                        <User />
-                        View Profile
-                      </DropdownMenuItem>
-                      {canRemove(member) && (
+                  {canRemove(member) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Options for ${member.name}`}
+                        >
+                          <MoreVertical />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() => setMemberToRemove(member)}
                         >
                           <UserMinus />
                           Remove Player
                         </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
             );

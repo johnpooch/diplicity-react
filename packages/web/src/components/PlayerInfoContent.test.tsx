@@ -214,6 +214,7 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo("/game/game-1/phase/1/overview");
 
     expect(screen.getByText("England")).toBeInTheDocument();
+    expect(screen.getByText("you")).toBeInTheDocument();
     expect(screen.queryByText("Alice")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Commitment: High")).not.toBeInTheDocument();
     expect(screen.queryByText("1 extension remaining")).not.toBeInTheDocument();
@@ -291,6 +292,58 @@ describe("PlayerInfoContent", () => {
     expect(screen.getByText("Germany").closest(".gap-4")).toHaveClass(
       "opacity-[0.7]"
     );
+  });
+
+  it("orders powers by supply-center count and preserves ordinary order for ties", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, nation: "England" },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+        },
+        {
+          ...baseMember,
+          id: 3,
+          name: "Carol",
+          nation: "Germany",
+          isCurrentUser: false,
+        },
+      ],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [],
+      supplyCenters: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "France" } },
+        { nation: { name: "France" } },
+        { nation: { name: "France" } },
+        { nation: { name: "France" } },
+        { nation: { name: "Germany" } },
+        { nation: { name: "Germany" } },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /View .* player details/ })
+        .map(button => button.getAttribute("aria-label"))
+    ).toEqual([
+      "View France player details",
+      "View England player details",
+      "View Germany player details",
+    ]);
   });
 
   it("moves the winner to the top when the game is completed", () => {
@@ -617,87 +670,36 @@ describe("PlayerInfoContent", () => {
     });
   });
 
-  it("does not offer Remove Player to non-admins", async () => {
-    const user = userEvent.setup();
+  it("does not show player options when no management action is available", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
-      status: "pending",
+      status: "active",
       canManage: false,
       nmrExtensionsAllowed: 0,
       victory: null,
-      phases: [],
+      phases: [{ id: 1, status: "active" }],
       members: [
-        { ...baseMember, nation: null },
+        { ...baseMember },
         {
           ...baseMember,
           id: 2,
-          name: "The Dealmaker",
+          userId: 77,
+          name: "Bob",
           isCurrentUser: false,
-          isBot: true,
-          nation: null,
+          nation: "France",
           removable: true,
         },
       ],
     });
 
-    renderPlayerInfo();
+    renderPlayerInfo("/game/game-1/phase/1/overview");
 
-    await user.click(screen.getByLabelText("Options for The Dealmaker"));
     expect(
-      screen.getByRole("menuitem", { name: "View Profile" })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("menuitem", { name: "Remove Player" })
+      screen.queryByLabelText("Options for Bob")
     ).not.toBeInTheDocument();
-  });
-
-  it("navigates to the profile from the player menu", async () => {
-    const user = userEvent.setup();
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        { ...baseMember, id: 2, userId: 77, name: "Bob", isCurrentUser: false },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    await user.click(screen.getByLabelText("Options for Bob"));
-    const item = screen.getByRole("menuitem", { name: "View Profile" });
-    expect(item).not.toHaveAttribute("aria-disabled", "true");
-  });
-
-  it("disables View Profile for a member with no profile to link to", async () => {
-    const user = userEvent.setup();
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        {
-          ...baseMember,
-          id: 2,
-          userId: null,
-          name: "Anonymous",
-          isCurrentUser: false,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    await user.click(screen.getByLabelText("Options for Anonymous"));
     expect(
-      screen.getByRole("menuitem", { name: "View Profile" })
-    ).toHaveAttribute("aria-disabled", "true");
+      screen.getByRole("button", { name: "View France player details" })
+    ).toBeInTheDocument();
   });
 
   it("shows the removed badge for a kicked member", () => {
@@ -810,8 +812,7 @@ describe("PlayerInfoContent", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not offer Remove Player for a member who has not missed orders", async () => {
-    const user = userEvent.setup();
+  it("does not show player options for a member who cannot be removed", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -833,9 +834,8 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for Bob"));
     expect(
-      screen.queryByRole("menuitem", { name: "Remove Player" })
+      screen.queryByLabelText("Options for Bob")
     ).not.toBeInTheDocument();
   });
 
