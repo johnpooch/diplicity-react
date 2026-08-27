@@ -3738,6 +3738,9 @@ components:
           type: string
         rules:
           type: string
+        unit_scaling:
+          type: number
+          format: double
         status:
           type: string
           readOnly: true
@@ -3785,6 +3788,7 @@ components:
       - status
       - svg_url
       - template_phase
+      - unit_scaling
       - victory_conditions
     VariantProvince:
       type: object

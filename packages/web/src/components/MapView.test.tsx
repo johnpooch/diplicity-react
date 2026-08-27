@@ -32,7 +32,7 @@ vi.mock("./GameMapCanvas/GameMapCanvas", () => ({
 }));
 
 const baseProps: MapViewProps = {
-  variant: { id: "standard", nations: [], svgUrl: null },
+  variant: { id: "standard", nations: [], svgUrl: null, unitScaling: 1 },
   phase: {} as MapViewProps["phase"],
 };
 

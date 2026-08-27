@@ -649,6 +649,7 @@ class Variant(TypedDict):
     description: str
     author: NotRequired[str]
     rules: str
+    unit_scaling: float
     status: str
     official: bool
     owner_id: int | None

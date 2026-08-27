@@ -214,15 +214,15 @@ const supplyCenterMarkersLayer = (supplyCenters: Map<string, Point>): string => 
   return parts.join("\n");
 };
 
-const retreatFlag = (cx: number, cy: number): string =>
-  `<g transform="translate(${formatCoord(cx + 6)}, ${formatCoord(cy - 16)}) scale(1.5)">` +
+const retreatFlag = (cx: number, cy: number, scale: number): string =>
+  `<g transform="translate(${formatCoord(cx + 6 * scale)}, ${formatCoord(cy - 16 * scale)}) scale(${1.5 * scale})">` +
   `<line x1="0" y1="0" x2="0" y2="12" stroke="black" stroke-width="2"/>` +
   `<path d="M 0 0 L 8 2 L 8 6 L 0 8 Z" fill="white" stroke="black" stroke-width="1"/></g>`;
 
-const civilDisorderBadge = (cx: number, cy: number): string =>
-  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9)}, ${formatCoord(cy - 9)})">` +
-  `<circle cx="0" cy="0" r="7" fill="white" stroke="black" stroke-width="1.5"/>` +
-  `<g transform="translate(-5, -5) scale(0.417)" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">` +
+const civilDisorderBadge = (cx: number, cy: number, scale: number): string =>
+  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9 * scale)}, ${formatCoord(cy - 9 * scale)})">` +
+  `<circle cx="0" cy="0" r="${7 * scale}" fill="white" stroke="black" stroke-width="${1.5 * scale}"/>` +
+  `<g transform="translate(${-5 * scale}, ${-5 * scale}) scale(${0.417 * scale})" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">` +
   `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>` +
   `<circle cx="9" cy="7" r="4"/>` +
   `<line x1="17" x2="22" y1="8" y2="13"/>` +
@@ -235,12 +235,13 @@ const unitToken = (
   type: "Army" | "Fleet",
   color: string,
   circleOpacity: number,
-  textOpacity: number
+  textOpacity: number,
+  scale: number
 ): string => {
   const label = type === "Army" ? "A" : "F";
   return (
-    `<circle cx="${formatCoord(cx)}" cy="${formatCoord(cy)}" r="${UNIT_RADIUS}" fill="${color}" stroke="black" stroke-width="2"${opacityAttr(circleOpacity)}/>` +
-    `<text x="${formatCoord(cx)}" y="${formatCoord(cy + 5)}" font-size="15" font-weight="bold" fill="black" text-anchor="middle"${opacityAttr(textOpacity)}>${label}</text>`
+    `<circle cx="${formatCoord(cx)}" cy="${formatCoord(cy)}" r="${UNIT_RADIUS * scale}" fill="${color}" stroke="black" stroke-width="${2 * scale}"${opacityAttr(circleOpacity)}/>` +
+    `<text x="${formatCoord(cx)}" y="${formatCoord(cy + 5)}" font-size="${15 * scale}" font-weight="bold" fill="black" text-anchor="middle"${opacityAttr(textOpacity)}>${label}</text>`
   );
 };
 
@@ -248,9 +249,10 @@ const unitMarkup = (
   unit: UnitState,
   position: Point,
   color: string,
-  dimmed: boolean
+  dimmed: boolean,
+  scale: number
 ): string => {
-  const offset = unit.dislodged ? DISLODGED_OFFSET : 0;
+  const offset = unit.dislodged ? DISLODGED_OFFSET * scale : 0;
   const cx = position.x + offset;
   const cy = position.y + offset;
   const token = unitToken(
@@ -259,16 +261,18 @@ const unitMarkup = (
     unit.type,
     color,
     dimmed ? DIMMED_UNIT_OPACITY : 1,
-    1
+    1,
+    scale
   );
-  const flag = unit.dislodged && !dimmed ? retreatFlag(cx, cy) : "";
-  const cdBadge = unit.civilDisorder && !dimmed ? civilDisorderBadge(cx, cy) : "";
+  const flag = unit.dislodged && !dimmed ? retreatFlag(cx, cy, scale) : "";
+  const cdBadge = unit.civilDisorder && !dimmed ? civilDisorderBadge(cx, cy, scale) : "";
   return `<g>${token}${flag}${cdBadge}</g>`;
 };
 
 const unitsLayer = (
   unitPositions: Map<string, Point>,
-  state: RenderState
+  state: RenderState,
+  scale: number
 ): string => {
   const ordered = [...(state.units ?? [])].sort(
     (a, b) => Number(a.dislodged ?? false) - Number(b.dislodged ?? false)
@@ -289,41 +293,45 @@ const unitsLayer = (
         unit,
         position,
         nationColor(state, unit.nation),
-        disbanding.has(unit.province)
+        disbanding.has(unit.province),
+        scale
       )
     );
   }
   return parts.join("\n");
 };
 
-const failureCross = (x: number, y: number): string =>
+const failureCross = (x: number, y: number, scale: number): string =>
   cross({
     x,
     y,
-    width: FAILED_CROSS_WIDTH,
-    length: FAILED_CROSS_LENGTH,
+    width: FAILED_CROSS_WIDTH * scale,
+    length: FAILED_CROSS_LENGTH * scale,
     angle: FAILED_CROSS_ANGLE,
     fill: "red",
     stroke: "black",
-    strokeWidth: 2,
+    strokeWidth: 2 * scale,
   });
 
-const holdMarkup = (order: OrderState, position: Point): string =>
+const holdMarkup = (order: OrderState, position: Point, scale: number): string =>
   octagon({
     x: position.x,
     y: position.y,
-    size: HOLD_OCTAGON_SIZE,
+    size: HOLD_OCTAGON_SIZE * scale,
     fill: "transparent",
     stroke: SUCCESS_COLOR,
-    strokeWidth: ORDER_LINE_WIDTH,
+    strokeWidth: ORDER_LINE_WIDTH * scale,
     opacity: order.isImplicit ? 0.3 : undefined,
-    renderBottomCenter: order.failed ? failureCross : undefined,
+    renderBottomCenter: order.failed
+      ? (x, y) => failureCross(x, y, scale)
+      : undefined,
   });
 
 const buildMarkup = (
   order: OrderState,
   position: Point,
-  color: string
+  color: string,
+  scale: number
 ): string => {
   const token = unitToken(
     position.x,
@@ -331,31 +339,32 @@ const buildMarkup = (
     order.unitType ?? "Army",
     color,
     GHOST_UNIT_OPACITY,
-    GHOST_UNIT_OPACITY
+    GHOST_UNIT_OPACITY,
+    scale
   );
   const marker = cross({
-    x: position.x + BUILD_CROSS_OFFSET_X,
-    y: position.y + BUILD_CROSS_OFFSET_Y,
-    width: ORDER_MARKER_WIDTH,
-    length: ORDER_MARKER_LENGTH,
+    x: position.x + BUILD_CROSS_OFFSET_X * scale,
+    y: position.y + BUILD_CROSS_OFFSET_Y * scale,
+    width: ORDER_MARKER_WIDTH * scale,
+    length: ORDER_MARKER_LENGTH * scale,
     angle: ORDER_MARKER_ANGLE,
     fill: "green",
     stroke: "white",
-    strokeWidth: 1,
+    strokeWidth: scale,
   });
   return `<g>${token}${marker}</g>`;
 };
 
-const disbandMarkup = (position: Point): string =>
+const disbandMarkup = (position: Point, scale: number): string =>
   minus({
-    x: position.x + DISLODGED_OFFSET + DISBAND_MARKER_OFFSET_X,
-    y: position.y + DISLODGED_OFFSET + DISBAND_MARKER_OFFSET_Y,
-    width: ORDER_MARKER_WIDTH,
-    length: ORDER_MARKER_LENGTH,
+    x: position.x + DISLODGED_OFFSET * scale + DISBAND_MARKER_OFFSET_X * scale,
+    y: position.y + DISLODGED_OFFSET * scale + DISBAND_MARKER_OFFSET_Y * scale,
+    width: ORDER_MARKER_WIDTH * scale,
+    length: ORDER_MARKER_LENGTH * scale,
     angle: ORDER_MARKER_ANGLE,
     fill: "red",
     stroke: "white",
-    strokeWidth: 1,
+    strokeWidth: scale,
   });
 
 const headToHeadControlPoints = (
@@ -454,7 +463,8 @@ const supportOrderParts = (
   unitPositions: Map<string, Point>,
   state: RenderState,
   groups: Map<string, OrderState[]>,
-  headToHead: Map<string, Point>
+  headToHead: Map<string, Point>,
+  scale: number
 ): string[] => {
   const parts: string[] = [];
   for (const order of orders) {
@@ -468,7 +478,9 @@ const supportOrderParts = (
       continue;
     }
     const color = nationColor(state, order.nation);
-    const renderCenter = order.failed ? failureCross : undefined;
+    const renderCenter = order.failed
+      ? (x: number, y: number) => failureCross(x, y, scale)
+      : undefined;
 
     if (order.aux === order.target) {
       parts.push(
@@ -477,13 +489,13 @@ const supportOrderParts = (
           y1: source.y,
           x2: target.x,
           y2: target.y,
-          offset: UNIT_RADIUS,
-          endOffset: UNIT_RADIUS + UNIT_OFFSET_RADIUS,
-          lineWidth: ORDER_LINE_WIDTH,
+          offset: UNIT_RADIUS * scale,
+          endOffset: (UNIT_RADIUS + UNIT_OFFSET_RADIUS) * scale,
+          lineWidth: ORDER_LINE_WIDTH * scale,
           fill: color,
           stroke: SUCCESS_COLOR,
-          strokeWidth: ORDER_STROKE_WIDTH,
-          dash: ORDER_DASH,
+          strokeWidth: ORDER_STROKE_WIDTH * scale,
+          dash: { length: ORDER_DASH.length * scale, spacing: ORDER_DASH.spacing * scale },
           renderCenter,
         })
       );
@@ -506,14 +518,14 @@ const supportOrderParts = (
         y2: end.y,
         x3: aux.x,
         y3: aux.y,
-        offset: UNIT_RADIUS,
-        lineWidth: ORDER_LINE_WIDTH,
-        arrowWidth: ORDER_ARROW_WIDTH,
-        arrowLength: ORDER_ARROW_LENGTH,
-        strokeWidth: ORDER_STROKE_WIDTH,
+        offset: UNIT_RADIUS * scale,
+        lineWidth: ORDER_LINE_WIDTH * scale,
+        arrowWidth: ORDER_ARROW_WIDTH * scale,
+        arrowLength: ORDER_ARROW_LENGTH * scale,
+        strokeWidth: ORDER_STROKE_WIDTH * scale,
         stroke: SUCCESS_COLOR,
         fill: color,
-        dash: ORDER_DASH,
+        dash: { length: ORDER_DASH.length * scale, spacing: ORDER_DASH.spacing * scale },
         endControlPoint: moveControlPoint,
         renderCenter,
       })
@@ -527,7 +539,8 @@ const moveOrderParts = (
   unitPositions: Map<string, Point>,
   state: RenderState,
   headToHead: Map<string, Point>,
-  routes: Map<string, ConvoyRoute>
+  routes: Map<string, ConvoyRoute>,
+  scale: number
 ): string[] => {
   const parts: string[] = [];
   for (const order of orders) {
@@ -543,7 +556,9 @@ const moveOrderParts = (
       continue;
     }
     const color = nationColor(state, order.nation);
-    const renderCenter = order.failed ? failureCross : undefined;
+    const renderCenter = order.failed
+      ? (x: number, y: number) => failureCross(x, y, scale)
+      : undefined;
 
     if (order.type === "MoveViaConvoy") {
       const route = routes.get(`${order.source}->${order.target}`);
@@ -551,11 +566,11 @@ const moveOrderParts = (
         parts.push(
           moveViaConvoyArrow({
             waypoints: route.waypoints,
-            lineWidth: ORDER_LINE_WIDTH,
-            arrowWidth: ORDER_ARROW_WIDTH,
-            arrowLength: ORDER_ARROW_LENGTH,
-            strokeWidth: ORDER_STROKE_WIDTH,
-            offset: UNIT_RADIUS,
+            lineWidth: ORDER_LINE_WIDTH * scale,
+            arrowWidth: ORDER_ARROW_WIDTH * scale,
+            arrowLength: ORDER_ARROW_LENGTH * scale,
+            strokeWidth: ORDER_STROKE_WIDTH * scale,
+            offset: UNIT_RADIUS * scale,
             stroke: SUCCESS_COLOR,
             fill: color,
             renderCenter,
@@ -570,11 +585,11 @@ const moveOrderParts = (
         y1: source.y,
         x2: target.x,
         y2: target.y,
-        lineWidth: ORDER_LINE_WIDTH,
-        arrowWidth: ORDER_ARROW_WIDTH,
-        arrowLength: ORDER_ARROW_LENGTH,
-        strokeWidth: ORDER_STROKE_WIDTH,
-        offset: UNIT_RADIUS,
+        lineWidth: ORDER_LINE_WIDTH * scale,
+        arrowWidth: ORDER_ARROW_WIDTH * scale,
+        arrowLength: ORDER_ARROW_LENGTH * scale,
+        strokeWidth: ORDER_STROKE_WIDTH * scale,
+        offset: UNIT_RADIUS * scale,
         stroke: SUCCESS_COLOR,
         fill: color,
         controlPoint: headToHead.get(`${order.source}->${order.target}`),
@@ -589,7 +604,8 @@ const convoyOrderParts = (
   orders: OrderState[],
   unitPositions: Map<string, Point>,
   state: RenderState,
-  routes: Map<string, ConvoyRoute>
+  routes: Map<string, ConvoyRoute>,
+  scale: number
 ): string[] => {
   const parts: string[] = [];
   for (const order of orders) {
@@ -611,13 +627,15 @@ const convoyOrderParts = (
         y2: target.y,
         x3: aux.x,
         y3: aux.y,
-        lineWidth: ORDER_LINE_WIDTH,
-        offset: UNIT_RADIUS,
+        lineWidth: ORDER_LINE_WIDTH * scale,
+        offset: UNIT_RADIUS * scale,
         stroke: SUCCESS_COLOR,
-        strokeWidth: ORDER_STROKE_WIDTH,
+        strokeWidth: ORDER_STROKE_WIDTH * scale,
         fill: nationColor(state, order.nation),
         attachmentPoint: route?.attachments.get(order.source),
-        renderCenter: order.failed ? failureCross : undefined,
+        renderCenter: order.failed
+          ? (x: number, y: number) => failureCross(x, y, scale)
+          : undefined,
       })
     );
   }
@@ -626,7 +644,8 @@ const convoyOrderParts = (
 
 const ordersLayer = (
   unitPositions: Map<string, Point>,
-  state: RenderState
+  state: RenderState,
+  scale: number
 ): string => {
   const orders = state.orders ?? [];
   const ofType = (type: OrderType): OrderState[] =>
@@ -639,22 +658,22 @@ const ordersLayer = (
   for (const order of ofType("Hold")) {
     const position = unitPositions.get(order.source);
     if (position) {
-      parts.push(holdMarkup(order, position));
+      parts.push(holdMarkup(order, position, scale));
     }
   }
-  parts.push(...supportOrderParts(orders, unitPositions, state, groups, headToHead));
-  parts.push(...moveOrderParts(orders, unitPositions, state, headToHead, routes));
-  parts.push(...convoyOrderParts(orders, unitPositions, state, routes));
+  parts.push(...supportOrderParts(orders, unitPositions, state, groups, headToHead, scale));
+  parts.push(...moveOrderParts(orders, unitPositions, state, headToHead, routes, scale));
+  parts.push(...convoyOrderParts(orders, unitPositions, state, routes, scale));
   for (const order of ofType("Build")) {
     const position = unitPositions.get(order.source);
     if (position) {
-      parts.push(buildMarkup(order, position, nationColor(state, order.nation)));
+      parts.push(buildMarkup(order, position, nationColor(state, order.nation), scale));
     }
   }
   for (const order of ofType("Disband")) {
     const position = unitPositions.get(order.source);
     if (position) {
-      parts.push(disbandMarkup(position));
+      parts.push(disbandMarkup(position, scale));
     }
   }
   return parts.join("\n");
@@ -662,9 +681,11 @@ const ordersLayer = (
 
 export class DiplicityMap {
   private readonly parsed: ParsedDsvg;
+  private readonly unitScale: number;
 
-  constructor(svg: string) {
+  constructor(svg: string, unitScale = 1) {
     this.parsed = parseDsvg(svg);
+    this.unitScale = unitScale;
   }
 
   render(state: RenderState = {}): string {
@@ -680,8 +701,8 @@ export class DiplicityMap {
       state
     );
     const markers = supplyCenterMarkersLayer(this.parsed.supplyCenters);
-    const units = unitsLayer(this.parsed.unitPositions, state);
-    const orders = ordersLayer(this.parsed.unitPositions, state);
+    const units = unitsLayer(this.parsed.unitPositions, state, this.unitScale);
+    const orders = ordersLayer(this.parsed.unitPositions, state, this.unitScale);
 
     const parts = [
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxAttr}"${fillAttr}>`,

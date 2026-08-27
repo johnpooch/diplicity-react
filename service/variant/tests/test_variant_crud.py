@@ -489,6 +489,98 @@ def test_retrieve_variant_includes_province_map_data(authenticated_client, class
 
 
 @pytest.mark.django_db
+def test_create_variant_defaults_unit_scaling_when_absent(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "no-unit-scaling"
+    del dvar["unitScaling"]
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+    assert response.data["unit_scaling"] == 1
+    assert Variant.objects.get(id=response.data["id"]).unit_scaling == 1
+
+
+@pytest.mark.django_db
+def test_create_variant_preserves_unit_scaling(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "scaled-units"
+    dvar["unitScaling"] = 0.5
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+    assert response.data["unit_scaling"] == 0.5
+    assert Variant.objects.get(id=response.data["id"]).unit_scaling == 0.5
+
+    roundtripped = variant_to_canonical_dict(Variant.objects.get(id=response.data["id"]))
+    assert roundtripped["unitScaling"] == 0.5
+
+
+@pytest.mark.django_db
+def test_update_variant_preserves_unit_scaling(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "rescale-on-update"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
+
+    dvar["unitScaling"] = 2
+    update_response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": variant_id}),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.data
+    assert update_response.data["unit_scaling"] == 2
+    assert Variant.objects.get(id=variant_id).unit_scaling == 2
+
+
+@pytest.mark.django_db
+def test_create_variant_rejects_unit_scaling_below_minimum(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "unit-scaling-too-small"
+    dvar["unitScaling"] = 0.05
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_create_variant_rejects_unit_scaling_above_maximum(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "unit-scaling-too-large"
+    dvar["unitScaling"] = 11
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
 def test_sandbox_game_accepts_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-sandbox"
