@@ -8,10 +8,9 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, PhaseFrequency, UnitType
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType
 
 from phase.models import Phase
-from phase.utils import phase_to_canonical_game_state
 from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
@@ -2322,6 +2321,32 @@ class TestSandboxGameCreation:
         assert game.current_phase.phase_states.count() == 7
 
     @pytest.mark.django_db
+    def test_create_sandbox_game_preserves_template_dislodged_units(
+        self, authenticated_client, classical_variant, classical_wales_province
+    ):
+        template_unit = classical_variant.template_phase.units.first()
+        template_unit.dislodged = True
+        template_unit.dislodged_from = classical_wales_province
+        template_unit.save()
+
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        phase_url = reverse("phase-retrieve", args=[response.data["id"], response.data["current_phase_id"]])
+        phase_response = authenticated_client.get(phase_url)
+
+        assert phase_response.status_code == status.HTTP_200_OK
+        dislodged_units = [unit for unit in phase_response.data["units"] if unit["dislodged"]]
+        assert len(dislodged_units) == 1
+        assert dislodged_units[0]["province"]["id"] == template_unit.province.province_id
+        assert dislodged_units[0]["dislodged_from"]["id"] == "wal"
+
+    @pytest.mark.django_db
     def test_create_sandbox_game_does_not_notify(
         self, authenticated_client, classical_variant, in_memory_procrastinate
     ):
@@ -2926,78 +2951,41 @@ class TestGameCloneToSandbox:
         assert large_query_count == small_query_count
 
     @pytest.mark.django_db
-    def test_clone_from_phase_preserves_dislodged_origin(self, classical_variant):
-        nation = Nation.objects.filter(variant=classical_variant).first()
-        provinces = {p.province_id: p for p in Province.objects.filter(variant=classical_variant)}
-        game = Game.objects.create(name="Retreat Source", variant=classical_variant, status=GameStatus.ACTIVE)
-        source_phase = game.phases.create(
-            variant=classical_variant,
-            season="Spring",
-            year=1901,
-            type=PhaseType.RETREAT,
-            status=PhaseStatus.ACTIVE,
-            ordinal=1,
-        )
-        source_phase.units.create(type=UnitType.ARMY, nation=nation, province=provinces["lon"])
-        source_phase.units.create(
-            type=UnitType.ARMY,
-            nation=nation,
-            province=provinces["yor"],
-            dislodged=True,
-            dislodged_from=provinces["wal"],
-        )
+    def test_clone_to_sandbox_preserves_dislodged_unit_origin(
+        self, authenticated_client, active_retreat_game_with_dislodged_unit
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
 
-        clone = Game.objects.clone_from_phase(source_phase, name="Retreat Source (Sandbox)")
+        phase_url = reverse("phase-retrieve", args=[response.data["id"], response.data["current_phase_id"]])
+        phase_response = authenticated_client.get(phase_url)
 
-        cloned_phase = clone._created_phase
-        dislodged_unit = cloned_phase.units.get(province__province_id="yor")
-        assert dislodged_unit.dislodged
-        assert dislodged_unit.dislodged_from.province_id == "wal"
-        assert not cloned_phase.units.get(province__province_id="lon").dislodged
+        assert phase_response.status_code == status.HTTP_200_OK
+        dislodged_units = [unit for unit in phase_response.data["units"] if unit["dislodged"]]
+        assert len(dislodged_units) == 1
+        assert dislodged_units[0]["province"]["id"] == "lon"
+        assert dislodged_units[0]["dislodged_from"]["id"] == "wal"
 
     @pytest.mark.django_db
-    def test_clone_from_phase_canonical_state_keeps_attacker_origin(self, classical_variant):
-        nation = Nation.objects.filter(variant=classical_variant).first()
-        provinces = {p.province_id: p for p in Province.objects.filter(variant=classical_variant)}
-        game = Game.objects.create(name="Retreat Source", variant=classical_variant, status=GameStatus.ACTIVE)
-        source_phase = game.phases.create(
-            variant=classical_variant,
-            season="Spring",
-            year=1901,
-            type=PhaseType.RETREAT,
-            status=PhaseStatus.ACTIVE,
-            ordinal=1,
-        )
-        source_phase.units.create(
-            type=UnitType.ARMY,
-            nation=nation,
-            province=provinces["yor"],
-            dislodged=True,
-            dislodged_from=provinces["wal"],
-        )
+    def test_clone_to_sandbox_forbids_retreat_to_attacker_origin(
+        self, authenticated_client, active_retreat_game_with_dislodged_unit
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
 
-        clone = Game.objects.clone_from_phase(source_phase, name="Retreat Source (Sandbox)")
+        options_url = reverse("order-options", args=[response.data["id"]])
+        options_response = authenticated_client.get(options_url)
 
-        source_state = phase_to_canonical_game_state(source_phase)
-        clone_state = phase_to_canonical_game_state(clone._created_phase)
-        assert source_state["units"] == clone_state["units"]
-        assert clone_state["units"][0]["dislodgedFrom"] == "wal"
-
-    @pytest.mark.django_db
-    def test_create_from_template_preserves_dislodged_units(self, classical_variant):
-        template_phase = classical_variant.template_phase
-        template_unit = template_phase.units.first()
-        template_unit.dislodged = True
-        template_unit.dislodged_from = Province.objects.filter(variant=classical_variant).exclude(
-            id=template_unit.province_id
-        ).first()
-        template_unit.save()
-
-        game = Game.objects.create_from_template(classical_variant, name="From Template")
-
-        cloned_unit = game._created_phase.units.get(province=template_unit.province)
-        assert cloned_unit.dislodged
-        assert cloned_unit.dislodged_from == template_unit.dislodged_from
+        assert options_response.status_code == status.HTTP_200_OK
+        retreat_targets = {
+            option["target"]["id"]
+            for option in options_response.data["orders"]
+            if option["source"]["id"] == "lon" and option["order_type"]["id"] == OrderType.MOVE
+        }
+        assert "wal" not in retreat_targets
+        assert "yor" in retreat_targets
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_twice_creates_two_games(
