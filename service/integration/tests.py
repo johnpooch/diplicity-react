@@ -614,7 +614,7 @@ def test_dislodged_unit_scenario(
     italy_dislodged_unit = phase.units.filter(nation__name="Italy", province__province_id="tyr").first()
     assert italy_dislodged_unit is not None
     assert italy_dislodged_unit.dislodged
-    assert italy_dislodged_unit.dislodged_by is not None
+    assert italy_dislodged_unit.dislodged_from is not None
 
     # Italy: Retreat from Tyrolia to Trieste
     italy_client.post(create_order_url, {"selected": ["tyr"]}, format="json")

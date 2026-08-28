@@ -36,7 +36,7 @@ export const classicalStartUnits: Unit[] = classicalStartData.units.map(u => ({
   nation: nationByName(u.nation),
   province: province(u.province),
   dislodged: false,
-  dislodgedBy: null,
+  dislodgedFrom: null,
 }));
 
 export const classicalStartSupplyCenters: SupplyCenter[] =

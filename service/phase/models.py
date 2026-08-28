@@ -27,7 +27,7 @@ class PhaseQuerySet(models.QuerySet):
             "units__nation__flag",
             "units__province__parent",
             "units__province__named_coasts",
-            "units__dislodged_by__province__parent",
+            "units__dislodged_from__parent",
             "supply_centers__nation__flag",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
@@ -451,7 +451,7 @@ class PhaseManager(models.Manager):
         staging_members = list(
             Member.objects.filter(
                 user_id__in=user_ids,
-                game__status=GameStatus.PENDING,
+                game__status__in=[GameStatus.PENDING, GameStatus.MUSTERING],
             )
             .exclude(game__created_by_id=F("user_id"))
             .select_related("game")
@@ -470,7 +470,9 @@ class PhaseManager(models.Manager):
             emit("removed_from_staging", game=m.game, recipients=[m.user_id])
 
         from game.models import Game
-        for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
+        for game in Game.objects.filter(
+            id__in=game_ids, status__in=[GameStatus.PENDING, GameStatus.MUSTERING]
+        ):
             game.delete_if_empty_pending()
 
     def _check_eliminations(self, previous_phase, new_phase):
@@ -663,6 +665,7 @@ class PhaseManager(models.Manager):
             year=adjudication_data["year"],
             type=adjudication_data["type"],
             options=adjudication_data["options"],
+            contested_provinces=adjudication_data.get("contested_provinces", []),
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=scheduled_resolution,
         )
@@ -685,20 +688,15 @@ class PhaseManager(models.Manager):
         SupplyCenter.objects.bulk_create(supply_centers_to_create)
 
         # Create units
-        # Build a lookup for previous phase units by province_id to avoid N+1 queries
-        previous_units_by_province = {
-            u.province.province_id: u for u in previous_phase.units.select_related("province").all()
-        }
-
         units_to_create = []
         for unit in adjudication_data["units"]:
             is_dislodged = unit.get("dislodged", False)
 
-            dislodged_by_id = unit.get("dislodged_by", None)
-            dislodged_by_unit = None
+            dislodger_origin = unit.get("dislodged_by", None)
+            dislodged_from = None
 
-            if is_dislodged and dislodged_by_id:
-                dislodged_by_unit = previous_units_by_province.get(dislodged_by_id)
+            if is_dislodged and dislodger_origin:
+                dislodged_from = province_lookup.get(dislodger_origin)
 
             province = province_lookup.get(unit["province"])
             nation = nation_lookup.get(unit["nation"])
@@ -710,7 +708,7 @@ class PhaseManager(models.Manager):
                         province=province,
                         phase=new_phase,
                         dislodged=is_dislodged,
-                        dislodged_by=dislodged_by_unit,
+                        dislodged_from=dislodged_from,
                     )
                 )
 
@@ -767,6 +765,7 @@ class Phase(BaseModel):
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
     resolution_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
     options = models.JSONField(default=dict)
+    contested_provinces = models.JSONField(default=list)
 
     class Meta:
         ordering = ["ordinal", "id"]

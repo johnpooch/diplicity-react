@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
 class AddableUser(TypedDict):
@@ -304,7 +304,7 @@ class Unit(TypedDict):
     nation: Nation
     province: Province
     dislodged: bool
-    dislodged_by: dict[str, Any] | None
+    dislodged_from: Province | None
 
 
 type UnitTypeEnum = Literal['Army', 'Fleet']
@@ -320,6 +320,10 @@ class UserProfile(TypedDict):
     can_create_bot_games: bool
     reliability_tier: str | None
     commitment: str
+
+
+class UserProfilePicture(TypedDict):
+    picture: str
 
 
 VariantProvinceAdjacency = TypedDict(
@@ -440,6 +444,7 @@ class GameCreate(TypedDict):
     press_type: NotRequired[PressTypeEnum]
     min_reliability: NotRequired[MinReliabilityEnum]
     commitment_requirement: NotRequired[CommitmentRequirementEnum]
+    muster_required: NotRequired[bool]
 
 
 class GameListCurrentPhase(TypedDict):

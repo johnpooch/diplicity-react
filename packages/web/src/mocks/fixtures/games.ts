@@ -11,7 +11,11 @@ import {
   makeSupplyCenter,
   makeUnit,
 } from "./builders";
-import { classicalStartSupplyCenters, classicalStartUnits } from "./classical";
+import {
+  classicalStartSupplyCenters,
+  classicalStartUnits,
+  province,
+} from "./classical";
 import { botRoster, makeBotMember, makeMember, players } from "./users";
 
 const NATION_ASSIGNMENT: [number, string][] = [
@@ -287,7 +291,7 @@ const buildActiveRetreat = () => {
     if (u.province.id === "yor")
       return makeUnit("Army", "england", "nwy", {
         dislodged: true,
-        dislodgedBy: { type: "Army", nation: "Russia", province: "nwy" },
+        dislodgedFrom: province("stp"),
       });
     if (u.province.id === "stp") return makeUnit("Army", "russia", "nwy");
     return u;

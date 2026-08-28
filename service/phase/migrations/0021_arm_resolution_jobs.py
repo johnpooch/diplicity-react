@@ -56,7 +56,7 @@ def arm_resolution_jobs(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("phase", "0019_unique_live_phase_ordinal_per_game"),
+        ("phase", "0020_phase_contested_provinces"),
         ("game", "0023_backfill_commitment_requirement"),
     ]
 

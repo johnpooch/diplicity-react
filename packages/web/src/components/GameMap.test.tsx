@@ -159,7 +159,7 @@ const mockPhase = {
       nation: england,
       province: lon,
       dislodged: false,
-      dislodgedBy: null,
+      dislodgedFrom: null,
     },
   ],
   supplyCenters: [],

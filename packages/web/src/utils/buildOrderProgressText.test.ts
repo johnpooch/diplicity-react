@@ -35,7 +35,7 @@ const army = (provinceId: string, provinceName: string) => ({
   nation,
   province: province(provinceId, provinceName),
   dislodged: false,
-  dislodgedBy: null,
+  dislodgedFrom: null,
 });
 
 const fleet = (provinceId: string, provinceName: string) => ({
@@ -43,7 +43,7 @@ const fleet = (provinceId: string, provinceName: string) => ({
   nation,
   province: province(provinceId, provinceName),
   dislodged: false,
-  dislodgedBy: null,
+  dislodgedFrom: null,
 });
 
 describe("unitAbbrev", () => {

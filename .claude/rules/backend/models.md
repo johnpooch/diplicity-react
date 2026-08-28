@@ -53,4 +53,6 @@ A QuerySet method must earn its place by encapsulating something a caller would 
 
 A queryset feeding a serializer must cover every relation that serializer touches, including the ones reached inside a `SerializerMethodField`. `BaseMemberSerializer` reads `user.profile`, and a nested `NationSerializer` reads `nation.flag` — miss either and every member costs extra queries. Assert the count in a test.
 
+A user upload lives in its own model alongside a sha256 `content_hash` of the stored bytes, and is served by a hash-keyed view with `Cache-Control: immutable` rather than from a storage URL — the hash in the path is what makes the response cacheable forever. `NationFlag` and `UserProfilePicture` are the two examples. Binary payloads go through `MEDIA_ROOT`, which points at a mounted volume in production because the container filesystem is ephemeral; text payloads stay in a column.
+
 **Review check:** `select_related` / `prefetch_related` on the QuerySet, not in views? Manager delegates QuerySet methods? complex creation in Manager methods? derived values as `@property`? inherits from `BaseModel`?

@@ -2,10 +2,10 @@ import logging
 
 from django.apps import apps
 from django.db import transaction
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from user_profile.models import UserProfile
+from user_profile.models import UserProfile, UserProfilePicture
 
 logger = logging.getLogger(__name__)
 
@@ -39,3 +39,8 @@ def create_welcome_sandbox_game(sender, instance, created, **kwargs):
             logger.warning("Failed to create welcome sandbox game for user %s", user.id, exc_info=True)
 
     transaction.on_commit(_create)
+
+
+@receiver(post_delete, sender=UserProfilePicture)
+def delete_picture_file(sender, instance, **kwargs):
+    instance.image.delete(save=False)

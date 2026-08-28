@@ -1,6 +1,9 @@
 from rest_framework import permissions, generics
+from rest_framework.parsers import MultiPartParser
 from django.db import transaction
+from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
+from django.views import View
 from drf_spectacular.utils import extend_schema
 
 from game.models import Game
@@ -9,8 +12,13 @@ from phase.models import PhaseState
 from common.constants import GameStatus, PhaseStatus
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame
 from common.views import SelectedGameMixin
-from .models import UserProfile
-from .serializers import AddableUserSerializer, UserProfileSerializer, PublicUserProfileSerializer
+from .models import UserProfile, UserProfilePicture
+from .serializers import (
+    AddableUserSerializer,
+    PublicUserProfileSerializer,
+    UserProfilePictureSerializer,
+    UserProfileSerializer,
+)
 
 
 class UserProfileRetrieveView(generics.RetrieveAPIView):
@@ -26,7 +34,41 @@ class UserProfileUpdateView(generics.UpdateAPIView):
     serializer_class = UserProfileSerializer
 
     def get_object(self):
-        return UserProfile.objects.get(user=self.request.user)
+        return UserProfile.objects.with_related_data().get(user=self.request.user)
+
+
+@extend_schema(
+    request={"multipart/form-data": UserProfilePictureSerializer},
+    responses={200: UserProfileSerializer},
+    methods=["PUT"],
+)
+class UserProfilePictureView(generics.UpdateAPIView, generics.DestroyAPIView):
+    """Upload or remove the signed-in user's profile picture."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+    serializer_class = UserProfilePictureSerializer
+    http_method_names = ["put", "delete", "options"]
+
+    def get_object(self):
+        return UserProfile.objects.with_related_data().get(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        UserProfilePicture.objects.filter(profile=instance).delete()
+
+
+class UserProfilePictureImageView(View):
+    def get(self, request, user_id, content_hash):
+        try:
+            picture = UserProfilePicture.objects.get(
+                profile__user_id=user_id, content_hash=content_hash
+            )
+        except UserProfilePicture.DoesNotExist:
+            return HttpResponseNotFound()
+
+        response = HttpResponse(picture.image.read(), content_type=picture.content_type)
+        response["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
 
 class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
@@ -62,12 +104,13 @@ class UserAccountDeleteView(generics.DestroyAPIView):
     def perform_destroy(self, instance):
         with transaction.atomic():
             user_members = Member.objects.filter(user=instance)
+            unstarted_statuses = [GameStatus.PENDING, GameStatus.MUSTERING]
             pending_game_ids = list(
-                user_members.filter(game__status=GameStatus.PENDING).values_list(
+                user_members.filter(game__status__in=unstarted_statuses).values_list(
                     "game_id", flat=True
                 )
             )
-            user_members.filter(game__status=GameStatus.PENDING).delete()
+            user_members.filter(game__status__in=unstarted_statuses).delete()
             ongoing_members = user_members.filter(
                 game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
             )

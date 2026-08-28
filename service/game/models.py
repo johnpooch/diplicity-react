@@ -85,13 +85,13 @@ class GameQuerySet(models.QuerySet):
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.not_replaced()
-            .select_related("nation", "user__profile")
+            .select_related("nation", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation"),
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation"),
         )
 
         current_phase_ids = (
@@ -142,7 +142,7 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
-        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -152,13 +152,13 @@ class GameQuerySet(models.QuerySet):
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.not_replaced()
-            .select_related("nation__flag", "user__profile")
+            .select_related("nation__flag", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
         )
 
         current_phase_ids = (
@@ -186,7 +186,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Phase.objects.defer("options").prefetch_related(phase_states_prefetch)
         )
 
-        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -199,7 +199,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Unit.objects.select_related(
                 "nation__flag",
                 "province__parent",
-                "dislodged_by",
+                "dislodged_from",
             ).prefetch_related("province__named_coasts"),
         )
 
@@ -215,7 +215,7 @@ class GameQuerySet(models.QuerySet):
             "phase_states",
             queryset=PhaseState.objects.select_related(
                 "member__nation__flag",
-                "member__user__profile",
+                "member__user__profile__uploaded_picture",
             ).annotate(order_count=Count("orders")),
         )
 
@@ -241,16 +241,16 @@ class GameQuerySet(models.QuerySet):
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.not_replaced()
-            .select_related("nation__flag", "user__profile")
+            .select_related("nation__flag", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
         )
 
-        return self.select_related("victory", "game_master__profile").prefetch_related(
+        return self.select_related("victory", "game_master__profile__uploaded_picture").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
@@ -303,7 +303,8 @@ class GameManager(models.Manager):
                 type=template_unit.type,
                 nation=template_unit.nation,
                 province=template_unit.province,
-                dislodged_by=template_unit.dislodged_by,
+                dislodged=template_unit.dislodged,
+                dislodged_from=template_unit.dislodged_from,
             )
             for template_unit in template_phase.units.all()
         ]
@@ -374,8 +375,9 @@ class GameManager(models.Manager):
                 nation=unit.nation,
                 province=unit.province,
                 dislodged=unit.dislodged,
+                dislodged_from=unit.dislodged_from,
             )
-            for unit in source_phase.units.select_related("nation", "province")
+            for unit in source_phase.units.select_related("nation", "province", "dislodged_from")
         ]
         Unit.objects.bulk_create(units_to_create)
 
@@ -476,6 +478,10 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    muster_required = models.BooleanField(default=False)
+    muster_deadline = models.DateTimeField(null=True, blank=True)
+    muster_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
+    muster_reminder_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
 
     def save(self, *args, **kwargs):
         if self.id:
@@ -628,13 +634,13 @@ class Game(BaseModel):
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
             )
-            game_is_pending = self.status == GameStatus.PENDING
-            return user_is_member and game_is_pending
+            game_is_unstarted = self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            return user_is_member and game_is_unstarted
 
     def can_delete(self, user):
         with tracer.start_as_current_span("game.models.can_delete"):
             if (
-                self.status == GameStatus.PENDING
+                self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
                 and self.game_master_id is not None
                 and self.game_master_id == user.id
             ):
@@ -654,7 +660,7 @@ class Game(BaseModel):
         with tracer.start_as_current_span("game.models.can_remove_member"):
             if member.kicked or member.replaced_by_id is not None:
                 return False
-            if self.status == GameStatus.PENDING:
+            if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
                 return True
             if self.status != GameStatus.ACTIVE:
                 return False
@@ -730,7 +736,7 @@ class Game(BaseModel):
             return False
 
     def start(self, current_phase=None, members=None):
-        if self.status != GameStatus.PENDING:
+        if self.status not in (GameStatus.PENDING, GameStatus.MUSTERING):
             raise ValueError("Game is not pending")
 
         with transaction.atomic():
@@ -848,7 +854,7 @@ class Game(BaseModel):
 
     def delete_if_empty_pending(self):
         human_members = self.members.exclude(user__profile__kind__in=UserKind.BOT_KINDS)
-        if self.status == GameStatus.PENDING and not human_members.exists():
+        if self.status in (GameStatus.PENDING, GameStatus.MUSTERING) and not human_members.exists():
             self.delete()
             return True
         return False
@@ -874,4 +880,5 @@ class Game(BaseModel):
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["variant"]),
+            models.Index(fields=["muster_deadline"]),
         ]

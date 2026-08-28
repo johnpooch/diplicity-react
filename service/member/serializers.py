@@ -66,7 +66,7 @@ class BaseMemberSerializer(serializers.Serializer):
             return None
         if obj.user is None:
             return None
-        return obj.user.profile.picture
+        return obj.user.profile.picture_url(self.context.get("request"))
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):

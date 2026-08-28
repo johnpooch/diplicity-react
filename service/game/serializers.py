@@ -33,7 +33,11 @@ def _phase_state_order_count(phase_state):
 class GameMasterSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(source="id", read_only=True)
     name = serializers.CharField(source="profile.name", read_only=True)
-    picture = serializers.CharField(source="profile.picture", read_only=True, allow_null=True)
+    picture = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_picture(self, obj):
+        return obj.profile.picture_url(self.context.get("request"))
 
 
 class GameListBoardNationSerializer(serializers.Serializer):
@@ -464,6 +468,8 @@ class GameCreateSerializer(serializers.Serializer):
         choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
         default=CommitmentRequirement.OPEN,
     )
+    muster_required = serializers.BooleanField(default=False)
+
     def validate_variant_id(self, value):
         try:
             self._validated_variant = Variant.objects.get(
@@ -566,6 +572,7 @@ class GameCreateSerializer(serializers.Serializer):
                 press_type=validated_data["press_type"],
                 min_reliability=validated_data["min_reliability"],
                 commitment_requirement=validated_data["commitment_requirement"],
+                muster_required=validated_data["muster_required"],
             )
 
             public_channel = game.channels.create(name="Public Press", private=False)

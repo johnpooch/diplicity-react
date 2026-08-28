@@ -147,7 +147,7 @@ class TestUnitAdminQueryPerformance:
                 ordinal=1,
             )
 
-            attacking_unit = phase.units.create(
+            phase.units.create(
                 type="Fleet",
                 nation=classical_france_nation,
                 province=classical_paris_province,
@@ -157,7 +157,7 @@ class TestUnitAdminQueryPerformance:
                 nation=classical_england_nation,
                 province=classical_london_province,
                 dislodged=True,
-                dislodged_by=attacking_unit,
+                dislodged_from=classical_paris_province,
             )
             phase.units.create(
                 type="Fleet",

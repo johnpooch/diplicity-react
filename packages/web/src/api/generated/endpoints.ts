@@ -364,6 +364,7 @@ export interface GameCreate {
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
   commitmentRequirement?: CommitmentRequirementEnum;
+  musterRequired?: boolean;
 }
 
 export interface GameCreateSandbox {
@@ -786,18 +787,12 @@ export interface PhaseList {
   status: StatusEnum;
 }
 
-/**
- * @nullable
- */
-export type UnitDislodgedBy = { [key: string]: unknown } | null | null;
-
 export interface Unit {
   type: string;
   nation: Nation;
   province: Province;
   dislodged: boolean;
-  /** @nullable */
-  readonly dislodgedBy: UnitDislodgedBy;
+  dislodgedFrom: Province | null;
 }
 
 export interface SupplyCenter {
@@ -879,6 +874,10 @@ export interface UserProfile {
   /** @nullable */
   readonly reliabilityTier: string | null;
   readonly commitment: string;
+}
+
+export interface UserProfilePicture {
+  picture: string;
 }
 
 export interface VictoryConditions {
@@ -8581,6 +8580,161 @@ export const useUserDeleteDestroy = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   return useMutation(getUserDeleteDestroyMutationOptions(options), queryClient);
+};
+
+/**
+ * Upload or remove the signed-in user's profile picture.
+ */
+export const userPictureUpdate = (
+  userProfilePicture: UserProfilePicture,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`picture`, userProfilePicture.picture);
+
+  return customInstance<UserProfile>({
+    url: `/user/picture/`,
+    method: "PUT",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getUserPictureUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof userPictureUpdate>>,
+    TError,
+    { data: UserProfilePicture },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof userPictureUpdate>>,
+  TError,
+  { data: UserProfilePicture },
+  TContext
+> => {
+  const mutationKey = ["userPictureUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof userPictureUpdate>>,
+    { data: UserProfilePicture }
+  > = props => {
+    const { data } = props ?? {};
+
+    return userPictureUpdate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UserPictureUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userPictureUpdate>>
+>;
+export type UserPictureUpdateMutationBody = UserProfilePicture;
+export type UserPictureUpdateMutationError = unknown;
+
+export const useUserPictureUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof userPictureUpdate>>,
+      TError,
+      { data: UserProfilePicture },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof userPictureUpdate>>,
+  TError,
+  { data: UserProfilePicture },
+  TContext
+> => {
+  return useMutation(getUserPictureUpdateMutationOptions(options), queryClient);
+};
+
+/**
+ * Upload or remove the signed-in user's profile picture.
+ */
+export const userPictureDestroy = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/user/picture/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getUserPictureDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof userPictureDestroy>>,
+    TError,
+    void,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof userPictureDestroy>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["userPictureDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof userPictureDestroy>>,
+    void
+  > = () => {
+    return userPictureDestroy();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UserPictureDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userPictureDestroy>>
+>;
+
+export type UserPictureDestroyMutationError = unknown;
+
+export const useUserPictureDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof userPictureDestroy>>,
+      TError,
+      void,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof userPictureDestroy>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(
+    getUserPictureDestroyMutationOptions(options),
+    queryClient
+  );
 };
 
 export const userUpdateUpdate = (

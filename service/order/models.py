@@ -39,7 +39,7 @@ class OrderQuerySet(models.QuerySet):
             "named_coast",
             "named_coast__parent",
         ).prefetch_related(
-            "phase_state__member__user__profile",
+            "phase_state__member__user__profile__uploaded_picture",
             Prefetch(
                 "phase_state__phase__units",
                 queryset=apps.get_model("unit", "Unit")
