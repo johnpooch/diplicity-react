@@ -49,7 +49,7 @@ const unit = (provinceId: string): Unit => ({
   nation: nation("france"),
   province: prov(provinceId),
   dislodged: false,
-  dislodgedBy: null,
+  dislodgedFrom: null,
 });
 
 const order = (

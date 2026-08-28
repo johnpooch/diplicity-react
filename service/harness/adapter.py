@@ -126,7 +126,7 @@ def fixture_to_data(fixture: SelectOrdersFixture) -> ApiData:
             "nation": _nation(unit["nation"]),
             "province": _province(_resolve(lookup, unit["province"])),
             "dislodged": unit.get("dislodged", False),
-            "dislodged_by": None,
+            "dislodged_from": None,
         }
         for unit in units
     ]

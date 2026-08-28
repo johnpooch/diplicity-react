@@ -50,7 +50,7 @@ class VariantQuerySet(models.QuerySet):
                 "units__nation__flag",
                 "units__province__parent",
                 "units__province__named_coasts",
-                "units__dislodged_by",
+                "units__dislodged_from",
                 "supply_centers__nation__flag",
                 "supply_centers__province__parent",
                 "supply_centers__province__named_coasts",

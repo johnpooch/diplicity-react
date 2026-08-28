@@ -3643,14 +3643,13 @@ components:
           $ref: '#/components/schemas/Province'
         dislodged:
           type: boolean
-        dislodged_by:
-          type: object
-          additionalProperties: {}
+        dislodged_from:
+          allOf:
+          - $ref: '#/components/schemas/Province'
           nullable: true
-          readOnly: true
       required:
       - dislodged
-      - dislodged_by
+      - dislodged_from
       - nation
       - province
       - type
