@@ -12,6 +12,7 @@ from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStat
 from draw_proposal.models import DrawProposal
 from emit.context import build_context
 from game.models import Game
+from member.models import Member
 from notification.models import Notification, NotificationDelivery
 from notification.registry import REGISTRY as NOTIFICATION_REGISTRY
 from notification.registry import ChannelMessageSpec
@@ -166,6 +167,8 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
         eliminated = member_factory(game=game, user=user_factory(), eliminated=True)
         kicked = member_factory(game=game, user=user_factory(), kicked=True)
         civil = member_factory(game=game, user=user_factory(), civil_disorder=True)
+        replaced = member_factory(game=game, user=user_factory())
+        replacement = Member.objects.hand_over_seat(replaced, user_factory())
         return {
             "game": game,
             "game_master": game_master,
@@ -174,6 +177,8 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
             "eliminated": eliminated,
             "kicked": kicked,
             "civil": civil,
+            "replaced": replaced,
+            "replacement": replacement,
         }
 
     return _create
@@ -210,12 +215,13 @@ class TestRegistry:
 
 
 class TestActiveResolver:
-    def test_civil_disorder_excludes_eliminated_kicked_civil_and_includes_game_master(self, emit_game):
+    def test_civil_disorder_excludes_eliminated_kicked_replaced_civil_and_includes_game_master(self, emit_game):
         state = emit_game(with_game_master=True)
         result = resolve_recipients("civil_disorder", game=state["game"])
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
+            state["replacement"].user_id,
             state["game_master"].id,
         }
 
@@ -225,31 +231,62 @@ class TestActiveResolver:
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
+            state["replacement"].user_id,
         }
 
 
-class TestAllRecipientsResolver:
+class TestSeatedResolver:
     @pytest.mark.parametrize(
         "event_type",
         ["game_start", "game_draw", "phase_resolved", "phase_resolved_early"],
     )
-    def test_includes_eliminated_and_kicked_and_game_master(self, emit_game, event_type):
+    def test_includes_eliminated_and_civil_disorder_but_not_kicked_or_replaced(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
         result = resolve_recipients(event_type, game=state["game"])
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["kicked"].user_id,
             state["civil"].user_id,
+            state["replacement"].user_id,
             state["game_master"].id,
         }
 
-
-class TestAllPlayersExceptActorResolver:
     @pytest.mark.parametrize(
         "event_type",
-        ["game_paused", "game_resumed", "game_deadline_extended"],
+        [
+            "game_start",
+            "game_draw",
+            "game_solo_loss",
+            "phase_resolved",
+            "phase_resolved_early",
+            "game_paused",
+            "game_resumed",
+            "game_deadline_extended",
+            "nmr_extension_applied",
+            "seat_filled",
+            "civil_disorder_recovery",
+        ],
+    )
+    def test_kicked_and_replaced_members_are_not_notified(self, emit_game, event_type):
+        state = emit_game(with_game_master=True)
+        result = resolve_recipients(
+            event_type, game=state["game"], actor=state["active_one"].user
+        )
+        assert state["kicked"].user_id not in result
+        assert state["replaced"].user_id not in result
+
+
+class TestSeatedExceptActorResolver:
+    @pytest.mark.parametrize(
+        "event_type",
+        [
+            "game_paused",
+            "game_resumed",
+            "game_deadline_extended",
+            "seat_filled",
+            "civil_disorder_recovery",
+        ],
     )
     def test_excludes_the_actor(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
@@ -259,8 +296,8 @@ class TestAllPlayersExceptActorResolver:
         assert result == {
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["kicked"].user_id,
             state["civil"].user_id,
+            state["replacement"].user_id,
             state["game_master"].id,
         }
 
@@ -275,17 +312,8 @@ class TestAllPlayersExceptActorResolver:
 
 
 class TestActiveExceptActorResolver:
-    def test_civil_disorder_recovery_excludes_eliminated_kicked_civil_disorder_and_actor(self, emit_game):
-        state = emit_game(with_game_master=True)
-        actor = state["active_one"].user
-        result = resolve_recipients("civil_disorder_recovery", game=state["game"], actor=actor)
-        assert result == {
-            state["active_two"].user_id,
-            state["game_master"].id,
-        }
-
     @pytest.mark.django_db
-    def test_draw_proposal_excludes_eliminated_kicked_civil_disorder_and_actor(self, emit_game):
+    def test_draw_proposal_excludes_eliminated_kicked_replaced_civil_disorder_and_actor(self, emit_game):
         state = emit_game(with_game_master=True)
         phase = Phase.objects.create(
             game=state["game"],
@@ -302,6 +330,7 @@ class TestActiveExceptActorResolver:
         result = resolve_recipients("draw_proposal", draw_proposal=proposal)
         assert result == {
             state["active_two"].user_id,
+            state["replacement"].user_id,
             state["game_master"].id,
         }
 
@@ -325,8 +354,8 @@ class TestWinnersResolver:
         assert result == {
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["kicked"].user_id,
             state["civil"].user_id,
+            state["replacement"].user_id,
             state["game_master"].id,
         }
 
@@ -339,8 +368,8 @@ class TestNmrExtensionAppliedResolver:
             state["active_one"].user_id,
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["kicked"].user_id,
             state["civil"].user_id,
+            state["replacement"].user_id,
             state["game_master"].id,
         }
 

@@ -42,7 +42,7 @@ class TestEmitDispatch:
         state = _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=True)
         emit.emit("game_start", game=state["game"])
 
-        member_ids = set(state["game"].member_user_ids(include_gm=True))
+        member_ids = state["game"].seated_member_user_ids()
         notifications = Notification.objects.filter(event_type="game_start", recipient_id__in=member_ids)
         assert set(notifications.values_list("recipient_id", flat=True)) == {
             state["active_one"].user_id,
