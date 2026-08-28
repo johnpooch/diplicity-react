@@ -685,32 +685,23 @@ class Game(BaseModel):
 
             emit("game_admin_reassigned", game=self)
 
-    def notification_user_ids(self, exclude_user_id=None, active_only=False):
-        members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
-        user_ids = {
-            member.user_id for member in members
-            if member.user_id is not None
-        }
-        if self.game_master_id is not None:
-            user_ids.add(self.game_master_id)
-        if exclude_user_id is not None:
-            user_ids.discard(exclude_user_id)
-        return list(user_ids)
-
     def _with_game_master(self, user_ids):
         result = set(user_ids)
         if self.game_master_id is not None:
             result.add(self.game_master_id)
         return result
 
-    def member_user_ids(self, include_gm=False):
-        ids = {m.user_id for m in self.members.all() if m.user_id is not None}
-        return self._with_game_master(ids) if include_gm else ids
+    def seated_member_user_ids(self):
+        ids = {
+            m.user_id for m in self.members.all()
+            if m.user_id is not None and not m.kicked
+        }
+        return self._with_game_master(ids)
 
-    def active_member_user_ids(self, include_gm=False):
+    def active_member_user_ids(self):
         active = self.members.filter(eliminated=False, kicked=False, civil_disorder=False)
         ids = {m.user_id for m in active if m.user_id is not None}
-        return self._with_game_master(ids) if include_gm else ids
+        return self._with_game_master(ids)
 
     def winner_members(self):
         victory = Victory.objects.filter(game=self).prefetch_related("members").first()
