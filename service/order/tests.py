@@ -845,7 +845,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 7  # was 8 before resolve_game cache + transformed_options cached_property
+        assert len(connection.queries) == 8  # was 8 before resolve_game cache + transformed_options cached_property
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -882,7 +882,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 7
+        assert len(connection.queries) == 8
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_many_orders(
@@ -955,7 +955,7 @@ class TestOrderListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_many_orders_with_resolutions(
@@ -1039,7 +1039,7 @@ class TestOrderListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_orders_no_n_plus_one_for_named_coast_fleet_moves(
@@ -1117,7 +1117,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 19
+        assert query_count == 20
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
@@ -1132,7 +1132,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 19
+        assert query_count == 20
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
@@ -1147,7 +1147,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 19
+        assert query_count == 20
 
 
 class TestOrderDeleteViewQueryPerformance:

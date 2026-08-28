@@ -1,3 +1,4 @@
+import io
 import json
 from datetime import time
 from pathlib import Path
@@ -8,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
+
+from PIL import Image
 
 from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMember, ChannelMessage
@@ -30,7 +33,7 @@ from nation.models import Nation
 from order.models import OrderResolution
 from phase.models import Phase
 from province.models import Province
-from user_profile.models import UserProfile
+from user_profile.models import UserProfile, UserProfilePicture
 from variant.models import Variant
 from victory.models import Victory
 
@@ -43,8 +46,9 @@ User = get_user_model()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def override_test_settings():
+def override_test_settings(tmp_path_factory):
     with override_settings(
+        MEDIA_ROOT=str(tmp_path_factory.mktemp("media")),
         CACHES={
             "default": {
                 "BACKEND": "django.core.cache.backends.dummy.DummyCache",
@@ -118,6 +122,25 @@ def user_factory(db):
         return user
 
     return _create
+
+
+@pytest.fixture
+def make_image():
+    def _make(width=512, height=256, left="#ff0000", right="#0000ff"):
+        image = Image.new("RGB", (width, height), left)
+        image.paste(Image.new("RGB", (width // 2, height), right), (width // 2, 0))
+        return image
+
+    return _make
+
+
+@pytest.fixture
+def stored_picture(db, primary_user, make_image):
+    buffer = io.BytesIO()
+    make_image().save(buffer, format="PNG")
+    return UserProfilePicture.objects.store(
+        primary_user.profile, buffer.getvalue(), "image/png"
+    )
 
 
 @pytest.fixture

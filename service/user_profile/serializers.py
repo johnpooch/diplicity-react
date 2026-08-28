@@ -1,14 +1,21 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from .utils import get_player_stats, user_can_use_bot_opponent
+from .models import UserProfilePicture
+from .utils import get_player_stats, normalise_picture, picture_url, user_can_use_bot_opponent
 
 
-class UserProfileSerializer(serializers.Serializer):
+class PictureUrlMixin:
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_picture(self, obj):
+        return picture_url(obj, self.context.get("request"))
+
+
+class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(min_length=2, max_length=255)
-    picture = serializers.CharField(read_only=True, allow_null=True)
+    picture = serializers.SerializerMethodField()
     email = serializers.CharField(source="user.email", read_only=True)
     email_notifications_enabled = serializers.BooleanField(required=False)
     can_create_bot_games = serializers.SerializerMethodField()
@@ -42,16 +49,16 @@ class UserProfileSerializer(serializers.Serializer):
         return instance
 
 
-class AddableUserSerializer(serializers.Serializer):
+class AddableUserSerializer(PictureUrlMixin, serializers.Serializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
-    picture = serializers.CharField(read_only=True, allow_null=True)
+    picture = serializers.SerializerMethodField()
 
 
-class PublicUserProfileSerializer(serializers.Serializer):
+class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
-    picture = serializers.CharField(read_only=True, allow_null=True)
+    picture = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
     total_games = serializers.IntegerField(read_only=True)
     solo_wins = serializers.IntegerField(read_only=True)
@@ -67,3 +74,18 @@ class PublicUserProfileSerializer(serializers.Serializer):
         stats = get_player_stats(instance.user)
         data.update(stats)
         return data
+
+
+class UserProfilePictureSerializer(serializers.Serializer):
+    picture = serializers.FileField(write_only=True)
+
+    def validate_picture(self, value):
+        return normalise_picture(value)
+
+    def update(self, instance, validated_data):
+        data, content_type = validated_data["picture"]
+        UserProfilePicture.objects.store(instance, data, content_type)
+        return instance
+
+    def to_representation(self, instance):
+        return UserProfileSerializer(instance, context=self.context).data

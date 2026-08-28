@@ -1549,6 +1549,37 @@ paths:
       responses:
         '204':
           description: No response body
+  /user/picture/:
+    put:
+      operationId: user_picture_update
+      description: Upload or remove the signed-in user's profile picture.
+      tags:
+      - user
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfilePicture'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    delete:
+      operationId: user_picture_destroy
+      description: Upload or remove the signed-in user's profile picture.
+      tags:
+      - user
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /user/update/:
     put:
       operationId: user_update_update
@@ -1841,8 +1872,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
       required:
       - name
       - picture
@@ -2644,8 +2675,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
       required:
       - name
       - picture
@@ -3279,8 +3310,8 @@ components:
           minLength: 2
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         email:
           type: string
           readOnly: true
@@ -3463,8 +3494,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -3646,8 +3677,8 @@ components:
           minLength: 2
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         email:
           type: string
           readOnly: true
@@ -3672,6 +3703,15 @@ components:
       - picture
       - reliability_tier
       - user_id
+    UserProfilePicture:
+      type: object
+      properties:
+        picture:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - picture
     Variant:
       type: object
       properties:

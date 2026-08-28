@@ -14,6 +14,7 @@ from emit import emit
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
+from user_profile.utils import picture_url
 from member.models import Member
 from .models import Game
 
@@ -33,7 +34,11 @@ def _phase_state_order_count(phase_state):
 class GameMasterSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(source="id", read_only=True)
     name = serializers.CharField(source="profile.name", read_only=True)
-    picture = serializers.CharField(source="profile.picture", read_only=True, allow_null=True)
+    picture = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_picture(self, obj):
+        return picture_url(obj.profile, self.context.get("request"))
 
 
 class GameListBoardNationSerializer(serializers.Serializer):

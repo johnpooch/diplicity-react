@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema_field
 from common.constants import GameStatus
 from emit import emit
 from user_profile.models import UserProfile
+from user_profile.utils import picture_url
 
 from .models import Member
 
@@ -66,7 +67,7 @@ class BaseMemberSerializer(serializers.Serializer):
             return None
         if obj.user is None:
             return None
-        return obj.user.profile.picture
+        return picture_url(obj.user.profile, self.context.get("request"))
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
