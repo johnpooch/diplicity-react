@@ -12,11 +12,8 @@ tight, correctly typed, and correctly labelled.
 
 ## The board model (read this first)
 
-The Issues Board is homogeneous and agent-driven. Two rules constrain this skill:
+The Issues Board is homogeneous and agent-driven. One rule constrains this skill:
 
-- **Every open issue is exactly one dispatchable PR.** Anything bigger than a single PR
-  is not a board issue — it belongs in GitHub Discussions as an RFC. See the
-  epic-size guard below.
 - **Issues carry two label dimensions.** A **category** (`bug`, `enhancement`, or
   `documentation`) and a **status** (`needs-context` → `ready` → `in-progress`). This
   skill owns the category only. It **never** sets a status label: a newly created issue
@@ -52,27 +49,20 @@ leave it out.
    specified issue needs **zero** questions. Calibration:
    - Don't ask what a 30-second grep would tell you.
    - Don't spelunk the whole codebase for a one-line copy change.
-   - Stop digging once you can write a clear, single-PR spec.
+   - Stop digging once you can write a clear spec.
 
-3. **Apply the epic-size guard.** Before creating, ask yourself: *would one sensible PR
-   close this?* If it spans multiple subsystems, needs sequenced phases, or reads as
-   "do X, and then Y, and then Z", it is **not** a board issue. **Do not create it.**
-   Tell the user it's larger than one PR and belongs in a
-   [GitHub Discussion](https://github.com/johnpooch/diplicity-react/discussions) as an
-   RFC, and stop. Do not auto-split it into multiple issues.
-
-4. **Verify the category label exists.** Call `mcp__github__get_label` for the inferred
+3. **Verify the category label exists.** Call `mcp__github__get_label` for the inferred
    category (`bug`, `enhancement`, or `documentation`). If it does not exist, **do not
    create the label and do not create the issue** — stop and report that the category
    label is missing (this is a misconfigured-board signal, not something this skill
    papers over).
 
-5. **Create directly.** Create the issue with `mcp__github__issue_write` (`method:
+4. **Create directly.** Create the issue with `mcp__github__issue_write` (`method:
    create`), passing the body, a plain title, and `labels: ["bug"]`,
    `labels: ["enhancement"]`, or `labels: ["documentation"]` — **the category label
    only, no status label**. Do not draft-and-wait for approval.
 
-6. **Report the link.** Reply with the new issue's URL.
+5. **Report the link.** Reply with the new issue's URL.
 
 ## Body structure
 

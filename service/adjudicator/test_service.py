@@ -1146,3 +1146,101 @@ class TestUserUploadedVariant:
         assert set(current_phase.options.keys()) == {
             nation.name for nation in variant.nations.all()
         }
+
+
+class TestContestedProvinces:
+    @pytest.mark.django_db
+    def test_resolve_movement_standoff_reports_contested_provinces(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_italy, "ven")
+        create_supply_center(phase_state_germany, "mun")
+        create_supply_center(phase_state_germany, "kie")
+
+        create_unit(phase_state_italy, "boh", "Army")
+        create_unit(phase_state_italy, "tyr", "Army")
+        create_unit(phase_state_italy, "bur", "Army")
+        create_unit(phase_state_germany, "mun", "Army")
+        create_unit(phase_state_germany, "kie", "Army")
+
+        create_order(phase_state_italy, "boh", OrderType.MOVE, "mun")
+        create_order(phase_state_italy, "tyr", OrderType.SUPPORT, "mun", "boh")
+        create_order(phase_state_italy, "bur", OrderType.MOVE, "ruh")
+        create_order(phase_state_germany, "mun", OrderType.HOLD)
+        create_order(phase_state_germany, "kie", OrderType.MOVE, "ruh")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["type"] == "Retreat"
+        assert data["contested_provinces"] == ["ruh"]
+
+    @pytest.mark.django_db
+    def test_resolve_retreat_into_contested_province_is_illegal(
+        self,
+        phase_spring_1901_retreat,
+        member_italy,
+        member_germany,
+    ):
+        phase_spring_1901_retreat.contested_provinces = ["ruh"]
+        phase_spring_1901_retreat.save()
+
+        phase_state_italy = phase_spring_1901_retreat.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_retreat.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_germany, "mun")
+        create_unit(phase_state_italy, "boh", "Army")
+
+        bohemia = phase_spring_1901_retreat.variant.provinces.get(province_id="boh")
+        munich = phase_spring_1901_retreat.variant.provinces.get(province_id="mun")
+        phase_spring_1901_retreat.units.create(
+            province=munich,
+            type=UnitType.ARMY,
+            nation=member_germany.nation,
+            dislodged=True,
+            dislodged_from=bohemia,
+        )
+
+        create_order(phase_state_germany, "mun", OrderType.MOVE, "ruh")
+
+        data = adjudication_service.resolve(phase_spring_1901_retreat)
+
+        munich_resolution = next(r for r in data["resolutions"] if r["province"] == "mun")
+        assert munich_resolution["result"] == OrderResolutionStatus.ILLEGAL_MOVE
+        assert not any(u["province"] == "ruh" for u in data["units"])
+
+    @pytest.mark.django_db
+    def test_resolve_retreat_into_uncontested_province_is_legal(
+        self,
+        phase_spring_1901_retreat,
+        member_italy,
+        member_germany,
+    ):
+        phase_state_italy = phase_spring_1901_retreat.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_retreat.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_germany, "mun")
+        create_unit(phase_state_italy, "boh", "Army")
+
+        bohemia = phase_spring_1901_retreat.variant.provinces.get(province_id="boh")
+        munich = phase_spring_1901_retreat.variant.provinces.get(province_id="mun")
+        phase_spring_1901_retreat.units.create(
+            province=munich,
+            type=UnitType.ARMY,
+            nation=member_germany.nation,
+            dislodged=True,
+            dislodged_from=bohemia,
+        )
+
+        create_order(phase_state_germany, "mun", OrderType.MOVE, "ruh")
+
+        data = adjudication_service.resolve(phase_spring_1901_retreat)
+
+        munich_resolution = next(r for r in data["resolutions"] if r["province"] == "mun")
+        assert munich_resolution["result"] == OrderResolutionStatus.SUCCEEDED
+        assert any(u["province"] == "ruh" and u["nation"] == "Germany" for u in data["units"])

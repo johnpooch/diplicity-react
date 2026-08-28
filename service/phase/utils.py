@@ -632,4 +632,5 @@ def phase_to_canonical_game_state(phase):
             for phase_state in phase.phase_states.all()
             for order in phase_state.orders.all()
         ],
+        "contestedProvinces": list(phase.contested_provinces),
     }

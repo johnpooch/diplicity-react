@@ -7,8 +7,10 @@ resolve yet).
 `resolve(phase)` runs the Python adjudicator against the phase's current
 state and returns the dict shape `Phase.objects.create_from_adjudication_data`
 consumes: next-phase descriptor + options, post-resolution units / supply
-centers, and per-order resolutions (with a "by" province pointing at the
-opponent that caused a bounce or cut where applicable).
+centers, per-order resolutions (with a "by" province pointing at the
+opponent that caused a bounce or cut where applicable), and the parent
+provinces the resolved phase left contested, which the next phase is
+persisted with so a following Retreat phase can reject retreats into them.
 
 Both functions emit the legacy godip-style dict so downstream consumers
 (`Game.start`, `create_from_adjudication_data`, `transform_options`) keep
@@ -158,6 +160,7 @@ def resolve(phase) -> Dict[str, Any]:
             ),
             "units": _build_units(state.units, next_state.units, variant, nation_name_by_id),
             "resolutions": _build_resolutions(state.orders, resolved.resolutions, variant),
+            "contested_provinces": list(next_state.contested_provinces),
         }
 
 
