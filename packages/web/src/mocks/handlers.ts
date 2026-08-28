@@ -46,6 +46,8 @@ const mapSvgs: Record<string, string> = {
   "youngstown-redux.d.svg": youngstownMapSvg,
 };
 
+let uploadedPicture: string | null = null;
+
 const svgResponse = (body: string) =>
   new HttpResponse(body, {
     headers: { "Content-Type": "image/svg+xml" },
@@ -118,7 +120,9 @@ export const handlers = [
     return flag ? svgResponse(flag) : notFound();
   }),
 
-  http.get("*/user/", () => HttpResponse.json(currentUserProfile)),
+  http.get("*/user/", () =>
+    HttpResponse.json({ ...currentUserProfile, picture: uploadedPicture })
+  ),
 
   http.get("*/users/:userId/", ({ params }) => {
     const profile = publicProfiles[Number(params.userId)];
@@ -407,4 +411,23 @@ export const handlers = [
   http.patch("*/user/update/", () => HttpResponse.json(currentUserProfile)),
   http.put("*/user/update/", () => HttpResponse.json(currentUserProfile)),
   http.delete("*/user/delete/", () => new HttpResponse(null, { status: 204 })),
+
+  http.put("*/user/picture/", async ({ request }) => {
+    const picture = (await request.formData()).get("picture");
+    if (!(picture instanceof File)) {
+      return HttpResponse.json(
+        { picture: ["Picture could not be read as an image."] },
+        { status: 400 }
+      );
+    }
+    uploadedPicture = URL.createObjectURL(picture);
+    return HttpResponse.json({
+      ...currentUserProfile,
+      picture: uploadedPicture,
+    });
+  }),
+  http.delete("*/user/picture/", () => {
+    uploadedPicture = null;
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];
