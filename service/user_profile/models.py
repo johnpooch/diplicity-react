@@ -54,6 +54,10 @@ class UserProfile(BaseModel):
     def is_bot(self):
         return self.kind != UserKind.HUMAN
 
+    @property
+    def has_uploaded_picture(self) -> bool:
+        return UserProfilePicture.objects.filter(profile=self).exists()
+
     def picture_url(self, request=None) -> str | None:
         try:
             picture = self.uploaded_picture
