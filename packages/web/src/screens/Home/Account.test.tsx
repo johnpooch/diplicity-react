@@ -31,13 +31,17 @@ let mockUserProfile: {
 };
 
 const mockSetPreference = vi.fn();
-const { mockUploadPicture, mockRemovePicture, mockToastError } = vi.hoisted(
-  () => ({
-    mockUploadPicture: vi.fn(),
-    mockRemovePicture: vi.fn(),
-    mockToastError: vi.fn(),
-  })
-);
+const {
+  mockUploadPicture,
+  mockRemovePicture,
+  mockToastError,
+  mockDownscaleImage,
+} = vi.hoisted(() => ({
+  mockUploadPicture: vi.fn(),
+  mockRemovePicture: vi.fn(),
+  mockToastError: vi.fn(),
+  mockDownscaleImage: vi.fn(),
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useUserRetrieveSuspense: () => ({ data: mockUserProfile }),
@@ -59,6 +63,10 @@ vi.mock("@/api/generated/endpoints", () => ({
 
 vi.mock("sonner", () => ({
   toast: { error: mockToastError },
+}));
+
+vi.mock("@/utils/downscaleImage", () => ({
+  downscaleImage: mockDownscaleImage,
 }));
 
 vi.mock("@/hooks/useMessaging", () => ({
@@ -158,6 +166,7 @@ describe("Account - Appearance section", () => {
 describe("Account - profile picture", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDownscaleImage.mockImplementation(async (file: File) => file);
     mockUserProfile = { ...mockUserProfile, picture: null };
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -179,6 +188,21 @@ describe("Account - profile picture", () => {
 
     expect(mockUploadPicture).toHaveBeenCalledWith({ data: { picture: file } });
     expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it("uploads the downscaled file rather than the original", async () => {
+    const original = new File(["original"], "me.png", { type: "image/png" });
+    const downscaled = new File(["small"], "me.png", { type: "image/png" });
+    mockDownscaleImage.mockResolvedValue(downscaled);
+    const user = userEvent.setup();
+    const { container } = renderAccount();
+
+    await user.upload(getFileInput(container), original);
+
+    expect(mockDownscaleImage).toHaveBeenCalledWith(original);
+    expect(mockUploadPicture).toHaveBeenCalledWith({
+      data: { picture: downscaled },
+    });
   });
 
   it("surfaces the server's message when an upload is rejected", async () => {

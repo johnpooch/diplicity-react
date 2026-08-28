@@ -39,6 +39,7 @@ import { useTheme } from "@/theme/useTheme";
 import { useLogout } from "@/hooks/useLogout";
 import { useNavigate } from "react-router";
 import { useMessaging } from "@/hooks/useMessaging";
+import { downscaleImage } from "@/utils/downscaleImage";
 import {
   useUserRetrieveSuspense,
   useUserUpdatePartialUpdate,
@@ -71,8 +72,8 @@ const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadPictureMutation = useUserPictureUpdate();
   const removePictureMutation = useUserPictureDestroy();
-  const isPending =
-    uploadPictureMutation.isPending || removePictureMutation.isPending;
+  const [isUploading, setIsUploading] = useState(false);
+  const isPending = isUploading || removePictureMutation.isPending;
 
   const refreshProfile = () =>
     Promise.all([
@@ -83,13 +84,17 @@ const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
     ]);
 
   const handleUpload = async (file: File) => {
+    setIsUploading(true);
     try {
+      const picture = await downscaleImage(file);
       await uploadPictureMutation.mutateAsync({
-        data: { picture: file as unknown as UserProfilePicture["picture"] },
+        data: { picture: picture as unknown as UserProfilePicture["picture"] },
       });
       await refreshProfile();
     } catch (error) {
       toast.error(pictureErrorMessage(error, "Failed to upload picture"));
+    } finally {
+      setIsUploading(false);
     }
   };
 
