@@ -4501,6 +4501,79 @@ export const useGameMembersReplaceCreate = <
 };
 
 /**
+ * Confirm the requesting user's seat in a mustering game.
+ */
+export const gameMusterCreate = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/muster/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameMusterCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMusterCreate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMusterCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameMusterCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMusterCreate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameMusterCreate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMusterCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMusterCreate>>
+>;
+
+export type GameMusterCreateMutationError = unknown;
+
+export const useGameMusterCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMusterCreate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMusterCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGameMusterCreateMutationOptions(options), queryClient);
+};
+
+/**
  * Used by views that have a game parameter in the URL. Provides a get_phase
 method that returns the current phase for the game. Also adds phase to the serializer context.
  */

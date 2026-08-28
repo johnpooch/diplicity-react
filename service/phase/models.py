@@ -554,6 +554,7 @@ class PhaseManager(models.Manager):
         for game in Game.objects.filter(
             id__in=game_ids, status__in=[GameStatus.PENDING, GameStatus.MUSTERING]
         ):
+            game.return_to_pending()
             game.delete_if_empty_pending()
 
     def _check_eliminations(self, previous_phase, new_phase):

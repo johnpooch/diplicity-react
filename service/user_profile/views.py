@@ -119,5 +119,6 @@ class UserAccountDeleteView(generics.DestroyAPIView):
                 member__in=ongoing_members, phase__status=PhaseStatus.ACTIVE
             ).update(has_possible_orders=False)
             for game in Game.objects.filter(id__in=pending_game_ids):
+                game.return_to_pending()
                 game.delete_if_empty_pending()
             instance.delete()

@@ -142,6 +142,9 @@ class GameStartSpec(NotificationSpec):
     channels = [Channel.PUSH, Channel.EMAIL]
 
     def get_audience(self):
+        recipients = self.context.payload.get("recipients")
+        if recipients is not None:
+            return recipients
         return self.context.game.member_user_ids(include_gm=True)
 
     def get_body(self):
@@ -299,6 +302,27 @@ class RemovedFromStagingSpec(NotificationSpec):
 
     def get_body(self):
         return f"You were removed from {self.context.game.name} because you entered civil disorder in an active game."
+
+
+@register("mustering_started")
+class MusteringStartedSpec(NotificationSpec):
+    def get_audience(self):
+        return self.context.game.member_user_ids(include_gm=True)
+
+    def get_title(self):
+        return "Ready to Start"
+
+    def get_body(self):
+        return f"{self.context.game.name} is full. Confirm you're ready to play before the deadline or you'll lose your seat."
+
+
+@register("removed_from_muster")
+class RemovedFromMusterSpec(NotificationSpec):
+    def get_title(self):
+        return "Removed from game"
+
+    def get_body(self):
+        return f"You lost your seat in {self.context.game.name} because you didn't confirm before the deadline. The seat is open for another player to take."
 
 
 @register("civil_disorder")
