@@ -151,7 +151,7 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
             and instance.game_master_id is not None
             and instance.game_master_id == self.request.user.id
         )
-        user_ids = instance.notification_user_ids(exclude_user_id=self.request.user.id)
+        user_ids = list(instance.seated_member_user_ids() - {self.request.user.id})
         game_name = instance.name
         instance.delete()
         if is_game_master_delete:

@@ -1196,14 +1196,14 @@ class TestContestedProvinces:
         create_supply_center(phase_state_germany, "mun")
         create_unit(phase_state_italy, "boh", "Army")
 
-        dislodger = phase_spring_1901_retreat.units.get(province__province_id="boh")
+        bohemia = phase_spring_1901_retreat.variant.provinces.get(province_id="boh")
         munich = phase_spring_1901_retreat.variant.provinces.get(province_id="mun")
         phase_spring_1901_retreat.units.create(
             province=munich,
             type=UnitType.ARMY,
             nation=member_germany.nation,
             dislodged=True,
-            dislodged_by=dislodger,
+            dislodged_from=bohemia,
         )
 
         create_order(phase_state_germany, "mun", OrderType.MOVE, "ruh")
@@ -1227,14 +1227,14 @@ class TestContestedProvinces:
         create_supply_center(phase_state_germany, "mun")
         create_unit(phase_state_italy, "boh", "Army")
 
-        dislodger = phase_spring_1901_retreat.units.get(province__province_id="boh")
+        bohemia = phase_spring_1901_retreat.variant.provinces.get(province_id="boh")
         munich = phase_spring_1901_retreat.variant.provinces.get(province_id="mun")
         phase_spring_1901_retreat.units.create(
             province=munich,
             type=UnitType.ARMY,
             nation=member_germany.nation,
             dislodged=True,
-            dislodged_by=dislodger,
+            dislodged_from=bohemia,
         )
 
         create_order(phase_state_germany, "mun", OrderType.MOVE, "ruh")

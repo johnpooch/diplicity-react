@@ -209,7 +209,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Unit.objects.select_related(
                 "nation__flag",
                 "province__parent",
-                "dislodged_by",
+                "dislodged_from",
             ).prefetch_related("province__named_coasts"),
         )
 
@@ -368,7 +368,7 @@ class GameManager(models.Manager):
                 member.user_id for member in unmustered if member.user_id is not None
             }
             recipients = list(
-                game.member_user_ids(include_gm=True) - unmustered_user_ids
+                game.seated_member_user_ids() - unmustered_user_ids
             )
 
             game.start(notify_user_ids=recipients)
@@ -407,7 +407,8 @@ class GameManager(models.Manager):
                 type=template_unit.type,
                 nation=template_unit.nation,
                 province=template_unit.province,
-                dislodged_by=template_unit.dislodged_by,
+                dislodged=template_unit.dislodged,
+                dislodged_from=template_unit.dislodged_from,
             )
             for template_unit in template_phase.units.all()
         ]
@@ -478,8 +479,9 @@ class GameManager(models.Manager):
                 nation=unit.nation,
                 province=unit.province,
                 dislodged=unit.dislodged,
+                dislodged_from=unit.dislodged_from,
             )
-            for unit in source_phase.units.select_related("nation", "province")
+            for unit in source_phase.units.select_related("nation", "province", "dislodged_from")
         ]
         Unit.objects.bulk_create(units_to_create)
 
@@ -793,32 +795,23 @@ class Game(BaseModel):
 
             emit("game_admin_reassigned", game=self)
 
-    def notification_user_ids(self, exclude_user_id=None, active_only=False):
-        members = self.members.filter(eliminated=False, kicked=False) if active_only else self.members.all()
-        user_ids = {
-            member.user_id for member in members
-            if member.user_id is not None
-        }
-        if self.game_master_id is not None:
-            user_ids.add(self.game_master_id)
-        if exclude_user_id is not None:
-            user_ids.discard(exclude_user_id)
-        return list(user_ids)
-
     def _with_game_master(self, user_ids):
         result = set(user_ids)
         if self.game_master_id is not None:
             result.add(self.game_master_id)
         return result
 
-    def member_user_ids(self, include_gm=False):
-        ids = {m.user_id for m in self.members.all() if m.user_id is not None}
-        return self._with_game_master(ids) if include_gm else ids
+    def seated_member_user_ids(self):
+        ids = {
+            m.user_id for m in self.members.all()
+            if m.user_id is not None and not m.kicked
+        }
+        return self._with_game_master(ids)
 
-    def active_member_user_ids(self, include_gm=False):
+    def active_member_user_ids(self):
         active = self.members.filter(eliminated=False, kicked=False, civil_disorder=False)
         ids = {m.user_id for m in active if m.user_id is not None}
-        return self._with_game_master(ids) if include_gm else ids
+        return self._with_game_master(ids)
 
     def winner_members(self):
         victory = Victory.objects.filter(game=self).prefetch_related("members").first()

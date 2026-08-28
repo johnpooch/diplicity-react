@@ -1009,6 +1009,47 @@ def active_game_with_phase_state(
 
 
 @pytest.fixture
+def active_retreat_game_with_dislodged_unit(
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+    classical_france_nation,
+    classical_london_province,
+    classical_wales_province,
+):
+    game = models.Game.objects.create(
+        name="Retreat Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
+    )
+    phase = game.phases.create(
+        game=game,
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type=PhaseType.RETREAT,
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.units.create(
+        type=UnitType.ARMY, nation=classical_france_nation, province=classical_london_province
+    )
+    phase.units.create(
+        type=UnitType.ARMY,
+        nation=classical_england_nation,
+        province=classical_london_province,
+        dislodged=True,
+        dislodged_from=classical_wales_province,
+    )
+    phase.supply_centers.create(nation=classical_france_nation, province=classical_london_province)
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase.phase_states.create(member=member, has_possible_orders=True)
+    return game
+
+
+@pytest.fixture
 def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, classical_england_nation):
     phase_state = active_game_with_phase_state.current_phase.phase_states.first()
     phase_state.orders_confirmed = True

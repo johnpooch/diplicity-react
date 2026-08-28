@@ -128,7 +128,7 @@ class DrawProposalSpec(NotificationSpec):
     exclude_actor = True
 
     def get_audience(self):
-        return self.context.game.active_member_user_ids(include_gm=True)
+        return self.context.game.active_member_user_ids()
 
     def get_link(self):
         return f"{self._game_url()}/phase/{self.context.phase.id}/draw-proposals"
@@ -145,7 +145,7 @@ class GameStartSpec(NotificationSpec):
         recipients = self.context.payload.get("recipients")
         if recipients is not None:
             return recipients
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return "The game has started. You can now chat with other players and submit your orders. Good luck!"
@@ -157,7 +157,7 @@ class GameStartSpec(NotificationSpec):
 @register("game_draw")
 class GameDrawSpec(NotificationSpec):
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         names = ", ".join(member.name for member in self.context.game.winner_members())
@@ -176,7 +176,7 @@ class GameSoloWinSpec(NotificationSpec):
 @register("game_solo_loss")
 class GameSoloLossSpec(NotificationSpec):
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True) - self.context.game.winner_user_ids()
+        return self.context.game.seated_member_user_ids() - self.context.game.winner_user_ids()
 
     def get_body(self):
         winners = self.context.game.winner_members()
@@ -189,7 +189,7 @@ class PhaseResolvedSpec(NotificationSpec):
     channels = [Channel.PUSH, Channel.EMAIL]
 
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return f"{self.context.phase.name} has been resolved"
@@ -203,7 +203,7 @@ class PhaseResolvedEarlySpec(NotificationSpec):
     channels = [Channel.PUSH, Channel.EMAIL]
 
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return f"{self.context.phase.name} resolved early — all players confirmed their orders."
@@ -235,7 +235,7 @@ class GameManagementSpec(NotificationSpec):
     exclude_actor = True
 
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def manager_label(self):
         label = self.context.game.manager_label
@@ -286,7 +286,7 @@ class SeatFilledSpec(NotificationSpec):
     exclude_actor = True
 
     def get_audience(self):
-        return self.context.game.active_member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_title(self):
         return "Seat Filled"
@@ -307,7 +307,7 @@ class RemovedFromStagingSpec(NotificationSpec):
 @register("mustering_started")
 class MusteringStartedSpec(NotificationSpec):
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_title(self):
         return "Ready to Start"
@@ -330,7 +330,7 @@ class CivilDisorderSpec(NotificationSpec):
     channels = [Channel.PUSH, Channel.EMAIL]
 
     def get_audience(self):
-        return self.context.game.active_member_user_ids(include_gm=True)
+        return self.context.game.active_member_user_ids()
 
     def get_link(self):
         return None
@@ -350,7 +350,7 @@ class CivilDisorderRecoverySpec(NotificationSpec):
     exclude_actor = True
 
     def get_audience(self):
-        return self.context.game.active_member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_link(self):
         return None
@@ -387,7 +387,7 @@ class NmrExtensionUsedSpec(NotificationSpec):
 @register("nmr_extension_applied")
 class NmrExtensionAppliedSpec(NotificationSpec):
     def get_audience(self):
-        return self.context.game.member_user_ids(include_gm=True)
+        return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         deadline = self.context.phase.formatted_deadline

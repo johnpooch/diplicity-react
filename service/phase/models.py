@@ -45,7 +45,7 @@ class PhaseQuerySet(models.QuerySet):
             "supply_centers__nation__flag",
             "units__province",
             "units__nation__flag",
-            "units__dislodged_by__province",
+            "units__dislodged_from",
             "phase_states__member__nation__flag",
             "phase_states__orders__source",
             "phase_states__orders__target",
@@ -58,7 +58,7 @@ class PhaseQuerySet(models.QuerySet):
         return self.prefetch_related(
             "units__nation__flag",
             "units__province",
-            "units__dislodged_by__province__parent",
+            "units__dislodged_from__parent",
             "supply_centers__nation__flag",
             "supply_centers__province",
             "phase_states__member__nation__flag",
@@ -823,11 +823,6 @@ class PhaseManager(models.Manager):
 
                 # Create units
                 with tracer.start_as_current_span("phase.create_units") as units_span:
-                    # Build a lookup for previous phase units by province_id to avoid N+1 queries
-                    previous_units_by_province = {
-                        u.province.province_id: u for u in previous_phase.units.select_related("province").all()
-                    }
-
                     units_to_create = []
                     for unit in adjudication_data["units"]:
                         logger.info(
@@ -836,14 +831,14 @@ class PhaseManager(models.Manager):
 
                         is_dislodged = unit.get("dislodged", False)
 
-                        dislodged_by_id = unit.get("dislodged_by", None)
-                        dislodged_by_unit = None
+                        dislodger_origin = unit.get("dislodged_by", None)
+                        dislodged_from = None
 
-                        if is_dislodged and dislodged_by_id:
-                            dislodged_by_unit = previous_units_by_province.get(dislodged_by_id)
-                            if not dislodged_by_unit:
+                        if is_dislodged and dislodger_origin:
+                            dislodged_from = province_lookup.get(dislodger_origin)
+                            if not dislodged_from:
                                 logger.warning(
-                                    f"Unit {unit['province']} is dislodged but dislodger {dislodged_by_id} not found in previous phase"
+                                    f"Unit {unit['province']} is dislodged but dislodger origin {dislodger_origin} is not a province of this variant"
                                 )
                         elif is_dislodged:
                             logger.info(
@@ -860,7 +855,7 @@ class PhaseManager(models.Manager):
                                     province=province,
                                     phase=new_phase,
                                     dislodged=is_dislodged,
-                                    dislodged_by=dislodged_by_unit,
+                                    dislodged_from=dislodged_from,
                                 )
                             )
                         else:

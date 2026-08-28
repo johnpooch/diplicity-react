@@ -69,7 +69,7 @@ function unit(
     nation: nationOf(variant, nationId),
     province: p(provinceId),
     dislodged,
-    dislodgedBy: null,
+    dislodgedFrom: null,
   };
 }
 
