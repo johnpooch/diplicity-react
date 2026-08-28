@@ -14,7 +14,6 @@ from emit import emit
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
-from user_profile.utils import picture_url
 from member.models import Member
 from .models import Game
 
@@ -38,7 +37,7 @@ class GameMasterSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_picture(self, obj):
-        return picture_url(obj.profile, self.context.get("request"))
+        return obj.profile.picture_url(self.context.get("request"))
 
 
 class GameListBoardNationSerializer(serializers.Serializer):

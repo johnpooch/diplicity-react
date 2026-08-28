@@ -2,13 +2,13 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from .models import UserProfilePicture
-from .utils import get_player_stats, normalise_picture, picture_url, user_can_use_bot_opponent
+from .utils import get_player_stats, normalise_picture, user_can_use_bot_opponent
 
 
 class PictureUrlMixin:
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_picture(self, obj):
-        return picture_url(obj, self.context.get("request"))
+        return obj.picture_url(self.context.get("request"))
 
 
 class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
