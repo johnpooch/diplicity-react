@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** March 18, 2026
+**Last updated:** August 28, 2026
 
 Diplicity is a mobile and web application for playing the classic Diplomacy board game online. This privacy policy explains what data we collect, how we use it, and your rights regarding that data.
 
@@ -14,9 +14,20 @@ When you sign in with Google, we receive and store:
 
 - **Name** — your Google account display name
 - **Email address** — your Google account email
-- **Profile picture URL** — a link to your Google profile photo
+- **Profile picture URL** — a link to your Google profile photo, used unless you upload your own picture
 
 We do not access your Google password, contacts, or any other Google account data.
+
+### Profile Pictures
+
+You can upload your own picture to replace the one from your Google account. If you do:
+
+- **We store the image ourselves**, on the same infrastructure that runs the app — it is not sent to a third-party image host
+- **We re-encode it on upload.** The image is resized, cropped to a square, and written back out from raw pixel data, which discards all embedded metadata. That includes EXIF GPS coordinates, so if you upload a photo taken on a phone, the location it was taken in is not stored or served
+- **The picture is served from an unauthenticated URL.** The address of your picture has to be loadable without signing in, so anyone who has the link can view the image. Treat a picture you upload as public
+- **Your picture is visible to other players** in games you join, in game chat, and on your public profile. In anonymous games it is hidden from other players, along with your name, until the game finishes
+
+We accept JPEG, PNG and WebP images. Uploading a picture is optional; you can remove it at any time from the Account screen.
 
 ### Gameplay Data
 
@@ -69,6 +80,7 @@ We do not sell or share your personal data with any other third parties.
 - All data is transmitted over HTTPS/TLS
 - The backend runs on Railway's infrastructure with managed PostgreSQL
 - Authentication uses industry-standard JWT tokens
+- Profile picture URLs are the one exception to authenticated access — see Profile Pictures above
 - We follow security best practices but cannot guarantee absolute security — no system is 100% secure
 
 ## 5. Data Retention & Deletion
@@ -78,6 +90,7 @@ We do not sell or share your personal data with any other third parties.
 - **Account data** is retained as long as your account exists
 - **Gameplay data** (games, orders, messages) is retained indefinitely as part of the game record
 - **FCM device tokens** are removed when you sign out or disable notifications
+- **Uploaded profile pictures** are kept until you remove your picture or delete your account; the stored image file is deleted in both cases
 
 ### Account deletion
 
@@ -101,6 +114,8 @@ Diplicity does **not** collect or access:
 - Payment or financial information
 - Browsing history or cross-app tracking data
 - Advertising identifiers
+
+This holds for pictures you upload too. A photo taken on a phone often carries the location it was taken in as EXIF metadata; that metadata is discarded when we re-encode the picture, so it is never stored or served.
 
 ## 7. Children's Privacy
 
