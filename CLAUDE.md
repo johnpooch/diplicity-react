@@ -91,7 +91,7 @@ npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render
 
 Soft WIP limits: **5 open PRs**, **10 open issues**. A bot warns when exceeded — check the count before opening a new PR.
 
-Issues have three sections (enforced by the `create-issue` skill): **Goal** (always), **Context** (when useful), **Approach** (when discussed). No acceptance criteria, implementation checklists, or sub-issues. If work is too large for one PR, split it into two issues.
+Issues have three sections (enforced by the `create-issue` skill): **Goal** (always), **Context** (when useful), **Approach** (when discussed). No acceptance criteria or implementation checklists.
 
 **PR screenshots are a completion criterion, not optional polish.** If a PR changes anything visible in the web app — new screens, layout, styling, copy, empty or error states — you MUST embed screenshots of the changed component in the PR description, so the reviewer sees what changed without pulling the branch. Use the `screenshots` skill for the workflow.
 
