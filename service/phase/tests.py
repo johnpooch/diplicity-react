@@ -247,7 +247,7 @@ def test_a_sandbox_phase_is_never_armed(db, classical_variant, primary_user):
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
-        game.members.create(user=primary_user)
+        game.members.create(user=primary_user, sandbox=True)
     game.start()
 
     assert game.current_phase.resolution_job_id is None
