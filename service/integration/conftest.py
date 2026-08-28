@@ -8,10 +8,7 @@ from user_profile.models import UserProfile
 
 @pytest.fixture(autouse=True)
 def _mock_procrastinate_defer():
-    with patch("phase.tasks.resolve_phase.defer"), \
-         patch("phase.tasks.resolve_phase.configure") as mock_configure, \
-         patch("notification.tasks.deliver.defer"):
-        mock_configure.return_value.defer = lambda **kwargs: None
+    with patch("notification.tasks.deliver.defer"):
         yield
 
 

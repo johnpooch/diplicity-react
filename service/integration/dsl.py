@@ -7,9 +7,8 @@ from rest_framework import status
 
 from common.constants import DeadlineMode, GameStatus
 from game.models import Game
+from integration.utils import run_due_resolution_jobs
 from victory.models import Victory
-
-RESOLVE_ALL_URL = reverse("phase-resolve-all")
 
 
 class GameSession:
@@ -76,9 +75,7 @@ class GameSession:
             assert response.status_code == status.HTTP_200_OK, response.data
 
     def resolve(self):
-        response = self._resolver_client.post(RESOLVE_ALL_URL)
-        assert response.status_code == status.HTTP_200_OK, response.data
-        assert response.data["resolved"] >= 1, response.data
+        assert run_due_resolution_jobs() >= 1
 
     def assert_phase(self, *, season, year, type):
         phase = self.current_phase
@@ -120,9 +117,7 @@ class GameSession:
         else:
             future = timezone.now() + timedelta(days=2)
         with patch("django.utils.timezone.now", return_value=future):
-            response = self._resolver_client.post(RESOLVE_ALL_URL)
-            assert response.status_code == status.HTTP_200_OK, response.data
-            assert response.data["resolved"] >= 1, response.data
+            assert run_due_resolution_jobs() >= 1
 
     def assert_resolutions(self, resolved_phase, expected_orders):
         actual_by_key = {}

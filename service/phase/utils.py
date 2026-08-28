@@ -599,7 +599,7 @@ def compute_province_nations(supply_centers, provinces, dominance_rules, nations
 
 
 def phase_to_canonical_game_state(phase):
-    phase = type(phase).objects.with_canonical_state_data().get(pk=phase.pk)
+    phase = type(phase).objects.with_related_data().get(pk=phase.pk)
     return {
         "phase": {
             "season": phase.season,

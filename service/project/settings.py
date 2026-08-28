@@ -43,14 +43,6 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-# How long a phase's deadline may be overdue before the resolution sweep treats it
-# as a missed primary trigger and emits a Sentry canary event (seconds).
-RESOLUTION_CANARY_GRACE_SECONDS = int(os.getenv("RESOLUTION_CANARY_GRACE_SECONDS", "300"))
-
-# How long a phase may sit in the processing status before the sweep treats its
-# resolution as lost and returns the phase to active so it can be retried (seconds).
-PHASE_PROCESSING_TIMEOUT_SECONDS = int(os.getenv("PHASE_PROCESSING_TIMEOUT_SECONDS", "300"))
-
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(",")
 
 # CSRF Settings
@@ -321,6 +313,12 @@ SPECTACULAR_SETTINGS = {
 }
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+
+R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
+R2_PUBLIC_BASE_URL = os.getenv("R2_PUBLIC_BASE_URL", "")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 VERSION = os.getenv("GIT_SHA", "0.0.0")

@@ -10,6 +10,7 @@ from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, Ph
 from game.models import Game
 from inference.models import Inference
 from integration.scoring import sum_of_squares
+from integration.utils import run_due_resolution_jobs
 from user_profile.models import UserProfile
 
 
@@ -78,9 +79,7 @@ def test_all_dumbbot_game_plays_phases_without_inference(game_master_client, cla
             pending = phase.phase_states.filter(has_possible_orders=True, orders_confirmed=False)
             assert not pending.exists()
 
-            response = game_master_client.post(reverse("phase-resolve-all"))
-            assert response.status_code == status.HTTP_200_OK
-            assert response.data["resolved"] >= 1
+            assert run_due_resolution_jobs() >= 1
 
             game.refresh_from_db()
             assert game.current_phase.id != phase.id

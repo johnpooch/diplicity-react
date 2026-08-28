@@ -302,7 +302,7 @@ class TestUserAccountDelete:
         url = reverse("user-delete")
         client.delete(url)
 
-        assert Phase.objects._check_and_apply_nmr_extensions(phase) is None
+        assert Phase.objects._apply_nmr_extensions(phase) is None
         member.refresh_from_db()
         assert member.nmr_extensions_remaining == 1
 
@@ -700,6 +700,70 @@ class TestUserProfilePictureImageView:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def _clear_uploaded_picture(client, profile, follow=True):
+    return client.post(
+        reverse("admin:user_profile_userprofile_changelist"),
+        {
+            "action": "clear_uploaded_picture",
+            "_selected_action": [str(profile.pk)],
+        },
+        follow=follow,
+    )
+
+
+class TestUserProfileAdmin:
+
+    @pytest.mark.django_db
+    def test_clear_uploaded_picture_falls_back_to_google_url(
+        self, admin_client, primary_user, stored_picture
+    ):
+        primary_user.profile.picture = "http://example.com/google.jpg"
+        primary_user.profile.save()
+
+        response = _clear_uploaded_picture(admin_client, primary_user.profile)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
+        primary_user.profile.refresh_from_db()
+        assert primary_user.profile.picture_url() == "http://example.com/google.jpg"
+
+    @pytest.mark.django_db
+    def test_clear_uploaded_picture_deletes_stored_file(
+        self, admin_client, primary_user, stored_picture
+    ):
+        storage = stored_picture.image.storage
+        name = stored_picture.image.name
+        assert storage.exists(name)
+
+        _clear_uploaded_picture(admin_client, primary_user.profile)
+
+        assert not storage.exists(name)
+
+    @pytest.mark.django_db
+    def test_clear_uploaded_picture_leaves_other_profiles_untouched(
+        self, admin_client, primary_user, secondary_user, stored_picture
+    ):
+        _clear_uploaded_picture(admin_client, secondary_user.profile)
+
+        assert UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
+
+    @pytest.mark.django_db
+    def test_clear_uploaded_picture_when_no_picture_uploaded(self, admin_client, secondary_user):
+        response = _clear_uploaded_picture(admin_client, secondary_user.profile)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not UserProfilePicture.objects.filter(profile=secondary_user.profile).exists()
+
+    @pytest.mark.django_db
+    def test_clear_uploaded_picture_requires_staff(self, client, primary_user, stored_picture):
+        client.force_login(primary_user)
+
+        response = _clear_uploaded_picture(client, primary_user.profile, follow=False)
+
+        assert response.status_code == status.HTTP_302_FOUND
+        assert UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
 
 
 class TestPublicUserProfileRetrieveView:

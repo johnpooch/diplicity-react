@@ -168,4 +168,4 @@ class TestGameStartAssignment:
             with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
                 game.start()
         query_count = len(connection.queries)
-        assert query_count == 20
+        assert query_count == 21
