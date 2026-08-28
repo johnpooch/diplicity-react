@@ -10,11 +10,10 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
-from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
-from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer, PhaseRetrieveSerializer, PhaseListSerializer
+from .serializers import PhaseStateSerializer, PhaseRetrieveSerializer, PhaseListSerializer
 
 tracer = trace.get_tracer(__name__)
 
@@ -50,18 +49,6 @@ class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
         return current_phase.phase_states.filter(member__user=self.request.user)
 
 
-class PhaseResolveAllView(views.APIView):
-    permission_classes = []
-    serializer_class = EmptySerializer
-
-    def post(self, request, *args, **kwargs):
-        with tracer.start_as_current_span("phase.resolve_all_view") as span:
-            result = Phase.objects.resolve_due_phases()
-            span.set_attribute("phases.resolved", result["resolved"])
-            span.set_attribute("phases.failed", result["failed"])
-            return Response(result, status=status.HTTP_200_OK)
-
-
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
@@ -83,7 +70,7 @@ class PhaseRetrieveView(generics.RetrieveAPIView):
     lookup_url_kwarg = 'phase_id'
 
     def get_queryset(self):
-        return Phase.objects.with_detail_data()
+        return Phase.objects.with_related_data()
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):
@@ -98,10 +85,10 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
     @extend_schema(request=None, responses=PhaseListSerializer)
     def post(self, request, *args, **kwargs):
         game = self.get_game()
-        current_phase = Phase.objects.with_adjudication_data().get(pk=game.current_phase.pk)
+        current_phase = Phase.objects.with_related_data().get(pk=game.current_phase.pk)
         with tracer.start_as_current_span("phase.resolve_view") as span:
             span.set_attribute("phase.id", current_phase.id)
             span.set_attribute("game.id", str(game.id))
-            new_phase = Phase.objects.resolve_phase(current_phase)
+            new_phase = Phase.objects.resolve(current_phase)
         serializer = PhaseListSerializer(new_phase)
         return Response(serializer.data, status=status.HTTP_200_OK)

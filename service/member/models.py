@@ -42,6 +42,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                     phase=phase,
                     has_possible_orders=member.nation.name in phase.nations_with_possible_orders,
                 )
+                Phase = apps.get_model("phase", "Phase")
+                Phase.objects.arm_resolution(phase)
 
         return replacement
 
@@ -75,6 +77,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             phase = self._lock_active_phase(member.game)
             if phase is not None:
                 self._vacate_phase(member, phase)
+                Phase = apps.get_model("phase", "Phase")
+                Phase.objects.arm_resolution(phase)
 
     def _lock_active_phase(self, game):
         Phase = apps.get_model("phase", "Phase")

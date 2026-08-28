@@ -20,6 +20,13 @@ class GameStatus:
 
 
 class ResolutionJob:
+    TASK_NAME = "phase.resolve_phase"
+
+    TODO = "todo"
+    DOING = "doing"
+    CANCELLED = "cancelled"
+
+    PENDING_STATUSES = (TODO, DOING)
 
     @staticmethod
     def lock_for_game(game_id):
