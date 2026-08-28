@@ -1,18 +1,43 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Account } from "./Account";
 import { themeStorage } from "@/theme/themeStorage";
 
-const mockUserProfile = {
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {};
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
+let mockUserProfile: {
+  id: number;
+  userId: number;
+  email: string;
+  name: string;
+  picture: string | null;
+} = {
   id: 1,
+  userId: 1,
   email: "player@example.com",
   name: "Test Player",
   picture: null,
 };
 
 const mockSetPreference = vi.fn();
+const { mockUploadPicture, mockRemovePicture, mockToastError } = vi.hoisted(
+  () => ({
+    mockUploadPicture: vi.fn(),
+    mockRemovePicture: vi.fn(),
+    mockToastError: vi.fn(),
+  })
+);
 
 vi.mock("@/api/generated/endpoints", () => ({
   useUserRetrieveSuspense: () => ({ data: mockUserProfile }),
@@ -20,7 +45,20 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+  useUserPictureUpdate: () => ({
+    mutateAsync: mockUploadPicture,
+    isPending: false,
+  }),
+  useUserPictureDestroy: () => ({
+    mutateAsync: mockRemovePicture,
+    isPending: false,
+  }),
   getUserRetrieveQueryKey: () => ["user"],
+  getUsersRetrieveQueryKey: (userId: number) => ["users", userId],
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: mockToastError },
 }));
 
 vi.mock("@/hooks/useMessaging", () => ({
@@ -100,7 +138,9 @@ describe("Account - Appearance section", () => {
 
   it("renders the theme select trigger", async () => {
     renderAccount();
-    expect(await screen.findByRole("combobox", { name: /theme/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("combobox", { name: /theme/i })
+    ).toBeInTheDocument();
   });
 
   it("Appearance section appears before Notifications section", async () => {
@@ -112,5 +152,83 @@ describe("Account - Appearance section", () => {
     expect(appearanceIndex).toBeGreaterThanOrEqual(0);
     expect(notificationsIndex).toBeGreaterThanOrEqual(0);
     expect(appearanceIndex).toBeLessThan(notificationsIndex);
+  });
+});
+
+describe("Account - profile picture", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUserProfile = { ...mockUserProfile, picture: null };
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      configurable: true,
+      value: createMatchMediaMock(false),
+    });
+    themeStorage.initialize();
+  });
+
+  const getFileInput = (container: HTMLElement) =>
+    container.querySelector<HTMLInputElement>('input[type="file"]')!;
+
+  it("uploads the chosen file", async () => {
+    const user = userEvent.setup();
+    const { container } = renderAccount();
+    const file = new File(["image"], "me.png", { type: "image/png" });
+
+    await user.upload(getFileInput(container), file);
+
+    expect(mockUploadPicture).toHaveBeenCalledWith({ data: { picture: file } });
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it("surfaces the server's message when an upload is rejected", async () => {
+    mockUploadPicture.mockRejectedValue({
+      response: {
+        data: { picture: ["Picture is too large (max 2097152 bytes)."] },
+      },
+    });
+    const user = userEvent.setup();
+    const { container } = renderAccount();
+
+    await user.upload(
+      getFileInput(container),
+      new File(["image"], "me.png", { type: "image/png" })
+    );
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "Picture is too large (max 2097152 bytes)."
+      )
+    );
+  });
+
+  it("offers no remove option when no picture is set", async () => {
+    const user = userEvent.setup();
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: "Change picture" }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "Upload picture" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "Remove picture" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("removes the picture when one is set", async () => {
+    mockUserProfile = {
+      ...mockUserProfile,
+      picture: "https://example.com/me.png",
+    };
+    const user = userEvent.setup();
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: "Change picture" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Remove picture" })
+    );
+
+    expect(mockRemovePicture).toHaveBeenCalled();
   });
 });
