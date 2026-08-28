@@ -20,11 +20,11 @@ class DrawProposalQuerySet(models.QuerySet):
     def with_related_data(self):
         return self.select_related(
             "game",
-            "created_by__user__profile",
+            "created_by__user__profile__uploaded_picture",
             "created_by__nation",
             "phase",
         ).prefetch_related(
-            "votes__member__user__profile",
+            "votes__member__user__profile__uploaded_picture",
             "votes__member__nation",
         )
 

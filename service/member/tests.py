@@ -71,6 +71,39 @@ class TestCivilDisorderSerialization:
         assert response.data["members"][0]["civil_disorder"] is True
 
 
+class TestUploadedPictureSerialization:
+
+    @pytest.mark.django_db
+    def test_uploaded_picture_is_served_to_other_members(
+        self,
+        authenticated_client_for_secondary_user,
+        classical_variant,
+        classical_england_nation,
+        primary_user,
+        stored_picture,
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client_for_secondary_user.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["picture"].endswith(
+            reverse(
+                "user-picture-image",
+                kwargs={
+                    "user_id": primary_user.id,
+                    "content_hash": stored_picture.content_hash,
+                },
+            )
+        )
+
+
 class TestDeletedUserMemberSerialization:
 
     @pytest.mark.django_db

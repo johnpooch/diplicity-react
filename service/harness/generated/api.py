@@ -322,6 +322,10 @@ class UserProfile(TypedDict):
     commitment: str
 
 
+class UserProfilePicture(TypedDict):
+    picture: str
+
+
 VariantProvinceAdjacency = TypedDict(
     'VariantProvinceAdjacency',
     {

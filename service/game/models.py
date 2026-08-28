@@ -85,13 +85,13 @@ class GameQuerySet(models.QuerySet):
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.not_replaced()
-            .select_related("nation", "user__profile")
+            .select_related("nation", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation"),
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation"),
         )
 
         current_phase_ids = (
@@ -142,7 +142,7 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
-        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -152,13 +152,13 @@ class GameQuerySet(models.QuerySet):
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.not_replaced()
-            .select_related("nation__flag", "user__profile")
+            .select_related("nation__flag", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
         )
 
         current_phase_ids = (
@@ -186,7 +186,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Phase.objects.defer("options").prefetch_related(phase_states_prefetch)
         )
 
-        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -215,7 +215,7 @@ class GameQuerySet(models.QuerySet):
             "phase_states",
             queryset=PhaseState.objects.select_related(
                 "member__nation__flag",
-                "member__user__profile",
+                "member__user__profile__uploaded_picture",
             ).annotate(order_count=Count("orders")),
         )
 
@@ -241,16 +241,16 @@ class GameQuerySet(models.QuerySet):
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.not_replaced()
-            .select_related("nation__flag", "user__profile")
+            .select_related("nation__flag", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
         )
 
-        return self.select_related("victory", "game_master__profile").prefetch_related(
+        return self.select_related("victory", "game_master__profile__uploaded_picture").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
