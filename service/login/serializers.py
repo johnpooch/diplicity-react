@@ -56,7 +56,7 @@ class GoogleAuthSerializer(serializers.Serializer):
             user=user,
             defaults={"name": name, "picture": id_info.get("picture")},
         )
-        if not created:
+        if not created and not profile.has_uploaded_picture:
             profile.picture = id_info.get("picture")
             profile.save(update_fields=["picture"])
         refresh = RefreshToken.for_user(user)

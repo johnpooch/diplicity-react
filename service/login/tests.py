@@ -1,3 +1,4 @@
+import io
 import json
 
 import pytest
@@ -11,7 +12,7 @@ from google.auth.exceptions import GoogleAuthError
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
-from user_profile.models import UserProfile
+from user_profile.models import UserProfile, UserProfilePicture
 
 User = get_user_model()
 
@@ -111,6 +112,27 @@ class TestGoogleAuthView:
         assert user_profile.picture is None
         assert user_profile.name == "Test User"
         assert user_profile.user.email == "test@example.com"
+
+    def test_uploaded_picture_is_not_overwritten(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token, make_image
+    ):
+        user = User.objects.create_user(
+            username="testuser",
+            email="test@example.com",
+            password="testpass123"
+        )
+        user_profile = UserProfile.objects.create(user=user, name="Test User")
+        buffer = io.BytesIO()
+        make_image().save(buffer, format="PNG")
+        picture = UserProfilePicture.objects.store(user_profile, buffer.getvalue(), "image/png")
+
+        url = reverse("auth")
+        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        user_profile.refresh_from_db()
+        assert user_profile.picture is None
+        assert user_profile.uploaded_picture.content_hash == picture.content_hash
 
     def test_creates_new_user_without_name(
         self, unauthenticated_client, mock_google_auth_without_name, mock_refresh_token
