@@ -1,8 +1,12 @@
 from rest_framework import serializers
+from django.db import IntegrityError, transaction
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus
+from emit import emit
 from user_profile.models import UserProfile
+
+from .models import Member
 
 
 class BaseMemberSerializer(serializers.Serializer):
@@ -23,7 +27,7 @@ class BaseMemberSerializer(serializers.Serializer):
         return obj.user == request.user
 
     def _is_bot(self, obj):
-        return obj.user is not None and obj.user.profile.is_bot
+        return obj.is_bot
 
     def _is_masked(self, obj):
         game = self._get_game(obj)
@@ -90,6 +94,18 @@ class MemberSerializer(BaseMemberSerializer):
     civil_disorder = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
+    removable = serializers.SerializerMethodField()
+    nation_preference_ids = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_removable(self, obj):
+        return self._get_game(obj).can_remove_member(obj)
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_nation_preference_ids(self, obj):
+        if not self._is_current_user(obj):
+            return []
+        return [preference.nation.nation_id for preference in obj.nation_preferences.all()]
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):
@@ -119,6 +135,91 @@ class MemberCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         return self.context["game"].seat(self._resolve_addable_user(validated_data["user_id"]))
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data
+
+
+class MemberNationPreferenceSerializer(serializers.Serializer):
+    nation_ids = serializers.ListField(child=serializers.CharField())
+
+    def validate_nation_ids(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Duplicate nations in preference list.")
+        game = self.context["game"]
+        nations = {n.nation_id: n for n in game.variant.nations.all() if not n.non_playable}
+        invalid = [nation_id for nation_id in value if nation_id not in nations]
+        if invalid:
+            raise serializers.ValidationError(
+                f"Invalid nations for this variant: {', '.join(invalid)}."
+            )
+        self._validated_nations = [nations[nation_id] for nation_id in value]
+        return value
+
+    def update(self, instance, validated_data):
+        Member.objects.set_nation_preferences(instance, self._validated_nations)
+        return instance
+
+    def to_representation(self, instance):
+        return {
+            "nation_ids": [
+                preference.nation.nation_id
+                for preference in instance.nation_preferences.select_related("nation")
+            ]
+        }
+
+
+class MemberNationAssignSerializer(serializers.Serializer):
+    nation_id = serializers.CharField(write_only=True)
+
+    def validate_nation_id(self, value):
+        game = self.context["game"]
+        nations = {n.nation_id: n for n in game.variant.nations.all() if not n.non_playable}
+        nation = nations.get(value)
+        if nation is None:
+            raise serializers.ValidationError("Invalid nation for this variant.")
+        taken = (
+            game.members.not_replaced()
+            .filter(nation=nation)
+            .exclude(id=self.instance.id)
+            .exists()
+        )
+        if taken:
+            raise serializers.ValidationError("This nation is already assigned to another player.")
+        self._validated_nation = nation
+        return value
+
+    def update(self, instance, validated_data):
+        try:
+            with transaction.atomic():
+                Member.objects.assign_nation(instance, self._validated_nation)
+        except IntegrityError:
+            raise serializers.ValidationError(
+                {"nation_id": "This nation is already assigned to another player."}
+            )
+        return instance
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data
+
+
+class MemberReplaceSerializer(serializers.Serializer):
+
+    def create(self, validated_data):
+        game = self.context["game"]
+        user = self.context["request"].user
+
+        with transaction.atomic():
+            member = Member.objects.select_for_update().get(
+                pk=self.context["replaced_member"].pk
+            )
+            if not member.replaceable:
+                raise serializers.ValidationError("This seat is not open for replacement.")
+            nation_name = member.nation.name if member.nation else None
+            replacement = Member.objects.hand_over_seat(member, user)
+            emit("seat_filled", game=game, actor=user, nation_name=nation_name)
+
+        return replacement
 
     def to_representation(self, instance):
         return MemberSerializer(instance, context=self.context).data

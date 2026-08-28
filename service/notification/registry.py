@@ -269,6 +269,29 @@ class KickedFromStagingSpec(NotificationSpec):
         return f"You were removed from this game by {self.context.game.manager_label}."
 
 
+@register("removed_from_game")
+class RemovedFromGameSpec(NotificationSpec):
+    def get_title(self):
+        return "Removed From Game"
+
+    def get_body(self):
+        return f"You were removed from {self.context.game.name} by {self.context.game.manager_label}."
+
+
+@register("seat_filled")
+class SeatFilledSpec(NotificationSpec):
+    exclude_actor = True
+
+    def get_audience(self):
+        return self.context.game.active_member_user_ids(include_gm=True)
+
+    def get_title(self):
+        return "Seat Filled"
+
+    def get_body(self):
+        return f"{self.context.payload['nation_name']} has a new player."
+
+
 @register("removed_from_staging")
 class RemovedFromStagingSpec(NotificationSpec):
     def get_title(self):

@@ -154,7 +154,6 @@ const matchedGame: GameList = {
   anonymous: false,
   movementPhaseDuration: "24 hours",
   retreatPhaseDuration: null,
-  nationAssignment: "random",
   members: [
     {
       id: 99,
@@ -171,7 +170,9 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+    removable: false,
     commitment: "high",
+      nationPreferenceIds: [],
     },
     {
       id: 100,
@@ -188,7 +189,9 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+    removable: false,
     commitment: "high",
+      nationPreferenceIds: [],
     },
   ],
   victory: null,

@@ -12,8 +12,10 @@ import {
   draftVariant,
   fixtureByGameId,
   makeBotMember,
+  makeMember,
   publicProfiles,
 } from "./fixtures";
+import { nation as classicalNation } from "./fixtures/classical";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
 import cantonMapSvg from "./fixtures/data/canton.d.svg?raw";
 import hundredMapSvg from "./fixtures/data/hundred.d.svg?raw";
@@ -77,6 +79,8 @@ const notFound = () =>
   HttpResponse.json({ detail: "Not found." }, { status: 404 });
 
 const recoveredCivilDisorderGames = new Set<string>();
+
+const nationPreferencesByGameId = new Map<string, string[]>();
 
 export const handlers = [
   http.get("*/version/", () =>
@@ -265,10 +269,80 @@ export const handlers = [
   http.delete("*/game/:gameId/kick/:memberId/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);
     if (!fixture) return notFound();
+    const memberId = Number(params.memberId);
     fixture.game = {
       ...fixture.game,
-      members: fixture.game.members.filter(
-        m => m.id !== Number(params.memberId)
+      members:
+        fixture.game.status === "pending"
+          ? fixture.game.members.filter(m => m.id !== memberId)
+          : fixture.game.members.map(m =>
+              m.id === memberId
+                ? { ...m, kicked: true, replaceable: true, removable: false }
+                : m
+            ),
+    };
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.post("*/game/:gameId/members/:memberId/replace/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    const replaced = fixture.game.members.find(
+      m => m.id === Number(params.memberId)
+    );
+    if (!replaced) return notFound();
+    const replacement = makeMember(
+      { userId: currentUserProfile.userId, name: currentUserProfile.name },
+      replaced.nation
+    );
+    fixture.game = {
+      ...fixture.game,
+      members: fixture.game.members.map(m =>
+        m.id === replaced.id ? replacement : m
+      ),
+    };
+    return HttpResponse.json(replacement, { status: 201 });
+  }),
+  http.get("*/game/:gameId/member/nation-preference/", ({ params }) =>
+    HttpResponse.json({
+      nationIds: nationPreferencesByGameId.get(String(params.gameId)) ?? [],
+    })
+  ),
+  http.put(
+    "*/game/:gameId/member/nation-preference/",
+    async ({ params, request }) => {
+      const body = (await request.json()) as { nationIds: string[] };
+      nationPreferencesByGameId.set(String(params.gameId), body.nationIds);
+      return HttpResponse.json({ nationIds: body.nationIds });
+    }
+  ),
+  http.put(
+    "*/game/:gameId/member/:memberId/nation/",
+    async ({ params, request }) => {
+      const fixture = gameOr404(params.gameId as string);
+      if (!fixture) return notFound();
+      const body = (await request.json()) as { nationId: string };
+      const nationName = classicalNation(body.nationId).name;
+      const member = fixture.game.members.find(
+        m => m.id === Number(params.memberId)
+      );
+      if (!member) return notFound();
+      const updated = { ...member, nation: nationName };
+      fixture.game = {
+        ...fixture.game,
+        members: fixture.game.members.map(m =>
+          m.id === updated.id ? updated : m
+        ),
+      };
+      return HttpResponse.json(updated);
+    }
+  ),
+  http.delete("*/game/:gameId/member/:memberId/nation/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    fixture.game = {
+      ...fixture.game,
+      members: fixture.game.members.map(m =>
+        m.id === Number(params.memberId) ? { ...m, nation: null } : m
       ),
     };
     return new HttpResponse(null, { status: 204 });

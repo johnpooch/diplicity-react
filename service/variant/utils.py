@@ -239,6 +239,7 @@ def variant_to_canonical_dict(variant):
         "description": variant.description,
         "author": variant.author,
         "rules": variant.rules,
+        "unitScaling": variant.unit_scaling,
         "victoryConditions": variant.victory_conditions,
         "adjudicationModifiers": variant.adjudication_modifiers,
         "phaseProgression": variant.phase_progression,
@@ -818,6 +819,7 @@ def create_variant_from_dvar(dvar, owner=None, status=None):
         description=dvar["description"],
         author=dvar.get("author", ""),
         rules=dvar.get("rules", ""),
+        unit_scaling=dvar.get("unitScaling", 1),
         victory_conditions=dvar["victoryConditions"],
         adjudication_modifiers=dvar.get("adjudicationModifiers", []),
         phase_progression=dvar["phaseProgression"],
@@ -854,6 +856,7 @@ def update_variant_from_dvar(variant, dvar):
     variant.description = dvar["description"]
     variant.author = dvar.get("author", "")
     variant.rules = dvar.get("rules", "")
+    variant.unit_scaling = dvar.get("unitScaling", 1)
     variant.victory_conditions = dvar["victoryConditions"]
     variant.adjudication_modifiers = dvar.get("adjudicationModifiers", [])
     variant.phase_progression = dvar["phaseProgression"]
@@ -1010,6 +1013,7 @@ def apply_safe_replacement(variant, dvar, dsvg_text):
     variant.description = dvar["description"]
     variant.author = dvar.get("author", "")
     variant.rules = dvar.get("rules", "")
+    variant.unit_scaling = dvar.get("unitScaling", 1)
     variant.victory_conditions = dvar["victoryConditions"]
     variant.adjudication_modifiers = dvar.get("adjudicationModifiers", [])
     variant.phase_progression = dvar["phaseProgression"]

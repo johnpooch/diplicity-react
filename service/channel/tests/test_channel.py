@@ -852,13 +852,12 @@ class TestChannelMemberAutoCreation:
     @pytest.mark.django_db
     def test_game_creation_creates_channel_member_for_creator(self, authenticated_client, classical_variant):
         from channel.models import ChannelMember
-        from common.constants import NationAssignment, DeadlineMode
+        from common.constants import DeadlineMode
 
         url = reverse("game-create")
         payload = {
             "name": "Test Game",
             "variant_id": classical_variant.id,
-            "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
         }

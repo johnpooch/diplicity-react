@@ -11,6 +11,7 @@ from rest_framework import status
 
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus, ResolutionJob
 from game.models import Game
+from member.models import Member
 from phase.models import Phase
 from phase.serializers import PhaseStateSerializer
 from phase.tasks import resolve_phase
@@ -894,6 +895,50 @@ class TestMembershipChangeArming:
         member.save(update_fields=["civil_disorder"])
         phase.phase_states.filter(member=member).update(orders_confirmed=False)
         Phase.objects.arm_resolution(phase)
+
+        assert _armed_job(phase).scheduled_at == deadline
+
+    @pytest.mark.django_db
+    def test_removing_the_last_unconfirmed_member_pulls_the_job_forward(
+        self, phase_factory, classical_england_nation, classical_france_nation, secondary_user
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_france_nation,
+                    "user": secondary_user,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
+            ],
+        )
+        assert _armed_job(phase).scheduled_at == deadline
+
+        Member.objects.remove(phase.game.members.get(nation=classical_france_nation))
+
+        assert _armed_job(phase).scheduled_at is None
+
+    @pytest.mark.django_db
+    def test_handing_over_a_seat_pushes_the_job_back_to_the_deadline(
+        self, phase_factory, classical_england_nation, secondary_user
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            options={"England": {"lon": {"Next": {"Hold": {}}, "Type": "Province"}}},
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+        Phase.objects.arm_resolution(phase)
+        assert _armed_job(phase).scheduled_at is None
+
+        Member.objects.hand_over_seat(
+            phase.game.members.get(nation=classical_england_nation), secondary_user
+        )
 
         assert _armed_job(phase).scheduled_at == deadline
 

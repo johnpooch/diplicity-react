@@ -98,4 +98,6 @@ class GameFilter(django_filters.FilterSet):
                 F("next_deadline").asc(nulls_last=True),
                 "-created_at",
             )
+        if value == "finished":
+            return queryset.order_by("-finished_at")
         return queryset

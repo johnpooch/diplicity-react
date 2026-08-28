@@ -14,7 +14,8 @@ const variant = {
   name: "Classical",
   nations: [],
   svgUrl: "https://example.com/map.svg",
-} as Pick<Variant, "id" | "name" | "nations" | "svgUrl">;
+  unitScaling: 1,
+} as Pick<Variant, "id" | "name" | "nations" | "svgUrl" | "unitScaling">;
 
 const phase = {} as VariantTemplatePhase;
 

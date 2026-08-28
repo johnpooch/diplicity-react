@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -91,7 +91,6 @@ class GameListSerializer(serializers.Serializer):
     anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
-    nation_assignment = serializers.CharField(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
     sandbox = serializers.BooleanField(read_only=True)
@@ -248,7 +247,6 @@ class GameRetrieveSerializer(serializers.Serializer):
     sandbox = serializers.BooleanField(read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
     variant_id = serializers.CharField(source="variant.id", read_only=True)
-    nation_assignment = serializers.CharField(read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
     order_status = serializers.SerializerMethodField()
     member_status = serializers.SerializerMethodField()
@@ -418,7 +416,6 @@ class GameCreateSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField()
     variant_id = serializers.CharField()
-    nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
     movement_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
     )
@@ -556,7 +553,6 @@ class GameCreateSerializer(serializers.Serializer):
                 created_by=request.user,
                 game_master=request.user if with_game_master else None,
                 admin=request.user,
-                nation_assignment=validated_data["nation_assignment"],
                 movement_phase_duration=validated_data["movement_phase_duration"],
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),
                 private=validated_data["private"],

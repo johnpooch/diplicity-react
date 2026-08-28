@@ -213,14 +213,12 @@ def test_resolve_if_due_skips_a_phase_that_is_not_due(active_game_with_phase_sta
 @pytest.mark.django_db
 def test_resolve_if_due_skips_sandbox_games(db, classical_variant, primary_user):
     from game.models import Game
-    from common.constants import NationAssignment
 
     game = Game.objects.create_from_template(
         classical_variant,
         name="Sandbox Game",
         sandbox=True,
         private=True,
-        nation_assignment=NationAssignment.ORDERED,
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
@@ -240,14 +238,12 @@ def test_resolve_if_due_skips_sandbox_games(db, classical_variant, primary_user)
 @pytest.mark.django_db
 def test_a_sandbox_phase_is_never_armed(db, classical_variant, primary_user):
     from game.models import Game
-    from common.constants import NationAssignment
 
     game = Game.objects.create_from_template(
         classical_variant,
         name="Sandbox Game",
         sandbox=True,
         private=True,
-        nation_assignment=NationAssignment.ORDERED,
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
@@ -260,7 +256,6 @@ def test_a_sandbox_phase_is_never_armed(db, classical_variant, primary_user):
 @pytest.mark.django_db
 def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_variant, primary_user):
     from game.models import Game
-    from common.constants import NationAssignment
     from unittest.mock import MagicMock
 
     game = Game.objects.create_from_template(
@@ -268,7 +263,6 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
         name="Sandbox Game",
         sandbox=True,
         private=True,
-        nation_assignment=NationAssignment.ORDERED,
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
@@ -295,14 +289,12 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
 @pytest.mark.django_db
 def test_sandbox_game_resolve_phase_unauthenticated(unauthenticated_client, db, classical_variant, primary_user):
     from game.models import Game
-    from common.constants import NationAssignment
 
     game = Game.objects.create_from_template(
         classical_variant,
         name="Sandbox Game",
         sandbox=True,
         private=True,
-        nation_assignment=NationAssignment.ORDERED,
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
@@ -327,14 +319,12 @@ def test_sandbox_game_resolve_phase_non_member(
     authenticated_client_for_secondary_user, db, classical_variant, primary_user
 ):
     from game.models import Game
-    from common.constants import NationAssignment
 
     game = Game.objects.create_from_template(
         classical_variant,
         name="Sandbox Game",
         sandbox=True,
         private=True,
-        nation_assignment=NationAssignment.ORDERED,
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():

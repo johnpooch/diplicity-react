@@ -92,6 +92,14 @@ class IsPendingGame(BasePermission):
         return game.status == GameStatus.PENDING
 
 
+class IsPendingOrActiveGame(BasePermission):
+    message = "This game is not in progress."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.status in (GameStatus.PENDING, GameStatus.ACTIVE)
+
+
 class IsNotGameMember(BasePermission):
     message = "User is already a member of the game."
 
@@ -192,12 +200,43 @@ class IsGameManager(BasePermission):
         return game.admin_id == request.user.id
 
 
+class IsGameMaster(BasePermission):
+    message = "Only the game master can perform this action."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.game_master_id is not None and game.game_master_id == request.user.id
+
+
 class IsNotGameMaster(BasePermission):
     message = "The game master cannot join the game as a player."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
         return game.game_master_id is None or game.game_master_id != request.user.id
+
+
+class IsReplaceableMember(BasePermission):
+    message = "This seat is not open for replacement."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(id=view.kwargs.get("member_id")).first()
+        if not member:
+            self.message = "Member is not part of the game."
+            return False
+        return member.replaceable
+
+
+class IsRemovableMember(BasePermission):
+    message = "This player has not missed any orders."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(id=view.kwargs.get("member_id")).first()
+        if not member:
+            return True
+        return game.can_remove_member(member)
 
 
 class CanDeleteGame(BasePermission):

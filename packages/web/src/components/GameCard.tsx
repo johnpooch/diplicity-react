@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
+import { NationSeatPill } from "./NationSeat";
 import {
   UserPlus,
   Info,
@@ -230,57 +231,89 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     );
   })();
 
-  const badgeCluster = (
-    <div className="flex flex-wrap items-center gap-2">
-      {game.sandbox && <Badge variant="secondary">Sandbox</Badge>}
-      {!game.sandbox && (isActive || isFinished) && (
-        <NationBadge nations={variant.nations} nation={playerNation} />
-      )}
-      {isActive && !game.sandbox && currentMember?.eliminated && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="secondary" className="gap-1">
-              <Skull className="size-3" />
-              Eliminated
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>You have been eliminated from this game</TooltipContent>
-        </Tooltip>
-      )}
-      {isActive && orderStatusConfig && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge className={`gap-1 ${orderStatusConfig.badgeClassName}`}>
-              {orderStatusConfig.icon}
-              {orderStatusConfig.label}
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>{orderStatusConfig.tooltip}</TooltipContent>
-        </Tooltip>
-      )}
-      {isActive && game.memberStatus?.includes("nmr") && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="destructive" className="gap-1">
-              <AlertTriangle className="size-3" />
-              NMR
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            No Move Received — you did not submit orders in the previous phase
-          </TooltipContent>
-        </Tooltip>
-      )}
-      {cdBadge}
-      {isFinished && resultBadge}
-      {isActive && game.isPaused && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
-          <Pause className="size-3.5" />
-          Paused
-        </span>
-      )}
-    </div>
+  const badges = [
+    game.sandbox && (
+      <Badge key="sandbox" variant="secondary">
+        Sandbox
+      </Badge>
+    ),
+    isActive && !game.sandbox && currentMember?.eliminated && (
+      <Tooltip key="eliminated">
+        <TooltipTrigger asChild>
+          <Badge variant="secondary" className="gap-1">
+            <Skull className="size-3" />
+            Eliminated
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>You have been eliminated from this game</TooltipContent>
+      </Tooltip>
+    ),
+    isActive && orderStatusConfig && (
+      <Tooltip key="order-status">
+        <TooltipTrigger asChild>
+          <Badge className={`gap-1 ${orderStatusConfig.badgeClassName}`}>
+            {orderStatusConfig.icon}
+            {orderStatusConfig.label}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>{orderStatusConfig.tooltip}</TooltipContent>
+      </Tooltip>
+    ),
+    isActive && game.memberStatus?.includes("nmr") && (
+      <Tooltip key="nmr">
+        <TooltipTrigger asChild>
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="size-3" />
+            NMR
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          No Move Received — you did not submit orders in the previous phase
+        </TooltipContent>
+      </Tooltip>
+    ),
+    cdBadge && <React.Fragment key="cd">{cdBadge}</React.Fragment>,
+    isFinished && resultBadge && (
+      <React.Fragment key="result">{resultBadge}</React.Fragment>
+    ),
+    isActive && game.isPaused && (
+      <span
+        key="paused"
+        className="inline-flex items-center gap-1 text-xs font-medium text-red-600"
+      >
+        <Pause className="size-3.5" />
+        Paused
+      </span>
+    ),
+  ].filter(Boolean);
+
+  const badgeCluster = badges.length > 0 && (
+    <div className="flex flex-wrap items-center gap-2">{badges}</div>
   );
+
+  const seatPillPosition = "absolute bottom-2 left-2 md:left-auto md:right-2";
+
+  const nationPill = !game.sandbox &&
+    currentMember &&
+    (isPending ? (
+      <NationSeatPill
+        nations={variant.nations}
+        nation={playerNation}
+        preferenceIds={currentMember.nationPreferenceIds}
+        className={seatPillPosition}
+        onClick={() => navigate(`/nation-preference/${game.id}`)}
+      />
+    ) : (
+      (isActive || isFinished) &&
+      playerNation && (
+        <NationSeatPill
+          nations={variant.nations}
+          nation={playerNation}
+          preferenceIds={[]}
+          className={seatPillPosition}
+        />
+      )
+    ));
 
   const unreadPill = !game.sandbox &&
     (isActive || isFinished) &&
@@ -293,13 +326,16 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   return (
     <Card className="w-full flex flex-col md:flex-row overflow-hidden p-0">
-      <button
-        onClick={handleClickGame}
-        className="relative shrink-0 w-full h-40 md:h-44 md:w-48 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-        aria-label="Open game map"
-      >
-        {map}
-      </button>
+      <div className="relative shrink-0 w-full h-40 md:h-44 md:w-48">
+        <button
+          onClick={handleClickGame}
+          className="relative w-full h-full overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+          aria-label="Open game map"
+        >
+          {map}
+        </button>
+        {nationPill}
+      </div>
 
       <div className="flex flex-col flex-grow gap-2 p-4 md:py-2 min-w-0">
         <CardHeader className="p-0 gap-2">
