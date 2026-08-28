@@ -464,6 +464,8 @@ class GameCreateSerializer(serializers.Serializer):
         choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
         default=CommitmentRequirement.OPEN,
     )
+    muster_required = serializers.BooleanField(default=False)
+
     def validate_variant_id(self, value):
         try:
             self._validated_variant = Variant.objects.get(
@@ -566,6 +568,7 @@ class GameCreateSerializer(serializers.Serializer):
                 press_type=validated_data["press_type"],
                 min_reliability=validated_data["min_reliability"],
                 commitment_requirement=validated_data["commitment_requirement"],
+                muster_required=validated_data["muster_required"],
             )
 
             public_channel = game.channels.create(name="Public Press", private=False)

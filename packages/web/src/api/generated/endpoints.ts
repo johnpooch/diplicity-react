@@ -364,6 +364,7 @@ export interface GameCreate {
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
   commitmentRequirement?: CommitmentRequirementEnum;
+  musterRequired?: boolean;
 }
 
 export interface GameCreateSandbox {

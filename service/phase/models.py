@@ -532,7 +532,7 @@ class PhaseManager(models.Manager):
         staging_members = list(
             Member.objects.filter(
                 user_id__in=user_ids,
-                game__status=GameStatus.PENDING,
+                game__status__in=[GameStatus.PENDING, GameStatus.MUSTERING],
             )
             .exclude(game__created_by_id=F("user_id"))
             .select_related("game")
@@ -551,7 +551,9 @@ class PhaseManager(models.Manager):
             emit("removed_from_staging", game=m.game, recipients=[m.user_id])
 
         from game.models import Game
-        for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
+        for game in Game.objects.filter(
+            id__in=game_ids, status__in=[GameStatus.PENDING, GameStatus.MUSTERING]
+        ):
             game.delete_if_empty_pending()
 
     def _check_eliminations(self, previous_phase, new_phase):

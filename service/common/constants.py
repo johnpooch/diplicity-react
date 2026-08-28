@@ -5,16 +5,35 @@ from adjudicator.types import ResolutionCode
 
 class GameStatus:
     PENDING = "pending"
+    MUSTERING = "mustering"
     ACTIVE = "active"
     COMPLETED = "completed"
     ABANDONED = "abandoned"
 
     STATUS_CHOICES = (
         (PENDING, "Pending"),
+        (MUSTERING, "Mustering"),
         (ACTIVE, "Active"),
         (COMPLETED, "Completed"),
         (ABANDONED, "Abandoned"),
     )
+
+
+class ResolutionJob:
+
+    @staticmethod
+    def lock_for_game(game_id):
+        return f"resolve-game-{game_id}"
+
+
+class MusterJob:
+    TASK_NAME = "game.start_if_mustered"
+    REMINDER_TASK_NAME = "game.send_muster_reminder"
+
+    TODO = "todo"
+    CANCELLED = "cancelled"
+
+    lock_for_game = ResolutionJob.lock_for_game
 
 
 class MovementPhaseDuration:

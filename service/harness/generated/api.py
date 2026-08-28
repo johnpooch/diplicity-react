@@ -440,6 +440,7 @@ class GameCreate(TypedDict):
     press_type: NotRequired[PressTypeEnum]
     min_reliability: NotRequired[MinReliabilityEnum]
     commitment_requirement: NotRequired[CommitmentRequirementEnum]
+    muster_required: NotRequired[bool]
 
 
 class GameListCurrentPhase(TypedDict):

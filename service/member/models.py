@@ -64,7 +64,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         member.save(update_fields=["nation"])
 
     def remove(self, member):
-        if member.game.status == GameStatus.PENDING:
+        if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
             member.delete()
             return
 
@@ -105,6 +105,7 @@ class Member(BaseModel):
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
     civil_disorder = models.BooleanField(default=False)
     seeking_replacement = models.BooleanField(default=False)
+    mustered_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
         null=True,
