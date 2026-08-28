@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
 class AddableUser(TypedDict):
@@ -304,7 +304,7 @@ class Unit(TypedDict):
     nation: Nation
     province: Province
     dislodged: bool
-    dislodged_by: dict[str, Any] | None
+    dislodged_from: Province | None
 
 
 type UnitTypeEnum = Literal['Army', 'Fleet']

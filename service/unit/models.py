@@ -10,14 +10,18 @@ class Unit(BaseModel):
     province = models.ForeignKey("province.Province", on_delete=models.CASCADE, related_name="units")
     phase = models.ForeignKey("phase.Phase", on_delete=models.CASCADE, related_name="units")
     dislodged = models.BooleanField(default=False)
-    dislodged_by = models.OneToOneField(
-        "unit.Unit", on_delete=models.CASCADE, related_name="dislodges", null=True, blank=True
+    dislodged_from = models.ForeignKey(
+        "province.Province",
+        on_delete=models.CASCADE,
+        related_name="units_dislodged_from",
+        null=True,
+        blank=True,
     )
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(dislodged=False, dislodged_by__isnull=True) | Q(dislodged=True),
-                name="dislodged_by_requires_dislodged",
+                condition=Q(dislodged=False, dislodged_from__isnull=True) | Q(dislodged=True),
+                name="dislodged_from_requires_dislodged",
             )
         ]

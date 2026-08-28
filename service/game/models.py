@@ -199,7 +199,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Unit.objects.select_related(
                 "nation__flag",
                 "province__parent",
-                "dislodged_by",
+                "dislodged_from",
             ).prefetch_related("province__named_coasts"),
         )
 
@@ -303,7 +303,8 @@ class GameManager(models.Manager):
                 type=template_unit.type,
                 nation=template_unit.nation,
                 province=template_unit.province,
-                dislodged_by=template_unit.dislodged_by,
+                dislodged=template_unit.dislodged,
+                dislodged_from=template_unit.dislodged_from,
             )
             for template_unit in template_phase.units.all()
         ]
@@ -374,8 +375,9 @@ class GameManager(models.Manager):
                 nation=unit.nation,
                 province=unit.province,
                 dislodged=unit.dislodged,
+                dislodged_from=unit.dislodged_from,
             )
-            for unit in source_phase.units.select_related("nation", "province")
+            for unit in source_phase.units.select_related("nation", "province", "dislodged_from")
         ]
         Unit.objects.bulk_create(units_to_create)
 

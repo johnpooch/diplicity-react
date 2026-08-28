@@ -786,18 +786,12 @@ export interface PhaseList {
   status: StatusEnum;
 }
 
-/**
- * @nullable
- */
-export type UnitDislodgedBy = { [key: string]: unknown } | null | null;
-
 export interface Unit {
   type: string;
   nation: Nation;
   province: Province;
   dislodged: boolean;
-  /** @nullable */
-  readonly dislodgedBy: UnitDislodgedBy;
+  dislodgedFrom: Province | null;
 }
 
 export interface SupplyCenter {

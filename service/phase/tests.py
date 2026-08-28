@@ -1028,7 +1028,7 @@ class TestCreateFromAdjudicationData:
         assert ven_unit.type == UnitType.ARMY
         assert ven_unit.nation.name == "Italy"
         assert not ven_unit.dislodged
-        assert ven_unit.dislodged_by is None
+        assert ven_unit.dislodged_from is None
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_with_dislodged_unit(
@@ -1044,14 +1044,11 @@ class TestCreateFromAdjudicationData:
 
         dislodged_unit = new_phase.units.get(province__province_id="kie", nation__name="Germany")
         assert dislodged_unit.dislodged
-        assert dislodged_unit.dislodged_by is not None
-
-        dislodging_unit = phase.units.get(province__province_id="ven")
-        assert dislodged_unit.dislodged_by == dislodging_unit
+        assert dislodged_unit.dislodged_from.province_id == "ven"
 
         attacker_unit = new_phase.units.get(province__province_id="kie", nation__name="Italy")
         assert not attacker_unit.dislodged
-        assert attacker_unit.dislodged_by is None
+        assert attacker_unit.dislodged_from is None
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_marks_previous_phase_completed(
@@ -1186,7 +1183,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 20
+        assert query_count == 19
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_query_count_with_full_game(
@@ -1301,7 +1298,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 18
+        assert query_count == 17
 
 
 class TestPhaseReversion:
@@ -4479,7 +4476,7 @@ class TestPhaseToCanonicalGameState:
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        dislodger = phase.units.create(
+        phase.units.create(
             type=UnitType.ARMY, nation=france.nation, province=provinces["wal"]
         )
         phase.units.create(
@@ -4487,7 +4484,7 @@ class TestPhaseToCanonicalGameState:
             nation=england.nation,
             province=provinces["lon"],
             dislodged=True,
-            dislodged_by=dislodger,
+            dislodged_from=provinces["wal"],
         )
         # A unit dislodged by a convoyed army has no recorded dislodger.
         phase.units.create(

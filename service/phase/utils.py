@@ -613,8 +613,8 @@ def phase_to_canonical_game_state(phase):
                 "location": unit.province.province_id,
                 "dislodged": unit.dislodged,
                 "dislodgedFrom": (
-                    _parent_province_id(unit.dislodged_by.province)
-                    if unit.dislodged_by_id is not None
+                    _parent_province_id(unit.dislodged_from)
+                    if unit.dislodged_from_id is not None
                     else None
                 ),
             }
