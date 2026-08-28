@@ -476,6 +476,10 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    muster_required = models.BooleanField(default=False)
+    muster_deadline = models.DateTimeField(null=True, blank=True)
+    muster_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
+    muster_reminder_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
 
     def save(self, *args, **kwargs):
         if self.id:
@@ -628,13 +632,13 @@ class Game(BaseModel):
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
             )
-            game_is_pending = self.status == GameStatus.PENDING
-            return user_is_member and game_is_pending
+            game_is_unstarted = self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            return user_is_member and game_is_unstarted
 
     def can_delete(self, user):
         with tracer.start_as_current_span("game.models.can_delete"):
             if (
-                self.status == GameStatus.PENDING
+                self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
                 and self.game_master_id is not None
                 and self.game_master_id == user.id
             ):
@@ -654,7 +658,7 @@ class Game(BaseModel):
         with tracer.start_as_current_span("game.models.can_remove_member"):
             if member.kicked or member.replaced_by_id is not None:
                 return False
-            if self.status == GameStatus.PENDING:
+            if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
                 return True
             if self.status != GameStatus.ACTIVE:
                 return False
@@ -730,7 +734,7 @@ class Game(BaseModel):
             return False
 
     def start(self, current_phase=None, members=None):
-        if self.status != GameStatus.PENDING:
+        if self.status not in (GameStatus.PENDING, GameStatus.MUSTERING):
             raise ValueError("Game is not pending")
 
         with transaction.atomic():
@@ -841,7 +845,7 @@ class Game(BaseModel):
 
     def delete_if_empty_pending(self):
         human_members = self.members.exclude(user__profile__kind__in=UserKind.BOT_KINDS)
-        if self.status == GameStatus.PENDING and not human_members.exists():
+        if self.status in (GameStatus.PENDING, GameStatus.MUSTERING) and not human_members.exists():
             self.delete()
             return True
         return False
@@ -867,4 +871,5 @@ class Game(BaseModel):
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["variant"]),
+            models.Index(fields=["muster_deadline"]),
         ]

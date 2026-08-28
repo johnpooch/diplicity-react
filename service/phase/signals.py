@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
 
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, ResolutionJob
 from phase.models import Phase
 from phase.tasks import resolve_phase
 
@@ -53,7 +53,7 @@ def arm_deadline_resolution(sender, instance, created, **kwargs):
     if can_arm:
         new_job_id = resolve_phase.configure(
             schedule_at=scheduled_resolution,
-            lock=f"resolve-game-{instance.game_id}",
+            lock=ResolutionJob.lock_for_game(instance.game_id),
         ).defer(phase_id=instance.pk)
 
         logger.info(

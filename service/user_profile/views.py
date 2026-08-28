@@ -62,12 +62,13 @@ class UserAccountDeleteView(generics.DestroyAPIView):
     def perform_destroy(self, instance):
         with transaction.atomic():
             user_members = Member.objects.filter(user=instance)
+            unstarted_statuses = [GameStatus.PENDING, GameStatus.MUSTERING]
             pending_game_ids = list(
-                user_members.filter(game__status=GameStatus.PENDING).values_list(
+                user_members.filter(game__status__in=unstarted_statuses).values_list(
                     "game_id", flat=True
                 )
             )
-            user_members.filter(game__status=GameStatus.PENDING).delete()
+            user_members.filter(game__status__in=unstarted_statuses).delete()
             ongoing_members = user_members.filter(
                 game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
             )
