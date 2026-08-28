@@ -914,7 +914,7 @@ class TestMemberReplace:
 
 
 @pytest.mark.django_db
-def test_game_start_phase_not_immediately_resolvable(classical_variant, primary_user):
+def test_game_start_phase_not_immediately_resolvable(classical_variant, user_factory):
     # After game.start(), the active phase must NOT appear in filter_due_phases()
     # for a duration-based game with a future deadline.
     #
@@ -933,7 +933,7 @@ def test_game_start_phase_not_immediately_resolvable(classical_variant, primary_
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
     for _ in classical_variant.nations.all():
-        game.members.create(user=primary_user)
+        game.members.create(user=user_factory())
     game.start()
 
     phase = game.current_phase

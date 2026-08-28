@@ -577,7 +577,7 @@ def game_factory(db):
 
 
 @pytest.fixture
-def phase_factory(db, classical_variant, primary_user):
+def phase_factory(db, classical_variant, primary_user, user_factory):
     def _create(
         game=None,
         type=None,
@@ -631,9 +631,12 @@ def phase_factory(db, classical_variant, primary_user):
 
                 member = game.members.filter(nation=nation).first()
                 if not member:
+                    user = config.get("user")
+                    if user is None:
+                        user = primary_user if not game.members.filter(user=primary_user).exists() else user_factory()
                     member = Member.objects.create(
                         nation=nation,
-                        user=config.get("user", primary_user),
+                        user=user,
                         game=game,
                     )
 
@@ -898,7 +901,7 @@ def sandbox_game_factory(db, primary_user, classical_variant, base_active_phase,
         phase = base_active_phase(game)
         phase.options = sample_options
         phase.save()
-        game.members.create(user=user)
+        game.members.create(user=user, sandbox=True)
         return game
 
     return _create
@@ -1093,7 +1096,7 @@ def sandbox_game_with_phase_options(
     phase.options = sample_options
     phase.save()
     for nation in base_active_game_for_primary_user.variant.nations.all():
-        member = base_active_game_for_primary_user.members.create(user=primary_user, nation=nation)
+        member = base_active_game_for_primary_user.members.create(user=primary_user, nation=nation, sandbox=True)
         phase.phase_states.create(member=member)
     return base_active_game_for_primary_user
 

@@ -222,7 +222,7 @@ def test_resolve_if_due_skips_sandbox_games(db, classical_variant, primary_user)
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
-        game.members.create(user=primary_user)
+        game.members.create(user=primary_user, sandbox=True)
     game.start()
 
     phase = game.current_phase
@@ -266,7 +266,7 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
-        game.members.create(user=primary_user)
+        game.members.create(user=primary_user, sandbox=True)
     game.start()
 
     mock_new_phase = MagicMock()
@@ -298,7 +298,7 @@ def test_sandbox_game_resolve_phase_unauthenticated(unauthenticated_client, db, 
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
-        game.members.create(user=primary_user)
+        game.members.create(user=primary_user, sandbox=True)
     game.start()
 
     url = reverse("game-resolve-phase", args=[game.id])
@@ -328,7 +328,7 @@ def test_sandbox_game_resolve_phase_non_member(
         movement_phase_duration=None,
     )
     for nation in classical_variant.nations.all():
-        game.members.create(user=primary_user)
+        game.members.create(user=primary_user, sandbox=True)
     game.start()
 
     url = reverse("game-resolve-phase", args=[game.id])
@@ -1183,7 +1183,7 @@ class TestCreateFromAdjudicationDataPerformance:
     def test_create_from_adjudication_data_query_count_with_full_game(
         self,
         classical_variant,
-        primary_user,
+        user_factory,
         classical_england_nation,
         classical_france_nation,
         classical_germany_nation,
@@ -1214,7 +1214,7 @@ class TestCreateFromAdjudicationDataPerformance:
         ]
 
         for nation in nations:
-            game.members.create(user=primary_user, nation=nation)
+            game.members.create(user=user_factory(), nation=nation)
 
         berlin = Province.objects.get(province_id="ber", variant=classical_variant)
         rome = Province.objects.get(province_id="rom", variant=classical_variant)
