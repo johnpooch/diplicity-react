@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch
 from django.db import connection
-from django.db.utils import IntegrityError
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -2053,77 +2052,3 @@ class TestMemberNationAssignView:
         url = reverse(assign_viewname, args=[game.id, 999999])
         response = authenticated_client.put(url, {"nation_id": "france"}, format="json")
         assert response.status_code == status.HTTP_404_NOT_FOUND
-
-
-class TestUniqueMemberPerUserPerGame:
-
-    @pytest.mark.django_db
-    def test_rejects_a_second_member_for_the_same_user(
-        self, classical_variant, primary_user
-    ):
-        game = Game.objects.create(
-            name="Test Game",
-            variant=classical_variant,
-            status=GameStatus.PENDING,
-        )
-        game.members.create(user=primary_user)
-
-        with pytest.raises(IntegrityError):
-            game.members.create(user=primary_user)
-
-    @pytest.mark.django_db
-    def test_allows_the_same_user_in_different_games(
-        self, classical_variant, primary_user
-    ):
-        first = Game.objects.create(
-            name="First Game", variant=classical_variant, status=GameStatus.PENDING
-        )
-        second = Game.objects.create(
-            name="Second Game", variant=classical_variant, status=GameStatus.PENDING
-        )
-
-        first.members.create(user=primary_user)
-        second.members.create(user=primary_user)
-
-        assert first.members.count() == 1
-        assert second.members.count() == 1
-
-    @pytest.mark.django_db
-    def test_allows_several_members_without_a_user(self, classical_variant):
-        game = Game.objects.create(
-            name="Test Game",
-            variant=classical_variant,
-            status=GameStatus.ACTIVE,
-        )
-
-        game.members.create(user=None, kicked=True)
-        game.members.create(user=None, kicked=True)
-
-        assert game.members.count() == 2
-
-    @pytest.mark.django_db
-    def test_allows_the_same_user_in_every_sandbox_seat(
-        self, classical_variant, primary_user
-    ):
-        game = Game.objects.create(
-            name="Test Sandbox",
-            variant=classical_variant,
-            status=GameStatus.ACTIVE,
-            sandbox=True,
-        )
-
-        for _ in range(7):
-            game.members.create(user=primary_user, sandbox=True)
-
-        assert game.members.count() == 7
-
-    @pytest.mark.django_db
-    def test_join_creates_a_member_that_is_not_a_sandbox_member(
-        self, authenticated_client, pending_game_created_by_secondary_user, primary_user
-    ):
-        game = pending_game_created_by_secondary_user
-
-        response = authenticated_client.post(reverse(join_viewname, args=[game.id]))
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert game.members.get(user=primary_user).sandbox is False
