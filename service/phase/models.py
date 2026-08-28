@@ -780,6 +780,7 @@ class PhaseManager(models.Manager):
                         year=adjudication_data["year"],
                         type=adjudication_data["type"],
                         options=adjudication_data["options"],
+                        contested_provinces=adjudication_data.get("contested_provinces", []),
                         status=PhaseStatus.ACTIVE,
                         scheduled_resolution=scheduled_resolution,
                     )
@@ -932,6 +933,7 @@ class Phase(BaseModel):
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
     resolution_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
     options = models.JSONField(default=dict)
+    contested_provinces = models.JSONField(default=list)
 
     class Meta:
         ordering = ["ordinal", "id"]

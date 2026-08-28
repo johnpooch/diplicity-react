@@ -1168,6 +1168,33 @@ class TestCreateFromAdjudicationData:
         assert implicit_order.order_type == OrderType.HOLD
         assert implicit_order.resolution.status == "ErrForcedDisband"
 
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_persists_contested_provinces(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        adjudication_data = {**mock_adjudication_data_basic, "contested_provinces": ["bur", "ruh"]}
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        new_phase.refresh_from_db()
+        assert new_phase.contested_provinces == ["bur", "ruh"]
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_without_contested_provinces(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        new_phase.refresh_from_db()
+        assert new_phase.contested_provinces == []
+
 
 class TestCreateFromAdjudicationDataPerformance:
 
@@ -4564,6 +4591,41 @@ class TestPhaseToCanonicalGameState:
         # A fleet build on a multi-coast province addresses the coast as its source.
         assert orders_by_unit_type["Fleet"]["source"] == "stp/nc"
         assert orders_by_unit_type["Army"]["source"] == "edi"
+
+    @pytest.mark.django_db
+    def test_contested_provinces_round_trip(self, classical_variant, primary_user, secondary_user):
+        game, england, france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        provinces = {p.province_id: p for p in classical_variant.provinces.all()}
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.RETREAT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+            contested_provinces=["bur", "ruh"],
+        )
+        dislodger = phase.units.create(
+            type=UnitType.ARMY, nation=france.nation, province=provinces["wal"]
+        )
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=england.nation,
+            province=provinces["lon"],
+            dislodged=True,
+            dislodged_by=dislodger,
+        )
+        phase.supply_centers.create(nation=england.nation, province=provinces["lon"])
+
+        data = phase_to_canonical_game_state(phase)
+        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        state = deserialize_game_state(data, domain_variant)
+
+        assert data["contestedProvinces"] == ["bur", "ruh"]
+        assert state.contested_provinces == ("bur", "ruh")
 
 
 class TestPhaseToCanonicalGameStatePerformance:
