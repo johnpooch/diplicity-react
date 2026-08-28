@@ -69,13 +69,6 @@ def normalise_picture(upload):
     return buffer.getvalue(), PICTURE_CONTENT_TYPES[image_format]
 
 
-def picture_url(profile, request=None):
-    path = profile.picture_path
-    if path is None:
-        return profile.picture
-    return request.build_absolute_uri(path) if request else path
-
-
 def get_player_stats(user):
     completed_members = (
         Member.objects.filter(

@@ -54,16 +54,16 @@ class UserProfile(BaseModel):
     def is_bot(self):
         return self.kind != UserKind.HUMAN
 
-    @property
-    def picture_path(self) -> str | None:
+    def picture_url(self, request=None) -> str | None:
         try:
             picture = self.uploaded_picture
         except UserProfilePicture.DoesNotExist:
-            return None
-        return reverse(
+            return self.picture
+        path = reverse(
             "user-picture-image",
             kwargs={"user_id": self.user_id, "content_hash": picture.content_hash},
         )
+        return request.build_absolute_uri(path) if request else path
 
 
 class UserProfilePictureManager(models.Manager):
