@@ -14,7 +14,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
+from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline, count_actionable_units
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -258,9 +258,17 @@ class PhaseManager(models.Manager):
             member__civil_disorder=True
         ).annotate(order_count=Count("orders")).filter(order_count=0).select_related('member')
 
+        candidates = [ps for ps in not_submitted if ps.member.nmr_extensions_remaining > 0]
+        if not candidates:
+            return None
+
+        actionable_units = count_actionable_units(
+            phase.type, phase.units.all(), phase.supply_centers.all()
+        )
+
         members_with_extensions = [
-            ps.member for ps in not_submitted
-            if ps.member.nmr_extensions_remaining > 0
+            ps.member for ps in candidates
+            if actionable_units.get(ps.member.nation_id, 0) > 0
         ]
 
         if not members_with_extensions:
@@ -341,16 +349,9 @@ class PhaseManager(models.Manager):
                 is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
                 time_left = format_time_remaining(time_until_deadline)
 
-                units_by_nation = {}
-                dislodged_units_by_nation = {}
-                for unit in phase.prefetched_units:
-                    units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
-                    if unit.dislodged:
-                        dislodged_units_by_nation[unit.nation_id] = dislodged_units_by_nation.get(unit.nation_id, 0) + 1
-
-                sc_by_nation = {}
-                for sc in phase.prefetched_supply_centers:
-                    sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
+                actionable_units = count_actionable_units(
+                    phase.type, phase.prefetched_units, phase.prefetched_supply_centers
+                )
 
                 is_adjustment = phase.type == PhaseType.ADJUSTMENT
                 warned_states = []
@@ -361,16 +362,7 @@ class PhaseManager(models.Manager):
                     if ps.deadline_warning_sent_for == phase.scheduled_resolution:
                         continue
 
-                    nation_id = ps.member.nation_id
-                    unit_count = units_by_nation.get(nation_id, 0)
-
-                    if is_adjustment:
-                        sc_count = sc_by_nation.get(nation_id, 0)
-                        total_units = abs(sc_count - unit_count)
-                    elif phase.type == PhaseType.RETREAT:
-                        total_units = dislodged_units_by_nation.get(nation_id, 0)
-                    else:
-                        total_units = unit_count
+                    total_units = actionable_units.get(ps.member.nation_id, 0)
 
                     if total_units == 0:
                         continue
