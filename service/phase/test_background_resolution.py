@@ -788,13 +788,17 @@ class TestPhaseCreationArming:
 class TestNoOpRearming:
 
     @pytest.fixture
-    def due_phase(self, phase_factory, classical_england_nation):
-        return phase_factory(
+    def due_phase(self, phase_factory, classical_england_nation, classical_london_province):
+        phase = phase_factory(
             scheduled_resolution=timezone.now() - timedelta(hours=1),
             phase_states_config=[
                 {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
             ],
         )
+        phase.units.create(
+            type="Fleet", nation=classical_england_nation, province=classical_london_province
+        )
+        return phase
 
     @pytest.mark.django_db
     def test_an_nmr_extension_rearms_at_the_new_deadline(self, due_phase):
