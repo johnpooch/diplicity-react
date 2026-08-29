@@ -819,6 +819,10 @@ class Game(BaseModel):
         self.paused_at = timezone.now()
         self.save()
 
+        current_phase = self.current_phase
+        if current_phase:
+            Phase.objects.arm_resolution(current_phase)
+
     @transaction.atomic
     def unpause(self):
         if self.status != GameStatus.ACTIVE:
@@ -835,6 +839,9 @@ class Game(BaseModel):
 
         self.paused_at = None
         self.save()
+
+        if current_phase:
+            Phase.objects.arm_resolution(current_phase)
 
     def delete_if_empty_pending(self):
         human_members = self.members.exclude(user__profile__kind__in=UserKind.BOT_KINDS)

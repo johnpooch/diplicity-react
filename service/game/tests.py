@@ -1951,7 +1951,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1970,7 +1970,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
 
 class TestGamePrivateFiltering:
@@ -2423,7 +2423,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 54
+        assert query_count == 55
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2444,7 +2444,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 54
+        assert query_count == 55
 
 
 class TestSandboxGameFiltering:

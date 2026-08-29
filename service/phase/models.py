@@ -1,16 +1,14 @@
 import json
-import logging
+from contextlib import contextmanager
 from functools import cached_property
 
-import sentry_sdk
-from django.conf import settings
 from django.db import models, transaction
 from django.db.models import F, Q, Exists, OuterRef, Count, Prefetch
 from django.utils import timezone
-from opentelemetry import trace
+from procrastinate.contrib.django import app as procrastinate_app
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind
+from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind, ResolutionJob
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
@@ -22,30 +20,19 @@ from victory.utils import check_for_solo_winner
 from victory.models import Victory
 from emit import emit
 
-logger = logging.getLogger(__name__)
-tracer = trace.get_tracer(__name__)
-
 
 class PhaseQuerySet(models.QuerySet):
-    def with_detail_data(self):
-        return self.select_related("variant").prefetch_related(
+    def with_related_data(self):
+        return self.select_related("variant", "game").prefetch_related(
             "units__nation__flag",
             "units__province__parent",
             "units__province__named_coasts",
+            "units__dislodged_from__parent",
             "supply_centers__nation__flag",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
             "variant__provinces__parent",
             "variant__nations",
-        )
-
-    def with_adjudication_data(self):
-        return self.select_related("variant", "game").prefetch_related(
-            "supply_centers__province",
-            "supply_centers__nation__flag",
-            "units__province",
-            "units__nation__flag",
-            "units__dislodged_from",
             "phase_states__member__nation__flag",
             "phase_states__orders__source",
             "phase_states__orders__target",
@@ -54,18 +41,13 @@ class PhaseQuerySet(models.QuerySet):
             "phase_states__orders__resolution",
         )
 
-    def with_canonical_state_data(self):
-        return self.prefetch_related(
-            "units__nation__flag",
-            "units__province",
-            "units__dislodged_from__parent",
-            "supply_centers__nation__flag",
-            "supply_centers__province",
-            "phase_states__member__nation__flag",
-            "phase_states__orders__source",
-            "phase_states__orders__target",
-            "phase_states__orders__aux",
-            "phase_states__orders__named_coast",
+    def filter_armable(self):
+        return self.filter(
+            Q(status=PhaseStatus.ACTIVE)
+            & Q(game__sandbox=False)
+            & Q(game__paused_at__isnull=True)
+            & ~Q(game__status=GameStatus.COMPLETED)
+            & ~Q(game__status=GameStatus.ABANDONED)
         )
 
     def filter_due_phases(self):
@@ -76,54 +58,21 @@ class PhaseQuerySet(models.QuerySet):
         all_confirmed = ~Exists(
             PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
         )
-        return self.filter(
-            Q(status=PhaseStatus.ACTIVE)
-            & Q(game__sandbox=False)
-            & Q(game__paused_at__isnull=True)
-            & ~Q(game__status=GameStatus.COMPLETED)
-            & ~Q(game__status=GameStatus.ABANDONED)
-            & (deadline_passed | all_confirmed)
-        )
+        return self.filter_armable().filter(deadline_passed | all_confirmed)
 
 
 class PhaseManager(models.Manager):
     def get_queryset(self):
         return PhaseQuerySet(self.model, using=self._db)
 
-    def with_detail_data(self):
-        return self.get_queryset().with_detail_data()
+    def with_related_data(self):
+        return self.get_queryset().with_related_data()
 
-    def with_adjudication_data(self):
-        return self.get_queryset().with_adjudication_data()
-
-    def with_canonical_state_data(self):
-        return self.get_queryset().with_canonical_state_data()
+    def filter_armable(self):
+        return self.get_queryset().filter_armable()
 
     def filter_due_phases(self):
         return self.get_queryset().filter_due_phases()
-
-    def resolve_phase(self, phase):
-        with tracer.start_as_current_span("phase.manager.resolve_phase") as span:
-            span.set_attribute("phase.id", phase.id)
-            span.set_attribute("game.id", str(phase.game.id))
-            logger.info(f"Manually resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
-            new_phase = self.resolve(phase)
-            logger.info(f"Successfully resolved phase {phase.id}")
-            return new_phase
-
-    def get_phases_to_resolve(self):
-        with tracer.start_as_current_span("phase.manager.get_phases_to_resolve") as span:
-            logger.info("Querying phases to resolve")
-
-            with tracer.start_as_current_span("phase.query_due_phases") as query_span:
-                phases_to_resolve = list(self.filter_due_phases().with_adjudication_data())
-                query_span.set_attribute("phases.found", len(phases_to_resolve))
-                logger.info(f"Found {len(phases_to_resolve)} phases to resolve")
-
-            span.set_attribute("phases.to_resolve", len(phases_to_resolve))
-            logger.info(f"Identified {len(phases_to_resolve)} phases to resolve")
-
-            return phases_to_resolve
 
     def lock_if_active(self, phase_id):
         return (
@@ -133,125 +82,105 @@ class PhaseManager(models.Manager):
             .first()
         )
 
-    def claim_for_processing(self, phase):
-        extension_members = self._check_and_apply_nmr_extensions(phase)
-        if extension_members:
-            return False
-
-        claimed = self.filter(pk=phase.pk, status=PhaseStatus.ACTIVE).update(
+    @contextmanager
+    def claim(self, phase_id, queryset):
+        claimed = queryset.filter(pk=phase_id).update(
             status=PhaseStatus.PROCESSING, processing_started_at=timezone.now()
         )
-        if not claimed:
-            logger.info(f"Phase {phase.pk} is no longer active; skipping resolve")
-            return False
-
-        phase.status = PhaseStatus.PROCESSING
-        return True
+        try:
+            yield bool(claimed)
+        except Exception:
+            if claimed:
+                self.release_from_processing(phase_id)
+            raise
 
     def release_from_processing(self, phase_id):
         return self.filter(pk=phase_id, status=PhaseStatus.PROCESSING).update(
             status=PhaseStatus.ACTIVE, processing_started_at=None
         )
 
-    def recover_stalled_processing(self):
-        timeout = getattr(settings, "PHASE_PROCESSING_TIMEOUT_SECONDS", 300)
-        cutoff = timezone.now() - timedelta(seconds=timeout)
-        stalled = list(
-            self.filter(status=PhaseStatus.PROCESSING, processing_started_at__lt=cutoff)
-            .values_list("id", "game_id")
+    def arm_resolution(self, phase, not_before=None):
+        state = list(
+            self.filter(pk=phase.pk)
+            .annotate(armable=Exists(self.filter_armable().filter(pk=OuterRef("pk"))))
+            .values_list("resolution_job_id", "scheduled_resolution", "armable")[:1]
         )
-        if not stalled:
-            return 0
+        if not state:
+            return None
+        current_job_id, scheduled_resolution, armable = state[0]
 
-        for phase_id, game_id in stalled:
-            logger.error(
-                f"Phase {phase_id} (game {game_id}) has been processing for over {timeout}s; "
-                f"returning it to active so the sweep can retry it"
-            )
-            sentry_sdk.capture_message(
-                f"Phase stalled in processing: phase {phase_id} game {game_id}",
-                level="error",
-            )
-
-        return self.filter(id__in=[phase_id for phase_id, _ in stalled]).update(
-            status=PhaseStatus.ACTIVE, processing_started_at=None
+        should_arm, schedule_at = self._resolution_schedule(
+            phase, scheduled_resolution, armable, not_before
         )
+
+        if current_job_id is not None:
+            armed = procrastinate_app.job_manager.list_jobs(id=current_job_id)
+            if (
+                should_arm
+                and armed
+                and armed[0].status == ResolutionJob.TODO
+                and armed[0].scheduled_at == schedule_at
+            ):
+                return current_job_id
+            procrastinate_app.job_manager.cancel_job_by_id(current_job_id)
+
+        new_job_id = None
+        if should_arm:
+            new_job_id = procrastinate_app.configure_task(
+                ResolutionJob.TASK_NAME,
+                schedule_at=schedule_at,
+                lock=ResolutionJob.lock_for_game(phase.game_id),
+            ).defer(phase_id=phase.pk)
+
+        if new_job_id != current_job_id:
+            self.filter(pk=phase.pk).update(resolution_job_id=new_job_id)
+            phase.resolution_job_id = new_job_id
+
+        return new_job_id
+
+    def _resolution_schedule(self, phase, scheduled_resolution, armable, not_before):
+        if not armable:
+            return False, None
+
+        if self._is_resolvable(phase):
+            return True, not_before
+
+        if scheduled_resolution is None:
+            return False, None
+
+        if not_before is not None and not_before > scheduled_resolution:
+            return True, not_before
+
+        return True, scheduled_resolution
+
+    def _is_resolvable(self, phase):
+        states = list(
+            PhaseState.objects.filter(phase_id=phase.pk).values_list(
+                "has_possible_orders", "orders_confirmed"
+            )
+        )
+        if not states:
+            return False
+        return all(confirmed for has_possible_orders, confirmed in states if has_possible_orders)
+
+    def backfill_resolution_jobs(self):
+        armed = 0
+        for phase in self.filter_armable().iterator():
+            previous_job_id = phase.resolution_job_id
+            if self.arm_resolution(phase) != previous_job_id:
+                armed += 1
+        return armed
 
     def resolve_if_due(self, phase_id):
-        with tracer.start_as_current_span("phase.manager.resolve_if_due") as span:
-            span.set_attribute("phase.id", phase_id)
-            with transaction.atomic():
-                locked = self.select_for_update().filter(pk=phase_id).first()
-                if locked is None:
-                    logger.info(f"Phase {phase_id} no longer exists; skipping resolve")
-                    return None
-                if not self.filter_due_phases().filter(pk=phase_id).exists():
-                    logger.info(f"Phase {phase_id} not due on re-check; skipping resolve")
-                    return None
-                phase = self.with_adjudication_data().get(pk=phase_id)
-                if not self.claim_for_processing(phase):
-                    return phase
-                logger.info(f"Resolving due phase {phase.id} ({phase.name}) for game {phase.game_id}")
+        with self.claim(phase_id, self.filter_due_phases()) as claimed:
+            if not claimed:
+                return None
+            phase = self.with_related_data().get(pk=phase_id)
+            if self._apply_nmr_extensions(phase):
+                return None
             return self._resolve_claimed(phase)
 
-    def resolve_due_phases(self, canary=False):
-        with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
-            logger.info("Starting resolution of due phases")
-
-            phases_to_resolve = self.get_phases_to_resolve()
-            total_phases_to_resolve = len(phases_to_resolve)
-
-            resolved_count = 0
-            failed_count = 0
-
-            now = timezone.now()
-            grace = timedelta(seconds=getattr(settings, "RESOLUTION_CANARY_GRACE_SECONDS", 300))
-
-            for phase in phases_to_resolve:
-                if (
-                    canary
-                    and phase.scheduled_resolution
-                    and phase.scheduled_resolution < now - grace
-                ):
-                    overdue_seconds = (now - phase.scheduled_resolution).total_seconds()
-                    logger.error(
-                        f"Phase {phase.id} (game {phase.game_id}) overdue by {overdue_seconds:.0f}s; "
-                        f"a primary trigger should have resolved it. Capturing canary."
-                    )
-                    sentry_sdk.capture_message(
-                        f"Phase resolution overdue: phase {phase.id} game {phase.game_id} "
-                        f"overdue by {overdue_seconds:.0f}s",
-                        level="error",
-                    )
-
-                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game_id}")
-                try:
-                    if self.resolve_if_due(phase.id) is not None:
-                        resolved_count += 1
-                        logger.info(f"Successfully resolved phase {phase.id}")
-                except Exception as e:
-                    failed_count += 1
-                    logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
-
-            result = {
-                "resolved": resolved_count,
-                "failed": failed_count,
-            }
-
-            span.set_attribute("phases.total", total_phases_to_resolve)
-            span.set_attribute("phases.resolved", resolved_count)
-            span.set_attribute("phases.failed", failed_count)
-
-            logger.info(
-                f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases_to_resolve} phases"
-            )
-            return result
-
-    def sweep_due_phases(self):
-        self.recover_stalled_processing()
-        return self.resolve_due_phases(canary=True)
-
-    def _check_and_apply_nmr_extensions(self, phase):
+    def _apply_nmr_extensions(self, phase):
         not_submitted = phase.phase_states.filter(
             has_possible_orders=True
         ).exclude(
@@ -279,15 +208,13 @@ class PhaseManager(models.Manager):
             return None
 
         phase.scheduled_resolution = new_resolution
+        phase.status = PhaseStatus.ACTIVE
+        phase.processing_started_at = None
         phase.save()
 
         for member in members_with_extensions:
             member.nmr_extensions_remaining -= 1
         Member.objects.bulk_update(members_with_extensions, ['nmr_extensions_remaining'])
-
-        logger.info(
-            f"Applied NMR extensions for {len(members_with_extensions)} members in phase {phase.id}"
-        )
 
         for member in members_with_extensions:
             if member.user_id is None:
@@ -318,79 +245,74 @@ class PhaseManager(models.Manager):
                     return warning
             return 14400
 
-        with tracer.start_as_current_span("phase.manager.send_deadline_warnings") as span:
-            now = timezone.now()
+        now = timezone.now()
 
-            active_phases = self.filter(
-                status=PhaseStatus.ACTIVE,
-                game__sandbox=False,
-                game__paused_at__isnull=True,
-                scheduled_resolution__isnull=False,
-            ).exclude(
-                Q(game__status=GameStatus.COMPLETED) | Q(game__status=GameStatus.ABANDONED)
-            ).select_related('game').prefetch_related(
-                'phase_states__member__user',
-                'phase_states__member__nation',
-                'phase_states__orders',
-                Prefetch('units', queryset=Unit.objects.select_related('nation'), to_attr='prefetched_units'),
-                Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation'), to_attr='prefetched_supply_centers'),
+        active_phases = self.filter(
+            status=PhaseStatus.ACTIVE,
+            game__sandbox=False,
+            game__paused_at__isnull=True,
+            scheduled_resolution__isnull=False,
+        ).exclude(
+            Q(game__status=GameStatus.COMPLETED) | Q(game__status=GameStatus.ABANDONED)
+        ).select_related('game').prefetch_related(
+            'phase_states__member__user',
+            'phase_states__member__nation',
+            'phase_states__orders',
+            Prefetch('units', queryset=Unit.objects.select_related('nation'), to_attr='prefetched_units'),
+            Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation'), to_attr='prefetched_supply_centers'),
+        )
+
+        notifications_sent = 0
+
+        for phase in active_phases:
+            duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
+            warning_threshold = get_warning_threshold(duration_seconds)
+            time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
+
+            if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
+                continue
+
+            is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+            time_left = format_time_remaining(time_until_deadline)
+
+            actionable_units = count_actionable_units(
+                phase.type, phase.prefetched_units, phase.prefetched_supply_centers
             )
 
-            notifications_sent = 0
+            is_adjustment = phase.type == PhaseType.ADJUSTMENT
+            warned_states = []
 
-            for phase in active_phases:
-                duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
-                warning_threshold = get_warning_threshold(duration_seconds)
-                time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
-
-                if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
+            for ps in phase.phase_states.all():
+                if not ps.has_possible_orders:
+                    continue
+                if ps.deadline_warning_sent_for == phase.scheduled_resolution:
                     continue
 
-                is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
-                time_left = format_time_remaining(time_until_deadline)
+                total_units = actionable_units.get(ps.member.nation_id, 0)
 
-                actionable_units = count_actionable_units(
-                    phase.type, phase.prefetched_units, phase.prefetched_supply_centers
+                if total_units == 0:
+                    continue
+
+                body = build_notification_body(
+                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
+                    ps.member.nmr_extensions_remaining,
+                    is_adjustment=is_adjustment,
                 )
+                if body is None:
+                    continue
 
-                is_adjustment = phase.type == PhaseType.ADJUSTMENT
-                warned_states = []
+                if ps.member.user_id is None:
+                    continue
 
-                for ps in phase.phase_states.all():
-                    if not ps.has_possible_orders:
-                        continue
-                    if ps.deadline_warning_sent_for == phase.scheduled_resolution:
-                        continue
+                emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
+                ps.deadline_warning_sent_for = phase.scheduled_resolution
+                warned_states.append(ps)
+                notifications_sent += 1
 
-                    total_units = actionable_units.get(ps.member.nation_id, 0)
+            if warned_states:
+                PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
 
-                    if total_units == 0:
-                        continue
-
-                    body = build_notification_body(
-                        ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
-                        ps.member.nmr_extensions_remaining,
-                        is_adjustment=is_adjustment,
-                    )
-                    if body is None:
-                        continue
-
-                    if ps.member.user_id is None:
-                        continue
-
-                    emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
-                    ps.deadline_warning_sent_for = phase.scheduled_resolution
-                    warned_states.append(ps)
-                    notifications_sent += 1
-                    logger.info(f"Sent deadline warning to user {ps.member.user_id} for game {phase.game.name}")
-
-                if warned_states:
-                    PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
-
-            span.set_attribute("notifications.sent", notifications_sent)
-            logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
-
-            return {"notifications_sent": notifications_sent}
+        return {"notifications_sent": notifications_sent}
 
     def _set_orders_outcome(self, phase):
         base_qs = phase.phase_states.filter(
@@ -498,11 +420,8 @@ class PhaseManager(models.Manager):
             try:
                 with transaction.atomic():
                     recompute_commitment(user)
-            except Exception as e:
-                logger.error(
-                    f"Failed to recompute commitment for user {user.id} after phase {phase.id}: {e}",
-                    exc_info=True,
-                )
+            except Exception:
+                continue
 
     def _notify_civil_disorder(self, phase, newly_cd_members):
         if not newly_cd_members:
@@ -594,47 +513,40 @@ class PhaseManager(models.Manager):
         return all(m.civil_disorder for m in active_members)
 
     def resolve(self, phase):
-        if not self.claim_for_processing(phase):
-            return phase
-        return self._resolve_claimed(phase)
+        with self.claim(phase.pk, self.filter(status=PhaseStatus.ACTIVE)) as claimed:
+            if not claimed:
+                return phase
+            phase.status = PhaseStatus.PROCESSING
+            return self._resolve_claimed(phase)
 
     def _resolve_claimed(self, phase):
-        with tracer.start_as_current_span("phase.manager.resolve") as span:
-            span.set_attribute("phase.id", phase.id)
-            span.set_attribute("game.id", str(phase.game.id))
+        with transaction.atomic():
+            self._set_orders_outcome(phase)
+            newly_cd_members = self._check_civil_disorder(phase)
+            adjudication_data = resolve(phase)
 
-            try:
-                with tracer.start_as_current_span("phase.transaction_atomic"):
-                    with transaction.atomic():
-                        self._set_orders_outcome(phase)
-                        newly_cd_members = self._check_civil_disorder(phase)
-                        adjudication_data = resolve(phase)
+            surviving_cd_members = self._reconcile_civil_disorder_eliminations(
+                newly_cd_members, adjudication_data
+            )
+            new_phase = self.create_from_adjudication_data(phase, adjudication_data)
+            self._check_eliminations(phase, new_phase)
+            self._notify_civil_disorder(phase, surviving_cd_members)
+            self._recompute_commitment(phase)
 
-                        surviving_cd_members = self._reconcile_civil_disorder_eliminations(
-                            newly_cd_members, adjudication_data
-                        )
-                        new_phase = self.create_from_adjudication_data(phase, adjudication_data)
-                        self._check_eliminations(phase, new_phase)
-                        self._notify_civil_disorder(phase, surviving_cd_members)
-                        self._recompute_commitment(phase)
+            victory = Victory.objects.try_create_victory(new_phase)
 
-                        victory = Victory.objects.try_create_victory(new_phase)
+            if victory:
+                new_phase.game.finish(GameStatus.COMPLETED)
+                new_phase.game.emit_game_ended()
+            elif self._check_abandonment(new_phase.game):
+                new_phase.game.finish(GameStatus.ABANDONED)
 
-                        if victory:
-                            new_phase.game.finish(GameStatus.COMPLETED)
-                            new_phase.game.emit_game_ended()
-                        elif self._check_abandonment(new_phase.game):
-                            new_phase.game.finish(GameStatus.ABANDONED)
+            new_phase.refresh_from_db()
 
-                        new_phase.refresh_from_db()
+            if new_phase.status == PhaseStatus.ACTIVE:
+                emit("phase_started", phase=new_phase)
 
-                        if new_phase.status == PhaseStatus.ACTIVE:
-                            emit("phase_started", phase=new_phase)
-
-                        return new_phase
-            except Exception:
-                self.release_from_processing(phase.pk)
-                raise
+            return new_phase
 
     def _emit_phase_resolved(self, phase):
         resolved_early = (
@@ -646,261 +558,184 @@ class PhaseManager(models.Manager):
         emit(event_type, phase=phase)
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
-        with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
-            span.set_attribute("previous_phase.id", previous_phase.id)
-            span.set_attribute("new_phase.ordinal", previous_phase.ordinal + 1)
+        if previous_phase.game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED):
+            return previous_phase
 
-            if previous_phase.game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED):
-                logger.warning(f"Skipping phase creation - game {previous_phase.game.id} is {previous_phase.game.status}")
-                return previous_phase
+        # Build lookup dictionaries once to avoid N+1 queries
+        variant = previous_phase.variant
+        province_lookup = {p.province_id: p for p in variant.provinces.all()}
+        nation_lookup = {n.name: n for n in variant.nations.all()}
 
-            logger.info(
-                f"Creating new phase from adjudication data for previous phase {previous_phase.id} ({previous_phase.name})"
+        # Process order resolutions
+        existing_orders = list(previous_phase.all_orders)
+
+        order_ids = [order.id for order in existing_orders]
+        OrderResolution.objects.filter(order_id__in=order_ids).delete()
+
+        unit_nation_by_province = {
+            unit.province.province_id: unit.nation
+            for unit in previous_phase.units.all()
+        }
+        phase_state_by_nation_name = {
+            ps.member.nation.name: ps
+            for ps in previous_phase.phase_states.all()
+        }
+        existing_order_provinces = {order.source.province_id for order in existing_orders}
+
+        implicit_orders_to_create = []
+        implicit_resolution_pairs = []
+        for resolution_data in adjudication_data["resolutions"]:
+            if resolution_data["result"] != "OK" and resolution_data["province"] not in existing_order_provinces:
+                source_province = province_lookup.get(resolution_data["province"])
+                nation = unit_nation_by_province.get(resolution_data["province"])
+                if source_province and nation:
+                    phase_state = phase_state_by_nation_name.get(nation.name)
+                    if phase_state:
+                        implicit_orders_to_create.append(
+                            Order(
+                                phase_state=phase_state,
+                                source=source_province,
+                                order_type=OrderType.HOLD,
+                                is_implicit=True,
+                            )
+                        )
+                        implicit_resolution_pairs.append(resolution_data)
+
+        resolutions_to_create = []
+
+        if implicit_orders_to_create:
+            created_implicit_orders = Order.objects.bulk_create(implicit_orders_to_create)
+            for implicit_order, resolution_data in zip(created_implicit_orders, implicit_resolution_pairs):
+                by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
+                resolutions_to_create.append(
+                    OrderResolution(
+                        order=implicit_order,
+                        status=resolution_data["result"],
+                        by=by_province,
+                    )
+                )
+
+        for order in existing_orders:
+            resolution_data = next(
+                (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id),
+                None,
             )
-            logger.debug(f"Adjudication data keys: {list(adjudication_data.keys())}")
-
-            try:
-                # Build lookup dictionaries once to avoid N+1 queries
-                variant = previous_phase.variant
-                province_lookup = {p.province_id: p for p in variant.provinces.all()}
-                nation_lookup = {n.name: n for n in variant.nations.all()}
-
-                # Process order resolutions
-                with tracer.start_as_current_span("phase.create_order_resolutions") as resolutions_span:
-                    existing_orders = list(previous_phase.all_orders)
-                    order_count = len(existing_orders)
-
-                    order_ids = [order.id for order in existing_orders]
-                    OrderResolution.objects.filter(order_id__in=order_ids).delete()
-
-                    unit_nation_by_province = {
-                        unit.province.province_id: unit.nation
-                        for unit in previous_phase.units.all()
-                    }
-                    phase_state_by_nation_name = {
-                        ps.member.nation.name: ps
-                        for ps in previous_phase.phase_states.all()
-                    }
-                    existing_order_provinces = {order.source.province_id for order in existing_orders}
-
-                    implicit_orders_to_create = []
-                    implicit_resolution_pairs = []
-                    for resolution_data in adjudication_data["resolutions"]:
-                        if resolution_data["result"] != "OK" and resolution_data["province"] not in existing_order_provinces:
-                            source_province = province_lookup.get(resolution_data["province"])
-                            nation = unit_nation_by_province.get(resolution_data["province"])
-                            if source_province and nation:
-                                phase_state = phase_state_by_nation_name.get(nation.name)
-                                if phase_state:
-                                    implicit_orders_to_create.append(
-                                        Order(
-                                            phase_state=phase_state,
-                                            source=source_province,
-                                            order_type=OrderType.HOLD,
-                                            is_implicit=True,
-                                        )
-                                    )
-                                    implicit_resolution_pairs.append(resolution_data)
-
-                    resolutions_to_create = []
-
-                    if implicit_orders_to_create:
-                        created_implicit_orders = Order.objects.bulk_create(implicit_orders_to_create)
-                        logger.info(f"Created {len(created_implicit_orders)} implicit Hold orders for failed resolutions")
-                        for implicit_order, resolution_data in zip(created_implicit_orders, implicit_resolution_pairs):
-                            by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
-                            resolutions_to_create.append(
-                                OrderResolution(
-                                    order=implicit_order,
-                                    status=resolution_data["result"],
-                                    by=by_province,
-                                )
-                            )
-
-                    for order in existing_orders:
-                        resolution_data = next(
-                            (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id),
-                            None,
-                        )
-                        if resolution_data:
-                            by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
-                            resolutions_to_create.append(
-                                OrderResolution(
-                                    order=order,
-                                    status=resolution_data["result"],
-                                    by=by_province,
-                                )
-                            )
-                            logger.debug(f"Prepared resolution for order {order.id}: {resolution_data['result']}")
-                        else:
-                            logger.warning(
-                                f"No resolution found for order {order.id} in province {order.source.province_id}"
-                            )
-
-                    OrderResolution.objects.bulk_create(resolutions_to_create)
-                    resolutions_count = len(resolutions_to_create)
-
-                    resolutions_span.set_attribute("order_count", order_count)
-                    resolutions_span.set_attribute("resolutions_created", resolutions_count)
-                    logger.info(f"Created {resolutions_count} order resolutions")
-
-                # Calculate next phase details
-                scheduled_resolution = previous_phase.game.get_scheduled_resolution(
-                    adjudication_data["type"],
-                    reference_time=previous_phase.scheduled_resolution,
-                )
-                if (
-                    scheduled_resolution is not None
-                    and previous_phase.game.deadline_mode == DeadlineMode.FIXED_TIME
-                ):
-                    scheduled_resolution = compress_deadline(
-                        scheduled_resolution,
-                        previous_phase.game.get_phase_frequency(adjudication_data["type"]),
-                        timezone.now(),
+            if resolution_data:
+                by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
+                resolutions_to_create.append(
+                    OrderResolution(
+                        order=order,
+                        status=resolution_data["result"],
+                        by=by_province,
                     )
-                new_ordinal = previous_phase.ordinal + 1
-
-                logger.info(
-                    f"Creating new phase {new_ordinal} ({adjudication_data['season']} {adjudication_data['year']}, {adjudication_data['type']})"
                 )
 
-                # Create the new phase
-                with tracer.start_as_current_span("phase.create_new_phase") as new_phase_span:
-                    new_phase = self.create(
-                        game=previous_phase.game,
-                        variant=previous_phase.variant,
-                        ordinal=new_ordinal,
-                        season=adjudication_data["season"],
-                        year=adjudication_data["year"],
-                        type=adjudication_data["type"],
-                        options=adjudication_data["options"],
-                        contested_provinces=adjudication_data.get("contested_provinces", []),
-                        status=PhaseStatus.ACTIVE,
-                        scheduled_resolution=scheduled_resolution,
+        OrderResolution.objects.bulk_create(resolutions_to_create)
+
+        # Calculate next phase details
+        scheduled_resolution = previous_phase.game.get_scheduled_resolution(
+            adjudication_data["type"],
+            reference_time=previous_phase.scheduled_resolution,
+        )
+        if (
+            scheduled_resolution is not None
+            and previous_phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+        ):
+            scheduled_resolution = compress_deadline(
+                scheduled_resolution,
+                previous_phase.game.get_phase_frequency(adjudication_data["type"]),
+                timezone.now(),
+            )
+        new_ordinal = previous_phase.ordinal + 1
+
+        # Create the new phase
+        new_phase = self.create(
+            game=previous_phase.game,
+            variant=previous_phase.variant,
+            ordinal=new_ordinal,
+            season=adjudication_data["season"],
+            year=adjudication_data["year"],
+            type=adjudication_data["type"],
+            options=adjudication_data["options"],
+            contested_provinces=adjudication_data.get("contested_provinces", []),
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=scheduled_resolution,
+        )
+
+        # Create supply centers
+        supply_centers_to_create = []
+        for supply_center in adjudication_data["supply_centers"]:
+            province = province_lookup.get(supply_center["province"])
+            nation = nation_lookup.get(supply_center["nation"])
+            if province and nation:
+                supply_centers_to_create.append(
+                    SupplyCenter(
+                        province=province,
+                        nation=nation,
+                        phase=new_phase,
                     )
-                    new_phase_span.set_attribute("phase.id", new_phase.id)
-                    new_phase_span.set_attribute("phase.ordinal", new_ordinal)
-                    new_phase_span.set_attribute("phase.season", adjudication_data["season"])
-                    new_phase_span.set_attribute("phase.year", adjudication_data["year"])
-                    new_phase_span.set_attribute("phase.type", adjudication_data["type"])
-
-                logger.info(f"Created new phase {new_phase.id} scheduled for resolution at {scheduled_resolution}")
-
-                # Create supply centers
-                with tracer.start_as_current_span("phase.create_supply_centers") as sc_span:
-                    supply_centers_to_create = []
-                    for supply_center in adjudication_data["supply_centers"]:
-                        province = province_lookup.get(supply_center["province"])
-                        nation = nation_lookup.get(supply_center["nation"])
-                        if province and nation:
-                            supply_centers_to_create.append(
-                                SupplyCenter(
-                                    province=province,
-                                    nation=nation,
-                                    phase=new_phase,
-                                )
-                            )
-                        else:
-                            logger.error(
-                                f"Failed to find province {supply_center['province']} or nation {supply_center['nation']}"
-                            )
-
-                    # Bulk create all supply centers
-                    SupplyCenter.objects.bulk_create(supply_centers_to_create)
-                    supply_centers_count = len(supply_centers_to_create)
-
-                    sc_span.set_attribute("supply_centers_count", supply_centers_count)
-                    logger.info(f"Created {supply_centers_count} supply centers")
-
-                # Create units
-                with tracer.start_as_current_span("phase.create_units") as units_span:
-                    units_to_create = []
-                    for unit in adjudication_data["units"]:
-                        logger.info(
-                            f"Preparing unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
-                        )
-
-                        is_dislodged = unit.get("dislodged", False)
-
-                        dislodger_origin = unit.get("dislodged_by", None)
-                        dislodged_from = None
-
-                        if is_dislodged and dislodger_origin:
-                            dislodged_from = province_lookup.get(dislodger_origin)
-                            if not dislodged_from:
-                                logger.warning(
-                                    f"Unit {unit['province']} is dislodged but dislodger origin {dislodger_origin} is not a province of this variant"
-                                )
-                        elif is_dislodged:
-                            logger.info(
-                                f"Unit {unit['province']} is dislodged but no dislodger information available (convoy case)"
-                            )
-
-                        province = province_lookup.get(unit["province"])
-                        nation = nation_lookup.get(unit["nation"])
-                        if province and nation:
-                            units_to_create.append(
-                                Unit(
-                                    type=unit["type"],
-                                    nation=nation,
-                                    province=province,
-                                    phase=new_phase,
-                                    dislodged=is_dislodged,
-                                    dislodged_from=dislodged_from,
-                                )
-                            )
-                        else:
-                            logger.error(f"Failed to find province {unit['province']} or nation {unit['nation']}")
-
-                    # Bulk create all units
-                    Unit.objects.bulk_create(units_to_create)
-                    units_count = len(units_to_create)
-
-                    units_span.set_attribute("units_count", units_count)
-                    logger.info(f"Created {units_count} units")
-
-                # Create phase states
-                with tracer.start_as_current_span("phase.create_phase_states") as ps_span:
-                    nations_with_orders = new_phase.nations_with_possible_orders
-
-                    # Prefetch member nations to avoid N+1
-                    members = list(new_phase.game.members.select_related("nation").all())
-
-                    phase_states_to_create = []
-                    for member in members:
-                        phase_states_to_create.append(
-                            new_phase.phase_states.model(
-                                member=member,
-                                phase=new_phase,
-                                has_possible_orders=member.nation.name in nations_with_orders and not member.kicked,
-                                orders_confirmed=member.civil_disorder,
-                            )
-                        )
-
-                    # Bulk create all phase states
-                    new_phase.phase_states.model.objects.bulk_create(phase_states_to_create)
-                    phase_states_count = len(phase_states_to_create)
-
-                    ps_span.set_attribute("phase_states_count", phase_states_count)
-                    logger.info(f"Created {phase_states_count} phase states for game members")
-
-                # Mark previous phase as completed
-                with tracer.start_as_current_span("phase.mark_previous_complete") as complete_span:
-                    complete_span.set_attribute("previous_phase.id", previous_phase.id)
-                    previous_phase.status = PhaseStatus.COMPLETED
-                    previous_phase.save()
-                    logger.info(f"Marked previous phase {previous_phase.id} as completed")
-
-                self._emit_phase_resolved(previous_phase)
-
-                logger.info(f"Successfully created new phase {new_phase.id} from adjudication data")
-                return new_phase
-
-            except Exception as e:
-                logger.error(
-                    f"Failed to create phase from adjudication data for phase {previous_phase.id}: {e}", exc_info=True
                 )
-                raise
+
+        # Bulk create all supply centers
+        SupplyCenter.objects.bulk_create(supply_centers_to_create)
+
+        # Create units
+        units_to_create = []
+        for unit in adjudication_data["units"]:
+            is_dislodged = unit.get("dislodged", False)
+
+            dislodger_origin = unit.get("dislodged_by", None)
+            dislodged_from = None
+
+            if is_dislodged and dislodger_origin:
+                dislodged_from = province_lookup.get(dislodger_origin)
+
+            province = province_lookup.get(unit["province"])
+            nation = nation_lookup.get(unit["nation"])
+            if province and nation:
+                units_to_create.append(
+                    Unit(
+                        type=unit["type"],
+                        nation=nation,
+                        province=province,
+                        phase=new_phase,
+                        dislodged=is_dislodged,
+                        dislodged_from=dislodged_from,
+                    )
+                )
+
+        # Bulk create all units
+        Unit.objects.bulk_create(units_to_create)
+
+        # Create phase states
+        nations_with_orders = new_phase.nations_with_possible_orders
+
+        # Prefetch member nations to avoid N+1
+        members = list(new_phase.game.members.select_related("nation").all())
+
+        phase_states_to_create = []
+        for member in members:
+            phase_states_to_create.append(
+                new_phase.phase_states.model(
+                    member=member,
+                    phase=new_phase,
+                    has_possible_orders=member.nation.name in nations_with_orders and not member.kicked,
+                    orders_confirmed=member.civil_disorder,
+                )
+            )
+
+        # Bulk create all phase states
+        new_phase.phase_states.model.objects.bulk_create(phase_states_to_create)
+
+        self.arm_resolution(new_phase)
+
+        # Mark previous phase as completed
+        previous_phase.status = PhaseStatus.COMPLETED
+        previous_phase.save()
+
+        self._emit_phase_resolved(previous_phase)
+
+        return new_phase
 
 
 class Phase(BaseModel):
@@ -979,13 +814,7 @@ class Phase(BaseModel):
     @property
     def phase_states_with_possible_orders(self):
         nations = self.nations_with_possible_orders
-        logger.info(f"Nations with possible orders: {nations}")
         return [phase_state for phase_state in self.phase_states.all() if phase_state.member.nation.name in nations]
-
-    @property
-    def should_resolve_immediately(self):
-        logger.info(f"Checking if phase {self.id} should resolve immediately")
-        return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
 
     @property
     def has_unconfirmed_human(self):
@@ -1017,34 +846,22 @@ class Phase(BaseModel):
         )
 
     def revert_to_this_phase(self):
-
-        logger.info(f"Reverting game {self.game.id} to phase {self.id} ({self.name})")
-
         if self.game.status == GameStatus.COMPLETED:
-            logger.error(f"Cannot revert phase {self.id} - game {self.game.id} has ended")
             raise ValueError("Cannot revert phases in an ended game")
 
-        later_phases = self.game.phases.filter(ordinal__gt=self.ordinal)
-        later_phases_count = later_phases.count()
-        logger.info(f"Deleting {later_phases_count} phases after phase {self.ordinal}")
-        later_phases.delete()
+        self.game.phases.filter(ordinal__gt=self.ordinal).delete()
 
-        orders_count = Order.objects.filter(phase_state__phase=self).count()
-        logger.info(f"Deleting {orders_count} orders for phase {self.id}")
         Order.objects.filter(phase_state__phase=self).delete()
 
-        logger.info(f"Reactivating phase {self.id} with new scheduled resolution")
         self.status = PhaseStatus.ACTIVE
         self.scheduled_resolution = self.game.get_scheduled_resolution(self.type)
         self.save()
 
-        phase_states_count = self.phase_states.count()
-        logger.info(f"Resetting orders_confirmed to False for {phase_states_count} phase states")
         self.phase_states.update(orders_confirmed=False)
 
-        emit("phase_started", phase=self)
+        Phase.objects.arm_resolution(self)
 
-        logger.info(f"Successfully reverted game {self.game.id} to phase {self.id}")
+        emit("phase_started", phase=self)
 
 
 class PhaseState(BaseModel):

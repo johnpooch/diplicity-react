@@ -4,16 +4,11 @@ from rest_framework import serializers
 from common.constants import PhaseStatus, PhaseType
 from emit import emit
 from member.serializers import MemberSerializer
-from phase.tasks import resolve_phase
+from phase.models import Phase
 from phase.utils import compute_province_nations
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
-
-
-class PhaseResolveResponseSerializer(serializers.Serializer):
-    resolved = serializers.IntegerField()
-    failed = serializers.IntegerField()
 
 
 class PhaseStateSerializer(serializers.Serializer):
@@ -37,9 +32,8 @@ class PhaseStateSerializer(serializers.Serializer):
 
             if instance.orders_confirmed:
                 emit("phase_state_confirmed", phase=instance.phase)
-                resolve_phase.configure(
-                    lock=f"resolve-game-{instance.phase.game_id}",
-                ).defer(phase_id=instance.phase_id)
+
+            Phase.objects.arm_resolution(instance.phase)
 
         return instance
 

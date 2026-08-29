@@ -6,30 +6,77 @@ from django.db import connection, transaction
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
+from procrastinate.contrib.django import app as procrastinate_app
 from rest_framework import status
 
-from common.constants import DeadlineMode, PhaseFrequency, PhaseStatus
+from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus, ResolutionJob
 from game.models import Game
+from member.models import Member
 from phase.models import Phase
 from phase.serializers import PhaseStateSerializer
+from phase.tasks import resolve_phase
 
 
 def _resolve_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "phase.resolve_phase"]
+    return [j for j in connector.jobs.values() if j["task_name"] == ResolutionJob.TASK_NAME]
 
 
 def _immediate_resolve_jobs(connector):
     return [j for j in _resolve_jobs(connector) if j["scheduled_at"] is None]
 
 
+def _pending_resolve_jobs(connector):
+    return [j for j in _resolve_jobs(connector) if j["status"] == ResolutionJob.TODO]
+
+
+def _todo_resolve_jobs():
+    return procrastinate_app.job_manager.list_jobs(
+        task=ResolutionJob.TASK_NAME, status=ResolutionJob.TODO
+    )
+
+
+def _armed_job(phase):
+    phase.refresh_from_db()
+    if phase.resolution_job_id is None:
+        return None
+    jobs = procrastinate_app.job_manager.list_jobs(id=phase.resolution_job_id)
+    return jobs[0] if jobs else None
+
+
+def _fetch_job_id():
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT procrastinate_register_worker_v1()")
+        worker_id = cursor.fetchone()[0]
+        cursor.execute("SELECT id FROM procrastinate_fetch_job_v2(NULL, %s)", [worker_id])
+        row = cursor.fetchone()
+    return row[0] if row else None
+
+
+def _claim(phase_id):
+    return Phase.objects.filter_due_phases().filter(pk=phase_id).update(
+        status=PhaseStatus.PROCESSING, processing_started_at=timezone.now()
+    )
+
+
+def _fetchable_job_ids():
+    fetched = []
+    while True:
+        job_id = _fetch_job_id()
+        if job_id is None:
+            return fetched
+        fetched.append(job_id)
+
+
 class TestConfirmTrigger:
 
     @pytest.mark.django_db
-    def test_confirm_defers_resolve_phase_task(
+    def test_confirm_arms_a_phase_with_no_scheduled_resolution(
         self, authenticated_client, active_game_with_phase_state, in_memory_procrastinate
     ):
         game = active_game_with_phase_state
         phase = game.current_phase
+        assert phase.scheduled_resolution is None
+        assert phase.resolution_job_id is None
 
         url = reverse("game-confirm-phase", args=[game.id])
         response = authenticated_client.put(url)
@@ -38,10 +85,10 @@ class TestConfirmTrigger:
         jobs = _immediate_resolve_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
         assert jobs[0]["args"] == {"phase_id": phase.id}
-        assert jobs[0]["lock"] == f"resolve-game-{game.id}"
+        assert jobs[0]["lock"] == ResolutionJob.lock_for_game(game.id)
 
     @pytest.mark.django_db
-    def test_unconfirm_does_not_defer(
+    def test_unconfirm_does_not_arm_a_phase_with_no_scheduled_resolution(
         self, authenticated_client, active_game_with_confirmed_phase_state, in_memory_procrastinate
     ):
         game = active_game_with_confirmed_phase_state
@@ -50,7 +97,49 @@ class TestConfirmTrigger:
         response = authenticated_client.put(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert _immediate_resolve_jobs(in_memory_procrastinate) == []
+        assert _pending_resolve_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_confirming_the_last_outstanding_order_pulls_the_job_forward(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        deadline_job_id = phase.resolution_job_id
+        assert in_memory_procrastinate.jobs[deadline_job_id]["scheduled_at"] == deadline
+
+        PhaseStateSerializer().update(phase.phase_states.first(), {})
+
+        phase.refresh_from_db()
+        assert phase.resolution_job_id != deadline_job_id
+        assert in_memory_procrastinate.jobs[deadline_job_id]["status"] == "cancelled"
+        assert in_memory_procrastinate.jobs[phase.resolution_job_id]["scheduled_at"] is None
+
+    @pytest.mark.django_db
+    def test_unconfirming_pushes_the_job_back_to_the_deadline(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+        Phase.objects.arm_resolution(phase)
+        phase.refresh_from_db()
+        assert in_memory_procrastinate.jobs[phase.resolution_job_id]["scheduled_at"] is None
+
+        PhaseStateSerializer().update(phase.phase_states.first(), {})
+
+        phase.refresh_from_db()
+        assert in_memory_procrastinate.jobs[phase.resolution_job_id]["scheduled_at"] == deadline
 
     @pytest.mark.django_db
     def test_confirm_enqueue_is_atomic_with_write(self, active_game_with_phase_state):
@@ -163,11 +252,26 @@ class TestDeadlineTimerArming:
         assert _resolve_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
-    def test_past_deadline_does_not_arm(
+    def test_past_deadline_arms_for_that_past_moment(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        deadline = timezone.now() - timedelta(hours=1)
+        phase_factory(
+            scheduled_resolution=deadline,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        jobs = _resolve_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["scheduled_at"] == deadline
+
+    @pytest.mark.django_db
+    def test_phase_with_no_scheduled_resolution_does_not_arm(
         self, phase_factory, in_memory_procrastinate, classical_england_nation
     ):
         phase_factory(
-            scheduled_resolution=timezone.now() - timedelta(hours=1),
             phase_states_config=[
                 {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
             ],
@@ -284,16 +388,12 @@ class TestProcessingStatus:
 
         def record(phase):
             observed["status"] = Phase.objects.values_list("status", flat=True).get(pk=phase.pk)
-            observed["savepoints"] = len(transaction.get_connection().savepoint_ids)
             return "resolved"
-
-        baseline = len(transaction.get_connection().savepoint_ids)
 
         with patch.object(Phase.objects, "_resolve_claimed", side_effect=record):
             Phase.objects.resolve_if_due(due_phase.id)
 
         assert observed["status"] == PhaseStatus.PROCESSING
-        assert observed["savepoints"] == baseline
 
     @pytest.mark.django_db
     def test_claim_records_when_processing_started(self, due_phase):
@@ -309,7 +409,10 @@ class TestProcessingStatus:
     def test_claim_is_refused_for_a_phase_another_worker_is_already_processing(self, due_phase):
         Phase.objects.filter(pk=due_phase.pk).update(status=PhaseStatus.PROCESSING)
 
-        assert Phase.objects.claim_for_processing(due_phase) is False
+        with Phase.objects.claim(
+            due_phase.pk, Phase.objects.filter(status=PhaseStatus.ACTIVE)
+        ) as claimed:
+            assert claimed is False
 
     @pytest.mark.django_db
     def test_failed_resolution_returns_the_phase_to_active(self, due_phase):
@@ -322,57 +425,118 @@ class TestProcessingStatus:
         assert due_phase.processing_started_at is None
 
     @pytest.mark.django_db
-    def test_a_processing_phase_is_not_picked_up_by_the_sweep(self, due_phase):
+    def test_a_processing_phase_is_not_resolved(self, due_phase):
         Phase.objects.filter(pk=due_phase.pk).update(status=PhaseStatus.PROCESSING)
 
         with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
-            Phase.objects.resolve_due_phases()
+            assert Phase.objects.resolve_if_due(due_phase.id) is None
 
         mock_resolve.assert_not_called()
 
-    @pytest.mark.django_db
-    def test_recovery_returns_a_stalled_phase_to_active(self, due_phase):
-        Phase.objects.filter(pk=due_phase.pk).update(
-            status=PhaseStatus.PROCESSING,
-            processing_started_at=timezone.now() - timedelta(seconds=400),
+
+class TestFusedClaim:
+
+    @pytest.fixture
+    def due_phase(self, phase_factory, classical_england_nation):
+        return phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
         )
 
-        with patch("phase.models.sentry_sdk.capture_message") as mock_capture:
-            recovered = Phase.objects.recover_stalled_processing()
+    @pytest.mark.django_db
+    def test_the_claim_is_a_single_query_and_takes_a_due_phase(self, due_phase):
+        with CaptureQueriesContext(connection) as queries:
+            claimed = _claim(due_phase.id)
+
+        assert claimed == 1
+        assert len(queries) == 1
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.PROCESSING
+
+    @pytest.mark.django_db
+    def test_a_paused_game_is_not_claimed(self, due_phase):
+        Game.objects.filter(pk=due_phase.game_id).update(paused_at=timezone.now())
+
+        assert _claim(due_phase.id) == 0
 
         due_phase.refresh_from_db()
-        assert recovered == 1
         assert due_phase.status == PhaseStatus.ACTIVE
-        assert due_phase.processing_started_at is None
-        mock_capture.assert_called_once()
-        assert str(due_phase.id) in mock_capture.call_args[0][0]
 
     @pytest.mark.django_db
-    def test_sweep_retries_a_phase_it_recovered(self, due_phase):
-        Phase.objects.filter(pk=due_phase.pk).update(
-            status=PhaseStatus.PROCESSING,
-            processing_started_at=timezone.now() - timedelta(seconds=400),
+    def test_a_completed_game_is_not_claimed(self, due_phase):
+        Game.objects.filter(pk=due_phase.game_id).update(status=GameStatus.COMPLETED)
+
+        assert _claim(due_phase.id) == 0
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_an_abandoned_game_is_not_claimed(self, due_phase):
+        Game.objects.filter(pk=due_phase.game_id).update(status=GameStatus.ABANDONED)
+
+        assert _claim(due_phase.id) == 0
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_a_sandbox_game_is_not_claimed(self, due_phase):
+        Game.objects.filter(pk=due_phase.game_id).update(sandbox=True)
+
+        assert _claim(due_phase.id) == 0
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_an_unconfirmed_phase_before_its_deadline_is_not_claimed(
+        self, phase_factory, classical_england_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
         )
 
-        with patch("phase.models.sentry_sdk.capture_message"):
-            with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved") as mock_resolve:
-                Phase.objects.sweep_due_phases()
+        assert _claim(phase.id) == 0
 
-        mock_resolve.assert_called_once()
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.ACTIVE
 
     @pytest.mark.django_db
-    def test_sweep_leaves_a_phase_processing_within_the_timeout(self, due_phase):
-        started = timezone.now() - timedelta(seconds=60)
+    def test_a_phase_already_processing_is_not_claimed(self, due_phase):
+        started = timezone.now() - timedelta(seconds=30)
         Phase.objects.filter(pk=due_phase.pk).update(
             status=PhaseStatus.PROCESSING, processing_started_at=started
         )
 
-        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
-            Phase.objects.sweep_due_phases()
+        assert _claim(due_phase.id) == 0
 
         due_phase.refresh_from_db()
         assert due_phase.status == PhaseStatus.PROCESSING
+        assert due_phase.processing_started_at == started
+
+    @pytest.mark.django_db
+    def test_a_phase_that_no_longer_exists_is_not_claimed(self, due_phase):
+        phase_id = due_phase.id
+        Phase.objects.filter(pk=phase_id).delete()
+
+        assert _claim(phase_id) == 0
+
+    @pytest.mark.django_db
+    def test_a_game_paused_after_arming_is_not_resolved_when_the_job_runs(self, due_phase):
+        due_phase.game.pause()
+
+        with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
+            assert Phase.objects.resolve_if_due(due_phase.id) is None
+
         mock_resolve.assert_not_called()
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
 
 
 class TestLockIfActive:
@@ -395,44 +559,6 @@ class TestLockIfActive:
 
         with transaction.atomic():
             assert Phase.objects.lock_if_active(phase.id) is None
-
-
-class TestSweepCanary:
-
-    @pytest.mark.django_db
-    def test_canary_fires_when_overdue_beyond_grace(self, phase_factory, classical_england_nation):
-        phase = phase_factory(
-            scheduled_resolution=timezone.now() - timedelta(seconds=400),
-            phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
-            ],
-        )
-
-        with patch("phase.models.sentry_sdk.capture_message") as mock_capture, patch.object(
-            Phase.objects, "_resolve_claimed", return_value="resolved"
-        ) as mock_resolve:
-            Phase.objects.sweep_due_phases()
-
-        mock_capture.assert_called_once()
-        assert str(phase.id) in mock_capture.call_args[0][0]
-        mock_resolve.assert_called_once()
-
-    @pytest.mark.django_db
-    def test_no_canary_within_grace(self, phase_factory, classical_england_nation):
-        phase_factory(
-            scheduled_resolution=timezone.now() - timedelta(seconds=60),
-            phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
-            ],
-        )
-
-        with patch("phase.models.sentry_sdk.capture_message") as mock_capture, patch.object(
-            Phase.objects, "_resolve_claimed", return_value="resolved"
-        ) as mock_resolve:
-            Phase.objects.sweep_due_phases()
-
-        mock_capture.assert_not_called()
-        mock_resolve.assert_called_once()
 
 
 class TestFixedTimeEarlyResolution:
@@ -577,3 +703,306 @@ class TestDeadlineGridPreservation:
         run = new_phase.scheduled_resolution - timezone.now()
         expected = phase.game.movement_phase_duration_seconds
         assert abs(run.total_seconds() - expected) < 2
+
+
+class TestResolutionJobFetchability:
+
+    @pytest.mark.django_db
+    def test_a_deadline_job_blocks_a_later_job_holding_the_same_lock(self):
+        lock = ResolutionJob.lock_for_game("head-of-line")
+        blocker = procrastinate_app.configure_task(
+            ResolutionJob.TASK_NAME,
+            schedule_at=timezone.now() + timedelta(hours=24),
+            lock=lock,
+        ).defer(phase_id=1)
+        follower = procrastinate_app.configure_task(
+            ResolutionJob.TASK_NAME,
+            lock=lock,
+        ).defer(phase_id=1)
+
+        assert blocker < follower
+        assert _fetchable_job_ids() == []
+
+        procrastinate_app.job_manager.cancel_job_by_id(blocker)
+
+        assert _fetchable_job_ids() == [follower]
+
+    @pytest.mark.django_db
+    def test_the_job_pulled_forward_by_a_confirm_is_fetchable(
+        self, phase_factory, classical_england_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        deadline_job_id = phase.resolution_job_id
+        assert _fetchable_job_ids() == []
+
+        PhaseStateSerializer().update(phase.phase_states.first(), {})
+
+        phase.refresh_from_db()
+        assert phase.resolution_job_id != deadline_job_id
+        assert phase.resolution_job_id in _fetchable_job_ids()
+
+
+class TestPhaseCreationArming:
+
+    @pytest.mark.django_db
+    def test_a_phase_born_all_confirmed_is_armed_immediately(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        previous_phase = italy_vs_germany_phase_with_orders
+        previous_phase.game.members.update(civil_disorder=True)
+
+        new_phase = Phase.objects.create_from_adjudication_data(
+            Phase.objects.with_related_data().get(pk=previous_phase.pk),
+            mock_adjudication_data_basic,
+        )
+
+        assert new_phase.phase_states.filter(orders_confirmed=False, has_possible_orders=True).count() == 0
+        job = _armed_job(new_phase)
+        assert job is not None
+        assert job.scheduled_at is None
+
+    @pytest.mark.django_db
+    def test_a_phase_born_with_no_actionable_states_is_armed_immediately(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        previous_phase = italy_vs_germany_phase_with_orders
+
+        new_phase = Phase.objects.create_from_adjudication_data(
+            Phase.objects.with_related_data().get(pk=previous_phase.pk),
+            mock_adjudication_data_basic,
+        )
+
+        assert new_phase.scheduled_resolution is not None
+        assert new_phase.phase_states.filter(has_possible_orders=True).count() == 0
+        job = _armed_job(new_phase)
+        assert job is not None
+        assert job.scheduled_at is None
+
+
+class TestNoOpRearming:
+
+    @pytest.fixture
+    def due_phase(self, phase_factory, classical_england_nation, classical_london_province):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.units.create(
+            type="Fleet", nation=classical_england_nation, province=classical_london_province
+        )
+        return phase
+
+    @pytest.mark.django_db
+    def test_an_nmr_extension_rearms_at_the_new_deadline(self, due_phase):
+        due_phase.game.members.update(nmr_extensions_remaining=1)
+        due_phase.refresh_from_db()
+        original_job_id = due_phase.resolution_job_id
+
+        Phase.objects.resolve_if_due(due_phase.id)
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+        assert due_phase.processing_started_at is None
+        assert due_phase.scheduled_resolution > timezone.now()
+        assert due_phase.resolution_job_id != original_job_id
+        assert _armed_job(due_phase).scheduled_at == due_phase.scheduled_resolution
+        assert len(_todo_resolve_jobs()) == 1
+
+    @pytest.mark.django_db
+    def test_a_claim_lost_to_another_worker_does_not_rearm(self, due_phase):
+        due_phase.refresh_from_db()
+        original_job_id = due_phase.resolution_job_id
+        Phase.objects.filter(pk=due_phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        assert Phase.objects.resolve_if_due(due_phase.id) is None
+
+        due_phase.refresh_from_db()
+        assert due_phase.resolution_job_id == original_job_id
+
+    @pytest.mark.django_db
+    def test_a_failed_resolution_does_not_arm_a_second_job(self, due_phase):
+        due_phase.refresh_from_db()
+        original_job_id = due_phase.resolution_job_id
+
+        with patch.object(Phase.objects, "_set_orders_outcome", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError):
+                resolve_phase.func(phase_id=due_phase.id)
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+        assert due_phase.processing_started_at is None
+        assert due_phase.resolution_job_id == original_job_id
+        assert len(_todo_resolve_jobs()) == 1
+
+
+class TestPauseAndUnpause:
+
+    @pytest.fixture
+    def armed_phase(self, phase_factory, classical_england_nation):
+        return phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+    @pytest.mark.django_db
+    def test_pausing_cancels_the_armed_job(self, armed_phase):
+        armed_phase.refresh_from_db()
+        job_id = armed_phase.resolution_job_id
+
+        armed_phase.game.pause()
+
+        armed_phase.refresh_from_db()
+        assert armed_phase.resolution_job_id is None
+        cancelled = procrastinate_app.job_manager.list_jobs(id=job_id)[0]
+        assert cancelled.status == ResolutionJob.CANCELLED
+
+    @pytest.mark.django_db
+    def test_unpausing_rearms_at_the_extended_deadline(self, armed_phase):
+        game = armed_phase.game
+        game.pause()
+        game.unpause()
+
+        armed_phase.refresh_from_db()
+        assert armed_phase.resolution_job_id is not None
+        assert _armed_job(armed_phase).scheduled_at == armed_phase.scheduled_resolution
+
+
+class TestMembershipChangeArming:
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_pushes_the_job_back_to_the_deadline(
+        self, phase_factory, classical_england_nation
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+        phase.game.members.update(civil_disorder=True)
+        Phase.objects.arm_resolution(phase)
+        assert _armed_job(phase).scheduled_at is None
+
+        member = phase.game.members.first()
+        member.civil_disorder = False
+        member.save(update_fields=["civil_disorder"])
+        phase.phase_states.filter(member=member).update(orders_confirmed=False)
+        Phase.objects.arm_resolution(phase)
+
+        assert _armed_job(phase).scheduled_at == deadline
+
+    @pytest.mark.django_db
+    def test_removing_the_last_unconfirmed_member_pulls_the_job_forward(
+        self, phase_factory, classical_england_nation, classical_france_nation, secondary_user
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_france_nation,
+                    "user": secondary_user,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
+            ],
+        )
+        assert _armed_job(phase).scheduled_at == deadline
+
+        Member.objects.remove(phase.game.members.get(nation=classical_france_nation))
+
+        assert _armed_job(phase).scheduled_at is None
+
+    @pytest.mark.django_db
+    def test_handing_over_a_seat_pushes_the_job_back_to_the_deadline(
+        self, phase_factory, classical_england_nation, secondary_user
+    ):
+        deadline = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=deadline,
+            options={"England": {"lon": {"Next": {"Hold": {}}, "Type": "Province"}}},
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+        Phase.objects.arm_resolution(phase)
+        assert _armed_job(phase).scheduled_at is None
+
+        Member.objects.hand_over_seat(
+            phase.game.members.get(nation=classical_england_nation), secondary_user
+        )
+
+        assert _armed_job(phase).scheduled_at == deadline
+
+
+class TestResolutionJobBackfill:
+
+    @pytest.mark.django_db
+    def test_arms_a_live_phase_that_has_no_job(self, phase_factory, classical_england_nation):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        procrastinate_app.job_manager.cancel_job_by_id(phase.resolution_job_id)
+        Phase.objects.filter(pk=phase.pk).update(resolution_job_id=None)
+
+        assert Phase.objects.backfill_resolution_jobs() == 1
+
+        phase.refresh_from_db()
+        assert phase.resolution_job_id is not None
+
+    @pytest.mark.django_db
+    def test_leaves_a_correctly_armed_phase_alone(self, phase_factory, classical_england_nation):
+        phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        assert Phase.objects.backfill_resolution_jobs() == 0
+
+    @pytest.mark.django_db
+    def test_pulls_forward_a_phase_that_is_already_resolvable(
+        self, phase_factory, classical_england_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        assert Phase.objects.backfill_resolution_jobs() == 1
+
+        assert _armed_job(phase).scheduled_at is None
+
+    @pytest.mark.django_db
+    def test_skips_a_paused_game(self, phase_factory, classical_england_nation):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.game.pause()
+
+        assert Phase.objects.backfill_resolution_jobs() == 0
+
+        phase.refresh_from_db()
+        assert phase.resolution_job_id is None
