@@ -1,7 +1,12 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 from common.models import BaseModel
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -61,6 +66,15 @@ class NotificationDeliveryManager(models.Manager):
 
         deliver.defer(delivery_ids=[d.id for d in deliveries])
         return deliveries
+
+    def expire_stale(self, deliveries, max_age):
+        cutoff = timezone.now() - max_age
+        stale = [d for d in deliveries if d.created_at < cutoff]
+        if not stale:
+            return deliveries
+        self.filter(id__in=[d.id for d in stale]).update(status=self.model.Status.EXPIRED)
+        logger.warning(f"Expired {len(stale)} notification delivery(s) older than {max_age} instead of sending them")
+        return [d for d in deliveries if d.created_at >= cutoff]
 
     def _email_enabled_ids(self, recipient_ids):
         return set(

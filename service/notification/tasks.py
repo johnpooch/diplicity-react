@@ -23,26 +23,11 @@ def deliver(delivery_ids):
     )
     if not deliveries:
         return
-    fresh = _expire_stale(deliveries)
+    fresh = NotificationDelivery.objects.expire_stale(deliveries, timedelta(hours=DELIVER_MAX_AGE_HOURS))
     if not fresh:
         return
     _deliver_channel(fresh, NotificationDelivery.Channel.PUSH, _send_push)
     _deliver_channel(fresh, NotificationDelivery.Channel.EMAIL, _send_email)
-
-
-def _expire_stale(deliveries):
-    cutoff = timezone.now() - timedelta(hours=DELIVER_MAX_AGE_HOURS)
-    stale = [d for d in deliveries if d.created_at < cutoff]
-    if not stale:
-        return deliveries
-    NotificationDelivery.objects.filter(id__in=[d.id for d in stale]).update(
-        status=NotificationDelivery.Status.EXPIRED
-    )
-    logger.warning(
-        f"Expired {len(stale)} notification delivery(s) older than {DELIVER_MAX_AGE_HOURS}h "
-        f"instead of sending them"
-    )
-    return [d for d in deliveries if d.created_at >= cutoff]
 
 
 def _deliver_channel(deliveries, channel, send):
