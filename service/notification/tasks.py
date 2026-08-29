@@ -11,17 +11,38 @@ from notification.models import Notification, NotificationDelivery
 logger = logging.getLogger(__name__)
 
 PRUNE_AFTER_DAYS = 30
+DELIVER_MAX_AGE_HOURS = 1
 
 
 @app.task(name="notification.deliver", retry=3)
 def deliver(delivery_ids):
     deliveries = list(
-        NotificationDelivery.objects.filter(id__in=delivery_ids).select_related("notification")
+        NotificationDelivery.objects.filter(
+            id__in=delivery_ids, status=NotificationDelivery.Status.PENDING
+        ).select_related("notification")
     )
     if not deliveries:
         return
-    _deliver_channel(deliveries, NotificationDelivery.Channel.PUSH, _send_push)
-    _deliver_channel(deliveries, NotificationDelivery.Channel.EMAIL, _send_email)
+    fresh = _expire_stale(deliveries)
+    if not fresh:
+        return
+    _deliver_channel(fresh, NotificationDelivery.Channel.PUSH, _send_push)
+    _deliver_channel(fresh, NotificationDelivery.Channel.EMAIL, _send_email)
+
+
+def _expire_stale(deliveries):
+    cutoff = timezone.now() - timedelta(hours=DELIVER_MAX_AGE_HOURS)
+    stale = [d for d in deliveries if d.created_at < cutoff]
+    if not stale:
+        return deliveries
+    NotificationDelivery.objects.filter(id__in=[d.id for d in stale]).update(
+        status=NotificationDelivery.Status.EXPIRED
+    )
+    logger.warning(
+        f"Expired {len(stale)} notification delivery(s) older than {DELIVER_MAX_AGE_HOURS}h "
+        f"instead of sending them"
+    )
+    return [d for d in deliveries if d.created_at >= cutoff]
 
 
 def _deliver_channel(deliveries, channel, send):

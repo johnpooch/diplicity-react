@@ -79,6 +79,7 @@ class NotificationDelivery(BaseModel):
         PENDING = "pending"
         SENT = "sent"
         FAILED = "failed"
+        EXPIRED = "expired"
 
     objects = NotificationDeliveryManager()
 
