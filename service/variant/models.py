@@ -50,7 +50,7 @@ class VariantQuerySet(models.QuerySet):
                 "units__nation__flag",
                 "units__province__parent",
                 "units__province__named_coasts",
-                "units__dislodged_by",
+                "units__dislodged_from",
                 "supply_centers__nation__flag",
                 "supply_centers__province__parent",
                 "supply_centers__province__named_coasts",
@@ -117,6 +117,7 @@ class Variant(BaseModel):
     phase_progression = models.JSONField(default=default_phase_progression)
     rules = models.TextField(blank=True, default="")
     dominance_rules = models.JSONField(default=list, blank=True)
+    unit_scaling = models.FloatField(default=1)
     status = models.CharField(
         max_length=20,
         choices=VariantStatus.STATUS_CHOICES,

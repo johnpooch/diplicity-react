@@ -1495,16 +1495,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameFindSimilar'
           description: ''
-  /phase/resolve/:
-    post:
-      operationId: phase_resolve_create
-      tags:
-      - phase
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /sandbox-game/:
     post:
       operationId: sandbox_game_create
@@ -1542,6 +1532,37 @@ paths:
   /user/delete/:
     delete:
       operationId: user_delete_destroy
+      tags:
+      - user
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /user/picture/:
+    put:
+      operationId: user_picture_update
+      description: Upload or remove the signed-in user's profile picture.
+      tags:
+      - user
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfilePicture'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    delete:
+      operationId: user_picture_destroy
+      description: Upload or remove the signed-in user's profile picture.
       tags:
       - user
       security:
@@ -1841,8 +1862,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
       required:
       - name
       - picture
@@ -2310,6 +2331,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/CommitmentRequirementEnum'
           default: open
+        muster_required:
+          type: boolean
+          default: false
       required:
       - id
       - name
@@ -2641,8 +2665,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
       required:
       - name
       - picture
@@ -3276,8 +3300,8 @@ components:
           minLength: 2
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         email:
           type: string
           readOnly: true
@@ -3460,8 +3484,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -3609,14 +3633,13 @@ components:
           $ref: '#/components/schemas/Province'
         dislodged:
           type: boolean
-        dislodged_by:
-          type: object
-          additionalProperties: {}
+        dislodged_from:
+          allOf:
+          - $ref: '#/components/schemas/Province'
           nullable: true
-          readOnly: true
       required:
       - dislodged
-      - dislodged_by
+      - dislodged_from
       - nation
       - province
       - type
@@ -3643,8 +3666,8 @@ components:
           minLength: 2
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         email:
           type: string
           readOnly: true
@@ -3669,6 +3692,15 @@ components:
       - picture
       - reliability_tier
       - user_id
+    UserProfilePicture:
+      type: object
+      properties:
+        picture:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - picture
     Variant:
       type: object
       properties:
@@ -3682,6 +3714,9 @@ components:
           type: string
         rules:
           type: string
+        unit_scaling:
+          type: number
+          format: double
         status:
           type: string
           readOnly: true
@@ -3729,6 +3764,7 @@ components:
       - status
       - svg_url
       - template_phase
+      - unit_scaling
       - victory_conditions
     VariantProvince:
       type: object

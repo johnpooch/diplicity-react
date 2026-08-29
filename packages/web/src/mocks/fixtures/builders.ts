@@ -144,7 +144,7 @@ export const makeUnit = (
   nation: nation(nationId),
   province: province(provinceId),
   dislodged: false,
-  dislodgedBy: null,
+  dislodgedFrom: null,
   ...overrides,
 });
 

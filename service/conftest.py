@@ -1,3 +1,4 @@
+import io
 import json
 from datetime import time
 from pathlib import Path
@@ -8,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
+
+from PIL import Image
 
 from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMember, ChannelMessage
@@ -30,7 +33,7 @@ from nation.models import Nation
 from order.models import OrderResolution
 from phase.models import Phase
 from province.models import Province
-from user_profile.models import UserProfile
+from user_profile.models import UserProfile, UserProfilePicture
 from variant.models import Variant
 from victory.models import Victory
 
@@ -43,8 +46,9 @@ User = get_user_model()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def override_test_settings():
+def override_test_settings(tmp_path_factory):
     with override_settings(
+        MEDIA_ROOT=str(tmp_path_factory.mktemp("media")),
         CACHES={
             "default": {
                 "BACKEND": "django.core.cache.backends.dummy.DummyCache",
@@ -118,6 +122,25 @@ def user_factory(db):
         return user
 
     return _create
+
+
+@pytest.fixture
+def make_image():
+    def _make(width=512, height=256, left="#ff0000", right="#0000ff"):
+        image = Image.new("RGB", (width, height), left)
+        image.paste(Image.new("RGB", (width // 2, height), right), (width // 2, 0))
+        return image
+
+    return _make
+
+
+@pytest.fixture
+def stored_picture(db, primary_user, make_image):
+    buffer = io.BytesIO()
+    make_image().save(buffer, format="PNG")
+    return UserProfilePicture.objects.store(
+        primary_user.profile, buffer.getvalue(), "image/png"
+    )
 
 
 @pytest.fixture
@@ -577,7 +600,7 @@ def game_factory(db):
 
 
 @pytest.fixture
-def phase_factory(db, classical_variant, primary_user):
+def phase_factory(db, classical_variant, primary_user, user_factory):
     def _create(
         game=None,
         type=None,
@@ -631,9 +654,12 @@ def phase_factory(db, classical_variant, primary_user):
 
                 member = game.members.filter(nation=nation).first()
                 if not member:
+                    user = config.get("user")
+                    if user is None:
+                        user = primary_user if not game.members.filter(user=primary_user).exists() else user_factory()
                     member = Member.objects.create(
                         nation=nation,
-                        user=config.get("user", primary_user),
+                        user=user,
                         game=game,
                     )
 
@@ -898,7 +924,7 @@ def sandbox_game_factory(db, primary_user, classical_variant, base_active_phase,
         phase = base_active_phase(game)
         phase.options = sample_options
         phase.save()
-        game.members.create(user=user)
+        game.members.create(user=user, sandbox=True)
         return game
 
     return _create
@@ -980,6 +1006,47 @@ def active_game_with_phase_state(
     member = base_active_game_for_primary_user.members.create(user=primary_user, nation=classical_england_nation)
     phase.phase_states.create(member=member, has_possible_orders=True)
     return base_active_game_for_primary_user
+
+
+@pytest.fixture
+def active_retreat_game_with_dislodged_unit(
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+    classical_france_nation,
+    classical_london_province,
+    classical_wales_province,
+):
+    game = models.Game.objects.create(
+        name="Retreat Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
+    )
+    phase = game.phases.create(
+        game=game,
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type=PhaseType.RETREAT,
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.units.create(
+        type=UnitType.ARMY, nation=classical_france_nation, province=classical_london_province
+    )
+    phase.units.create(
+        type=UnitType.ARMY,
+        nation=classical_england_nation,
+        province=classical_london_province,
+        dislodged=True,
+        dislodged_from=classical_wales_province,
+    )
+    phase.supply_centers.create(nation=classical_france_nation, province=classical_london_province)
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase.phase_states.create(member=member, has_possible_orders=True)
+    return game
 
 
 @pytest.fixture
@@ -1093,7 +1160,7 @@ def sandbox_game_with_phase_options(
     phase.options = sample_options
     phase.save()
     for nation in base_active_game_for_primary_user.variant.nations.all():
-        member = base_active_game_for_primary_user.members.create(user=primary_user, nation=nation)
+        member = base_active_game_for_primary_user.members.create(user=primary_user, nation=nation, sandbox=True)
         phase.phase_states.create(member=member)
     return base_active_game_for_primary_user
 

@@ -8,9 +8,10 @@ from .models import Member
 from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGameMember, IsGameManager, IsInCivilDisorder, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
+from phase.models import Phase
 
 
 @extend_schema(responses={201: MemberSerializer})
@@ -42,7 +43,7 @@ class LegacyMemberCreateView(MemberCreateView):
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsPendingOrMusteringGame, IsGameMember]
 
     def get_object(self):
         game = self.get_game()
@@ -74,7 +75,9 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
         user_id = instance.user_id
         is_bot = instance.is_bot
         event_type = (
-            "kicked_from_staging" if game.status == GameStatus.PENDING else "removed_from_game"
+            "kicked_from_staging"
+            if game.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            else "removed_from_game"
         )
         with transaction.atomic():
             Member.objects.remove(instance)
@@ -175,6 +178,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
                 current_phase.phase_states.filter(member=member).update(
                     orders_confirmed=False
                 )
+                Phase.objects.arm_resolution(current_phase)
 
             emit("civil_disorder_recovery", game=game, actor=request.user)
 

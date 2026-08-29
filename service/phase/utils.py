@@ -599,7 +599,7 @@ def compute_province_nations(supply_centers, provinces, dominance_rules, nations
 
 
 def phase_to_canonical_game_state(phase):
-    phase = type(phase).objects.with_canonical_state_data().get(pk=phase.pk)
+    phase = type(phase).objects.with_related_data().get(pk=phase.pk)
     return {
         "phase": {
             "season": phase.season,
@@ -613,8 +613,8 @@ def phase_to_canonical_game_state(phase):
                 "location": unit.province.province_id,
                 "dislodged": unit.dislodged,
                 "dislodgedFrom": (
-                    _parent_province_id(unit.dislodged_by.province)
-                    if unit.dislodged_by_id is not None
+                    _parent_province_id(unit.dislodged_from)
+                    if unit.dislodged_from_id is not None
                     else None
                 ),
             }
@@ -632,4 +632,5 @@ def phase_to_canonical_game_state(phase):
             for phase_state in phase.phase_states.all()
             for order in phase_state.orders.all()
         ],
+        "contestedProvinces": list(phase.contested_provinces),
     }

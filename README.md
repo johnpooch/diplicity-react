@@ -30,7 +30,7 @@ No secrets or `.env` file are needed to run the app locally. Optional features (
 
 Open a terminal window and run the following command to build the entire project:
 ```bash
-docker compose up service web db worker phase-resolver
+docker compose up service web db worker
 ```
 
 **Note** The terminal window will show logs from all of the containers which is useful for debugging.

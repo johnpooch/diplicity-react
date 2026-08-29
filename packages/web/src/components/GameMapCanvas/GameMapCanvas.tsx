@@ -28,7 +28,7 @@ import { renderSplitSvg } from "./mapSvgLayers";
 import { rasterizeSvg } from "./rasterizeSvg";
 import { buildProvinceRings } from "./provincePolygons";
 
-type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
+type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl" | "unitScaling">;
 
 type GameMapCanvasProps = {
   variant: VariantForMap;
@@ -58,7 +58,10 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const [fill, setFill] = useState(showFillToggle);
 
   const parsed = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
-  const renderer = useMemo(() => (dsvg ? new DiplicityMap(dsvg) : null), [dsvg]);
+  const renderer = useMemo(
+    () => (dsvg ? new DiplicityMap(dsvg, props.variant.unitScaling) : null),
+    [dsvg, props.variant.unitScaling]
+  );
 
   const provincePaths = useMemo(
     () =>

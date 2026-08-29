@@ -5,10 +5,10 @@ from .models import Unit
 
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
-    list_display = ["type", "nation", "province", "phase", "dislodged", "dislodged_by"]
+    list_display = ["type", "nation", "province", "phase", "dislodged", "dislodged_from"]
     list_filter = ["type", "dislodged"]
     search_fields = ["nation__name", "province__name", "phase__game__name"]
-    raw_id_fields = ["nation", "province", "phase", "dislodged_by"]
+    raw_id_fields = ["nation", "province", "phase", "dislodged_from"]
     ordering = ["phase", "nation", "province"]
 
     def get_queryset(self, request):
@@ -22,7 +22,5 @@ class UnitAdmin(admin.ModelAdmin):
             "phase",
             "phase__game",
             "phase__variant",
-            "dislodged_by",
-            "dislodged_by__nation",
-            "dislodged_by__province",
+            "dislodged_from",
         )

@@ -25,12 +25,6 @@ Any activity (commit, comment, review) resets the timer. Use the `pinned` label 
 
 ## Issues
 
-### When to open a Discussion first
-
-If the right approach to a piece of work is not obvious — if you need to weigh options or explore trade-offs before knowing what to build — open a [GitHub Discussion](https://github.com/johnpooch/diplicity-react/discussions) first. Once the approach is clear, create a focused issue that captures the agreed approach.
-
-Skip the Discussion if both the goal and the approach are already clear.
-
 ### Issue format
 
 Issues follow a tight three-section format:
@@ -53,7 +47,6 @@ Keep issues short. A single `## Goal` section is a complete issue.
 
 ### What not to include
 
-- Sub-issues or epics. If work is too large for one issue, split it into two or three focused, independent issues.
 - Acceptance criteria checklists.
 - Out of scope sections.
 - Tasks or implementation breakdowns.
@@ -61,7 +54,7 @@ Keep issues short. A single `## Goal` section is a complete issue.
 
 ### Scope
 
-Each issue should result in a **single, reviewable PR**. If a change touches both backend and frontend and the pieces are independently deployable, split into two issues: one for the backend, one for the frontend.
+If a change touches both backend and frontend and the pieces are independently deployable, split into two issues: one for the backend, one for the frontend.
 
 ---
 

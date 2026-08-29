@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, PhaseFrequency, UnitType
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType
 
 from phase.models import Phase
 from nation.models import Nation
@@ -1172,6 +1172,7 @@ class TestGameListViewQueryPerformance:
         classical_variant,
         primary_user,
         secondary_user,
+        tertiary_user,
         classical_england_nation,
         classical_france_nation,
         classical_edinburgh_province,
@@ -1185,7 +1186,7 @@ class TestGameListViewQueryPerformance:
             )
             member1 = game.members.create(user=primary_user, nation=classical_england_nation)
             member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
-            member3 = game.members.create(user=secondary_user, nation=classical_germany_nation)
+            member3 = game.members.create(user=tertiary_user, nation=classical_germany_nation)
 
             phase = game.phases.create(
                 game=game,
@@ -1950,7 +1951,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1969,7 +1970,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
 
 class TestGamePrivateFiltering:
@@ -2320,6 +2321,32 @@ class TestSandboxGameCreation:
         assert game.current_phase.phase_states.count() == 7
 
     @pytest.mark.django_db
+    def test_create_sandbox_game_preserves_template_dislodged_units(
+        self, authenticated_client, classical_variant, classical_wales_province
+    ):
+        template_unit = classical_variant.template_phase.units.first()
+        template_unit.dislodged = True
+        template_unit.dislodged_from = classical_wales_province
+        template_unit.save()
+
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        phase_url = reverse("phase-retrieve", args=[response.data["id"], response.data["current_phase_id"]])
+        phase_response = authenticated_client.get(phase_url)
+
+        assert phase_response.status_code == status.HTTP_200_OK
+        dislodged_units = [unit for unit in phase_response.data["units"] if unit["dislodged"]]
+        assert len(dislodged_units) == 1
+        assert dislodged_units[0]["province"]["id"] == template_unit.province.province_id
+        assert dislodged_units[0]["dislodged_from"]["id"] == "wal"
+
+    @pytest.mark.django_db
     def test_create_sandbox_game_does_not_notify(
         self, authenticated_client, classical_variant, in_memory_procrastinate
     ):
@@ -2396,7 +2423,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 54
+        assert query_count == 55
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2417,7 +2444,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 54
+        assert query_count == 55
 
 
 class TestSandboxGameFiltering:
@@ -2922,6 +2949,43 @@ class TestGameCloneToSandbox:
         large_query_count = len(connection.queries)
 
         assert large_query_count == small_query_count
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_preserves_dislodged_unit_origin(
+        self, authenticated_client, active_retreat_game_with_dislodged_unit
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+        phase_url = reverse("phase-retrieve", args=[response.data["id"], response.data["current_phase_id"]])
+        phase_response = authenticated_client.get(phase_url)
+
+        assert phase_response.status_code == status.HTTP_200_OK
+        dislodged_units = [unit for unit in phase_response.data["units"] if unit["dislodged"]]
+        assert len(dislodged_units) == 1
+        assert dislodged_units[0]["province"]["id"] == "lon"
+        assert dislodged_units[0]["dislodged_from"]["id"] == "wal"
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_forbids_retreat_to_attacker_origin(
+        self, authenticated_client, active_retreat_game_with_dislodged_unit
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+        options_url = reverse("order-options", args=[response.data["id"]])
+        options_response = authenticated_client.get(options_url)
+
+        assert options_response.status_code == status.HTTP_200_OK
+        retreat_targets = {
+            option["target"]["id"]
+            for option in options_response.data["orders"]
+            if option["source"]["id"] == "lon" and option["order_type"]["id"] == OrderType.MOVE
+        }
+        assert "wal" not in retreat_targets
+        assert "yor" in retreat_targets
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_twice_creates_two_games(

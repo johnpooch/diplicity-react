@@ -42,6 +42,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                     phase=phase,
                     has_possible_orders=member.nation.name in phase.nations_with_possible_orders,
                 )
+                Phase = apps.get_model("phase", "Phase")
+                Phase.objects.arm_resolution(phase)
 
         return replacement
 
@@ -64,7 +66,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         member.save(update_fields=["nation"])
 
     def remove(self, member):
-        if member.game.status == GameStatus.PENDING:
+        if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
             member.delete()
             return
 
@@ -75,6 +77,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             phase = self._lock_active_phase(member.game)
             if phase is not None:
                 self._vacate_phase(member, phase)
+                Phase = apps.get_model("phase", "Phase")
+                Phase.objects.arm_resolution(phase)
 
     def _lock_active_phase(self, game):
         Phase = apps.get_model("phase", "Phase")
@@ -97,6 +101,7 @@ class Member(BaseModel):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="members")
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="members")
     nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members", null=True, blank=True)
+    sandbox = models.BooleanField(default=False)
     won = models.BooleanField(default=False)
     drew = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
@@ -104,6 +109,7 @@ class Member(BaseModel):
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
     civil_disorder = models.BooleanField(default=False)
     seeking_replacement = models.BooleanField(default=False)
+    mustered_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
         null=True,
@@ -123,7 +129,12 @@ class Member(BaseModel):
                 fields=["game", "nation"],
                 condition=models.Q(replaced_by__isnull=True),
                 name="member_unique_nation_per_game",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["game", "user"],
+                condition=models.Q(sandbox=False),
+                name="unique_member_per_user_per_game",
+            ),
         ]
 
     @property

@@ -18,11 +18,10 @@ from common.constants import (
     PhaseStatus,
     UnitType,
 )
+from integration.utils import run_due_resolution_jobs
 from phase.models import Phase
 from supply_center.models import SupplyCenter
 from unit.models import Unit
-
-resolve_all_url = reverse("phase-resolve-all")
 
 
 def create_active_game(authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant):
@@ -298,9 +297,7 @@ def test_active_game_create_orders_and_confirm(
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
     # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # Notification is sent to both users
     notification_call = mock_send_notification_to_users.call_args
@@ -362,16 +359,14 @@ def test_scheduled_phase_resolution_after_time_elapsed(
 
     # Phase should not resolve immediately since not all users with orders confirmed
     current_phase.refresh_from_db()
-    assert not current_phase.should_resolve_immediately
+    assert not Phase.objects.filter_due_phases().filter(pk=current_phase.pk).exists()
 
     # Simulate time advancing by 25 hours (past the 24-hour phase duration)
     future_time = timezone.now() + timedelta(hours=25)
 
     with patch("django.utils.timezone.now", return_value=future_time):
         # Simulate the scheduled resolver task running
-        resolve_response = authenticated_client.post(resolve_all_url)
-        assert resolve_response.status_code == status.HTTP_200_OK
-        assert resolve_response.data["resolved"] >= 1  # Phase resolved due to time elapsed
+        assert run_due_resolution_jobs() >= 1  # Phase resolved due to time elapsed
 
     # Verify the phase was resolved and a new phase created
     current_phase.refresh_from_db()
@@ -427,9 +422,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
     # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # The empty Spring 1901 Retreat is skipped, so resolving the movement
     # phase lands directly on Fall 1901 Movement.
@@ -452,9 +445,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     confirm_order_response = authenticated_client.put(confirm_order_url)
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
 
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # 1901 saw no supply-center changes, so the empty Fall 1901 Retreat and the
     # balanced Fall 1901 Adjustment are both skipped; we land on Spring 1902
@@ -482,9 +473,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     spring_1902_movement = active_game.current_phase
     order = spring_1902_movement.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
 
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # The empty Spring 1902 Retreat is skipped; we land on Fall 1902 Movement.
     phase = active_game.current_phase
@@ -568,8 +557,7 @@ def test_dislodged_unit_scenario(
     italy_client.put(confirm_url)
 
     # Resolve phase
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # ===== FALL 1901 MOVEMENT PHASE =====
     # Spring 1901 dislodged no one, so the empty Spring 1901 Retreat is
@@ -607,8 +595,7 @@ def test_dislodged_unit_scenario(
     italy_client.put(confirm_url)
 
     # Resolve phase
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # ===== FALL 1901 RETREAT PHASE =====
     # Italy's army in Tyrolia should be dislodged
@@ -627,7 +614,7 @@ def test_dislodged_unit_scenario(
     italy_dislodged_unit = phase.units.filter(nation__name="Italy", province__province_id="tyr").first()
     assert italy_dislodged_unit is not None
     assert italy_dislodged_unit.dislodged
-    assert italy_dislodged_unit.dislodged_by is not None
+    assert italy_dislodged_unit.dislodged_from is not None
 
     # Italy: Retreat from Tyrolia to Trieste
     italy_client.post(create_order_url, {"selected": ["tyr"]}, format="json")
@@ -639,8 +626,7 @@ def test_dislodged_unit_scenario(
     italy_client.put(confirm_url)
 
     # Resolve retreat phase
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # ===== NEXT INTERACTIVE PHASE =====
     # Capturing Tyrolia changes no supply-center ownership, so the Fall 1901
@@ -688,9 +674,7 @@ def test_empty_retreat_phase_is_skipped(
     authenticated_client.put(confirm_url)
     authenticated_client_for_secondary_user.put(confirm_url)
 
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # Landed directly on Fall 1901 Movement, skipping the empty Spring Retreat.
     new_phase = active_game.current_phase
@@ -728,7 +712,7 @@ def test_empty_adjustment_phase_is_skipped(
         authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
         authenticated_client.put(confirm_url)
         authenticated_client_for_secondary_user.put(confirm_url)
-        return authenticated_client.post(resolve_all_url)
+        return run_due_resolution_jobs()
 
     # Spring 1901 holds -> skip empty retreat -> Fall 1901 Movement.
     hold_and_resolve()
@@ -970,9 +954,7 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
     burgundy_client.put(confirm_url)
 
     # Resolve phase
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # The orders only bounce, so nothing is dislodged: the empty Year 1425
     # Retreat is skipped and we land directly on Year 1430 Movement.
@@ -1126,9 +1108,7 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     england_client.put(confirm_url)
     burgundy_client.put(confirm_url)
 
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # The empty Year 1425 Retreat is skipped; we land on Year 1430 Movement.
     fall_movement_phase = active_game.current_phase
@@ -1145,9 +1125,7 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     england_client.put(confirm_url)
     burgundy_client.put(confirm_url)
 
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # The empty Year 1430 Retreat is skipped; France's captures leave builds
     # and disbands to resolve, so the Year 1430 Adjustment is interactive and
@@ -1205,15 +1183,15 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
         days_advanced[0] += 2
         future = timezone.now() + timedelta(days=days_advanced[0])
         with patch("django.utils.timezone.now", return_value=future):
-            return authenticated_client.post(resolve_all_url)
+            return run_due_resolution_jobs()
 
     def resolve_until(season, year, type_):
         for _ in range(10):
             phase = active_game.current_phase
             if phase.season == season and phase.year == year and phase.type == type_:
                 return phase
-            resp = advance_and_resolve()
-            if resp.data["resolved"] == 0:
+            resolved = advance_and_resolve()
+            if resolved == 0:
                 break
         raise AssertionError(f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}")
 
@@ -1222,16 +1200,14 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
     authenticated_client.put(confirm_order_url)
     authenticated_client_for_secondary_user.put(confirm_order_url)
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     fall_1901 = resolve_until("Fall", 1901, "Movement")
 
     # Fall 1901: only Italy submits. Germany NMRs once.
     authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
     authenticated_client_for_secondary_user.put(confirm_order_url)
-    resp = advance_and_resolve()
-    assert resp.data["resolved"] >= 1
+    assert advance_and_resolve() >= 1
 
     germany_member.refresh_from_db()
     assert germany_member.civil_disorder is False, "One NMR alone should not trigger CD"
@@ -1241,8 +1217,7 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     # Spring 1902: only Italy submits. Germany's second consecutive movement-phase NMR → CD.
     authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
     authenticated_client_for_secondary_user.put(confirm_order_url)
-    resp = advance_and_resolve()
-    assert resp.data["resolved"] >= 1
+    assert advance_and_resolve() >= 1
 
     germany_member.refresh_from_db()
     assert germany_member.civil_disorder is True
@@ -1265,9 +1240,7 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     # member's PhaseState no longer blocks the all-confirmed check.
     authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
     authenticated_client_for_secondary_user.put(confirm_order_url)
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
     fall_1902.refresh_from_db()
     assert fall_1902.status == PhaseStatus.COMPLETED
 
@@ -1299,23 +1272,22 @@ def test_game_becomes_abandoned_when_all_active_members_in_cd(
         days_advanced[0] += 2
         future = timezone.now() + timedelta(days=days_advanced[0])
         with patch("django.utils.timezone.now", return_value=future):
-            return authenticated_client.post(resolve_all_url)
+            return run_due_resolution_jobs()
 
     # Spring 1901: both submit so neither NMRs here.
     authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
     authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
     authenticated_client.put(confirm_order_url)
     authenticated_client_for_secondary_user.put(confirm_order_url)
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
+    assert run_due_resolution_jobs() >= 1
 
     # Advance through the rest of 1901 + Spring 1902 with nobody submitting orders.
     # By the time Spring 1902 Movement resolves, both members will have NMR'd two
     # consecutive movement phases (Fall 1901 + Spring 1902) and entered CD.
     for _ in range(20):
-        resp = advance_and_resolve()
+        resolved = advance_and_resolve()
         active_game.refresh_from_db()
-        if resp.data["resolved"] == 0:
+        if resolved == 0:
             break
         if active_game.status == GameStatus.ABANDONED:
             break
