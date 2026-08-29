@@ -109,8 +109,11 @@ export const PlayerInfoContent: React.FC = () => {
     query: { enabled: canUseChat },
   });
 
-  const getDirectChannel = (member: Member) =>
-    channelsQuery.data?.find(channel => {
+  const getDirectChannel = (
+    member: Member,
+    channels = channelsQuery.data
+  ) =>
+    channels?.find(channel => {
       const memberIds = channel.memberIds ?? [];
       return (
         channel.private &&
@@ -149,20 +152,21 @@ export const PlayerInfoContent: React.FC = () => {
     : 0;
   const canAddBots =
     isPending && game.canManage && userProfile.canCreateBotGames;
+  const isInactivePower = (member: Member) =>
+    !!member.eliminated || !!member.civilDisorder || !!member.kicked;
   const sortedMembers = [...game.members].sort((a, b) => {
-    const supplyCenterOrder =
-      (getSupplyCenterCount(b) ?? 0) - (getSupplyCenterCount(a) ?? 0);
-    if (supplyCenterOrder !== 0) return supplyCenterOrder;
-
     if (game.status === "completed") {
       const winnerOrder =
         Number(winnerIds.includes(b.id)) - Number(winnerIds.includes(a.id));
       if (winnerOrder !== 0) return winnerOrder;
     }
 
+    const inactiveOrder =
+      Number(isInactivePower(a)) - Number(isInactivePower(b));
+    if (inactiveOrder !== 0) return inactiveOrder;
+
     return (
-      Number(!!a.eliminated || !!a.civilDisorder) -
-      Number(!!b.eliminated || !!b.civilDisorder)
+      (getSupplyCenterCount(b) ?? 0) - (getSupplyCenterCount(a) ?? 0)
     );
   });
 
@@ -217,6 +221,17 @@ export const PlayerInfoContent: React.FC = () => {
       );
       navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`);
     } catch {
+      const refreshedChannels = await channelsQuery.refetch();
+      const existingChannel = getDirectChannel(
+        member,
+        refreshedChannels.data
+      );
+      if (existingChannel) {
+        navigate(
+          `/game/${gameId}/phase/${phaseId}/chat/channel/${existingChannel.id}`
+        );
+        return;
+      }
       toast.error("Failed to open chat");
     }
   };
@@ -275,9 +290,7 @@ export const PlayerInfoContent: React.FC = () => {
               <div
                 key={member.id}
                 className={`flex items-center gap-4 py-4 first:pt-0 last:pb-0 ${
-                  member.eliminated || member.civilDisorder
-                    ? "opacity-[0.7]"
-                    : ""
+                  isInactivePower(member) ? "opacity-[0.7]" : ""
                 }`}
               >
                 {isPending && member.isCurrentUser && variant ? (
@@ -372,7 +385,9 @@ export const PlayerInfoContent: React.FC = () => {
                         <span className="inline-flex items-center gap-1">
                           <Swords className="size-3" />
                           {unitCount !== undefined ? (
-                            <span>{unitCount} units</span>
+                            <span>
+                              {unitCount} {unitCount === 1 ? "unit" : "units"}
+                            </span>
                           ) : (
                             <Skeleton className="h-3 w-10" />
                           )}
@@ -381,7 +396,10 @@ export const PlayerInfoContent: React.FC = () => {
                         <span className="inline-flex items-center gap-1">
                           <Star className="size-3" />
                           {supplyCenterCount !== undefined ? (
-                            <span>{supplyCenterCount} centers</span>
+                            <span>
+                              {supplyCenterCount}{" "}
+                              {supplyCenterCount === 1 ? "center" : "centers"}
+                            </span>
                           ) : (
                             <Skeleton className="h-3 w-12" />
                           )}

@@ -1,15 +1,17 @@
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 from common.permissions import IsActiveOrCompletedGame, IsGameMember, IsChannelMember, IsNotKickedGameMember, IsNotSandboxGame, IsNotNoPressActiveGame
 
 from .models import Channel
-from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer
+from .serializers import ChannelSerializer, ChannelCreateSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer
 from common.views import SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
+@extend_schema(request=ChannelCreateSerializer, responses={201: ChannelSerializer})
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsNotKickedGameMember, IsNotSandboxGame, IsNotNoPressActiveGame]
-    serializer_class = ChannelSerializer
+    serializer_class = ChannelCreateSerializer
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):

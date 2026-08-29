@@ -34,6 +34,10 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_201_CREATED
         assert "id" in response.data
         assert response.data["name"] == "England, France"
+        assert set(response.data["member_ids"]) == {
+            active_game_with_phase_state.members.exclude(id=other_member.id).get().id,
+            other_member.id,
+        }
 
     @pytest.mark.django_db
     def test_create_channel_name_longer_than_250_characters(
@@ -136,6 +140,9 @@ class TestChannelListView:
         assert "Private Member" in channel_names
         assert "Public Channel" in channel_names
         assert "Private Non-Member" not in channel_names
+
+        private_channel = next(channel for channel in response.data if channel["name"] == "Private Member")
+        assert private_channel["member_ids"] == [active_game_with_channels.members.first().id]
 
     @pytest.mark.django_db
     def test_list_channels_as_non_member(

@@ -21,6 +21,7 @@ const mockCurrentPhaseData = vi.fn();
 const mockUserProfileData = vi.fn();
 const mockKickMutateAsync = vi.fn();
 const mockChannelsData = vi.fn();
+const mockChannelsRefetch = vi.fn();
 const mockCreateChannelMutateAsync = vi.fn();
 const mockIsMobile = vi.fn();
 
@@ -41,6 +42,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGamesChannelsList: () => ({
     data: mockChannelsData(),
     isLoading: false,
+    refetch: mockChannelsRefetch,
   }),
   useGamesChannelsCreateCreate: () => ({
     mutateAsync: mockCreateChannelMutateAsync,
@@ -132,6 +134,7 @@ describe("PlayerInfoContent", () => {
     mockCurrentPhaseData.mockReturnValue({ supplyCenters: [], units: [] });
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true });
     mockChannelsData.mockReturnValue([]);
+    mockChannelsRefetch.mockResolvedValue({ data: [] });
     mockIsMobile.mockReturnValue(false);
   });
 
@@ -197,6 +200,26 @@ describe("PlayerInfoContent", () => {
     expect(screen.getByText("3 centers")).toBeInTheDocument();
   });
 
+  it("uses singular unit and supply-center labels", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [{ nation: { name: "England" } }],
+      supplyCenters: [{ nation: { name: "England" } }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("1 unit")).toBeInTheDocument();
+    expect(screen.getByText("1 center")).toBeInTheDocument();
+  });
+
   it("uses the nation as the in-game title and puts player details in a popover", async () => {
     const user = userEvent.setup();
     mockGameData.mockReturnValue({
@@ -210,7 +233,6 @@ describe("PlayerInfoContent", () => {
         { ...baseMember, commitment: "high", nmrExtensionsRemaining: 1 },
       ],
     });
-
     renderPlayerInfo("/game/game-1/phase/1/overview");
 
     expect(screen.getByText("England")).toBeInTheDocument();
@@ -245,7 +267,7 @@ describe("PlayerInfoContent", () => {
     expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
   });
 
-  it("dims and moves eliminated and civil-disorder powers to the bottom", () => {
+  it("dims and moves eliminated, civil-disorder, and removed powers to the bottom", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -269,6 +291,24 @@ describe("PlayerInfoContent", () => {
           isCurrentUser: false,
           civilDisorder: true,
         },
+        {
+          ...baseMember,
+          id: 4,
+          name: "Dave",
+          nation: "Turkey",
+          isCurrentUser: false,
+          kicked: true,
+        },
+      ],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [],
+      supplyCenters: [
+        { nation: { name: "France" } },
+        { nation: { name: "Turkey" } },
+        { nation: { name: "Turkey" } },
+        { nation: { name: "Turkey" } },
+        { nation: { name: "Turkey" } },
       ],
     });
 
@@ -280,6 +320,7 @@ describe("PlayerInfoContent", () => {
         .map(button => button.getAttribute("aria-label"))
     ).toEqual([
       "View France player details",
+      "View Turkey player details",
       "View England player details",
       "View Germany player details",
     ]);
@@ -290,6 +331,9 @@ describe("PlayerInfoContent", () => {
       "opacity-[0.7]"
     );
     expect(screen.getByText("Germany").closest(".gap-4")).toHaveClass(
+      "opacity-[0.7]"
+    );
+    expect(screen.getByText("Turkey").closest(".gap-4")).toHaveClass(
       "opacity-[0.7]"
     );
   });
@@ -483,6 +527,35 @@ describe("PlayerInfoContent", () => {
     });
     expect(mockNavigate).toHaveBeenCalledWith(
       "/game/game-1/phase/1/chat/channel/43"
+    );
+  });
+
+  it("opens a channel created by another client when creation reports a duplicate", async () => {
+    const user = userEvent.setup();
+    mockCreateChannelMutateAsync.mockRejectedValue(new Error("Duplicate channel"));
+    mockChannelsRefetch.mockResolvedValue({
+      data: [{ id: 44, private: true, memberIds: [1, 2] }],
+    });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+    await user.click(screen.getByLabelText("Message Bob"));
+
+    expect(mockChannelsRefetch).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/game/game-1/phase/1/chat/channel/44"
     );
   });
 
