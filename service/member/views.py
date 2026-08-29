@@ -9,7 +9,7 @@ from .models import Member
 from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGameMember, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGameMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGameMember, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGameMember, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
@@ -117,6 +117,7 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
         permissions.IsAuthenticated,
         IsMusteringGame,
         IsGameMember,
+        IsUnmusteredMember,
     ]
 
     @extend_schema(request=EmptySerializer, responses={200: MemberSerializer})
@@ -125,9 +126,8 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
         game = self.get_game()
         member = get_object_or_404(Member, game=game, user=request.user)
 
-        if member.mustered_at is None:
-            member.mustered_at = timezone.now()
-            member.save(update_fields=["mustered_at"])
+        member.mustered_at = timezone.now()
+        member.save(update_fields=["mustered_at"])
 
         Game.objects.arm_muster(game)
 

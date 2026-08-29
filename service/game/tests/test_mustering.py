@@ -334,7 +334,7 @@ class TestMusterEndpoint:
         assert member.mustered_at is not None
 
     @pytest.mark.django_db
-    def test_confirming_twice_keeps_the_original_timestamp(
+    def test_confirming_twice_is_rejected(
         self, muster_game_factory, in_memory_procrastinate, authenticated_client, primary_user
     ):
         game = muster_game_factory()
@@ -343,7 +343,7 @@ class TestMusterEndpoint:
         first = game.members.get(user=primary_user).mustered_at
         response = authenticated_client.post(reverse("game-muster", args=[game.id]))
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         assert game.members.get(user=primary_user).mustered_at == first
 
     @pytest.mark.django_db

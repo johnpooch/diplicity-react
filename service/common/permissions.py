@@ -282,6 +282,18 @@ class IsInCivilDisorder(BasePermission):
         return member.civil_disorder
 
 
+class IsUnmusteredMember(BasePermission):
+    message = "Seat is already confirmed."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(user=request.user).first()
+        if not member:
+            self.message = "User is not a member of the game."
+            return False
+        return member.mustered_at is None
+
+
 def _variant_for_owned_draft_check(obj):
     return getattr(obj, "variant", obj)
 

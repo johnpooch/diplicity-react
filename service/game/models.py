@@ -309,7 +309,7 @@ class GameManager(models.Manager):
         should_arm, schedule_at = False, None
         if musterable:
             should_arm = True
-            schedule_at = None if self._is_mustered(game) else muster_deadline
+            schedule_at = None if game.is_mustered() else muster_deadline
 
         new_job_id = self._arm_muster_job(
             game, current_job_id, should_arm, schedule_at, MusterJob.TASK_NAME
@@ -342,13 +342,6 @@ class GameManager(models.Manager):
             lock=MusterJob.lock_for_game(game.pk),
         ).defer(game_id=game.pk)
 
-    def _is_mustered(self, game):
-        return not (
-            Member.objects.filter(game=game, mustered_at__isnull=True)
-            .exclude(user__profile__kind__in=UserKind.BOT_KINDS)
-            .exists()
-        )
-
     def start_if_mustered(self, game_id):
         with transaction.atomic():
             game = (
@@ -359,11 +352,7 @@ class GameManager(models.Manager):
             if game is None:
                 return None
 
-            unmustered = list(
-                game.members.filter(mustered_at__isnull=True)
-                .exclude(user__profile__kind__in=UserKind.BOT_KINDS)
-                .select_related("user")
-            )
+            unmustered = list(game.unmustered_members().select_related("user"))
             unmustered_user_ids = {
                 member.user_id for member in unmustered if member.user_id is not None
             }
@@ -925,6 +914,14 @@ class Game(BaseModel):
 
         self.start()
         return True
+
+    def unmustered_members(self):
+        return self.members.filter(mustered_at__isnull=True).exclude(
+            user__profile__kind__in=UserKind.BOT_KINDS
+        )
+
+    def is_mustered(self):
+        return not self.unmustered_members().exists()
 
     def enter_mustering(self, window_seconds):
         self.status = GameStatus.MUSTERING
