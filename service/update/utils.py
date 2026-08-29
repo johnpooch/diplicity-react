@@ -1,2 +1,5 @@
 def parse_version(value):
-    return tuple(int(part) if part.isdigit() else 0 for part in value.split("."))
+    parts = [int(part) if part.isdecimal() else 0 for part in value.split(".")]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)

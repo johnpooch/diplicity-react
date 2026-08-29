@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
@@ -146,3 +147,26 @@ class TestUpdateCheckView:
             content_type="application/json",
         )
         assert set(json.loads(response.content)) == {"kind", "message"}
+
+    @pytest.mark.django_db
+    def test_two_component_native_version_meets_a_three_component_minimum(self, unauthenticated_client, bundle_factory):
+        bundle_factory("1.6.0", minimum_native_version="1.6.0")
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(version_build="1.6"), format="json")
+        assert response.data["version"] == "1.6.0"
+
+    @pytest.mark.django_db
+    def test_non_decimal_version_component_does_not_error(self, unauthenticated_client, bundle_factory):
+        bundle_factory("1.5.10")
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(version_build="1.0.\u00b2"), format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_no_bundle_is_served_when_the_public_base_url_is_unset(self, unauthenticated_client, bundle_factory):
+        bundle_factory("1.5.10")
+        url = reverse("update-check")
+        with override_settings(R2_PUBLIC_BASE_URL=""):
+            response = unauthenticated_client.post(url, plugin_payload(), format="json")
+        assert "url" not in response.data
+        assert response.data["kind"] == UpdateResponseKind.UP_TO_DATE

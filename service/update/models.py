@@ -8,6 +8,8 @@ from update.utils import parse_version
 
 class BundleManager(models.Manager):
     def latest_for(self, platform, native_version):
+        if not settings.R2_PUBLIC_BASE_URL:
+            return None
         runnable = [
             bundle
             for bundle in self.filter(platform=platform, active=True)
