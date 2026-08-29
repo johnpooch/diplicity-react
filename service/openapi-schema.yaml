@@ -1515,6 +1515,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameCreateSandbox'
           description: ''
+  /update/check/:
+    post:
+      operationId: updateCheckCreate
+      description: |-
+        Serves the self-hosted update protocol of @capgo/capacitor-updater. Returns
+        the newest active bundle the caller's native binary can run, or a body with
+        no url key when there is nothing to install.
+      tags:
+      - update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCheck'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCheckResponse'
+          description: ''
   /user/:
     get:
       operationId: userRetrieve
@@ -3439,6 +3464,14 @@ components:
       - member
       - orderableProvinces
       - ordersConfirmed
+    PlatformEnum:
+      enum:
+      - ios
+      - android
+      type: string
+      description: |-
+        * `ios` - iOS
+        * `android` - Android
     PressTypeEnum:
       enum:
       - full_press
@@ -3651,6 +3684,36 @@ components:
       description: |-
         * `Army` - Army
         * `Fleet` - Fleet
+    UpdateCheck:
+      type: object
+      properties:
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          writeOnly: true
+        versionBuild:
+          type: string
+          writeOnly: true
+        versionName:
+          type: string
+          writeOnly: true
+      required:
+      - platform
+      - versionBuild
+      - versionName
+    UpdateCheckResponse:
+      type: object
+      properties:
+        version:
+          type: string
+        url:
+          type: string
+        checksum:
+          type: string
+        kind:
+          type: string
+        message:
+          type: string
     UserProfile:
       type: object
       properties:

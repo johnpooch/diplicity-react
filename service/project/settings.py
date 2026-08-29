@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "order",
     "phase",
     "version",
+    "update",
     "user_profile",
     "login",
     "variant",

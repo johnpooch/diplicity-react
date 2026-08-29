@@ -32,6 +32,7 @@ urlpatterns = [
     path("", include("order.urls")),
     path("", include("phase.urls")),
     path("", include("version.urls")),
+    path("", include("update.urls")),
     path("", include("user_profile.urls")),
     path("", include("login.urls")),
     path("", include("variant.urls")),
