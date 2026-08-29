@@ -81,29 +81,6 @@ def build_notification_body(
         )
 
 
-def count_actionable_units(phase_type, units, supply_centers):
-    unit_counts = {}
-    dislodged_counts = {}
-    for unit in units:
-        unit_counts[unit.nation_id] = unit_counts.get(unit.nation_id, 0) + 1
-        if unit.dislodged:
-            dislodged_counts[unit.nation_id] = dislodged_counts.get(unit.nation_id, 0) + 1
-
-    if phase_type == PhaseType.RETREAT:
-        return dislodged_counts
-
-    if phase_type == PhaseType.ADJUSTMENT:
-        sc_counts = {}
-        for supply_center in supply_centers:
-            sc_counts[supply_center.nation_id] = sc_counts.get(supply_center.nation_id, 0) + 1
-        return {
-            nation_id: abs(sc_counts.get(nation_id, 0) - unit_counts.get(nation_id, 0))
-            for nation_id in set(sc_counts) | set(unit_counts)
-        }
-
-    return unit_counts
-
-
 def transform_options(raw_options):
     """
     Transform godip options into simplified structure.

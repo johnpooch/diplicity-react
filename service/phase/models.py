@@ -12,7 +12,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline, count_actionable_units
+from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -181,25 +181,7 @@ class PhaseManager(models.Manager):
             return self._resolve_claimed(phase)
 
     def _apply_nmr_extensions(self, phase):
-        not_submitted = phase.phase_states.filter(
-            has_possible_orders=True
-        ).exclude(
-            member__civil_disorder=True
-        ).annotate(order_count=Count("orders")).filter(order_count=0).select_related('member')
-
-        candidates = [ps for ps in not_submitted if ps.member.nmr_extensions_remaining > 0]
-        if not candidates:
-            return None
-
-        actionable_units = count_actionable_units(
-            phase.type, phase.units.all(), phase.supply_centers.all()
-        )
-
-        members_with_extensions = [
-            ps.member for ps in candidates
-            if actionable_units.get(ps.member.nation_id, 0) > 0
-        ]
-
+        members_with_extensions = phase.members_that_require_nmr_extension
         if not members_with_extensions:
             return None
 
@@ -258,8 +240,8 @@ class PhaseManager(models.Manager):
             'phase_states__member__user',
             'phase_states__member__nation',
             'phase_states__orders',
-            Prefetch('units', queryset=Unit.objects.select_related('nation'), to_attr='prefetched_units'),
-            Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation'), to_attr='prefetched_supply_centers'),
+            Prefetch('units', queryset=Unit.objects.select_related('nation')),
+            Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation')),
         )
 
         notifications_sent = 0
@@ -275,9 +257,7 @@ class PhaseManager(models.Manager):
             is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
             time_left = format_time_remaining(time_until_deadline)
 
-            actionable_units = count_actionable_units(
-                phase.type, phase.prefetched_units, phase.prefetched_supply_centers
-            )
+            actionable_units = phase.actionable_units
 
             is_adjustment = phase.type == PhaseType.ADJUSTMENT
             warned_states = []
@@ -802,6 +782,48 @@ class Phase(BaseModel):
     @cached_property
     def transformed_options(self):
         return transform_options(self.options or {})
+
+    @property
+    def actionable_units(self):
+        unit_counts = {}
+        dislodged_counts = {}
+        for unit in self.units.all():
+            unit_counts[unit.nation_id] = unit_counts.get(unit.nation_id, 0) + 1
+            if unit.dislodged:
+                dislodged_counts[unit.nation_id] = dislodged_counts.get(unit.nation_id, 0) + 1
+
+        if self.type == PhaseType.RETREAT:
+            return dislodged_counts
+
+        if self.type == PhaseType.ADJUSTMENT:
+            sc_counts = {}
+            for supply_center in self.supply_centers.all():
+                sc_counts[supply_center.nation_id] = sc_counts.get(supply_center.nation_id, 0) + 1
+            return {
+                nation_id: abs(sc_counts.get(nation_id, 0) - unit_counts.get(nation_id, 0))
+                for nation_id in set(sc_counts) | set(unit_counts)
+            }
+
+        return unit_counts
+
+    @property
+    def members_that_require_nmr_extension(self):
+        phase_states = (
+            self.phase_states.filter(
+                has_possible_orders=True,
+                member__nmr_extensions_remaining__gt=0,
+            )
+            .exclude(member__civil_disorder=True)
+            .annotate(order_count=Count("orders"))
+            .filter(order_count=0)
+            .select_related("member")
+        )
+        actionable_units = self.actionable_units
+        return [
+            phase_state.member
+            for phase_state in phase_states
+            if actionable_units.get(phase_state.member.nation_id, 0) > 0
+        ]
 
     @property
     def nations_with_possible_orders(self):
