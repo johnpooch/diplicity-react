@@ -16,7 +16,7 @@ from member.models import Member
 from notification.models import Notification, NotificationDelivery
 from notification.registry import REGISTRY as NOTIFICATION_REGISTRY
 from notification.registry import ChannelMessageSpec
-from notification.tasks import PRUNE_AFTER_DAYS, deliver, prune
+from notification.tasks import DELIVER_MAX_AGE_HOURS, PRUNE_AFTER_DAYS, deliver, prune
 from notification.utils import PUSH_TTL, build_push_message
 from phase.models import Phase
 from user_profile.models import UserProfile
@@ -53,6 +53,21 @@ def _rendered_push(**overrides):
     }
     content.update(overrides)
     return [content]
+
+
+def _push_delivery(user, status=NotificationDelivery.Status.PENDING):
+    notification = Notification.objects.create(recipient=user, event_type="game_start")
+    return NotificationDelivery.objects.create(
+        notification=notification,
+        channel=NotificationDelivery.Channel.PUSH,
+        heading="Game",
+        body="Started",
+        status=status,
+    )
+
+
+def _backdate(delivery, age):
+    NotificationDelivery.objects.filter(id=delivery.id).update(created_at=timezone.now() - age)
 
 
 class _StubSpec:
@@ -867,6 +882,56 @@ class TestNotificationDeliver:
         deliver(delivery_ids=[9999])
 
         mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_already_sent_delivery_is_not_resent(self, user_factory, mock_send_notification_to_users):
+        delivery = _push_delivery(user_factory(), status=NotificationDelivery.Status.SENT)
+
+        deliver(delivery_ids=[delivery.id])
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_pending_delivery_in_a_partly_sent_batch_is_still_sent(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        one, two = user_factory(), user_factory()
+        sent = _push_delivery(one, status=NotificationDelivery.Status.SENT)
+        pending = _push_delivery(two)
+
+        deliver(delivery_ids=[sent.id, pending.id])
+
+        assert mock_send_notification_to_users.call_args.kwargs["user_ids"] == [two.id]
+
+    @pytest.mark.django_db
+    def test_delivery_older_than_max_age_is_expired_not_sent(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        delivery = _push_delivery(user_factory())
+        _backdate(delivery, timedelta(hours=DELIVER_MAX_AGE_HOURS, minutes=1))
+
+        deliver(delivery_ids=[delivery.id])
+
+        mock_send_notification_to_users.assert_not_called()
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationDelivery.Status.EXPIRED
+
+    @pytest.mark.django_db
+    def test_fresh_delivery_in_a_partly_stale_batch_is_still_sent(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        one, two = user_factory(), user_factory()
+        stale = _push_delivery(one)
+        _backdate(stale, timedelta(hours=DELIVER_MAX_AGE_HOURS, minutes=1))
+        fresh = _push_delivery(two)
+
+        deliver(delivery_ids=[stale.id, fresh.id])
+
+        assert mock_send_notification_to_users.call_args.kwargs["user_ids"] == [two.id]
+        stale.refresh_from_db()
+        fresh.refresh_from_db()
+        assert stale.status == NotificationDelivery.Status.EXPIRED
+        assert fresh.status == NotificationDelivery.Status.SENT
 
 
 class TestNotificationPrune:

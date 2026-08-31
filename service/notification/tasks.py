@@ -11,17 +11,23 @@ from notification.models import Notification, NotificationDelivery
 logger = logging.getLogger(__name__)
 
 PRUNE_AFTER_DAYS = 30
+DELIVER_MAX_AGE_HOURS = 1
 
 
 @app.task(name="notification.deliver", retry=3)
 def deliver(delivery_ids):
     deliveries = list(
-        NotificationDelivery.objects.filter(id__in=delivery_ids).select_related("notification")
+        NotificationDelivery.objects.filter(
+            id__in=delivery_ids, status=NotificationDelivery.Status.PENDING
+        ).select_related("notification")
     )
     if not deliveries:
         return
-    _deliver_channel(deliveries, NotificationDelivery.Channel.PUSH, _send_push)
-    _deliver_channel(deliveries, NotificationDelivery.Channel.EMAIL, _send_email)
+    fresh = NotificationDelivery.objects.expire_stale(deliveries, timedelta(hours=DELIVER_MAX_AGE_HOURS))
+    if not fresh:
+        return
+    _deliver_channel(fresh, NotificationDelivery.Channel.PUSH, _send_push)
+    _deliver_channel(fresh, NotificationDelivery.Channel.EMAIL, _send_email)
 
 
 def _deliver_channel(deliveries, channel, send):
