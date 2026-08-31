@@ -242,6 +242,9 @@ class PatchedVariantWrite(TypedDict):
     dsvg: NotRequired[str]
 
 
+type PlatformEnum = Literal['ios', 'android']
+
+
 type PressTypeEnum = Literal['full_press', 'no_press']
 
 
@@ -308,6 +311,20 @@ class Unit(TypedDict):
 
 
 type UnitTypeEnum = Literal['Army', 'Fleet']
+
+
+class UpdateCheck(TypedDict):
+    platform: PlatformEnum
+    version_build: str
+    version_name: str
+
+
+class UpdateCheckResponse(TypedDict):
+    version: NotRequired[str]
+    url: NotRequired[str]
+    checksum: NotRequired[str]
+    kind: NotRequired[str]
+    message: NotRequired[str]
 
 
 class UserProfile(TypedDict):
