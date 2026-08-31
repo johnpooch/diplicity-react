@@ -310,3 +310,17 @@ class OrderResolutionStatus:
         (MISSING_CONVOY_PATH, "Missing convoy path"),
         (CONVOY_DISLODGED, "Convoy dislodged"),
     )
+
+
+class BundlePlatform:
+    IOS = "ios"
+    ANDROID = "android"
+
+    PLATFORM_CHOICES = (
+        (IOS, "iOS"),
+        (ANDROID, "Android"),
+    )
+
+
+class UpdateResponseKind:
+    UP_TO_DATE = "up_to_date"

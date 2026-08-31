@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 from common.models import BaseModel
 
@@ -62,6 +63,14 @@ class NotificationDeliveryManager(models.Manager):
         deliver.defer(delivery_ids=[d.id for d in deliveries])
         return deliveries
 
+    def expire_stale(self, deliveries, max_age):
+        cutoff = timezone.now() - max_age
+        stale = [d for d in deliveries if d.created_at < cutoff]
+        if not stale:
+            return deliveries
+        self.filter(id__in=[d.id for d in stale]).update(status=self.model.Status.EXPIRED)
+        return [d for d in deliveries if d.created_at >= cutoff]
+
     def _email_enabled_ids(self, recipient_ids):
         return set(
             User.objects.filter(
@@ -79,6 +88,7 @@ class NotificationDelivery(BaseModel):
         PENDING = "pending"
         SENT = "sent"
         FAILED = "failed"
+        EXPIRED = "expired"
 
     objects = NotificationDeliveryManager()
 

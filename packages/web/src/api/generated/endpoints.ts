@@ -829,6 +829,17 @@ export interface PhaseState {
   readonly maxOrders: number | null;
 }
 
+/**
+ * * `ios` - iOS
+ * `android` - Android
+ */
+export type PlatformEnum = (typeof PlatformEnum)[keyof typeof PlatformEnum];
+
+export const PlatformEnum = {
+  ios: "ios",
+  android: "android",
+} as const;
+
 export interface PublicUserProfile {
   readonly id: number;
   readonly name: string;
@@ -856,6 +867,20 @@ export interface Register {
 export interface TokenRefresh {
   readonly access: string;
   refresh: string;
+}
+
+export interface UpdateCheck {
+  platform: PlatformEnum;
+  versionBuild: string;
+  versionName: string;
+}
+
+export interface UpdateCheckResponse {
+  version?: string;
+  url?: string;
+  checksum?: string;
+  kind?: string;
+  message?: string;
 }
 
 export interface UserProfile {
@@ -8357,6 +8382,86 @@ export const useSandboxGameCreate = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   return useMutation(getSandboxGameCreateMutationOptions(options), queryClient);
+};
+
+/**
+ * Serves the self-hosted update protocol of @capgo/capacitor-updater. Returns
+the newest active bundle the caller's native binary can run, or a body with
+no url key when there is nothing to install.
+ */
+export const updateCheckCreate = (
+  updateCheck: UpdateCheck,
+  signal?: AbortSignal
+) => {
+  return customInstance<UpdateCheckResponse>({
+    url: `/update/check/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: updateCheck,
+    signal,
+  });
+};
+
+export const getUpdateCheckCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCheckCreate>>,
+    TError,
+    { data: UpdateCheck },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCheckCreate>>,
+  TError,
+  { data: UpdateCheck },
+  TContext
+> => {
+  const mutationKey = ["updateCheckCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCheckCreate>>,
+    { data: UpdateCheck }
+  > = props => {
+    const { data } = props ?? {};
+
+    return updateCheckCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCheckCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCheckCreate>>
+>;
+export type UpdateCheckCreateMutationBody = UpdateCheck;
+export type UpdateCheckCreateMutationError = unknown;
+
+export const useUpdateCheckCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateCheckCreate>>,
+      TError,
+      { data: UpdateCheck },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateCheckCreate>>,
+  TError,
+  { data: UpdateCheck },
+  TContext
+> => {
+  return useMutation(getUpdateCheckCreateMutationOptions(options), queryClient);
 };
 
 export const userRetrieve = (signal?: AbortSignal) => {
