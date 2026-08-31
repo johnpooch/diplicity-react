@@ -1,0 +1,88 @@
+name: Bundle Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_version:
+        description: "Version to publish the bundle under, e.g. 1.5.10"
+        required: true
+      minimum_native_version:
+        description: "Oldest native binary version that can run this bundle, e.g. 1.5.9"
+        required: true
+      platform:
+        description: "Platforms to publish for"
+        type: choice
+        options:
+          - both
+          - ios
+          - android
+        default: both
+
+concurrency:
+  group: bundle-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: packages/web/package-lock.json
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: service/requirements.txt
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: packages/web
+
+      - name: Build web app
+        run: npm run build
+        working-directory: packages/web
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          VITE_DIPLICITY_API_BASE_URL: ${{ vars.SERVICE_BASE_URL }}
+          VITE_MAINTENANCE_MODE: ${{ vars.MAINTENANCE_MODE }}
+          VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
+
+      - name: Install service dependencies
+        run: pip install -r requirements.txt
+        working-directory: service
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Publish bundle
+        working-directory: service
+        run: |
+          if [ -z "$DATABASE_CONNECTION_STRING" ]; then
+            echo "DATABASE_PUBLIC_URL is not set; the runner cannot reach the production database." >&2
+            exit 1
+          fi
+          if [ "$PLATFORM" = "both" ]; then
+            PLATFORMS="ios android"
+          else
+            PLATFORMS="$PLATFORM"
+          fi
+          railway run --service=diplicity-react-production --no-local -- \
+            python manage.py release_bundle \
+              --dist ../packages/web/dist \
+              --bundle-version "$BUNDLE_VERSION" \
+              --minimum-native-version "$MINIMUM_NATIVE_VERSION" \
+              --platform $PLATFORMS
+        env:
+          BUNDLE_VERSION: ${{ inputs.bundle_version }}
+          MINIMUM_NATIVE_VERSION: ${{ inputs.minimum_native_version }}
+          PLATFORM: ${{ inputs.platform }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_PUBLIC_URL }}
