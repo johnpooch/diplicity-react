@@ -22,3 +22,7 @@ Each app contains `models.py`, `serializers.py`, `views.py`, `urls.py`, `conftes
 **URL routes belong in the owning app's `urls.py`**, even when the path nests under another resource's prefix (e.g. `/variants/<id>/nations/<id>/flag/` lives in `nation/urls.py`). The parent app may `include()` those urlpatterns to preserve the public path structure.
 
 **Do not create a Django app for a 1:1 extension of an existing entity.** Extra fields on a user belong on `UserProfile`, not a parallel `BotProfile`-style sidecar app.
+
+## Notification copy
+
+**Notification copy follows a written style guide.** Read `notification-copy.md` before adding a spec to `service/notification/registry.py` or changing the copy in an existing one — title, tense, person, actor naming and links are settled there, not per spec.
