@@ -9,6 +9,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.db.models import (
     Count,
+    Exists,
     IntegerField,
     OuterRef,
     Prefetch,
@@ -19,6 +20,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce
 from opentelemetry import trace
+from procrastinate.contrib.django import app as procrastinate_app
 from common.constants import (
     Commitment,
     CommitmentEligibility,
@@ -27,6 +29,7 @@ from common.constants import (
     GameStatus,
     MinReliability,
     MovementPhaseDuration,
+    MusterJob,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
@@ -192,6 +195,13 @@ class GameQuerySet(models.QuerySet):
             phases_prefetch,
         )
 
+    def filter_musterable(self):
+        return self.filter(
+            status=GameStatus.MUSTERING,
+            sandbox=False,
+            muster_deadline__isnull=False,
+        )
+
     def with_related_data(self):
 
         units_prefetch = Prefetch(
@@ -280,6 +290,89 @@ class GameManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def filter_musterable(self):
+        return self.get_queryset().filter_musterable()
+
+    def arm_muster(self, game):
+        state = list(
+            self.filter(pk=game.pk)
+            .annotate(
+                musterable=Exists(self.filter_musterable().filter(pk=OuterRef("pk")))
+            )
+            .values_list("muster_job_id", "muster_deadline", "musterable")[:1]
+        )
+        if not state:
+            return None
+        current_job_id, muster_deadline, musterable = state[0]
+
+        should_arm, schedule_at = False, None
+        if musterable:
+            should_arm = True
+            schedule_at = None if game.is_mustered() else muster_deadline
+
+        new_job_id = self._arm_muster_job(
+            game, current_job_id, should_arm, schedule_at, MusterJob.TASK_NAME
+        )
+
+        if new_job_id != current_job_id:
+            self.filter(pk=game.pk).update(muster_job_id=new_job_id)
+            game.muster_job_id = new_job_id
+
+        return new_job_id
+
+    def _arm_muster_job(self, game, current_job_id, should_arm, schedule_at, task_name):
+        if current_job_id is not None:
+            armed = procrastinate_app.job_manager.list_jobs(id=current_job_id)
+            if (
+                should_arm
+                and armed
+                and armed[0].status == MusterJob.TODO
+                and armed[0].scheduled_at == schedule_at
+            ):
+                return current_job_id
+            procrastinate_app.job_manager.cancel_job_by_id(current_job_id)
+
+        if not should_arm:
+            return None
+
+        return procrastinate_app.configure_task(
+            task_name,
+            schedule_at=schedule_at,
+            lock=MusterJob.lock_for_game(game.pk),
+        ).defer(game_id=game.pk)
+
+    def start_if_mustered(self, game_id):
+        with transaction.atomic():
+            game = (
+                self.select_for_update()
+                .filter(pk=game_id, status=GameStatus.MUSTERING)
+                .first()
+            )
+            if game is None:
+                return None
+
+            unmustered = list(game.unmustered_members().select_related("user"))
+            unmustered_user_ids = {
+                member.user_id for member in unmustered if member.user_id is not None
+            }
+            recipients = list(
+                game.seated_member_user_ids() - unmustered_user_ids
+            )
+
+            game.start(notify_user_ids=recipients)
+
+            for member in unmustered:
+                Member.objects.remove(member)
+
+            if unmustered_user_ids:
+                emit(
+                    "removed_from_muster",
+                    game=game,
+                    recipients=list(unmustered_user_ids),
+                )
+
+            return game
 
     def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase
@@ -726,7 +819,7 @@ class Game(BaseModel):
                     return True
             return False
 
-    def start(self, current_phase=None, members=None):
+    def start(self, current_phase=None, members=None, notify_user_ids=None):
         if self.status not in (GameStatus.PENDING, GameStatus.MUSTERING):
             raise ValueError("Game is not pending")
 
@@ -774,9 +867,13 @@ class Game(BaseModel):
 
             self.status = GameStatus.ACTIVE
             self.started_at = timezone.now()
+            self.muster_deadline = None
             self.save()
 
-            emit("game_start", game=self)
+            if notify_user_ids is None:
+                emit("game_start", game=self)
+            else:
+                emit("game_start", game=self, recipients=notify_user_ids)
             emit("phase_started", phase=current_phase)
 
     def finish(self, status):
@@ -808,7 +905,37 @@ class Game(BaseModel):
         playable_nations = self.variant.nations.filter(non_playable=False).count()
         if self.members.count() != playable_nations:
             return False
+
+        if self.muster_required:
+            window_seconds = self.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+            if window_seconds is not None:
+                self.enter_mustering(window_seconds)
+                return True
+
         self.start()
+        return True
+
+    def unmustered_members(self):
+        return self.members.filter(mustered_at__isnull=True).exclude(
+            user__profile__kind__in=UserKind.BOT_KINDS
+        )
+
+    def is_mustered(self):
+        return not self.unmustered_members().exists()
+
+    def enter_mustering(self, window_seconds):
+        self.status = GameStatus.MUSTERING
+        self.muster_deadline = timezone.now() + timedelta(seconds=window_seconds)
+        self.save()
+
+        emit("mustering_started", game=self)
+
+    def return_to_pending(self):
+        if self.status != GameStatus.MUSTERING:
+            return False
+        self.status = GameStatus.PENDING
+        self.muster_deadline = None
+        self.save()
         return True
 
     def pause(self):

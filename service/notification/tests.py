@@ -218,6 +218,8 @@ class TestRegistry:
             "kicked_from_staging",
             "removed_from_game",
             "removed_from_staging",
+            "mustering_started",
+            "removed_from_muster",
             "seat_filled",
             "civil_disorder",
             "civil_disorder_recovery",
