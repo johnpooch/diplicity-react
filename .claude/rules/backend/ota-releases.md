@@ -48,3 +48,15 @@ publish step therefore sets `DATABASE_CONNECTION_STRING` from the `DATABASE_PUBL
 which `service/project/settings.py` checks ahead of `DATABASE_URL`. `railway run` supplies the R2
 credentials from the service's own variables. Both are needed; the step fails fast if the secret is
 missing rather than letting Django parse an empty connection string.
+
+## The boto3 bound is pinned to a minor line on purpose
+
+`service/dev_requirements.txt` pulls `inspect-ai`, which reaches `aiobotocore` through `s3fs` and
+pins `botocore` to a narrow window. CI installs both requirement files together, so a boto3 range
+wide enough to reach past that window makes pip conflict on `botocore`, backtrack through
+`aiobotocore`, `s3fs` and `inspect-ai`, and eventually try a `wrapt` old enough that its sdist
+fails to build on Python 3.12 (`cannot import name 'formatargspec'`). The failure surfaces as a
+`pip install` error in **Test Service** and **Test Service (Integration)**, nowhere near boto3.
+
+Keep boto3 bounded to a single minor line. If a dependabot bump makes the two windows genuinely
+disjoint, move the bound to the line that matches `aiobotocore` rather than widening it.
