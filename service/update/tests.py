@@ -376,3 +376,48 @@ class TestReleaseBundleCommand:
                     "1.5.9",
                 )
         assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_version_that_collapses_onto_a_published_one(
+        self, dist_directory, bundle_uploads, bundle_factory
+    ):
+        bundle_factory("1.6")
+        with pytest.raises(CommandError, match="already published"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.6.0",
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_version_longer_than_the_column(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="is longer than 32 characters"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1." + "0" * 40,
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_minimum_native_version_longer_than_the_column(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="is longer than 32 characters"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.5.10",
+                "--minimum-native-version",
+                "1." + "0" * 40,
+            )
+        assert bundle_uploads == []

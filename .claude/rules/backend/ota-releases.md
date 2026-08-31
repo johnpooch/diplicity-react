@@ -30,6 +30,22 @@ default is how that failure happens quietly.
 client. It is `--bundle-version`, not `--version`, because Django's `BaseCommand` already owns
 `--version`.
 
+## The workflow publishes from `main` only
+
+`bundle-release.yml` is `workflow_dispatch`, and a dispatch can name any ref that carries the
+workflow file. The job is therefore guarded on `github.ref == 'refs/heads/main'`. Without it,
+dispatching from a feature branch builds that branch and publishes it to production storage and the
+production database, where it reaches every installed client with no store review in the way. Keep
+the guard on any workflow that writes bundles.
+
+## Storage access lives in `update/storage.py`, not `update/utils.py`
+
+`update/models.py` imports `parse_version` from `update/utils.py`, so anything that module imports
+is loaded in every Django process at boot. The boto3 client and the upload helper live in
+`update/storage.py` instead, which only the release command imports — boto3 is a release-time
+dependency and should not be able to stop the service from starting. Keep `utils.py` free of
+imports the web and worker processes do not need.
+
 ## One zip, one object per platform
 
 The zip is built once and uploaded under `bundles/<platform>/<version>.zip` for each requested

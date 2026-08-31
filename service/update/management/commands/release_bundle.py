@@ -7,7 +7,8 @@ from django.db import transaction
 
 from common.constants import BundlePlatform
 from update.models import Bundle
-from update.utils import is_numeric_version, sha256_checksum, upload_bundle, write_bundle_zip
+from update.storage import upload_bundle
+from update.utils import is_numeric_version, parse_version, sha256_checksum, write_bundle_zip
 
 PLATFORMS = [BundlePlatform.IOS, BundlePlatform.ANDROID]
 
@@ -56,15 +57,20 @@ class Command(BaseCommand):
         if not (dist / "index.html").is_file():
             raise CommandError(f"'{dist}' is not a built web bundle: no index.html")
 
-        if not is_numeric_version(version):
-            raise CommandError(f"bundle version '{version}' is not a dotted numeric version")
+        for label, value, field_name in (
+            ("bundle version", version, "version"),
+            ("minimum native version", minimum_native_version, "minimum_native_version"),
+        ):
+            if not is_numeric_version(value):
+                raise CommandError(f"{label} '{value}' is not a dotted numeric version")
+            max_length = Bundle._meta.get_field(field_name).max_length
+            if len(value) > max_length:
+                raise CommandError(f"{label} '{value}' is longer than {max_length} characters")
 
-        if not is_numeric_version(minimum_native_version):
-            raise CommandError(f"minimum native version '{minimum_native_version}' is not a dotted numeric version")
-
-        taken = list(Bundle.objects.filter(platform__in=platforms, version=version).values_list("platform", flat=True))
+        published = Bundle.objects.filter(platform__in=platforms).values_list("platform", "version")
+        taken = sorted({platform for platform, other in published if parse_version(other) == parse_version(version)})
         if taken:
-            raise CommandError(f"version '{version}' is already published for {', '.join(sorted(taken))}")
+            raise CommandError(f"version '{version}' is already published for {', '.join(taken)}")
 
         with tempfile.TemporaryDirectory() as directory:
             archive = write_bundle_zip(dist, Path(directory) / f"bundle-{version}.zip")
