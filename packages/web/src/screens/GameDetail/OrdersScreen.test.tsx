@@ -52,7 +52,9 @@ vi.mock("@/components/NationFlag", () => ({
 }));
 vi.mock("@/components/PhaseSelect", () => ({ PhaseSelect: () => null }));
 vi.mock("@/components/PhaseGuidance", () => ({ PhaseGuidance: () => null }));
-vi.mock("@/components/GameDropdownMenu", () => ({ GameDropdownMenu: () => null }));
+vi.mock("@/components/GameDropdownMenu", () => ({
+  GameDropdownMenu: () => <button>Game menu</button>,
+}));
 
 const baseMember = (overrides = {}) => ({
   id: 1,
@@ -219,6 +221,12 @@ describe("OrdersScreen confirm orders button", () => {
     renderOrdersScreen();
 
     expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /draw proposals/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /game menu/i })
+    ).not.toBeInTheDocument();
   });
 });
 

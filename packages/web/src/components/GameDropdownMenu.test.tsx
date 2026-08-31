@@ -21,7 +21,10 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
-const renderMenu = (game: React.ComponentProps<typeof GameDropdownMenu>["game"]) => {
+const renderMenu = (
+  game: React.ComponentProps<typeof GameDropdownMenu>["game"],
+  includePlayerInfo = true
+) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -31,7 +34,7 @@ const renderMenu = (game: React.ComponentProps<typeof GameDropdownMenu>["game"])
         <GameDropdownMenu
           game={game}
           onNavigateToGameInfo={() => {}}
-          onNavigateToPlayerInfo={() => {}}
+          onNavigateToPlayerInfo={includePlayerInfo ? () => {} : undefined}
         />
       </MemoryRouter>
     </QueryClientProvider>
@@ -43,6 +46,14 @@ const openMenu = async () => {
 };
 
 describe("GameDropdownMenu", () => {
+  it("hides Player info when the current screen has an Overview tab", async () => {
+    renderMenu(mockActiveGames[0], false);
+    await openMenu();
+    expect(
+      screen.queryByRole("menuitem", { name: /player info/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("shows 'Clone to sandbox' for an active, non-sandbox game", async () => {
     renderMenu(mockActiveGames[0]);
     await openMenu();

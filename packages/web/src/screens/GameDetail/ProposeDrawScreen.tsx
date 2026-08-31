@@ -61,7 +61,7 @@ const ProposeDrawScreen: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/orders`);
+    navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
   };
 
   const isSubmitting = createProposalMutation.isPending;

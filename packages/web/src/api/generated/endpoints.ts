@@ -106,6 +106,10 @@ export interface Channel {
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
   readonly unreadMessageCount: number;
+  readonly memberIds: readonly number[];
+}
+
+export interface ChannelCreate {
   memberIds: number[];
 }
 
@@ -7250,14 +7254,14 @@ method that returns the game object. Also adds game to the serializer context.
  */
 export const gamesChannelsCreateCreate = (
   gameId: string,
-  channel: NonReadonly<Channel>,
+  channelCreate: ChannelCreate,
   signal?: AbortSignal
 ) => {
   return customInstance<Channel>({
     url: `/games/${gameId}/channels/create/`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    data: channel,
+    data: channelCreate,
     signal,
   });
 };
@@ -7269,13 +7273,13 @@ export const getGamesChannelsCreateCreateMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof gamesChannelsCreateCreate>>,
     TError,
-    { gameId: string; data: NonReadonly<Channel> },
+    { gameId: string; data: ChannelCreate },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof gamesChannelsCreateCreate>>,
   TError,
-  { gameId: string; data: NonReadonly<Channel> },
+  { gameId: string; data: ChannelCreate },
   TContext
 > => {
   const mutationKey = ["gamesChannelsCreateCreate"];
@@ -7289,7 +7293,7 @@ export const getGamesChannelsCreateCreateMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof gamesChannelsCreateCreate>>,
-    { gameId: string; data: NonReadonly<Channel> }
+    { gameId: string; data: ChannelCreate }
   > = props => {
     const { gameId, data } = props ?? {};
 
@@ -7302,7 +7306,7 @@ export const getGamesChannelsCreateCreateMutationOptions = <
 export type GamesChannelsCreateCreateMutationResult = NonNullable<
   Awaited<ReturnType<typeof gamesChannelsCreateCreate>>
 >;
-export type GamesChannelsCreateCreateMutationBody = NonReadonly<Channel>;
+export type GamesChannelsCreateCreateMutationBody = ChannelCreate;
 export type GamesChannelsCreateCreateMutationError = unknown;
 
 export const useGamesChannelsCreateCreate = <
@@ -7313,7 +7317,7 @@ export const useGamesChannelsCreateCreate = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof gamesChannelsCreateCreate>>,
       TError,
-      { gameId: string; data: NonReadonly<Channel> },
+      { gameId: string; data: ChannelCreate },
       TContext
     >;
   },
@@ -7321,7 +7325,7 @@ export const useGamesChannelsCreateCreate = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof gamesChannelsCreateCreate>>,
   TError,
-  { gameId: string; data: NonReadonly<Channel> },
+  { gameId: string; data: ChannelCreate },
   TContext
 > => {
   return useMutation(

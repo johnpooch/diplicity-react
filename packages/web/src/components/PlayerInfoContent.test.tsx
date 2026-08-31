@@ -20,6 +20,14 @@ const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
 const mockUserProfileData = vi.fn();
 const mockKickMutateAsync = vi.fn();
+const mockChannelsData = vi.fn();
+const mockChannelsRefetch = vi.fn();
+const mockCreateChannelMutateAsync = vi.fn();
+const mockIsMobile = vi.fn();
+
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => mockIsMobile(),
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -31,8 +39,18 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockKickMutateAsync,
     isPending: false,
   }),
+  useGamesChannelsList: () => ({
+    data: mockChannelsData(),
+    isLoading: false,
+    refetch: mockChannelsRefetch,
+  }),
+  useGamesChannelsCreateCreate: () => ({
+    mutateAsync: mockCreateChannelMutateAsync,
+    isPending: false,
+  }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameAddableUserListQueryKey: () => ["addable-user"],
+  getGamesChannelsListQueryKey: () => ["channels"],
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -62,12 +80,20 @@ vi.mock("@/utils/copyLink", () => ({
   copyLink: (path: string) => mockCopyLink(path),
 }));
 
-const renderPlayerInfo = () =>
+const renderPlayerInfo = (initialEntry = "/game/game-1") =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/game/game-1"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/game/:gameId" element={<PlayerInfoContent />} />
+          <Route
+            path="/game/:gameId/phase/:phaseId/overview"
+            element={<PlayerInfoContent />}
+          />
+          <Route
+            path="/game/:gameId/phase/:phaseId/chat/channel/:channelId"
+            element={<div data-testid="channel-screen" />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -105,8 +131,11 @@ describe("PlayerInfoContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVariantsData.mockReturnValue([classicalVariant]);
-    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [] });
+    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [], units: [] });
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true });
+    mockChannelsData.mockReturnValue([]);
+    mockChannelsRefetch.mockResolvedValue({ data: [] });
+    mockIsMobile.mockReturnValue(false);
   });
 
   it("shows the civil disorder badge for members in civil disorder", () => {
@@ -141,6 +170,393 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
+  });
+
+  it("shows unit and supply-center counts from the current phase", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "France" } },
+      ],
+      supplyCenters: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("2 units")).toBeInTheDocument();
+    expect(screen.getByText("3 centers")).toBeInTheDocument();
+  });
+
+  it("uses singular unit and supply-center labels", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [{ nation: { name: "England" } }],
+      supplyCenters: [{ nation: { name: "England" } }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("1 unit")).toBeInTheDocument();
+    expect(screen.getByText("1 center")).toBeInTheDocument();
+  });
+
+  it("uses the nation as the in-game title and puts player details in a popover", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      nmrExtensionsAllowed: 2,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, commitment: "high", nmrExtensionsRemaining: 1 },
+      ],
+    });
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(screen.getByText("England")).toBeInTheDocument();
+    expect(screen.getByText("you")).toBeInTheDocument();
+    expect(screen.queryByText("Alice")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Commitment: High")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 extension remaining")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "View England player details" })
+    );
+
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByLabelText("Commitment: High")).toBeInTheDocument();
+    expect(screen.getByText("1 extension remaining")).toBeInTheDocument();
+    expect(screen.queryByText("Player")).not.toBeInTheDocument();
+  });
+
+  it("shows eliminated as the player's status", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, eliminated: true, civilDisorder: true }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("Eliminated")).toBeInTheDocument();
+    expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
+  });
+
+  it("dims and moves eliminated, civil-disorder, and removed powers to the bottom", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, nation: "England", eliminated: true },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+        },
+        {
+          ...baseMember,
+          id: 3,
+          name: "Carol",
+          nation: "Germany",
+          isCurrentUser: false,
+          civilDisorder: true,
+        },
+        {
+          ...baseMember,
+          id: 4,
+          name: "Dave",
+          nation: "Turkey",
+          isCurrentUser: false,
+          kicked: true,
+        },
+      ],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [],
+      supplyCenters: [
+        { nation: { name: "France" } },
+        { nation: { name: "Turkey" } },
+        { nation: { name: "Turkey" } },
+        { nation: { name: "Turkey" } },
+        { nation: { name: "Turkey" } },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /View .* player details/ })
+        .map(button => button.getAttribute("aria-label"))
+    ).toEqual([
+      "View France player details",
+      "View Turkey player details",
+      "View England player details",
+      "View Germany player details",
+    ]);
+    expect(screen.getByText("France").closest(".gap-4")).not.toHaveClass(
+      "opacity-[0.7]"
+    );
+    expect(screen.getByText("England").closest(".gap-4")).toHaveClass(
+      "opacity-[0.7]"
+    );
+    expect(screen.getByText("Germany").closest(".gap-4")).toHaveClass(
+      "opacity-[0.7]"
+    );
+    expect(screen.getByText("Turkey").closest(".gap-4")).toHaveClass(
+      "opacity-[0.7]"
+    );
+  });
+
+  it("orders powers by supply-center count and preserves ordinary order for ties", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, nation: "England" },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+        },
+        {
+          ...baseMember,
+          id: 3,
+          name: "Carol",
+          nation: "Germany",
+          isCurrentUser: false,
+        },
+      ],
+    });
+    mockCurrentPhaseData.mockReturnValue({
+      units: [],
+      supplyCenters: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "France" } },
+        { nation: { name: "France" } },
+        { nation: { name: "France" } },
+        { nation: { name: "France" } },
+        { nation: { name: "Germany" } },
+        { nation: { name: "Germany" } },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /View .* player details/ })
+        .map(button => button.getAttribute("aria-label"))
+    ).toEqual([
+      "View France player details",
+      "View England player details",
+      "View Germany player details",
+    ]);
+  });
+
+  it("moves the winner to the top when the game is completed", () => {
+    const winner = {
+      ...baseMember,
+      id: 3,
+      name: "Carol",
+      nation: "Germany",
+      isCurrentUser: false,
+      eliminated: true,
+    };
+
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      nmrExtensionsAllowed: 0,
+      victory: {
+        id: 1,
+        type: "solo",
+        winningPhaseId: 1,
+        members: [winner],
+      },
+      phases: [{ id: 1, status: "completed" }],
+      members: [
+        { ...baseMember, nation: "England", eliminated: true },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+        },
+        winner,
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /View .* player details/ })
+        .map(button => button.getAttribute("aria-label"))
+    ).toEqual([
+      "View Germany player details",
+      "View France player details",
+      "View England player details",
+    ]);
+  });
+
+  it("opens an existing one-to-one chat with another human player", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+    mockChannelsData.mockReturnValue([
+      { id: 42, private: true, memberIds: [1, 2] },
+    ]);
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+    await user.click(screen.getByLabelText("Message Bob"));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/game/game-1/phase/1/chat/channel/42"
+    );
+    expect(mockCreateChannelMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("marks a player's chat shortcut when their direct channel is unread", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+    mockChannelsData.mockReturnValue([
+      {
+        id: 42,
+        private: true,
+        memberIds: [1, 2],
+        unreadMessageCount: 2,
+      },
+    ]);
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+
+    expect(
+      screen.getByRole("button", {
+        name: "Message Bob, 2 unread messages",
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("creates a one-to-one chat when one does not exist", async () => {
+    const user = userEvent.setup();
+    mockCreateChannelMutateAsync.mockResolvedValue({
+      id: 43,
+      private: true,
+      memberIds: [1, 2],
+    });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+    await user.click(screen.getByLabelText("Message Bob"));
+
+    expect(mockCreateChannelMutateAsync).toHaveBeenCalledWith({
+      gameId: "game-1",
+      data: { memberIds: [2] },
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/game/game-1/phase/1/chat/channel/43"
+    );
+  });
+
+  it("opens a channel created by another client when creation reports a duplicate", async () => {
+    const user = userEvent.setup();
+    mockCreateChannelMutateAsync.mockRejectedValue(new Error("Duplicate channel"));
+    mockChannelsRefetch.mockResolvedValue({
+      data: [{ id: 44, private: true, memberIds: [1, 2] }],
+    });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      pressType: "regular",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false },
+      ],
+    });
+
+    renderPlayerInfo("/game/game-1/phase/1/overview");
+    await user.click(screen.getByLabelText("Message Bob"));
+
+    expect(mockChannelsRefetch).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/game/game-1/phase/1/chat/channel/44"
+    );
   });
 
   it("shows the game master above the players when one is set", () => {
@@ -204,7 +620,13 @@ describe("PlayerInfoContent", () => {
       phases: [],
       members: [
         { ...baseMember, nation: null },
-        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, nation: null },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          nation: null,
+        },
       ],
     });
 
@@ -321,87 +743,36 @@ describe("PlayerInfoContent", () => {
     });
   });
 
-  it("does not offer Remove Player to non-admins", async () => {
-    const user = userEvent.setup();
+  it("does not show player options when no management action is available", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
-      status: "pending",
+      status: "active",
       canManage: false,
       nmrExtensionsAllowed: 0,
       victory: null,
-      phases: [],
+      phases: [{ id: 1, status: "active" }],
       members: [
-        { ...baseMember, nation: null },
+        { ...baseMember },
         {
           ...baseMember,
           id: 2,
-          name: "The Dealmaker",
+          userId: 77,
+          name: "Bob",
           isCurrentUser: false,
-          isBot: true,
-          nation: null,
+          nation: "France",
           removable: true,
         },
       ],
     });
 
-    renderPlayerInfo();
+    renderPlayerInfo("/game/game-1/phase/1/overview");
 
-    await user.click(screen.getByLabelText("Options for The Dealmaker"));
     expect(
-      screen.getByRole("menuitem", { name: "View Profile" })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("menuitem", { name: "Remove Player" })
+      screen.queryByLabelText("Options for Bob")
     ).not.toBeInTheDocument();
-  });
-
-  it("navigates to the profile from the player menu", async () => {
-    const user = userEvent.setup();
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        { ...baseMember, id: 2, userId: 77, name: "Bob", isCurrentUser: false },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    await user.click(screen.getByLabelText("Options for Bob"));
-    const item = screen.getByRole("menuitem", { name: "View Profile" });
-    expect(item).not.toHaveAttribute("aria-disabled", "true");
-  });
-
-  it("disables View Profile for a member with no profile to link to", async () => {
-    const user = userEvent.setup();
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        {
-          ...baseMember,
-          id: 2,
-          userId: null,
-          name: "Anonymous",
-          isCurrentUser: false,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    await user.click(screen.getByLabelText("Options for Anonymous"));
     expect(
-      screen.getByRole("menuitem", { name: "View Profile" })
-    ).toHaveAttribute("aria-disabled", "true");
+      screen.getByRole("button", { name: "View France player details" })
+    ).toBeInTheDocument();
   });
 
   it("shows the removed badge for a kicked member", () => {
@@ -452,7 +823,9 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByRole("button", { name: "Replace" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Replace" })
+    ).not.toBeInTheDocument();
   });
 
   it("copies the takeover link for a replaceable seat", async () => {
@@ -478,7 +851,9 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByRole("button", { name: /Invite replacement/ }));
+    await user.click(
+      screen.getByRole("button", { name: /Invite replacement/ })
+    );
 
     expect(mockCopyLink).toHaveBeenCalledWith("/game/game-1/replace/2");
   });
@@ -510,8 +885,7 @@ describe("PlayerInfoContent", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not offer Remove Player for a member who has not missed orders", async () => {
-    const user = userEvent.setup();
+  it("does not show player options for a member who cannot be removed", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -533,9 +907,8 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for Bob"));
     expect(
-      screen.queryByRole("menuitem", { name: "Remove Player" })
+      screen.queryByLabelText("Options for Bob")
     ).not.toBeInTheDocument();
   });
 
@@ -572,7 +945,13 @@ describe("PlayerInfoContent", () => {
       phases: [{ id: 1, status: "pending" }],
       members: [
         { ...baseMember, id: 1, name: "Alice", nation: "England" },
-        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, nation: null },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          nation: null,
+        },
       ],
     });
 
@@ -608,13 +987,21 @@ describe("PlayerInfoContent", () => {
       phases: [{ id: 1, status: "pending" }],
       members: [
         { ...baseMember, nation: null },
-        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, nation: null },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          nation: null,
+        },
       ],
     });
 
     renderPlayerInfo();
 
-    const seat = screen.getAllByRole("button", { name: /choose nation preferences/i });
+    const seat = screen.getAllByRole("button", {
+      name: /choose nation preferences/i,
+    });
     expect(seat).toHaveLength(1);
 
     await user.click(seat[0]);
@@ -630,7 +1017,11 @@ describe("PlayerInfoContent", () => {
       victory: null,
       phases: [{ id: 1, status: "pending" }],
       members: [
-        { ...baseMember, nation: null, nationPreferenceIds: ["nation-1", "nation-2"] },
+        {
+          ...baseMember,
+          nation: null,
+          nationPreferenceIds: ["nation-1", "nation-2"],
+        },
       ],
     });
 

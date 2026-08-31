@@ -241,6 +241,14 @@ export const createAuthenticatedRoutes = (
             children: [
               { index: true, element: <GameIndexRoute /> },
               {
+                path: "overview",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.OverviewScreen />
+                  </Suspense>
+                ),
+              },
+              {
                 path: "orders",
                 element: (
                   <Suspense fallback={<RouteFallback />}>

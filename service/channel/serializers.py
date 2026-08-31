@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 
 from .models import Channel, ChannelMessage, ChannelMember
 from nation.serializers import NationSerializer
@@ -49,7 +50,14 @@ class ChannelSerializer(serializers.Serializer):
     private = serializers.BooleanField(read_only=True)
     messages = ChannelMessageSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
+    member_ids = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
+    def get_member_ids(self, channel):
+        return [member.id for member in channel.members.all()]
+
+
+class ChannelCreateSerializer(serializers.Serializer):
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
 
     def validate_member_ids(self, value):
@@ -74,6 +82,9 @@ class ChannelSerializer(serializers.Serializer):
         request = self.context["request"]
         game = self.context["game"]
         return Channel.objects.create_from_member_ids(request.user, validated_data["member_ids"], game)
+
+    def to_representation(self, instance):
+        return ChannelSerializer(instance, context=self.context).data
 
 
 class ChannelMarkReadSerializer(serializers.Serializer):

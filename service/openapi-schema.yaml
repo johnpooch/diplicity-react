@@ -1316,7 +1316,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Channel'
+              $ref: '#/components/schemas/ChannelCreate'
         required: true
       security:
       - jwtAuth: []
@@ -1952,7 +1952,7 @@ components:
           type: array
           items:
             type: integer
-          writeOnly: true
+          readOnly: true
       required:
       - id
       - memberIds
@@ -1960,6 +1960,16 @@ components:
       - name
       - private
       - unreadMessageCount
+    ChannelCreate:
+      type: object
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: integer
+          writeOnly: true
+      required:
+      - memberIds
     ChannelMember:
       type: object
       properties:

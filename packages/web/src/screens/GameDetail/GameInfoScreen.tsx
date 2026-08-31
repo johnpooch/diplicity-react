@@ -13,14 +13,16 @@ const GameInfoScreen: React.FC = () => {
   }>();
 
   const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
+    navigate(`/game/${gameId}/phase/${phaseId}/overview`);
   };
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Game Info"
-        onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}`)}
+        onNavigateBack={() =>
+          navigate(`/game/${gameId}/phase/${phaseId}/overview`)
+        }
         variant="secondary"
       />
       <div className="flex-1 overflow-y-auto">

@@ -222,7 +222,7 @@ const DrawProposalsScreen: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/orders`);
+    navigate(`/game/${gameId}/phase/${phaseId}/overview`);
   };
 
   const handleProposeDraw = () => {

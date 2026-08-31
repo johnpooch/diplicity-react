@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import type {
+  Channel,
   GameList,
   PaginatedGameListList,
   PhaseList,
@@ -81,6 +82,7 @@ const notFound = () =>
   HttpResponse.json({ detail: "Not found." }, { status: 404 });
 
 const recoveredCivilDisorderGames = new Set<string>();
+let nextCreatedChannelId = 1000;
 
 const nationPreferencesByGameId = new Map<string, string[]>();
 
@@ -380,12 +382,30 @@ export const handlers = [
     new HttpResponse(null, { status: 204 })
   ),
 
-  http.post("*/games/:gameId/channels/create/", async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json(
-      { id: 999, name: "New Channel", private: true, messages: [], unreadMessageCount: 0, ...body },
-      { status: 201 }
+  http.post("*/games/:gameId/channels/create/", async ({ params, request }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+
+    const body = (await request.json()) as { memberIds?: unknown };
+    const requestedMemberIds = Array.isArray(body.memberIds)
+      ? body.memberIds.filter((id): id is number => typeof id === "number")
+      : [];
+    const channelMembers = fixture.game.members.filter(
+      member => member.isCurrentUser || requestedMemberIds.includes(member.id)
     );
+    const channel: Channel = {
+      id: nextCreatedChannelId++,
+      name: channelMembers
+        .map(member => member.nation ?? member.name)
+        .join(", "),
+      private: true,
+      messages: [],
+      unreadMessageCount: 0,
+      memberIds: channelMembers.map(member => member.id),
+    };
+    fixture.channels = [...fixture.channels, channel];
+
+    return HttpResponse.json(channel, { status: 201 });
   }),
   http.post(
     "*/games/:gameId/channels/:channelId/messages/create/",

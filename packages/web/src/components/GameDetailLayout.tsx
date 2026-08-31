@@ -1,7 +1,13 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
-import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Trophy,
+  Map,
+  Gavel,
+  MessageCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -15,9 +21,18 @@ import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { useGameRetrieve } from "@/api/generated/endpoints";
+import {
+  useGameRetrieve,
+  useGamesDrawProposalsList,
+} from "@/api/generated/endpoints";
+import { getDrawProposalNotificationCount } from "@/components/DrawProposalNotificationBadge";
 
 const navigationItems = [
+  {
+    label: "Overview",
+    icon: Trophy,
+    path: "/game/:gameId/phase/:phaseId/overview",
+  },
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
   { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
   { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
@@ -45,6 +60,17 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         query.state.data?.status === "active" ? 5000 : false,
     },
   });
+  const isStartedGame =
+    game?.status === "active" ||
+    game?.status === "completed" ||
+    game?.status === "abandoned";
+  const canShowDrawProposals =
+    !!game && !game.sandbox && isStartedGame;
+  const { data: drawProposals } = useGamesDrawProposalsList(gameId, {
+    query: { enabled: canShowDrawProposals },
+  });
+  const drawProposalNotificationCount =
+    getDrawProposalNotificationCount(drawProposals);
 
   const [searchParams] = useSearchParams();
 
@@ -55,11 +81,18 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     const searchParamsStr = searchParams.toString();
     const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
     const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");
+    const overviewFlowPaths = [
+      `/game/${gameId}/phase/${phaseId}/game-info`,
+      `/game/${gameId}/phase/${phaseId}/draw-proposals`,
+      `/game/${gameId}/phase/${phaseId}/propose-draw`,
+      `/game/${gameId}/phase/${phaseId}/player/`,
+    ];
     return items.map(item => {
       const basePath = item.path
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
       const badge =
+        (item.label === "Overview" && drawProposalNotificationCount > 0) ||
         (item.label === "Chat" &&
           game?.totalUnreadMessageCount &&
           game.totalUnreadMessageCount > 0) ||
@@ -77,9 +110,14 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
       } else {
         path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
       }
-      const isActive = item.label === "Chat"
-        ? location.pathname === chatBasePath || location.pathname.startsWith(chatBasePath + "/")
-        : location.pathname === basePath;
+      const isActive =
+        item.label === "Chat"
+          ? location.pathname === chatBasePath ||
+            location.pathname.startsWith(chatBasePath + "/")
+          : item.label === "Overview"
+            ? location.pathname === basePath ||
+              overviewFlowPaths.some(path => location.pathname.startsWith(path))
+            : location.pathname === basePath;
       return {
         ...item,
         path,
@@ -87,7 +125,16 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
+  }, [
+    gameId,
+    phaseId,
+    searchParams,
+    location.pathname,
+    game?.totalUnreadMessageCount,
+    game?.sandbox,
+    game?.members,
+    drawProposalNotificationCount,
+  ]);
 
   // Filter out Map for desktop sidebar since map is already visible in right
   // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
