@@ -1,6 +1,11 @@
+import hashlib
+import io
 import json
+import zipfile
 
 import pytest
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -170,3 +175,249 @@ class TestUpdateCheckView:
             response = unauthenticated_client.post(url, plugin_payload(), format="json")
         assert "url" not in response.data
         assert response.data["kind"] == UpdateResponseKind.UP_TO_DATE
+
+
+class TestReleaseBundleCommand:
+
+    @pytest.mark.django_db
+    def test_publishes_a_bundle_for_both_platforms_by_default(self, dist_directory, bundle_uploads):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.5.10",
+            "--minimum-native-version",
+            "1.5.9",
+        )
+        assert [upload["key"] for upload in bundle_uploads] == [
+            "bundles/ios/1.5.10.zip",
+            "bundles/android/1.5.10.zip",
+        ]
+        assert {upload["bucket"] for upload in bundle_uploads} == {"diplicity-bundles"}
+
+    @pytest.mark.django_db
+    def test_published_bundle_is_served_to_a_client_on_a_new_enough_binary(
+        self, unauthenticated_client, dist_directory, bundle_uploads
+    ):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.5.10",
+            "--minimum-native-version",
+            "1.5.9",
+        )
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(), format="json")
+        assert response.data["version"] == "1.5.10"
+        assert response.data["url"] == "https://bundles.example.com/bundles/ios/1.5.10.zip"
+        assert response.data["checksum"] == hashlib.sha256(bundle_uploads[0]["content"]).hexdigest()
+
+    @pytest.mark.django_db
+    def test_published_bundle_is_withheld_from_a_client_on_an_older_binary(
+        self, unauthenticated_client, dist_directory, bundle_uploads
+    ):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.6.0",
+            "--minimum-native-version",
+            "1.6.0",
+        )
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(version_build="1.5.9"), format="json")
+        assert "url" not in response.data
+
+    @pytest.mark.django_db
+    def test_zip_holds_the_dist_files_at_its_root(self, dist_directory, bundle_uploads):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.5.10",
+            "--minimum-native-version",
+            "1.5.9",
+        )
+        archive = zipfile.ZipFile(io.BytesIO(bundle_uploads[0]["content"]))
+        assert sorted(archive.namelist()) == ["assets/index-abc123.js", "index.html"]
+        assert archive.read("index.html") == b"<!doctype html><title>Diplicity</title>"
+
+    @pytest.mark.django_db
+    def test_both_platforms_receive_the_same_archive(self, dist_directory, bundle_uploads):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.5.10",
+            "--minimum-native-version",
+            "1.5.9",
+        )
+        assert bundle_uploads[0]["content"] == bundle_uploads[1]["content"]
+
+    @pytest.mark.django_db
+    def test_archive_is_uploaded_as_a_zip(self, dist_directory, bundle_uploads):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.5.10",
+            "--minimum-native-version",
+            "1.5.9",
+        )
+        assert bundle_uploads[0]["extra_args"] == {"ContentType": "application/zip"}
+
+    @pytest.mark.django_db
+    def test_publishes_only_the_requested_platform(self, unauthenticated_client, dist_directory, bundle_uploads):
+        call_command(
+            "release_bundle",
+            "--dist",
+            str(dist_directory),
+            "--bundle-version",
+            "1.5.10",
+            "--minimum-native-version",
+            "1.5.9",
+            "--platform",
+            BundlePlatform.ANDROID,
+        )
+        assert [upload["key"] for upload in bundle_uploads] == ["bundles/android/1.5.10.zip"]
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(), format="json")
+        assert "url" not in response.data
+
+    @pytest.mark.django_db
+    def test_refuses_a_version_already_published(self, dist_directory, bundle_uploads, bundle_factory):
+        bundle_factory("1.5.10")
+        with pytest.raises(CommandError, match="already published"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.5.10",
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_directory_that_is_not_a_built_bundle(self, tmp_path, bundle_uploads):
+        empty = tmp_path / "dist"
+        empty.mkdir()
+        with pytest.raises(CommandError, match="not a built web bundle"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(empty),
+                "--bundle-version",
+                "1.5.10",
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_non_numeric_version(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="bundle version 'v1.5.10' is not a dotted numeric version"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "v1.5.10",
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_non_numeric_minimum_native_version(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="minimum native version 'latest'"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.5.10",
+                "--minimum-native-version",
+                "latest",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_minimum_native_version_must_be_stated(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="--minimum-native-version"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.5.10",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_to_publish_when_bundle_storage_is_unconfigured(self, dist_directory, bundle_uploads):
+        with override_settings(R2_BUCKET_NAME="", R2_PUBLIC_BASE_URL=""):
+            with pytest.raises(CommandError, match="R2_BUCKET_NAME, R2_PUBLIC_BASE_URL"):
+                call_command(
+                    "release_bundle",
+                    "--dist",
+                    str(dist_directory),
+                    "--bundle-version",
+                    "1.5.10",
+                    "--minimum-native-version",
+                    "1.5.9",
+                )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_version_that_collapses_onto_a_published_one(
+        self, dist_directory, bundle_uploads, bundle_factory
+    ):
+        bundle_factory("1.6")
+        with pytest.raises(CommandError, match="already published"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.6.0",
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_version_longer_than_the_column(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="is longer than 32 characters"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1." + "0" * 40,
+                "--minimum-native-version",
+                "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_minimum_native_version_longer_than_the_column(self, dist_directory, bundle_uploads):
+        with pytest.raises(CommandError, match="is longer than 32 characters"):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.5.10",
+                "--minimum-native-version",
+                "1." + "0" * 40,
+            )
+        assert bundle_uploads == []
