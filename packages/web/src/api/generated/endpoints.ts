@@ -90,6 +90,7 @@ export interface ChannelMember {
   /** @nullable */
   readonly commitment: string | null;
   nation: Nation | null;
+  readonly isGameMaster: boolean;
 }
 
 export interface ChannelMessage {

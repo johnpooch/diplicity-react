@@ -14,6 +14,7 @@ Member = apps.get_model("member", "Member")
 
 class ChannelMemberSerializer(BaseMemberSerializer):
     nation = NationSerializer(allow_null=True)
+    is_game_master = serializers.BooleanField(read_only=True)
 
 
 class ChannelMessageSerializer(serializers.Serializer):
@@ -57,7 +58,7 @@ class ChannelSerializer(serializers.Serializer):
         current_member = self.context["current_game_member"]
 
         member_ids = value + [current_member.id]
-        channel_members = game.members.filter(id__in=member_ids)
+        channel_members = game.members.players().filter(id__in=member_ids)
 
         if channel_members.count() != len(member_ids):
             raise serializers.ValidationError("One or more members are not part of the game.")
