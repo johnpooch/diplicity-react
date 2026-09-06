@@ -107,10 +107,20 @@ class GameQuerySet(models.QuerySet):
             .distinct("game_id")
             .values("id")
         )
+        latest_orderable_phase_state_ids = (
+            PhaseState.objects.filter(
+                phase__status=PhaseStatus.COMPLETED, has_possible_orders=True
+            )
+            .order_by("member_id", "-phase__ordinal", "-phase_id")
+            .distinct("member_id")
+            .values("id")
+        )
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.filter(
-                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
+                Q(phase__in=current_phase_ids)
+                | Q(phase__in=latest_completed_phase_ids)
+                | Q(id__in=latest_orderable_phase_state_ids)
             )
             .select_related("member")
             .annotate(order_count=Count("orders")),
@@ -175,10 +185,20 @@ class GameQuerySet(models.QuerySet):
             .distinct("game_id")
             .values("id")
         )
+        latest_orderable_phase_state_ids = (
+            PhaseState.objects.filter(
+                phase__status=PhaseStatus.COMPLETED, has_possible_orders=True
+            )
+            .order_by("member_id", "-phase__ordinal", "-phase_id")
+            .distinct("member_id")
+            .values("id")
+        )
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.filter(
-                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
+                Q(phase__in=current_phase_ids)
+                | Q(phase__in=latest_completed_phase_ids)
+                | Q(id__in=latest_orderable_phase_state_ids)
             ).select_related("member__user").annotate(
                 order_count=Count("orders")
             )
@@ -561,14 +581,23 @@ class Game(BaseModel):
     @cached_property
     def nmrd_member_ids(self):
         with tracer.start_as_current_span("game.models.nmrd_member_ids"):
-            completed = [p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED]
-            if not completed:
-                return set()
-            latest = max(completed, key=lambda p: p.ordinal)
+            completed = sorted(
+                (p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED),
+                key=lambda p: p.ordinal,
+                reverse=True,
+            )
+            latest_outcome_by_member = {}
+            for phase in completed:
+                for phase_state in phase.phase_states.all():
+                    if not phase_state.has_possible_orders:
+                        continue
+                    latest_outcome_by_member.setdefault(
+                        phase_state.member_id, phase_state.orders_outcome
+                    )
             return {
-                phase_state.member_id
-                for phase_state in latest.phase_states.all()
-                if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
+                member_id
+                for member_id, outcome in latest_outcome_by_member.items()
+                if outcome == PhaseState.OrdersOutcome.NMR
             }
 
     def get_phase_duration_seconds(self, phase_type):

@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from rest_framework import status
 from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType
 
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
@@ -1213,6 +1213,59 @@ class TestGameListViewQueryPerformance:
         query_count = len(connection.queries)
 
         assert query_count == 8
+
+    @pytest.mark.django_db
+    def test_list_games_query_count_with_deep_phase_history(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        for i in range(2):
+            game = Game.objects.create(
+                name=f"Deep game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            member1 = game.members.create(user=primary_user, nation=classical_england_nation)
+            member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
+
+            for ordinal in range(1, 9):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring",
+                    year=1900 + ordinal,
+                    type=PhaseType.MOVEMENT,
+                    status=PhaseStatus.ACTIVE if ordinal == 8 else PhaseStatus.COMPLETED,
+                    ordinal=ordinal,
+                )
+                for member in (member1, member2):
+                    phase.phase_states.create(
+                        member=member,
+                        has_possible_orders=ordinal < 3,
+                        orders_outcome=(
+                            PhaseState.OrdersOutcome.NMR if ordinal == 2 else None
+                        ),
+                    )
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(connection.queries) == 8
+        assert all(
+            member["removable"]
+            for game_data in response.data["results"]
+            for member in game_data["members"]
+        )
 
     @pytest.mark.django_db
     def test_list_games_hydrates_units_for_current_phase_only(
