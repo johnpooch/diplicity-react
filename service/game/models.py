@@ -25,6 +25,7 @@ from common.constants import (
     CommitmentRequirement,
     DeadlineMode,
     GameStatus,
+    MemberKind,
     MinReliability,
     MovementPhaseDuration,
     PhaseFrequency,
@@ -84,7 +85,8 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced()
+            queryset=Member.objects.players()
+            .not_replaced()
             .select_related("nation", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
@@ -151,7 +153,8 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced()
+            queryset=Member.objects.players()
+            .not_replaced()
             .select_related("nation__flag", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
@@ -240,7 +243,8 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.not_replaced()
+            queryset=Member.objects.players()
+            .not_replaced()
             .select_related("nation__flag", "user__profile__uploaded_picture")
             .prefetch_related("nation_preferences__nation"),
         )
@@ -617,12 +621,13 @@ class Game(BaseModel):
 
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):
-            user_is_member = any(
+            user_is_player = any(
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
+                if not member.is_game_master
             )
             game_is_unstarted = self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
-            return user_is_member and game_is_unstarted
+            return user_is_player and game_is_unstarted
 
     def can_delete(self, user):
         with tracer.start_as_current_span("game.models.can_delete"):
@@ -645,7 +650,7 @@ class Game(BaseModel):
 
     def can_remove_member(self, member):
         with tracer.start_as_current_span("game.models.can_remove_member"):
-            if member.kicked or member.replaced_by_id is not None:
+            if member.is_game_master or member.kicked or member.replaced_by_id is not None:
                 return False
             if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
                 return True
@@ -658,15 +663,16 @@ class Game(BaseModel):
     def get_public_press(self):
         return self.channels.get(private=False)
 
-    def seat(self, user):
-        member = self.members.create(user=user)
+    def seat(self, user, kind=MemberKind.PLAYER):
+        member = self.members.create(user=user, kind=kind)
         self.get_public_press().member_channels.create(member=member)
         return member
 
     def reassign_admin(self):
         with tracer.start_as_current_span("game.models.reassign_admin"):
             candidates = list(
-                self.members.filter(kicked=False, civil_disorder=False, user__isnull=False)
+                self.members.players()
+                .filter(kicked=False, civil_disorder=False, user__isnull=False)
                 .exclude(user_id=self.admin_id)
             )
             if not candidates:
@@ -722,7 +728,7 @@ class Game(BaseModel):
             if current_phase is None:
                 current_phase = self.current_phase
             if members is None:
-                members = list(self.members.all())
+                members = list(self.members.players())
             prefetch_related_objects(members, "nation_preferences")
 
             adjudication_data = adjudication_service.start(current_phase)
@@ -793,7 +799,7 @@ class Game(BaseModel):
         if self.status != GameStatus.PENDING:
             return False
         playable_nations = self.variant.nations.filter(non_playable=False).count()
-        if self.members.count() != playable_nations:
+        if self.members.players().count() != playable_nations:
             return False
         self.start()
         return True
@@ -831,7 +837,7 @@ class Game(BaseModel):
             Phase.objects.arm_resolution(current_phase)
 
     def delete_if_empty_pending(self):
-        human_members = self.members.exclude(user__profile__kind__in=UserKind.BOT_KINDS)
+        human_members = self.members.players().exclude(user__profile__kind__in=UserKind.BOT_KINDS)
         if self.status in (GameStatus.PENDING, GameStatus.MUSTERING) and not human_members.exists():
             self.delete()
             return True

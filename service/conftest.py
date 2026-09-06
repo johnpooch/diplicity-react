@@ -17,6 +17,7 @@ from channel.models import Channel, ChannelMember, ChannelMessage
 from common.constants import (
     DeadlineMode,
     GameStatus,
+    MemberKind,
     MovementPhaseDuration,
     OrderType,
     PhaseFrequency,
@@ -2193,6 +2194,7 @@ def pending_game_with_game_master_factory(db, primary_user, classical_variant, b
             admin=game_master,
         )
         game.channels.create(name="Public Press", private=False)
+        game.seat(game_master, kind=MemberKind.GAME_MASTER)
         return game
 
     return _create
@@ -2214,6 +2216,7 @@ def active_game_with_game_master_factory(db, primary_user, classical_variant, ad
             admin=game_master,
         )
         game.channels.create(name="Public Press", private=False)
+        game.seat(game_master, kind=MemberKind.GAME_MASTER)
 
         for i in range(game.variant.nations.count()):
             other_user = User.objects.create_user(f"gm_player{i}@test.com", password="testpass")

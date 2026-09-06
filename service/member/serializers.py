@@ -33,6 +33,8 @@ class BaseMemberSerializer(serializers.Serializer):
         game = self._get_game(obj)
         if not game.anonymous:
             return False
+        if obj.is_game_master:
+            return False
         if game.status == GameStatus.COMPLETED:
             return False
         if self._is_bot(obj):

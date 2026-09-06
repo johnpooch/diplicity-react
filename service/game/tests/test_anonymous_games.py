@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from common.constants import GameStatus, PhaseStatus
+from common.constants import GameStatus, MemberKind, PhaseStatus
 
 from game.models import Game
 from channel.models import Channel, ChannelMessage
@@ -247,6 +247,39 @@ class TestAnonymousGames:
         sender = public_channel["messages"][0]["sender"]
         assert sender["name"] == "Anonymous"
         assert sender["picture"] is None
+
+    @pytest.mark.django_db
+    def test_anonymous_game_shows_game_master_identity_on_messages(
+        self,
+        authenticated_client_for_secondary_user,
+        tertiary_user,
+        primary_user,
+        secondary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+    ):
+        game = create_anonymous_game(
+            classical_variant, classical_england_nation, classical_france_nation,
+            classical_edinburgh_province, primary_user, secondary_user,
+        )
+        game.game_master = tertiary_user
+        game.save(update_fields=["game_master"])
+
+        channel = Channel.objects.create(name="Public Press", game=game, private=False)
+        game_master_member = game.members.create(user=tertiary_user, kind=MemberKind.GAME_MASTER)
+        ChannelMessage.objects.create(
+            channel=channel, sender=game_master_member, body="Deadline moves to Friday."
+        )
+
+        url = reverse(channel_list_viewname, args=[game.id])
+        response = authenticated_client_for_secondary_user.get(url)
+
+        public_channel = next(c for c in response.data if c["name"] == "Public Press")
+        sender = public_channel["messages"][0]["sender"]
+        assert sender["name"] == tertiary_user.profile.name
+        assert sender["is_game_master"] is True
 
     @pytest.mark.django_db
     def test_anonymous_game_masks_draw_proposal_creator(
