@@ -8,7 +8,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from adjudicator import service as adjudication_service
-from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
+from common.constants import GameStatus, MemberKind, MovementPhaseDuration, PhaseStatus
 from game.models import Game
 from notification.models import Notification, NotificationDelivery
 from phase.models import Phase
@@ -51,7 +51,7 @@ class TestGameMasterCreate:
         game = Game.objects.get(id=response.data["id"])
         assert game.game_master == primary_user
         assert game.created_by == primary_user
-        assert game.members.count() == 0
+        assert game.members.players().count() == 0
         assert game.channels.filter(private=False).count() == 1
 
     @pytest.mark.django_db
@@ -135,20 +135,34 @@ class TestGameMasterJoin:
         assert response.status_code == status.HTTP_201_CREATED
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
-        assert game.members.count() == nation_count
+        assert game.members.players().count() == nation_count
 
 
 class TestGameMasterNotAPlayer:
 
     @pytest.mark.django_db
-    def test_game_master_has_no_member_or_phase_state(
+    def test_game_master_holds_no_seat_and_no_phase_state(
         self, active_game_with_game_master_factory, primary_user
     ):
         game = active_game_with_game_master_factory()
-        assert not game.members.filter(user=primary_user).exists()
-        assert game.members.count() == game.variant.nations.count()
-        assert all(m.nation is not None for m in game.members.all())
+        game_master_member = game.members.get(user=primary_user)
+        assert game_master_member.kind == MemberKind.GAME_MASTER
+        assert game_master_member.nation is None
+        assert not game.members.players().filter(user=primary_user).exists()
+        assert game.members.players().count() == game.variant.nations.count()
+        assert all(m.nation is not None for m in game.members.players())
         assert not game.current_phase.phase_states.filter(member__user=primary_user).exists()
+
+    @pytest.mark.django_db
+    def test_game_master_excluded_from_serialized_members(
+        self, authenticated_client, active_game_with_game_master_factory, primary_user
+    ):
+        game = active_game_with_game_master_factory()
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert primary_user.id not in [m["user_id"] for m in response.data["members"]]
+        assert len(response.data["members"]) == game.variant.nations.count()
 
 
 class TestGameMasterInGameAccess:
@@ -203,7 +217,7 @@ class TestGameMasterPowers:
     @pytest.mark.django_db
     def test_player_cannot_pause_when_game_master_set(self, api_client, active_game_with_game_master_factory):
         game = active_game_with_game_master_factory()
-        member = game.members.exclude(user=None).first()
+        member = game.members.players().exclude(user=None).first()
         api_client.force_authenticate(user=member.user)
         url = reverse(pause_viewname, args=[game.id])
         response = api_client.patch(url)
@@ -214,7 +228,7 @@ class TestGameMasterPowers:
         self, api_client, active_game_with_game_master_factory
     ):
         game = active_game_with_game_master_factory()
-        member = game.members.exclude(user=None).first()
+        member = game.members.players().exclude(user=None).first()
         api_client.force_authenticate(user=member.user)
         url = reverse(extend_deadline_viewname, args=[game.id])
         response = api_client.patch(
@@ -248,7 +262,7 @@ class TestGameMasterPowers:
     @pytest.mark.django_db
     def test_can_manage_false_for_players(self, api_client, active_game_with_game_master_factory):
         game = active_game_with_game_master_factory()
-        member = game.members.exclude(user=None).first()
+        member = game.members.players().exclude(user=None).first()
         api_client.force_authenticate(user=member.user)
         url = reverse(retrieve_viewname, args=[game.id])
         response = api_client.get(url)
@@ -382,7 +396,7 @@ class TestGameMasterNotifications:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert "Game paused by the Game Master" in call_kwargs["body"]
-        member_user_ids = {m.user_id for m in game.members.all()}
+        member_user_ids = {m.user_id for m in game.members.players()}
         assert set(call_kwargs["user_ids"]) == member_user_ids
         assert primary_user.id not in call_kwargs["user_ids"]
 

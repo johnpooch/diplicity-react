@@ -4,7 +4,7 @@ from opentelemetry import trace
 from common.permissions import (
     IsActiveGame,
     IsActiveOrCompletedGame,
-    IsActiveGameMember,
+    IsActiveGamePlayer,
     IsCurrentPhaseActive,
     IsUserPhaseStateExists,
     IsNotSandboxGame,
@@ -22,7 +22,7 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsCurrentPhaseActive,
         IsUserPhaseStateExists,
         IsNotSandboxGame,
@@ -77,7 +77,7 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsCurrentPhaseActive,
         IsSandboxGame,
     ]

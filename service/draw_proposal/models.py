@@ -48,7 +48,7 @@ class DrawProposalManager(models.Manager):
     def create_proposal(self, game, created_by):
         phase = game.current_phase
 
-        all_active_members = list(game.members.filter(
+        all_active_members = list(game.members.players().filter(
             eliminated=False, kicked=False
         ))
 

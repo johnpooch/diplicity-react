@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
-from common.constants import GameStatus
+from common.constants import GameStatus, MemberKind
 from common.models import BaseModel
 
 User = get_user_model()
@@ -10,6 +10,9 @@ User = get_user_model()
 class MemberQuerySet(models.QuerySet):
     def not_replaced(self):
         return self.filter(replaced_by__isnull=True)
+
+    def players(self):
+        return self.filter(kind=MemberKind.PLAYER)
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
@@ -102,6 +105,7 @@ class Member(BaseModel):
     objects = MemberManager()
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="members")
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="members")
+    kind = models.CharField(max_length=20, choices=MemberKind.KIND_CHOICES, default=MemberKind.PLAYER)
     nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members", null=True, blank=True)
     sandbox = models.BooleanField(default=False)
     won = models.BooleanField(default=False)
@@ -137,7 +141,16 @@ class Member(BaseModel):
                 condition=models.Q(sandbox=False),
                 name="unique_member_per_user_per_game",
             ),
+            models.UniqueConstraint(
+                fields=["game"],
+                condition=models.Q(kind=MemberKind.GAME_MASTER),
+                name="member_unique_game_master_per_game",
+            ),
         ]
+
+    @property
+    def is_game_master(self):
+        return self.kind == MemberKind.GAME_MASTER
 
     @property
     def replaceable(self):

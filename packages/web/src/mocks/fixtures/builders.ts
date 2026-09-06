@@ -262,6 +262,7 @@ export const makeMessage = (
     commitment: sender.commitment,
     isBot: sender.isBot,
     nation: nation((sender.nation ?? "england").toLowerCase()),
+    isGameMaster: false,
   },
   createdAt,
 });

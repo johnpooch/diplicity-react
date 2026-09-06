@@ -22,6 +22,10 @@ class IsGameMaster(BasePermission):
         return member.is_game_master
 ```
 
+## Player or participant
+
+Permission names say which kind of member they admit: a `…GamePlayer` class admits only members holding a seat, a `…GameParticipant` class admits any member row, so a non-playing game master passes. Reach for the participant variant only for capabilities a game master genuinely shares with players — reading and posting in public press — and the player variant for everything tied to a nation. A permission that lets a game master submit orders or claim a seat is a bug, not a generous default.
+
 ## Permissions vs validation
 
 Permissions answer questions about the resource being acted on and the identity of the requester — game status, membership, ownership, mode. They must not need request data. Validation that depends on the payload belongs in the serializer.

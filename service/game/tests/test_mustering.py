@@ -9,6 +9,7 @@ from rest_framework import status
 from common.constants import (
     DeadlineMode,
     GameStatus,
+    MemberKind,
     MovementPhaseDuration,
     MusterJob,
     PhaseFrequency,
@@ -459,6 +460,55 @@ class TestStatusAudit:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
+    @pytest.mark.django_db
+    def test_game_master_does_not_block_or_lose_a_seat_in_mustering(
+        self,
+        db,
+        primary_user,
+        secondary_user,
+        tertiary_user,
+        italy_vs_germany_variant,
+        in_memory_procrastinate,
+        authenticated_client_factory,
+    ):
+        game = Game.objects.create_from_template(
+            italy_vs_germany_variant,
+            name="GM Muster Game",
+            created_by=primary_user,
+            game_master=primary_user,
+            admin=primary_user,
+            private=True,
+            muster_required=True,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        game.channels.create(name="Public Press", private=False)
+        game.seat(primary_user, kind=MemberKind.GAME_MASTER)
+        game.seat(secondary_user)
+        game.seat(tertiary_user)
+        game.start_if_full()
+        game.refresh_from_db()
+        assert game.status == GameStatus.MUSTERING
+
+        assert primary_user.id not in {
+            m.user_id for m in game.unmustered_members()
+        }
+
+        authenticated_client_factory(secondary_user).post(
+            reverse("game-muster", args=[game.id])
+        )
+        authenticated_client_factory(tertiary_user).post(
+            reverse("game-muster", args=[game.id])
+        )
+
+        assert _expiry_job(game).scheduled_at is None
+
+        Game.objects.start_if_mustered(game.id)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+        assert not game.members.get(user=primary_user).kicked
+
     def test_game_master_can_delete_a_mustering_game(
         self,
         db,

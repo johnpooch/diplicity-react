@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MinReliability, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberKind, MinReliability, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -576,9 +576,11 @@ class GameCreateSerializer(serializers.Serializer):
             )
 
             public_channel = game.channels.create(name="Public Press", private=False)
-            if not with_game_master:
-                creator_member = game.members.create(user=request.user)
-                public_channel.member_channels.create(member=creator_member)
+            creator_member = game.members.create(
+                user=request.user,
+                kind=MemberKind.GAME_MASTER if with_game_master else MemberKind.PLAYER,
+            )
+            public_channel.member_channels.create(member=creator_member)
 
             game.start_if_full()
 

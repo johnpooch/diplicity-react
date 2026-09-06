@@ -28,7 +28,15 @@ class IsActiveOrCompletedGame(BasePermission):
         return game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
-class IsGameMember(BasePermission):
+class IsGamePlayer(BasePermission):
+    message = "User is not a player in the game."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.members.players().filter(user=request.user).exists()
+
+
+class IsGameParticipant(BasePermission):
     message = "User is not a member of the game."
 
     def has_permission(self, request, view):
@@ -36,7 +44,21 @@ class IsGameMember(BasePermission):
         return game.members.filter(user=request.user).exists()
 
 
-class IsNotKickedGameMember(BasePermission):
+class IsNotKickedGamePlayer(BasePermission):
+    message = "User is not a player in the game."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.players().filter(user=request.user).first()
+        if not member:
+            return False
+        if member.kicked:
+            self.message = "Cannot perform action for kicked players."
+            return False
+        return True
+
+
+class IsNotKickedGameParticipant(BasePermission):
     message = "User is not a member of the game."
 
     def has_permission(self, request, view):
@@ -50,15 +72,15 @@ class IsNotKickedGameMember(BasePermission):
         return True
 
 
-class IsActiveGameMember(BasePermission):
+class IsActiveGamePlayer(BasePermission):
     message = "User cannot perform this action."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
 
-        member = game.members.filter(user=request.user).first()
+        member = game.members.players().filter(user=request.user).first()
         if not member:
-            self.message = "User is not a member of the game."
+            self.message = "User is not a player in the game."
             return False
 
         if member.eliminated:
@@ -116,12 +138,12 @@ class IsPendingOrActiveGame(BasePermission):
         return game.status in (GameStatus.PENDING, GameStatus.MUSTERING, GameStatus.ACTIVE)
 
 
-class IsNotGameMember(BasePermission):
+class IsNotGamePlayer(BasePermission):
     message = "User is already a member of the game."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return not game.members.filter(user=request.user).exists()
+        return not game.members.players().filter(user=request.user).exists()
 
 
 class IsSpaceAvailable(BasePermission):
@@ -129,7 +151,7 @@ class IsSpaceAvailable(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.members.count() < game.variant.nations.filter(non_playable=False).count()
+        return game.members.players().count() < game.variant.nations.filter(non_playable=False).count()
 
 
 class MeetsReliabilityRequirement(BasePermission):
@@ -173,7 +195,7 @@ class IsUserPhaseStateExists(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.filter(user=request.user).first()
+        member = game.members.players().filter(user=request.user).first()
         if not member:
             return False
         current_phase = game.phases.last()
@@ -275,9 +297,9 @@ class IsInCivilDisorder(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.filter(user=request.user).first()
+        member = game.members.players().filter(user=request.user).first()
         if not member:
-            self.message = "User is not a member of the game."
+            self.message = "User is not a player in the game."
             return False
         return member.civil_disorder
 
@@ -287,9 +309,9 @@ class IsUnmusteredMember(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.filter(user=request.user).first()
+        member = game.members.players().filter(user=request.user).first()
         if not member:
-            self.message = "User is not a member of the game."
+            self.message = "User is not a player in the game."
             return False
         return member.mustered_at is None
 

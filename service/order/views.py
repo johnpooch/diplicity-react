@@ -11,7 +11,7 @@ from .serializers import OrderSerializer, OrderOptionsResponseSerializer
 from .utils import flatten_options, build_move_coast_lookup, FIELD_ORDER
 from common.constants import PhaseStatus
 from common.etag import if_none_match
-from common.permissions import IsActiveGame, IsActiveGameMember, IsCurrentPhaseActive
+from common.permissions import IsActiveGame, IsActiveGamePlayer, IsCurrentPhaseActive
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
 from common.serializers import EmptySerializer
 
@@ -60,7 +60,7 @@ class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsCurrentPhaseActive,
     ]
     serializer_class = OrderSerializer
@@ -74,7 +74,7 @@ class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
         phase = self.get_phase()
         province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
         transformed = phase.transformed_options or {}
-        members = phase.game.members.select_related("nation").filter(
+        members = phase.game.members.players().select_related("nation").filter(
             user=request.user, eliminated=False, kicked=False
         )
         nation_names = [m.nation.name for m in members]
@@ -93,7 +93,7 @@ class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsCurrentPhaseActive,
     ]
     serializer_class = EmptySerializer

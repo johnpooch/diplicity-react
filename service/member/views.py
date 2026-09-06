@@ -9,7 +9,7 @@ from .models import Member
 from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGameMember, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGameMember, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGameMember, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGamePlayer, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGamePlayer, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
@@ -25,7 +25,7 @@ class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
 @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
 class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
     serializer_class = MemberJoinSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGamePlayer, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
 
 
 @extend_schema(exclude=True)
@@ -45,7 +45,7 @@ class LegacyMemberCreateView(MemberCreateView):
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingOrMusteringGame, IsGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsPendingOrMusteringGame, IsGamePlayer]
 
     def get_object(self):
         game = self.get_game()
@@ -93,7 +93,7 @@ class MemberReplaceView(SelectedGameMixin, generics.CreateAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsNotGameMember,
+        IsNotGamePlayer,
         IsNotGameMaster,
         IsReplaceableMember,
         MeetsCommitmentRequirement,
@@ -116,7 +116,7 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsMusteringGame,
-        IsGameMember,
+        IsGamePlayer,
         IsUnmusteredMember,
     ]
 
@@ -141,7 +141,7 @@ class MemberNationPreferenceView(SelectedGameMixin, generics.GenericAPIView):
     preference."""
 
     serializer_class = MemberNationPreferenceSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGamePlayer]
 
     def get_object(self):
         game = self.get_game()
@@ -187,7 +187,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsNotKickedGameMember,
+        IsNotKickedGamePlayer,
         IsInCivilDisorder,
     ]
 

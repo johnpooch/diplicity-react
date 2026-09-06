@@ -20,7 +20,7 @@ from .serializers import (
 )
 from common.views import SelectedGameMixin
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameManager, CanDeleteGame
+from common.permissions import IsActiveGame, IsGamePlayer, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
 from emit import emit
 from .filters import GameFilter
@@ -118,7 +118,7 @@ class CreateSandboxGameView(generics.CreateAPIView):
 
 
 class GameCloneToSandboxView(SelectedGameMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGamePlayer]
     serializer_class = GameCloneToSandboxSerializer
 
 

@@ -410,6 +410,7 @@ class ChannelMember(TypedDict):
     is_bot: bool
     commitment: str | None
     nation: Nation | None
+    is_game_master: bool
 
 
 class ChannelMessage(TypedDict):
