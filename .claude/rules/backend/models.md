@@ -11,6 +11,8 @@ Two responsibilities: define fields, and define properties for convenient access
 
 **Encode identity with one discriminant; derive the rest.** Prefer a single `kind` (or similar enum) over parallel flags or “has related row” checks (`hasattr(user, "bot_profile")`). Convenience APIs are `@property` methods on the model (`is_bot`).
 
+**`Member` is a participant in a game, not necessarily a player.** `Member.kind` discriminates the roles; a game master holds a member row with no nation, no phase state, and no seat against the variant's nation count. Anything that means *player* — seat counting, nation assignment, phase states, draws, victory, abandonment — must go through `Member.objects.players()` / `game.members.players()`, and a new query over `game.members` has to decide which it means. Do not reintroduce a second source of truth for the role by re-deriving it from `Game.game_master`.
+
 **Do not leave unused domain in the schema for a future feature.** If fields are not used yet, remove them and re-add when the feature lands. Absent beats switched-off scaffolding.
 
 Query optimisation belongs on a custom QuerySet, never in a view:

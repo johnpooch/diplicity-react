@@ -1991,11 +1991,15 @@ components:
           allOf:
           - $ref: '#/components/schemas/Nation'
           nullable: true
+        isGameMaster:
+          type: boolean
+          readOnly: true
       required:
       - commitment
       - id
       - isBot
       - isCurrentUser
+      - isGameMaster
       - name
       - nation
       - picture

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from common.permissions import (
     IsActiveGame,
     IsActiveOrCompletedGame,
-    IsActiveGameMember,
+    IsActiveGamePlayer,
     IsCurrentPhaseActive,
     IsNotSandboxGame,
 )
@@ -30,7 +30,7 @@ class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsNotSandboxGame,
         IsCurrentPhaseActive,
     ]
@@ -41,7 +41,7 @@ class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsNotSandboxGame,
         IsCurrentPhaseActive,
     ]
@@ -71,7 +71,7 @@ class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsActiveGamePlayer,
         IsNotSandboxGame,
     ]
     serializer_class = DrawProposalSerializer
