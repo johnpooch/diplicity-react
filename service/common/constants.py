@@ -164,6 +164,16 @@ class UserKind:
     BOT_KINDS = (LLM, DUMBBOT)
 
 
+class MemberKind:
+    PLAYER = "player"
+    GAME_MASTER = "game_master"
+
+    KIND_CHOICES = (
+        (PLAYER, "Player"),
+        (GAME_MASTER, "Game Master"),
+    )
+
+
 class CommitmentRequirement:
     OPEN = "open"
     COMMITTED = "committed"

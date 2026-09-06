@@ -1,6 +1,6 @@
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
-from common.permissions import IsActiveOrCompletedGame, IsGameMember, IsChannelMember, IsNotKickedGameMember, IsNotSandboxGame, IsNotNoPressActiveGame
+from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
 
 from .models import Channel
 from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer
@@ -8,17 +8,17 @@ from common.views import SelectedGameMixin, SelectedChannelMixin, CurrentGameMem
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsNotKickedGameMember, IsNotSandboxGame, IsNotNoPressActiveGame]
+    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsNotKickedGamePlayer, IsNotSandboxGame, IsNotNoPressActiveGame]
     serializer_class = ChannelSerializer
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsNotKickedGameMember, IsChannelMember, IsNotSandboxGame, IsNotNoPressActiveGame]
+    permission_classes = [permissions.IsAuthenticated, IsNotKickedGameParticipant, IsChannelMember, IsNotSandboxGame, IsNotNoPressActiveGame]
     serializer_class = ChannelMessageSerializer
 
 
 class ChannelMarkReadView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsGameMember, IsChannelMember]
+    permission_classes = [permissions.IsAuthenticated, IsGameParticipant, IsChannelMember]
     serializer_class = ChannelMarkReadSerializer
 
     def create(self, request, *args, **kwargs):
