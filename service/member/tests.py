@@ -523,21 +523,24 @@ def _record_nmr(game, member):
     return phase
 
 
-def _record_phase(game, member, ordinal, phase_type, has_possible_orders, orders_outcome):
-    phase = game.phases.create(
-        variant=game.variant,
-        season="Spring",
-        year=1900,
-        type=phase_type,
-        status=PhaseStatus.COMPLETED,
-        ordinal=ordinal,
-    )
-    phase.phase_states.create(
-        member=member,
-        has_possible_orders=has_possible_orders,
-        orders_outcome=orders_outcome,
-    )
-    return phase
+def _record_history(game, member, entries):
+    active_phase = game.current_phase
+    active_phase.ordinal = len(entries) + 1
+    active_phase.save(update_fields=["ordinal"])
+    for ordinal, (phase_type, has_possible_orders, orders_outcome) in enumerate(entries, start=1):
+        phase = game.phases.create(
+            variant=game.variant,
+            season="Spring",
+            year=1900 + ordinal,
+            type=phase_type,
+            status=PhaseStatus.COMPLETED,
+            ordinal=ordinal,
+        )
+        phase.phase_states.create(
+            member=member,
+            has_possible_orders=has_possible_orders,
+            orders_outcome=orders_outcome,
+        )
 
 
 class TestRemoveMemberFromActiveGame:
@@ -727,8 +730,14 @@ class TestRemovalRequiresMissedOrders:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        _record_phase(game, member, 0, "Movement", True, PhaseState.OrdersOutcome.NMR)
-        _record_phase(game, member, 1, "Retreat", False, None)
+        _record_history(
+            game,
+            member,
+            [
+                ("Movement", True, PhaseState.OrdersOutcome.NMR),
+                ("Retreat", False, None),
+            ],
+        )
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         response = authenticated_client.delete(url)
@@ -741,9 +750,15 @@ class TestRemovalRequiresMissedOrders:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        _record_phase(game, member, 0, "Movement", True, PhaseState.OrdersOutcome.NMR)
-        _record_phase(game, member, 1, "Retreat", False, None)
-        _record_phase(game, member, 2, "Adjustment", False, None)
+        _record_history(
+            game,
+            member,
+            [
+                ("Movement", True, PhaseState.OrdersOutcome.NMR),
+                ("Retreat", False, None),
+                ("Adjustment", False, None),
+            ],
+        )
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         response = authenticated_client.delete(url)
@@ -756,9 +771,15 @@ class TestRemovalRequiresMissedOrders:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        _record_phase(game, member, 0, "Movement", True, PhaseState.OrdersOutcome.NMR)
-        _record_phase(game, member, 1, "Retreat", True, PhaseState.OrdersOutcome.RECEIVED)
-        _record_phase(game, member, 2, "Adjustment", False, None)
+        _record_history(
+            game,
+            member,
+            [
+                ("Movement", True, PhaseState.OrdersOutcome.NMR),
+                ("Retreat", True, PhaseState.OrdersOutcome.RECEIVED),
+                ("Adjustment", False, None),
+            ],
+        )
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         response = authenticated_client.delete(url)
@@ -771,12 +792,55 @@ class TestRemovalRequiresMissedOrders:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        _record_phase(game, member, 0, "Movement", False, None)
+        _record_history(game, member, [("Movement", False, None)])
 
         url = reverse(kick_viewname, args=[game.id, member.id])
         response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_eliminated_member_who_missed_orders_cannot_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_history(
+            game,
+            member,
+            [
+                ("Movement", True, PhaseState.OrdersOutcome.NMR),
+                ("Movement", False, None),
+            ],
+        )
+        member.eliminated = True
+        member.save()
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_removability_does_not_scale_queries_with_phase_history(
+        self, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_history(
+            game,
+            member,
+            [("Movement", True, PhaseState.OrdersOutcome.NMR)]
+            + [("Movement", False, None)] * 20,
+        )
+        fresh = Game.objects.get(id=game.id)
+        fresh_member = fresh.members.get(id=member.id)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            assert fresh.can_remove_member(fresh_member) is True
+
+        assert len(connection.queries) == 3
 
     @pytest.mark.django_db
     def test_already_removed_member_cannot_be_removed_again(
@@ -822,8 +886,14 @@ class TestRemovableSerialization:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        _record_phase(game, member, 0, "Movement", True, PhaseState.OrdersOutcome.NMR)
-        _record_phase(game, member, 1, "Retreat", False, None)
+        _record_history(
+            game,
+            member,
+            [
+                ("Movement", True, PhaseState.OrdersOutcome.NMR),
+                ("Retreat", False, None),
+            ],
+        )
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 

@@ -578,25 +578,38 @@ class Game(BaseModel):
     def bot_members(self):
         return self.members.filter(user__profile__kind__in=UserKind.BOT_KINDS).select_related("user")
 
-    @cached_property
-    def nmrd_member_ids(self):
-        with tracer.start_as_current_span("game.models.nmrd_member_ids"):
+    def _latest_orderable_outcomes(self):
+        if "phases" in getattr(self, "_prefetched_objects_cache", {}):
             completed = sorted(
                 (p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED),
                 key=lambda p: p.ordinal,
                 reverse=True,
             )
-            latest_outcome_by_member = {}
+            outcomes = {}
             for phase in completed:
                 for phase_state in phase.phase_states.all():
                     if not phase_state.has_possible_orders:
                         continue
-                    latest_outcome_by_member.setdefault(
-                        phase_state.member_id, phase_state.orders_outcome
-                    )
+                    outcomes.setdefault(phase_state.member_id, phase_state.orders_outcome)
+            return outcomes
+
+        return dict(
+            PhaseState.objects.filter(
+                phase__game=self,
+                phase__status=PhaseStatus.COMPLETED,
+                has_possible_orders=True,
+            )
+            .order_by("member_id", "-phase__ordinal", "-phase_id")
+            .distinct("member_id")
+            .values_list("member_id", "orders_outcome")
+        )
+
+    @cached_property
+    def nmrd_member_ids(self):
+        with tracer.start_as_current_span("game.models.nmrd_member_ids"):
             return {
                 member_id
-                for member_id, outcome in latest_outcome_by_member.items()
+                for member_id, outcome in self._latest_orderable_outcomes().items()
                 if outcome == PhaseState.OrdersOutcome.NMR
             }
 
@@ -692,7 +705,12 @@ class Game(BaseModel):
 
     def can_remove_member(self, member):
         with tracer.start_as_current_span("game.models.can_remove_member"):
-            if member.is_game_master or member.kicked or member.replaced_by_id is not None:
+            if (
+                member.is_game_master
+                or member.kicked
+                or member.eliminated
+                or member.replaced_by_id is not None
+            ):
                 return False
             if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
                 return True
