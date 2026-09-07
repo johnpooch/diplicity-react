@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 import { type LucideIcon } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface NavigationItemType {
   label: string;
@@ -10,7 +15,7 @@ export interface NavigationItemType {
 
 interface NavigationProps {
   items: NavigationItemType[];
-  variant: "sidebar" | "bottom";
+  variant: "sidebar" | "compact" | "bottom";
   className?: string;
 }
 
@@ -23,7 +28,9 @@ const Navigation: React.FC<NavigationProps> = ({
     "flex",
     variant === "bottom"
       ? "h-14 flex-row items-center justify-around px-2"
-      : "w-60 flex-col gap-1 p-2",
+      : "flex-col gap-1 p-2",
+    variant === "sidebar" && "w-60",
+    variant === "compact" && "w-14 items-center gap-0",
     className
   );
 
@@ -33,16 +40,24 @@ const Navigation: React.FC<NavigationProps> = ({
         const Icon = item.icon;
         const isActive = item.isActive ?? false;
 
-        return (
+        const button = (
           <button
             key={item.label}
             type="button"
             aria-current={isActive ? "page" : undefined}
+            aria-label={item.badge ? `${item.label}, ${item.badge}` : undefined}
             className={cn(
               "flex items-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               variant === "sidebar" &&
                 cn(
                   "w-full gap-3 rounded-lg px-3 py-2",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                ),
+              variant === "compact" &&
+                cn(
+                  "size-12 justify-center rounded-lg",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50"
@@ -58,12 +73,16 @@ const Navigation: React.FC<NavigationProps> = ({
           >
             <div className="relative">
               <Icon
-                className="size-5"
+                className={variant === "compact" ? "size-6" : "size-5"}
                 strokeWidth={isActive ? 2.5 : 1.5}
               />
-              {variant === "bottom" && item.badge && (
-                <span className="absolute -right-1 -top-1 size-2 rounded-full bg-primary" />
-              )}
+              {(variant === "compact" || variant === "bottom") &&
+                item.badge && (
+                  <span
+                    className="absolute -right-1 -top-1 size-2 rounded-full bg-primary ring-2 ring-background"
+                    aria-hidden
+                  />
+                )}
             </div>
             {variant === "sidebar" && (
               <>
@@ -80,6 +99,17 @@ const Navigation: React.FC<NavigationProps> = ({
             )}
           </button>
         );
+
+        if (variant === "compact") {
+          return (
+            <Tooltip key={item.label}>
+              <TooltipTrigger asChild>{button}</TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return button;
       })}
     </nav>
   );

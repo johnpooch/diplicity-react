@@ -49,7 +49,7 @@ const Channel: React.FC<{ state: string }> = ({ state }) => {
               </EmptyMedia>
               <EmptyTitle>No messages yet</EmptyTitle>
               <EmptyDescription>
-                Nobody has written in this channel. Someone has to go first.
+                Nobody has written in this channel.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

@@ -1,6 +1,16 @@
-const DiplicityLogo: React.FC = () => {
+import { cn } from "@/lib/utils";
+
+interface DiplicityLogoProps {
+  className?: string;
+}
+
+const DiplicityLogo: React.FC<DiplicityLogoProps> = ({ className }) => {
   return (
-    <img src="/otto.png" alt="Diplicity" style={{ height: 32, width: 32 }} />
+    <img
+      src="/otto.png"
+      alt="Diplicity"
+      className={cn("size-8", className)}
+    />
   );
 };
 
