@@ -391,6 +391,17 @@ class TestSeatedExceptActorResolver:
         )
         assert result == {state["active_two"].user_id}
 
+    def test_game_deleted_excludes_the_actor(self, emit_game):
+        state = emit_game()
+        actor = state["active_one"].user
+        result = resolve_recipients(
+            "game_deleted",
+            game=state["game"],
+            actor=actor,
+            recipients=[actor.id, state["active_two"].user_id],
+        )
+        assert result == {state["active_two"].user_id}
+
 
 class TestActiveExceptActorResolver:
     @pytest.mark.django_db
