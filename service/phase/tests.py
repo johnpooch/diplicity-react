@@ -3671,6 +3671,15 @@ class TestCivilDisorderStagingRemoval:
         assert staging_removal_notifications.count() == 1
         assert list(staging_removal_notifications.values_list("recipient_id", flat=True)) == [primary_user.id]
 
+        delivery = NotificationDelivery.objects.get(
+            notification=staging_removal_notifications.get(),
+            channel=NotificationDelivery.Channel.PUSH,
+        )
+        assert delivery.heading == "Staging Game"
+        assert delivery.body == (
+            "You were removed from this game because you entered civil disorder in Active CD Game."
+        )
+
 
     @pytest.mark.django_db
     def test_cd_does_not_remove_game_creator_from_staging(
@@ -3706,6 +3715,52 @@ class TestCivilDisorderStagingRemoval:
 
         assert staging_game.members.filter(user=primary_user).exists()
         assert staging_game.members.filter(user=secondary_user).exists()
+
+    @pytest.mark.django_db
+    def test_cd_staging_removal_notification_names_the_active_game_for_every_staging_game(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany, phase2 = self._setup_cd_scenario(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        for name in ["First Staging Game", "Second Staging Game"]:
+            staging_game = Game.objects.create(
+                variant=italy_vs_germany_variant,
+                name=name,
+                status=GameStatus.PENDING,
+                created_by=secondary_user,
+            )
+            staging_game.members.create(user=primary_user)
+            staging_game.members.create(user=secondary_user)
+
+        newly_cd_members = Phase.objects._check_civil_disorder(phase2)
+        Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
+
+        deliveries = NotificationDelivery.objects.filter(
+            notification__event_type="removed_from_staging",
+            notification__recipient=primary_user,
+            channel=NotificationDelivery.Channel.PUSH,
+        )
+        assert sorted(deliveries.values_list("heading", flat=True)) == [
+            "First Staging Game",
+            "Second Staging Game",
+        ]
+        assert set(deliveries.values_list("body", flat=True)) == {
+            "You were removed from this game because you entered civil disorder in Active CD Game."
+        }
 
 
 class TestCivilDisorderExcludesEliminatedMembers:

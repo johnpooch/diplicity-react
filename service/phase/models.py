@@ -408,7 +408,7 @@ class PhaseManager(models.Manager):
             return
 
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
-        self._remove_from_staging_games(cd_user_ids)
+        self._remove_from_staging_games(cd_user_ids, phase.game)
 
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
@@ -416,7 +416,7 @@ class PhaseManager(models.Manager):
 
         emit("civil_disorder", game=phase.game, nation_names=nation_names)
 
-    def _remove_from_staging_games(self, user_ids):
+    def _remove_from_staging_games(self, user_ids, active_game):
         if not user_ids:
             return
 
@@ -440,7 +440,12 @@ class PhaseManager(models.Manager):
         for m in staging_members:
             if m.user_id is None:
                 continue
-            emit("removed_from_staging", game=m.game, recipients=[m.user_id])
+            emit(
+                "removed_from_staging",
+                game=m.game,
+                recipients=[m.user_id],
+                active_game_name=active_game.name,
+            )
 
         from game.models import Game
         for game in Game.objects.filter(

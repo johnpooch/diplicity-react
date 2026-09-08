@@ -296,11 +296,11 @@ class SeatFilledSpec(NotificationSpec):
 
 @register("removed_from_staging")
 class RemovedFromStagingSpec(NotificationSpec):
-    def get_title(self):
-        return "Removed from staging games"
-
     def get_body(self):
-        return f"You were removed from {self.context.game.name} because you entered civil disorder in an active game."
+        return (
+            "You were removed from this game because you entered "
+            f"civil disorder in {self.context.payload['active_game_name']}."
+        )
 
 
 @register("civil_disorder")
