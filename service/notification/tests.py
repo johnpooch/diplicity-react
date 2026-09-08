@@ -19,7 +19,6 @@ from notification.registry import ChannelMessageSpec
 from notification.tasks import DELIVER_MAX_AGE_HOURS, PRUNE_AFTER_DAYS, deliver, prune
 from notification.utils import PUSH_TTL, build_push_message
 from phase.models import Phase
-from user_profile.models import UserProfile
 from victory.models import Victory
 
 User = get_user_model()
@@ -30,12 +29,6 @@ _truncate = ChannelMessageSpec._truncate
 def _push(event_type):
     return NotificationDelivery.objects.filter(
         notification__event_type=event_type, channel=NotificationDelivery.Channel.PUSH
-    )
-
-
-def _email(event_type):
-    return NotificationDelivery.objects.filter(
-        notification__event_type=event_type, channel=NotificationDelivery.Channel.EMAIL
     )
 
 
@@ -52,7 +45,7 @@ def _rendered_push(**overrides):
         "data": None,
     }
     content.update(overrides)
-    return [content]
+    return content
 
 
 def _push_delivery(user, status=NotificationDelivery.Status.PENDING):
@@ -72,11 +65,10 @@ def _backdate(delivery, age):
 
 class _StubSpec:
     def __init__(self, rendered):
-        self.channels = [content["channel"] for content in rendered]
         self._rendered = rendered
 
-    def render(self, channel):
-        return next(content for content in self._rendered if content["channel"] == channel)
+    def render(self):
+        return self._rendered
 
 
 def _send_channel_message(channel, member, body):
@@ -744,47 +736,6 @@ class TestPhaseResolvedNotification:
         Phase.objects._emit_phase_resolved(phase)
 
         assert_notification(primary_user, "phase_resolved")
-
-    @pytest.mark.django_db
-    def test_early_resolution_email_subject_marks_resolved_early(
-        self,
-        classical_variant,
-        primary_user,
-        in_memory_procrastinate,
-    ):
-        primary_user.profile.email_notifications_enabled = True
-        primary_user.profile.save()
-        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12), primary_user)
-
-        Phase.objects._emit_phase_resolved(phase)
-
-        delivery = _email("phase_resolved_early").first()
-        assert delivery is not None
-        assert "Resolved Early" in delivery.heading
-
-
-class TestGameStartEmailNotification:
-
-    @pytest.mark.django_db
-    def test_game_start_defers_email_notification(
-        self, pending_game_with_game_master_factory, adjudication_data_classical, in_memory_procrastinate
-    ):
-        game = pending_game_with_game_master_factory()
-        player_count = game.variant.nations.count()
-        for i in range(player_count):
-            user = User.objects.create_user(f"start_email_player{i}@test.com", password="testpass")
-            UserProfile.objects.create(user=user, name=f"Start Email Player {i}", email_notifications_enabled=True)
-            game.members.create(user=user)
-
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
-            game.start()
-
-        deliveries = _email("game_start")
-        assert deliveries.count() == player_count
-        delivery = deliveries.first()
-        assert "Game Started" in delivery.heading
-        assert game.name in delivery.heading
-        assert game.name in delivery.body
 
 
 class TestNotificationDeliveryBroadcast:
