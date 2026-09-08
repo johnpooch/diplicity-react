@@ -211,6 +211,8 @@ class PhaseResolvedEarlySpec(NotificationSpec):
 
 @register("game_deleted")
 class GameDeletedSpec(NotificationSpec):
+    exclude_actor = True
+
     def get_title(self):
         return self.context.payload["game_name"]
 
