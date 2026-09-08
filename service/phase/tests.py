@@ -4030,7 +4030,6 @@ class TestSetOrdersOutcome:
         primary_user,
         secondary_user,
     ):
-        """Civil disorder auto-sets orders_confirmed=True, but outcome must still be nmr."""
         phase, italy, _ = self._setup_phase(
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
@@ -4042,6 +4041,56 @@ class TestSetOrdersOutcome:
         italy.save()
         ps = phase.phase_states.create(
             member=italy, has_possible_orders=True, orders_confirmed=True
+        )
+
+        Phase.objects._set_orders_outcome(phase)
+
+        ps.refresh_from_db()
+        assert ps.orders_outcome == PhaseState.OrdersOutcome.NMR
+
+    @pytest.mark.django_db
+    def test_confirmed_with_no_orders_gets_received(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        phase, italy, _ = self._setup_phase(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
+
+        Phase.objects._set_orders_outcome(phase)
+
+        ps.refresh_from_db()
+        assert ps.orders_outcome == PhaseState.OrdersOutcome.RECEIVED
+
+    @pytest.mark.django_db
+    def test_unconfirmed_with_no_orders_gets_nmr(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        phase, italy, _ = self._setup_phase(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
         )
 
         Phase.objects._set_orders_outcome(phase)
@@ -5242,7 +5291,7 @@ class TestNMRExtensionsFixedTime:
         assert italy.nmr_extensions_remaining == 1
 
     @pytest.mark.django_db
-    def test_fixed_time_confirmed_with_no_orders_still_applies_extension(
+    def test_fixed_time_confirmed_with_no_orders_skips_extension(
         self,
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
@@ -5267,9 +5316,9 @@ class TestNMRExtensionsFixedTime:
 
         result = Phase.objects._apply_nmr_extensions(phase)
 
-        assert result is not None
+        assert result is None
         italy.refresh_from_db()
-        assert italy.nmr_extensions_remaining == 0
+        assert italy.nmr_extensions_remaining == 1
 
     @pytest.mark.django_db
     def test_fixed_time_civil_disorder_member_does_not_consume_extension(

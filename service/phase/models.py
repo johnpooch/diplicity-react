@@ -299,8 +299,9 @@ class PhaseManager(models.Manager):
             has_possible_orders=True
         ).annotate(order_count=Count("orders"))
 
-        received_ids = list(base_qs.filter(order_count__gt=0).values_list("id", flat=True))
-        nmr_ids = list(base_qs.filter(order_count=0).values_list("id", flat=True))
+        received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder=False)
+        received_ids = list(base_qs.filter(received).values_list("id", flat=True))
+        nmr_ids = list(base_qs.exclude(received).values_list("id", flat=True))
 
         if received_ids:
             PhaseState.objects.filter(id__in=received_ids).update(
@@ -812,6 +813,7 @@ class Phase(BaseModel):
         phase_states = (
             self.phase_states.filter(
                 has_possible_orders=True,
+                orders_confirmed=False,
                 member__nmr_extensions_remaining__gt=0,
             )
             .exclude(member__civil_disorder=True)
