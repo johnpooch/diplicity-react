@@ -258,6 +258,7 @@ class PhaseManager(models.Manager):
             time_left = format_time_remaining(time_until_deadline)
 
             actionable_units = phase.actionable_units
+            forced_nations = phase.nations_with_forced_orders
 
             is_adjustment = phase.type == PhaseType.ADJUSTMENT
             warned_states = []
@@ -266,6 +267,8 @@ class PhaseManager(models.Manager):
                 if not ps.has_possible_orders:
                     continue
                 if ps.deadline_warning_sent_for == phase.scheduled_resolution:
+                    continue
+                if ps.member.nation_id in forced_nations:
                     continue
 
                 total_units = actionable_units.get(ps.member.nation_id, 0)
@@ -297,6 +300,8 @@ class PhaseManager(models.Manager):
     def _set_orders_outcome(self, phase):
         base_qs = phase.phase_states.filter(
             has_possible_orders=True
+        ).exclude(
+            member__nation_id__in=phase.nations_with_forced_orders
         ).annotate(order_count=Count("orders"))
 
         received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder=False)
@@ -409,7 +414,7 @@ class PhaseManager(models.Manager):
             return
 
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
-        self._remove_from_staging_games(cd_user_ids)
+        self._remove_from_staging_games(cd_user_ids, phase.game)
 
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
@@ -417,7 +422,7 @@ class PhaseManager(models.Manager):
 
         emit("civil_disorder", game=phase.game, nation_names=nation_names)
 
-    def _remove_from_staging_games(self, user_ids):
+    def _remove_from_staging_games(self, user_ids, active_game):
         if not user_ids:
             return
 
@@ -441,7 +446,12 @@ class PhaseManager(models.Manager):
         for m in staging_members:
             if m.user_id is None:
                 continue
-            emit("removed_from_staging", game=m.game, recipients=[m.user_id])
+            emit(
+                "removed_from_staging",
+                game=m.game,
+                recipients=[m.user_id],
+                active_game_name=active_game.name,
+            )
 
         from game.models import Game
         for game in Game.objects.filter(
@@ -809,6 +819,25 @@ class Phase(BaseModel):
         return unit_counts
 
     @property
+    def nations_with_forced_orders(self):
+        if self.type != PhaseType.ADJUSTMENT:
+            return set()
+
+        unit_counts = {}
+        for unit in self.units.all():
+            unit_counts[unit.nation_id] = unit_counts.get(unit.nation_id, 0) + 1
+
+        sc_counts = {}
+        for supply_center in self.supply_centers.all():
+            sc_counts[supply_center.nation_id] = sc_counts.get(supply_center.nation_id, 0) + 1
+
+        return {
+            nation_id
+            for nation_id, unit_count in unit_counts.items()
+            if unit_count > 0 and sc_counts.get(nation_id, 0) == 0
+        }
+
+    @property
     def members_that_require_nmr_extension(self):
         phase_states = (
             self.phase_states.filter(
@@ -822,10 +851,12 @@ class Phase(BaseModel):
             .select_related("member")
         )
         actionable_units = self.actionable_units
+        forced_nations = self.nations_with_forced_orders
         return [
             phase_state.member
             for phase_state in phase_states
             if actionable_units.get(phase_state.member.nation_id, 0) > 0
+            and phase_state.member.nation_id not in forced_nations
         ]
 
     @property
