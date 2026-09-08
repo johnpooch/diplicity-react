@@ -304,8 +304,9 @@ class PhaseManager(models.Manager):
             member__nation_id__in=phase.nations_with_forced_orders
         ).annotate(order_count=Count("orders"))
 
-        received_ids = list(base_qs.filter(order_count__gt=0).values_list("id", flat=True))
-        nmr_ids = list(base_qs.filter(order_count=0).values_list("id", flat=True))
+        received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder=False)
+        received_ids = list(base_qs.filter(received).values_list("id", flat=True))
+        nmr_ids = list(base_qs.exclude(received).values_list("id", flat=True))
 
         if received_ids:
             PhaseState.objects.filter(id__in=received_ids).update(
@@ -413,13 +414,15 @@ class PhaseManager(models.Manager):
             return
 
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
-        self._remove_from_staging_games(cd_user_ids, phase.game)
 
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
 
+        emit("entered_civil_disorder", game=phase.game, recipients=cd_user_ids)
         emit("civil_disorder", game=phase.game, nation_names=nation_names)
+
+        self._remove_from_staging_games(cd_user_ids, phase.game)
 
     def _remove_from_staging_games(self, user_ids, active_game):
         if not user_ids:
@@ -841,6 +844,7 @@ class Phase(BaseModel):
         phase_states = (
             self.phase_states.filter(
                 has_possible_orders=True,
+                orders_confirmed=False,
                 member__nmr_extensions_remaining__gt=0,
             )
             .exclude(member__civil_disorder=True)
