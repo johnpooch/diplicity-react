@@ -4751,6 +4751,42 @@ class TestSendDeadlineWarnings:
         mock_send_notification_to_users.assert_not_called()
 
     @pytest.mark.django_db
+    def test_fixed_time_confirmed_no_orders_no_notification(
+        self,
+        deadline_warning_game_factory,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_fixed_time_confirmed_some_orders_no_notification(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
     def test_fixed_time_some_orders_sends_partial_notification(
         self,
         deadline_warning_game_factory,

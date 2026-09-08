@@ -37,10 +37,11 @@ def build_notification_body(
     else:
         nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."
 
+    if orders_confirmed:
+        return None
+
     if is_fixed_time:
         if orders_given == total_units:
-            if orders_confirmed:
-                return None
             return (
                 f"All orders ready. Confirm to advance the game early — "
                 f"the next deadline may move sooner too. {time_left} remaining."
@@ -58,8 +59,6 @@ def build_notification_body(
             f"{nmr_suffix}"
         )
     else:
-        if orders_confirmed:
-            return None
         if orders_given == total_units:
             return (
                 f"Deadline approaching - orders ready, waiting confirmation. "
