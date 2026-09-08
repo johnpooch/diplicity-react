@@ -301,18 +301,27 @@ class RemovedFromStagingSpec(NotificationSpec):
         return f"You were removed from {self.context.game.name} because you entered civil disorder in an active game."
 
 
+@register("entered_civil_disorder")
+class EnteredCivilDisorderSpec(NotificationSpec):
+    channels = [Channel.PUSH, Channel.EMAIL]
+    email_link_text = "Return to Game"
+
+    def get_body(self):
+        return (
+            f"You have entered civil disorder in {self.context.game.name}. "
+            "Your units hold each turn until you return to the game."
+        )
+
+    def get_email_subject(self):
+        return f"{self.context.game.name} — Civil Disorder"
+
+
 @register("civil_disorder")
 class CivilDisorderSpec(NotificationSpec):
     channels = [Channel.PUSH, Channel.EMAIL]
 
     def get_audience(self):
         return self.context.game.active_member_user_ids()
-
-    def get_link(self):
-        return None
-
-    def get_title(self):
-        return "Civil Disorder"
 
     def get_body(self):
         return f"{self.context.payload['nation_names']} entered civil disorder."

@@ -8,6 +8,7 @@ from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
+from notification.models import Notification
 from victory.models import Victory
 from common.constants import (
     DeadlineMode,
@@ -1229,6 +1230,13 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     assert len(cd_calls) == 1
     assert germany_member.user.id not in cd_calls[0].kwargs["user_ids"]
     assert italy_member.user.id in cd_calls[0].kwargs["user_ids"]
+
+    assert Notification.objects.filter(
+        recipient=germany_member.user, event_type="entered_civil_disorder"
+    ).exists()
+    assert not Notification.objects.filter(
+        recipient=italy_member.user, event_type="entered_civil_disorder"
+    ).exists()
 
     fall_1902 = resolve_until("Fall", 1902, "Movement")
 
