@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -10,6 +11,7 @@ from channel.models import Channel, ChannelMessage
 from channel.serializers import ChannelMessageSerializer
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus
 from draw_proposal.models import DrawProposal
+from emit.dispatch import emit
 from emit.context import build_context
 from game.models import Game
 from member.models import Member
@@ -211,6 +213,7 @@ class TestRegistry:
             "removed_from_game",
             "removed_from_staging",
             "seat_filled",
+            "entered_civil_disorder",
             "civil_disorder",
             "civil_disorder_recovery",
             "elimination",
@@ -417,6 +420,7 @@ class TestExplicitResolvers:
             "kicked_from_staging",
             "removed_from_game",
             "removed_from_staging",
+            "entered_civil_disorder",
             "elimination",
             "deadline_warning",
         ],
@@ -736,6 +740,54 @@ class TestPhaseResolvedNotification:
         Phase.objects._emit_phase_resolved(phase)
 
         assert_notification(primary_user, "phase_resolved")
+
+
+class TestEnteredCivilDisorderNotification:
+
+    @staticmethod
+    def _game_with_member(variant, user):
+        game = Game.objects.create(
+            variant=variant,
+            name="Civil Disorder Notify Test",
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=user)
+        return game
+
+    @pytest.mark.django_db
+    def test_notification_is_headed_by_the_game_name(
+        self, classical_variant, primary_user, in_memory_procrastinate
+    ):
+        game = self._game_with_member(classical_variant, primary_user)
+
+        emit("entered_civil_disorder", game=game, recipients=[primary_user.id])
+
+        assert_notification(primary_user, "entered_civil_disorder", title=game.name)
+
+    @pytest.mark.django_db
+    def test_notification_body_names_the_game(
+        self, classical_variant, primary_user, in_memory_procrastinate
+    ):
+        game = self._game_with_member(classical_variant, primary_user)
+
+        emit("entered_civil_disorder", game=game, recipients=[primary_user.id])
+
+        delivery = _push("entered_civil_disorder").first()
+        assert delivery.body == (
+            f"You have entered civil disorder in {game.name}. "
+            "Your units hold each turn until you return to the game."
+        )
+
+    @pytest.mark.django_db
+    def test_notification_links_to_the_game(
+        self, classical_variant, primary_user, in_memory_procrastinate
+    ):
+        game = self._game_with_member(classical_variant, primary_user)
+
+        emit("entered_civil_disorder", game=game, recipients=[primary_user.id])
+
+        delivery = _push("entered_civil_disorder").first()
+        assert delivery.link == f"{settings.FRONTEND_URL}/game/{game.id}"
 
 
 class TestNotificationDeliveryBroadcast:

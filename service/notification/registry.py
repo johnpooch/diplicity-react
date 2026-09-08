@@ -266,16 +266,19 @@ class RemovedFromStagingSpec(NotificationSpec):
         )
 
 
+@register("entered_civil_disorder")
+class EnteredCivilDisorderSpec(NotificationSpec):
+    def get_body(self):
+        return (
+            f"You have entered civil disorder in {self.context.game.name}. "
+            "Your units hold each turn until you return to the game."
+        )
+
+
 @register("civil_disorder")
 class CivilDisorderSpec(NotificationSpec):
     def get_audience(self):
         return self.context.game.active_member_user_ids()
-
-    def get_link(self):
-        return None
-
-    def get_title(self):
-        return "Civil Disorder"
 
     def get_body(self):
         return f"{self.context.payload['nation_names']} entered civil disorder."
