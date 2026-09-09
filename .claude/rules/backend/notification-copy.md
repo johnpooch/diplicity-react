@@ -39,6 +39,8 @@ A player is usually in several games at once, and reads these on a lock screen, 
 
 ## Links
 
-**Every push has somewhere to land.** `get_link()` returns the most specific view relevant to the event, not the game root, when one exists. Both tap handlers no-op without a link — the `notificationclick` handler in `packages/web/public/firebase-messaging-sw.js` and the message listener in `packages/web/src/messaging-native.ts` — so a linkless push is a notification that does nothing when tapped.
+**Every push has somewhere to land.** `get_link()` returns the most specific view relevant to the event, not the game root, when one exists. A linkless push still opens the app — the `notificationclick` handler in `packages/web/public/firebase-messaging-sw.js` focuses or opens a window, and on native the OS foregrounds it — but it drops the player on the home screen instead of at the event. The link is what makes a tap useful, not what makes it work.
 
-**`link = None` is a documented exception, not a per-spec judgement call.** A spec may omit the link only where there is genuinely nowhere to send the player, and it records that reason declaratively, so the set of untappable notifications can be read off the registry. An override that returns `None` with no stated reason is not an exception, it is an oversight.
+**A link pointing somewhere other than the game gets matching `email_link_text`.** The base default reads "View Game"; on a spec declaring `Channel.EMAIL` whose link goes elsewhere, that button lies about its destination.
+
+**`link = None` is a documented exception, not a per-spec judgement call.** A spec may omit the link only where there is genuinely nowhere to send the player, and it records that reason in `no_link_reason` on the spec — `render()` reads that declaration rather than calling `get_link()` at all — so the set of untappable notifications can be read off the registry by grepping one attribute. An override that returns `None` with no stated reason is not an exception, it is an oversight.
