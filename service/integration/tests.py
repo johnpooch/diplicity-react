@@ -8,6 +8,7 @@ from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
+from notification.models import Notification
 from victory.models import Victory
 from common.constants import (
     DeadlineMode,
@@ -19,7 +20,7 @@ from common.constants import (
     UnitType,
 )
 from integration.utils import run_due_resolution_jobs
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 from supply_center.models import SupplyCenter
 from unit.models import Unit
 
@@ -1230,6 +1231,13 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     assert germany_member.user.id not in cd_calls[0].kwargs["user_ids"]
     assert italy_member.user.id in cd_calls[0].kwargs["user_ids"]
 
+    assert Notification.objects.filter(
+        recipient=germany_member.user, event_type="entered_civil_disorder"
+    ).exists()
+    assert not Notification.objects.filter(
+        recipient=italy_member.user, event_type="entered_civil_disorder"
+    ).exists()
+
     fall_1902 = resolve_until("Fall", 1902, "Movement")
 
     # Germany's PhaseState in Fall 1902 should have been auto-confirmed.
@@ -1243,6 +1251,80 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     assert run_due_resolution_jobs() >= 1
     fall_1902.refresh_from_db()
     assert fall_1902.status == PhaseStatus.COMPLETED
+
+
+@pytest.mark.django_db
+def test_player_who_confirms_without_orders_is_not_recorded_as_nmr(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    - Germany confirms an empty order set for two consecutive movement phases
+    - Each phase resolves immediately on the all-confirmed check, without the deadline passing
+    - Germany's phase states are recorded as received, not nmr
+    - No extension is consumed and no nmr_extension_used notification is sent
+    - Germany does not enter civil disorder
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    active_game.members.update(nmr_extensions_remaining=1)
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    days_advanced = [0]
+
+    def advance_and_resolve():
+        days_advanced[0] += 2
+        future = timezone.now() + timedelta(days=days_advanced[0])
+        with patch("django.utils.timezone.now", return_value=future):
+            return run_due_resolution_jobs()
+
+    def resolve_until(season, year, type_):
+        for _ in range(10):
+            phase = active_game.current_phase
+            if phase.season == season and phase.year == year and phase.type == type_:
+                return phase
+            resolved = advance_and_resolve()
+            if resolved == 0:
+                break
+        raise AssertionError(f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}")
+
+    # Spring 1901: Italy submits and confirms, Germany confirms with no orders at all.
+    spring_1901 = active_game.current_phase
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    authenticated_client.put(confirm_order_url)
+    assert run_due_resolution_jobs() >= 1
+
+    germany_ps = spring_1901.phase_states.get(member=germany_member)
+    assert germany_ps.orders_confirmed is True
+    assert germany_ps.orders_outcome == PhaseState.OrdersOutcome.RECEIVED
+
+    fall_1901 = resolve_until("Fall", 1901, "Movement")
+
+    # Fall 1901: same again — the second consecutive movement phase.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    authenticated_client.put(confirm_order_url)
+    assert run_due_resolution_jobs() >= 1
+
+    assert fall_1901.phase_states.get(member=germany_member).orders_outcome == PhaseState.OrdersOutcome.RECEIVED
+
+    germany_member.refresh_from_db()
+    assert germany_member.civil_disorder is False
+    assert germany_member.nmr_extensions_remaining == 1
+
+    extension_calls = [
+        c for c in mock_send_notification_to_users.call_args_list
+        if c.kwargs.get("notification_type") == "nmr_extension_used"
+    ]
+    assert extension_calls == []
 
 
 @pytest.mark.django_db

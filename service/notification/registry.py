@@ -214,6 +214,8 @@ class PhaseResolvedEarlySpec(NotificationSpec):
 
 @register("game_deleted")
 class GameDeletedSpec(NotificationSpec):
+    exclude_actor = True
+
     def get_title(self):
         return self.context.payload["game_name"]
 
@@ -297,11 +299,26 @@ class SeatFilledSpec(NotificationSpec):
 
 @register("removed_from_staging")
 class RemovedFromStagingSpec(NotificationSpec):
-    def get_title(self):
-        return "Removed from staging games"
+    def get_body(self):
+        return (
+            "You were removed from this game because you entered "
+            f"civil disorder in {self.context.payload['active_game_name']}."
+        )
+
+
+@register("entered_civil_disorder")
+class EnteredCivilDisorderSpec(NotificationSpec):
+    channels = [Channel.PUSH, Channel.EMAIL]
+    email_link_text = "Return to Game"
 
     def get_body(self):
-        return f"You were removed from {self.context.game.name} because you entered civil disorder in an active game."
+        return (
+            f"You have entered civil disorder in {self.context.game.name}. "
+            "Your units hold each turn until you return to the game."
+        )
+
+    def get_email_subject(self):
+        return f"{self.context.game.name} — Civil Disorder"
 
 
 @register("mustering_started")
@@ -331,12 +348,6 @@ class CivilDisorderSpec(NotificationSpec):
 
     def get_audience(self):
         return self.context.game.active_member_user_ids()
-
-    def get_link(self):
-        return None
-
-    def get_title(self):
-        return "Civil Disorder"
 
     def get_body(self):
         return f"{self.context.payload['nation_names']} entered civil disorder."

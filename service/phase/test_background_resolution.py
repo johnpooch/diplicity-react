@@ -210,6 +210,32 @@ class TestResolveIfDue:
         mock_resolve.assert_not_called()
 
     @pytest.mark.django_db
+    def test_confirmed_member_with_no_orders_does_not_consume_an_extension(
+        self, phase_factory, classical_england_nation, classical_london_province
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+        phase.units.create(
+            type="Fleet", nation=classical_england_nation, province=classical_london_province
+        )
+        phase.game.members.update(nmr_extensions_remaining=1)
+        phase.refresh_from_db()
+        original_resolution = phase.scheduled_resolution
+
+        with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved") as mock_resolve:
+            result = Phase.objects.resolve_if_due(phase.id)
+
+        assert result == "resolved"
+        mock_resolve.assert_called_once()
+        phase.refresh_from_db()
+        assert phase.scheduled_resolution == original_resolution
+        assert set(phase.game.members.values_list("nmr_extensions_remaining", flat=True)) == {1}
+
+    @pytest.mark.django_db
     def test_missing_phase_is_noop(self):
         with patch.object(Phase.objects, "_resolve_claimed") as mock_resolve:
             result = Phase.objects.resolve_if_due(999999)
