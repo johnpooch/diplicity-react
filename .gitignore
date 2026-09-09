@@ -95,3 +95,10 @@ packages/web/build/
 
 # Local output from the harness eval `dump_phase` management command
 phase_dumps/
+
+# Understand-Anything: keep the knowledge graph + baselines, drop scratch dirs
+.ua/intermediate/
+.ua/tmp/
+.ua/.trash-*
+# Vite dependency pre-bundle cache (stale copy picked up by tooling)
+packages/web/.vite.root-old/

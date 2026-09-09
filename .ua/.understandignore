@@ -1,0 +1,134 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+# Lines below are suggestions — uncomment to activate.
+# Use ! prefix to force-include something excluded by defaults.
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+#
+
+# --- From .gitignore (uncomment to exclude) ---
+
+# logs
+# npm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+# pnpm-debug.log*
+# lerna-debug.log*
+# dist-ssr
+# *.local
+# .DS_Store
+# *.suo
+# *.ntvs*
+# *.njsproj
+# *.sln
+# *.sw?
+# *storybook.log
+.env
+client_secret*.json
+# *.plist
+# !**/GoogleService-Info.plist
+# storybook-static
+service/game/tests/prof/
+staticfiles/
+# dump.json
+# .python_packages
+# /packages/e2e/test-results/
+# /packages/e2e/playwright-report/
+# .worktrees/
+# .xcodebuildmcp/
+AuthKey*
+# **/xcuserdata/
+# packages/web/ios/App/build/
+# packages/web/ios/App/App/public/
+# packages/web/android/.gradle/
+# packages/web/android/build/
+# packages/web/android/app/build/
+# packages/web/android/app/release/
+# packages/web/android/local.properties
+# packages/web/android/captures/
+# packages/web/android/.idea/
+# packages/web/android/app/google-services.json
+# packages/web/android/app/src/main/assets/public/
+# packages/web/android/app/src/main/assets/capacitor.config.json
+# packages/web/android/app/src/main/assets/capacitor.plugins.json
+# screenshots/
+# shots/
+# .claude/worktrees
+# .claude/settings.local.json
+AuthKey_*.p8
+# *.mobileprovision
+# *.cer
+.env.release
+*.keystore
+*.jks
+google-services.json
+# play-service-account*.json
+# packages/web/fastlane/api_key.json
+# packages/web/fastlane/report.xml
+# packages/web/fastlane/README.md
+# packages/web/fastlane/.play-service-account.json
+# packages/web/build/
+phase_dumps/
+
+# --- Detected directories (uncomment to exclude) ---
+
+# docs/
+# scripts/
+
+# --- Curated exclusions (main session) ---
+**/.vite.root-old/
+**/.vite/
+service/integration/fixtures/
+service/game/tests/data/
+
+# --- Test file patterns (uncomment to exclude) ---
+
+# JS / TS
+# *.test.*
+# *.spec.*
+# *.snap
+# C# / .NET
+# **/*Tests.cs
+# **/*Test.cs
+# **/*Fixture.cs
+# **/*.Tests.csproj
+# Java / Kotlin
+# **/src/test/**
+# **/*Test.java
+# **/*IT.java
+# **/*Spec.kt
+# Go
+# **/*_test.go
+# C++
+# **/*_test.cc
+# **/*_test.cpp
+# **/*_test.cxx
+# **/*Test.cc
+# **/*Test.cpp
+# **/*_unittest.cc
+# **/*_unittest.cpp
+# **/*_browsertest.cc
+# **/*_benchmark.cc
+# **/*Benchmark.cpp
+# Python
+# **/test_*.py
+# **/*_test.py
+# **/tests.py
+# **/conftest.py
+# Rust
+# **/tests.rs
+# **/test_*.rs
+# **/*_test.rs
+# **/bench_*.rs
+# **/*_bench.rs
+# Ruby
+# **/*_spec.rb
+# **/*_test.rb
+# **/test_*.rb
+# **/spec_helper.rb
+# **/test_helper.rb
+# **/rails_helper.rb
+# Swift
+# **/Tests/**/*.swift
+# **/Specs/**/*.swift
