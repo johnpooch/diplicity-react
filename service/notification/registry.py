@@ -28,6 +28,7 @@ class NotificationSpec:
     exclude_actor = False
     channels = [Channel.PUSH]
     email_link_text = "View Game"
+    no_link_reason = None
 
     def __init__(self, context):
         self.context = context
@@ -55,6 +56,12 @@ class NotificationSpec:
     def _game_url(self):
         return f"{settings.FRONTEND_URL}/game/{self.context.game.id}"
 
+    def _phase_url(self, suffix):
+        phase = self.context.phase or self.context.game.current_phase
+        if phase is None:
+            return self._game_url()
+        return f"{self._game_url()}/phase/{phase.id}/{suffix}"
+
     def get_email_subject(self):
         return self.context.game.name
 
@@ -62,7 +69,7 @@ class NotificationSpec:
         return self.get_body()
 
     def render(self, channel):
-        link = self.get_link() if self.context.game is not None else None
+        link = None if self.no_link_reason else self.get_link()
         if channel == Channel.EMAIL:
             return {
                 "channel": channel,
@@ -215,6 +222,7 @@ class PhaseResolvedEarlySpec(NotificationSpec):
 @register("game_deleted")
 class GameDeletedSpec(NotificationSpec):
     exclude_actor = True
+    no_link_reason = "The game is deleted before the event is emitted, so no view of it remains."
 
     def get_title(self):
         return self.context.payload["game_name"]
@@ -345,9 +353,13 @@ class RemovedFromMusterSpec(NotificationSpec):
 @register("civil_disorder")
 class CivilDisorderSpec(NotificationSpec):
     channels = [Channel.PUSH, Channel.EMAIL]
+    email_link_text = "View Players"
 
     def get_audience(self):
         return self.context.game.active_member_user_ids()
+
+    def get_link(self):
+        return self._phase_url("player-info")
 
     def get_body(self):
         return f"{self.context.payload['nation_names']} entered civil disorder."
@@ -364,7 +376,7 @@ class CivilDisorderRecoverySpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_link(self):
-        return None
+        return self._phase_url("player-info")
 
     def get_title(self):
         return "Player Returned"
