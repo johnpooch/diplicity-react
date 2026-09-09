@@ -15,12 +15,6 @@ def _push(event_type):
     )
 
 
-def _email(event_type):
-    return NotificationDelivery.objects.filter(
-        notification__event_type=event_type, channel=NotificationDelivery.Channel.EMAIL
-    )
-
-
 def _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=False):
     game_master = user_factory() if with_game_master else None
     game = game_factory(variant=classical_variant, game_master=game_master)
@@ -106,20 +100,6 @@ class TestEmitDispatch:
 
         delivery = _push("game_resumed").first()
         assert delivery.body == f"Game resumed by the Game Master ({actor.username}). New deadline: N/A"
-
-    @pytest.mark.django_db
-    def test_email_transport_defers_email_notification(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
-    ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant)
-        for member in (state["active_one"], state["active_two"]):
-            member.user.profile.email_notifications_enabled = True
-            member.user.profile.save()
-        emit.emit("game_start", game=state["game"])
-
-        email_deliveries = _email("game_start")
-        assert email_deliveries.count() == 2
-        assert "Game Started" in email_deliveries.first().heading
 
     @pytest.mark.django_db
     def test_channel_event_type_creates_channel_event_on_public_channels(

@@ -11,7 +11,6 @@ export const currentUserProfile: UserProfile = {
   name: "Mock Player",
   picture: null,
   email: "mock.player@example.com",
-  emailNotificationsEnabled: true,
   canCreateBotGames: true,
   reliabilityTier: "reliable",
   commitment: "high",

@@ -3355,8 +3355,6 @@ components:
         email:
           type: string
           readOnly: true
-        emailNotificationsEnabled:
-          type: boolean
         canCreateBotGames:
           type: boolean
           readOnly: true
@@ -3759,8 +3757,6 @@ components:
         email:
           type: string
           readOnly: true
-        emailNotificationsEnabled:
-          type: boolean
         canCreateBotGames:
           type: boolean
           readOnly: true

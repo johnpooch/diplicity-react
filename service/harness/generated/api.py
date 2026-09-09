@@ -231,7 +231,6 @@ class PatchedUserProfile(TypedDict):
     name: NotRequired[str]
     picture: NotRequired[str | None]
     email: NotRequired[str]
-    email_notifications_enabled: NotRequired[bool]
     can_create_bot_games: NotRequired[bool]
     reliability_tier: NotRequired[str | None]
     commitment: NotRequired[str]
@@ -333,7 +332,6 @@ class UserProfile(TypedDict):
     name: str
     picture: str | None
     email: str
-    email_notifications_enabled: NotRequired[bool]
     can_create_bot_games: bool
     reliability_tier: str | None
     commitment: str
