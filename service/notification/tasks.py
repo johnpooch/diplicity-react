@@ -4,7 +4,6 @@ from datetime import timedelta
 from django.utils import timezone
 from procrastinate.contrib.django import app
 
-from email_service import utils as email_utils
 from notification import utils as notification_utils
 from notification.models import Notification, NotificationDelivery
 
@@ -27,23 +26,15 @@ def deliver(delivery_ids):
     fresh = NotificationDelivery.objects.expire_stale(deliveries, timedelta(hours=DELIVER_MAX_AGE_HOURS))
     if not fresh:
         return
-    _deliver_channel(fresh, NotificationDelivery.Channel.PUSH, _send_push)
-    _deliver_channel(fresh, NotificationDelivery.Channel.EMAIL, _send_email)
-
-
-def _deliver_channel(deliveries, channel, send):
-    group = [d for d in deliveries if d.channel == channel]
-    if not group:
-        return
     try:
-        errors = send(group)
+        errors = _send_push(fresh)
     except Exception as e:
-        errors = {d.notification.recipient_id: str(e) for d in group}
-    for delivery in group:
+        errors = {d.notification.recipient_id: str(e) for d in fresh}
+    for delivery in fresh:
         error = errors.get(delivery.notification.recipient_id, NO_RECIPIENT_ERROR)
         delivery.status = NotificationDelivery.Status.FAILED if error else NotificationDelivery.Status.SENT
         delivery.error = error
-    NotificationDelivery.objects.bulk_update(group, ["status", "error"])
+    NotificationDelivery.objects.bulk_update(fresh, ["status", "error"])
 
 
 def _send_push(deliveries):
@@ -56,12 +47,6 @@ def _send_push(deliveries):
         notification_type=first.notification.event_type,
         data=first.data,
     )
-
-
-def _send_email(deliveries):
-    first = deliveries[0]
-    recipient_ids = [d.notification.recipient_id for d in deliveries if d.notification.recipient_id is not None]
-    return email_utils.send_email_to_users(user_ids=recipient_ids, subject=first.heading, html=first.body)
 
 
 @app.periodic(cron="0 3 * * *")

@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from user_profile.models import UserProfile
 
 from email_service.templates import password_reset_email, verify_email_email
-from email_service.utils import send_email_best_effort
+from email_service.utils import send_email
 from .models import AuthUser
 from .utils import verify_apple_id_token, verify_google_id_token
 
@@ -122,7 +122,7 @@ class RegisterSerializer(serializers.Serializer):
         token = default_token_generator.make_token(user)
         verify_url = f"https://diplicity.com/verify-email?uid={uid}&token={token}"
 
-        send_email_best_effort(
+        send_email(
             to=user.email,
             subject="Verify your Diplicity account",
             html=verify_email_email(verify_url),
@@ -140,7 +140,7 @@ class PasswordResetSerializer(serializers.Serializer):
             token = default_token_generator.make_token(user)
             reset_url = f"https://diplicity.com/reset-password?uid={uid}&token={token}"
 
-            send_email_best_effort(
+            send_email(
                 to=user.email,
                 subject="Reset your Diplicity password",
                 html=password_reset_email(reset_url),

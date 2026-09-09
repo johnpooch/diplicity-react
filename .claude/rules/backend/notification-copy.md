@@ -7,7 +7,7 @@ paths:
 
 Every notification a player receives is rendered by a spec in `service/notification/registry.py`. Read that file for the specs themselves; this file states the rules a new one must follow.
 
-A player is usually in several games at once, and reads these on a lock screen, in a notification tray, or in an inbox next to unrelated mail. Reading well in isolation is not the bar — the copy has to be identifiable and actionable in that pile. The base `NotificationSpec` already implements most of what follows, so a spec that overrides only `get_audience` and `get_body` is usually the correct spec.
+Notifications go out over push only; there is no email channel. A player is usually in several games at once, and reads these on a lock screen or in a notification tray. Reading well in isolation is not the bar — the copy has to be identifiable and actionable in that pile. The base `NotificationSpec` already implements most of what follows, so a spec that overrides only `get_audience` and `get_body` is usually the correct spec.
 
 ## Title
 
@@ -15,9 +15,7 @@ A player is usually in several games at once, and reads these on a lock screen, 
 
 **An event that needs naming goes in the body's first clause**, not the title.
 
-**Title Case for titles, sentence case for bodies.** This applies to `email_link_text` and `get_email_subject()` too, which are titles.
-
-**A spec declaring `Channel.EMAIL` defines `get_email_subject()`**: the game name, an em dash, and the event in Title Case. The bare game name that the base class returns is enough for a push heading sitting under an app icon, but not for an inbox.
+**Title Case for titles, sentence case for bodies.**
 
 ## Body
 
@@ -27,9 +25,7 @@ A player is usually in several games at once, and reads these on a lock screen, 
 
 **Describe what happened, not what the player failed to do.** State the consequence and the new state. The player does not need to be told they were late.
 
-**Calls to action are a field, never prose.** The body states the event; the tap target is `get_link()` and the email button is `email_link_text`. An inline "Respond to it now" duplicates a control the player already has, and reads as nagging in a tray.
-
-**The body must stand alone.** `get_email_body()` defaults to `get_body()`, and `notification_email` (`service/email_service/templates.py`) interpolates that string twice — once into the hidden preview div, once into the visible paragraph. Whatever the body says is what a player sees in a mail list before opening anything.
+**Calls to action are a field, never prose.** The body states the event; the tap target is `get_link()`. An inline "Respond to it now" duplicates a control the player already has, and reads as nagging in a tray.
 
 **No placeholder strings in user-facing copy.** A literal `"N/A"`, an `"Unknown"`, or the empty string left by a lookup that found nothing is a bug that shipped as text. Where the data may be missing, build the clause conditionally and omit it — a shorter sentence always beats a filled-in blank.
 
@@ -39,6 +35,6 @@ A player is usually in several games at once, and reads these on a lock screen, 
 
 ## Links
 
-**Every push has somewhere to land.** `get_link()` returns the most specific view relevant to the event, not the game root, when one exists. Both tap handlers no-op without a link — the `notificationclick` handler in `packages/web/public/firebase-messaging-sw.js` and the message listener in `packages/web/src/messaging-native.ts` — so a linkless push is a notification that does nothing when tapped.
+**Every push has somewhere to land.** `get_link()` returns the most specific view relevant to the event, not the game root, when one exists. A linkless push still opens the app — the `notificationclick` handler in `packages/web/public/firebase-messaging-sw.js` focuses or opens a window, and on native the OS foregrounds it — but it drops the player on the home screen instead of at the event. The link is what makes a tap useful, not what makes it work.
 
-**`link = None` is a documented exception, not a per-spec judgement call.** A spec may omit the link only where there is genuinely nowhere to send the player, and it records that reason declaratively, so the set of untappable notifications can be read off the registry. An override that returns `None` with no stated reason is not an exception, it is an oversight.
+**`link = None` is a documented exception, not a per-spec judgement call.** A spec may omit the link only where there is genuinely nowhere to send the player, and it records that reason in `no_link_reason` on the spec — `render()` reads that declaration rather than calling `get_link()` at all — so the set of untappable notifications can be read off the registry by grepping one attribute. An override that returns `None` with no stated reason is not an exception, it is an oversight.

@@ -3334,8 +3334,6 @@ components:
         email:
           type: string
           readOnly: true
-        email_notifications_enabled:
-          type: boolean
         can_create_bot_games:
           type: boolean
           readOnly: true
@@ -3738,8 +3736,6 @@ components:
         email:
           type: string
           readOnly: true
-        email_notifications_enabled:
-          type: boolean
         can_create_bot_games:
           type: boolean
           readOnly: true
