@@ -25,6 +25,7 @@ def get_spec(event_type, context):
 class NotificationSpec:
     event_type = None
     exclude_actor = False
+    no_link_reason = None
 
     def __init__(self, context):
         self.context = context
@@ -52,8 +53,14 @@ class NotificationSpec:
     def _game_url(self):
         return f"{settings.FRONTEND_URL}/game/{self.context.game.id}"
 
+    def _phase_url(self, suffix):
+        phase = self.context.phase or self.context.game.current_phase
+        if phase is None:
+            return self._game_url()
+        return f"{self._game_url()}/phase/{phase.id}/{suffix}"
+
     def render(self):
-        link = self.get_link() if self.context.game is not None else None
+        link = None if self.no_link_reason else self.get_link()
         return {
             "channel": Channel.PUSH,
             "heading": self.get_title(),
@@ -175,6 +182,7 @@ class PhaseResolvedEarlySpec(NotificationSpec):
 @register("game_deleted")
 class GameDeletedSpec(NotificationSpec):
     exclude_actor = True
+    no_link_reason = "The game is deleted before the event is emitted, so no view of it remains."
 
     def get_title(self):
         return self.context.payload["game_name"]
@@ -280,6 +288,9 @@ class CivilDisorderSpec(NotificationSpec):
     def get_audience(self):
         return self.context.game.active_member_user_ids()
 
+    def get_link(self):
+        return self._phase_url("player-info")
+
     def get_body(self):
         return f"{self.context.payload['nation_names']} entered civil disorder."
 
@@ -292,7 +303,7 @@ class CivilDisorderRecoverySpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_link(self):
-        return None
+        return self._phase_url("player-info")
 
     def get_title(self):
         return "Player Returned"

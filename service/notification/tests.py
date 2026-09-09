@@ -85,6 +85,12 @@ def resolve_recipients(event_type, **kwargs):
     return NOTIFICATION_REGISTRY[event_type](context).get_recipients()
 
 
+def render_push(event_type, **kwargs):
+    context = build_context(event_type, **kwargs)
+    spec = NOTIFICATION_REGISTRY[event_type](context)
+    return spec.render()
+
+
 def assert_notification(recipient, event_type, **expected):
     qs = Notification.objects.filter(recipient=recipient, event_type=event_type)
     assert qs.exists(), f"No {event_type} notification found for {recipient}"
@@ -222,6 +228,65 @@ class TestRegistry:
             "deadline_warning",
         }
         assert set(NOTIFICATION_REGISTRY) == expected
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("event_type", sorted(NOTIFICATION_REGISTRY))
+    def test_every_spec_either_links_or_declares_why(self, active_game, event_type):
+        channel = Channel.objects.create(game=active_game, name="Global", private=False)
+        context = build_context(
+            event_type,
+            game=active_game,
+            phase=active_game.current_phase,
+            channel=channel,
+        )
+        spec = NOTIFICATION_REGISTRY[event_type](context)
+        assert spec.no_link_reason or spec.get_link() is not None
+
+    def test_game_deleted_is_the_only_declared_link_exception(self):
+        declared = {
+            event_type
+            for event_type, spec_class in NOTIFICATION_REGISTRY.items()
+            if spec_class.no_link_reason
+        }
+        assert declared == {"game_deleted"}
+
+
+class TestNotificationLinks:
+    @pytest.mark.django_db
+    def test_civil_disorder_links_to_player_info(self, active_game):
+        rendered = render_push("civil_disorder", game=active_game, nation_names="England")
+        assert rendered["link"] == (
+            f"{settings.FRONTEND_URL}/game/{active_game.id}"
+            f"/phase/{active_game.current_phase.id}/player-info"
+        )
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_links_to_player_info(self, active_game, primary_user):
+        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
+        assert rendered["link"] == (
+            f"{settings.FRONTEND_URL}/game/{active_game.id}"
+            f"/phase/{active_game.current_phase.id}/player-info"
+        )
+
+    @pytest.mark.django_db
+    def test_civil_disorder_push_data_carries_the_link(self, active_game):
+        rendered = render_push("civil_disorder", game=active_game, nation_names="England")
+        assert rendered["data"] == {
+            "game_id": str(active_game.id),
+            "link": rendered["link"],
+        }
+
+    @pytest.mark.django_db
+    def test_civil_disorder_falls_back_to_the_game_without_a_phase(self, emit_game):
+        game = emit_game()["game"]
+        rendered = render_push("civil_disorder", game=game, nation_names="England")
+        assert rendered["link"] == f"{settings.FRONTEND_URL}/game/{game.id}"
+
+    @pytest.mark.django_db
+    def test_game_deleted_renders_no_link(self, primary_user):
+        rendered = render_push("game_deleted", recipients=[primary_user.id], game_name="Gone")
+        assert rendered["link"] is None
+        assert rendered["data"] is None
 
 
 class TestActiveResolver:
