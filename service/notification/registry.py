@@ -125,6 +125,9 @@ class DrawProposalSpec(NotificationSpec):
 @register("game_start")
 class GameStartSpec(NotificationSpec):
     def get_audience(self):
+        recipients = self.context.payload.get("recipients")
+        if recipients is not None:
+            return recipients
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
@@ -281,6 +284,27 @@ class EnteredCivilDisorderSpec(NotificationSpec):
             f"You have entered civil disorder in {self.context.game.name}. "
             "Your units hold each turn until you return to the game."
         )
+
+
+@register("mustering_started")
+class MusteringStartedSpec(NotificationSpec):
+    def get_audience(self):
+        return self.context.game.seated_member_user_ids()
+
+    def get_title(self):
+        return "Ready to Start"
+
+    def get_body(self):
+        return f"{self.context.game.name} is full. Confirm you're ready to play before the deadline or you'll lose your seat."
+
+
+@register("removed_from_muster")
+class RemovedFromMusterSpec(NotificationSpec):
+    def get_title(self):
+        return "Removed from game"
+
+    def get_body(self):
+        return f"You lost your seat in {self.context.game.name} because you didn't confirm before the deadline. The seat is open for another player to take."
 
 
 @register("civil_disorder")
