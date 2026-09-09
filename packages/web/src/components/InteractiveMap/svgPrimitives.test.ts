@@ -210,6 +210,9 @@ const SUPPORT_HOLD_OPTS: SupportHoldArrowOptions = {
   fill: "#1b4f9c",
   stroke: "black",
   strokeWidth: 2.5,
+  tipGap: 1,
+  octagonSize: 8,
+  octagonStrokeWidth: 3,
 };
 
 const CONVOY_OPTS: ConvoyArrowOptions = {
@@ -224,6 +227,9 @@ const CONVOY_OPTS: ConvoyArrowOptions = {
   fill: "#3b9c3b",
   stroke: "black",
   strokeWidth: 2.5,
+  dotRadius: 5,
+  waveAmplitude: 5,
+  waveLength: 30,
 };
 
 const MOVE_VIA_CONVOY_OPTS: MoveViaConvoyArrowOptions = {
