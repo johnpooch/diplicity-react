@@ -82,6 +82,12 @@ const ORDER_STROKE_WIDTH = 2.5;
 const ORDER_DASH = { length: 4, spacing: 2 };
 const SUCCESS_COLOR = "rgba(0,0,0,1)";
 const HOLD_OCTAGON_SIZE = 24;
+const SUPPORT_HOLD_TIP_GAP = 1;
+const SUPPORT_HOLD_OCTAGON_SIZE = 8;
+const SUPPORT_HOLD_OCTAGON_STROKE_WIDTH = 3;
+const CONVOY_DOT_RADIUS = 5;
+const CONVOY_WAVE_AMPLITUDE = 5;
+const CONVOY_WAVE_LENGTH = 30;
 const FAILED_CROSS_WIDTH = 3;
 const FAILED_CROSS_LENGTH = 16;
 const FAILED_CROSS_ANGLE = 45;
@@ -495,6 +501,9 @@ const supportOrderParts = (
           fill: color,
           stroke: SUCCESS_COLOR,
           strokeWidth: ORDER_STROKE_WIDTH * scale,
+          tipGap: SUPPORT_HOLD_TIP_GAP * scale,
+          octagonSize: SUPPORT_HOLD_OCTAGON_SIZE * scale,
+          octagonStrokeWidth: SUPPORT_HOLD_OCTAGON_STROKE_WIDTH * scale,
           dash: { length: ORDER_DASH.length * scale, spacing: ORDER_DASH.spacing * scale },
           renderCenter,
         })
@@ -631,6 +640,9 @@ const convoyOrderParts = (
         offset: UNIT_RADIUS * scale,
         stroke: SUCCESS_COLOR,
         strokeWidth: ORDER_STROKE_WIDTH * scale,
+        dotRadius: CONVOY_DOT_RADIUS * scale,
+        waveAmplitude: CONVOY_WAVE_AMPLITUDE * scale,
+        waveLength: CONVOY_WAVE_LENGTH * scale,
         fill: nationColor(state, order.nation),
         attachmentPoint: route?.attachments.get(order.source),
         renderCenter: order.failed

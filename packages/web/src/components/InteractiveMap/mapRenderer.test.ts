@@ -510,6 +510,55 @@ describe("DiplicityMap unit scaling", () => {
     const svg = new DiplicityMap(TOY_DSVG, 3).render({ selected: ["beta"] });
     expect(svg).toContain('stroke-width="5"');
   });
+
+  test("scales the support-hold marker octagon with unit scale", () => {
+    const opts: RenderState = {
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Support", nation: "England", source: "alpha", aux: "beta", target: "beta" },
+      ],
+    };
+    const octRadius = (svg: string): number => {
+      const pts = (svg.match(/<polygon points="([^"]+)"/)?.[1] ?? "")
+        .split(" ")
+        .map((p) => p.split(",").map(Number));
+      const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
+      const cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
+      return Math.hypot(pts[0][0] - cx, pts[0][1] - cy);
+    };
+    const base = new DiplicityMap(TOY_DSVG, 1).render(opts);
+    const scaled = new DiplicityMap(TOY_DSVG, 2).render(opts);
+    expect(octRadius(scaled) / octRadius(base)).toBeCloseTo(2, 2);
+    expect(scaled).toMatch(/<polygon[^>]*stroke-width="6"/);
+  });
+
+  test("scales the convoy line's terminal dot with unit scale", () => {
+    const opts: RenderState = {
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Convoy", nation: "England", source: "beta", aux: "alpha", target: "gamma" },
+      ],
+    };
+    expect(new DiplicityMap(CONVOY_DSVG, 1).render(opts)).toContain('r="5" fill="white"');
+    expect(new DiplicityMap(CONVOY_DSVG, 2).render(opts)).toContain('r="10" fill="white"');
+  });
+
+  test("scales the convoy wave amplitude with unit scale", () => {
+    const opts: RenderState = {
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Convoy", nation: "England", source: "beta", aux: "alpha", target: "gamma" },
+      ],
+    };
+    const lateralSpread = (svg: string): number => {
+      const d = svg.match(/<path d="(M [^"]*C[^"]*)"/)?.[1] ?? "";
+      const xs = [...d.matchAll(/(-?\d+(?:\.\d+)?) -?\d+(?:\.\d+)?/g)].map((m) => Number(m[1]));
+      return Math.max(...xs) - Math.min(...xs);
+    };
+    const base = new DiplicityMap(CONVOY_DSVG, 1).render(opts);
+    const scaled = new DiplicityMap(CONVOY_DSVG, 2).render(opts);
+    expect(lateralSpread(scaled) / lateralSpread(base)).toBeCloseTo(2, 1);
+  });
 });
 
 describe("DiplicityMap layering", () => {
