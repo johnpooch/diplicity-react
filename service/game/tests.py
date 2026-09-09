@@ -1951,7 +1951,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 46
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1970,7 +1970,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 46
 
 
 class TestGamePrivateFiltering:
@@ -2361,6 +2361,28 @@ class TestSandboxGameCreation:
         assert NotificationDelivery.objects.count() == 0
 
     @pytest.mark.django_db
+    def test_recreated_sandbox_game_does_not_reuse_deleted_id(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+
+        first = authenticated_client.post(url, payload, format="json")
+        assert first.status_code == status.HTTP_201_CREATED
+
+        delete_response = authenticated_client.delete(
+            reverse("game-delete", args=[first.data["id"]])
+        )
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+
+        second = authenticated_client.post(url, payload, format="json")
+        assert second.status_code == status.HTTP_201_CREATED
+        assert second.data["id"] != first.data["id"]
+
+    @pytest.mark.django_db
     def test_create_sandbox_game_missing_name(self, authenticated_client, classical_variant):
         url = reverse(sandbox_create_viewname)
         payload = {
@@ -2423,7 +2445,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 55
+        assert query_count == 52
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2444,7 +2466,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 55
+        assert query_count == 52
 
 
 class TestSandboxGameFiltering:
@@ -3005,27 +3027,18 @@ class TestGameCloneToSandbox:
 class TestGameIdGeneration:
 
     @pytest.mark.django_db
-    def test_unique_name_keeps_slug_id(self, classical_variant):
+    def test_id_is_suffixed_slug(self, classical_variant):
         game = Game.objects.create(name="A Unique Name", variant=classical_variant)
-        assert game.id == "a-unique-name"
+
+        assert game.id != "a-unique-name"
+        assert game.id.startswith("a-unique-name-")
 
     @pytest.mark.django_db
-    def test_duplicate_name_is_suffixed(self, classical_variant):
+    def test_duplicate_name_gets_distinct_id(self, classical_variant):
         first = Game.objects.create(name="Shared Name", variant=classical_variant)
         second = Game.objects.create(name="Shared Name", variant=classical_variant)
 
-        assert first.id == "shared-name"
-        assert second.id.startswith("shared-name-")
-
-    @pytest.mark.django_db
-    def test_id_taken_after_availability_check_is_retried(self, classical_variant):
-        existing = Game.objects.create(name="Shared Name", variant=classical_variant)
-
-        with patch.object(Game, "_generate_id", return_value=existing.id):
-            game = Game.objects.create(name="Shared Name", variant=classical_variant)
-
-        assert game.id != existing.id
-        assert game.id.startswith("shared-name-")
+        assert first.id != second.id
         assert Game.objects.filter(name="Shared Name").count() == 2
 
 
