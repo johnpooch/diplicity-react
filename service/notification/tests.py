@@ -1,10 +1,13 @@
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.utils import timezone
+from fcm_django.types import FirebaseResponseDict
 
 from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMessage
@@ -18,8 +21,21 @@ from member.models import Member
 from notification.models import Notification, NotificationDelivery
 from notification.registry import REGISTRY as NOTIFICATION_REGISTRY
 from notification.registry import ChannelMessageSpec
-from notification.tasks import DELIVER_MAX_AGE_HOURS, PRUNE_AFTER_DAYS, deliver, prune
-from notification.utils import PUSH_TTL, build_push_message
+from notification.tasks import (
+    DELIVER_MAX_AGE_HOURS,
+    NO_RECIPIENT_ERROR,
+    PRUNE_AFTER_DAYS,
+    deliver,
+    prune,
+)
+from notification.utils import (
+    FIREBASE_UNCONFIGURED_ERROR,
+    NO_ACTIVE_DEVICE_ERROR,
+    PUSH_TTL,
+    build_push_message,
+    push_results_by_user,
+    send_notification_to_users,
+)
 from phase.models import Phase
 from victory.models import Victory
 
@@ -58,6 +74,20 @@ def _push_delivery(user, status=NotificationDelivery.Status.PENDING):
         heading="Game",
         body="Started",
         status=status,
+    )
+
+
+def _fcm_result(registration_ids, rejections=None):
+    rejections = rejections or {}
+    responses = [SimpleNamespace(exception=rejections.get(registration_id)) for registration_id in registration_ids]
+    return FirebaseResponseDict(
+        response=SimpleNamespace(
+            responses=responses,
+            success_count=len(registration_ids) - len(rejections),
+            failure_count=len(rejections),
+        ),
+        registration_ids_sent=registration_ids,
+        deactivated_registration_ids=[],
     )
 
 
@@ -1013,6 +1043,136 @@ class TestNotificationDeliver:
         fresh.refresh_from_db()
         assert stale.status == NotificationDelivery.Status.EXPIRED
         assert fresh.status == NotificationDelivery.Status.SENT
+
+    @pytest.mark.django_db
+    def test_undispatched_recipient_is_marked_failed_with_the_reason(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        delivery = _push_delivery(user_factory())
+        mock_send_notification_to_users.side_effect = lambda user_ids, **kwargs: {
+            user_id: NO_ACTIVE_DEVICE_ERROR for user_id in user_ids
+        }
+
+        deliver(delivery_ids=[delivery.id])
+
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationDelivery.Status.FAILED
+        assert delivery.error == NO_ACTIVE_DEVICE_ERROR
+
+    @pytest.mark.django_db
+    def test_dispatched_recipient_in_a_partly_failed_batch_is_still_sent(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        one, two = user_factory(), user_factory()
+        failed = _push_delivery(one)
+        sent = _push_delivery(two)
+        mock_send_notification_to_users.side_effect = lambda user_ids, **kwargs: {
+            one.id: NO_ACTIVE_DEVICE_ERROR,
+            two.id: None,
+        }
+
+        deliver(delivery_ids=[failed.id, sent.id])
+
+        failed.refresh_from_db()
+        sent.refresh_from_db()
+        assert failed.status == NotificationDelivery.Status.FAILED
+        assert failed.error == NO_ACTIVE_DEVICE_ERROR
+        assert sent.status == NotificationDelivery.Status.SENT
+        assert sent.error is None
+
+    @pytest.mark.django_db
+    def test_transport_error_marks_every_recipient_failed(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        one, two = user_factory(), user_factory()
+        first = _push_delivery(one)
+        second = _push_delivery(two)
+        mock_send_notification_to_users.side_effect = RuntimeError("firebase unreachable")
+
+        deliver(delivery_ids=[first.id, second.id])
+
+        for delivery in (first, second):
+            delivery.refresh_from_db()
+            assert delivery.status == NotificationDelivery.Status.FAILED
+            assert delivery.error == "firebase unreachable"
+
+    @pytest.mark.django_db
+    def test_delivery_whose_recipient_was_deleted_is_marked_failed(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        delivery = _push_delivery(user_factory())
+        Notification.objects.filter(id=delivery.notification_id).update(recipient=None)
+
+        deliver(delivery_ids=[delivery.id])
+
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationDelivery.Status.FAILED
+        assert delivery.error == NO_RECIPIENT_ERROR
+
+
+class TestSendNotificationToUsers:
+    @pytest.mark.django_db
+    @override_settings(FIREBASE_APP=None)
+    def test_reports_every_user_as_failed_when_firebase_is_not_configured(self, user_factory):
+        one, two = user_factory(), user_factory()
+
+        results = send_notification_to_users(
+            user_ids=[one.id, two.id],
+            title="Game",
+            body="Started",
+            notification_type="game_start",
+        )
+
+        assert results == {
+            one.id: FIREBASE_UNCONFIGURED_ERROR,
+            two.id: FIREBASE_UNCONFIGURED_ERROR,
+        }
+
+    def test_reports_nothing_for_an_empty_recipient_list(self):
+        results = send_notification_to_users(
+            user_ids=[], title="Game", body="Started", notification_type="game_start"
+        )
+
+        assert results == {}
+
+
+class TestPushResultsByUser:
+    def test_user_whose_token_fcm_accepted_is_dispatched(self):
+        results = push_results_by_user([1], {1: ["token-1"]}, _fcm_result(["token-1"]))
+
+        assert results == {1: None}
+
+    def test_user_without_an_active_device_is_reported_as_failed(self):
+        results = push_results_by_user([1, 2], {1: ["token-1"]}, _fcm_result(["token-1"]))
+
+        assert results == {1: None, 2: NO_ACTIVE_DEVICE_ERROR}
+
+    def test_user_whose_only_token_fcm_rejected_carries_the_rejection_reason(self):
+        result = _fcm_result(["token-1"], {"token-1": Exception("Requested entity was not found")})
+
+        results = push_results_by_user([1], {1: ["token-1"]}, result)
+
+        assert results == {1: "Requested entity was not found"}
+
+    def test_user_with_one_accepted_token_is_dispatched_despite_another_being_rejected(self):
+        result = _fcm_result(["token-1", "token-2"], {"token-1": Exception("Requested entity was not found")})
+
+        results = push_results_by_user([1], {1: ["token-1", "token-2"]}, result)
+
+        assert results == {1: None}
+
+    def test_user_is_failed_only_when_every_one_of_their_tokens_is_rejected(self):
+        result = _fcm_result(
+            ["token-1", "token-2", "token-3"],
+            {
+                "token-1": Exception("Requested entity was not found"),
+                "token-2": Exception("Requested entity was not found"),
+            },
+        )
+
+        results = push_results_by_user([1, 2], {1: ["token-1", "token-2"], 2: ["token-3"]}, result)
+
+        assert results == {1: "Requested entity was not found", 2: None}
 
 
 class TestNotificationPrune:

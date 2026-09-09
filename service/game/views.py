@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -18,7 +19,7 @@ from .serializers import (
     GameUnpauseSerializer,
     GameExtendDeadlineSerializer,
 )
-from common.views import SelectedGameMixin
+from common.views import SelectedGameMixin, resolve_game
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGamePlayer, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
@@ -146,14 +147,17 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         return self.get_game()
 
     def perform_destroy(self, instance):
-        is_game_master_delete = (
-            not instance.sandbox
-            and instance.game_master_id is not None
-            and instance.game_master_id == self.request.user.id
-        )
-        user_ids = list(instance.seated_member_user_ids())
-        game_name = instance.name
-        instance.delete()
+        with transaction.atomic():
+            game = resolve_game(self.request, self.kwargs.get("game_id"), lock=True)
+            self.check_permissions(self.request)
+            is_game_master_delete = (
+                not game.sandbox
+                and game.game_master_id is not None
+                and game.game_master_id == self.request.user.id
+            )
+            user_ids = list(game.seated_member_user_ids())
+            game_name = game.name
+            game.delete()
         if is_game_master_delete:
             emit("game_deleted", recipients=user_ids, game_name=game_name, actor=self.request.user)
 
