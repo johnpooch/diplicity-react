@@ -582,11 +582,24 @@ class TestStatusAudit:
 
     @pytest.mark.django_db
     def test_civil_disorder_removal_returns_mustering_games_to_pending(
-        self, muster_game_factory, in_memory_procrastinate, secondary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        primary_user,
+        secondary_user,
+        italy_vs_germany_variant,
     ):
         game = muster_game_factory()
+        active_game = Game.objects.create_from_template(
+            italy_vs_germany_variant,
+            name="Civil Disorder Game",
+            created_by=primary_user,
+            admin=primary_user,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
 
-        Phase.objects._remove_from_staging_games([secondary_user.id])
+        Phase.objects._remove_from_staging_games([secondary_user.id], active_game)
 
         game.refresh_from_db()
         assert game.status == GameStatus.PENDING
