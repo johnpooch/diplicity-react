@@ -265,7 +265,6 @@ const mockUserProfile = {
   name: "Mock Player",
   picture: null,
   email: "mock@example.com",
-  emailNotificationsEnabled: true,
   reliabilityTier: null as string | null,
   commitment: "high",
 };

@@ -1,6 +1,5 @@
 from django.conf import settings
 
-from email_service.templates import notification_email
 from notification.models import NotificationDelivery
 
 Channel = NotificationDelivery.Channel
@@ -26,8 +25,6 @@ def get_spec(event_type, context):
 class NotificationSpec:
     event_type = None
     exclude_actor = False
-    channels = [Channel.PUSH]
-    email_link_text = "View Game"
     no_link_reason = None
 
     def __init__(self, context):
@@ -62,29 +59,10 @@ class NotificationSpec:
             return self._game_url()
         return f"{self._game_url()}/phase/{phase.id}/{suffix}"
 
-    def get_email_subject(self):
-        return self.context.game.name
-
-    def get_email_body(self):
-        return self.get_body()
-
-    def render(self, channel):
+    def render(self):
         link = None if self.no_link_reason else self.get_link()
-        if channel == Channel.EMAIL:
-            return {
-                "channel": channel,
-                "heading": self.get_email_subject(),
-                "body": notification_email(
-                    title=self.get_title(),
-                    body=self.get_email_body(),
-                    link=link,
-                    link_text=self.email_link_text,
-                ),
-                "link": None,
-                "data": None,
-            }
         return {
-            "channel": channel,
+            "channel": Channel.PUSH,
             "heading": self.get_title(),
             "body": self.get_body(),
             "link": link,
@@ -146,16 +124,11 @@ class DrawProposalSpec(NotificationSpec):
 
 @register("game_start")
 class GameStartSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return "The game has started. You can now chat with other players and submit your orders. Good luck!"
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Game Started"
 
 
 @register("game_draw")
@@ -190,30 +163,20 @@ class GameSoloLossSpec(NotificationSpec):
 
 @register("phase_resolved")
 class PhaseResolvedSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return f"{self.context.phase.name} has been resolved"
 
-    def get_email_subject(self):
-        return f"{self.context.game.name} — {self.context.phase.name} Resolved"
-
 
 @register("phase_resolved_early")
 class PhaseResolvedEarlySpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return f"{self.context.phase.name} resolved early — all players confirmed their orders."
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — {self.context.phase.name} Resolved Early"
 
 
 @register("game_deleted")
@@ -313,24 +276,15 @@ class RemovedFromStagingSpec(NotificationSpec):
 
 @register("entered_civil_disorder")
 class EnteredCivilDisorderSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-    email_link_text = "Return to Game"
-
     def get_body(self):
         return (
             f"You have entered civil disorder in {self.context.game.name}. "
             "Your units hold each turn until you return to the game."
         )
 
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Civil Disorder"
-
 
 @register("civil_disorder")
 class CivilDisorderSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-    email_link_text = "View Players"
-
     def get_audience(self):
         return self.context.game.active_member_user_ids()
 
@@ -339,9 +293,6 @@ class CivilDisorderSpec(NotificationSpec):
 
     def get_body(self):
         return f"{self.context.payload['nation_names']} entered civil disorder."
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Civil Disorder"
 
 
 @register("civil_disorder_recovery")
@@ -395,11 +346,5 @@ class NmrExtensionAppliedSpec(NotificationSpec):
 
 @register("deadline_warning")
 class DeadlineWarningSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-    email_link_text = "Submit Orders"
-
     def get_body(self):
         return self.context.payload["body"]
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Deadline Approaching"
