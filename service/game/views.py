@@ -155,11 +155,11 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
                 and game.game_master_id is not None
                 and game.game_master_id == self.request.user.id
             )
-            user_ids = list(game.seated_member_user_ids() - {self.request.user.id})
+            user_ids = list(game.seated_member_user_ids())
             game_name = game.name
             game.delete()
         if is_game_master_delete:
-            emit("game_deleted", recipients=user_ids, game_name=game_name)
+            emit("game_deleted", recipients=user_ids, game_name=game_name, actor=self.request.user)
 
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):

@@ -1904,9 +1904,7 @@ def end_game_notification_game_factory(
 def mock_send_notification_to_users():
     from notification import tasks as notification_tasks
 
-    with patch("notification.utils.send_notification_to_users") as mock_fn, patch(
-        "email_service.utils.send_email_to_users"
-    ), patch.object(
+    with patch("notification.utils.send_notification_to_users") as mock_fn, patch.object(
         notification_tasks.deliver, "defer", side_effect=lambda **kwargs: notification_tasks.deliver(**kwargs)
     ):
         yield mock_fn

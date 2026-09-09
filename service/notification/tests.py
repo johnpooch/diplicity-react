@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -10,6 +11,7 @@ from channel.models import Channel, ChannelMessage
 from channel.serializers import ChannelMessageSerializer
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus
 from draw_proposal.models import DrawProposal
+from emit.dispatch import emit
 from emit.context import build_context
 from game.models import Game
 from member.models import Member
@@ -19,7 +21,6 @@ from notification.registry import ChannelMessageSpec
 from notification.tasks import DELIVER_MAX_AGE_HOURS, PRUNE_AFTER_DAYS, deliver, prune
 from notification.utils import PUSH_TTL, build_push_message
 from phase.models import Phase
-from user_profile.models import UserProfile
 from victory.models import Victory
 
 User = get_user_model()
@@ -30,12 +31,6 @@ _truncate = ChannelMessageSpec._truncate
 def _push(event_type):
     return NotificationDelivery.objects.filter(
         notification__event_type=event_type, channel=NotificationDelivery.Channel.PUSH
-    )
-
-
-def _email(event_type):
-    return NotificationDelivery.objects.filter(
-        notification__event_type=event_type, channel=NotificationDelivery.Channel.EMAIL
     )
 
 
@@ -52,7 +47,7 @@ def _rendered_push(**overrides):
         "data": None,
     }
     content.update(overrides)
-    return [content]
+    return content
 
 
 def _push_delivery(user, status=NotificationDelivery.Status.PENDING):
@@ -72,11 +67,10 @@ def _backdate(delivery, age):
 
 class _StubSpec:
     def __init__(self, rendered):
-        self.channels = [content["channel"] for content in rendered]
         self._rendered = rendered
 
-    def render(self, channel):
-        return next(content for content in self._rendered if content["channel"] == channel)
+    def render(self):
+        return self._rendered
 
 
 def _send_channel_message(channel, member, body):
@@ -89,6 +83,12 @@ def _send_channel_message(channel, member, body):
 def resolve_recipients(event_type, **kwargs):
     context = build_context(event_type, **kwargs)
     return NOTIFICATION_REGISTRY[event_type](context).get_recipients()
+
+
+def render_push(event_type, **kwargs):
+    context = build_context(event_type, **kwargs)
+    spec = NOTIFICATION_REGISTRY[event_type](context)
+    return spec.render()
 
 
 def assert_notification(recipient, event_type, **expected):
@@ -219,6 +219,7 @@ class TestRegistry:
             "removed_from_game",
             "removed_from_staging",
             "seat_filled",
+            "entered_civil_disorder",
             "civil_disorder",
             "civil_disorder_recovery",
             "elimination",
@@ -227,6 +228,65 @@ class TestRegistry:
             "deadline_warning",
         }
         assert set(NOTIFICATION_REGISTRY) == expected
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("event_type", sorted(NOTIFICATION_REGISTRY))
+    def test_every_spec_either_links_or_declares_why(self, active_game, event_type):
+        channel = Channel.objects.create(game=active_game, name="Global", private=False)
+        context = build_context(
+            event_type,
+            game=active_game,
+            phase=active_game.current_phase,
+            channel=channel,
+        )
+        spec = NOTIFICATION_REGISTRY[event_type](context)
+        assert spec.no_link_reason or spec.get_link() is not None
+
+    def test_game_deleted_is_the_only_declared_link_exception(self):
+        declared = {
+            event_type
+            for event_type, spec_class in NOTIFICATION_REGISTRY.items()
+            if spec_class.no_link_reason
+        }
+        assert declared == {"game_deleted"}
+
+
+class TestNotificationLinks:
+    @pytest.mark.django_db
+    def test_civil_disorder_links_to_player_info(self, active_game):
+        rendered = render_push("civil_disorder", game=active_game, nation_names="England")
+        assert rendered["link"] == (
+            f"{settings.FRONTEND_URL}/game/{active_game.id}"
+            f"/phase/{active_game.current_phase.id}/player-info"
+        )
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_links_to_player_info(self, active_game, primary_user):
+        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
+        assert rendered["link"] == (
+            f"{settings.FRONTEND_URL}/game/{active_game.id}"
+            f"/phase/{active_game.current_phase.id}/player-info"
+        )
+
+    @pytest.mark.django_db
+    def test_civil_disorder_push_data_carries_the_link(self, active_game):
+        rendered = render_push("civil_disorder", game=active_game, nation_names="England")
+        assert rendered["data"] == {
+            "game_id": str(active_game.id),
+            "link": rendered["link"],
+        }
+
+    @pytest.mark.django_db
+    def test_civil_disorder_falls_back_to_the_game_without_a_phase(self, emit_game):
+        game = emit_game()["game"]
+        rendered = render_push("civil_disorder", game=game, nation_names="England")
+        assert rendered["link"] == f"{settings.FRONTEND_URL}/game/{game.id}"
+
+    @pytest.mark.django_db
+    def test_game_deleted_renders_no_link(self, primary_user):
+        rendered = render_push("game_deleted", recipients=[primary_user.id], game_name="Gone")
+        assert rendered["link"] is None
+        assert rendered["data"] is None
 
 
 class TestActiveResolver:
@@ -325,6 +385,17 @@ class TestSeatedExceptActorResolver:
         )
         assert result == {state["active_two"].user_id}
 
+    def test_game_deleted_excludes_the_actor(self, emit_game):
+        state = emit_game()
+        actor = state["active_one"].user
+        result = resolve_recipients(
+            "game_deleted",
+            game=state["game"],
+            actor=actor,
+            recipients=[actor.id, state["active_two"].user_id],
+        )
+        assert result == {state["active_two"].user_id}
+
 
 class TestActiveExceptActorResolver:
     @pytest.mark.django_db
@@ -414,6 +485,7 @@ class TestExplicitResolvers:
             "kicked_from_staging",
             "removed_from_game",
             "removed_from_staging",
+            "entered_civil_disorder",
             "elimination",
             "deadline_warning",
         ],
@@ -734,46 +806,53 @@ class TestPhaseResolvedNotification:
 
         assert_notification(primary_user, "phase_resolved")
 
-    @pytest.mark.django_db
-    def test_early_resolution_email_subject_marks_resolved_early(
-        self,
-        classical_variant,
-        primary_user,
-        in_memory_procrastinate,
-    ):
-        primary_user.profile.email_notifications_enabled = True
-        primary_user.profile.save()
-        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12), primary_user)
 
-        Phase.objects._emit_phase_resolved(phase)
+class TestEnteredCivilDisorderNotification:
 
-        delivery = _email("phase_resolved_early").first()
-        assert delivery is not None
-        assert "Resolved Early" in delivery.heading
-
-
-class TestGameStartEmailNotification:
+    @staticmethod
+    def _game_with_member(variant, user):
+        game = Game.objects.create(
+            variant=variant,
+            name="Civil Disorder Notify Test",
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=user)
+        return game
 
     @pytest.mark.django_db
-    def test_game_start_defers_email_notification(
-        self, pending_game_with_game_master_factory, adjudication_data_classical, in_memory_procrastinate
+    def test_notification_is_headed_by_the_game_name(
+        self, classical_variant, primary_user, in_memory_procrastinate
     ):
-        game = pending_game_with_game_master_factory()
-        player_count = game.variant.nations.count()
-        for i in range(player_count):
-            user = User.objects.create_user(f"start_email_player{i}@test.com", password="testpass")
-            UserProfile.objects.create(user=user, name=f"Start Email Player {i}", email_notifications_enabled=True)
-            game.members.create(user=user)
+        game = self._game_with_member(classical_variant, primary_user)
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
-            game.start()
+        emit("entered_civil_disorder", game=game, recipients=[primary_user.id])
 
-        deliveries = _email("game_start")
-        assert deliveries.count() == player_count
-        delivery = deliveries.first()
-        assert "Game Started" in delivery.heading
-        assert game.name in delivery.heading
-        assert game.name in delivery.body
+        assert_notification(primary_user, "entered_civil_disorder", title=game.name)
+
+    @pytest.mark.django_db
+    def test_notification_body_names_the_game(
+        self, classical_variant, primary_user, in_memory_procrastinate
+    ):
+        game = self._game_with_member(classical_variant, primary_user)
+
+        emit("entered_civil_disorder", game=game, recipients=[primary_user.id])
+
+        delivery = _push("entered_civil_disorder").first()
+        assert delivery.body == (
+            f"You have entered civil disorder in {game.name}. "
+            "Your units hold each turn until you return to the game."
+        )
+
+    @pytest.mark.django_db
+    def test_notification_links_to_the_game(
+        self, classical_variant, primary_user, in_memory_procrastinate
+    ):
+        game = self._game_with_member(classical_variant, primary_user)
+
+        emit("entered_civil_disorder", game=game, recipients=[primary_user.id])
+
+        delivery = _push("entered_civil_disorder").first()
+        assert delivery.link == f"{settings.FRONTEND_URL}/game/{game.id}"
 
 
 class TestNotificationDeliveryBroadcast:

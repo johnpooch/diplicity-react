@@ -452,6 +452,16 @@ describe("DiplicityMap unit scaling", () => {
     expect(svg).toContain('font-size="30"');
   });
 
+  test("scales the label baseline offset so the glyph stays centred", () => {
+    // Unit centre is cy=130; the +5 baseline drop scales with the unit, so at
+    // scale 2 the text baseline is cy + 5 * 2 = 140 (not a fixed cy + 5 = 135).
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { England: "#1b4f9c" },
+      units: [{ province: "alpha", nation: "England", type: "Army" }],
+    });
+    expect(svg).toContain('<text x="150" y="140"');
+  });
+
   test("scales the unit token's outline stroke width along with its radius", () => {
     const svg = new DiplicityMap(TOY_DSVG, 2).render({
       nationColors: { England: "#1b4f9c" },
