@@ -241,7 +241,7 @@ const unitToken = (
   const label = type === "Army" ? "A" : "F";
   return (
     `<circle cx="${formatCoord(cx)}" cy="${formatCoord(cy)}" r="${UNIT_RADIUS * scale}" fill="${color}" stroke="black" stroke-width="${2 * scale}"${opacityAttr(circleOpacity)}/>` +
-    `<text x="${formatCoord(cx)}" y="${formatCoord(cy + 5)}" font-size="${15 * scale}" font-weight="bold" fill="black" text-anchor="middle"${opacityAttr(textOpacity)}>${label}</text>`
+    `<text x="${formatCoord(cx)}" y="${formatCoord(cy + 5 * scale)}" font-size="${15 * scale}" font-weight="bold" fill="black" text-anchor="middle"${opacityAttr(textOpacity)}>${label}</text>`
   );
 };
 
