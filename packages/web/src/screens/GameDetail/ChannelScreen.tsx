@@ -16,13 +16,22 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
+import {
+  getChannelDisplayName,
+  getChannelFlagUrls,
+  getMessageSenderLabel,
+  brightnessByColor,
+  toHex6,
+  NEUTRAL_SENDER_COLOR,
+} from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
+  useUserRetrieveSuspense,
   useGamesChannelsListSuspense,
   useGamesChannelsMessagesCreateCreate,
   useGamesChannelsMarkReadCreate,
@@ -37,9 +46,12 @@ type MessageDisplayItem = {
   body: string;
   createdAt: string;
   sender: {
-    nationName: string;
-    nationColor: string;
+    displayName: string;
+    name: string;
+    nationName: string | null;
+    color: string;
     picture: string | null;
+    isGameMaster: boolean;
   };
   isCurrentUser: boolean;
   showAvatar: boolean;
@@ -62,20 +74,23 @@ const buildMessageItems = (
   messages: readonly ChannelMessageType[]
 ): MessageDisplayItem[] => {
   return messages.map((msg, index) => {
-    const nationName = msg.sender.nation?.name ?? msg.sender.name;
-    const previousNationName = index > 0
-      ? messages[index - 1].sender.nation?.name ?? messages[index - 1].sender.name
+    const displayName = getMessageSenderLabel(msg.sender);
+    const previousDisplayName = index > 0
+      ? getMessageSenderLabel(messages[index - 1].sender)
       : null;
-    const showAvatar = index === 0 || previousNationName !== nationName;
+    const showAvatar = index === 0 || previousDisplayName !== displayName;
 
     return {
       id: msg.id,
       body: msg.body,
       createdAt: msg.createdAt,
       sender: {
-        nationName,
-        nationColor: msg.sender.nation?.color ?? "#808080",
+        displayName,
+        name: msg.sender.name,
+        nationName: msg.sender.nation?.name ?? null,
+        color: msg.sender.nation?.color ?? NEUTRAL_SENDER_COLOR,
         picture: msg.sender.picture,
+        isGameMaster: msg.sender.isGameMaster,
       },
       isCurrentUser: msg.sender.isCurrentUser,
       showAvatar,
@@ -108,6 +123,7 @@ const ChannelScreen: React.FC = () => {
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: userProfile } = useUserRetrieveSuspense();
   const { data: channels } = useGamesChannelsListSuspense(gameId, {
     query: {
       refetchInterval: 5000,
@@ -138,6 +154,9 @@ const ChannelScreen: React.FC = () => {
   });
 
   const currentMember = game.members.find(m => m.isCurrentUser);
+  const isGameMaster =
+    !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
+  const canPost = !!currentMember || (isGameMaster && !channel.private);
   const currentNationName = currentMember?.nation ?? undefined;
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
@@ -154,7 +173,7 @@ const ChannelScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!currentMember) return;
+    if (!canPost) return;
     markReadMutation.mutateAsync({
       gameId,
       channelId: parseInt(channelId),
@@ -274,16 +293,25 @@ const ChannelScreen: React.FC = () => {
                       >
                         {item.showAvatar ? (
                           <div className="w-8 flex-shrink-0 flex justify-center">
-                            <NationFlag
-                              flagUrl={
-                                variant
-                                  ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                  : null
-                              }
-                              alt={item.sender.nationName}
-                              size="lg"
-                              color={item.sender.nationColor}
-                            />
+                            {item.sender.isGameMaster ? (
+                              <Avatar className="size-6">
+                                <AvatarImage src={item.sender.picture ?? undefined} />
+                                <AvatarFallback className="text-xs">
+                                  {item.sender.name[0]?.toUpperCase() ?? "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <NationFlag
+                                flagUrl={
+                                  variant
+                                    ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                    : null
+                                }
+                                alt={item.sender.displayName}
+                                size="lg"
+                                color={item.sender.color}
+                              />
+                            )}
                           </div>
                         ) : (
                           <div className="w-8 flex-shrink-0" />
@@ -291,9 +319,9 @@ const ChannelScreen: React.FC = () => {
                         <MessageContent
                           className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
                           style={{
-                            backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                            border: brightnessByColor(item.sender.nationColor) > 128
-                              ? `1px solid ${item.sender.nationColor}`
+                            backgroundColor: toHex6(item.sender.color) + BUBBLE_ALPHA_HEX,
+                            border: brightnessByColor(item.sender.color) > 128
+                              ? `1px solid ${item.sender.color}`
                               : undefined,
                           }}
                         >
@@ -302,9 +330,9 @@ const ChannelScreen: React.FC = () => {
                             <div className="flex items-center justify-between gap-2 mt-0.5">
                               <span
                                 className="text-xs font-medium"
-                                style={{ color: item.sender.nationColor }}
+                                style={{ color: item.sender.color }}
                               >
-                                {item.sender.nationName}
+                                {item.sender.displayName}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {item.formattedTime}
@@ -323,7 +351,7 @@ const ChannelScreen: React.FC = () => {
               )}
             </div>
           </Panel.Content>
-          {currentMember && (
+          {canPost && (
             <>
               <Separator />
               <Panel.Footer>

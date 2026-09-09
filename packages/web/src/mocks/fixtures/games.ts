@@ -4,6 +4,7 @@ import {
   makeChannel,
   makeFixture,
   makeGame,
+  makeGameMasterMessage,
   makeMessage,
   makeOrder,
   makePhase,
@@ -133,6 +134,39 @@ export const gameMasterGame = makeFixture({
     }
   ),
 });
+
+const GAME_MASTER = { userId: 1, name: "Mock Player", picture: null };
+
+const buildActiveGameMasterChat = () => {
+  const members = NATION_ASSIGNMENT.map(([playerIndex, nation]) =>
+    makeMember(players[playerIndex + 1], nation)
+  );
+  const phase = makePhase(1101, 1, { remainingTime: 18 * 60 * 60 });
+  const channels = [
+    makeChannel("Public Press", members, [
+      makeMessage(members[0], "Good luck all.", "2026-05-01T11:00:00Z"),
+      makeGameMasterMessage(
+        GAME_MASTER,
+        "Deadlines are 24 hours. Ping me here if you need an extension.",
+        "2026-05-01T11:04:00Z"
+      ),
+      makeMessage(members[2], "Understood, thanks.", "2026-05-01T11:09:00Z"),
+    ]),
+  ];
+  return makeFixture({
+    description:
+      "Active game run by a non-playing Game Master (the current user). The GM holds no seat but can read and post in Public Press, and their messages are attributed to the Game Master rather than a nation.",
+    game: makeGame("active-game-master-chat", "Master of Ceremonies", members, [phase], {
+      private: true,
+      canManage: true,
+      gameMaster: GAME_MASTER,
+    }),
+    phases: [phase],
+    channels,
+  });
+};
+
+export const activeGameMasterChat = buildActiveGameMasterChat();
 
 const buildActiveMovement = () => {
   const members = makeActiveMembers();

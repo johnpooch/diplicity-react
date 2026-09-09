@@ -3,6 +3,7 @@ import type {
   ChannelMessage,
   GameList,
   GameListCurrentPhase,
+  GameMaster,
   Member,
   Order,
   OrderTypeEnum,
@@ -21,6 +22,7 @@ import {
   nation,
   province,
 } from "./classical";
+import { currentUserProfile } from "./users";
 
 const HOUR = 60 * 60;
 
@@ -245,6 +247,7 @@ export const makePhaseState = (
 
 let channelIdCounter = 0;
 let messageIdCounter = 0;
+let gameMasterMemberIdCounter = 10000;
 
 export const makeMessage = (
   sender: Member,
@@ -263,6 +266,27 @@ export const makeMessage = (
     isBot: sender.isBot,
     nation: nation((sender.nation ?? "england").toLowerCase()),
     isGameMaster: false,
+  },
+  createdAt,
+});
+
+export const makeGameMasterMessage = (
+  gameMaster: GameMaster,
+  body: string,
+  createdAt: string
+): ChannelMessage => ({
+  id: ++messageIdCounter,
+  body,
+  sender: {
+    id: ++gameMasterMemberIdCounter,
+    userId: gameMaster.userId,
+    name: gameMaster.name,
+    picture: gameMaster.picture,
+    isCurrentUser: gameMaster.userId === currentUserProfile.userId,
+    commitment: "high",
+    isBot: false,
+    nation: null,
+    isGameMaster: true,
   },
   createdAt,
 });
