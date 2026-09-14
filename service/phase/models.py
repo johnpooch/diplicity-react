@@ -12,7 +12,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
+from phase.utils import transform_options, build_notification_body, compress_deadline, format_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -265,7 +265,6 @@ class PhaseManager(models.Manager):
                 continue
 
             is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
-            time_left = format_time_remaining(time_until_deadline)
 
             actionable_units = phase.actionable_units
             forced_nations = phase.nations_with_forced_orders
@@ -287,7 +286,7 @@ class PhaseManager(models.Manager):
                     continue
 
                 body = build_notification_body(
-                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
+                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
                     ps.member.nmr_extensions_remaining,
                     is_adjustment=is_adjustment,
                 )
