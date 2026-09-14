@@ -67,8 +67,8 @@ interface GameDropdownMenuProps {
     | "isPaused"
     | "status"
   >;
-  onNavigateToGameInfo: () => void;
-  onNavigateToPlayerInfo: () => void;
+  onNavigateToGameInfo?: () => void;
+  onNavigateToPlayerInfo?: () => void;
 }
 
 export function GameDropdownMenu({
@@ -205,15 +205,21 @@ export function GameDropdownMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onNavigateToGameInfo}>
-          <Info />
-          Game info
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onNavigateToPlayerInfo}>
-          <Users />
-          Player info
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {onNavigateToGameInfo && (
+          <DropdownMenuItem onClick={onNavigateToGameInfo}>
+            <Info />
+            Game info
+          </DropdownMenuItem>
+        )}
+        {onNavigateToPlayerInfo && (
+          <DropdownMenuItem onClick={onNavigateToPlayerInfo}>
+            <Users />
+            Player info
+          </DropdownMenuItem>
+        )}
+        {(onNavigateToGameInfo || onNavigateToPlayerInfo) && (
+          <DropdownMenuSeparator />
+        )}
         <DropdownMenuItem onClick={() => copyLink(`/game/${game.id}`)}>
           <Share />
           Share

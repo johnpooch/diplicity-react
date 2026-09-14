@@ -1,16 +1,17 @@
 import React, { useMemo } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
-import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
+import { Map, Gavel, MessageCircle, Users, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
@@ -21,6 +22,8 @@ const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
   { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
   { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
+  { label: "Players", icon: Users, path: "/game/:gameId/phase/:phaseId/player-info" },
+  { label: "Info", icon: Info, path: "/game/:gameId/phase/:phaseId/game-info" },
 ];
 
 interface GameDetailLayoutProps {
@@ -123,24 +126,23 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         <OfflineBanner />
         <div className="flex items-stretch flex-1 min-h-0 w-full">
           {/* Left Sidebar - Icons only */}
-          <Sidebar collapsible="none" className="hidden md:flex w-14">
-            <SidebarHeader className="p-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/")}
-                aria-label="Back to home"
-              >
-                <ArrowLeft className="size-4" />
-              </Button>
+          <Sidebar collapsible="none" className="hidden w-[72px] px-3 py-6 md:flex">
+            <SidebarHeader className="p-0">
+              <Link to="/" aria-label="Home" className="flex w-full justify-center">
+                <DiplicityLogo />
+              </Link>
             </SidebarHeader>
-            <SidebarContent>
+            <SidebarContent className="justify-center">
               <Navigation
                 items={sidebarNavItems}
                 variant="compact"
                 onItemClick={path => navigate(path)}
+                className="w-full p-0"
               />
             </SidebarContent>
+            <SidebarFooter className="p-0">
+              <div className="size-8" aria-hidden />
+            </SidebarFooter>
           </Sidebar>
 
           {/* Main Content Area - Fixed width on desktop */}

@@ -28,11 +28,7 @@ const renderMenu = (game: React.ComponentProps<typeof GameDropdownMenu>["game"])
   render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <GameDropdownMenu
-          game={game}
-          onNavigateToGameInfo={() => {}}
-          onNavigateToPlayerInfo={() => {}}
-        />
+        <GameDropdownMenu game={game} />
       </MemoryRouter>
     </QueryClientProvider>
   );
