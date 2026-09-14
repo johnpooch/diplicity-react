@@ -29,6 +29,7 @@ export const players: PlayerSeed[] = [
   { userId: 5, name: "Diana" },
   { userId: 6, name: "Eve" },
   { userId: 7, name: "Frank" },
+  { userId: 8, name: "Grace" },
 ];
 
 let memberIdCounter = 0;

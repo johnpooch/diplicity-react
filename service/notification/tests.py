@@ -274,6 +274,18 @@ class TestRegistry:
         spec = NOTIFICATION_REGISTRY[event_type](context)
         assert spec.no_link_reason or spec.get_link() is not None
 
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("event_type", sorted(set(NOTIFICATION_REGISTRY) - {"game_deleted"}))
+    def test_every_spec_is_titled_with_the_game_name(self, active_game, event_type):
+        channel = Channel.objects.create(game=active_game, name="Global", private=False)
+        context = build_context(
+            event_type,
+            game=active_game,
+            phase=active_game.current_phase,
+            channel=channel,
+        )
+        assert NOTIFICATION_REGISTRY[event_type](context).get_title() == active_game.name
+
     def test_game_deleted_is_the_only_declared_link_exception(self):
         declared = {
             event_type
@@ -286,7 +298,7 @@ class TestRegistry:
 class TestNotificationLinks:
     @pytest.mark.django_db
     def test_civil_disorder_links_to_player_info(self, active_game):
-        rendered = render_push("civil_disorder", game=active_game, nation_names="England")
+        rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
         assert rendered["link"] == (
             f"{settings.FRONTEND_URL}/game/{active_game.id}"
             f"/phase/{active_game.current_phase.id}/player-info"
@@ -302,7 +314,7 @@ class TestNotificationLinks:
 
     @pytest.mark.django_db
     def test_civil_disorder_push_data_carries_the_link(self, active_game):
-        rendered = render_push("civil_disorder", game=active_game, nation_names="England")
+        rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
         assert rendered["data"] == {
             "game_id": str(active_game.id),
             "link": rendered["link"],
@@ -311,7 +323,7 @@ class TestNotificationLinks:
     @pytest.mark.django_db
     def test_civil_disorder_falls_back_to_the_game_without_a_phase(self, emit_game):
         game = emit_game()["game"]
-        rendered = render_push("civil_disorder", game=game, nation_names="England")
+        rendered = render_push("civil_disorder", game=game, nation_names=["England"])
         assert rendered["link"] == f"{settings.FRONTEND_URL}/game/{game.id}"
 
     @pytest.mark.django_db
@@ -319,6 +331,83 @@ class TestNotificationLinks:
         rendered = render_push("game_deleted", recipients=[primary_user.id], game_name="Gone")
         assert rendered["link"] is None
         assert rendered["data"] is None
+
+
+class TestNotificationCopy:
+    @pytest.mark.django_db
+    def test_civil_disorder_names_one_nation_in_the_singular(self, active_game):
+        rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
+        assert rendered["heading"] == active_game.name
+        assert rendered["body"] == "England has entered civil disorder."
+
+    @pytest.mark.django_db
+    def test_civil_disorder_names_several_nations_in_the_plural(self, active_game):
+        rendered = render_push(
+            "civil_disorder", game=active_game, nation_names=["England", "France", "Italy"]
+        )
+        assert rendered["body"] == "England, France and Italy have entered civil disorder."
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_names_the_returning_nation(self, active_game, primary_user):
+        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
+        assert rendered["heading"] == active_game.name
+        assert rendered["body"] == "England has returned from civil disorder."
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_without_a_nation_names_the_player(self, active_game, primary_user):
+        active_game.members.filter(user=primary_user).update(nation=None)
+
+        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
+        assert rendered["body"] == f"{primary_user.profile.name} has returned from civil disorder."
+
+    @pytest.mark.django_db
+    def test_civil_disorder_recovery_without_a_nation_masks_the_player_in_an_anonymous_game(
+        self, active_game, primary_user
+    ):
+        active_game.members.filter(user=primary_user).update(nation=None)
+        active_game.anonymous = True
+        active_game.save()
+
+        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
+        assert rendered["body"] == "Anonymous has returned from civil disorder."
+
+    @pytest.mark.django_db
+    def test_seat_filled_names_the_nation_in_the_body(self, active_game):
+        rendered = render_push("seat_filled", game=active_game, nation_name="France")
+        assert rendered["heading"] == active_game.name
+        assert rendered["body"] == "France has a new player."
+
+    @pytest.mark.django_db
+    def test_removed_from_game_names_the_manager(self, active_game):
+        rendered = render_push("removed_from_game", game=active_game)
+        assert rendered["heading"] == active_game.name
+        assert rendered["body"] == "You have been removed from this game by the game creator."
+
+    @pytest.mark.django_db
+    def test_draw_proposal_states_the_event_without_a_call_to_action(self, active_game, primary_user):
+        rendered = render_push(
+            "draw_proposal", game=active_game, phase=active_game.current_phase, actor=primary_user
+        )
+        assert rendered["body"] == f"{primary_user.profile.name} has proposed a draw."
+
+    @pytest.mark.django_db
+    def test_nmr_extension_used_omits_the_deadline_when_none_is_scheduled(self, active_game, primary_user):
+        rendered = render_push("nmr_extension_used", phase=active_game.current_phase, actor=primary_user)
+        assert rendered["body"] == "An automatic extension has been used on your behalf (0 remaining)."
+
+    @pytest.mark.django_db
+    def test_nmr_extension_applied_states_the_new_deadline_when_one_is_scheduled(self, active_game):
+        phase = active_game.current_phase
+        phase.scheduled_resolution = timezone.now() + timedelta(hours=1)
+        phase.save()
+
+        rendered = render_push("nmr_extension_applied", phase=phase)
+        assert rendered["body"].startswith("An automatic extension has been used. The new deadline is ")
+
+    @pytest.mark.django_db
+    def test_solo_loss_omits_the_winner_when_there_is_none(self, active_game):
+        rendered = render_push("game_solo_loss", game=active_game)
+        assert rendered["body"] == "The game has ended in a solo win. Better luck next time!"
 
 
 class TestActiveResolver:
@@ -630,7 +719,7 @@ class TestDrawProposalNotification:
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
         notification = assert_notification(
-            secondary_user, "draw_proposal", body="Anonymous has proposed a draw. Respond to it now."
+            secondary_user, "draw_proposal", body="Anonymous has proposed a draw."
         )
         assert italy.name not in notification.body
 
@@ -780,7 +869,7 @@ class TestPhaseResolvedNotification:
         assert_notification(
             primary_user,
             "phase_resolved_early",
-            body=f"{phase.name} resolved early — all players confirmed their orders.",
+            body=f"{phase.name} has been resolved early — all players have confirmed their orders.",
         )
 
     @pytest.mark.django_db
@@ -794,7 +883,7 @@ class TestPhaseResolvedNotification:
 
         Phase.objects._emit_phase_resolved(phase)
 
-        assert_notification(primary_user, "phase_resolved", body=f"{phase.name} has been resolved")
+        assert_notification(primary_user, "phase_resolved", body=f"{phase.name} has been resolved.")
 
     @pytest.mark.django_db
     def test_game_ending_phase_without_deadline_sends_phase_resolved(
@@ -898,7 +987,7 @@ class TestNotificationDeliveryBroadcast:
         NotificationDelivery.objects.broadcast(
             notifications,
             _StubSpec(
-                _rendered_push(body="Spring 1901 has been resolved", link="https://example.test/game/1")
+                _rendered_push(body="Spring 1901 has been resolved.", link="https://example.test/game/1")
             ),
         )
 
@@ -906,7 +995,7 @@ class TestNotificationDeliveryBroadcast:
         for user in (one, two):
             delivery = _push("phase_resolved").get(notification__recipient=user)
             assert delivery.status == NotificationDelivery.Status.PENDING
-            assert delivery.body == "Spring 1901 has been resolved"
+            assert delivery.body == "Spring 1901 has been resolved."
             assert delivery.link == "https://example.test/game/1"
 
     @pytest.mark.django_db

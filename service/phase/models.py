@@ -415,9 +415,7 @@ class PhaseManager(models.Manager):
 
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
 
-        nation_names = ", ".join(
-            m.nation.name for m in newly_cd_members if m.nation is not None
-        )
+        nation_names = [m.nation.name for m in newly_cd_members if m.nation is not None]
 
         emit("entered_civil_disorder", game=phase.game, recipients=cd_user_ids)
         emit("civil_disorder", game=phase.game, nation_names=nation_names)
