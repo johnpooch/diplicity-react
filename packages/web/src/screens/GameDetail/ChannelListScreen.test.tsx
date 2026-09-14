@@ -128,7 +128,7 @@ describe("ChannelListScreen", () => {
     renderChannelList();
 
     expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("Public")).toBeInTheDocument();
+    expect(screen.getByLabelText("Public channel")).toBeInTheDocument();
     // No badge for zero unread
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
@@ -138,7 +138,7 @@ describe("ChannelListScreen", () => {
 
     renderChannelList();
 
-    expect(screen.getByRole("link", { name: /create channel/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /create channel/i })).toHaveLength(2);
   });
 
   it("hides create channel button when the user is not a member", () => {

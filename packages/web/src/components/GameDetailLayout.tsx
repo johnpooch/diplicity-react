@@ -146,12 +146,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           </Sidebar>
 
           {/* Main Content Area - Fixed width on desktop */}
-          <SidebarInset className="@container flex min-w-0 min-h-0 flex-col md:w-[360px] md:flex-none">
+          <SidebarInset className="@container flex min-w-0 min-h-0 flex-col bg-sidebar md:w-[400px] md:flex-none">
             {children}
           </SidebarInset>
 
           {/* Right Panel - GameMap (desktop only) */}
-          <div className="hidden md:flex flex-1 border-l overflow-hidden">
+          <div className="hidden md:flex flex-1 border-l overflow-hidden bg-muted">
             <GameMap />
           </div>
         </div>

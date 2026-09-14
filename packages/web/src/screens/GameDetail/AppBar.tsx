@@ -1,9 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GameDetailAppBarProps {
@@ -40,13 +38,8 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
   const showBackButton = isMobile;
 
   return (
-    <>
-      <div
-        className={cn(
-          "flex items-center justify-between h-14 px-2",
-          "bg-background"
-        )}
-      >
+    <div className="px-3 pt-4">
+      <div className="flex items-center justify-between gap-2 h-9">
         {/* Left section */}
         <div className="flex items-center gap-2">
           {leftButton ||
@@ -62,9 +55,9 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
         </div>
 
         {/* Center - Title */}
-        <div className="flex-1 text-center">
+        <div className="flex-1 min-w-0">
           {typeof title === "string" ? (
-            <h1 className="text-lg font-semibold truncate">{title}</h1>
+            <h1 className="text-xl font-semibold leading-9 truncate">{title}</h1>
           ) : (
             title
           )}
@@ -80,8 +73,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
             ))}
         </div>
       </div>
-      <Separator />
-    </>
+    </div>
   );
 };
 
