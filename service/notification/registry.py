@@ -301,20 +301,20 @@ class MusteringStartedSpec(NotificationSpec):
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
-    def get_title(self):
-        return "Ready to Start"
-
     def get_body(self):
-        return f"{self.context.game.name} is full. Confirm you're ready to play before the deadline or you'll lose your seat."
+        return (
+            "This game is full and mustering has begun. Seats that are not "
+            "confirmed as ready before the deadline will be opened to other players."
+        )
 
 
 @register("removed_from_muster")
 class RemovedFromMusterSpec(NotificationSpec):
-    def get_title(self):
-        return "Removed from game"
-
     def get_body(self):
-        return f"You lost your seat in {self.context.game.name} because you didn't confirm before the deadline. The seat is open for another player to take."
+        return (
+            "You have lost your seat in this game. The seat is open for "
+            "another player to take."
+        )
 
 
 @register("civil_disorder")
