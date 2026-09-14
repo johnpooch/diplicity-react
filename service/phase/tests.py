@@ -3758,7 +3758,7 @@ class TestCivilDisorderStagingRemoval:
         )
         assert delivery.heading == "Staging Game"
         assert delivery.body == (
-            "You were removed from this game because you entered civil disorder in Active CD Game."
+            "You have been removed from this game because you entered civil disorder in Active CD Game."
         )
 
 
@@ -3840,7 +3840,7 @@ class TestCivilDisorderStagingRemoval:
             "Second Staging Game",
         ]
         assert set(deliveries.values_list("body", flat=True)) == {
-            "You were removed from this game because you entered civil disorder in Active CD Game."
+            "You have been removed from this game because you entered civil disorder in Active CD Game."
         }
 
 

@@ -3353,8 +3353,8 @@ class TestGamePauseNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_paused"
-        assert "Game paused by the game creator" in call_kwargs["body"]
-        assert f"({primary_user.username})" in call_kwargs["body"]
+        assert "The game has been paused by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.profile.name})" in call_kwargs["body"]
         assert call_kwargs["data"]["game_id"] == str(game.id)
 
     @pytest.mark.django_db
@@ -3377,8 +3377,8 @@ class TestGamePauseNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body == "Game paused by the game creator"
-        assert primary_user.username not in body
+        assert body == "The game has been paused by the game creator."
+        assert primary_user.profile.name not in body
 
 
 class TestGameUnpauseNotification:
@@ -3404,9 +3404,9 @@ class TestGameUnpauseNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_resumed"
-        assert "Game resumed by the game creator" in call_kwargs["body"]
-        assert f"({primary_user.username})" in call_kwargs["body"]
-        assert "New deadline:" in call_kwargs["body"]
+        assert "The game has been resumed by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.profile.name})" in call_kwargs["body"]
+        assert "The new deadline is" in call_kwargs["body"]
 
     @pytest.mark.django_db
     def test_unpause_anonymous_game_omits_actor_identity(
@@ -3429,8 +3429,8 @@ class TestGameUnpauseNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body.startswith("Game resumed by the game creator. New deadline:")
-        assert primary_user.username not in body
+        assert body.startswith("The game has been resumed by the game creator. The new deadline is")
+        assert primary_user.profile.name not in body
 
 
 class TestGameExtendDeadlineNotification:
@@ -3456,8 +3456,8 @@ class TestGameExtendDeadlineNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_deadline_extended"
-        assert "Deadline extended by the game creator" in call_kwargs["body"]
-        assert f"({primary_user.username})" in call_kwargs["body"]
+        assert "The deadline has been extended by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.profile.name})" in call_kwargs["body"]
 
     @pytest.mark.django_db
     def test_extend_deadline_anonymous_game_omits_actor_identity(
@@ -3481,8 +3481,8 @@ class TestGameExtendDeadlineNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body.startswith("Deadline extended by the game creator. New deadline:")
-        assert primary_user.username not in body
+        assert body.startswith("The deadline has been extended by the game creator. The new deadline is")
+        assert primary_user.profile.name not in body
 
 
 class TestGameNmrExtensions:

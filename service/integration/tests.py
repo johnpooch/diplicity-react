@@ -306,7 +306,7 @@ def test_active_game_create_orders_and_confirm(
         [germany_member.user.id, italy_member.user.id]
     )
     assert notification_call.kwargs["title"] == active_game.name
-    assert notification_call.kwargs["body"] == f"{first_phase.name} has been resolved"
+    assert notification_call.kwargs["body"] == f"{first_phase.name} has been resolved."
     assert notification_call.kwargs["notification_type"] == "phase_resolved"
     assert notification_call.kwargs["data"] == {
         "game_id": str(active_game.id),
