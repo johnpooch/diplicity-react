@@ -12,7 +12,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, O
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, format_time_remaining, build_notification_body, compress_deadline, format_deadline
+from phase.utils import transform_options, build_notification_body, compress_deadline, format_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -181,29 +181,39 @@ class PhaseManager(models.Manager):
             return self._resolve_claimed(phase)
 
     def _apply_nmr_extensions(self, phase):
-        members_with_extensions = phase.members_that_require_nmr_extension
-        if not members_with_extensions:
-            return None
+        with transaction.atomic():
+            if self.defer("options").select_for_update().filter(pk=phase.pk).first() is None:
+                return None
 
-        new_resolution = phase.game.get_scheduled_resolution(phase.type)
-        if not new_resolution:
-            return None
+            members_with_extensions = phase.members_that_require_nmr_extension
+            if not members_with_extensions:
+                return None
 
-        phase.scheduled_resolution = new_resolution
-        phase.status = PhaseStatus.ACTIVE
-        phase.processing_started_at = None
-        phase.save()
+            new_resolution = phase.game.get_scheduled_resolution(phase.type)
+            if not new_resolution:
+                return None
 
-        for member in members_with_extensions:
-            member.nmr_extensions_remaining -= 1
-        Member.objects.bulk_update(members_with_extensions, ['nmr_extensions_remaining'])
+            self.filter(pk=phase.pk).update(
+                scheduled_resolution=new_resolution,
+                status=PhaseStatus.ACTIVE,
+                processing_started_at=None,
+            )
+            phase.scheduled_resolution = new_resolution
+            phase.status = PhaseStatus.ACTIVE
+            phase.processing_started_at = None
 
-        for member in members_with_extensions:
-            if member.user_id is None:
-                continue
-            emit("nmr_extension_used", phase=phase, actor=member.user)
+            for member in members_with_extensions:
+                member.nmr_extensions_remaining -= 1
+            Member.objects.bulk_update(members_with_extensions, ['nmr_extensions_remaining'])
 
-        emit("nmr_extension_applied", phase=phase)
+            self.arm_resolution(phase, not_before=new_resolution)
+
+            for member in members_with_extensions:
+                if member.user_id is None:
+                    continue
+                emit("nmr_extension_used", phase=phase, actor=member.user)
+
+            emit("nmr_extension_applied", phase=phase)
 
         return members_with_extensions
 
@@ -255,7 +265,6 @@ class PhaseManager(models.Manager):
                 continue
 
             is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
-            time_left = format_time_remaining(time_until_deadline)
 
             actionable_units = phase.actionable_units
             forced_nations = phase.nations_with_forced_orders
@@ -277,7 +286,7 @@ class PhaseManager(models.Manager):
                     continue
 
                 body = build_notification_body(
-                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
+                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
                     ps.member.nmr_extensions_remaining,
                     is_adjustment=is_adjustment,
                 )
