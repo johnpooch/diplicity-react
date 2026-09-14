@@ -2,6 +2,7 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from common.constants import PhaseStatus, PhaseType
+from common.permissions import IsCurrentPhaseActive
 from emit import emit
 from member.serializers import MemberSerializer
 from phase.models import Phase
@@ -27,6 +28,9 @@ class PhaseStateSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         with transaction.atomic():
+            if Phase.objects.lock_if_active(instance.phase_id) is None:
+                raise serializers.ValidationError(IsCurrentPhaseActive.message)
+
             instance.orders_confirmed = not instance.orders_confirmed
             instance.save()
 
