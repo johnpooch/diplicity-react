@@ -1,6 +1,15 @@
-import { Channel, Member } from "@/api/generated/endpoints";
+import { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 
 export type ChannelNation = { flagUrl: string | null; color: string };
+
+export const GAME_MASTER_LABEL = "Game Master";
+
+export const NEUTRAL_SENDER_COLOR = "#808080";
+
+export const getMessageSenderLabel = (sender: ChannelMember): string => {
+  if (sender.isGameMaster) return GAME_MASTER_LABEL;
+  return sender.nation?.name ?? sender.name;
+};
 
 // Normalise any hex colour to 6-digit form (#RRGGBB). Falls back to grey for
 // non-hex values (e.g. rgb()) so callers can safely concatenate an alpha byte.

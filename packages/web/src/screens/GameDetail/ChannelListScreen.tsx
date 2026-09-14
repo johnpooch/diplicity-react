@@ -24,7 +24,11 @@ import {
   useGamesChannelsListSuspense,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
-import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
+import {
+  getChannelDisplayName,
+  getChannelFlagUrls,
+  getMessageSenderLabel,
+} from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 
 const getLatestMessagePreview = (
@@ -34,7 +38,7 @@ const getLatestMessagePreview = (
   const latestMessage = messages[messages.length - 1];
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
-    : (latestMessage.sender.nation?.name ?? latestMessage.sender.name);
+    : getMessageSenderLabel(latestMessage.sender);
   return `${senderLabel}: ${latestMessage.body}`;
 };
 
