@@ -289,7 +289,7 @@ export const prototypes: Prototype[] = [
         slug: "nation-bubbles",
         title: "Nation bubbles",
         description:
-          "Secondary chrome: back replaces home, the mobile tab bar is gone, the desktop rail stays. Nation-coloured bubbles; yours on the right. Phase changes sit in the stream.",
+          "Secondary chrome: back replaces home, the mobile tab bar is gone, the desktop rail stays. Nation tint at 15% with a balloon corner; yours on the right. Phase changes sit in the stream.",
         states: [
           { slug: "empty", title: "Direct, no messages" },
           { slug: "one", title: "Direct, one message" },
