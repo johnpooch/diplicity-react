@@ -91,7 +91,7 @@ class TestEmitDispatch:
         assert _deliver_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
-    def test_manager_label_and_deadline_are_inferred_into_copy(
+    def test_manager_is_named_in_copy_and_absent_deadline_is_omitted(
         self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
     ):
         state = _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=True)
@@ -99,7 +99,7 @@ class TestEmitDispatch:
         emit.emit("game_resumed", game=state["game"], actor=actor)
 
         delivery = _push("game_resumed").first()
-        assert delivery.body == f"Game resumed by the Game Master ({actor.username}). New deadline: N/A"
+        assert delivery.body == f"The game has been resumed by the Game Master ({actor.profile.name})."
 
     @pytest.mark.django_db
     def test_channel_event_type_creates_channel_event_on_public_channels(
