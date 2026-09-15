@@ -12,10 +12,6 @@ const GameInfoScreen: React.FC = () => {
     phaseId: string;
   }>();
 
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
@@ -25,8 +21,12 @@ const GameInfoScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
-            <GameInfoContent onNavigateToPlayerInfo={handleNavigateToPlayerInfo} />
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+            <GameInfoContent
+              onOpenVariantDetails={() =>
+                navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
+              }
+            />
           </Panel.Content>
         </Panel>
       </div>

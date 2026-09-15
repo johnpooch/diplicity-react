@@ -289,6 +289,14 @@ export const createAuthenticatedRoutes = (
                 ),
               },
               {
+                path: "game-info/variant",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.VariantDetailsScreen />
+                  </Suspense>
+                ),
+              },
+              {
                 path: "player-info",
                 element: (
                   <Suspense fallback={<RouteFallback />}>
