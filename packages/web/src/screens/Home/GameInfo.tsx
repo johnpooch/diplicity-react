@@ -7,19 +7,23 @@ import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import {
   useGameRetrieveSuspense,
   useGameMemberJoinCreate,
   useGameLeaveDestroy,
+  useGamePhaseRetrieve,
   useUserRetrieveSuspense,
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+import { getCurrentPhaseId } from "@/util";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { AddBotSheet } from "@/components/AddBotSheet";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
 
@@ -34,6 +38,13 @@ const GameInfo: React.FC = () => {
   const joinGameMutation = useGameMemberJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
+
+  const currentPhaseId = getCurrentPhaseId(game);
+  const { data: currentPhase } = useGamePhaseRetrieve(
+    gameId,
+    currentPhaseId ?? 0,
+    { query: { enabled: !!currentPhaseId } }
+  );
 
   const [addBotOpen, setAddBotOpen] = useState(false);
 
@@ -139,10 +150,18 @@ const GameInfo: React.FC = () => {
           />
         }
       />
-      <GameInfoContent
-        onNavigateToPlayerInfo={handlePlayerInfo}
-        pendingAction={pendingAction}
-      />
+      <GameInfoContent pendingAction={pendingAction} />
+      {variant && currentPhase ? (
+        <div className="w-full overflow-hidden rounded-lg">
+          <ExpandableMapPreview
+            variant={variant}
+            phase={currentPhase}
+            style={{ width: "100%" }}
+          />
+        </div>
+      ) : (
+        <Skeleton className="w-full h-64 rounded-lg" />
+      )}
       {canAddBots && (
         <AddBotSheet
           gameId={gameId}
