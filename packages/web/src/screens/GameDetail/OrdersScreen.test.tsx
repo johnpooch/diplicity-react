@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 
@@ -81,6 +81,29 @@ const renderOrdersScreen = () => {
             path="/game/:gameId/phase/:phaseId/orders"
             element={<OrdersScreen />}
           />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+};
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}{location.search}</div>;
+};
+
+const renderOrdersScreenWithLocation = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/game/game-1/phase/1/orders"]}>
+        <LocationProbe />
+        <Routes>
+          <Route
+            path="/game/:gameId/phase/:phaseId/orders"
+            element={<OrdersScreen />}
+          />
+          <Route path="/game/:gameId/phase/:phaseId" element={<div>Map screen</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -516,5 +539,65 @@ describe("OrdersScreen historical phase with unordered units", () => {
     expect(screen.getByText(/Army Rome/)).toBeInTheDocument();
     expect(screen.getByText(/Army Venice/)).toBeInTheDocument();
     expect(screen.getAllByText("Order not provided")).toHaveLength(3);
+  });
+});
+
+describe("OrdersScreen order creation entry point", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember(),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+      },
+    ]);
+    mockOrdersData.mockReturnValue([]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+  });
+
+  it("sets the source search param without navigating away on desktop", async () => {
+    renderOrdersScreenWithLocation();
+
+    await userEvent.click(screen.getByRole("button", { name: /create order for london/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/game-1/phase/1/orders?source=lon"
+    );
+  });
+
+  it("navigates to the map screen with the source search param on mobile", async () => {
+    window.innerWidth = 500;
+
+    renderOrdersScreenWithLocation();
+
+    await userEvent.click(screen.getByRole("button", { name: /create order for london/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/game-1/phase/1?source=lon"
+    );
+
+    window.innerWidth = 1024;
+  });
+
+  it("does not make the row clickable when the order is already provided", () => {
+    mockOrdersData.mockReturnValue([
+      { nation: { name: "England" }, source: { id: "lon", name: "London" }, summary: "Hold" },
+    ]);
+
+    renderOrdersScreenWithLocation();
+
+    expect(
+      screen.queryByRole("button", { name: /create order for london/i })
+    ).not.toBeInTheDocument();
   });
 });

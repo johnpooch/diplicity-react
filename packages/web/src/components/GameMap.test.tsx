@@ -1,5 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { GameMap } from "./GameMap";
@@ -36,7 +36,7 @@ type WizardState = {
   resolvedSelections: Record<string, string>;
   resolvedLabels: Record<string, string>;
   nextField: string | null;
-  choices: never[];
+  choices: Array<{ id: string; label: string }>;
   selections: Record<string, string>;
   select: ReturnType<typeof vi.fn>;
   reset: ReturnType<typeof vi.fn>;
@@ -174,6 +174,22 @@ const makeQueryClient = () =>
 const gameMapJsx = (queryClient = makeQueryClient()) => (
   <QueryClientProvider client={queryClient}>
     <MemoryRouter initialEntries={["/game/game-1/phase/1"]}>
+      <Routes>
+        <Route path="/game/:gameId/phase/:phaseId" element={<GameMap />} />
+      </Routes>
+    </MemoryRouter>
+  </QueryClientProvider>
+);
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}{location.search}</div>;
+};
+
+const gameMapJsxAt = (initialEntry: string, queryClient = makeQueryClient()) => (
+  <QueryClientProvider client={queryClient}>
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <LocationProbe />
       <Routes>
         <Route path="/game/:gameId/phase/:phaseId" element={<GameMap />} />
       </Routes>
@@ -424,6 +440,51 @@ describe("GameMap", () => {
       expect(
         orders.some((o) => o.source?.id === "lon" && o.orderType === "Move")
       ).toBe(false);
+    });
+  });
+
+  describe("source search param", () => {
+    it("selects the province, pans without zooming, and clears the param when it is a valid source choice", async () => {
+      mockWizardState = {
+        ...mockWizardState,
+        nextField: "source",
+        choices: [{ id: "lon", label: "London" }],
+      };
+
+      const { getByTestId } = render(
+        gameMapJsxAt("/game/game-1/phase/1?source=lon")
+      );
+
+      await waitFor(() => expect(mockWizardState.select).toHaveBeenCalledWith("lon"));
+
+      const props = mockMapView.mock.calls.at(-1)?.[0] as {
+        focus?: string[];
+        focusKeepZoom?: boolean;
+      };
+      expect(props.focus).toEqual(["lon"]);
+      expect(props.focusKeepZoom).toBe(true);
+
+      await waitFor(() =>
+        expect(getByTestId("location")).toHaveTextContent("/game/game-1/phase/1")
+      );
+      expect(getByTestId("location")).not.toHaveTextContent("source=lon");
+    });
+
+    it("ignores and clears an invalid source param without selecting it", async () => {
+      mockWizardState = {
+        ...mockWizardState,
+        nextField: "source",
+        choices: [{ id: "lon", label: "London" }],
+      };
+
+      const { getByTestId } = render(
+        gameMapJsxAt("/game/game-1/phase/1?source=unknown")
+      );
+
+      await waitFor(() =>
+        expect(getByTestId("location")).not.toHaveTextContent("source=unknown")
+      );
+      expect(mockWizardState.select).not.toHaveBeenCalled();
     });
   });
 });
