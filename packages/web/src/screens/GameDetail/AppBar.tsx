@@ -38,7 +38,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
 
   return (
     <div className="px-3 pt-4">
-      <div className="flex items-center justify-between gap-2 h-9">
+      <div className="flex items-center justify-between gap-2 min-h-9">
         {/* Left section */}
         <div className="flex items-center gap-2">
           {leftButton ||

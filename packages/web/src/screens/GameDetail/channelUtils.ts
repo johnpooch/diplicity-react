@@ -21,16 +21,40 @@ export const brightnessByColor = (hex: string): number => {
 };
 
 // Private channel names are formatted by the backend as "Nation1, Nation2, ..."
+const getOtherNationNames = (
+  channel: Channel,
+  currentNationName: string | undefined
+): string[] =>
+  channel.name
+    .split(",")
+    .map(s => s.trim())
+    .filter(n => n !== currentNationName);
+
 export const getChannelDisplayName = (
   channel: Channel,
   currentNationName: string | undefined
 ): string => {
+  if (channel.title) return channel.title;
   if (!channel.private || !currentNationName) return channel.name;
-  const others = channel.name
-    .split(",")
-    .map(s => s.trim())
-    .filter(n => n !== currentNationName);
+  const others = getOtherNationNames(channel, currentNationName);
   return others.length > 0 ? others.join(", ") : channel.name;
+};
+
+// Whatever the title does not already say: the nations for a named
+// channel, and the players behind them for an unnamed one.
+export const getChannelSubtitle = (
+  channel: Channel,
+  members: readonly Member[],
+  currentNationName: string | undefined
+): string | null => {
+  if (!channel.private) return null;
+  const others = getOtherNationNames(channel, currentNationName);
+  if (others.length === 0) return null;
+  if (channel.title) return others.join(", ");
+  const playerNames = others
+    .map(nation => members.find(m => m.nation === nation)?.name)
+    .filter((name): name is string => name !== undefined);
+  return playerNames.length > 0 ? playerNames.join(", ") : null;
 };
 
 export const getChannelFlagUrls = (
@@ -40,7 +64,7 @@ export const getChannelFlagUrls = (
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
 ): ChannelNation[] => {
   const nationNames = channel.private
-    ? channel.name.split(",").map(s => s.trim()).filter(n => n !== currentNationName)
+    ? getOtherNationNames(channel, currentNationName)
     : members
         .filter(m => !m.kicked)
         .map(m => m.nation)

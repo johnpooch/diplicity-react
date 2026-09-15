@@ -15,10 +15,11 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
+import { getChannelDisplayName, getChannelSubtitle, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
@@ -105,6 +106,7 @@ const ChannelScreen: React.FC = () => {
   const queryClient = useQueryClient();
   const isDesktopWeb = useIsDesktopWeb();
   const [message, setMessage] = useDraft(gameId, channelId);
+  const [isSubtitleOpen, setIsSubtitleOpen] = useState(false);
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
@@ -146,10 +148,24 @@ const ChannelScreen: React.FC = () => {
     currentNationName,
     variant?.nations ?? []
   );
+  const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
   const channelTitle = (
     <div className="flex items-center justify-start gap-2">
       <ChannelAvatar nations={channelFlagUrls} />
-      <span className="text-lg font-semibold truncate text-left">{channelDisplayName}</span>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="truncate text-lg font-semibold leading-tight">{channelDisplayName}</p>
+        {channelSubtitle && (
+          <Tooltip open={isSubtitleOpen} onOpenChange={setIsSubtitleOpen}>
+            <TooltipTrigger
+              className="block w-full truncate text-left text-xs leading-tight text-muted-foreground"
+              onClick={() => setIsSubtitleOpen(true)}
+            >
+              {channelSubtitle}
+            </TooltipTrigger>
+            <TooltipContent>{channelSubtitle}</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
   const mapPreviewButton = (
