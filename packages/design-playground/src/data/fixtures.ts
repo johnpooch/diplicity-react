@@ -5,6 +5,7 @@ import type {
   ChatThread,
   CurrentPhaseOrders,
   Game,
+  PhaseHistoryEntry,
   GameInfo,
   Member,
   Player,
@@ -396,15 +397,15 @@ export const johnDoeActive: Player = {
   ...johnDoe,
   preferredNation: undefined,
   assignedNation: "France",
-  supplyCenterCount: 3,
-  unitCount: 3,
+  supplyCenterCount: 6,
+  unitCount: 6,
 };
 
 export const janeDoeActive: Player = {
   ...janeDoe,
   assignedNation: "Germany",
-  supplyCenterCount: 3,
-  unitCount: 4,
+  supplyCenterCount: 4,
+  unitCount: 5,
 };
 
 export const theChancellorActive: Player = {
@@ -502,14 +503,14 @@ export const wilhelminaFormer: Player = {
 
 export const johnDoeDraw: Player = {
   ...johnDoeActive,
-  supplyCenterCount: 9,
-  unitCount: 9,
+  supplyCenterCount: 10,
+  unitCount: 10,
 };
 
 export const janeDoeDraw: Player = {
   ...janeDoeActive,
-  supplyCenterCount: 9,
-  unitCount: 9,
+  supplyCenterCount: 8,
+  unitCount: 8,
 };
 
 export const austriaMovementIncomplete: CurrentPhaseOrders = {
@@ -555,6 +556,105 @@ export const austriaMovementIncomplete: CurrentPhaseOrders = {
   ],
   confirmed: false,
 };
+
+const austriaSpring1901: CurrentPhaseOrders = {
+  phaseName: "Spring 1901, Movement",
+  timeRemaining: "Resolved",
+  nation: "Austria",
+  supplyCenterCount: 3,
+  unitCount: 3,
+  slots: [
+    {
+      id: "vie-s1901",
+      unitType: "Army",
+      province: "Vienna",
+      kind: "hold",
+      summary: "Hold",
+    },
+    {
+      id: "bud-s1901",
+      unitType: "Army",
+      province: "Budapest",
+      kind: "hold",
+      summary: "Hold",
+    },
+    {
+      id: "tri-s1901",
+      unitType: "Fleet",
+      province: "Trieste",
+      kind: "hold",
+      summary: "Hold",
+    },
+  ],
+  confirmed: true,
+};
+
+const austriaAutumn1901: CurrentPhaseOrders = {
+  phaseName: "Autumn 1901, Movement",
+  timeRemaining: "Resolved",
+  nation: "Austria",
+  supplyCenterCount: 4,
+  unitCount: 3,
+  slots: [
+    {
+      id: "vie-a1901",
+      unitType: "Army",
+      province: "Vienna",
+      kind: "hold",
+      summary: "Hold",
+    },
+    {
+      id: "bud-a1901",
+      unitType: "Army",
+      province: "Budapest",
+      kind: "move",
+      summary: "Move to Serbia",
+    },
+    {
+      id: "tri-a1901",
+      unitType: "Fleet",
+      province: "Trieste",
+      kind: "hold",
+      summary: "Hold",
+    },
+  ],
+  confirmed: true,
+};
+
+const austriaAutumn1901Retreat: CurrentPhaseOrders = {
+  phaseName: "Autumn 1901, Retreat",
+  timeRemaining: "Resolved",
+  nation: "Austria",
+  supplyCenterCount: 4,
+  unitCount: 4,
+  slots: [],
+  confirmed: true,
+};
+
+const austriaWinter1901: CurrentPhaseOrders = {
+  phaseName: "Winter 1901, Adjustment",
+  timeRemaining: "Resolved",
+  nation: "Austria",
+  supplyCenterCount: 4,
+  unitCount: 3,
+  slots: [
+    {
+      id: "bud-build-w1901",
+      province: "Budapest",
+      kind: "build",
+      summary: "Build army",
+    },
+  ],
+  confirmed: true,
+};
+
+export const austriaPhaseHistory: PhaseHistoryEntry[] = [
+  { id: "s1901m", resolved: true, orders: austriaSpring1901 },
+  { id: "a1901m", resolved: true, orders: austriaAutumn1901 },
+  { id: "a1901r", resolved: true, orders: austriaAutumn1901Retreat },
+  { id: "w1901a", resolved: true, orders: austriaWinter1901 },
+  { id: "s1902m", resolved: false, orders: austriaMovementIncomplete },
+];
 
 export const austriaMovementConfirmed: CurrentPhaseOrders = {
   ...austriaMovementIncomplete,
@@ -668,6 +768,95 @@ export const austriaNoMovement: CurrentPhaseOrders = {
 export const austriaSandbox: CurrentPhaseOrders = {
   ...austriaMovementIncomplete,
   sandbox: true,
+};
+
+export const austriaTwelveUnits: CurrentPhaseOrders = {
+  phaseName: "Spring 1908, Movement",
+  timeRemaining: "6 hours remaining",
+  nation: "Austria",
+  supplyCenterCount: 12,
+  unitCount: 12,
+  slots: [
+    {
+      id: "vie",
+      unitType: "Army",
+      province: "Vienna",
+      kind: "move",
+      summary: "Move to Galicia",
+    },
+    {
+      id: "bud",
+      unitType: "Army",
+      province: "Budapest",
+    },
+    {
+      id: "tri",
+      unitType: "Fleet",
+      province: "Trieste",
+      kind: "hold",
+      summary: "Hold",
+    },
+    {
+      id: "ser",
+      unitType: "Army",
+      province: "Serbia",
+      kind: "support",
+      summary: "Support Army Vienna to Galicia",
+    },
+    {
+      id: "gre",
+      unitType: "Fleet",
+      province: "Greece",
+      kind: "convoy",
+      summary: "Convoy Army Bulgaria to Naples",
+    },
+    {
+      id: "bul",
+      unitType: "Army",
+      province: "Bulgaria",
+      kind: "move",
+      summary: "Move to Constantinople",
+    },
+    {
+      id: "rum",
+      unitType: "Army",
+      province: "Rumania",
+      kind: "hold",
+      summary: "Hold",
+    },
+    {
+      id: "gal",
+      unitType: "Army",
+      province: "Galicia",
+    },
+    {
+      id: "boh",
+      unitType: "Army",
+      province: "Bohemia",
+      kind: "support",
+      summary: "Support Army Vienna to Galicia",
+    },
+    {
+      id: "tyr",
+      unitType: "Army",
+      province: "Tyrolia",
+      kind: "move",
+      summary: "Move to Venice",
+    },
+    {
+      id: "ven",
+      unitType: "Army",
+      province: "Venice",
+      kind: "hold",
+      summary: "Hold",
+    },
+    {
+      id: "mun",
+      unitType: "Army",
+      province: "Munich",
+    },
+  ],
+  confirmed: false,
 };
 
 export const profile: Profile = {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ListItem, ListSection } from "@/components/ui/list";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import {
   Tooltip,
@@ -89,38 +89,33 @@ const OrderMedia: React.FC<{ slot: OrderSlot }> = ({ slot }) => {
   );
 };
 
-const OrderCard: React.FC<{
+const OrderRow: React.FC<{
   slot: OrderSlot;
   onDelete: () => void;
 }> = ({ slot, onDelete }) => {
   const hasOrder = Boolean(slot.summary);
+  const title = slotTitle(slot);
 
   return (
-    <Card
-      className={cn("overflow-hidden py-0", !hasOrder && "border-dashed")}
-    >
-      <CardContent className="flex items-center gap-3 p-3">
-        <OrderMedia slot={slot} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="truncate font-semibold leading-tight">
-            {slotTitle(slot)}
-          </p>
-          <p className="truncate text-sm text-muted-foreground">
-            {slot.summary ?? "No order"}
-          </p>
-        </div>
-        {hasOrder && (
+    <ListItem
+      leading={<OrderMedia slot={slot} />}
+      title={title}
+      subtitle={slot.summary ?? "No order"}
+      muted={!hasOrder}
+      trailingAction={
+        hasOrder ? (
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Delete order for ${slot.province}`}
+            className="size-11"
+            aria-label={`Delete order for ${title}`}
             onClick={onDelete}
           >
             <Trash2 />
           </Button>
-        )}
-      </CardContent>
-    </Card>
+        ) : undefined
+      }
+    />
   );
 };
 
@@ -132,9 +127,7 @@ const NationHeading: React.FC<{
   return (
     <h2 className="flex items-center justify-between gap-3 text-sm font-medium text-muted-foreground">
       <span className="flex min-w-0 items-center gap-2">
-        <span className="size-5 overflow-hidden rounded-full" aria-hidden>
-          <NationFlag nation={nation} />
-        </span>
+        <NationFlag nation={nation} size="sm" />
         {nation}
       </span>
       <span className="flex shrink-0 items-center gap-2.5">
@@ -190,14 +183,17 @@ const AllConfirmed: React.FC<{ state: string }> = ({ state }) => {
           </div>
           <HeaderActions size="icon" withTooltip />
         </div>
-        <section className="flex flex-col gap-2">
-          <NationHeading
-            nation={orders.nation}
-            supplyCenterCount={orders.supplyCenterCount}
-            unitCount={orders.unitCount}
-          />
+        <ListSection
+          header={
+            <NationHeading
+              nation={orders.nation}
+              supplyCenterCount={orders.supplyCenterCount}
+              unitCount={orders.unitCount}
+            />
+          }
+        >
           {slots.map(slot => (
-            <OrderCard
+            <OrderRow
               key={slot.id}
               slot={slot}
               onDelete={() => {
@@ -206,7 +202,7 @@ const AllConfirmed: React.FC<{ state: string }> = ({ state }) => {
               }}
             />
           ))}
-        </section>
+        </ListSection>
         <Button
           className="w-full"
           size="lg"

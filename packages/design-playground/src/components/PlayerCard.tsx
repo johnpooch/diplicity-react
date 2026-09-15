@@ -29,15 +29,13 @@ const FlagOverlay: React.FC<{ nation: string; preferred?: boolean }> = ({
   preferred = false,
 }) => {
   return (
-    <span
-      className={cn(
-        "absolute -bottom-0.5 -right-0.5 size-5 overflow-hidden rounded-full bg-card",
-        preferred
-          ? "border border-dashed border-foreground"
-          : "ring-2 ring-card"
-      )}
-    >
-      <NationFlag nation={nation} />
+    <span className="absolute -bottom-0.5 -right-0.5">
+      <NationFlag
+        nation={nation}
+        size="sm"
+        preferred={preferred}
+        className="bg-card ring-2 ring-card"
+      />
     </span>
   );
 };
@@ -59,9 +57,7 @@ const PlayerMedia: React.FC<{
   if (presentation === "nation" && player.assignedNation) {
     return (
       <div className="relative size-12 shrink-0">
-        <div className="size-12 overflow-hidden rounded-full border">
-          <NationFlag nation={player.assignedNation} />
-        </div>
+        <NationFlag nation={player.assignedNation} size="lg" />
         {!player.anonymous && (
           <span className="absolute -bottom-0.5 -right-0.5">
             <Avatar className="size-5 ring-2 ring-card">
@@ -194,4 +190,4 @@ const AddPlayerCard: React.FC<AddPlayerCardProps> = ({
   );
 };
 
-export { PlayerCard, AddPlayerCard };
+export { PlayerCard, AddPlayerCard, PlayerMedia };

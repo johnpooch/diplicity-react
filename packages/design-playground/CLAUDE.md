@@ -99,6 +99,13 @@ layer**. Do not add them. Fixtures need to be plausible, not accurate — invent
 states the real API cannot currently produce if the design calls for it. Only
 model the fields a prototype actually renders.
 
+### Cards vs lists
+
+Use `Card` for a single heterogeneous, self-contained unit (a variant, a
+game, a profile). Homogeneous repeating rows go in `ListSection` /
+`ListItem` (`components/ui/list.tsx`): one container, inset dividers, not
+N cards with gaps.
+
 ### Adding a prototype or variant
 
 1. Add the component under `prototypes/<prototype-slug>/<VariantName>.tsx`.

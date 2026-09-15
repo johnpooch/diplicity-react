@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { GameDetailShell } from "@/components/GameDetailShell";
-import { NationFlag, NationFlagsProvider } from "@/components/NationFlag";
+import { NationFlag } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
 import {
   austriaAdjustment,
@@ -29,10 +29,11 @@ import {
 import type { CurrentPhaseOrders, OrderKind, OrderSlot } from "@/data/types";
 import {
   CheckSquare,
+  CircleDashed,
   Eye,
+  Hexagon,
   History,
   Inbox,
-  Hexagon,
   Merge,
   MoveUpRight,
   Play,
@@ -53,16 +54,10 @@ type ScreenKind = "orders" | "no-orders" | "civil-disorder" | "spectator";
 interface ScreenConfig {
   kind: ScreenKind;
   orders?: CurrentPhaseOrders;
-  hideFlags?: boolean;
 }
 
 const screens: Record<string, ScreenConfig> = {
   incomplete: { kind: "orders", orders: austriaMovementIncomplete },
-  "incomplete-no-flags": {
-    kind: "orders",
-    orders: austriaMovementIncomplete,
-    hideFlags: true,
-  },
   confirmed: { kind: "orders", orders: austriaMovementConfirmed },
   "no-orders": { kind: "no-orders", orders: austriaMovementIncomplete },
   "civil-disorder": {
@@ -112,16 +107,14 @@ const slotTitle = (slot: OrderSlot) =>
   slot.unitType ? `${slot.unitType} ${slot.province}` : slot.province;
 
 const OrderMedia: React.FC<{ slot: OrderSlot }> = ({ slot }) => {
-  const Icon = slot.kind ? orderIcons[slot.kind] : undefined;
+  const Icon = slot.kind ? orderIcons[slot.kind] : CircleDashed;
 
   return (
-    <div
-      className={cn(
-        "flex size-12 shrink-0 items-center justify-center rounded-full border",
-        !Icon && "border-dashed"
-      )}
-    >
-      {Icon && <Icon className="size-5" aria-hidden />}
+    <div className="flex size-8 shrink-0 items-center justify-center">
+      <Icon
+        className={cn("size-6", !slot.kind && "text-muted-foreground")}
+        aria-hidden
+      />
     </div>
   );
 };
@@ -221,7 +214,7 @@ const EmptyNotice: React.FC<{
   );
 };
 
-const CurrentPhaseOrdersList: React.FC<{ state: string }> = ({ state }) => {
+const BareGlyphs: React.FC<{ state: string }> = ({ state }) => {
   const screen = screens[state] ?? screens.incomplete;
   const orders = screen.orders ?? austriaMovementIncomplete;
   const [cleared, setCleared] = useState<string[]>([]);
@@ -263,7 +256,6 @@ const CurrentPhaseOrdersList: React.FC<{ state: string }> = ({ state }) => {
   })();
 
   return (
-    <NationFlagsProvider enabled={!screen.hideFlags}>
     <GameDetailShell
       title={orders.phaseName}
       subtitle={orders.timeRemaining}
@@ -351,8 +343,7 @@ const CurrentPhaseOrdersList: React.FC<{ state: string }> = ({ state }) => {
         )}
       </ScreenContainer>
     </GameDetailShell>
-    </NationFlagsProvider>
   );
 };
 
-export { CurrentPhaseOrdersList };
+export { BareGlyphs };

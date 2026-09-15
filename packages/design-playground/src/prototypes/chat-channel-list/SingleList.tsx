@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ListItem, ListSection } from "@/components/ui/list";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import {
   Tooltip,
@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { GameDetailShell } from "@/components/GameDetailShell";
-import { NationFlag } from "@/components/NationFlag";
+import { NationFlag, NationFlagsProvider } from "@/components/NationFlag";
 import { activeChannelList, pendingChannelList } from "@/data/fixtures";
 import type { ChannelPreview } from "@/data/types";
 import { Megaphone, Plus } from "lucide-react";
@@ -16,12 +16,18 @@ import { Megaphone, Plus } from "lucide-react";
 interface ScreenConfig {
   channels: ChannelPreview[];
   showCreate: boolean;
+  hideFlags?: boolean;
 }
 
 const screens: Record<string, ScreenConfig> = {
   active: {
     channels: activeChannelList,
     showCreate: true,
+  },
+  "active-no-flags": {
+    channels: activeChannelList,
+    showCreate: true,
+    hideFlags: true,
   },
   pending: {
     channels: pendingChannelList,
@@ -49,23 +55,19 @@ const ChannelMedia: React.FC<{ nations: string[] }> = ({ nations }) => {
   }
 
   if (nations.length === 1) {
-    return (
-      <div className="size-12 shrink-0 overflow-hidden rounded-full border">
-        <NationFlag nation={nations[0]} />
-      </div>
-    );
+    return <NationFlag nation={nations[0]} size="lg" />;
   }
 
   return (
     <div className="flex size-12 shrink-0 items-center justify-center">
       <div className="flex -space-x-3">
         {nations.slice(0, 3).map(nation => (
-          <div
+          <NationFlag
             key={nation}
-            className="size-8 overflow-hidden rounded-full border-2 border-card"
-          >
-            <NationFlag nation={nation} />
-          </div>
+            nation={nation}
+            size="md"
+            className="ring-2 ring-card"
+          />
         ))}
       </div>
     </div>
@@ -80,29 +82,22 @@ const preview = (channel: ChannelPreview) => {
   return `${channel.lastSender}: ${channel.lastBody}`;
 };
 
-const ChannelCard: React.FC<{ channel: ChannelPreview }> = ({ channel }) => {
+const ChannelRow: React.FC<{ channel: ChannelPreview }> = ({ channel }) => {
   return (
-    <Link to={channelPath(channel.id)} className="block">
-      <Card className="overflow-hidden py-0 transition-colors hover:bg-accent/50">
-        <CardContent className="flex items-center gap-3 p-3">
-          <ChannelMedia nations={channel.nations} />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="flex min-w-0 items-center gap-2 leading-tight">
-              <span className="truncate font-semibold">{channel.name}</span>
-              {channel.unread && (
-                <span
-                  className="size-2 shrink-0 rounded-full bg-primary"
-                  aria-label="Unread"
-                />
-              )}
-            </p>
-            <p className="truncate text-sm text-muted-foreground">
-              {preview(channel)}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+    <ListItem
+      href={channelPath(channel.id)}
+      leading={<ChannelMedia nations={channel.nations} />}
+      title={channel.name}
+      subtitle={preview(channel)}
+      trailing={
+        channel.unread ? (
+          <span
+            className="size-2 shrink-0 rounded-full bg-primary"
+            aria-label="Unread"
+          />
+        ) : undefined
+      }
+    />
   );
 };
 
@@ -137,6 +132,7 @@ const ChatChannelList: React.FC<{ state: string }> = ({ state }) => {
   ) : undefined;
 
   return (
+    <NationFlagsProvider enabled={!screen.hideFlags}>
     <GameDetailShell
       title="Chats"
       activeNavItem="Chat"
@@ -150,11 +146,11 @@ const ChatChannelList: React.FC<{ state: string }> = ({ state }) => {
           </h1>
           {screen.showCreate && <HeaderActions size="icon" withTooltip />}
         </div>
-        <div className="flex flex-col gap-2">
+        <ListSection>
           {screen.channels.map(channel => (
-            <ChannelCard key={channel.id} channel={channel} />
+            <ChannelRow key={channel.id} channel={channel} />
           ))}
-        </div>
+        </ListSection>
         {screen.showCreate && (
           <Button className="w-full" size="lg" asChild>
             <Link to={createChannelPath}>Create Channel</Link>
@@ -162,6 +158,7 @@ const ChatChannelList: React.FC<{ state: string }> = ({ state }) => {
         )}
       </ScreenContainer>
     </GameDetailShell>
+    </NationFlagsProvider>
   );
 };
 
