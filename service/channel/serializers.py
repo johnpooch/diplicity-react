@@ -87,6 +87,26 @@ class ChannelSerializer(serializers.Serializer):
         )
 
 
+class ChannelUpdateSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    title = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        max_length=CHANNEL_TITLE_MAX_LENGTH,
+        error_messages={
+            "max_length": f"Channel names cannot be longer than {CHANNEL_TITLE_MAX_LENGTH} characters."
+        },
+    )
+
+    def update(self, instance, validated_data):
+        title = validated_data["title"]
+        if title == instance.title:
+            return instance
+        instance.title = title
+        instance.save(update_fields=["title"])
+        return instance
+
+
 class ChannelMarkReadSerializer(serializers.Serializer):
     def create(self, validated_data):
         channel = self.context["channel"]

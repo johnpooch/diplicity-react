@@ -201,6 +201,83 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
+class TestChannelUpdateView:
+
+    @pytest.mark.django_db
+    def test_rename_channel_success(self, authenticated_client, active_game_with_private_channel):
+        channel = active_game_with_private_channel.channels.get(private=True)
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.patch(url, {"title": "The great alliance"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["title"] == "The great alliance"
+        channel.refresh_from_db()
+        assert channel.title == "The great alliance"
+        assert channel.name == "Private Channel"
+
+    @pytest.mark.django_db
+    def test_rename_channel_blank_title(self, authenticated_client, active_game_with_private_channel):
+        channel = active_game_with_private_channel.channels.get(private=True)
+        channel.title = "The great alliance"
+        channel.save(update_fields=["title"])
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.patch(url, {"title": ""}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        channel.refresh_from_db()
+        assert channel.title == "The great alliance"
+
+    @pytest.mark.django_db
+    def test_rename_channel_title_too_long(self, authenticated_client, active_game_with_private_channel):
+        channel = active_game_with_private_channel.channels.get(private=True)
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.patch(url, {"title": "a" * 51}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_rename_public_channel_forbidden(self, authenticated_client, active_game_with_public_channel):
+        channel = active_game_with_public_channel.channels.get(private=False)
+
+        url = reverse("channel-update", args=[active_game_with_public_channel.id, channel.id])
+        response = authenticated_client.patch(url, {"title": "The great alliance"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_rename_channel_as_non_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_private_channel, secondary_user, classical_france_nation
+    ):
+        active_game_with_private_channel.members.create(user=secondary_user, nation=classical_france_nation)
+        channel = active_game_with_private_channel.channels.get(private=True)
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client_for_secondary_user.patch(url, {"title": "Sneaky"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_rename_channel_unauthenticated(self, unauthenticated_client, active_game_with_private_channel):
+        channel = active_game_with_private_channel.channels.get(private=True)
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        response = unauthenticated_client.patch(url, {"title": "The great alliance"}, format="json")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_rename_channel_sandbox_game_forbidden(self, authenticated_client, sandbox_game_with_channel):
+        channel = sandbox_game_with_channel.channels.get(private=True)
+
+        url = reverse("channel-update", args=[sandbox_game_with_channel.id, channel.id])
+        response = authenticated_client.patch(url, {"title": "The great alliance"}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
 class TestChannelListView:
 
     @pytest.mark.django_db

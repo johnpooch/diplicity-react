@@ -106,6 +106,15 @@ class IsChannelMember(BasePermission):
             return True
 
 
+class IsPrivateChannel(BasePermission):
+    message = "This channel is not private."
+
+    def has_permission(self, request, view):
+        channel_id = view.kwargs.get("channel_id")
+        channel = get_object_or_404(Channel, id=channel_id)
+        return channel.private
+
+
 class IsPendingGame(BasePermission):
     message = "Game is not in pending status."
 
