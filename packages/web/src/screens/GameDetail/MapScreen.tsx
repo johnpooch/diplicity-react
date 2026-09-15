@@ -3,32 +3,17 @@ import { useNavigate } from "react-router";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
-import { PhaseSelect } from "@/components/PhaseSelect";
-import { PhaseGuidance } from "@/components/PhaseGuidance";
+import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
 import { GameMap } from "@/components/GameMap";
-import { GameDropdownMenu } from "@/components/GameDropdownMenu";
-import { useGameRetrieveSuspense } from "../../api/generated/endpoints";
-import { useRequiredParams } from "../../hooks";
 
 const MapScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { gameId } = useRequiredParams<{ gameId: string }>();
-  const { data: game } = useGameRetrieveSuspense(gameId);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title={
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
-              <Suspense fallback={null}>
-                <PhaseGuidance />
-              </Suspense>
-            </div>
-            <GameDropdownMenu game={game} />
-          </div>
-        }
+        title={<PhaseStepperTitle />}
+        rightButton={<PhaseStepperActions />}
         onNavigateBack={() => navigate("/")}
       />
       <div className="flex-1 overflow-y-auto">
