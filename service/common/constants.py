@@ -334,3 +334,17 @@ class BundlePlatform:
 
 class UpdateResponseKind:
     UP_TO_DATE = "up_to_date"
+
+
+class PlayerGameOutcome:
+    WON = "won"
+    DREW = "drew"
+    ELIMINATED = "eliminated"
+    SURVIVED = "survived"
+
+    OUTCOME_CHOICES = (
+        (WON, "Won"),
+        (DREW, "Drew"),
+        (ELIMINATED, "Eliminated"),
+        (SURVIVED, "Survived"),
+    )

@@ -2342,6 +2342,19 @@ components:
       - id
       - registrationId
       - type
+    FavouriteNation:
+      type: object
+      properties:
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        gamesPlayed:
+          type: integer
+          readOnly: true
+      required:
+      - gamesPlayed
+      - nation
     FieldValue:
       type: object
       properties:
@@ -3325,6 +3338,18 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    OutcomeEnum:
+      enum:
+      - won
+      - drew
+      - eliminated
+      - survived
+      type: string
+      description: |-
+        * `won` - Won
+        * `drew` - Drew
+        * `eliminated` - Eliminated
+        * `survived` - Survived
     PaginatedGameListList:
       type: object
       required:
@@ -3583,6 +3608,33 @@ components:
       description: |-
         * `ios` - iOS
         * `android` - Android
+    PlayerGameResult:
+      type: object
+      properties:
+        gameId:
+          type: string
+          readOnly: true
+        gameName:
+          type: string
+          readOnly: true
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        outcome:
+          allOf:
+          - $ref: '#/components/schemas/OutcomeEnum'
+          readOnly: true
+        finishedAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - finishedAt
+      - gameId
+      - gameName
+      - nation
+      - outcome
     PressTypeEnum:
       enum:
       - full_press
@@ -3661,16 +3713,28 @@ components:
         commitment:
           type: string
           readOnly: true
+        favouriteNation:
+          allOf:
+          - $ref: '#/components/schemas/FavouriteNation'
+          readOnly: true
+          nullable: true
+        recentResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerGameResult'
+          readOnly: true
       required:
       - cdRate
       - commitment
       - createdAt
       - draws
+      - favouriteNation
       - id
       - losses
       - name
       - nmrRate
       - picture
+      - recentResults
       - reliabilityTier
       - soloWins
       - totalGames

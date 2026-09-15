@@ -274,6 +274,11 @@ export interface FCMDevice {
   type: TypeEnum;
 }
 
+export interface FavouriteNation {
+  readonly nation: Nation;
+  readonly gamesPlayed: number;
+}
+
 export interface FieldValue {
   id: string;
   label: string;
@@ -713,6 +718,21 @@ export interface OrderOptionsResponse {
   fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
+/**
+ * * `won` - Won
+ * `drew` - Drew
+ * `eliminated` - Eliminated
+ * `survived` - Survived
+ */
+export type OutcomeEnum = (typeof OutcomeEnum)[keyof typeof OutcomeEnum];
+
+export const OutcomeEnum = {
+  won: "won",
+  drew: "drew",
+  eliminated: "eliminated",
+  survived: "survived",
+} as const;
+
 export interface PaginatedGameListList {
   count: number;
   /** @nullable */
@@ -861,6 +881,14 @@ export const PlatformEnum = {
   android: "android",
 } as const;
 
+export interface PlayerGameResult {
+  readonly gameId: string;
+  readonly gameName: string;
+  readonly nation: Nation;
+  readonly outcome: OutcomeEnum;
+  readonly finishedAt: string;
+}
+
 export interface PublicUserProfile {
   readonly id: number;
   readonly name: string;
@@ -876,6 +904,8 @@ export interface PublicUserProfile {
   /** @nullable */
   readonly reliabilityTier: string | null;
   readonly commitment: string;
+  readonly favouriteNation: FavouriteNation | null;
+  readonly recentResults: readonly PlayerGameResult[];
 }
 
 export interface Register {

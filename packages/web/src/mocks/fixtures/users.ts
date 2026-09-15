@@ -1,9 +1,11 @@
 import type {
   AddableUser,
   Member,
+  PlayerGameResult,
   PublicUserProfile,
   UserProfile,
 } from "@/api/generated/endpoints";
+import { nation } from "./classical";
 
 export const currentUserProfile: UserProfile = {
   id: 1,
@@ -77,6 +79,30 @@ export const botRoster: AddableUser[] = [
 export const makeBotMember = (bot: AddableUser): Member =>
   makeMember({ userId: bot.userId, name: bot.name }, null, { isBot: true });
 
+const mockRecentResults: PlayerGameResult[] = [
+  {
+    gameId: "mock-game-recent-1",
+    gameName: "The Long Game",
+    nation: nation("england"),
+    outcome: "won",
+    finishedAt: "2025-08-01T12:00:00Z",
+  },
+  {
+    gameId: "mock-game-recent-2",
+    gameName: "Sunday Night Gunboat",
+    nation: nation("turkey"),
+    outcome: "drew",
+    finishedAt: "2025-07-01T12:00:00Z",
+  },
+  {
+    gameId: "mock-game-recent-3",
+    gameName: "Diplomacy Club Ladder",
+    nation: nation("italy"),
+    outcome: "eliminated",
+    finishedAt: "2025-06-01T12:00:00Z",
+  },
+];
+
 export const publicProfiles: Record<number, PublicUserProfile> = {};
 
 for (const player of players) {
@@ -93,5 +119,7 @@ for (const player of players) {
     cdRate: 0,
     reliabilityTier: "reliable",
     commitment: "high",
+    favouriteNation: { nation: nation("england"), gamesPlayed: 5 },
+    recentResults: mockRecentResults,
   };
 }
