@@ -16,13 +16,23 @@ import {
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelSubtitle, isGroupChannel, brightnessByColor, toHex6 } from "./channelUtils";
+import {
+  getChannelDisplayName,
+  getChannelSubtitle,
+  isGroupChannel,
+  getMessageSenderLabel,
+  brightnessByColor,
+  toHex6,
+  NEUTRAL_SENDER_COLOR,
+} from "./channelUtils";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
+  useUserRetrieveSuspense,
   useGamesChannelsListSuspense,
   useGamesChannelsMessagesCreateCreate,
   useGamesChannelsMarkReadCreate,
@@ -38,9 +48,12 @@ type MessageDisplayItem = {
   id: number;
   body: string;
   sender: {
-    nationName: string;
+    name: string;
+    nationName: string | null;
+    label: string;
     nationColor: string;
     picture: string | null;
+    isGameMaster: boolean;
   };
   isCurrentUser: boolean;
   showAvatar: boolean;
@@ -76,27 +89,30 @@ const buildThreadItems = (
     ...events.map(event => ({ createdAt: event.createdAt, event })),
   ].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
 
-  let previousNationName: string | null = null;
+  let previousLabel: string | null = null;
 
   return entries.map(entry => {
     if (!("message" in entry)) {
-      previousNationName = null;
+      previousLabel = null;
       return { kind: "event", id: entry.event.id, text: entry.event.text };
     }
 
     const msg = entry.message;
-    const nationName = msg.sender.nation?.name ?? msg.sender.name;
-    const showAvatar = previousNationName !== nationName;
-    previousNationName = nationName;
+    const label = getMessageSenderLabel(msg.sender);
+    const showAvatar = previousLabel !== label;
+    previousLabel = label;
 
     return {
       kind: "message",
       id: msg.id,
       body: msg.body,
       sender: {
-        nationName,
-        nationColor: msg.sender.nation?.color ?? "#808080",
+        name: msg.sender.name,
+        nationName: msg.sender.nation?.name ?? null,
+        label,
+        nationColor: msg.sender.nation?.color ?? NEUTRAL_SENDER_COLOR,
         picture: msg.sender.picture,
+        isGameMaster: msg.sender.isGameMaster,
       },
       isCurrentUser: msg.sender.isCurrentUser,
       showAvatar,
@@ -139,6 +155,7 @@ const ChannelScreen: React.FC = () => {
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: userProfile } = useUserRetrieveSuspense();
   const { data: channels } = useGamesChannelsListSuspense(gameId, {
     query: {
       refetchInterval: 5000,
@@ -169,6 +186,9 @@ const ChannelScreen: React.FC = () => {
   });
 
   const currentMember = game.members.find(m => m.isCurrentUser);
+  const isGameMaster =
+    !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
+  const canPost = !!currentMember || (isGameMaster && !channel.private);
   const currentNationName = currentMember?.nation ?? undefined;
   const showSenderLabels = isGroupChannel(channel, game.members, currentNationName);
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
@@ -225,7 +245,7 @@ const ChannelScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!currentMember) return;
+    if (!canPost) return;
     markReadMutation.mutateAsync({
       gameId,
       channelId: parseInt(channelId),
@@ -348,16 +368,25 @@ const ChannelScreen: React.FC = () => {
                         >
                           {item.showAvatar ? (
                             <div className="size-8 shrink-0 overflow-hidden rounded-full border">
-                              <NationFlag
-                                flagUrl={
-                                  variant
-                                    ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                    : null
-                                }
-                                alt={item.sender.nationName}
-                                className="size-8"
-                                color={item.sender.nationColor}
-                              />
+                              {item.sender.isGameMaster ? (
+                                <Avatar className="size-8 rounded-none">
+                                  <AvatarImage src={item.sender.picture ?? undefined} />
+                                  <AvatarFallback className="rounded-none text-xs">
+                                    {item.sender.name[0]?.toUpperCase() ?? "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                <NationFlag
+                                  flagUrl={
+                                    variant
+                                      ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                      : null
+                                  }
+                                  alt={item.sender.nationName ?? item.sender.name}
+                                  className="size-8"
+                                  color={item.sender.nationColor}
+                                />
+                              )}
                             </div>
                           ) : (
                             <div className="size-8 shrink-0" />
@@ -377,7 +406,9 @@ const ChannelScreen: React.FC = () => {
                                   className="mb-0.5 text-xs font-semibold"
                                   style={{ color: item.sender.nationColor }}
                                 >
-                                  {item.isCurrentUser ? "You" : item.sender.nationName}
+                                  {item.isCurrentUser && !item.sender.isGameMaster
+                                    ? "You"
+                                    : item.sender.label}
                                 </p>
                               )}
                               {item.body}
@@ -396,8 +427,8 @@ const ChannelScreen: React.FC = () => {
               )}
             </div>
           </Panel.Content>
-          {currentMember && (
-            <Panel.Footer className="px-2 py-2 md:px-3">
+          {canPost && (
+            <Panel.Footer divider className="px-2 py-2 md:px-3">
               <div className="flex gap-2 w-full">
                 <Textarea
                   placeholder="Type a message"

@@ -1,5 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+const apiBaseUrl =
+  process.env.VITE_DIPLICITY_API_BASE_URL || "http://localhost:8000";
+
 const config: CapacitorConfig = {
   appId: "com.diplicity.app",
   appName: "Diplicity",
@@ -29,6 +32,12 @@ const config: CapacitorConfig = {
     },
     FirebaseMessaging: {
       presentationOptions: ["badge", "sound", "alert"],
+    },
+    CapacitorUpdater: {
+      autoUpdate: "atBackground",
+      updateUrl: `${apiBaseUrl.replace(/\/$/, "")}/update/check/`,
+      statsUrl: "",
+      channelUrl: "",
     },
   },
 };

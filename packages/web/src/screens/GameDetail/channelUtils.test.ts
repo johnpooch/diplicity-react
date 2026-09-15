@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import type { Channel, Member } from "@/api/generated/endpoints";
+import type { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 import {
   getChannelDisplayName,
   getChannelFlagUrls,
   getChannelSubtitle,
+  getMessageSenderLabel,
   isGroupChannel,
 } from "./channelUtils";
 
@@ -126,5 +127,39 @@ describe("isGroupChannel", () => {
     const members = [member(1, "England"), member(2, "Italy")];
 
     expect(isGroupChannel(publicChannel, members, "England")).toBe(true);
+  });
+
+  it("is true for a public channel with only one active member", () => {
+    expect(isGroupChannel(publicChannel, [member(1, "England")], "England")).toBe(true);
+  });
+});
+
+const sender = (overrides: Partial<ChannelMember> = {}) =>
+  ({
+    id: 1,
+    userId: 1,
+    name: "Alice",
+    picture: null,
+    isCurrentUser: false,
+    isBot: false,
+    commitment: null,
+    nation: { name: "England", color: "#ff0000" },
+    isGameMaster: false,
+    ...overrides,
+  }) as ChannelMember;
+
+describe("getMessageSenderLabel", () => {
+  it("uses the nation name for a seated player", () => {
+    expect(getMessageSenderLabel(sender())).toBe("England");
+  });
+
+  it("uses Game Master for a game master", () => {
+    expect(
+      getMessageSenderLabel(sender({ nation: null, isGameMaster: true }))
+    ).toBe("Game Master");
+  });
+
+  it("falls back to the display name when there is no nation", () => {
+    expect(getMessageSenderLabel(sender({ nation: null }))).toBe("Alice");
   });
 });

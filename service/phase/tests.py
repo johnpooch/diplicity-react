@@ -3758,7 +3758,7 @@ class TestCivilDisorderStagingRemoval:
         )
         assert delivery.heading == "Staging Game"
         assert delivery.body == (
-            "You were removed from this game because you entered civil disorder in Active CD Game."
+            "You have been removed from this game because you entered civil disorder in Active CD Game."
         )
 
 
@@ -3840,7 +3840,7 @@ class TestCivilDisorderStagingRemoval:
             "Second Staging Game",
         ]
         assert set(deliveries.values_list("body", flat=True)) == {
-            "You were removed from this game because you entered civil disorder in Active CD Game."
+            "You have been removed from this game because you entered civil disorder in Active CD Game."
         }
 
 
@@ -5188,6 +5188,42 @@ class TestSendDeadlineWarnings:
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
         assert "no orders given" in call_kwargs["body"]
         assert "stop waiting for you" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("deadline_mode", [DeadlineMode.FIXED_TIME, DeadlineMode.DURATION])
+    @pytest.mark.parametrize("orders_to_give", [0, 1, 2])
+    def test_warning_body_states_no_time_figure(
+        self,
+        deadline_mode,
+        orders_to_give,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(deadline_mode, now + timedelta(minutes=10))
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+        for province in [italy_vs_germany_venice_province, italy_vs_germany_rome_province][:orders_to_give]:
+            italy_ps.orders.create(source=province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        body = mock_send_notification_to_users.call_args.kwargs["body"]
+        for fragment in ["hour", "minute", "remaining", "less than"]:
+            assert fragment not in body
 
     @pytest.mark.django_db
     def test_duration_confirmed_no_notification(

@@ -1,7 +1,7 @@
 {
   "name": "diplicity-react",
   "private": true,
-  "version": "1.5.9",
+  "version": "1.5.11",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -31,6 +31,7 @@
     "@capacitor/network": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capgo/capacitor-social-login": "^8.3.6",
+    "@capgo/capacitor-updater": "^8.51.16",
     "@fontsource/roboto": "^5.1.0",
     "@hookform/resolvers": "^5.2.2",
     "@opentelemetry/api": "^1.9.0",

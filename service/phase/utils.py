@@ -6,16 +6,6 @@ from django.utils import timezone
 from common.constants import OrderType, PhaseFrequency, PhaseType, ProvinceType
 
 
-def format_time_remaining(seconds):
-    if seconds >= 2 * 3600:
-        return f"{int(seconds // 3600)} hours"
-    if seconds >= 3600:
-        return "1 hour"
-    if seconds >= 2 * 60:
-        return f"{int(seconds // 60)} minutes"
-    return "less than a minute"
-
-
 def format_deadline(dt, tz_name=None):
     if tz_name:
         try:
@@ -27,7 +17,7 @@ def format_deadline(dt, tz_name=None):
 
 
 def build_notification_body(
-    orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining,
+    orders_confirmed, is_fixed_time, orders_given, total_units, extensions_remaining,
     is_adjustment=False,
 ):
     if extensions_remaining > 0:
@@ -43,39 +33,34 @@ def build_notification_body(
     if is_fixed_time:
         if orders_given == total_units:
             return (
-                f"All orders ready. Confirm to advance the game early — "
-                f"the next deadline may move sooner too. {time_left} remaining."
+                "All orders ready. Confirm to advance the game early — "
+                "the next deadline may move sooner too."
             )
         if orders_given > 0:
             return (
                 f"Deadline approaching - orders incomplete. "
-                f"{orders_given}/{total_units} units have an order. "
-                f"{time_left} to adjust your orders."
+                f"{orders_given}/{total_units} units have an order."
             )
         return (
             f"Deadline approaching - no orders given. "
             f"Your units have not received orders. "
-            f"{time_left} to adjust your orders. "
             f"{nmr_suffix}"
         )
     else:
         if orders_given == total_units:
             return (
-                f"Deadline approaching - orders ready, waiting confirmation. "
-                f"You have {time_left} to adjust your orders. "
-                f"If not confirmed, standing orders will execute."
+                "Deadline approaching - orders ready, waiting confirmation. "
+                "If not confirmed, standing orders will execute."
             )
         if orders_given > 0:
             return (
                 f"Deadline approaching - orders incomplete. "
                 f"{orders_given}/{total_units} units have an order. "
-                f"{time_left} to adjust your orders. "
                 f"If not confirmed, standing orders will execute."
             )
         return (
             f"Deadline approaching - no orders given. "
             f"Your units don't have orders yet. "
-            f"{time_left} to provide orders. "
             f"{nmr_suffix}"
         )
 
