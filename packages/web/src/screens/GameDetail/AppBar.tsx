@@ -37,34 +37,39 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
   const showBackButton = variant === "secondary" || isMobile;
 
   return (
-    <div className="px-3 pt-4">
-      <div className="flex items-center justify-between gap-2 min-h-9">
-        {/* Left section */}
-        <div className="flex items-center gap-2">
-          {leftButton ||
-            (showBackButton && (
+    <div className="flex min-h-14 items-center gap-3 px-2 md:px-3">
+      {/* Left section */}
+      <div className="flex items-center gap-2">
+        {leftButton ||
+          (showBackButton &&
+            (variant === "primary" ? (
               <Button variant="ghost" size="icon" onClick={handleBack}>
-                {variant === "primary" ? (
-                  <X className="size-5" />
-                ) : (
-                  <ArrowLeft className="size-5" />
-                )}
+                <X className="size-5" />
               </Button>
-            ))}
-        </div>
-
-        {/* Center - Title */}
-        <div className="flex-1 min-w-0">
-          {typeof title === "string" ? (
-            <h1 className="text-xl font-semibold leading-9 truncate">{title}</h1>
-          ) : (
-            title
-          )}
-        </div>
-
-        {/* Right section */}
-        <div className="flex items-center gap-2">{rightButton}</div>
+            ) : (
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="rounded-full"
+                onClick={handleBack}
+                aria-label="Back"
+              >
+                <ArrowLeft />
+              </Button>
+            )))}
       </div>
+
+      {/* Center - Title */}
+      <div className="flex-1 min-w-0">
+        {typeof title === "string" ? (
+          <h1 className="text-xl font-semibold leading-9 truncate">{title}</h1>
+        ) : (
+          title
+        )}
+      </div>
+
+      {/* Right section */}
+      <div className="flex items-center gap-2">{rightButton}</div>
     </div>
   );
 };
