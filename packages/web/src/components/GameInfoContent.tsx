@@ -40,11 +40,13 @@ import { useRequiredParams } from "@/hooks";
 interface GameInfoContentProps {
   pendingAction?: React.ReactNode;
   onOpenVariantDetails?: () => void;
+  showTitle?: boolean;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   pendingAction,
   onOpenVariantDetails,
+  showTitle = true,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
@@ -186,7 +188,11 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
       <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
       {nationSeatAlert}
-      <h1 className="truncate text-xl font-semibold leading-9">{game.name}</h1>
+      {showTitle && (
+        <h1 className="truncate text-xl font-semibold leading-9">
+          {game.name}
+        </h1>
+      )}
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">Variant</h2>
         {variant ? (
