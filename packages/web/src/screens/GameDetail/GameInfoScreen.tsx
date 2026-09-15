@@ -2,13 +2,14 @@ import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { Share2, UserPlus } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/Panel";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useRequiredParams } from "@/hooks";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { copyLink } from "@/utils/copyLink";
 import {
   useGameRetrieveSuspense,
   useGameMemberJoinCreate,
@@ -45,25 +46,36 @@ const GameInfoScreen: React.FC = () => {
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={game.name}
-        onNavigateBack={() => navigate("/")}
+        hideBackButton
         rightButton={
-          game.canJoin ? (
+          <>
             <Button
               variant="outline"
               size="icon"
-              aria-label="Join game"
-              onClick={handleJoinGame}
-              disabled={joinGameMutation.isPending}
+              aria-label="Share"
+              onClick={() => copyLink(`/game/${gameId}`)}
             >
-              <UserPlus />
+              <Share2 />
             </Button>
-          ) : undefined
+            {game.canJoin && (
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Join game"
+                onClick={handleJoinGame}
+                disabled={joinGameMutation.isPending}
+              >
+                <UserPlus />
+              </Button>
+            )}
+          </>
         }
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content className="flex flex-col gap-4 px-3 py-4">
             <GameInfoContent
+              showTitle={false}
               onOpenVariantDetails={() =>
                 navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
               }
