@@ -21,7 +21,6 @@ const mockUserProfileData = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
-  useGamePhaseRetrieve: () => ({ data: undefined }),
   useUserRetrieveSuspense: () => ({ data: mockUserProfileData() }),
   useVariantsListSuspense: () => ({
     data: [
@@ -36,8 +35,8 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsRetrieve: () => ({ data: undefined }),
 }));
 
-vi.mock("@/components/ExpandableMapPreview", () => ({
-  ExpandableMapPreview: () => null,
+vi.mock("@/components/MapView", () => ({
+  MapView: () => <div data-testid="map-preview" />,
 }));
 
 const renderGameInfo = () =>
@@ -45,7 +44,7 @@ const renderGameInfo = () =>
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={["/game-info/game-1"]}>
         <Routes>
-          <Route path="/game-info/:gameId" element={<GameInfoContent onNavigateToPlayerInfo={vi.fn()} />} />
+          <Route path="/game-info/:gameId" element={<GameInfoContent />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
