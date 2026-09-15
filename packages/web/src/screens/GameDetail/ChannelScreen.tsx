@@ -19,8 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelSubtitle, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
-import { ChannelAvatar } from "./ChannelAvatar";
+import { getChannelDisplayName, getChannelSubtitle, brightnessByColor, toHex6 } from "./channelUtils";
 import { ChannelRenameDialog } from "./ChannelRenameDialog";
 import { Panel } from "@/components/Panel";
 import {
@@ -172,30 +171,21 @@ const ChannelScreen: React.FC = () => {
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
-  const channelFlagUrls = getChannelFlagUrls(
-    channel,
-    game.members,
-    currentNationName,
-    variant?.nations ?? []
-  );
   const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
   const channelTitle = (
-    <div className="flex items-center justify-start gap-2">
-      <ChannelAvatar nations={channelFlagUrls} />
-      <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-lg font-semibold leading-tight">{channelDisplayName}</p>
-        {channelSubtitle && (
-          <Tooltip open={isSubtitleOpen} onOpenChange={setIsSubtitleOpen}>
-            <TooltipTrigger
-              className="block w-full truncate text-left text-xs leading-tight text-muted-foreground"
-              onClick={() => setIsSubtitleOpen(true)}
-            >
-              {channelSubtitle}
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{channelSubtitle}</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
+    <div className="min-w-0 flex-1 text-left">
+      <p className="truncate text-xl font-semibold leading-9">{channelDisplayName}</p>
+      {channelSubtitle && (
+        <Tooltip open={isSubtitleOpen} onOpenChange={setIsSubtitleOpen}>
+          <TooltipTrigger
+            className="block w-full truncate text-left text-xs leading-tight text-muted-foreground"
+            onClick={() => setIsSubtitleOpen(true)}
+          >
+            {channelSubtitle}
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{channelSubtitle}</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
   const headerButtons = (
