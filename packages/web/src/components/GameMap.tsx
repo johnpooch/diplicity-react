@@ -195,25 +195,26 @@ const GameMap: React.FC = () => {
 
   useEffect(() => {
     if (!sourceParam) return;
-    if (wizard.nextField === "source") {
-      if (wizard.choices.some((c) => c.id === sourceParam)) {
-        wizard.select(sourceParam);
-        setFocusProvince(sourceParam);
-        setFocusToken((token) => token + 1);
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          setMenuPosition({ x: rect.width / 2, y: rect.height / 2 });
-        }
+    if (wizard.nextField === "source" && wizard.choices.some((c) => c.id === sourceParam)) {
+      wizard.select(sourceParam);
+      setFocusProvince(sourceParam);
+      setFocusToken((token) => token + 1);
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setMenuPosition({ x: rect.width / 2, y: rect.height / 2 });
       }
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete("source");
-          return next;
-        },
-        { replace: true }
-      );
     }
+    // Always clear once read, even when the wizard wasn't ready for it (e.g.
+    // mid-flow on a different field) — otherwise it lingers and hijacks the
+    // wizard's next "source" step instead of this one.
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("source");
+        return next;
+      },
+      { replace: true }
+    );
   }, [sourceParam, wizard, setSearchParams]);
 
   const handleProvinceClick = (
