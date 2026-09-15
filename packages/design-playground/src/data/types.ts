@@ -164,6 +164,12 @@ export interface CurrentPhaseOrders {
   sandbox?: boolean;
 }
 
+export interface PhaseHistoryEntry {
+  id: string;
+  resolved: boolean;
+  orders: CurrentPhaseOrders;
+}
+
 export interface ProfileStat {
   label: string;
   value: string;

@@ -69,9 +69,7 @@ const NationHeading: React.FC<{
   return (
     <h2 className="flex items-center justify-between gap-3 text-sm font-medium text-muted-foreground">
       <span className="flex min-w-0 items-center gap-2">
-        <span className="size-5 overflow-hidden rounded-full" aria-hidden>
-          <NationFlag nation={nation} />
-        </span>
+        <NationFlag nation={nation} size="sm" />
         {nation}
       </span>
       <span className="flex shrink-0 items-center gap-2.5">

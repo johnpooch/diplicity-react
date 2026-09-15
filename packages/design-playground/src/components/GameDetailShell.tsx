@@ -32,7 +32,7 @@ const navigationItems = [
 
 interface GameDetailShellProps {
   children: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   headerAction?: React.ReactNode;
   activeNavItem?: string;
@@ -128,14 +128,18 @@ const GameDetailShell: React.FC<GameDetailShellProps> = ({
                 </Link>
               )}
               <div className="min-w-0 flex-1">
-                <p
-                  className={cn(
-                    "truncate font-semibold leading-tight",
-                    isSecondary && "md:text-xl md:leading-9"
-                  )}
-                >
-                  {title}
-                </p>
+                {typeof title === "string" ? (
+                  <p
+                    className={cn(
+                      "truncate font-semibold leading-tight",
+                      isSecondary && "md:text-xl md:leading-9"
+                    )}
+                  >
+                    {title}
+                  </p>
+                ) : (
+                  title
+                )}
                 {subtitle && (
                   <p className="truncate text-xs text-muted-foreground leading-tight">
                     {subtitle}

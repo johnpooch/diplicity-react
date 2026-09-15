@@ -15,8 +15,10 @@ import { ChatChannelList } from "@/prototypes/chat-channel-list/SingleList";
 import { CreateChannel } from "@/prototypes/create-channel/SingleForm";
 import { ChatChannel } from "@/prototypes/chat-channel/NationBubbles";
 import { CurrentPhaseOrdersList } from "@/prototypes/current-phase-orders/YourList";
+import { BareGlyphs } from "@/prototypes/current-phase-orders/BareGlyphs";
 import { NoOrdersRequired } from "@/prototypes/current-phase-orders/NoOrdersRequired";
 import { AllConfirmed } from "@/prototypes/current-phase-orders/AllConfirmed";
+import { PhaseStepper } from "@/prototypes/current-phase-orders/PhaseStepper";
 
 export interface PrototypeState {
   slug: string;
@@ -179,7 +181,7 @@ export const prototypes: Prototype[] = [
         slug: "all-states",
         title: "All states",
         description:
-          "Identity-first before the game starts, nation-first once it has. Preferred nations are a dashed flag; assigned nations are solid.",
+          "Identity-first before the game starts, nation-first once it has. Preferred nations are a dashed colour ring; assigned nations are a solid colour ring. The flag fills the disc when the variant has one.",
         states: [defaultState],
         render: () => <PlayerCardGallery />,
       },
@@ -226,7 +228,7 @@ export const prototypes: Prototype[] = [
         slug: "game-focused",
         title: "Game focused",
         description:
-          "Identity-first while the game is forming, nation-first once it is underway. Finished games become a results screen. A non-playing game master sits above the players when present. Tap opens the member screen.",
+          "Identity-first while the game is forming, nation-first once it is underway. Once nations are assigned, players are ordered by supply centres. Eliminated players sit in their own section at reduced opacity. Finished games become a results screen. A non-playing game master sits above the players when present. Sections are grouped lists. Tap opens the member screen. Nation portraits always carry a colour ring; the flag is the fill when the variant has one.",
         states: [
           { slug: "pending-member", title: "Pending (member)" },
           { slug: "pending-member-gm", title: "Pending (member, GM)" },
@@ -237,6 +239,7 @@ export const prototypes: Prototype[] = [
           { slug: "active-gm", title: "Active (GM)" },
           { slug: "active-eliminated", title: "Active (eliminated)" },
           { slug: "active-anon", title: "Active (anonymous)" },
+          { slug: "active-no-flags", title: "Active (no flags)" },
           { slug: "solo-victory", title: "Solo victory" },
           { slug: "solo-victory-gm", title: "Solo victory (GM)" },
           { slug: "draw", title: "Draw" },
@@ -254,9 +257,10 @@ export const prototypes: Prototype[] = [
         slug: "single-list",
         title: "Single list",
         description:
-          "One flat list. Public Press is named, not chipped. Create lives in the header once the game has started.",
+          "One grouped list. Public Press is named, not chipped. Create lives in the header once the game has started. Channel portraits use the same colour ring as players; stacked nations keep a card gap.",
         states: [
           { slug: "active", title: "Active" },
+          { slug: "active-no-flags", title: "Active (no flags)" },
           { slug: "pending", title: "Pending" },
         ],
         render: state => <ChatChannelList state={state} />,
@@ -289,13 +293,15 @@ export const prototypes: Prototype[] = [
         slug: "nation-bubbles",
         title: "Nation bubbles",
         description:
-          "Secondary chrome: back replaces home, the mobile tab bar is gone, the desktop rail stays. Nation tint at 15% with a balloon corner; yours on the right. Phase changes sit in the stream.",
+          "Secondary chrome: back replaces home, the mobile tab bar is gone, the desktop rail stays. Nation tint at 15% with a balloon corner; yours on the right. Phase changes sit in the stream. Avatars use the nation colour ring; without a flag the disc is the colour and a monogram.",
         states: [
           { slug: "empty", title: "Direct, no messages" },
           { slug: "one", title: "Direct, one message" },
           { slug: "direct", title: "Direct, many messages" },
+          { slug: "direct-no-flags", title: "Direct, no flags" },
           { slug: "group-one", title: "Group, one message" },
           { slug: "group", title: "Group, many messages" },
+          { slug: "group-no-flags", title: "Group, no flags" },
         ],
         render: state => <ChatChannel state={state} />,
       },
@@ -311,7 +317,26 @@ export const prototypes: Prototype[] = [
         slug: "your-list",
         title: "Your list",
         description:
-          "Your units as a card list. Phase name and remaining time replace the title; the phase list sits in the header; confirm and progress share one button.",
+          "Your units as a grouped list. Phase name and remaining time replace the title; the phase list sits in the header; confirm and progress share one button. The nation heading is a colour disc; the flag fills it when present.",
+        states: [
+          { slug: "incomplete", title: "Incomplete" },
+          { slug: "incomplete-no-flags", title: "Incomplete (no flags)" },
+          { slug: "confirmed", title: "Confirmed" },
+          { slug: "no-orders", title: "No orders required" },
+          { slug: "civil-disorder", title: "Civil disorder" },
+          { slug: "spectator", title: "Spectator" },
+          { slug: "sandbox", title: "Sandbox" },
+          { slug: "twelve", title: "Twelve units" },
+          { slug: "retreat", title: "Retreat" },
+          { slug: "adjustment", title: "Adjustment" },
+        ],
+        render: state => <CurrentPhaseOrdersList state={state} />,
+      },
+      {
+        slug: "bare-glyphs",
+        title: "Bare glyphs",
+        description:
+          "The original order icons, without discs. The dashed circle is reserved for an unfilled slot.",
         states: [
           { slug: "incomplete", title: "Incomplete" },
           { slug: "confirmed", title: "Confirmed" },
@@ -319,10 +344,11 @@ export const prototypes: Prototype[] = [
           { slug: "civil-disorder", title: "Civil disorder" },
           { slug: "spectator", title: "Spectator" },
           { slug: "sandbox", title: "Sandbox" },
+          { slug: "twelve", title: "Twelve units" },
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <CurrentPhaseOrdersList state={state} />,
+        render: state => <BareGlyphs state={state} />,
       },
       {
         slug: "no-orders-required",
@@ -347,6 +373,18 @@ export const prototypes: Prototype[] = [
           { slug: "adjustment", title: "Adjustment" },
         ],
         render: state => <AllConfirmed state={state} />,
+      },
+      {
+        slug: "phase-stepper",
+        title: "Phase stepper",
+        description:
+          "The phase name is a picker; prev and next sit in the header action slot. Both buttons stay visible and disable at the ends. The title opens a dropdown of phases.",
+        states: [
+          { slug: "current", title: "Current phase" },
+          { slug: "previous", title: "Previous phase" },
+          { slug: "first", title: "First phase" },
+        ],
+        render: state => <PhaseStepper state={state} />,
       },
     ],
   },

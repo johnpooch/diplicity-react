@@ -14,7 +14,13 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { GameDetailShell } from "@/components/GameDetailShell";
-import { NationFlag } from "@/components/NationFlag";
+import {
+  NationFlag,
+  NationFlagsProvider,
+  brightnessByColor,
+  findNationColor,
+  toHex6,
+} from "@/components/NationFlag";
 import {
   franceDirectEmpty,
   franceDirectMany,
@@ -26,46 +32,23 @@ import type { ChatEntry, ChatMessage, ChatThread } from "@/data/types";
 import { cn } from "@/lib/utils";
 import { Map, MessagesSquare, SendHorizontal } from "lucide-react";
 
-const nationHex: Record<string, string> = {
-  Austria: "#F44336",
-  England: "#2196F3",
-  France: "#80DEEA",
-  Germany: "#90A4AE",
-  Italy: "#4CAF50",
-  Russia: "#F5F5F5",
-  Turkey: "#FFC107",
-};
-
 const BUBBLE_ALPHA_HEX = "26";
-
-const toHex6 = (color: string): string => {
-  const short = /^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/.exec(color);
-  if (short) {
-    return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
-  }
-  if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
-  return "#808080";
-};
-
-const brightnessByColor = (hex: string): number => {
-  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(
-    toHex6(hex)
-  );
-  if (!match) return 128;
-  const r = parseInt(match[1], 16);
-  const g = parseInt(match[2], 16);
-  const b = parseInt(match[3], 16);
-  return (r * 299 + g * 587 + b * 114) / 1000;
-};
 
 const chatListPath = "/chat-channel-list/single-list/active";
 
-const threads: Record<string, ChatThread> = {
-  empty: franceDirectEmpty,
-  one: franceDirectOne,
-  direct: franceDirectMany,
-  "group-one": greatAllianceOne,
-  group: greatAllianceMany,
+interface ScreenConfig {
+  thread: ChatThread;
+  hideFlags?: boolean;
+}
+
+const screens: Record<string, ScreenConfig> = {
+  empty: { thread: franceDirectEmpty },
+  one: { thread: franceDirectOne },
+  direct: { thread: franceDirectMany },
+  "group-one": { thread: greatAllianceOne },
+  group: { thread: greatAllianceMany },
+  "direct-no-flags": { thread: franceDirectMany, hideFlags: true },
+  "group-no-flags": { thread: greatAllianceMany, hideFlags: true },
 };
 
 const isMessage = (entry: ChatEntry): entry is ChatMessage =>
@@ -85,14 +68,12 @@ const Bubble: React.FC<{
   message: ChatMessage;
   showIdentity: boolean;
 }> = ({ message, showIdentity }) => {
-  const color = nationHex[message.nation] ?? "#808080";
+  const color = findNationColor(message.nation);
 
   return (
     <Message className={cn(message.isCurrentUser && "flex-row-reverse")}>
       {showIdentity ? (
-        <div className="size-8 shrink-0 overflow-hidden rounded-full border">
-          <NationFlag nation={message.nation} />
-        </div>
+        <NationFlag nation={message.nation} size="md" />
       ) : (
         <div className="size-8 shrink-0" />
       )}
@@ -174,9 +155,11 @@ const Thread: React.FC<{ thread: ChatThread }> = ({ thread }) => {
 };
 
 const ChatChannel: React.FC<{ state: string }> = ({ state }) => {
-  const thread = threads[state] ?? threads.direct;
+  const screen = screens[state] ?? screens.direct;
+  const { thread } = screen;
 
   return (
+    <NationFlagsProvider enabled={!screen.hideFlags}>
     <GameDetailShell
       title={thread.name}
       subtitle={thread.subtitle}
@@ -204,6 +187,7 @@ const ChatChannel: React.FC<{ state: string }> = ({ state }) => {
     >
       <Thread thread={thread} />
     </GameDetailShell>
+    </NationFlagsProvider>
   );
 };
 
