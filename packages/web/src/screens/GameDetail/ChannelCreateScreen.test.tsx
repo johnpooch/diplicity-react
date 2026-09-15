@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll } from "vitest";
@@ -39,6 +40,8 @@ const member = (id: number, nation: string, overrides = {}) => ({
   ...overrides,
 });
 
+const createChannel = vi.fn().mockResolvedValue({ id: 7 });
+
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
     data: {
@@ -52,7 +55,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   }),
   useVariantsListSuspense: () => ({ data: [] }),
   useVariantsRetrieve: () => ({ data: undefined }),
-  useGamesChannelsCreateCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGamesChannelsCreateCreate: () => ({ mutateAsync: createChannel, isPending: false }),
   getGamesChannelsListQueryKey: (gameId: string) => [`/game/${gameId}/channels/`],
 }));
 
@@ -65,6 +68,7 @@ const renderScreen = () =>
             path="/game/:gameId/phase/:phaseId/chat/create"
             element={<ChannelCreateScreen />}
           />
+          <Route path="*" element={<div />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -77,5 +81,36 @@ describe("ChannelCreateScreen", () => {
     expect(screen.getByText("The Dealmaker")).toBeInTheDocument();
     expect(screen.queryByText("Departed Player")).not.toBeInTheDocument();
     expect(screen.getAllByText("Italy")).toHaveLength(1);
+  });
+
+  it("names the channel it creates", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.type(screen.getByLabelText("Channel name"), "The great alliance");
+    await user.click(screen.getByLabelText("Select Italy"));
+    await user.click(screen.getByRole("button", { name: "Create channel" }));
+
+    await waitFor(() =>
+      expect(createChannel).toHaveBeenCalledWith({
+        gameId: "game-1",
+        data: { memberIds: [3], title: "The great alliance" },
+      })
+    );
+  });
+
+  it("creates an unnamed channel when no name is given", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.click(screen.getByLabelText("Select Italy"));
+    await user.click(screen.getByRole("button", { name: "Create channel" }));
+
+    await waitFor(() =>
+      expect(createChannel).toHaveBeenCalledWith({
+        gameId: "game-1",
+        data: { memberIds: [3], title: "" },
+      })
+    );
   });
 });

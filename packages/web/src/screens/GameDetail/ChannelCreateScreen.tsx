@@ -1,12 +1,24 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
@@ -21,6 +33,20 @@ import {
   type Channel,
   type Member,
 } from "@/api/generated/endpoints";
+
+const CHANNEL_TITLE_MAX_LENGTH = 50;
+
+const channelSchema = z.object({
+  title: z
+    .string()
+    .max(
+      CHANNEL_TITLE_MAX_LENGTH,
+      `Channel names cannot be longer than ${CHANNEL_TITLE_MAX_LENGTH} characters.`
+    ),
+  memberIds: z.array(z.number()).min(1),
+});
+
+type ChannelFormValues = z.infer<typeof channelSchema>;
 
 const roleLabel = (member: Member): string | undefined => {
   if (member.isGameCreator) return "game creator";
@@ -91,27 +117,24 @@ const ChannelCreateScreen: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
   const variantNations = variant?.nations ?? [];
   const createChannelMutation = useGamesChannelsCreateCreate();
 
-  const handleToggle = (memberId: number) => {
-    setSelectedMembers(prevSelected =>
-      prevSelected.includes(memberId)
-        ? prevSelected.filter(id => id !== memberId)
-        : [...prevSelected, memberId]
-    );
-  };
+  const form = useForm<ChannelFormValues>({
+    resolver: zodResolver(channelSchema),
+    defaultValues: { title: "", memberIds: [] },
+  });
 
-  const handleCreateChannel = async () => {
+  const handleCreateChannel = async (values: ChannelFormValues) => {
     try {
       const response = await createChannelMutation.mutateAsync({
         gameId: gameId,
         data: {
-          memberIds: selectedMembers,
+          memberIds: values.memberIds,
+          title: values.title,
         },
       });
       queryClient.setQueryData<Channel[]>(
@@ -142,33 +165,73 @@ const ChannelCreateScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
-            <section className="flex flex-col gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground">Members</h2>
-              <div className="flex flex-col gap-2">
-                {game.members
-                  .filter(m => !m.isCurrentUser && !m.kicked)
-                  .map(member => (
-                    <MemberRow
-                      key={member.id}
-                      member={member}
-                      nationFlagUrl={findNationFlagUrl(variantNations, member.nation)}
-                      nationColor={findNationColor(variantNations, member.nation)}
-                      selected={selectedMembers.includes(member.id)}
-                      disabled={isSubmitting}
-                      onToggle={() => handleToggle(member.id)}
-                    />
-                  ))}
-              </div>
-            </section>
-            <Button
-              className="w-full"
-              size="lg"
-              disabled={selectedMembers.length === 0 || isSubmitting}
-              onClick={handleCreateChannel}
-            >
-              Create channel
-            </Button>
+          <Panel.Content>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handleCreateChannel)}
+                className="flex flex-col gap-4 px-3 py-4"
+              >
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Channel name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Optional"
+                          maxLength={CHANNEL_TITLE_MAX_LENGTH}
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="memberIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-muted-foreground">Members</FormLabel>
+                      <FormControl>
+                        <div className="flex flex-col gap-2">
+                          {game.members
+                            .filter(m => !m.isCurrentUser && !m.kicked)
+                            .map(member => (
+                              <MemberRow
+                                key={member.id}
+                                member={member}
+                                nationFlagUrl={findNationFlagUrl(variantNations, member.nation)}
+                                nationColor={findNationColor(variantNations, member.nation)}
+                                selected={field.value.includes(member.id)}
+                                disabled={isSubmitting}
+                                onToggle={() =>
+                                  field.onChange(
+                                    field.value.includes(member.id)
+                                      ? field.value.filter(id => id !== member.id)
+                                      : [...field.value, member.id]
+                                  )
+                                }
+                              />
+                            ))}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={form.watch("memberIds").length === 0 || isSubmitting}
+                >
+                  Create channel
+                </Button>
+              </form>
+            </Form>
           </Panel.Content>
         </Panel>
       </div>
