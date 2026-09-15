@@ -34,8 +34,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
     }
   };
 
-  const showCloseButton = variant === "secondary" && !isMobile;
-  const showBackButton = isMobile;
+  const showBackButton = variant === "secondary" || isMobile;
 
   return (
     <div className="px-3 pt-4">
@@ -64,14 +63,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
         </div>
 
         {/* Right section */}
-        <div className="flex items-center gap-2">
-          {rightButton ||
-            (showCloseButton && (
-              <Button variant="ghost" size="icon" onClick={handleBack}>
-                <X className="size-5" />
-              </Button>
-            ))}
-        </div>
+        <div className="flex items-center gap-2">{rightButton}</div>
       </div>
     </div>
   );

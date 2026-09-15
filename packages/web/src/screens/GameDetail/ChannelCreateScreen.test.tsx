@@ -42,6 +42,7 @@ const member = (id: number, nation: string, overrides = {}) => ({
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
     data: {
+      variantId: "standard",
       members: [
         member(1, "England", { isCurrentUser: true }),
         member(2, "Italy", { kicked: true, name: "Departed Player" }),
@@ -49,6 +50,8 @@ vi.mock("@/api/generated/endpoints", () => ({
       ],
     },
   }),
+  useVariantsListSuspense: () => ({ data: [] }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useGamesChannelsCreateCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   getGamesChannelsListQueryKey: (gameId: string) => [`/game/${gameId}/channels/`],
 }));
