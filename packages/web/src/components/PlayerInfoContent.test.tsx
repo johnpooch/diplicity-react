@@ -39,6 +39,7 @@ vi.mock("@/components/NationFlag", () => ({
   NationFlag: () => null,
   findNationFlagUrl: () => null,
   findNationColor: () => null,
+  getContrastColor: () => "#ffffff",
 }));
 
 interface MockAddBotSheetProps {
