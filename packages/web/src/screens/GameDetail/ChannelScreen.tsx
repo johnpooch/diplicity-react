@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { SendHorizontal, MessageCircle, MessageSquareOff, Map } from "lucide-react";
+import { SendHorizontal, MessageCircle, MessageSquareOff, Map, Pencil } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { toast } from "sonner";
@@ -20,7 +20,6 @@ import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
 import { getChannelDisplayName, getChannelSubtitle, isGroupChannel, brightnessByColor, toHex6 } from "./channelUtils";
-import { ChannelRenameDialog } from "./ChannelRenameDialog";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
@@ -192,7 +191,17 @@ const ChannelScreen: React.FC = () => {
   const headerButtons = (
     <>
       {channel.private && currentMember && (
-        <ChannelRenameDialog gameId={gameId} channel={channel} />
+        <Button
+          variant="outline"
+          size="icon-sm"
+          className="rounded-full"
+          aria-label="Rename channel"
+          asChild
+        >
+          <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/rename`}>
+            <Pencil />
+          </Link>
+        </Button>
       )}
       <Button
         variant="outline"
