@@ -85,51 +85,49 @@ const ChannelListScreen: React.FC = () => {
                 className="h-full"
               />
             ) : (
-              <div className="flex flex-col gap-2">
-                {channels.map(channel => (
-                  <Link
-                    key={channel.id}
-                    to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
-                    className="block"
-                  >
-                    <Card className="overflow-hidden py-0 transition-colors hover:bg-accent/50">
-                      <CardContent className="flex items-center gap-3 p-3">
-                        {channel.private ? (
-                          <ChannelAvatar
-                            size={48}
-                            nations={getChannelFlagUrls(
-                              channel,
-                              game.members,
-                              currentNationName,
-                              variantNations
-                            )}
-                          />
-                        ) : (
-                          <div
-                            className="flex size-12 shrink-0 items-center justify-center rounded-full border bg-muted"
-                            aria-label="Public channel"
-                          >
-                            <Megaphone className="size-5 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <span className="truncate font-semibold leading-tight">
-                            {getChannelDisplayName(channel, currentNationName)}
-                          </span>
-                          <p className="truncate text-sm text-muted-foreground">
-                            {getLatestMessagePreview(channel.messages)}
-                          </p>
+              <Card className="overflow-hidden py-0">
+                <CardContent className="flex flex-col divide-y p-0">
+                  {channels.map(channel => (
+                    <Link
+                      key={channel.id}
+                      to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
+                      className="flex items-center gap-3 p-3 transition-colors hover:bg-accent/50"
+                    >
+                      {channel.private ? (
+                        <ChannelAvatar
+                          size={48}
+                          nations={getChannelFlagUrls(
+                            channel,
+                            game.members,
+                            currentNationName,
+                            variantNations
+                          )}
+                        />
+                      ) : (
+                        <div
+                          className="flex size-12 shrink-0 items-center justify-center rounded-full border bg-muted"
+                          aria-label="Public channel"
+                        >
+                          <Megaphone className="size-5 text-muted-foreground" />
                         </div>
-                        {channel.unreadMessageCount > 0 && (
-                          <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full px-1 leading-none">
-                            {channel.unreadMessageCount}
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
+                      )}
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="truncate font-semibold leading-tight">
+                          {getChannelDisplayName(channel, currentNationName)}
+                        </span>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {getLatestMessagePreview(channel.messages)}
+                        </p>
+                      </div>
+                      {channel.unreadMessageCount > 0 && (
+                        <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full px-1 leading-none">
+                          {channel.unreadMessageCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
             )}
             {canCreateChannel && (
               <Button className="w-full" size="lg" asChild>
