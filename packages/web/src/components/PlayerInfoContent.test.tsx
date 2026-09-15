@@ -105,27 +105,8 @@ describe("PlayerInfoContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVariantsData.mockReturnValue([classicalVariant]);
-    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [] });
+    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [], units: [] });
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true });
-  });
-
-  it("shows the civil disorder badge for members in civil disorder", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice", civilDisorder: true },
-        { ...baseMember, id: 2, name: "Bob", civilDisorder: false },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    const badges = screen.getAllByText("Civil Disorder");
-    expect(badges).toHaveLength(1);
   });
 
   it("does not show a paused-game notice even when the game is paused", () => {
@@ -146,21 +127,6 @@ describe("PlayerInfoContent", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not show the civil disorder badge for active members", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [{ ...baseMember, civilDisorder: false }],
-    });
-
-    renderPlayerInfo();
-
-    expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
-  });
-
   it("shows the game master above the players when one is set", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
@@ -175,7 +141,7 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.getByText("Carol")).toBeInTheDocument();
-    expect(screen.getByText("Game Master")).toBeInTheDocument();
+    expect(screen.getByText("(Admin)")).toBeInTheDocument();
   });
 
   it("does not show a game master row when none is set", () => {
@@ -191,10 +157,10 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByText("Game Master")).not.toBeInTheDocument();
+    expect(screen.queryByText("(Admin)")).not.toBeInTheDocument();
   });
 
-  it("shows a bot badge for bot members only", () => {
+  it("shows a bot label for bot members only", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -209,7 +175,7 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.getAllByText("Bot")).toHaveLength(1);
+    expect(screen.getAllByText("(Bot)")).toHaveLength(1);
   });
 
   it("shows add AI player rows for each open seat to a managing admin", () => {
@@ -329,8 +295,7 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for The Dealmaker"));
-    await user.click(screen.getByRole("menuitem", { name: "Remove Player" }));
+    await user.click(screen.getByLabelText("Remove The Dealmaker"));
     await user.click(screen.getByRole("button", { name: "Remove" }));
 
     expect(mockKickMutateAsync).toHaveBeenCalledWith({
@@ -339,8 +304,7 @@ describe("PlayerInfoContent", () => {
     });
   });
 
-  it("does not offer Remove Player to non-admins", async () => {
-    const user = userEvent.setup();
+  it("does not offer Remove Player to non-admins", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "pending",
@@ -364,16 +328,12 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for The Dealmaker"));
     expect(
-      screen.getByRole("menuitem", { name: "View Profile" })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("menuitem", { name: "Remove Player" })
+      screen.queryByLabelText("Remove The Dealmaker")
     ).not.toBeInTheDocument();
   });
 
-  it("navigates to the profile from the player menu", async () => {
+  it("navigates to the profile when the card is clicked", async () => {
     const user = userEvent.setup();
     mockGameData.mockReturnValue({
       variantId: "classical",
@@ -389,13 +349,12 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for Bob"));
-    const item = screen.getByRole("menuitem", { name: "View Profile" });
-    expect(item).not.toHaveAttribute("aria-disabled", "true");
+    await user.click(screen.getByLabelText("View profile for Bob"));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/player/77");
   });
 
-  it("disables View Profile for a member with no profile to link to", async () => {
-    const user = userEvent.setup();
+  it("does not link the chevron for a member with no profile to link to", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -416,13 +375,56 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for Anonymous"));
     expect(
-      screen.getByRole("menuitem", { name: "View Profile" })
-    ).toHaveAttribute("aria-disabled", "true");
+      screen.queryByLabelText("View profile for Anonymous")
+    ).not.toBeInTheDocument();
   });
 
-  it("shows the removed badge for a kicked member", () => {
+  it("groups eliminated members into their own section", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, eliminated: true },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("Eliminated")).toBeInTheDocument();
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+  });
+
+  it("collapses and expands the former players section", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice" },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, kicked: true },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Former players/ }));
+    expect(screen.queryByText("Bob")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Former players/ }));
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+  });
+
+  it("groups a kicked member under former players", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -444,7 +446,7 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.getAllByText("Removed")).toHaveLength(1);
+    expect(screen.getByText("Former players (1)")).toBeInTheDocument();
   });
 
   it("does not offer to remove a member who is already removed", () => {
@@ -528,8 +530,7 @@ describe("PlayerInfoContent", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not offer Remove Player for a member who has not missed orders", async () => {
-    const user = userEvent.setup();
+  it("does not offer Remove Player for a member who has not missed orders", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -551,10 +552,7 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    await user.click(screen.getByLabelText("Options for Bob"));
-    expect(
-      screen.queryByRole("menuitem", { name: "Remove Player" })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Remove Bob")).not.toBeInTheDocument();
   });
 
   it("offers to replace a seat to a non-member", async () => {
