@@ -1,5 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes, useLocation, useSearchParams } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { GameMap } from "./GameMap";
@@ -186,10 +187,33 @@ const LocationProbe = () => {
   return <div data-testid="location">{location.pathname}{location.search}</div>;
 };
 
+// Re-sets ?source=<provinceId>, mirroring how OrdersScreen re-triggers order
+// creation for a province the player has already selected once this session.
+const SetSourceButton = ({ provinceId }: { provinceId: string }) => {
+  const [, setSearchParams] = useSearchParams();
+  return (
+    <button
+      onClick={() =>
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set("source", provinceId);
+            return next;
+          },
+          { replace: true }
+        )
+      }
+    >
+      Set source
+    </button>
+  );
+};
+
 const gameMapJsxAt = (initialEntry: string, queryClient = makeQueryClient()) => (
   <QueryClientProvider client={queryClient}>
     <MemoryRouter initialEntries={[initialEntry]}>
       <LocationProbe />
+      <SetSourceButton provinceId="lon" />
       <Routes>
         <Route path="/game/:gameId/phase/:phaseId" element={<GameMap />} />
       </Routes>
@@ -468,6 +492,37 @@ describe("GameMap", () => {
         expect(getByTestId("location")).toHaveTextContent("/game/game-1/phase/1")
       );
       expect(getByTestId("location")).not.toHaveTextContent("source=lon");
+    });
+
+    it("pans again when the same province is selected a second time", async () => {
+      mockWizardState = {
+        ...mockWizardState,
+        nextField: "source",
+        choices: [{ id: "lon", label: "London" }],
+      };
+
+      const { getByTestId, getByText } = render(
+        gameMapJsxAt("/game/game-1/phase/1?source=lon")
+      );
+
+      await waitFor(() => expect(mockWizardState.select).toHaveBeenCalledWith("lon"));
+      const firstToken = (
+        mockMapView.mock.calls.at(-1)?.[0] as { focusToken?: number }
+      ).focusToken;
+      await waitFor(() =>
+        expect(getByTestId("location")).not.toHaveTextContent("source=lon")
+      );
+
+      // Simulate the player re-picking the same "Order not provided" row a
+      // second time, e.g. after cancelling the first order-creation attempt.
+      await userEvent.click(getByText("Set source"));
+
+      await waitFor(() => {
+        const latestToken = (
+          mockMapView.mock.calls.at(-1)?.[0] as { focusToken?: number }
+        ).focusToken;
+        expect(latestToken).not.toBe(firstToken);
+      });
     });
 
     it("ignores and clears an invalid source param without selecting it", async () => {

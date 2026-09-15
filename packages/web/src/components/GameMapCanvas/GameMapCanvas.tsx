@@ -42,6 +42,10 @@ type GameMapCanvasProps = {
   showFillToggle?: boolean;
   focus?: string[];
   focusKeepZoom?: boolean;
+  // Bumped by the caller to force a re-focus even when `focus` names the same
+  // province as last time (e.g. picking the same source twice in a row from
+  // a list) — `focusKey` alone wouldn't change, so the pan would be skipped.
+  focusToken?: number;
   onClickProvince?: (province: string, position: { x: number; y: number }) => void;
   style?: React.CSSProperties;
 };
@@ -172,7 +176,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     }
   }, [provincePaths]);
 
-  const focusKey = props.focus?.join(",") ?? "";
+  const focusKey = `${props.focus?.join(",") ?? ""}:${props.focusToken ?? ""}`;
   useEffect(() => {
     const controller = controllerRef.current;
     if (!controller || !provincePaths || !props.focus || props.focus.length === 0) {

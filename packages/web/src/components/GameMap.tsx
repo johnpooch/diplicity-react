@@ -73,6 +73,7 @@ const GameMap: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const sourceParam = searchParams.get("source");
   const [focusProvince, setFocusProvince] = useState<string | null>(null);
+  const [focusToken, setFocusToken] = useState(0);
 
   const queryClient = useQueryClient();
 
@@ -198,6 +199,7 @@ const GameMap: React.FC = () => {
       if (wizard.choices.some((c) => c.id === sourceParam)) {
         wizard.select(sourceParam);
         setFocusProvince(sourceParam);
+        setFocusToken((token) => token + 1);
         if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
           setMenuPosition({ x: rect.width / 2, y: rect.height / 2 });
@@ -327,6 +329,7 @@ const GameMap: React.FC = () => {
             civilDisorderNations={civilDisorderNations}
             focus={focusProvince ? [focusProvince] : undefined}
             focusKeepZoom
+            focusToken={focusToken}
           />
           <FloatingMenu
             open={showMenu}

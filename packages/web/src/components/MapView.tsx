@@ -33,6 +33,7 @@ interface MapViewProps {
   showFillToggle?: boolean;
   focus?: string[];
   focusKeepZoom?: boolean;
+  focusToken?: number;
   onClickProvince?: (province: string, position: { x: number; y: number }) => void;
   style?: React.CSSProperties;
   className?: string;
@@ -127,6 +128,7 @@ const MapView: React.FC<MapViewProps> = ({ mode = "interactive", ...props }) => 
         showFillToggle={props.showFillToggle}
         focus={props.focus}
         focusKeepZoom={props.focusKeepZoom}
+        focusToken={props.focusToken}
         onClickProvince={props.onClickProvince}
         style={props.style}
       />
