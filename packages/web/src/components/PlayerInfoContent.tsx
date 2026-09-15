@@ -16,7 +16,12 @@ import { AddBotSheet } from "@/components/AddBotSheet";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { InfoButton } from "@/components/InfoButton";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
-import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import {
+  NationFlag,
+  findNationFlagUrl,
+  findNationColor,
+  getContrastColor,
+} from "@/components/NationFlag";
 import { NationSeatFlag, getNationSeatLabel } from "@/components/NationSeat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -54,6 +59,7 @@ const PlayerMedia: React.FC<{
   showNationSeat: boolean;
 }> = ({ member, variant, showNationSeat }) => {
   if (member.nation && variant && !showNationSeat) {
+    const nationColor = findNationColor(variant.nations, member.nation);
     return (
       <div className="relative size-12 shrink-0">
         <div className="size-12 overflow-hidden rounded-full border">
@@ -61,14 +67,20 @@ const PlayerMedia: React.FC<{
             flagUrl={findNationFlagUrl(variant.nations, member.nation)}
             alt={member.nation}
             className="size-12"
-            color={findNationColor(variant.nations, member.nation)}
+            color={nationColor}
           />
         </div>
         {member.userId && (
           <span className="absolute -bottom-0.5 -right-0.5">
             <Avatar className="size-5 ring-2 ring-background">
               <AvatarImage src={member.picture ?? undefined} />
-              <AvatarFallback className="text-[8px] leading-none">
+              <AvatarFallback
+                className="text-[8px] leading-none"
+                style={{
+                  backgroundColor: nationColor ?? undefined,
+                  color: getContrastColor(nationColor),
+                }}
+              >
                 {member.name[0]?.toUpperCase() ?? "?"}
               </AvatarFallback>
             </Avatar>

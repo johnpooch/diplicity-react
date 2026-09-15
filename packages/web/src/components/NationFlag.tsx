@@ -41,15 +41,29 @@ const NationFlag: React.FC<NationFlagProps> = ({
     <span
       aria-label={alt}
       className={cn(
-        "flex items-center justify-center rounded-full text-[8px] font-semibold text-white leading-none",
+        "flex items-center justify-center rounded-full text-[8px] font-semibold leading-none",
         sizeClasses[size],
         className
       )}
-      style={{ backgroundColor: color ?? undefined, ...style }}
+      style={{
+        backgroundColor: color ?? undefined,
+        color: getContrastColor(color),
+        ...style,
+      }}
     >
       {alt.slice(0, 2).toUpperCase()}
     </span>
   );
+};
+
+const getContrastColor = (hexColor: string | null | undefined): string => {
+  if (!hexColor) return "#ffffff";
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "#000000" : "#ffffff";
 };
 
 const findNationFlagUrl = (
@@ -68,4 +82,4 @@ const findNationColor = (
   return nations.find((n) => n.name === nationName)?.color ?? null;
 };
 
-export { NationFlag, findNationFlagUrl, findNationColor };
+export { NationFlag, findNationFlagUrl, findNationColor, getContrastColor };
