@@ -24,6 +24,8 @@ import {
 import { getNationSeatState } from "@/components/NationSeat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
+import { GameAdminActions } from "@/components/GameAdminActions";
+import { CloneToSandboxAction } from "@/components/CloneToSandboxAction";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import { describePhaseTiming } from "@/components/DeadlineSummary";
 import { MapView } from "@/components/MapView";
@@ -58,6 +60,8 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const isPending = game.status === "pending";
   const isGameMaster =
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
+  const canShowAdminActions = game.canManage && game.status === "active";
+  const canCloneToSandbox = !game.sandbox && game.status === "active";
 
   const nationSeatAlert = isPending && currentMember && (
     <Alert>
@@ -185,7 +189,15 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
 
   return (
     <>
-      <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
+      <GameStatusAlerts
+        game={game}
+        variant={variant}
+        action={pendingAction}
+        adminAction={
+          canShowAdminActions ? <GameAdminActions game={game} /> : undefined
+        }
+      />
+      {canCloneToSandbox && <CloneToSandboxAction game={game} />}
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
       {nationSeatAlert}
       {showTitle && (
