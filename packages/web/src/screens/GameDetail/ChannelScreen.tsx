@@ -134,6 +134,7 @@ const ChannelScreen: React.FC = () => {
   const queryClient = useQueryClient();
   const isDesktopWeb = useIsDesktopWeb();
   const [message, setMessage] = useDraft(gameId, channelId);
+  const [isTitleOpen, setIsTitleOpen] = useState(false);
   const [isSubtitleOpen, setIsSubtitleOpen] = useState(false);
   const [, setSearchParams] = useSearchParams();
 
@@ -174,7 +175,15 @@ const ChannelScreen: React.FC = () => {
   const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
   const channelTitle = (
     <div className="min-w-0 flex-1 text-left">
-      <p className="truncate text-xl font-semibold leading-9">{channelDisplayName}</p>
+      <Tooltip open={isTitleOpen} onOpenChange={setIsTitleOpen}>
+        <TooltipTrigger
+          className="block w-full truncate text-left text-xl font-semibold leading-9"
+          onClick={() => setIsTitleOpen(true)}
+        >
+          {channelDisplayName}
+        </TooltipTrigger>
+        <TooltipContent side="bottom">{channelDisplayName}</TooltipContent>
+      </Tooltip>
       {channelSubtitle && (
         <Tooltip open={isSubtitleOpen} onOpenChange={setIsSubtitleOpen}>
           <TooltipTrigger
