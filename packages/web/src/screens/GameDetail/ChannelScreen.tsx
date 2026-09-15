@@ -192,7 +192,7 @@ const ChannelScreen: React.FC = () => {
             >
               {channelSubtitle}
             </TooltipTrigger>
-            <TooltipContent>{channelSubtitle}</TooltipContent>
+            <TooltipContent side="bottom">{channelSubtitle}</TooltipContent>
           </Tooltip>
         )}
       </div>
