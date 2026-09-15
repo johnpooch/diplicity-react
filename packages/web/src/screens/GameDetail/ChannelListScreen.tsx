@@ -121,7 +121,7 @@ const ChannelListScreen: React.FC = () => {
                           </p>
                         </div>
                         {channel.unreadMessageCount > 0 && (
-                          <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full px-1">
+                          <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full px-1 leading-none">
                             {channel.unreadMessageCount}
                           </Badge>
                         )}
