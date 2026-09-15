@@ -749,7 +749,6 @@ export interface PatchedUserProfile {
   /** @nullable */
   readonly picture?: string | null;
   readonly email?: string;
-  emailNotificationsEnabled?: boolean;
   readonly canCreateBotGames?: boolean;
   /** @nullable */
   readonly reliabilityTier?: string | null;
@@ -895,7 +894,6 @@ export interface UserProfile {
   /** @nullable */
   readonly picture: string | null;
   readonly email: string;
-  emailNotificationsEnabled?: boolean;
   readonly canCreateBotGames: boolean;
   /** @nullable */
   readonly reliabilityTier: string | null;

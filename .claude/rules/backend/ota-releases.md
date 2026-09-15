@@ -65,6 +65,18 @@ which `service/project/settings.py` checks ahead of `DATABASE_URL`. `railway run
 credentials from the service's own variables. Both are needed; the step fails fast if the secret is
 missing rather than letting Django parse an empty connection string.
 
+## The Railway service is `diplicity-react`, not the deploy domain
+
+`railway run --service` takes the service name. That is `diplicity-react`; `diplicity-react-production`
+is the deploy domain prefix (`diplicity-react-production.up.railway.app`) and resolves to
+`Service not found`. Check a service name against `railway run --service <name> -- printenv
+RAILWAY_ENVIRONMENT` before putting it in a workflow — `railway up` is more forgiving about the
+name than `railway run` is, so copying one from a deploy workflow does not prove it correct.
+
+`railway run` also needs a project-scoped token in `RAILWAY_TOKEN`; an account token belongs in
+`RAILWAY_API_TOKEN` and is rejected here as `Invalid RAILWAY_TOKEN`. See
+`.claude/skills/production/SKILL.md` for the split.
+
 ## The boto3 bound is pinned to a minor line on purpose
 
 `service/dev_requirements.txt` pulls `inspect-ai`, which reaches `aiobotocore` through `s3fs` and

@@ -332,6 +332,9 @@ export type SupportHoldArrowOptions = {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  tipGap: number;
+  octagonSize: number;
+  octagonStrokeWidth: number;
   dash?: Dash;
   renderCenter?: (x: number, y: number, angle: number) => string;
 };
@@ -341,8 +344,8 @@ export const supportHoldArrow = (o: SupportHoldArrowOptions): string => {
   const endOffset = o.endOffset ?? o.offset;
   const startX = o.x1 + o.offset * Math.cos(angle);
   const startY = o.y1 + o.offset * Math.sin(angle);
-  const endX = o.x2 - endOffset * Math.cos(angle) - Math.cos(angle);
-  const endY = o.y2 - endOffset * Math.sin(angle) - Math.sin(angle);
+  const endX = o.x2 - (endOffset + o.tipGap) * Math.cos(angle);
+  const endY = o.y2 - (endOffset + o.tipGap) * Math.sin(angle);
   const centerX = (startX + endX) / 2;
   const centerY = (startY + endY) / 2;
   const d = `M ${n(startX)} ${n(startY)} L ${n(endX)} ${n(endY)}`;
@@ -354,20 +357,23 @@ export const supportHoldArrow = (o: SupportHoldArrowOptions): string => {
     octagon({
       x: endX,
       y: endY,
-      size: 8,
+      size: o.octagonSize,
       stroke: o.stroke,
       fill: o.fill,
-      strokeWidth: 3,
+      strokeWidth: o.octagonStrokeWidth,
     }) +
     `</g>`
   );
 };
 
-const WAVE_AMPLITUDE = 5;
-const WAVE_LENGTH = 30;
 const BEZIER_K = 4 / 3;
 
-const wavyPath = (start: Point, end: Point): string => {
+const wavyPath = (
+  start: Point,
+  end: Point,
+  amplitude: number,
+  waveLength: number
+): string => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.sqrt(dx * dx + dy * dy);
@@ -378,7 +384,7 @@ const wavyPath = (start: Point, end: Point): string => {
   const uy = dy / length;
   const px = -uy;
   const py = ux;
-  const rawHalfWaves = Math.round(length / (WAVE_LENGTH / 2));
+  const rawHalfWaves = Math.round(length / (waveLength / 2));
   const halfWaves = Math.max(
     2,
     rawHalfWaves % 2 === 0 ? rawHalfWaves : rawHalfWaves + 1
@@ -391,10 +397,10 @@ const wavyPath = (start: Point, end: Point): string => {
     const sy = start.y + i * halfWaveLength * uy;
     const ex = start.x + (i + 1) * halfWaveLength * ux;
     const ey = start.y + (i + 1) * halfWaveLength * uy;
-    const cp1x = sx + halfWaveLength * 0.25 * ux + sign * WAVE_AMPLITUDE * BEZIER_K * px;
-    const cp1y = sy + halfWaveLength * 0.25 * uy + sign * WAVE_AMPLITUDE * BEZIER_K * py;
-    const cp2x = ex - halfWaveLength * 0.25 * ux + sign * WAVE_AMPLITUDE * BEZIER_K * px;
-    const cp2y = ey - halfWaveLength * 0.25 * uy + sign * WAVE_AMPLITUDE * BEZIER_K * py;
+    const cp1x = sx + halfWaveLength * 0.25 * ux + sign * amplitude * BEZIER_K * px;
+    const cp1y = sy + halfWaveLength * 0.25 * uy + sign * amplitude * BEZIER_K * py;
+    const cp2x = ex - halfWaveLength * 0.25 * ux + sign * amplitude * BEZIER_K * px;
+    const cp2y = ey - halfWaveLength * 0.25 * uy + sign * amplitude * BEZIER_K * py;
     d += ` C ${n(cp1x)} ${n(cp1y)} ${n(cp2x)} ${n(cp2y)} ${n(ex)} ${n(ey)}`;
   }
   return d;
@@ -412,6 +418,9 @@ export type ConvoyArrowOptions = {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  dotRadius: number;
+  waveAmplitude: number;
+  waveLength: number;
   attachmentPoint?: Point;
   dash?: Dash;
   renderCenter?: (x: number, y: number, angle: number) => string;
@@ -438,13 +447,13 @@ export const convoyArrow = (o: ConvoyArrowOptions): string => {
   const angle = Math.atan2(end.y - start.y, end.x - start.x);
   const centerX = (start.x + end.x) / 2;
   const centerY = (start.y + end.y) / 2;
-  const d = wavyPath(start, end);
+  const d = wavyPath(start, end, o.waveAmplitude, o.waveLength);
   return (
     `<g>` +
     strokeLine(d, o.stroke, o.lineWidth + o.strokeWidth * 2, o.dash) +
     strokeLine(d, o.fill, o.lineWidth, o.dash) +
     (o.renderCenter ? o.renderCenter(centerX, centerY, angle) : "") +
-    `<circle cx="${n(end.x)}" cy="${n(end.y)}" r="5" fill="white" stroke="black" stroke-width="${n(o.strokeWidth)}"/>` +
+    `<circle cx="${n(end.x)}" cy="${n(end.y)}" r="${n(o.dotRadius)}" fill="white" stroke="black" stroke-width="${n(o.strokeWidth)}"/>` +
     `</g>`
   );
 };

@@ -38,7 +38,6 @@ class UserProfile(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     name = models.CharField(max_length=255)
     picture = models.URLField(null=True, blank=True)
-    email_notifications_enabled = models.BooleanField(default=False)
     commitment = models.CharField(
         max_length=20,
         choices=Commitment.COMMITMENT_CHOICES,

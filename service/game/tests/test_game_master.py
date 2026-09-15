@@ -395,7 +395,7 @@ class TestGameMasterNotifications:
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
-        assert "Game paused by the Game Master" in call_kwargs["body"]
+        assert "The game has been paused by the Game Master" in call_kwargs["body"]
         member_user_ids = {m.user_id for m in game.members.players()}
         assert set(call_kwargs["user_ids"]) == member_user_ids
         assert primary_user.id not in call_kwargs["user_ids"]

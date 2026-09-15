@@ -17,7 +17,6 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     name = serializers.CharField(min_length=2, max_length=255)
     picture = serializers.SerializerMethodField()
     email = serializers.CharField(source="user.email", read_only=True)
-    email_notifications_enabled = serializers.BooleanField(required=False)
     can_create_bot_games = serializers.SerializerMethodField()
     reliability_tier = serializers.CharField(read_only=True, allow_null=True)
     commitment = serializers.CharField(read_only=True)
@@ -42,9 +41,6 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
 
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
-        instance.email_notifications_enabled = validated_data.get(
-            "email_notifications_enabled", instance.email_notifications_enabled
-        )
         instance.save()
         return instance
 

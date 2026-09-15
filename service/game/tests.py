@@ -1951,7 +1951,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 46
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1970,7 +1970,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 46
 
 
 class TestGamePrivateFiltering:
@@ -2361,6 +2361,28 @@ class TestSandboxGameCreation:
         assert NotificationDelivery.objects.count() == 0
 
     @pytest.mark.django_db
+    def test_recreated_sandbox_game_does_not_reuse_deleted_id(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+
+        first = authenticated_client.post(url, payload, format="json")
+        assert first.status_code == status.HTTP_201_CREATED
+
+        delete_response = authenticated_client.delete(
+            reverse("game-delete", args=[first.data["id"]])
+        )
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+
+        second = authenticated_client.post(url, payload, format="json")
+        assert second.status_code == status.HTTP_201_CREATED
+        assert second.data["id"] != first.data["id"]
+
+    @pytest.mark.django_db
     def test_create_sandbox_game_missing_name(self, authenticated_client, classical_variant):
         url = reverse(sandbox_create_viewname)
         payload = {
@@ -2423,7 +2445,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 55
+        assert query_count == 52
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2444,7 +2466,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 55
+        assert query_count == 52
 
 
 class TestSandboxGameFiltering:
@@ -3005,27 +3027,18 @@ class TestGameCloneToSandbox:
 class TestGameIdGeneration:
 
     @pytest.mark.django_db
-    def test_unique_name_keeps_slug_id(self, classical_variant):
+    def test_id_is_suffixed_slug(self, classical_variant):
         game = Game.objects.create(name="A Unique Name", variant=classical_variant)
-        assert game.id == "a-unique-name"
+
+        assert game.id != "a-unique-name"
+        assert game.id.startswith("a-unique-name-")
 
     @pytest.mark.django_db
-    def test_duplicate_name_is_suffixed(self, classical_variant):
+    def test_duplicate_name_gets_distinct_id(self, classical_variant):
         first = Game.objects.create(name="Shared Name", variant=classical_variant)
         second = Game.objects.create(name="Shared Name", variant=classical_variant)
 
-        assert first.id == "shared-name"
-        assert second.id.startswith("shared-name-")
-
-    @pytest.mark.django_db
-    def test_id_taken_after_availability_check_is_retried(self, classical_variant):
-        existing = Game.objects.create(name="Shared Name", variant=classical_variant)
-
-        with patch.object(Game, "_generate_id", return_value=existing.id):
-            game = Game.objects.create(name="Shared Name", variant=classical_variant)
-
-        assert game.id != existing.id
-        assert game.id.startswith("shared-name-")
+        assert first.id != second.id
         assert Game.objects.filter(name="Shared Name").count() == 2
 
 
@@ -3340,8 +3353,8 @@ class TestGamePauseNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_paused"
-        assert "Game paused by the game creator" in call_kwargs["body"]
-        assert f"({primary_user.username})" in call_kwargs["body"]
+        assert "The game has been paused by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.profile.name})" in call_kwargs["body"]
         assert call_kwargs["data"]["game_id"] == str(game.id)
 
     @pytest.mark.django_db
@@ -3364,8 +3377,8 @@ class TestGamePauseNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body == "Game paused by the game creator"
-        assert primary_user.username not in body
+        assert body == "The game has been paused by the game creator."
+        assert primary_user.profile.name not in body
 
 
 class TestGameUnpauseNotification:
@@ -3391,9 +3404,9 @@ class TestGameUnpauseNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_resumed"
-        assert "Game resumed by the game creator" in call_kwargs["body"]
-        assert f"({primary_user.username})" in call_kwargs["body"]
-        assert "New deadline:" in call_kwargs["body"]
+        assert "The game has been resumed by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.profile.name})" in call_kwargs["body"]
+        assert "The new deadline is" in call_kwargs["body"]
 
     @pytest.mark.django_db
     def test_unpause_anonymous_game_omits_actor_identity(
@@ -3416,8 +3429,8 @@ class TestGameUnpauseNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body.startswith("Game resumed by the game creator. New deadline:")
-        assert primary_user.username not in body
+        assert body.startswith("The game has been resumed by the game creator. The new deadline is")
+        assert primary_user.profile.name not in body
 
 
 class TestGameExtendDeadlineNotification:
@@ -3443,8 +3456,8 @@ class TestGameExtendDeadlineNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_deadline_extended"
-        assert "Deadline extended by the game creator" in call_kwargs["body"]
-        assert f"({primary_user.username})" in call_kwargs["body"]
+        assert "The deadline has been extended by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.profile.name})" in call_kwargs["body"]
 
     @pytest.mark.django_db
     def test_extend_deadline_anonymous_game_omits_actor_identity(
@@ -3468,8 +3481,8 @@ class TestGameExtendDeadlineNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body.startswith("Deadline extended by the game creator. New deadline:")
-        assert primary_user.username not in body
+        assert body.startswith("The deadline has been extended by the game creator. The new deadline is")
+        assert primary_user.profile.name not in body
 
 
 class TestGameNmrExtensions:

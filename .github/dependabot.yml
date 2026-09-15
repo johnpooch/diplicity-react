@@ -35,6 +35,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "boto3"
+        versions: [">=1.41"]
 
   - package-ecosystem: "bundler"
     directory: "/packages/web"

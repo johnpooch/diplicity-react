@@ -41,19 +41,8 @@ class Notification(BaseModel):
 
 class NotificationDeliveryManager(models.Manager):
     def broadcast(self, notifications, spec):
-        rendered = [spec.render(channel) for channel in spec.channels]
-        email_enabled_ids = None
-        deliveries = []
-        for notification in notifications:
-            for content in rendered:
-                if content["channel"] == self.model.Channel.EMAIL:
-                    if email_enabled_ids is None:
-                        email_enabled_ids = self._email_enabled_ids(
-                            [n.recipient_id for n in notifications]
-                        )
-                    if notification.recipient_id not in email_enabled_ids:
-                        continue
-                deliveries.append(self.model(notification=notification, **content))
+        content = spec.render()
+        deliveries = [self.model(notification=notification, **content) for notification in notifications]
         if not deliveries:
             return []
         self.bulk_create(deliveries)
@@ -71,18 +60,10 @@ class NotificationDeliveryManager(models.Manager):
         self.filter(id__in=[d.id for d in stale]).update(status=self.model.Status.EXPIRED)
         return [d for d in deliveries if d.created_at >= cutoff]
 
-    def _email_enabled_ids(self, recipient_ids):
-        return set(
-            User.objects.filter(
-                id__in=recipient_ids, profile__email_notifications_enabled=True
-            ).values_list("id", flat=True)
-        )
-
 
 class NotificationDelivery(BaseModel):
     class Channel(models.TextChoices):
         PUSH = "push"
-        EMAIL = "email"
 
     class Status(models.TextChoices):
         PENDING = "pending"

@@ -75,7 +75,7 @@ jobs:
           else
             PLATFORMS="$PLATFORM"
           fi
-          railway run --service=diplicity-react-production --no-local -- \
+          railway run --service=diplicity-react --no-local -- \
             python manage.py release_bundle \
               --dist ../packages/web/dist \
               --bundle-version "$BUNDLE_VERSION" \

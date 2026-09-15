@@ -452,6 +452,16 @@ describe("DiplicityMap unit scaling", () => {
     expect(svg).toContain('font-size="30"');
   });
 
+  test("scales the label baseline offset so the glyph stays centred", () => {
+    // Unit centre is cy=130; the +5 baseline drop scales with the unit, so at
+    // scale 2 the text baseline is cy + 5 * 2 = 140 (not a fixed cy + 5 = 135).
+    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+      nationColors: { England: "#1b4f9c" },
+      units: [{ province: "alpha", nation: "England", type: "Army" }],
+    });
+    expect(svg).toContain('<text x="150" y="140"');
+  });
+
   test("scales the unit token's outline stroke width along with its radius", () => {
     const svg = new DiplicityMap(TOY_DSVG, 2).render({
       nationColors: { England: "#1b4f9c" },
@@ -509,6 +519,55 @@ describe("DiplicityMap unit scaling", () => {
   test("does not scale the selected province's stroke width", () => {
     const svg = new DiplicityMap(TOY_DSVG, 3).render({ selected: ["beta"] });
     expect(svg).toContain('stroke-width="5"');
+  });
+
+  test("scales the support-hold marker octagon with unit scale", () => {
+    const opts: RenderState = {
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Support", nation: "England", source: "alpha", aux: "beta", target: "beta" },
+      ],
+    };
+    const octRadius = (svg: string): number => {
+      const pts = (svg.match(/<polygon points="([^"]+)"/)?.[1] ?? "")
+        .split(" ")
+        .map((p) => p.split(",").map(Number));
+      const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
+      const cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
+      return Math.hypot(pts[0][0] - cx, pts[0][1] - cy);
+    };
+    const base = new DiplicityMap(TOY_DSVG, 1).render(opts);
+    const scaled = new DiplicityMap(TOY_DSVG, 2).render(opts);
+    expect(octRadius(scaled) / octRadius(base)).toBeCloseTo(2, 2);
+    expect(scaled).toMatch(/<polygon[^>]*stroke-width="6"/);
+  });
+
+  test("scales the convoy line's terminal dot with unit scale", () => {
+    const opts: RenderState = {
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Convoy", nation: "England", source: "beta", aux: "alpha", target: "gamma" },
+      ],
+    };
+    expect(new DiplicityMap(CONVOY_DSVG, 1).render(opts)).toContain('r="5" fill="white"');
+    expect(new DiplicityMap(CONVOY_DSVG, 2).render(opts)).toContain('r="10" fill="white"');
+  });
+
+  test("scales the convoy wave amplitude with unit scale", () => {
+    const opts: RenderState = {
+      nationColors: { England: "#1b4f9c" },
+      orders: [
+        { type: "Convoy", nation: "England", source: "beta", aux: "alpha", target: "gamma" },
+      ],
+    };
+    const lateralSpread = (svg: string): number => {
+      const d = svg.match(/<path d="(M [^"]*C[^"]*)"/)?.[1] ?? "";
+      const xs = [...d.matchAll(/(-?\d+(?:\.\d+)?) -?\d+(?:\.\d+)?/g)].map((m) => Number(m[1]));
+      return Math.max(...xs) - Math.min(...xs);
+    };
+    const base = new DiplicityMap(CONVOY_DSVG, 1).render(opts);
+    const scaled = new DiplicityMap(CONVOY_DSVG, 2).render(opts);
+    expect(lateralSpread(scaled) / lateralSpread(base)).toBeCloseTo(2, 1);
   });
 });
 

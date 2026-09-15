@@ -64,6 +64,16 @@ class TestGameDeleteView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
+    def test_delete_sandbox_game_twice_returns_404(
+        self, authenticated_client, sandbox_game_factory
+    ):
+        game = sandbox_game_factory()
+        url = reverse(delete_viewname, args=[game.id])
+
+        assert authenticated_client.delete(url).status_code == status.HTTP_204_NO_CONTENT
+        assert authenticated_client.delete(url).status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
     def test_delete_nonexistent_game(self, authenticated_client):
         url = reverse(delete_viewname, args=["nonexistent-game"])
         response = authenticated_client.delete(url)

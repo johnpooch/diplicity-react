@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta, timezone as dt_timezone
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 from django.db import connection, transaction
@@ -7,7 +7,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
-from rest_framework import status
+from rest_framework import serializers, status
 
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus, ResolutionJob
 from game.models import Game
@@ -142,6 +142,25 @@ class TestConfirmTrigger:
         assert in_memory_procrastinate.jobs[phase.resolution_job_id]["scheduled_at"] == deadline
 
     @pytest.mark.django_db
+    def test_a_confirm_is_refused_while_the_phase_is_resolving(
+        self, phase_factory, classical_england_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase_state = phase.phase_states.first()
+        Phase.objects.filter(pk=phase.pk).update(status=PhaseStatus.PROCESSING)
+
+        with pytest.raises(serializers.ValidationError):
+            PhaseStateSerializer().update(phase_state, {})
+
+        phase_state.refresh_from_db()
+        assert phase_state.orders_confirmed is False
+
+    @pytest.mark.django_db
     def test_confirm_enqueue_is_atomic_with_write(self, active_game_with_phase_state):
         from procrastinate.contrib.django.models import ProcrastinateJob
 
@@ -208,6 +227,93 @@ class TestResolveIfDue:
 
         assert result is None
         mock_resolve.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_confirmed_member_with_no_orders_does_not_consume_an_extension(
+        self, phase_factory, classical_england_nation, classical_london_province
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+        phase.units.create(
+            type="Fleet", nation=classical_england_nation, province=classical_london_province
+        )
+        phase.game.members.update(nmr_extensions_remaining=1)
+        phase.refresh_from_db()
+        original_resolution = phase.scheduled_resolution
+
+        with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved") as mock_resolve:
+            result = Phase.objects.resolve_if_due(phase.id)
+
+        assert result == "resolved"
+        mock_resolve.assert_called_once()
+        phase.refresh_from_db()
+        assert phase.scheduled_resolution == original_resolution
+        assert set(phase.game.members.values_list("nmr_extensions_remaining", flat=True)) == {1}
+
+    @pytest.mark.django_db
+    def test_a_member_confirmed_after_the_claim_does_not_consume_an_extension(
+        self, phase_factory, classical_england_nation, classical_london_province
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.units.create(
+            type="Fleet", nation=classical_england_nation, province=classical_london_province
+        )
+        phase.game.members.update(nmr_extensions_remaining=1)
+        phase.refresh_from_db()
+        original_resolution = phase.scheduled_resolution
+        load_phase = Phase.objects.with_related_data
+
+        def confirm_then_load():
+            phase.phase_states.update(orders_confirmed=True)
+            return load_phase()
+
+        with patch.object(Phase.objects, "with_related_data", side_effect=confirm_then_load):
+            with patch.object(Phase.objects, "_resolve_claimed", return_value="resolved") as mock_resolve:
+                result = Phase.objects.resolve_if_due(phase.id)
+
+        assert result == "resolved"
+        mock_resolve.assert_called_once()
+        phase.refresh_from_db()
+        assert phase.scheduled_resolution == original_resolution
+        assert set(phase.game.members.values_list("nmr_extensions_remaining", flat=True)) == {1}
+
+    @pytest.mark.django_db
+    def test_a_failed_notification_leaves_no_half_applied_extension(
+        self, phase_factory, classical_england_nation, classical_london_province
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.units.create(
+            type="Fleet", nation=classical_england_nation, province=classical_london_province
+        )
+        phase.game.members.update(nmr_extensions_remaining=1)
+        phase.refresh_from_db()
+        original_resolution = phase.scheduled_resolution
+        original_job_id = phase.resolution_job_id
+
+        with patch("phase.models.emit", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError):
+                Phase.objects.resolve_if_due(phase.id)
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.ACTIVE
+        assert phase.processing_started_at is None
+        assert phase.scheduled_resolution == original_resolution
+        assert phase.resolution_job_id == original_job_id
+        assert set(phase.game.members.values_list("nmr_extensions_remaining", flat=True)) == {1}
 
     @pytest.mark.django_db
     def test_missing_phase_is_noop(self):
@@ -814,6 +920,27 @@ class TestNoOpRearming:
         assert due_phase.scheduled_resolution > timezone.now()
         assert due_phase.resolution_job_id != original_job_id
         assert _armed_job(due_phase).scheduled_at == due_phase.scheduled_resolution
+        assert len(_todo_resolve_jobs()) == 1
+
+    @pytest.mark.django_db
+    def test_an_nmr_extension_for_an_otherwise_confirmed_phase_does_not_arm_immediately(
+        self, due_phase
+    ):
+        due_phase.game.members.update(nmr_extensions_remaining=1)
+        due_phase.phase_states.update(orders_confirmed=True)
+        member = due_phase.phase_states.first().member
+
+        with patch.object(
+            Phase, "members_that_require_nmr_extension", new_callable=PropertyMock
+        ) as mock_members:
+            mock_members.return_value = [member]
+            assert Phase.objects.resolve_if_due(due_phase.id) is None
+
+        due_phase.refresh_from_db()
+        assert due_phase.status == PhaseStatus.ACTIVE
+        assert due_phase.scheduled_resolution > timezone.now()
+        assert _armed_job(due_phase).scheduled_at == due_phase.scheduled_resolution
+        assert [j for j in _todo_resolve_jobs() if j.scheduled_at is None] == []
         assert len(_todo_resolve_jobs()) == 1
 
     @pytest.mark.django_db

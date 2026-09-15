@@ -1,9 +1,11 @@
 from django.conf import settings
 
-from email_service.templates import notification_email
 from notification.models import NotificationDelivery
 
 Channel = NotificationDelivery.Channel
+
+ANONYMOUS_NAME = "Anonymous"
+UNKNOWN_PLAYER_NAME = "Deleted User"
 
 REGISTRY = {}
 
@@ -23,11 +25,17 @@ def get_spec(event_type, context):
     return spec_class(context)
 
 
+def join_names(names):
+    names = list(names)
+    if len(names) < 2:
+        return "".join(names)
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
 class NotificationSpec:
     event_type = None
     exclude_actor = False
-    channels = [Channel.PUSH]
-    email_link_text = "View Game"
+    no_link_reason = None
 
     def __init__(self, context):
         self.context = context
@@ -55,29 +63,16 @@ class NotificationSpec:
     def _game_url(self):
         return f"{settings.FRONTEND_URL}/game/{self.context.game.id}"
 
-    def get_email_subject(self):
-        return self.context.game.name
+    def _phase_url(self, suffix):
+        phase = self.context.phase or self.context.game.current_phase
+        if phase is None:
+            return self._game_url()
+        return f"{self._game_url()}/phase/{phase.id}/{suffix}"
 
-    def get_email_body(self):
-        return self.get_body()
-
-    def render(self, channel):
-        link = self.get_link() if self.context.game is not None else None
-        if channel == Channel.EMAIL:
-            return {
-                "channel": channel,
-                "heading": self.get_email_subject(),
-                "body": notification_email(
-                    title=self.get_title(),
-                    body=self.get_email_body(),
-                    link=link,
-                    link_text=self.email_link_text,
-                ),
-                "link": None,
-                "data": None,
-            }
+    def render(self):
+        link = None if self.no_link_reason else self.get_link()
         return {
-            "channel": channel,
+            "channel": Channel.PUSH,
             "heading": self.get_title(),
             "body": self.get_body(),
             "link": link,
@@ -92,11 +87,19 @@ class NotificationSpec:
             data["link"] = link
         return data
 
-    def actor_name(self):
+    def deadline_clause(self, phase):
+        deadline = phase.formatted_deadline if phase else None
+        return f" The new deadline is {deadline}." if deadline else ""
+
+    def player_name(self, name=None, nation=None, anonymous=ANONYMOUS_NAME):
+        if nation:
+            return nation
         if self.context.game.anonymity_active:
-            return "Anonymous"
+            return anonymous
+        if name:
+            return name
         actor = self.context.actor
-        return actor.profile.name if actor is not None else "Deleted User"
+        return actor.profile.name if actor is not None else UNKNOWN_PLAYER_NAME
 
 
 @register("channel_message")
@@ -110,7 +113,7 @@ class ChannelMessageSpec(NotificationSpec):
         return f"{self._game_url()}/phase/{self.context.phase.id}/chat/channel/{self.context.channel.id}"
 
     def get_body(self):
-        return f"{self.actor_name()}: {self._truncate(self.context.payload['body'])}"
+        return f"{self.player_name()}: {self._truncate(self.context.payload['body'])}"
 
     @staticmethod
     def _truncate(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
@@ -134,21 +137,16 @@ class DrawProposalSpec(NotificationSpec):
         return f"{self._game_url()}/phase/{self.context.phase.id}/draw-proposals"
 
     def get_body(self):
-        return f"{self.actor_name()} has proposed a draw. Respond to it now."
+        return f"{self.player_name()} has proposed a draw."
 
 
 @register("game_start")
 class GameStartSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
         return "The game has started. You can now chat with other players and submit your orders. Good luck!"
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Game Started"
 
 
 @register("game_draw")
@@ -157,8 +155,8 @@ class GameDrawSpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        names = ", ".join(member.name for member in self.context.game.winner_members())
-        return f"The game has ended in a draw, including {names}. Well played!"
+        names = join_names(self.player_name(name=member.name) for member in self.context.game.winner_members())
+        return f"The game has ended in a draw between {names}. Well played!"
 
 
 @register("game_solo_win")
@@ -167,7 +165,7 @@ class GameSoloWinSpec(NotificationSpec):
         return self.context.game.winner_user_ids()
 
     def get_body(self):
-        return "The game has ended, you achieved a solo win! Congratulations!"
+        return "The game has ended and you have achieved a solo win. Congratulations!"
 
 
 @register("game_solo_loss")
@@ -177,45 +175,38 @@ class GameSoloLossSpec(NotificationSpec):
 
     def get_body(self):
         winners = self.context.game.winner_members()
-        winner_name = winners[0].name if winners else ""
-        return f"The game has ended, and {winner_name} achieved a solo win! Better luck next time!"
+        winner_clause = f" for {self.player_name(name=winners[0].name)}" if winners else ""
+        return f"The game has ended in a solo win{winner_clause}. Better luck next time!"
 
 
 @register("phase_resolved")
 class PhaseResolvedSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        return f"{self.context.phase.name} has been resolved"
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — {self.context.phase.name} Resolved"
+        return f"{self.context.phase.name} has been resolved."
 
 
 @register("phase_resolved_early")
 class PhaseResolvedEarlySpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        return f"{self.context.phase.name} resolved early — all players confirmed their orders."
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — {self.context.phase.name} Resolved Early"
+        return f"{self.context.phase.name} has been resolved early — all players have confirmed their orders."
 
 
 @register("game_deleted")
 class GameDeletedSpec(NotificationSpec):
+    exclude_actor = True
+    no_link_reason = "The game is deleted before the event is emitted, so no view of it remains."
+
     def get_title(self):
         return self.context.payload["game_name"]
 
     def get_body(self):
-        return "The game was deleted by the Game Master."
+        return "The game has been deleted by the Game Master."
 
 
 @register("game_admin_reassigned")
@@ -234,48 +225,43 @@ class GameManagementSpec(NotificationSpec):
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
-    def manager_label(self):
+    def manager(self):
         label = self.context.game.manager_label
-        if not self.context.game.anonymity_active:
-            label += f" ({self.context.actor.username})"
-        return label
+        name = self.player_name(anonymous=None)
+        return f"{label} ({name})" if name else label
 
-    def deadline(self):
-        phase = self.context.game.current_phase
-        return (phase.formatted_deadline if phase else None) or "N/A"
+    def game_deadline_clause(self):
+        return self.deadline_clause(self.context.game.current_phase)
 
 
 @register("game_paused")
 class GamePausedSpec(GameManagementSpec):
     def get_body(self):
-        return f"Game paused by {self.manager_label()}"
+        return f"The game has been paused by {self.manager()}."
 
 
 @register("game_resumed")
 class GameResumedSpec(GameManagementSpec):
     def get_body(self):
-        return f"Game resumed by {self.manager_label()}. New deadline: {self.deadline()}"
+        return f"The game has been resumed by {self.manager()}.{self.game_deadline_clause()}"
 
 
 @register("game_deadline_extended")
 class GameDeadlineExtendedSpec(GameManagementSpec):
     def get_body(self):
-        return f"Deadline extended by {self.manager_label()}. New deadline: {self.deadline()}"
+        return f"The deadline has been extended by {self.manager()}.{self.game_deadline_clause()}"
 
 
 @register("kicked_from_staging")
 class KickedFromStagingSpec(NotificationSpec):
     def get_body(self):
-        return f"You were removed from this game by {self.context.game.manager_label}."
+        return f"You have been removed from this game by {self.context.game.manager_label}."
 
 
 @register("removed_from_game")
 class RemovedFromGameSpec(NotificationSpec):
-    def get_title(self):
-        return "Removed From Game"
-
     def get_body(self):
-        return f"You were removed from {self.context.game.name} by {self.context.game.manager_label}."
+        return f"You have been removed from this game by {self.context.game.manager_label}."
 
 
 @register("seat_filled")
@@ -285,40 +271,41 @@ class SeatFilledSpec(NotificationSpec):
     def get_audience(self):
         return self.context.game.seated_member_user_ids()
 
-    def get_title(self):
-        return "Seat Filled"
-
     def get_body(self):
-        return f"{self.context.payload['nation_name']} has a new player."
+        return f"{self.player_name(nation=self.context.payload['nation_name'])} has a new player."
 
 
 @register("removed_from_staging")
 class RemovedFromStagingSpec(NotificationSpec):
-    def get_title(self):
-        return "Removed from staging games"
-
     def get_body(self):
-        return f"You were removed from {self.context.game.name} because you entered civil disorder in an active game."
+        return (
+            "You have been removed from this game because you entered "
+            f"civil disorder in {self.context.payload['active_game_name']}."
+        )
+
+
+@register("entered_civil_disorder")
+class EnteredCivilDisorderSpec(NotificationSpec):
+    def get_body(self):
+        return (
+            f"You have entered civil disorder in {self.context.game.name}. "
+            "Your units hold each turn until you return to the game."
+        )
 
 
 @register("civil_disorder")
 class CivilDisorderSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-
     def get_audience(self):
         return self.context.game.active_member_user_ids()
 
     def get_link(self):
-        return None
-
-    def get_title(self):
-        return "Civil Disorder"
+        return self._phase_url("player-info")
 
     def get_body(self):
-        return f"{self.context.payload['nation_names']} entered civil disorder."
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Civil Disorder"
+        nation_names = self.context.payload["nation_names"]
+        names = [self.player_name(nation=nation_name) for nation_name in nation_names]
+        verb = "has" if len(names) == 1 else "have"
+        return f"{join_names(names)} {verb} entered civil disorder."
 
 
 @register("civil_disorder_recovery")
@@ -329,21 +316,21 @@ class CivilDisorderRecoverySpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_link(self):
-        return None
-
-    def get_title(self):
-        return "Player Returned"
+        return self._phase_url("player-info")
 
     def get_body(self):
         member = self.context.game.members.filter(user=self.context.actor).first()
-        nation_name = member.nation.name if member and member.nation else "A player"
-        return f"{nation_name} has returned from civil disorder."
+        nation_name = member.nation.name if member and member.nation else None
+        return f"{self.player_name(nation=nation_name)} has returned from civil disorder."
 
 
 @register("elimination")
 class EliminationSpec(NotificationSpec):
     def get_body(self):
-        return "You've been eliminated. You are not required to enter any orders anymore. You can still chat with players. Better luck next time!"
+        return (
+            "You have been eliminated. You no longer need to submit orders, "
+            "but you can still chat with other players. Better luck next time!"
+        )
 
 
 @register("nmr_extension_used")
@@ -356,8 +343,8 @@ class NmrExtensionUsedSpec(NotificationSpec):
     def get_body(self):
         member = self.context.game.members.filter(user=self.context.actor).first()
         remaining = member.nmr_extensions_remaining if member else 0
-        deadline = self.context.phase.formatted_deadline
-        return f"You did not submit orders and used an automatic extension ({remaining} remaining). The current phase is extended until {deadline}."
+        clause = self.deadline_clause(self.context.phase)
+        return f"An automatic extension has been used on your behalf ({remaining} remaining).{clause}"
 
 
 @register("nmr_extension_applied")
@@ -366,17 +353,10 @@ class NmrExtensionAppliedSpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        deadline = self.context.phase.formatted_deadline
-        return f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline}."
+        return f"An automatic extension has been used.{self.deadline_clause(self.context.phase)}"
 
 
 @register("deadline_warning")
 class DeadlineWarningSpec(NotificationSpec):
-    channels = [Channel.PUSH, Channel.EMAIL]
-    email_link_text = "Submit Orders"
-
     def get_body(self):
         return self.context.payload["body"]
-
-    def get_email_subject(self):
-        return f"{self.context.game.name} — Deadline Approaching"

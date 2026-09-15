@@ -15,12 +15,6 @@ def _push(event_type):
     )
 
 
-def _email(event_type):
-    return NotificationDelivery.objects.filter(
-        notification__event_type=event_type, channel=NotificationDelivery.Channel.EMAIL
-    )
-
-
 def _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=False):
     game_master = user_factory() if with_game_master else None
     game = game_factory(variant=classical_variant, game_master=game_master)
@@ -97,7 +91,7 @@ class TestEmitDispatch:
         assert _deliver_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
-    def test_manager_label_and_deadline_are_inferred_into_copy(
+    def test_manager_is_named_in_copy_and_absent_deadline_is_omitted(
         self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
     ):
         state = _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=True)
@@ -105,21 +99,7 @@ class TestEmitDispatch:
         emit.emit("game_resumed", game=state["game"], actor=actor)
 
         delivery = _push("game_resumed").first()
-        assert delivery.body == f"Game resumed by the Game Master ({actor.username}). New deadline: N/A"
-
-    @pytest.mark.django_db
-    def test_email_transport_defers_email_notification(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
-    ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant)
-        for member in (state["active_one"], state["active_two"]):
-            member.user.profile.email_notifications_enabled = True
-            member.user.profile.save()
-        emit.emit("game_start", game=state["game"])
-
-        email_deliveries = _email("game_start")
-        assert email_deliveries.count() == 2
-        assert "Game Started" in email_deliveries.first().heading
+        assert delivery.body == f"The game has been resumed by the Game Master ({actor.profile.name})."
 
     @pytest.mark.django_db
     def test_channel_event_type_creates_channel_event_on_public_channels(
