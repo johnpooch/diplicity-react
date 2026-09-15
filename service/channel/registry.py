@@ -28,6 +28,11 @@ class SelectedChannel(Target):
         return [context.channel] if context.channel is not None else []
 
 
+class AllChannels(Target):
+    def resolve(self, context):
+        return list(context.game.channels.all())
+
+
 class ChannelEventSpec:
     event_type = None
     target = PublicPress
@@ -65,12 +70,20 @@ class GameSoloLossEvent(ChannelEventSpec):
 
 @register("phase_resolved")
 class PhaseResolvedEvent(ChannelEventSpec):
-    pass
+    target = AllChannels
+    displayed = True
+
+    def render(self, event):
+        return f"{event.phase.name} has been resolved"
 
 
 @register("phase_resolved_early")
 class PhaseResolvedEarlyEvent(ChannelEventSpec):
-    pass
+    target = AllChannels
+    displayed = True
+
+    def render(self, event):
+        return f"{event.phase.name} resolved early — all players confirmed their orders"
 
 
 @register("game_admin_reassigned")

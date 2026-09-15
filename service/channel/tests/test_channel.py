@@ -341,7 +341,7 @@ class TestChannelListView:
         self, authenticated_client, active_game_with_public_channel
     ):
         channel = active_game_with_public_channel.channels.get(private=False)
-        ChannelEvent.objects.create_for_channels("phase_resolved", [channel])
+        ChannelEvent.objects.create_for_channels("game_start", [channel])
 
         url = reverse("channel-list", args=[active_game_with_public_channel.id])
         response = authenticated_client.get(url)
