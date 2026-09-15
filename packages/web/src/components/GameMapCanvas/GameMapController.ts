@@ -232,6 +232,13 @@ export class GameMapController {
     if (ids.length === 0) return;
     const rect = focusBounds(this.provincePaths, ids, padding);
     if (!rect) return;
+    // Panning moves province shapes out from under a stationary cursor without
+    // firing mouseout, so a stale hover highlight would otherwise ride along
+    // with the pan instead of disappearing.
+    if (this.hovered !== null) {
+      this.hovered = null;
+      this.renderHighlight();
+    }
     const bounds = L.latLngBounds(
       toLatLng({ x: rect.minX, y: rect.minY }),
       toLatLng({ x: rect.maxX, y: rect.maxY })
