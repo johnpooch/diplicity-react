@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
 import { getChannelDisplayName, getChannelSubtitle, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
+import { ChannelRenameDialog } from "./ChannelRenameDialog";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
@@ -168,16 +169,21 @@ const ChannelScreen: React.FC = () => {
       </div>
     </div>
   );
-  const mapPreviewButton = (
-    <Button
-      variant="outline"
-      size="icon-sm"
-      className="rounded-full md:hidden"
-      aria-label="Map preview"
-      onClick={() => navigate(`/game/${gameId}/phase/${phaseId}`)}
-    >
-      <Map />
-    </Button>
+  const headerButtons = (
+    <>
+      {channel.private && currentMember && (
+        <ChannelRenameDialog gameId={gameId} channel={channel} />
+      )}
+      <Button
+        variant="outline"
+        size="icon-sm"
+        className="rounded-full md:hidden"
+        aria-label="Map preview"
+        onClick={() => navigate(`/game/${gameId}/phase/${phaseId}`)}
+      >
+        <Map />
+      </Button>
+    </>
   );
 
   useEffect(() => {
@@ -250,7 +256,7 @@ const ChannelScreen: React.FC = () => {
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
           variant="secondary"
-          rightButton={mapPreviewButton}
+          rightButton={headerButtons}
         />
         <div className="flex-1 overflow-hidden">
           <Panel>
@@ -273,7 +279,7 @@ const ChannelScreen: React.FC = () => {
         title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
-        rightButton={mapPreviewButton}
+        rightButton={headerButtons}
       />
       <div className="flex-1 overflow-hidden">
         <Panel>
