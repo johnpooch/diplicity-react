@@ -383,7 +383,7 @@ export const handlers = [
   http.post("*/games/:gameId/channels/create/", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
-      { id: 999, name: "New Channel", private: true, messages: [], unreadMessageCount: 0, ...body },
+      { id: 999, name: "New Channel", private: true, messages: [], events: [], unreadMessageCount: 0, ...body },
       { status: 201 }
     );
   }),

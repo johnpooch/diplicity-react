@@ -277,6 +277,7 @@ export const makeChannel = (
   name,
   private: name !== "Public Press",
   messages,
+  events: [],
   unreadMessageCount: 0,
   memberIds: members.map(m => m.id),
   ...overrides,
