@@ -3,7 +3,7 @@ from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Channel, ChannelMessage, ChannelMember
+from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
 from emit import emit
@@ -47,6 +47,14 @@ class ChannelMessageSerializer(serializers.Serializer):
 class ChannelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
+    title = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=CHANNEL_TITLE_MAX_LENGTH,
+        error_messages={
+            "max_length": f"Channel names cannot be longer than {CHANNEL_TITLE_MAX_LENGTH} characters."
+        },
+    )
     private = serializers.BooleanField(read_only=True)
     messages = ChannelMessageSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
@@ -74,7 +82,9 @@ class ChannelSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         game = self.context["game"]
-        return Channel.objects.create_from_member_ids(request.user, validated_data["member_ids"], game)
+        return Channel.objects.create_from_member_ids(
+            request.user, validated_data["member_ids"], game, validated_data.get("title", "")
+        )
 
 
 class ChannelMarkReadSerializer(serializers.Serializer):

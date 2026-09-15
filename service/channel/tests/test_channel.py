@@ -60,6 +60,72 @@ class TestChannelCreateView:
         assert response.data["name"] == expected_name
 
     @pytest.mark.django_db
+    def test_create_channel_with_title(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    ):
+        other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [other_member.id], "title": "The great alliance"}
+        response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["title"] == "The great alliance"
+        assert response.data["name"] == "England, France"
+
+    @pytest.mark.django_db
+    def test_create_channel_without_title(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    ):
+        other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [other_member.id]}
+        response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["title"] == ""
+
+    @pytest.mark.django_db
+    def test_create_channel_title_too_long(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    ):
+        other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [other_member.id], "title": "a" * 51}
+        response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not Channel.objects.filter(game=active_game_with_phase_state, private=True).exists()
+
+    @pytest.mark.django_db
+    def test_create_channel_title_is_trimmed(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    ):
+        other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [other_member.id], "title": "  The great alliance  "}
+        response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["title"] == "The great alliance"
+
+    @pytest.mark.django_db
+    def test_create_channel_with_same_members_rejected_despite_different_title(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    ):
+        other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+        Channel.objects.create(game=active_game_with_phase_state, name="England, France", private=True)
+
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        payload = {"member_ids": [other_member.id], "title": "A different name"}
+        response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
     def test_create_channel_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
         url = reverse("channel-create", args=[active_game_with_phase_state.id])
         payload = {"member_ids": []}
