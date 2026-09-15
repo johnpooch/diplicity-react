@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelSubtitle, brightnessByColor, toHex6 } from "./channelUtils";
+import { getChannelDisplayName, getChannelSubtitle, isGroupChannel, brightnessByColor, toHex6 } from "./channelUtils";
 import { ChannelRenameDialog } from "./ChannelRenameDialog";
 import { Panel } from "@/components/Panel";
 import {
@@ -170,6 +170,7 @@ const ChannelScreen: React.FC = () => {
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
+  const showSenderLabels = isGroupChannel(channel, game.members, currentNationName);
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
   const channelTitle = (
@@ -353,7 +354,7 @@ const ChannelScreen: React.FC = () => {
                                   : undefined,
                               }}
                             >
-                              {item.showAvatar && (
+                              {item.showAvatar && showSenderLabels && (
                                 <p
                                   className="mb-0.5 text-xs font-semibold"
                                   style={{ color: item.sender.nationColor }}

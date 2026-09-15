@@ -57,20 +57,33 @@ export const getChannelSubtitle = (
   return playerNames.length > 0 ? playerNames.join(", ") : null;
 };
 
+const getChannelNationNames = (
+  channel: Channel,
+  members: readonly Member[],
+  currentNationName: string | undefined
+): string[] =>
+  channel.private
+    ? getOtherNationNames(channel, currentNationName)
+    : members
+        .filter(m => !m.kicked)
+        .map(m => m.nation)
+        .filter((n): n is string => n !== null);
+
 export const getChannelFlagUrls = (
   channel: Channel,
   members: readonly Member[],
   currentNationName: string | undefined,
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
 ): ChannelNation[] => {
-  const nationNames = channel.private
-    ? getOtherNationNames(channel, currentNationName)
-    : members
-        .filter(m => !m.kicked)
-        .map(m => m.nation)
-        .filter((n): n is string => n !== null);
+  const nationNames = getChannelNationNames(channel, members, currentNationName);
   return nationNames.map(name => {
     const vn = variantNations.find(n => n.name === name);
     return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
   });
 };
+
+export const isGroupChannel = (
+  channel: Channel,
+  members: readonly Member[],
+  currentNationName: string | undefined
+): boolean => getChannelNationNames(channel, members, currentNationName).length > 1;

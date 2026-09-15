@@ -4,6 +4,7 @@ import {
   getChannelDisplayName,
   getChannelFlagUrls,
   getChannelSubtitle,
+  isGroupChannel,
 } from "./channelUtils";
 
 const member = (id: number, nation: string, overrides: Partial<Member> = {}) =>
@@ -105,5 +106,25 @@ describe("getChannelFlagUrls", () => {
     expect(
       getChannelFlagUrls(privateChannel, [], "England", variantNations)
     ).toEqual([{ flagUrl: "italy.svg", color: "#00ff00" }]);
+  });
+});
+
+describe("isGroupChannel", () => {
+  it("is false for a direct channel between two nations", () => {
+    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+
+    expect(isGroupChannel(channel, [], "England")).toBe(false);
+  });
+
+  it("is true for a private channel with more than one other nation", () => {
+    const channel = { id: 2, name: "England, Italy, France", private: true } as Channel;
+
+    expect(isGroupChannel(channel, [], "England")).toBe(true);
+  });
+
+  it("is true for a public channel with more than one active member", () => {
+    const members = [member(1, "England"), member(2, "Italy")];
+
+    expect(isGroupChannel(publicChannel, members, "England")).toBe(true);
   });
 });

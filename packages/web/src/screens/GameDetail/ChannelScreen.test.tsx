@@ -132,4 +132,42 @@ describe("ChannelScreen", () => {
     expect(screen.getByText("France")).toBeInTheDocument();
     expect(screen.getByText("Player 2")).toBeInTheDocument();
   });
+
+  it("does not label bubbles with the sender in a direct channel", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France",
+        title: "",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [message(1, "Hello there", "2026-09-15T10:00:00Z")],
+        events: [],
+      },
+    ]);
+
+    renderChannel();
+
+    expect(screen.getByText("Hello there")).toBeInTheDocument();
+    expect(screen.getAllByText("France")).toHaveLength(1);
+  });
+
+  it("labels bubbles with the sender nation in a group channel", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France, Germany",
+        title: "",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [message(1, "Hello there", "2026-09-15T10:00:00Z")],
+        events: [],
+      },
+    ]);
+
+    renderChannel();
+
+    expect(screen.getByText("Hello there")).toBeInTheDocument();
+    expect(screen.getByText("France")).toBeInTheDocument();
+  });
 });
