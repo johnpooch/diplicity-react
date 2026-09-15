@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GameDetailAppBarProps {
@@ -10,6 +11,7 @@ interface GameDetailAppBarProps {
   leftButton?: React.ReactNode;
   rightButton?: React.ReactNode;
   variant?: "primary" | "secondary";
+  hideBackButton?: boolean;
 }
 
 const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
@@ -18,9 +20,11 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
   leftButton,
   rightButton,
   variant = "primary",
+  hideBackButton = false,
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [isTitleOpen, setIsTitleOpen] = useState(false);
 
   const handleBack = () => {
     if (onNavigateBack) {
@@ -34,7 +38,8 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
     }
   };
 
-  const showBackButton = variant === "secondary" || isMobile;
+  const showBackButton =
+    !hideBackButton && (variant === "secondary" || isMobile);
 
   return (
     <div className="flex min-h-14 items-center gap-3 px-2 md:px-3">
@@ -62,7 +67,17 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
       {/* Center - Title */}
       <div className="flex-1 min-w-0">
         {typeof title === "string" ? (
-          <h1 className="text-xl font-semibold leading-9 truncate">{title}</h1>
+          <Tooltip open={isTitleOpen} onOpenChange={setIsTitleOpen}>
+            <TooltipTrigger asChild>
+              <h1
+                className="w-full truncate text-left text-xl font-semibold leading-9"
+                onClick={() => setIsTitleOpen(true)}
+              >
+                {title}
+              </h1>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{title}</TooltipContent>
+          </Tooltip>
         ) : (
           title
         )}

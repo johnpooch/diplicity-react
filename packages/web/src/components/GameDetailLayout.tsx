@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { Map, Gavel, MessageCircle, Users, Info } from "lucide-react";
@@ -41,6 +41,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     gameId: string;
     phaseId: string;
   }>();
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   const { data: game } = useGameRetrieve(gameId, {
     query: {
@@ -136,7 +137,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
               <Navigation
                 items={sidebarNavItems}
                 variant="compact"
-                onItemClick={path => navigate(path)}
+                onItemClick={path => {
+                  const item = sidebarNavItems.find(i => i.path === path);
+                  if (item?.isActive && !isPanelCollapsed) {
+                    setIsPanelCollapsed(true);
+                  } else {
+                    setIsPanelCollapsed(false);
+                    navigate(path);
+                  }
+                }}
                 className="w-full p-0"
               />
             </SidebarContent>
@@ -146,7 +155,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           </Sidebar>
 
           {/* Main Content Area - Fixed width on desktop */}
-          <SidebarInset className="@container flex min-w-0 min-h-0 flex-col bg-sidebar md:w-[400px] md:flex-none">
+          <SidebarInset
+            className={cn(
+              "@container flex min-w-0 min-h-0 flex-col bg-sidebar",
+              isPanelCollapsed ? "md:hidden" : "md:w-[400px] md:flex-none"
+            )}
+          >
             {children}
           </SidebarInset>
 
