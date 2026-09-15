@@ -24,15 +24,31 @@ const NationFlag: React.FC<NationFlagProps> = ({
   className,
   style,
 }) => {
-  if (!flagUrl) return null;
+  if (flagUrl) {
+    return (
+      <img
+        src={flagUrl}
+        alt={alt ?? ""}
+        className={cn("rounded-full object-cover", sizeClasses[size], className)}
+        style={color ? { boxShadow: `0 0 0 1px ${color}`, ...style } : style}
+      />
+    );
+  }
+
+  if (!alt) return null;
 
   return (
-    <img
-      src={flagUrl}
-      alt={alt ?? ""}
-      className={cn("rounded-full object-cover", sizeClasses[size], className)}
-      style={color ? { boxShadow: `0 0 0 1px ${color}`, ...style } : style}
-    />
+    <span
+      aria-label={alt}
+      className={cn(
+        "flex items-center justify-center rounded-full text-[8px] font-semibold text-white",
+        sizeClasses[size],
+        className
+      )}
+      style={{ backgroundColor: color ?? undefined, ...style }}
+    >
+      {alt.slice(0, 2).toUpperCase()}
+    </span>
   );
 };
 
