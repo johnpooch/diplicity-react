@@ -69,6 +69,8 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync ios
+        env:
+          VITE_DIPLICITY_API_BASE_URL: ${{ vars.SERVICE_BASE_URL }}
 
       - name: Build and upload to TestFlight
         run: bundle exec fastlane ios pr_build

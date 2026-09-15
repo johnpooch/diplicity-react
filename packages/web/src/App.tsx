@@ -12,6 +12,7 @@ import { isNativePlatform } from "./utils/platform";
 import { initializeNativeSocialLogin } from "./auth/nativeGoogleAuth";
 import { App as CapacitorApp } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
+import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
@@ -72,6 +73,12 @@ function App() {
   useEffect(() => {
     if (isNativePlatform()) {
       SplashScreen.hide();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isNativePlatform()) {
+      CapacitorUpdater.notifyAppReady();
     }
   }, []);
 

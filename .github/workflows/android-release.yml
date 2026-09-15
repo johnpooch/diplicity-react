@@ -60,6 +60,8 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+        env:
+          VITE_DIPLICITY_API_BASE_URL: ${{ vars.SERVICE_BASE_URL }}
 
       - name: Write google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
