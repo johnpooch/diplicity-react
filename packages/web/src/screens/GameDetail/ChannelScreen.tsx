@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
+import { SendHorizontal, MessageCircle, MessageSquareOff, Map } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { toast } from "sonner";
@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import {
   Message,
   MessageContent,
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
+import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
 import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
@@ -152,6 +152,17 @@ const ChannelScreen: React.FC = () => {
       <span className="text-lg font-semibold truncate text-left">{channelDisplayName}</span>
     </div>
   );
+  const mapPreviewButton = (
+    <Button
+      variant="outline"
+      size="icon-sm"
+      className="rounded-full md:hidden"
+      aria-label="Map preview"
+      onClick={() => navigate(`/game/${gameId}/phase/${phaseId}`)}
+    >
+      <Map />
+    </Button>
+  );
 
   useEffect(() => {
     if (!currentMember) return;
@@ -223,6 +234,7 @@ const ChannelScreen: React.FC = () => {
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
           variant="secondary"
+          rightButton={mapPreviewButton}
         />
         <div className="flex-1 overflow-hidden">
           <Panel>
@@ -245,6 +257,7 @@ const ChannelScreen: React.FC = () => {
         title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
+        rightButton={mapPreviewButton}
       />
       <div className="flex-1 overflow-hidden">
         <Panel>
@@ -260,7 +273,7 @@ const ChannelScreen: React.FC = () => {
               ) : (
                 <div
                   ref={messagesContainerRef}
-                  className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2"
+                  className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 px-3 py-4"
                 >
                   {messageItems.map((item, index) => (
                     <React.Fragment key={item.id}>
@@ -273,7 +286,7 @@ const ChannelScreen: React.FC = () => {
                         }
                       >
                         {item.showAvatar ? (
-                          <div className="w-8 flex-shrink-0 flex justify-center">
+                          <div className="size-8 shrink-0 overflow-hidden rounded-full border">
                             <NationFlag
                               flagUrl={
                                 variant
@@ -281,41 +294,39 @@ const ChannelScreen: React.FC = () => {
                                   : null
                               }
                               alt={item.sender.nationName}
-                              size="lg"
+                              className="size-8"
                               color={item.sender.nationColor}
                             />
                           </div>
                         ) : (
-                          <div className="w-8 flex-shrink-0" />
+                          <div className="size-8 shrink-0" />
                         )}
-                        <MessageContent
-                          className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
-                          style={{
-                            backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                            border: brightnessByColor(item.sender.nationColor) > 128
-                              ? `1px solid ${item.sender.nationColor}`
-                              : undefined,
-                          }}
-                        >
-                          {item.body}
-                          {item.showAvatar ? (
-                            <div className="flex items-center justify-between gap-2 mt-0.5">
-                              <span
-                                className="text-xs font-medium"
+                        <div className="max-w-[80%]">
+                          <MessageContent
+                            className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
+                            style={{
+                              backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
+                              border: brightnessByColor(item.sender.nationColor) > 128
+                                ? `1px solid ${item.sender.nationColor}`
+                                : undefined,
+                            }}
+                          >
+                            {item.showAvatar && (
+                              <p
+                                className="mb-0.5 text-xs font-semibold"
                                 style={{ color: item.sender.nationColor }}
                               >
-                                {item.sender.nationName}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {item.formattedTime}
-                              </span>
-                            </div>
-                          ) : (
-                            <MessageTimestamp className="mt-0.5">
-                              {item.formattedTime}
-                            </MessageTimestamp>
-                          )}
-                        </MessageContent>
+                                {item.isCurrentUser ? "You" : item.sender.nationName}
+                              </p>
+                            )}
+                            {item.body}
+                          </MessageContent>
+                          <MessageTimestamp
+                            className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
+                          >
+                            {item.formattedTime}
+                          </MessageTimestamp>
+                        </div>
                       </Message>
                     </React.Fragment>
                   ))}
@@ -324,31 +335,28 @@ const ChannelScreen: React.FC = () => {
             </div>
           </Panel.Content>
           {currentMember && (
-            <>
-              <Separator />
-              <Panel.Footer>
-                <div className="flex gap-2 w-full">
-                  <Textarea
-                    placeholder="Type a message"
-                    value={message}
-                    rows={1}
-                    maxLength={500}
-                    enterKeyHint="enter"
-                    onChange={e => setMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={createMessageMutation.isPending}
-                    className="flex-1 min-h-0 max-h-32 resize-none py-2"
-                  />
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!message.trim() || createMessageMutation.isPending}
-                    size="icon"
-                  >
-                    <Send className="size-4" />
-                  </Button>
-                </div>
-              </Panel.Footer>
-            </>
+            <Panel.Footer className="px-2 py-2 md:px-3">
+              <div className="flex gap-2 w-full">
+                <Textarea
+                  placeholder="Type a message"
+                  value={message}
+                  rows={1}
+                  maxLength={500}
+                  enterKeyHint="enter"
+                  onChange={e => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={createMessageMutation.isPending}
+                  className="flex-1 min-h-0 max-h-32 resize-none py-2"
+                />
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!message.trim() || createMessageMutation.isPending}
+                  size="icon"
+                >
+                  <SendHorizontal />
+                </Button>
+              </div>
+            </Panel.Footer>
           )}
         </Panel>
       </div>
