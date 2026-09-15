@@ -16,6 +16,7 @@ const MapScreen: React.FC = () => {
         rightButton={<PhaseStepperActions />}
         onNavigateBack={() => navigate("/")}
       />
+      <div className="h-[5px] shrink-0" />
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
