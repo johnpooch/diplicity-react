@@ -1,12 +1,8 @@
 import React from "react";
-import { Info, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { InfoButton } from "@/components/InfoButton";
 
 interface SettingsRow {
   key: string;
@@ -16,26 +12,6 @@ interface SettingsRow {
   info?: string;
   text?: string;
 }
-
-const InfoButton: React.FC<{ label: string; text: string }> = ({
-  label,
-  text,
-}) => {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="-m-2 p-2 text-muted-foreground/60 hover:text-muted-foreground"
-          aria-label={`What are ${label}?`}
-        >
-          <Info className="size-3.5" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="text-sm">{text}</PopoverContent>
-    </Popover>
-  );
-};
 
 const SettingsTable: React.FC<{ rows: SettingsRow[] }> = ({ rows }) => {
   if (rows.length === 0) {
