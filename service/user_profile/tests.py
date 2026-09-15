@@ -1164,6 +1164,118 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["favourite_nation"]["games_played"] == 2
 
     @pytest.mark.django_db
+    def test_total_games_includes_active_games(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="activegamesuser", email="activegames@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Active Games User")
+
+        completed_game = Game.objects.create(
+            name="Completed Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        completed_game.members.create(user=user, nation=classical_england_nation)
+
+        active_game = Game.objects.create(
+            name="Active Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        active_game.members.create(user=user, nation=classical_france_nation)
+
+        pending_game = Game.objects.create(
+            name="Pending Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        pending_game.members.create(user=user)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 2
+        assert response.data["losses"] == 1
+
+    @pytest.mark.django_db
+    def test_favourite_nation_counts_active_games(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="activefavnationuser", email="activefavnation@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Active Fav Nation User")
+
+        completed_game = Game.objects.create(
+            name="Completed Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        completed_game.members.create(user=user, nation=classical_france_nation)
+
+        for i in range(2):
+            active_game = Game.objects.create(
+                name=f"Active Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            active_game.members.create(user=user, nation=classical_england_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["favourite_nation"]["nation"]["name"] == "England"
+        assert response.data["favourite_nation"]["games_played"] == 2
+        assert response.data["total_games"] == 3
+
+    @pytest.mark.django_db
+    def test_reliability_tier_ignores_active_games_in_new_player_threshold(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="activereliabilityuser", email="activereliability@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Active Reliability User")
+
+        for i in range(3):
+            game = Game.objects.create(
+                name=f"Completed Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
+            )
+            game.members.create(user=user, nation=classical_england_nation)
+
+        for i in range(9):
+            game = Game.objects.create(
+                name=f"Active Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=user, nation=classical_england_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 12
+        assert response.data["reliability_tier"] == "new"
+
+    @pytest.mark.django_db
     def test_recent_results_ordered_most_recent_first_and_limited(
         self,
         authenticated_client,
