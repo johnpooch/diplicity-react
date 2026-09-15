@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { useNavigate } from "react-router";
 import { Share2 } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,14 @@ import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
 
 const PlayerInfoScreen: React.FC = () => {
+  const navigate = useNavigate();
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Players"
-        hideBackButton
+        onNavigateBack={() => navigate("/")}
         rightButton={
           <Button
             variant="outline"
