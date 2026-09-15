@@ -12,7 +12,7 @@ class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.Crea
     serializer_class = ChannelSerializer
 
 
-class ChannelUpdateView(SelectedGameMixin, SelectedChannelMixin, generics.UpdateAPIView):
+class ChannelUpdateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
     """Rename a private channel."""
 
     permission_classes = [

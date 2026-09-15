@@ -9,6 +9,10 @@ def register(event_type):
     return decorator
 
 
+def displayed_event_types():
+    return [event_type for event_type, spec in REGISTRY.items() if spec.displayed]
+
+
 class Target:
     def resolve(self, context):
         raise NotImplementedError
@@ -19,12 +23,24 @@ class PublicPress(Target):
         return list(context.game.channels.filter(private=False))
 
 
+class SelectedChannel(Target):
+    def resolve(self, context):
+        return [context.channel] if context.channel is not None else []
+
+
 class ChannelEventSpec:
     event_type = None
     target = PublicPress
+    displayed = False
 
     def get_channels(self, context):
         return self.target().resolve(context)
+
+    def build_payload(self, context):
+        return {}
+
+    def render(self, event):
+        return None
 
 
 @register("game_start")
@@ -95,3 +111,15 @@ class EliminationEvent(ChannelEventSpec):
 @register("nmr_extension_applied")
 class NmrExtensionAppliedEvent(ChannelEventSpec):
     pass
+
+
+@register("channel_renamed")
+class ChannelRenamedEvent(ChannelEventSpec):
+    target = SelectedChannel
+    displayed = True
+
+    def build_payload(self, context):
+        return {"nation": context.payload["nation"], "name": context.payload["name"]}
+
+    def render(self, event):
+        return f"{event.payload['nation']} renamed the channel to {event.payload['name']}"

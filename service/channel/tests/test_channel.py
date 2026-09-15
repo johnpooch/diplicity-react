@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
-from channel.models import Channel, ChannelMember, ChannelMessage
+from channel.models import Channel, ChannelEvent, ChannelMember, ChannelMessage
 from nation.models import Nation
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
@@ -217,6 +217,37 @@ class TestChannelUpdateView:
         assert channel.name == "Private Channel"
 
     @pytest.mark.django_db
+    def test_rename_channel_announces_the_new_name_in_the_channel(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+    ):
+        channel = active_game_with_private_channel.channels.get(private=True)
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        authenticated_client.patch(url, {"title": "The great alliance"}, format="json")
+
+        list_url = reverse("channel-list", args=[active_game_with_private_channel.id])
+        response = authenticated_client.get(list_url)
+
+        events = response.data[0]["events"]
+        assert len(events) == 1
+        assert events[0]["text"] == "England renamed the channel to The great alliance"
+
+    @pytest.mark.django_db
+    def test_rename_channel_to_the_same_name_announces_nothing(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+    ):
+        channel = active_game_with_private_channel.channels.get(private=True)
+        channel.title = "The great alliance"
+        channel.save(update_fields=["title"])
+
+        url = reverse("channel-update", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.patch(url, {"title": "The great alliance"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        list_url = reverse("channel-list", args=[active_game_with_private_channel.id])
+        assert authenticated_client.get(list_url).data[0]["events"] == []
+
+    @pytest.mark.django_db
     def test_rename_channel_blank_title(self, authenticated_client, active_game_with_private_channel):
         channel = active_game_with_private_channel.channels.get(private=True)
         channel.title = "The great alliance"
@@ -304,6 +335,19 @@ class TestChannelListView:
         assert len(response.data) == 1
         channel = response.data[0]
         assert channel["name"] == "Public Channel"
+
+    @pytest.mark.django_db
+    def test_list_channels_omits_events_with_nothing_to_display(
+        self, authenticated_client, active_game_with_public_channel
+    ):
+        channel = active_game_with_public_channel.channels.get(private=False)
+        ChannelEvent.objects.create_for_channels("phase_resolved", [channel])
+
+        url = reverse("channel-list", args=[active_game_with_public_channel.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["events"] == []
 
     @pytest.mark.django_db
     def test_list_channels_unauthenticated(self, unauthenticated_client, active_game_with_channels):

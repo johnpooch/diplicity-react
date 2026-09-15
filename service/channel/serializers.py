@@ -44,6 +44,12 @@ class ChannelMessageSerializer(serializers.Serializer):
         return message
 
 
+class ChannelEventSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    text = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class ChannelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
@@ -57,6 +63,7 @@ class ChannelSerializer(serializers.Serializer):
     )
     private = serializers.BooleanField(read_only=True)
     messages = ChannelMessageSerializer(many=True, read_only=True)
+    events = ChannelEventSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
@@ -102,8 +109,19 @@ class ChannelUpdateSerializer(serializers.Serializer):
         title = validated_data["title"]
         if title == instance.title:
             return instance
+
+        member = self.context["current_game_member"]
         instance.title = title
         instance.save(update_fields=["title"])
+
+        emit(
+            "channel_renamed",
+            game=instance.game,
+            phase=instance.game.current_phase,
+            channel=instance,
+            nation=member.nation.name,
+            name=title,
+        )
         return instance
 
 
