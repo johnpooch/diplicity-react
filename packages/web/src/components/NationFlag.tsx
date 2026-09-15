@@ -41,7 +41,7 @@ const NationFlag: React.FC<NationFlagProps> = ({
     <span
       aria-label={alt}
       className={cn(
-        "flex items-center justify-center rounded-full text-[8px] font-semibold text-white",
+        "flex items-center justify-center rounded-full text-[8px] font-semibold text-white leading-none",
         sizeClasses[size],
         className
       )}
