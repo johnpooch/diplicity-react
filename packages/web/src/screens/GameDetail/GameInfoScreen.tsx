@@ -26,10 +26,6 @@ const GameInfoScreen: React.FC = () => {
   const joinGameMutation = useGameMemberJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   const handleJoinGame = async () => {
     try {
       await joinGameMutation.mutateAsync({ gameId });
@@ -66,8 +62,12 @@ const GameInfoScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
-            <GameInfoContent onNavigateToPlayerInfo={handleNavigateToPlayerInfo} />
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+            <GameInfoContent
+              onOpenVariantDetails={() =>
+                navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
+              }
+            />
           </Panel.Content>
         </Panel>
       </div>
