@@ -31,13 +31,14 @@ import {
   getGamesChannelsListQueryKey,
   getGameRetrieveQueryKey,
   ChannelMessage as ChannelMessageType,
+  ChannelEvent as ChannelEventType,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 
 type MessageDisplayItem = {
+  kind: "message";
   id: number;
   body: string;
-  createdAt: string;
   sender: {
     nationName: string;
     nationColor: string;
@@ -47,6 +48,14 @@ type MessageDisplayItem = {
   showAvatar: boolean;
   formattedTime: string;
 };
+
+type EventDisplayItem = {
+  kind: "event";
+  id: number;
+  text: string;
+};
+
+type ThreadItem = MessageDisplayItem | EventDisplayItem;
 
 const formatMessageTime = (createdAt: string): string => {
   const date = new Date(createdAt);
@@ -60,20 +69,32 @@ const formatMessageTime = (createdAt: string): string => {
   return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 };
 
-const buildMessageItems = (
-  messages: readonly ChannelMessageType[]
-): MessageDisplayItem[] => {
-  return messages.map((msg, index) => {
+const buildThreadItems = (
+  messages: readonly ChannelMessageType[],
+  events: readonly ChannelEventType[]
+): ThreadItem[] => {
+  const entries = [
+    ...messages.map(message => ({ createdAt: message.createdAt, message })),
+    ...events.map(event => ({ createdAt: event.createdAt, event })),
+  ].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+
+  let previousNationName: string | null = null;
+
+  return entries.map(entry => {
+    if (!("message" in entry)) {
+      previousNationName = null;
+      return { kind: "event", id: entry.event.id, text: entry.event.text };
+    }
+
+    const msg = entry.message;
     const nationName = msg.sender.nation?.name ?? msg.sender.name;
-    const previousNationName = index > 0
-      ? messages[index - 1].sender.nation?.name ?? messages[index - 1].sender.name
-      : null;
-    const showAvatar = index === 0 || previousNationName !== nationName;
+    const showAvatar = previousNationName !== nationName;
+    previousNationName = nationName;
 
     return {
+      kind: "message",
       id: msg.id,
       body: msg.body,
-      createdAt: msg.createdAt,
       sender: {
         nationName,
         nationColor: msg.sender.nation?.color ?? "#808080",
@@ -87,6 +108,14 @@ const buildMessageItems = (
 };
 
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
+
+const ThreadEventNotice: React.FC<{ text: string }> = ({ text }) => (
+  <div className="flex justify-center py-1">
+    <p className="max-w-[80%] rounded-lg border bg-background px-3 py-1 text-center text-xs font-medium text-muted-foreground shadow-xs">
+      {text}
+    </p>
+  </div>
+);
 
 const NewMessagesDivider: React.FC = () => (
   <div className="flex items-center gap-2 my-1">
@@ -133,11 +162,11 @@ const ChannelScreen: React.FC = () => {
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
 
-  const [firstUnreadIndex] = useState<number | null>(() => {
+  const [firstUnreadMessageId] = useState<number | null>(() => {
     const count = channel.unreadMessageCount;
     if (count <= 0) return null;
-    const idx = channel.messages.length - count;
-    return idx > 0 ? idx : null;
+    const index = channel.messages.length - count;
+    return index > 0 ? channel.messages[index].id : null;
   });
 
   const currentMember = game.members.find(m => m.isCurrentUser);
@@ -209,7 +238,7 @@ const ChannelScreen: React.FC = () => {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
-  }, [channel.messages]);
+  }, [channel.messages, channel.events]);
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
@@ -242,9 +271,9 @@ const ChannelScreen: React.FC = () => {
     game.status !== "completed" &&
     game.status !== "abandoned";
 
-  const messageItems = useMemo(
-    () => buildMessageItems(channel.messages),
-    [channel.messages]
+  const threadItems = useMemo(
+    () => buildThreadItems(channel.messages, channel.events),
+    [channel.messages, channel.events]
   );
 
   if (isNoPressActiveGame) {
@@ -285,7 +314,7 @@ const ChannelScreen: React.FC = () => {
         <Panel>
           <Panel.Content>
             <div className="h-full flex flex-col">
-              {channel.messages.length === 0 ? (
+              {threadItems.length === 0 ? (
                 <Notice
                   icon={MessageCircle}
                   title="No messages yet"
@@ -297,61 +326,63 @@ const ChannelScreen: React.FC = () => {
                   ref={messagesContainerRef}
                   className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 px-3 py-4"
                 >
-                  {messageItems.map((item, index) => (
-                    <React.Fragment key={item.id}>
-                      {firstUnreadIndex !== null && index === firstUnreadIndex && (
-                        <NewMessagesDivider />
-                      )}
-                      <Message
-                        className={
-                          item.isCurrentUser ? "flex-row-reverse" : undefined
-                        }
-                      >
-                        {item.showAvatar ? (
-                          <div className="size-8 shrink-0 overflow-hidden rounded-full border">
-                            <NationFlag
-                              flagUrl={
-                                variant
-                                  ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                  : null
-                              }
-                              alt={item.sender.nationName}
-                              className="size-8"
-                              color={item.sender.nationColor}
-                            />
+                  {threadItems.map(item =>
+                    item.kind === "event" ? (
+                      <ThreadEventNotice key={`event-${item.id}`} text={item.text} />
+                    ) : (
+                      <React.Fragment key={`message-${item.id}`}>
+                        {item.id === firstUnreadMessageId && <NewMessagesDivider />}
+                        <Message
+                          className={
+                            item.isCurrentUser ? "flex-row-reverse" : undefined
+                          }
+                        >
+                          {item.showAvatar ? (
+                            <div className="size-8 shrink-0 overflow-hidden rounded-full border">
+                              <NationFlag
+                                flagUrl={
+                                  variant
+                                    ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                    : null
+                                }
+                                alt={item.sender.nationName}
+                                className="size-8"
+                                color={item.sender.nationColor}
+                              />
+                            </div>
+                          ) : (
+                            <div className="size-8 shrink-0" />
+                          )}
+                          <div className="max-w-[80%]">
+                            <MessageContent
+                              className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
+                              style={{
+                                backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
+                                border: brightnessByColor(item.sender.nationColor) > 128
+                                  ? `1px solid ${item.sender.nationColor}`
+                                  : undefined,
+                              }}
+                            >
+                              {item.showAvatar && (
+                                <p
+                                  className="mb-0.5 text-xs font-semibold"
+                                  style={{ color: item.sender.nationColor }}
+                                >
+                                  {item.isCurrentUser ? "You" : item.sender.nationName}
+                                </p>
+                              )}
+                              {item.body}
+                            </MessageContent>
+                            <MessageTimestamp
+                              className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
+                            >
+                              {item.formattedTime}
+                            </MessageTimestamp>
                           </div>
-                        ) : (
-                          <div className="size-8 shrink-0" />
-                        )}
-                        <div className="max-w-[80%]">
-                          <MessageContent
-                            className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
-                            style={{
-                              backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                              border: brightnessByColor(item.sender.nationColor) > 128
-                                ? `1px solid ${item.sender.nationColor}`
-                                : undefined,
-                            }}
-                          >
-                            {item.showAvatar && (
-                              <p
-                                className="mb-0.5 text-xs font-semibold"
-                                style={{ color: item.sender.nationColor }}
-                              >
-                                {item.isCurrentUser ? "You" : item.sender.nationName}
-                              </p>
-                            )}
-                            {item.body}
-                          </MessageContent>
-                          <MessageTimestamp
-                            className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
-                          >
-                            {item.formattedTime}
-                          </MessageTimestamp>
-                        </div>
-                      </Message>
-                    </React.Fragment>
-                  ))}
+                        </Message>
+                      </React.Fragment>
+                    )
+                  )}
                 </div>
               )}
             </div>
