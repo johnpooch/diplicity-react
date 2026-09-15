@@ -228,7 +228,7 @@ export class GameMapController {
   // The bounds are computed from the province path geometry (the rasterised base
   // has no per-province elements to measure), reusing the same path flattener as
   // the hit-test rings.
-  focusProvinces(ids: string[], padding = 1.4, animate = true): void {
+  focusProvinces(ids: string[], padding = 1.4, animate = true, keepZoom = false): void {
     if (ids.length === 0) return;
     const rect = focusBounds(this.provincePaths, ids, padding);
     if (!rect) return;
@@ -236,7 +236,7 @@ export class GameMapController {
       toLatLng({ x: rect.minX, y: rect.minY }),
       toLatLng({ x: rect.maxX, y: rect.maxY })
     );
-    const zoom = this.map.getBoundsZoom(bounds, false);
+    const zoom = keepZoom ? this.map.getZoom() : this.map.getBoundsZoom(bounds, false);
     this.map.setView(bounds.getCenter(), zoom, { animate });
   }
 
