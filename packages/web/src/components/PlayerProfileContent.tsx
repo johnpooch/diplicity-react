@@ -1,16 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
+import { Check, Pencil, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { AccountSettingsCard } from "@/components/AccountSettingsCard";
 import { CommitmentBadge } from "@/components/CommitmentBadge";
 import { InfoButton } from "@/components/InfoButton";
 import { NationFlag } from "@/components/NationFlag";
-import { useUsersRetrieveSuspense, type OutcomeEnum } from "@/api/generated/endpoints";
+import { ProfilePictureEditor } from "@/components/ProfilePictureEditor";
+import { useLogout } from "@/hooks/useLogout";
+import {
+  useUserRetrieveSuspense,
+  useUserUpdatePartialUpdate,
+  useUsersRetrieveSuspense,
+  getUserRetrieveQueryKey,
+  getUsersRetrieveQueryKey,
+  type OutcomeEnum,
+} from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
-  userId: number;
+  userId?: number;
+  showAccountSettings?: boolean;
 }
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
@@ -22,7 +37,10 @@ const outcomeLabel: Record<OutcomeEnum, string> = {
   survived: "Survived",
 };
 
-const outcomeVariant: Record<OutcomeEnum, "default" | "secondary" | "outline"> = {
+const outcomeVariant: Record<
+  OutcomeEnum,
+  "default" | "secondary" | "outline"
+> = {
   won: "default",
   drew: "secondary",
   eliminated: "outline",
@@ -49,25 +67,135 @@ const StatTile: React.FC<StatTileProps> = ({ label, value, hint, info }) => (
 
 export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
   userId,
+  showAccountSettings = false,
 }) => {
-  const { data: profile } = useUsersRetrieveSuspense(userId);
+  const queryClient = useQueryClient();
+  const logout = useLogout();
+  const { data: currentUser } = useUserRetrieveSuspense();
+  const profileUserId = userId ?? currentUser.userId;
+  const { data: profile } = useUsersRetrieveSuspense(profileUserId);
+  const updateProfileMutation = useUserUpdatePartialUpdate();
+  const isOwnProfile = profileUserId === currentUser.userId;
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [saveNameError, setSaveNameError] = useState(false);
+
+  const handleStartEditName = () => {
+    setEditedName(profile.name);
+    setSaveNameError(false);
+    setIsEditingName(true);
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+    setEditedName("");
+    setSaveNameError(false);
+  };
+
+  const handleSaveName = async () => {
+    const trimmedName = editedName.trim();
+    if (trimmedName.length >= 2) {
+      try {
+        await updateProfileMutation.mutateAsync({
+          data: { name: trimmedName },
+        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: getUserRetrieveQueryKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: getUsersRetrieveQueryKey(profileUserId),
+          }),
+        ]);
+        setIsEditingName(false);
+        setEditedName("");
+        setSaveNameError(false);
+      } catch {
+        setSaveNameError(true);
+      }
+    }
+  };
 
   return (
     <>
       <Card>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <Avatar className="size-16">
-              <AvatarImage src={profile.picture ?? undefined} />
-              <AvatarFallback className="text-xl">
-                {profile.name[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            {isOwnProfile ? (
+              <ProfilePictureEditor
+                userId={profileUserId}
+                name={profile.name}
+                picture={profile.picture}
+              />
+            ) : (
+              <Avatar className="size-16">
+                <AvatarImage src={profile.picture ?? undefined} />
+                <AvatarFallback className="text-xl">
+                  {profile.name[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="truncate text-xl font-semibold">{profile.name}</h2>
-                <CommitmentBadge commitment={profile.commitment} />
-              </div>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedName}
+                    onChange={e => setEditedName(e.target.value)}
+                    autoFocus
+                    disabled={updateProfileMutation.isPending}
+                    className="max-w-xs"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleSaveName();
+                      else if (e.key === "Escape") handleCancelEditName();
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSaveName}
+                    disabled={
+                      updateProfileMutation.isPending ||
+                      !editedName ||
+                      editedName.trim().length < 2
+                    }
+                    aria-label="Save"
+                  >
+                    <Check className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleCancelEditName}
+                    disabled={updateProfileMutation.isPending}
+                    aria-label="Cancel"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="truncate text-xl font-semibold">
+                    {profile.name}
+                  </h2>
+                  {isOwnProfile && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleStartEditName}
+                      aria-label="Edit name"
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  )}
+                  <CommitmentBadge commitment={profile.commitment} />
+                </div>
+              )}
+              {saveNameError && (
+                <p className="text-sm text-destructive">
+                  Failed to update name. Please try again.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 Joined{" "}
                 {new Date(profile.createdAt).toLocaleDateString(undefined, {
@@ -76,6 +204,11 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
                 })}
               </p>
             </div>
+            {isOwnProfile && (
+              <Button variant="default" onClick={logout}>
+                Log out
+              </Button>
+            )}
           </div>
 
           <Separator />
@@ -101,6 +234,8 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
         </CardContent>
       </Card>
 
+      {isOwnProfile && showAccountSettings && <AccountSettingsCard />}
+
       {profile.favouriteNation && (
         <Card>
           <CardContent className="flex flex-col gap-3">
@@ -113,9 +248,12 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
                 className="size-10"
               />
               <div>
-                <p className="font-medium">{profile.favouriteNation.nation.name}</p>
+                <p className="font-medium">
+                  {profile.favouriteNation.nation.name}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  {profile.favouriteNation.gamesPlayed} of {profile.totalGames} games
+                  {profile.favouriteNation.gamesPlayed} of {profile.totalGames}{" "}
+                  games
                 </p>
               </div>
             </div>
@@ -137,14 +275,19 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
                     className="size-10"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{result.gameName}</p>
+                    <p className="truncate text-sm font-medium">
+                      {result.gameName}
+                    </p>
                     <p className="truncate text-sm text-muted-foreground">
                       {result.nation.name} ·{" "}
-                      {new Date(result.finishedAt).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {new Date(result.finishedAt).toLocaleDateString(
+                        undefined,
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
                     </p>
                   </div>
                   <Badge variant={outcomeVariant[result.outcome]}>
