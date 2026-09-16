@@ -136,7 +136,14 @@ function formatDateTime(djangoDatetime: string) {
   // Format time as HH:MM
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
-  const timeString = `${hours}:${minutes}`;
+  const timeZoneName = new Intl.DateTimeFormat(undefined, {
+    timeZoneName: "short",
+  })
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value;
+  const timeString = timeZoneName
+    ? `${hours}:${minutes} ${timeZoneName}`
+    : `${hours}:${minutes}`;
 
   // Check if today or tomorrow
   if (dateAtMidnight.getTime() === todayAtMidnight.getTime()) {
