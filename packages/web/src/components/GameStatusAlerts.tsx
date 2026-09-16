@@ -17,6 +17,7 @@ interface GameStatusAlertsProps {
   };
   action?: React.ReactNode;
   adminAction?: React.ReactNode;
+  showPausedNotice?: boolean;
 }
 
 export function GameStatusAlerts({
@@ -24,6 +25,7 @@ export function GameStatusAlerts({
   variant,
   action,
   adminAction,
+  showPausedNotice = true,
 }: GameStatusAlertsProps) {
   const nationCount = variant?.nations
     ? Array.isArray(variant.nations)
@@ -62,6 +64,7 @@ export function GameStatusAlerts({
           <div className="col-start-2 pt-2">{adminAction}</div>
         </Alert>
       ) : (
+        showPausedNotice &&
         game.isPaused && (
           <Alert>
             <Pause className="size-4" />
