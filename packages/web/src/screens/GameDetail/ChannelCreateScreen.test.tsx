@@ -5,6 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { ChannelCreateScreen } from "./ChannelCreateScreen";
 
+const { mockToastError } = vi.hoisted(() => ({
+  mockToastError: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: mockToastError },
+}));
+
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
@@ -118,6 +126,23 @@ describe("ChannelCreateScreen", () => {
         gameId: "game-1",
         data: { memberIds: [3], title: "" },
       })
+    );
+  });
+
+  it("surfaces the server's message when the channel already exists", async () => {
+    createChannel.mockRejectedValueOnce({
+      response: {
+        data: { memberIds: ["Channel already exists."] },
+      },
+    });
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.click(screen.getByLabelText("Select Italy"));
+    await user.click(screen.getByRole("button", { name: "Create channel" }));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith("Channel already exists.")
     );
   });
 });

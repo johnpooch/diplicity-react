@@ -82,7 +82,7 @@ class ChannelSerializer(serializers.Serializer):
         channel_name = ", ".join(nations)
 
         if game.channels.filter(name=channel_name).exists():
-            raise serializers.ValidationError("A channel with the same members already exists.")
+            raise serializers.ValidationError("Channel already exists.")
 
         return value
 

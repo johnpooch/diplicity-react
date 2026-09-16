@@ -151,6 +151,7 @@ class TestChannelCreateView:
         payload = {"member_ids": [other_member.id]}
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["member_ids"][0] == "Channel already exists."
 
     @pytest.mark.django_db
     def test_create_channel_inactive_game(

@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AxiosError } from "axios";
 import { toast } from "sonner";
 import { useRequiredParams } from "@/hooks";
 
@@ -47,6 +48,12 @@ const channelSchema = z.object({
 });
 
 type ChannelFormValues = z.infer<typeof channelSchema>;
+
+const createChannelErrorMessage = (error: unknown, fallback: string) => {
+  const data = (error as AxiosError<{ memberIds?: string[]; detail?: string }>)
+    .response?.data;
+  return data?.memberIds?.[0] ?? data?.detail ?? fallback;
+};
 
 const roleLabel = (member: Member): string | undefined => {
   if (member.isAdmin) return "Admin";
@@ -145,8 +152,8 @@ const ChannelCreateScreen: React.FC = () => {
       if (response) {
         navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);
       }
-    } catch {
-      toast.error("Failed to create channel");
+    } catch (error) {
+      toast.error(createChannelErrorMessage(error, "Failed to create channel"));
     }
   };
 
