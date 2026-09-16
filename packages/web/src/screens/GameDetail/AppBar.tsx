@@ -41,28 +41,31 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
   const showBackButton =
     !hideBackButton && (variant === "secondary" || isMobile);
 
+  const leftContent =
+    leftButton ||
+    (showBackButton &&
+      (variant === "primary" ? (
+        <Button variant="ghost" size="icon" onClick={handleBack}>
+          <X className="size-5" />
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          size="icon-sm"
+          className="rounded-full"
+          onClick={handleBack}
+          aria-label="Back"
+        >
+          <ArrowLeft />
+        </Button>
+      )));
+
   return (
     <div className="flex min-h-14 items-center gap-3 px-2 md:px-3">
       {/* Left section */}
-      <div className="flex items-center gap-2">
-        {leftButton ||
-          (showBackButton &&
-            (variant === "primary" ? (
-              <Button variant="ghost" size="icon" onClick={handleBack}>
-                <X className="size-5" />
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="icon-sm"
-                className="rounded-full"
-                onClick={handleBack}
-                aria-label="Back"
-              >
-                <ArrowLeft />
-              </Button>
-            )))}
-      </div>
+      {leftContent && (
+        <div className="flex items-center gap-2">{leftContent}</div>
+      )}
 
       {/* Center - Title */}
       <div className="flex-1 min-w-0">
