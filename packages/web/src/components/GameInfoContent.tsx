@@ -7,6 +7,7 @@ import {
   Lock,
   MessageCircleOff,
   Pause,
+  Share2,
   ShieldPlus,
   Trophy,
 } from "lucide-react";
@@ -42,12 +43,14 @@ import { useRequiredParams } from "@/hooks";
 interface GameInfoContentProps {
   pendingAction?: React.ReactNode;
   onOpenVariantDetails?: () => void;
+  onShare?: () => void;
   showTitle?: boolean;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   pendingAction,
   onOpenVariantDetails,
+  onShare,
   showTitle = true,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -197,7 +200,17 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           canShowAdminActions ? <GameAdminActions game={game} /> : undefined
         }
       />
-      {canCloneToSandbox && <CloneToSandboxAction game={game} />}
+      {(onShare || canCloneToSandbox) && (
+        <div className="flex flex-wrap gap-2">
+          {onShare && (
+            <Button size="sm" variant="outline" onClick={onShare}>
+              <Share2 />
+              Share game
+            </Button>
+          )}
+          {canCloneToSandbox && <CloneToSandboxAction game={game} />}
+        </div>
+      )}
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
       {nationSeatAlert}
       {showTitle && (
