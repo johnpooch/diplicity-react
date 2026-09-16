@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Share2, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/Panel";
@@ -48,27 +48,17 @@ const GameInfoScreen: React.FC = () => {
         title={game.name}
         onNavigateBack={() => navigate("/")}
         rightButton={
-          <>
+          game.canJoin ? (
             <Button
               variant="outline"
               size="icon"
-              aria-label="Share"
-              onClick={() => copyLink(`/game/${gameId}`)}
+              aria-label="Join game"
+              onClick={handleJoinGame}
+              disabled={joinGameMutation.isPending}
             >
-              <Share2 />
+              <UserPlus />
             </Button>
-            {game.canJoin && (
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Join game"
-                onClick={handleJoinGame}
-                disabled={joinGameMutation.isPending}
-              >
-                <UserPlus />
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
       <div className="flex-1 overflow-y-auto">
@@ -79,6 +69,7 @@ const GameInfoScreen: React.FC = () => {
               onOpenVariantDetails={() =>
                 navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
               }
+              onShare={() => copyLink(`/game/${gameId}`)}
             />
           </Panel.Content>
         </Panel>
