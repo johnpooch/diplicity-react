@@ -168,17 +168,23 @@ const orderIcons: Partial<Record<OrderTypeEnum, LucideIcon>> = {
   Disband: X,
 };
 
-const OrderMedia: React.FC<{ order?: Order }> = ({ order }) => {
+const OrderMedia: React.FC<{ order?: Order; isActivePhase: boolean }> = ({
+  order,
+  isActivePhase,
+}) => {
   const Icon = order ? orderIcons[order.orderType] : undefined;
+  const isMissing = !order && isActivePhase;
 
   return (
     <div
       className={cn(
         "flex size-12 shrink-0 items-center justify-center rounded-full border",
-        !Icon && "border-dashed"
+        !Icon && !isMissing && "border-dashed",
+        isMissing && "border-destructive/70"
       )}
     >
       {Icon && <Icon className="size-5" aria-hidden />}
+      {isMissing && <X className="size-5 text-destructive/70" aria-hidden />}
     </div>
   );
 };
@@ -196,7 +202,7 @@ const OrderRow: React.FC<{
 
   return (
     <ListItem
-      leading={<OrderMedia order={item.order} />}
+      leading={<OrderMedia order={item.order} isActivePhase={isActivePhase} />}
       title={title}
       subtitle={item.order ? item.order.summary : "Order not provided"}
       muted={!item.order}
