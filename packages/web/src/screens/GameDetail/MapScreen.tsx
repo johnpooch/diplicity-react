@@ -5,40 +5,15 @@ import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
 import { GameMap } from "@/components/GameMap";
-import { GameDropdownMenu } from "@/components/GameDropdownMenu";
-import { useGameRetrieveSuspense } from "../../api/generated/endpoints";
-import { useRequiredParams } from "../../hooks";
 
 const MapScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { gameId, phaseId } = useRequiredParams<{
-    gameId: string;
-    phaseId: string;
-  }>();
-  const { data: game } = useGameRetrieveSuspense(gameId);
-
-  const handleNavigateToGameInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
-  };
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={<PhaseStepperTitle />}
-        rightButton={
-          <div className="flex items-center gap-1">
-            <PhaseStepperActions />
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
-          </div>
-        }
+        rightButton={<PhaseStepperActions />}
         onNavigateBack={() => navigate("/")}
       />
       <div className="h-[5px] shrink-0" />
