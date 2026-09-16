@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
-import { UserPlus, MessageSquare, MessageSquareOff } from "lucide-react";
+import { UserPlus, MessageSquare, MessageSquareOff, Plus } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -59,10 +59,22 @@ const ChannelListScreen: React.FC = () => {
     game.pressType === "no_press" &&
     game.status !== "completed" &&
     game.status !== "abandoned";
+  const canCreateChannel = !!currentMember && !isSandboxGame && !isNoPressActiveGame;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <GameDetailAppBar title="Chat" />
+      <GameDetailAppBar
+        title="Chats"
+        rightButton={
+          canCreateChannel ? (
+            <Button variant="outline" size="icon" aria-label="Create channel" asChild>
+              <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
+                <Plus />
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
