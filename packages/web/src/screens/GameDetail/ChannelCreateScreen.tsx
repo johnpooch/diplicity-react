@@ -73,47 +73,43 @@ const MemberRow: React.FC<{
   const nation = member.nation ?? member.name;
 
   return (
-    <Card
+    <label
       className={cn(
-        "overflow-hidden py-0 transition-colors hover:bg-accent/50",
+        "flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-accent/50",
         selected && "bg-accent/50"
       )}
     >
-      <CardContent className="p-0">
-        <label className="flex w-full cursor-pointer items-center gap-3 p-3">
-          <div className="relative size-12 shrink-0">
-            <NationFlag
-              flagUrl={nationFlagUrl}
-              alt={nation}
-              size="lg"
-              className="size-12"
-              color={nationColor}
-            />
-            <span className="absolute -bottom-0.5 -right-0.5">
-              <Avatar className="size-5 ring-2 ring-card">
-                <AvatarImage src={member.picture ?? undefined} />
-                <AvatarFallback className="text-[8px]">
-                  {member.name[0]?.toUpperCase() ?? "?"}
-                </AvatarFallback>
-              </Avatar>
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold leading-tight">{nation}</p>
-            <p className="truncate text-sm text-muted-foreground">
-              {member.name}
-              {role && ` (${role})`}
-            </p>
-          </div>
-          <Checkbox
-            checked={selected}
-            onCheckedChange={onToggle}
-            disabled={disabled}
-            aria-label={`Select ${nation}`}
-          />
-        </label>
-      </CardContent>
-    </Card>
+      <div className="relative size-12 shrink-0">
+        <NationFlag
+          flagUrl={nationFlagUrl}
+          alt={nation}
+          size="lg"
+          className="size-12"
+          color={nationColor}
+        />
+        <span className="absolute -bottom-0.5 -right-0.5">
+          <Avatar className="size-5 ring-2 ring-card">
+            <AvatarImage src={member.picture ?? undefined} />
+            <AvatarFallback className="text-[8px]">
+              {member.name[0]?.toUpperCase() ?? "?"}
+            </AvatarFallback>
+          </Avatar>
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold leading-tight">{nation}</p>
+        <p className="truncate text-sm text-muted-foreground">
+          {member.name}
+          {role && ` (${role})`}
+        </p>
+      </div>
+      <Checkbox
+        checked={selected}
+        onCheckedChange={onToggle}
+        disabled={disabled}
+        aria-label={`Select ${nation}`}
+      />
+    </label>
   );
 };
 
@@ -203,27 +199,29 @@ const ChannelCreateScreen: React.FC = () => {
                     <FormItem>
                       <FormLabel className="text-muted-foreground">Members</FormLabel>
                       <FormControl>
-                        <div className="flex flex-col gap-2">
-                          {game.members
-                            .filter(m => !m.isCurrentUser && !m.kicked)
-                            .map(member => (
-                              <MemberRow
-                                key={member.id}
-                                member={member}
-                                nationFlagUrl={findNationFlagUrl(variantNations, member.nation)}
-                                nationColor={findNationColor(variantNations, member.nation)}
-                                selected={field.value.includes(member.id)}
-                                disabled={isSubmitting}
-                                onToggle={() =>
-                                  field.onChange(
-                                    field.value.includes(member.id)
-                                      ? field.value.filter(id => id !== member.id)
-                                      : [...field.value, member.id]
-                                  )
-                                }
-                              />
-                            ))}
-                        </div>
+                        <Card className="overflow-hidden py-0">
+                          <CardContent className="flex flex-col divide-y p-0">
+                            {game.members
+                              .filter(m => !m.isCurrentUser && !m.kicked)
+                              .map(member => (
+                                <MemberRow
+                                  key={member.id}
+                                  member={member}
+                                  nationFlagUrl={findNationFlagUrl(variantNations, member.nation)}
+                                  nationColor={findNationColor(variantNations, member.nation)}
+                                  selected={field.value.includes(member.id)}
+                                  disabled={isSubmitting}
+                                  onToggle={() =>
+                                    field.onChange(
+                                      field.value.includes(member.id)
+                                        ? field.value.filter(id => id !== member.id)
+                                        : [...field.value, member.id]
+                                    )
+                                  }
+                                />
+                              ))}
+                          </CardContent>
+                        </Card>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
