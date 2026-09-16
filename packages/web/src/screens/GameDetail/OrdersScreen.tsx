@@ -174,17 +174,24 @@ const OrderMedia: React.FC<{ order?: Order; isActivePhase: boolean }> = ({
 }) => {
   const Icon = order ? orderIcons[order.orderType] : undefined;
   const isMissing = !order && isActivePhase;
+  const isMissingHistorical = !order && !isActivePhase;
 
   return (
     <div
       className={cn(
-        "flex size-12 shrink-0 items-center justify-center rounded-full border",
-        !Icon && !isMissing && "border-dashed",
+        "relative flex size-12 shrink-0 items-center justify-center rounded-full border",
+        !Icon && !isMissing && !isMissingHistorical && "border-dashed",
         isMissing && "border-destructive/70"
       )}
     >
       {Icon && <Icon className="size-5" aria-hidden />}
-      {isMissing && <X className="size-5 text-destructive/70" aria-hidden />}
+      {isMissing && <Hexagon className="size-5 text-destructive/70" aria-hidden />}
+      {isMissingHistorical && (
+        <>
+          <Hexagon className="size-5" aria-hidden />
+          <X className="absolute size-3" aria-hidden />
+        </>
+      )}
     </div>
   );
 };
@@ -203,7 +210,7 @@ const OrderRow: React.FC<{
       leading={<OrderMedia order={item.order} isActivePhase={isActivePhase} />}
       title={title}
       subtitle={item.order ? item.order.summary : "Order not provided"}
-      muted={!item.order}
+      muted={!item.order && isActivePhase}
       trailing={
         resolutionStatus && (
           <span
