@@ -238,6 +238,7 @@ export const PlayerInfoContent: React.FC = () => {
                   )}
                 >
                   <span>{member.name}</span>
+                  {member.isAdmin && <span>(Admin)</span>}
                   {member.isBot && <span>(Bot)</span>}
                   {member.civilDisorder && (
                     <InfoButton
@@ -258,6 +259,9 @@ export const PlayerInfoContent: React.FC = () => {
                 >
                   {member.name}
                 </span>
+                {member.isAdmin && (
+                  <span className="text-sm text-muted-foreground">(Admin)</span>
+                )}
                 {member.isBot && (
                   <span className="text-sm text-muted-foreground">(Bot)</span>
                 )}
