@@ -44,7 +44,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
       <div
         className={cn(
           "flex items-center justify-between h-14 px-2",
-          "bg-background"
+          "bg-sidebar"
         )}
       >
         {/* Left section */}
