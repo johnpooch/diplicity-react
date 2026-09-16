@@ -130,7 +130,7 @@ export const PlayerInfoContent: React.FC = () => {
 
   return (
     <>
-      <GameStatusAlerts game={game} variant={variant} />
+      <GameStatusAlerts game={game} variant={variant} showPausedNotice={false} />
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
 
       <ScreenCard>

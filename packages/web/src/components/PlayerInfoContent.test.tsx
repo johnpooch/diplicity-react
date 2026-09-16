@@ -128,6 +128,24 @@ describe("PlayerInfoContent", () => {
     expect(badges).toHaveLength(1);
   });
 
+  it("does not show a paused-game notice even when the game is paused", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      isPaused: true,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, civilDisorder: false }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.queryByText(/this game is (currently )?paused/i)
+    ).not.toBeInTheDocument();
+  });
+
   it("does not show the civil disorder badge for active members", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
