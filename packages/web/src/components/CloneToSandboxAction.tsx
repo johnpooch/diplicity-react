@@ -50,7 +50,12 @@ export const CloneToSandboxAction: React.FC<CloneToSandboxActionProps> = ({
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setShowCloneConfirmation(true)}>
+      <Button
+        size="sm"
+        variant="outline"
+        className="flex-1"
+        onClick={() => setShowCloneConfirmation(true)}
+      >
         <Copy />
         Clone to sandbox
       </Button>
