@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { GameAdminActions } from "@/components/GameAdminActions";
 import { CloneToSandboxAction } from "@/components/CloneToSandboxAction";
+import { DeleteGameAction } from "@/components/DeleteGameAction";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import { describePhaseTiming } from "@/components/DeadlineSummary";
 import { MapView } from "@/components/MapView";
@@ -65,6 +66,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
   const canShowAdminActions = game.canManage && game.status === "active";
   const canCloneToSandbox = !game.sandbox && game.status === "active";
+  const canDeleteGame = game.canDelete;
 
   const nationSeatAlert = isPending && currentMember && (
     <Alert>
@@ -200,7 +202,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           canShowAdminActions ? <GameAdminActions game={game} /> : undefined
         }
       />
-      {(onShare || canCloneToSandbox) && (
+      {(onShare || canCloneToSandbox || canDeleteGame) && (
         <div className="flex flex-wrap gap-2">
           {onShare && (
             <Button size="sm" variant="outline" className="flex-1" onClick={onShare}>
@@ -208,7 +210,11 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
               Share game
             </Button>
           )}
-          {canCloneToSandbox && <CloneToSandboxAction game={game} />}
+          {canCloneToSandbox ? (
+            <CloneToSandboxAction game={game} />
+          ) : (
+            canDeleteGame && <DeleteGameAction game={game} />
+          )}
         </div>
       )}
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
