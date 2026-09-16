@@ -6,6 +6,7 @@ from game.models import Game
 from notification.models import Notification
 
 create_viewname = "game-create"
+retrieve_viewname = "game-retrieve"
 leave_viewname = "game-leave"
 
 
@@ -125,3 +126,42 @@ class TestReassignAdmin:
         game.refresh_from_db()
         assert game.admin == original_admin
         assert not _admin_reassigned_notifications().exists()
+
+
+class TestMemberIsAdminField:
+
+    @pytest.mark.django_db
+    def test_creator_member_is_admin(self, api_client, pending_game_factory):
+        game = pending_game_factory()
+        creator_member = game.members.get(user=game.created_by)
+
+        response = api_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        member = next(m for m in response.data["members"] if m["id"] == creator_member.id)
+        assert member["is_admin"] is True
+
+    @pytest.mark.django_db
+    def test_non_admin_member_is_not_admin(self, api_client, pending_game_factory, secondary_user):
+        game = pending_game_factory()
+        other_member = game.members.create(user=secondary_user)
+
+        response = api_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        member = next(m for m in response.data["members"] if m["id"] == other_member.id)
+        assert member["is_admin"] is False
+
+    @pytest.mark.django_db
+    def test_reflects_reassigned_admin(
+        self, api_client, pending_game_factory, secondary_user, in_memory_procrastinate
+    ):
+        game = pending_game_factory()
+        creator_member = game.members.get(user=game.created_by)
+        new_admin_member = game.members.create(user=secondary_user)
+
+        game.reassign_admin()
+
+        response = api_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[creator_member.id]["is_admin"] is False
+        assert members_by_id[new_admin_member.id]["is_admin"] is True
