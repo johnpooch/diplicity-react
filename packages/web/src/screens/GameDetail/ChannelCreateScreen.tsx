@@ -49,7 +49,7 @@ const channelSchema = z.object({
 type ChannelFormValues = z.infer<typeof channelSchema>;
 
 const roleLabel = (member: Member): string | undefined => {
-  if (member.isGameCreator) return "game creator";
+  if (member.isAdmin) return "Admin";
   if (member.isBot) return "bot";
   return undefined;
 };

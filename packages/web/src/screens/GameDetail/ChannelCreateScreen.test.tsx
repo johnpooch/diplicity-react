@@ -33,6 +33,7 @@ const member = (id: number, nation: string, overrides = {}) => ({
   eliminated: false,
   kicked: false,
   isGameCreator: false,
+  isAdmin: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
   seekingReplacement: false,
@@ -49,7 +50,7 @@ vi.mock("@/api/generated/endpoints", () => ({
       members: [
         member(1, "England", { isCurrentUser: true }),
         member(2, "Italy", { kicked: true, name: "Departed Player" }),
-        member(3, "Italy", { name: "The Dealmaker" }),
+        member(3, "Italy", { name: "The Dealmaker", isAdmin: true }),
       ],
     },
   }),
@@ -78,9 +79,15 @@ describe("ChannelCreateScreen", () => {
   it("offers the replacement for a seat but not the member it replaced", () => {
     renderScreen();
 
-    expect(screen.getByText("The Dealmaker")).toBeInTheDocument();
-    expect(screen.queryByText("Departed Player")).not.toBeInTheDocument();
+    expect(screen.getByText(/The Dealmaker/)).toBeInTheDocument();
+    expect(screen.queryByText(/Departed Player/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Italy")).toHaveLength(1);
+  });
+
+  it("labels the game's admin, not the game creator", () => {
+    renderScreen();
+
+    expect(screen.getByText("The Dealmaker (Admin)")).toBeInTheDocument();
   });
 
   it("names the channel it creates", async () => {
