@@ -742,6 +742,52 @@ class TestOrderCreateView:
         assert Order.objects.count() == 1
         assert Order.objects.get().order_type == OrderType.HOLD
 
+    @pytest.mark.django_db
+    def test_order_create_sandbox_with_eliminated_nation(
+        self, authenticated_client, sandbox_game_with_phase_options, classical_austria_nation
+    ):
+        game = sandbox_game_with_phase_options
+        game.members.filter(nation=classical_austria_nation).update(eliminated=True)
+
+        url = reverse("order-create", args=[game.id])
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+
+    @pytest.mark.django_db
+    def test_order_create_rejected_when_every_nation_eliminated(
+        self, authenticated_client, sandbox_game_with_phase_options, primary_user
+    ):
+        game = sandbox_game_with_phase_options
+        game.members.filter(user=primary_user).update(eliminated=True)
+
+        url = reverse("order-create", args=[game.id])
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_order_create_rejected_for_eliminated_player(self, authenticated_client, game_with_options, primary_user):
+        game_with_options.members.filter(user=primary_user).update(eliminated=True)
+
+        url = reverse("order-create", args=[game_with_options.id])
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_order_create_rejected_for_kicked_player(self, authenticated_client, game_with_options, primary_user):
+        game_with_options.members.filter(user=primary_user).update(kicked=True)
+
+        url = reverse("order-create", args=[game_with_options.id])
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 0
+
 
 class TestOrderDeleteView:
     @pytest.mark.django_db
