@@ -57,7 +57,7 @@ export function GameStatusAlerts({
           <AlertDescription>
             {game.isPaused
               ? "This game is paused."
-              : "You can pause this game or extend the current deadline."}
+              : "Control game phases"}
           </AlertDescription>
           <div className="col-start-2 pt-2">{adminAction}</div>
         </Alert>
