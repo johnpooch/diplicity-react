@@ -226,6 +226,9 @@ export const PlayerInfoContent: React.FC = () => {
               >
                 {member.name}
               </span>
+              {member.isAdmin && (
+                <span className="text-sm text-muted-foreground">(Admin)</span>
+              )}
               {member.isBot && (
                 <span className="text-sm text-muted-foreground">(Bot)</span>
               )}

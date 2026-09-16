@@ -33,6 +33,7 @@ const makeActiveMembers = (): Member[] =>
   NATION_ASSIGNMENT.map(([playerIndex, nation]) =>
     makeMember(players[playerIndex], nation, {
       isGameCreator: playerIndex === 1,
+      isAdmin: playerIndex === 1,
     })
   );
 
@@ -41,7 +42,7 @@ const makePendingMembers = (count: number, includeCurrentUser = true): Member[] 
   return seeds
     .slice(0, count)
     .map((player, index) =>
-      makeMember(player, null, { isGameCreator: index === 0 })
+      makeMember(player, null, { isGameCreator: index === 0, isAdmin: index === 0 })
     );
 };
 
