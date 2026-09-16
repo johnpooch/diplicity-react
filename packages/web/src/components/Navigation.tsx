@@ -51,7 +51,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
         : "text-sidebar-foreground hover:bg-sidebar-accent/50"
     ),
     compact: cn(
-      "justify-center rounded-lg p-2",
+      "size-12 justify-center rounded-lg",
       isActive
         ? "bg-sidebar-accent text-sidebar-accent-foreground"
         : "text-sidebar-foreground hover:bg-sidebar-accent/50"
@@ -79,7 +79,10 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
       aria-current={isActive ? "page" : undefined}
     >
       <div className="relative">
-        <IconComponent className="size-5" strokeWidth={isActive ? 2.5 : 1.5} />
+        <IconComponent
+          className={variant === "compact" ? "size-6" : "size-5"}
+          strokeWidth={isActive ? 2.5 : 1.5}
+        />
         {(variant === "compact" || variant === "bottom") && badge && (
           <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary" />
         )}
@@ -122,7 +125,7 @@ const Navigation: React.FC<NavigationProps> = ({
       ? "flex-row items-center justify-around"
       : "flex-col gap-1",
     variant === "sidebar" && "w-60 p-2",
-    variant === "compact" && "w-14 p-2 items-center",
+    variant === "compact" && "w-14 items-center gap-0",
     variant === "bottom" && "h-14 px-2",
     className
   );
