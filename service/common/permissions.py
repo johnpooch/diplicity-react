@@ -78,20 +78,19 @@ class IsActiveGamePlayer(BasePermission):
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
 
-        member = game.members.players().filter(user=request.user).first()
-        if not member:
+        members = list(game.members.players().filter(user=request.user))
+        if not members:
             self.message = "User is not a player in the game."
             return False
 
-        if member.eliminated:
+        if any(not member.eliminated and not member.kicked for member in members):
+            return True
+
+        if all(member.eliminated for member in members):
             self.message = "Cannot perform action for eliminated players."
-            return False
-
-        if member.kicked:
+        else:
             self.message = "Cannot perform action for kicked players."
-            return False
-
-        return True
+        return False
 
 
 class IsChannelMember(BasePermission):
