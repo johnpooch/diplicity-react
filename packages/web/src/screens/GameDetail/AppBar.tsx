@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,14 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isTitleOpen, setIsTitleOpen] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  const handleTitleOpenChange = (open: boolean) => {
+    const isTruncated = titleRef.current
+      ? titleRef.current.scrollWidth > titleRef.current.clientWidth
+      : false;
+    setIsTitleOpen(open && isTruncated);
+  };
 
   const handleBack = () => {
     if (onNavigateBack) {
@@ -70,11 +78,12 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
       {/* Center - Title */}
       <div className="flex-1 min-w-0">
         {typeof title === "string" ? (
-          <Tooltip open={isTitleOpen} onOpenChange={setIsTitleOpen}>
+          <Tooltip open={isTitleOpen} onOpenChange={handleTitleOpenChange}>
             <TooltipTrigger asChild>
               <h1
+                ref={titleRef}
                 className="w-full truncate text-left text-xl font-semibold leading-9"
-                onClick={() => setIsTitleOpen(true)}
+                onClick={() => handleTitleOpenChange(true)}
               >
                 {title}
               </h1>
