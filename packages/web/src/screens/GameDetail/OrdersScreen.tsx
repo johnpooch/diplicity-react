@@ -12,7 +12,7 @@ import {
   UserX,
   Handshake,
   Eye,
-  ChevronDown,
+  ChevronRight,
   Hexagon,
   Merge,
   MoveUpRight,
@@ -258,6 +258,12 @@ const NationHeading: React.FC<{
   const content = (
     <>
       <span className="flex min-w-0 items-center gap-2">
+        {collapsible && (
+          <ChevronRight
+            className={cn("size-4 shrink-0 transition-transform", open && "rotate-90")}
+            aria-hidden
+          />
+        )}
         <NationFlag flagUrl={flagUrl} alt={nation} size="sm" color={nationColor} />
         <span className="truncate">{nation}</span>
         {isCurrentUser && (
@@ -275,12 +281,6 @@ const NationHeading: React.FC<{
           <Swords className="size-3.5" />
           {unitCount}
         </span>
-        {collapsible && (
-          <ChevronDown
-            className={cn("size-4 transition-transform", open && "rotate-180")}
-            aria-hidden
-          />
-        )}
       </span>
     </>
   );
