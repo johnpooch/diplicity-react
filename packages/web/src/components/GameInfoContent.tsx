@@ -203,7 +203,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
       {(onShare || canCloneToSandbox) && (
         <div className="flex flex-wrap gap-2">
           {onShare && (
-            <Button size="sm" variant="outline" onClick={onShare}>
+            <Button size="sm" variant="outline" className="flex-1" onClick={onShare}>
               <Share2 />
               Share game
             </Button>
