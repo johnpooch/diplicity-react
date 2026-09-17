@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
@@ -26,6 +27,7 @@ const mockPhaseData = vi.fn();
 const mockOrdersData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockPhaseStatesData = vi.fn();
+const mockDeleteOrderMutation = vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false }));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -34,7 +36,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useVariantsRetrieve: () => ({ data: undefined }),
   useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
-  useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameOrdersDeleteDestroy: () => mockDeleteOrderMutation(),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -49,6 +51,7 @@ vi.mock("@/components/NationFlag", () => ({
   NationFlag: () => null,
   findNationFlagUrl: () => null,
   findNationColor: () => null,
+  getContrastColor: () => "#ffffff",
 }));
 vi.mock("@/components/PhaseStepper", () => ({
   PhaseStepperTitle: () => null,
@@ -365,5 +368,249 @@ describe("OrdersScreen named coast display", () => {
     renderOrdersScreen();
 
     expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
+  });
+
+  it("matches a historical order to a fleet's named coast via the order's parent-province source", () => {
+    mockPhaseData.mockReturnValue({
+      id: 1,
+      status: "completed",
+      supplyCenters: [],
+      units: [
+        {
+          type: "Fleet",
+          dislodged: false,
+          nation: { name: "England" },
+          province: { id: "spa/nc", name: "Spain (NC)", parentId: "spa" },
+        },
+      ],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "spa", name: "Spain" },
+        summary: "Hold",
+        resolution: { status: "Succeeded" },
+      },
+    ]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
+    expect(screen.getByText("Hold")).toBeInTheDocument();
+    expect(screen.queryByText("Order not provided")).not.toBeInTheDocument();
+  });
+});
+
+describe("OrdersScreen delete order button", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+    mockPhaseData.mockReturnValue({
+      id: 1,
+      status: "active",
+      supplyCenters: [],
+      units: [
+        {
+          type: "Army",
+          dislodged: false,
+          nation: { name: "England" },
+          province: { id: "lon", name: "London", parentId: null },
+        },
+      ],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ civilDisorder: false }),
+        orderableProvinces: [{ id: "lon", name: "London", parentId: null }],
+      },
+    ]);
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        summary: "Hold",
+        resolution: null,
+      },
+    ]);
+  });
+
+  it("disables the delete button while a delete is pending", () => {
+    mockDeleteOrderMutation.mockReturnValueOnce({ mutateAsync: vi.fn(), isPending: true });
+
+    renderOrdersScreen();
+
+    expect(screen.getByLabelText(/Delete order for/)).toBeDisabled();
+  });
+
+  it("enables the delete button when no delete is pending", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
+  });
+});
+
+describe("OrdersScreen no orders required (active phase, has a member)", () => {
+  it("shows an inline nation heading and message, not the centered notice", () => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue([
+      { member: baseMember(), orderableProvinces: [] },
+    ]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByText("England")).toBeInTheDocument();
+    expect(screen.getByText("No orders required")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /england/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("OrdersScreen historical multi-nation view", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "completed", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [
+        baseMember({ isCurrentUser: true, nation: "England" }),
+        baseMember({ id: 2, isCurrentUser: false, nation: "France" }),
+      ],
+    });
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        summary: "Hold",
+        resolution: null,
+      },
+      {
+        nation: { name: "France" },
+        source: { id: "par", name: "Paris" },
+        summary: "Hold",
+        resolution: null,
+      },
+    ]);
+  });
+
+  it("opens the current user's nation by default and collapses others", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByText("London")).toBeInTheDocument();
+    expect(screen.queryByText("Paris")).not.toBeInTheDocument();
+  });
+
+  it("always renders the current user's nation heading first, regardless of order data", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "France" },
+        source: { id: "par", name: "Paris" },
+        summary: "Hold",
+        resolution: null,
+      },
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        summary: "Hold",
+        resolution: null,
+      },
+    ]);
+
+    renderOrdersScreen();
+
+    const headings = screen.getAllByRole("button", { name: /france|england/i });
+    expect(headings[0]).toHaveAccessibleName(/england/i);
+    expect(headings[1]).toHaveAccessibleName(/france/i);
+  });
+
+  it("expands a collapsed nation on click, and only shows the 'you' badge on the current user's nation", async () => {
+    renderOrdersScreen();
+
+    const franceHeading = screen.getByRole("button", { name: /france/i });
+    expect(within(franceHeading).queryByText("you")).not.toBeInTheDocument();
+
+    const englandHeading = screen.getByRole("button", { name: /england/i });
+    expect(within(englandHeading).getByText("you")).toBeInTheDocument();
+
+    await userEvent.click(franceHeading);
+
+    expect(screen.getByText("Paris")).toBeInTheDocument();
+  });
+});
+
+describe("OrdersScreen historical phase with unordered units", () => {
+  it("shows a row for every unit the nation had, not just the ones with orders", () => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1,
+      status: "completed",
+      supplyCenters: [],
+      units: [
+        { type: "Army", dislodged: false, nation: { name: "Italy" }, province: { id: "tri", name: "Trieste", parentId: null } },
+        { type: "Fleet", dislodged: false, nation: { name: "Italy" }, province: { id: "nap", name: "Naples", parentId: null } },
+        { type: "Army", dislodged: false, nation: { name: "Italy" }, province: { id: "rom", name: "Rome", parentId: null } },
+        { type: "Army", dislodged: false, nation: { name: "Italy" }, province: { id: "ven", name: "Venice", parentId: null } },
+      ],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "Italy" },
+        source: { id: "tri", name: "Trieste" },
+        summary: "Move to Budapest",
+        resolution: { status: "Bounced" },
+      },
+    ]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ isCurrentUser: true, nation: "Italy" })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/Army Trieste/)).toBeInTheDocument();
+    expect(screen.getByText(/Fleet Naples/)).toBeInTheDocument();
+    expect(screen.getByText(/Army Rome/)).toBeInTheDocument();
+    expect(screen.getByText(/Army Venice/)).toBeInTheDocument();
+    expect(screen.getAllByText("Order not provided")).toHaveLength(3);
   });
 });
