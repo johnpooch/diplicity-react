@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatRemainingTime, getGameLandingPath } from "./util";
+import { formatDateTime, formatRemainingTime, getGameLandingPath } from "./util";
 
 describe("formatRemainingTime", () => {
   it("returns 'Deadline passed' for 0 seconds", () => {
@@ -34,6 +34,13 @@ describe("formatRemainingTime", () => {
     expect(formatRemainingTime(90000)).toBe("1d 1h remaining");
     expect(formatRemainingTime(172800)).toBe("2d 0h remaining");
     expect(formatRemainingTime(259200)).toBe("3d 0h remaining");
+  });
+});
+
+describe("formatDateTime", () => {
+  it("appends a timezone label to the formatted time", () => {
+    const result = formatDateTime("2026-02-07T21:00:00Z");
+    expect(result).toMatch(/^(Today|Tomorrow|\d{2}\/\d{2}\/\d{2}) \d{2}:\d{2} .+$/);
   });
 });
 

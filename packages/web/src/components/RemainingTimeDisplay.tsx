@@ -26,7 +26,7 @@ export const RemainingTimeDisplay: React.FC<RemainingTimeDisplayProps> = ({
             </span>
           </span>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="bottom">
           <p>Game is paused. Deadline will resume when unpaused.</p>
         </TooltipContent>
       </Tooltip>
@@ -40,7 +40,7 @@ export const RemainingTimeDisplay: React.FC<RemainingTimeDisplayProps> = ({
           {formatRemainingTime(remainingTime)}
         </span>
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent side="bottom">
         <p>{formatDateTime(scheduledResolution)}</p>
       </TooltipContent>
     </Tooltip>

@@ -50,8 +50,10 @@ vi.mock("@/components/NationFlag", () => ({
   findNationFlagUrl: () => null,
   findNationColor: () => null,
 }));
-vi.mock("@/components/PhaseSelect", () => ({ PhaseSelect: () => null }));
-vi.mock("@/components/PhaseGuidance", () => ({ PhaseGuidance: () => null }));
+vi.mock("@/components/PhaseStepper", () => ({
+  PhaseStepperTitle: () => null,
+  PhaseStepperActions: () => null,
+}));
 vi.mock("@/components/GameDropdownMenu", () => ({ GameDropdownMenu: () => null }));
 
 const baseMember = (overrides = {}) => ({
