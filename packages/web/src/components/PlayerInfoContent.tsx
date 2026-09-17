@@ -193,7 +193,7 @@ export const PlayerInfoContent: React.FC = () => {
     const unitCount = getUnitCount(member);
     const showNationSeat = isPending && member.isCurrentUser;
 
-    const stopRowClick = (e: React.MouseEvent) => e.stopPropagation();
+    const stopRowClick = (e: React.SyntheticEvent) => e.stopPropagation();
 
     return (
       <div key={member.id} className="flex items-center p-3 hover:bg-accent/50">
@@ -258,6 +258,7 @@ export const PlayerInfoContent: React.FC = () => {
                   stopRowClick(e);
                   navigate(`/nation-preference/${gameId}`);
                 }}
+                onKeyDown={stopRowClick}
                 className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
               >
                 {getNationSeatLabel(member.nation, member.nationPreferenceIds)}
@@ -274,6 +275,7 @@ export const PlayerInfoContent: React.FC = () => {
                       stopRowClick(e);
                       navigate(`/game/${gameId}/replace/${member.id}`);
                     }}
+                    onKeyDown={stopRowClick}
                   >
                     <UserPlus />
                     Replace
@@ -286,6 +288,7 @@ export const PlayerInfoContent: React.FC = () => {
                     stopRowClick(e);
                     copyLink(`/game/${gameId}/replace/${member.id}`);
                   }}
+                  onKeyDown={stopRowClick}
                 >
                   <Link2 />
                   Invite replacement
