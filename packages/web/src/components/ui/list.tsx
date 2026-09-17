@@ -31,7 +31,6 @@ interface ListItemProps {
   trailingAction?: React.ReactNode
   href?: string
   onClick?: () => void
-  checked?: boolean
   muted?: boolean
   ariaLabel?: string
   className?: string
@@ -50,12 +49,11 @@ function ListItem({
   trailingAction,
   href,
   onClick,
-  checked,
   muted,
   ariaLabel,
   className,
 }: ListItemProps) {
-  const interactive = href != null || onClick != null || checked !== undefined
+  const interactive = href != null || onClick != null
   const body = (
     <>
       {leading != null && <div className="shrink-0">{leading}</div>}
@@ -84,17 +82,6 @@ function ListItem({
     >
       {body}
     </Link>
-  ) : checked !== undefined ? (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={checked}
-      aria-label={ariaLabel}
-      className={interactivePrimaryClassName}
-      onClick={onClick}
-    >
-      {body}
-    </button>
   ) : onClick ? (
     <button
       type="button"
