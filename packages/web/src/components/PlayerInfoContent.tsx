@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ChevronRight,
   Link2,
+  RotateCcw,
   Star,
   Swords,
   UserMinus,
@@ -228,11 +229,6 @@ export const PlayerInfoContent: React.FC = () => {
                   >
                     {member.nation}
                   </span>
-                  {game.nmrExtensionsAllowed > 0 && (
-                    <span className="text-sm text-muted-foreground">
-                      • {member.nmrExtensionsRemaining} ext. remaining
-                    </span>
-                  )}
                 </div>
 
                 <div
@@ -338,6 +334,12 @@ export const PlayerInfoContent: React.FC = () => {
                   <Skeleton className="h-3 w-4" />
                 )}
               </span>
+              {game.nmrExtensionsAllowed > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <RotateCcw className="size-3" />
+                  <span>{member.nmrExtensionsRemaining}</span>
+                </span>
+              )}
             </div>
           )}
 
