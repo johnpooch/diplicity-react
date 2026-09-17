@@ -368,6 +368,45 @@ describe("OrdersScreen named coast display", () => {
 
     expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
   });
+
+  it("matches a historical order to a fleet's named coast via the order's parent-province source", () => {
+    mockPhaseData.mockReturnValue({
+      id: 1,
+      status: "completed",
+      supplyCenters: [],
+      units: [
+        {
+          type: "Fleet",
+          dislodged: false,
+          nation: { name: "England" },
+          province: { id: "spa/nc", name: "Spain (NC)", parentId: "spa" },
+        },
+      ],
+    });
+    mockPhaseStatesData.mockReturnValue([]);
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "spa", name: "Spain" },
+        summary: "Hold",
+        resolution: { status: "Succeeded" },
+      },
+    ]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "completed",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
+    expect(screen.getByText("Hold")).toBeInTheDocument();
+    expect(screen.queryByText("Order not provided")).not.toBeInTheDocument();
+  });
 });
 
 describe("OrdersScreen no orders required (active phase, has a member)", () => {
