@@ -382,7 +382,7 @@ describe("PlayerInfoContent", () => {
       victory: null,
       phases: [{ id: 1, status: "active" }],
       members: [
-        { ...baseMember, id: 1, name: "Alice" },
+        { ...baseMember, id: 1, userId: 1, name: "Alice" },
         {
           ...baseMember,
           id: 2,
@@ -393,11 +393,12 @@ describe("PlayerInfoContent", () => {
       ],
     });
 
-    renderPlayerInfo();
+    const { container } = renderPlayerInfo();
 
     expect(
       screen.queryByLabelText("View profile for Anonymous")
     ).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".lucide-chevron-right")).toHaveLength(1);
   });
 
   it("groups eliminated members into their own section", () => {

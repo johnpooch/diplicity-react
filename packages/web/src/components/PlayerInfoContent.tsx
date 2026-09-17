@@ -347,7 +347,9 @@ export const PlayerInfoContent: React.FC = () => {
             </div>
           )}
 
-          <ChevronRight className="shrink-0 text-muted-foreground" />
+          {member.userId && (
+            <ChevronRight className="shrink-0 text-muted-foreground" />
+          )}
         </div>
 
         {canRemove(member) && (
