@@ -27,6 +27,7 @@ const mockPhaseData = vi.fn();
 const mockOrdersData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockPhaseStatesData = vi.fn();
+const mockDeleteOrderMutation = vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false }));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -35,7 +36,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useVariantsRetrieve: () => ({ data: undefined }),
   useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
-  useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameOrdersDeleteDestroy: () => mockDeleteOrderMutation(),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -406,6 +407,61 @@ describe("OrdersScreen named coast display", () => {
     expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
     expect(screen.getByText("Hold")).toBeInTheDocument();
     expect(screen.queryByText("Order not provided")).not.toBeInTheDocument();
+  });
+});
+
+describe("OrdersScreen delete order button", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+    mockPhaseData.mockReturnValue({
+      id: 1,
+      status: "active",
+      supplyCenters: [],
+      units: [
+        {
+          type: "Army",
+          dislodged: false,
+          nation: { name: "England" },
+          province: { id: "lon", name: "London", parentId: null },
+        },
+      ],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ civilDisorder: false }),
+        orderableProvinces: [{ id: "lon", name: "London", parentId: null }],
+      },
+    ]);
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        summary: "Hold",
+        resolution: null,
+      },
+    ]);
+  });
+
+  it("disables the delete button while a delete is pending", () => {
+    mockDeleteOrderMutation.mockReturnValueOnce({ mutateAsync: vi.fn(), isPending: true });
+
+    renderOrdersScreen();
+
+    expect(screen.getByLabelText(/Delete order for/)).toBeDisabled();
+  });
+
+  it("enables the delete button when no delete is pending", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
   });
 });
 

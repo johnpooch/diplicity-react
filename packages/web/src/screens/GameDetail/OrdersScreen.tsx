@@ -199,8 +199,9 @@ const OrderRow: React.FC<{
   item: NationGroup["items"][number];
   isActivePhase: boolean;
   canDelete: boolean;
+  deletePending: boolean;
   onDelete: () => void;
-}> = ({ item, isActivePhase, canDelete, onDelete }) => {
+}> = ({ item, isActivePhase, canDelete, deletePending, onDelete }) => {
   const title = `${item.unit?.type ?? ""} ${item.unit?.province.name ?? item.province.name}`.trim();
   const resolutionStatus = !isActivePhase ? item.order?.resolution?.status : undefined;
 
@@ -228,6 +229,7 @@ const OrderRow: React.FC<{
             variant="ghost"
             size="icon"
             aria-label={`Delete order for ${title}`}
+            disabled={deletePending}
             onClick={onDelete}
           >
             <Trash2 className="size-4" />
@@ -316,6 +318,7 @@ const NationOrdersSections: React.FC<{
   variant: Variant;
   isActivePhase: boolean;
   canModifyOrders: boolean;
+  deletePending: boolean;
   onDeleteOrder: (sourceId: string) => void;
   getSupplyCenterCount: (nation: string) => number;
   getUnitCount: (nation: string) => number;
@@ -324,6 +327,7 @@ const NationOrdersSections: React.FC<{
   variant,
   isActivePhase,
   canModifyOrders,
+  deletePending,
   onDeleteOrder,
   getSupplyCenterCount,
   getUnitCount,
@@ -370,6 +374,7 @@ const NationOrdersSections: React.FC<{
                     item={item}
                     isActivePhase={isActivePhase}
                     canDelete={canModifyOrders}
+                    deletePending={deletePending}
                     onDelete={() => onDeleteOrder(item.province.id)}
                   />
                 ))}
@@ -629,6 +634,7 @@ const OrdersScreen: React.FC = () => {
                 variant={variant}
                 isActivePhase={isActivePhase}
                 canModifyOrders={canModifyOrders}
+                deletePending={deleteOrderMutation.isPending}
                 onDeleteOrder={handleDeleteOrder}
                 getSupplyCenterCount={getSupplyCenterCount}
                 getUnitCount={getUnitCount}
