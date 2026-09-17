@@ -11,7 +11,6 @@ interface GameDetailAppBarProps {
   leftButton?: React.ReactNode;
   rightButton?: React.ReactNode;
   variant?: "primary" | "secondary";
-  hideBackButton?: boolean;
 }
 
 const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
@@ -20,7 +19,6 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
   leftButton,
   rightButton,
   variant = "primary",
-  hideBackButton = false,
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -46,8 +44,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
     }
   };
 
-  const showBackButton =
-    !hideBackButton && (variant === "secondary" || isMobile);
+  const showBackButton = variant === "secondary" || isMobile;
 
   const leftContent =
     leftButton ||
