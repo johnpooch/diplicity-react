@@ -217,37 +217,60 @@ export const PlayerInfoContent: React.FC = () => {
           <PlayerMedia member={member} variant={variant} showNationSeat={showNationSeat} />
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className={cn(
-                  "font-medium",
-                  member.civilDisorder && "text-destructive/80"
-                )}
-              >
-                {member.name}
-              </span>
-              {member.isBot && (
-                <span className="text-sm text-muted-foreground">(Bot)</span>
-              )}
-              {member.civilDisorder && (
-                <InfoButton
-                  label="Civil Disorder"
-                  text="This player stopped playing and is in Civil Disorder."
-                  className="text-destructive/70 hover:text-destructive"
-                />
-              )}
-            </div>
+            {member.nation && !isPending ? (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={cn(
+                      "font-medium truncate",
+                      member.civilDisorder && "text-destructive/80"
+                    )}
+                  >
+                    {member.nation}
+                  </span>
+                  {game.nmrExtensionsAllowed > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      • {member.nmrExtensionsRemaining} ext. remaining
+                    </span>
+                  )}
+                </div>
 
-            {member.nation && !isPending && (
-              <div
-                className={cn(
-                  "text-sm mt-0.5",
-                  member.civilDisorder ? "text-destructive/80" : "text-muted-foreground"
+                <div
+                  className={cn(
+                    "flex items-center gap-2 flex-wrap text-sm mt-0.5",
+                    member.civilDisorder ? "text-destructive/80" : "text-muted-foreground"
+                  )}
+                >
+                  <span>{member.name}</span>
+                  {member.isBot && <span>(Bot)</span>}
+                  {member.civilDisorder && (
+                    <InfoButton
+                      label="Civil Disorder"
+                      text="This player stopped playing and is in Civil Disorder."
+                      className="text-destructive/70 hover:text-destructive"
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={cn(
+                    "font-medium",
+                    member.civilDisorder && "text-destructive/80"
+                  )}
+                >
+                  {member.name}
+                </span>
+                {member.isBot && (
+                  <span className="text-sm text-muted-foreground">(Bot)</span>
                 )}
-              >
-                <span className="truncate">{member.nation}</span>
-                {game.nmrExtensionsAllowed > 0 && (
-                  <span> • {member.nmrExtensionsRemaining} ext. remaining</span>
+                {member.civilDisorder && (
+                  <InfoButton
+                    label="Civil Disorder"
+                    text="This player stopped playing and is in Civil Disorder."
+                    className="text-destructive/70 hover:text-destructive"
+                  />
                 )}
               </div>
             )}
