@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
+from common.constants import PlayerGameOutcome
+from nation.serializers import NationSerializer
 from .models import UserProfilePicture
 from .utils import get_player_stats, normalise_picture, user_can_use_bot_opponent
 
@@ -51,6 +53,19 @@ class AddableUserSerializer(PictureUrlMixin, serializers.Serializer):
     picture = serializers.SerializerMethodField()
 
 
+class FavouriteNationSerializer(serializers.Serializer):
+    nation = NationSerializer(read_only=True)
+    games_played = serializers.IntegerField(read_only=True)
+
+
+class PlayerGameResultSerializer(serializers.Serializer):
+    game_id = serializers.CharField(read_only=True)
+    game_name = serializers.CharField(read_only=True)
+    nation = NationSerializer(read_only=True)
+    outcome = serializers.ChoiceField(choices=PlayerGameOutcome.OUTCOME_CHOICES, read_only=True)
+    finished_at = serializers.DateTimeField(read_only=True)
+
+
 class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
@@ -64,11 +79,23 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     cd_rate = serializers.FloatField(read_only=True)
     reliability_tier = serializers.CharField(read_only=True, allow_null=True)
     commitment = serializers.CharField(read_only=True)
+    favourite_nation = FavouriteNationSerializer(read_only=True, allow_null=True)
+    recent_results = PlayerGameResultSerializer(read_only=True, many=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         stats = get_player_stats(instance.user)
+        favourite_nation = stats.pop("favourite_nation")
+        recent_results = stats.pop("recent_results")
         data.update(stats)
+        data["favourite_nation"] = (
+            FavouriteNationSerializer(favourite_nation, context=self.context).data
+            if favourite_nation
+            else None
+        )
+        data["recent_results"] = PlayerGameResultSerializer(
+            recent_results, many=True, context=self.context
+        ).data
         return data
 
 

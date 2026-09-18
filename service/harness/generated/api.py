@@ -23,6 +23,17 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
+class ChannelEvent(TypedDict):
+    id: int
+    text: str
+    created_at: str
+
+
+class ChannelUpdate(TypedDict):
+    id: int
+    title: str
+
+
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
 
 
@@ -207,6 +218,9 @@ type OrderStatusEnum = Literal['orders_required', 'orders_submitted', 'orders_no
 type OrderTypeEnum = Literal['Move', 'MoveViaConvoy', 'Hold', 'Support', 'Convoy', 'Build', 'Disband']
 
 
+type OutcomeEnum = Literal['won', 'drew', 'eliminated', 'survived']
+
+
 class PasswordReset(TypedDict):
     email: str
 
@@ -216,6 +230,11 @@ class PasswordResetConfirm(TypedDict):
     token: str
     new_password: str
     confirm_password: str
+
+
+class PatchedChannelUpdate(TypedDict):
+    id: NotRequired[int]
+    title: NotRequired[str]
 
 
 class PatchedDrawVoteUpdate(TypedDict):
@@ -245,6 +264,14 @@ class PatchedVariantWrite(TypedDict):
 type PlatformEnum = Literal['ios', 'android']
 
 
+class PlayerGameResult(TypedDict):
+    game_id: str
+    game_name: str
+    nation: Nation
+    outcome: OutcomeEnum
+    finished_at: str
+
+
 type PressTypeEnum = Literal['full_press', 'no_press']
 
 
@@ -255,21 +282,6 @@ class Province(TypedDict):
     supply_center: bool
     parent_id: str | None
     named_coast_ids: list[str]
-
-
-class PublicUserProfile(TypedDict):
-    id: int
-    name: str
-    picture: str | None
-    created_at: str
-    total_games: int
-    solo_wins: int
-    draws: int
-    losses: int
-    nmr_rate: float
-    cd_rate: float
-    reliability_tier: str | None
-    commitment: str
 
 
 class Register(TypedDict):
@@ -443,6 +455,11 @@ class FCMDevice(TypedDict):
     type: TypeEnum
 
 
+class FavouriteNation(TypedDict):
+    nation: Nation
+    games_played: int
+
+
 class GameCreate(TypedDict):
     id: str
     name: str
@@ -566,6 +583,23 @@ class PhaseState(TypedDict):
     max_orders: int | None
 
 
+class PublicUserProfile(TypedDict):
+    id: int
+    name: str
+    picture: str | None
+    created_at: str
+    total_games: int
+    solo_wins: int
+    draws: int
+    losses: int
+    nmr_rate: float
+    cd_rate: float
+    reliability_tier: str | None
+    commitment: str
+    favourite_nation: FavouriteNation | None
+    recent_results: list[PlayerGameResult]
+
+
 class VariantProvince(TypedDict):
     id: str
     name: str
@@ -584,8 +618,10 @@ class VariantTemplatePhase(TypedDict):
 class Channel(TypedDict):
     id: int
     name: str
+    title: NotRequired[str]
     private: bool
     messages: list[ChannelMessage]
+    events: list[ChannelEvent]
     unread_message_count: int
     member_ids: list[int]
 

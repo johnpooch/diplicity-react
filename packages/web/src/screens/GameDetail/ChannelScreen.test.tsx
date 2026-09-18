@@ -41,6 +41,7 @@ vi.mock("@/api/generated/endpoints", () => ({
 
 const player = (overrides = {}) => ({
   id: 1,
+  name: "Player 1",
   nation: "Austria",
   isCurrentUser: false,
   kicked: false,
@@ -62,13 +63,14 @@ const message = (overrides = {}) => ({
   ...overrides,
 });
 
-const publicChannel = (messages: unknown[] = []) => ({
+const publicChannel = (messages: unknown[] = [], events: unknown[] = []) => ({
   id: 7,
   name: "Public Press",
   private: false,
   memberIds: [1],
   unreadMessageCount: 0,
   messages,
+  events,
 });
 
 const gameRunByGameMaster = (overrides = {}) => ({
@@ -81,10 +83,10 @@ const gameRunByGameMaster = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderChannel = () =>
+const renderChannel = (channelId: number | string = 7) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/game/game-1/phase/1/chat/channel/7"]}>
+      <MemoryRouter initialEntries={[`/game/game-1/phase/1/chat/channel/${channelId}`]}>
         <Routes>
           <Route
             path="/game/:gameId/phase/:phaseId/chat/channel/:channelId"
@@ -219,5 +221,193 @@ describe("ChannelScreen", () => {
     renderChannel();
 
     expect(screen.getByText("Austria")).toBeInTheDocument();
+  });
+
+  it("shows a rename between the messages it happened between", () => {
+    mockGameData.mockReturnValue(
+      gameRunByGameMaster({
+        variantId: "standard",
+        members: [
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
+          player({ id: 2, name: "Player 2", nation: "France" }),
+        ],
+        gameMaster: null,
+      })
+    );
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France",
+        title: "The great alliance",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [
+          message({
+            id: 1,
+            body: "Before",
+            createdAt: "2026-09-15T10:00:00Z",
+            sender: {
+              id: 2,
+              name: "Player 2",
+              picture: null,
+              isCurrentUser: false,
+              nation: { name: "France", color: "#0000ff" },
+              isGameMaster: false,
+            },
+          }),
+          message({
+            id: 2,
+            body: "After",
+            createdAt: "2026-09-15T10:10:00Z",
+            sender: {
+              id: 2,
+              name: "Player 2",
+              picture: null,
+              isCurrentUser: false,
+              nation: { name: "France", color: "#0000ff" },
+              isGameMaster: false,
+            },
+          }),
+        ],
+        events: [
+          {
+            id: 1,
+            text: "France renamed the channel to The great alliance",
+            createdAt: "2026-09-15T10:05:00Z",
+          },
+        ],
+      },
+    ]);
+
+    renderChannel(1);
+
+    const before = screen.getByText("Before");
+    const notice = screen.getByText(
+      "France renamed the channel to The great alliance"
+    );
+    const after = screen.getByText("After");
+
+    expect(
+      before.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      notice.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it("names the player behind the nation in a direct channel", () => {
+    mockGameData.mockReturnValue(
+      gameRunByGameMaster({
+        variantId: "standard",
+        members: [
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
+          player({ id: 2, name: "Player 2", nation: "France" }),
+        ],
+        gameMaster: null,
+      })
+    );
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France",
+        title: "",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [],
+        events: [],
+      },
+    ]);
+
+    renderChannel(1);
+
+    expect(screen.getByText("France")).toBeInTheDocument();
+    expect(screen.getByText("Player 2")).toBeInTheDocument();
+  });
+
+  it("does not label bubbles with the sender in a direct channel", () => {
+    mockGameData.mockReturnValue(
+      gameRunByGameMaster({
+        variantId: "standard",
+        members: [
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
+          player({ id: 2, name: "Player 2", nation: "France" }),
+        ],
+        gameMaster: null,
+      })
+    );
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France",
+        title: "",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [
+          message({
+            id: 1,
+            body: "Hello there",
+            createdAt: "2026-09-15T10:00:00Z",
+            sender: {
+              id: 2,
+              name: "Player 2",
+              picture: null,
+              isCurrentUser: false,
+              nation: { name: "France", color: "#0000ff" },
+              isGameMaster: false,
+            },
+          }),
+        ],
+        events: [],
+      },
+    ]);
+
+    renderChannel(1);
+
+    expect(screen.getByText("Hello there")).toBeInTheDocument();
+    expect(screen.getAllByText("France")).toHaveLength(1);
+  });
+
+  it("labels bubbles with the sender nation in a group channel", () => {
+    mockGameData.mockReturnValue(
+      gameRunByGameMaster({
+        variantId: "standard",
+        members: [
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
+          player({ id: 2, name: "Player 2", nation: "France" }),
+          player({ id: 3, name: "Player 3", nation: "Germany" }),
+        ],
+        gameMaster: null,
+      })
+    );
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France, Germany",
+        title: "",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [
+          message({
+            id: 1,
+            body: "Hello there",
+            createdAt: "2026-09-15T10:00:00Z",
+            sender: {
+              id: 2,
+              name: "Player 2",
+              picture: null,
+              isCurrentUser: false,
+              nation: { name: "France", color: "#0000ff" },
+              isGameMaster: false,
+            },
+          }),
+        ],
+        events: [],
+      },
+    ]);
+
+    renderChannel(1);
+
+    expect(screen.getByText("Hello there")).toBeInTheDocument();
+    expect(screen.getByText("France")).toBeInTheDocument();
   });
 });

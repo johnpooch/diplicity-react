@@ -1240,6 +1240,68 @@ paths:
                 items:
                   $ref: '#/components/schemas/Channel'
           description: ''
+  /games/{gameId}/channels/{channelId}/:
+    put:
+      operationId: gamesChannelsUpdate
+      description: Rename a private channel.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelUpdate'
+          description: ''
+    patch:
+      operationId: gamesChannelsPartialUpdate
+      description: Rename a private channel.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChannelUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelUpdate'
+          description: ''
   /games/{gameId}/channels/{channelId}/mark-read/:
     post:
       operationId: gamesChannelsMarkReadCreate
@@ -1936,6 +1998,9 @@ components:
         name:
           type: string
           readOnly: true
+        title:
+          type: string
+          maxLength: 50
         private:
           type: boolean
           readOnly: true
@@ -1943,6 +2008,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChannelMessage'
+          readOnly: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelEvent'
           readOnly: true
         unreadMessageCount:
           type: integer
@@ -1954,12 +2024,30 @@ components:
             type: integer
           writeOnly: true
       required:
+      - events
       - id
       - memberIds
       - messages
       - name
       - private
       - unreadMessageCount
+    ChannelEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - createdAt
+      - id
+      - text
     ChannelMember:
       type: object
       properties:
@@ -2026,6 +2114,18 @@ components:
       - createdAt
       - id
       - sender
+    ChannelUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 50
+      required:
+      - id
+      - title
     CommitmentEligibilityEnum:
       enum:
       - eligible
@@ -2242,6 +2342,19 @@ components:
       - id
       - registrationId
       - type
+    FavouriteNation:
+      type: object
+      properties:
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        gamesPlayed:
+          type: integer
+          readOnly: true
+      required:
+      - gamesPlayed
+      - nation
     FieldValue:
       type: object
       properties:
@@ -3229,6 +3342,18 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    OutcomeEnum:
+      enum:
+      - won
+      - drew
+      - eliminated
+      - survived
+      type: string
+      description: |-
+        * `won` - Won
+        * `drew` - Drew
+        * `eliminated` - Eliminated
+        * `survived` - Survived
     PaginatedGameListList:
       type: object
       required:
@@ -3283,6 +3408,15 @@ components:
       - newPassword
       - token
       - uid
+    PatchedChannelUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 50
     PatchedDrawVoteUpdate:
       type: object
       properties:
@@ -3478,6 +3612,33 @@ components:
       description: |-
         * `ios` - iOS
         * `android` - Android
+    PlayerGameResult:
+      type: object
+      properties:
+        gameId:
+          type: string
+          readOnly: true
+        gameName:
+          type: string
+          readOnly: true
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        outcome:
+          allOf:
+          - $ref: '#/components/schemas/OutcomeEnum'
+          readOnly: true
+        finishedAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - finishedAt
+      - gameId
+      - gameName
+      - nation
+      - outcome
     PressTypeEnum:
       enum:
       - full_press
@@ -3556,16 +3717,28 @@ components:
         commitment:
           type: string
           readOnly: true
+        favouriteNation:
+          allOf:
+          - $ref: '#/components/schemas/FavouriteNation'
+          readOnly: true
+          nullable: true
+        recentResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerGameResult'
+          readOnly: true
       required:
       - cdRate
       - commitment
       - createdAt
       - draws
+      - favouriteNation
       - id
       - losses
       - name
       - nmrRate
       - picture
+      - recentResults
       - reliabilityTier
       - soloWins
       - totalGames

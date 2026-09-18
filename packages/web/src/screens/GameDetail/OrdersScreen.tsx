@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   Trash2,
   CheckSquare,
@@ -58,6 +58,7 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 type NationGroup = {
@@ -207,9 +208,18 @@ const OrderRow: React.FC<{
   canDelete: boolean;
   deletePending: boolean;
   onDelete: () => void;
-}> = ({ item, isActivePhase, canDelete, deletePending, onDelete }) => {
+  onSelectProvince: () => void;
+}> = ({
+  item,
+  isActivePhase,
+  canDelete,
+  deletePending,
+  onDelete,
+  onSelectProvince,
+}) => {
   const title = `${item.unit?.type ?? ""} ${item.unit?.province.name ?? item.province.name}`.trim();
   const resolutionStatus = !isActivePhase ? item.order?.resolution?.status : undefined;
+  const canSelect = canDelete && !item.order;
 
   return (
     <ListItem
@@ -217,6 +227,8 @@ const OrderRow: React.FC<{
       title={title}
       subtitle={item.order ? item.order.summary : "Order not provided"}
       muted={!item.order && isActivePhase}
+      onClick={canSelect ? onSelectProvince : undefined}
+      ariaLabel={canSelect ? `Create order for ${title}` : undefined}
       trailing={
         resolutionStatus && (
           <span
@@ -326,6 +338,7 @@ const NationOrdersSections: React.FC<{
   canModifyOrders: boolean;
   deletePending: boolean;
   onDeleteOrder: (sourceId: string) => void;
+  onSelectProvince: (provinceId: string) => void;
   getSupplyCenterCount: (nation: string) => number;
   getUnitCount: (nation: string) => number;
 }> = ({
@@ -335,6 +348,7 @@ const NationOrdersSections: React.FC<{
   canModifyOrders,
   deletePending,
   onDeleteOrder,
+  onSelectProvince,
   getSupplyCenterCount,
   getUnitCount,
 }) => {
@@ -382,6 +396,7 @@ const NationOrdersSections: React.FC<{
                     canDelete={canModifyOrders}
                     deletePending={deletePending}
                     onDelete={() => onDeleteOrder(item.province.id)}
+                    onSelectProvince={() => onSelectProvince(item.province.id)}
                   />
                 ))}
               </ListSection>
@@ -415,6 +430,8 @@ const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }>
 
 const OrdersScreen: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
@@ -545,6 +562,23 @@ const OrdersScreen: React.FC = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
   };
 
+  const handleSelectProvince = (provinceId: string) => {
+    if (isMobile) {
+      const params = new URLSearchParams(searchParams);
+      params.set("source", provinceId);
+      navigate(`/game/${gameId}/phase/${phaseId}?${params.toString()}`);
+    } else {
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.set("source", provinceId);
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  };
+
   const rightFooterButton = (() => {
     if (!canModifyOrders) return null;
     if (game.sandbox)
@@ -642,6 +676,7 @@ const OrdersScreen: React.FC = () => {
                 canModifyOrders={canModifyOrders}
                 deletePending={deleteOrderMutation.isPending}
                 onDeleteOrder={handleDeleteOrder}
+                onSelectProvince={handleSelectProvince}
                 getSupplyCenterCount={getSupplyCenterCount}
                 getUnitCount={getUnitCount}
               />

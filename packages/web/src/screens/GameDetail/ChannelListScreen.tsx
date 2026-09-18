@@ -1,20 +1,12 @@
 import React, { Suspense } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
-import { UserPlus, MessageSquare, MessageSquareOff, Plus } from "lucide-react";
+import { MessageSquare, MessageSquareOff, Megaphone, Plus } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Item,
-  ItemContent,
-  ItemTitle,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-} from "@/components/ui/item";
+import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/Notice";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
@@ -77,7 +69,7 @@ const ChannelListScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
             {isSandboxGame ? (
               <Notice
                 icon={MessageSquare}
@@ -97,15 +89,17 @@ const ChannelListScreen: React.FC = () => {
                 className="h-full"
               />
             ) : (
-              <ItemGroup>
-                {channels.map(channel => (
-                  <React.Fragment key={channel.id}>
-                    <Item asChild size="sm" className="py-2">
-                      <Link
-                        to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
-                        className="text-foreground no-underline"
-                      >
+              <Card className="overflow-hidden py-0">
+                <CardContent className="flex flex-col divide-y p-0">
+                  {channels.map(channel => (
+                    <Link
+                      key={channel.id}
+                      to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
+                      className="flex items-center gap-3 p-3 transition-colors hover:bg-accent/50"
+                    >
+                      {channel.private ? (
                         <ChannelAvatar
+                          size={48}
                           nations={getChannelFlagUrls(
                             channel,
                             game.members,
@@ -113,47 +107,40 @@ const ChannelListScreen: React.FC = () => {
                             variantNations
                           )}
                         />
-                        <ItemContent className="gap-0.5">
-                          <ItemTitle>
-                            {getChannelDisplayName(channel, currentNationName)}
-                            {!channel.private && (
-                              <Badge variant="outline">Public</Badge>
-                            )}
-                            {channel.unreadMessageCount > 0 && (
-                              <Badge variant="default">
-                                {channel.unreadMessageCount}
-                              </Badge>
-                            )}
-                          </ItemTitle>
-                          <ItemDescription>
-                            {getLatestMessagePreview(channel.messages)}
-                          </ItemDescription>
-                        </ItemContent>
-                      </Link>
-                    </Item>
-                    <ItemSeparator />
-                  </React.Fragment>
-                ))}
-              </ItemGroup>
+                      ) : (
+                        <div
+                          className="flex size-12 shrink-0 items-center justify-center rounded-full border bg-muted"
+                          aria-label="Public channel"
+                        >
+                          <Megaphone className="size-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="truncate font-semibold leading-tight">
+                          {getChannelDisplayName(channel, currentNationName)}
+                        </span>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {getLatestMessagePreview(channel.messages)}
+                        </p>
+                      </div>
+                      {channel.unreadMessageCount > 0 && (
+                        <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full px-1 leading-none">
+                          {channel.unreadMessageCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            {canCreateChannel && (
+              <Button className="w-full" size="lg" asChild>
+                <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
+                  Create Channel
+                </Link>
+              </Button>
             )}
           </Panel.Content>
-          {currentMember && !isSandboxGame && !isNoPressActiveGame && (
-            <>
-              <Separator />
-              <Panel.Footer>
-                <div className="flex justify-end w-full">
-                  <Button asChild>
-                    <Link
-                      to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}
-                    >
-                      <UserPlus className="size-4" />
-                      Create Channel
-                    </Link>
-                  </Button>
-                </div>
-              </Panel.Footer>
-            </>
-          )}
         </Panel>
       </div>
     </div>
