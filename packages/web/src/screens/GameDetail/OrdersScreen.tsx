@@ -179,12 +179,18 @@ const OrderMedia: React.FC<{ order?: Order; isActivePhase: boolean }> = ({
     <div
       className={cn(
         "relative flex size-12 shrink-0 items-center justify-center rounded-full border",
-        !Icon && !isMissing && !isMissingHistorical && "border-dashed",
-        isMissing && "border-destructive/70"
+        !Icon && !isMissing && !isMissingHistorical && "border-dashed"
       )}
     >
       {Icon && <Icon className="size-5" aria-hidden />}
-      {isMissing && <Hexagon className="size-5 text-destructive/70" aria-hidden />}
+      {isMissing && (
+        <>
+          <Hexagon className="size-5 text-border" aria-hidden />
+          <span className="absolute text-border" aria-hidden>
+            !
+          </span>
+        </>
+      )}
       {isMissingHistorical && (
         <>
           <Hexagon className="size-5" aria-hidden />
