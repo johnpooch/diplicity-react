@@ -5226,6 +5226,65 @@ class TestSendDeadlineWarnings:
             assert fragment not in body
 
     @pytest.mark.django_db
+    def test_warning_after_an_extended_deadline_names_the_extension(
+        self,
+        deadline_warning_game_factory,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        phase.scheduled_resolution = now + timedelta(minutes=30)
+        phase.save()
+
+        Phase.objects.send_deadline_warnings()
+
+        assert mock_send_notification_to_users.call_count == 2
+        first, second = [call.kwargs["body"] for call in mock_send_notification_to_users.call_args_list]
+        assert first.startswith("Deadline approaching - no orders given.")
+        assert second.startswith("The deadline has been extended - still no orders given.")
+
+    @pytest.mark.django_db
+    def test_warning_after_an_extended_deadline_reports_partial_orders(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        phase.scheduled_resolution = now + timedelta(minutes=30)
+        phase.save()
+
+        Phase.objects.send_deadline_warnings()
+
+        body = mock_send_notification_to_users.call_args.kwargs["body"]
+        assert body.startswith("The deadline has been extended - orders still incomplete.")
+        assert "1/2" in body
+
+    @pytest.mark.django_db
     def test_duration_confirmed_no_notification(
         self,
         deadline_warning_game_factory,

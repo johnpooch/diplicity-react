@@ -2,6 +2,7 @@
 paths:
   - "service/notification/registry.py"
   - "service/notification/utils.py"
+  - "service/phase/utils.py"
 ---
 
 # Notification copy
@@ -9,6 +10,8 @@ paths:
 Every notification a player receives is rendered by a spec in `service/notification/registry.py`. Read that file for the specs themselves; this file states the rules a new one must follow.
 
 Notifications go out over push only; there is no email channel. A player is usually in several games at once, and reads these on a lock screen or in a notification tray. Reading well in isolation is not the bar — the copy has to be identifiable and actionable in that pile. The base `NotificationSpec` already implements most of what follows, so a spec that overrides only `get_audience` and `get_body` is usually the correct spec.
+
+**A spec is not always where the words are.** Where the body varies with state the spec cannot see, the emitting code passes it in the payload and the spec returns it — `deadline_warning` is written in `service/phase/utils.py`. These rules bind that copy too; grep for the event type before assuming `registry.py` holds the string.
 
 ## Collapsing
 
