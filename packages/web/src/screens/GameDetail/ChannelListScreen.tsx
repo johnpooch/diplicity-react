@@ -1,6 +1,11 @@
 import React, { Suspense } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
-import { MessageSquare, MessageSquareOff, Megaphone, Plus } from "lucide-react";
+import {
+  MessageSquare,
+  MessageSquareOff,
+  MessageSquarePlus,
+  Megaphone,
+} from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -61,7 +66,7 @@ const ChannelListScreen: React.FC = () => {
           canCreateChannel ? (
             <Button variant="outline" size="icon" aria-label="Create channel" asChild>
               <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
-                <Plus />
+                <MessageSquarePlus />
               </Link>
             </Button>
           ) : undefined
@@ -136,6 +141,7 @@ const ChannelListScreen: React.FC = () => {
             {canCreateChannel && (
               <Button className="w-full" size="lg" asChild>
                 <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
+                  <MessageSquarePlus />
                   Create Channel
                 </Link>
               </Button>

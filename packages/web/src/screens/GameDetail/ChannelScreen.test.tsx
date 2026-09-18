@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
@@ -149,6 +150,58 @@ describe("ChannelScreen", () => {
     renderChannel();
 
     expect(mockMarkRead).toHaveBeenCalledWith({ gameId: "game-1", channelId: 7 });
+  });
+
+  it("only shows the title tooltip when the label is truncated", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue(gameRunByGameMaster());
+
+    renderChannel();
+
+    const title = screen.getByText("Public Press");
+    Object.defineProperties(title, {
+      clientWidth: { configurable: true, value: 100 },
+      scrollWidth: { configurable: true, value: 100 },
+    });
+    fireEvent(window, new Event("resize"));
+    await user.hover(title);
+
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(title).toHaveClass("inline-block", "max-w-full");
+    expect(title).not.toHaveAttribute("tabindex");
+
+    Object.defineProperty(title, "scrollWidth", {
+      configurable: true,
+      value: 200,
+    });
+    fireEvent(window, new Event("resize"));
+    await user.unhover(title);
+    expect(title).toHaveAttribute("tabindex", "0");
+    fireEvent.focus(title);
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Public Press");
+  });
+
+  it("uses a rounded square rename button and no footer divider", () => {
+    mockGameData.mockReturnValue(
+      gameRunByGameMaster({
+        members: [player({ isCurrentUser: true })],
+        gameMaster: null,
+      })
+    );
+    mockChannelsData.mockReturnValue([
+      { ...publicChannel([message()]), name: "Austria, France", private: true },
+    ]);
+
+    renderChannel();
+
+    expect(screen.getByRole("link", { name: "Rename channel" })).toHaveClass(
+      "rounded-md"
+    );
+    expect(screen.getByRole("link", { name: "Rename channel" })).not.toHaveClass(
+      "rounded-full"
+    );
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
   });
 
   it("does not mark read for a spectator", () => {

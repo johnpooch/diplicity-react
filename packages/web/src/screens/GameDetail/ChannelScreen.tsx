@@ -68,6 +68,59 @@ type EventDisplayItem = {
 
 type ThreadItem = MessageDisplayItem | EventDisplayItem;
 
+const TruncatedTooltipLabel: React.FC<{
+  text: string;
+  className?: string;
+}> = ({ text, className }) => {
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const label = labelRef.current;
+    if (!label) return;
+
+    const updateTruncation = () => {
+      const truncated = label.scrollWidth > label.clientWidth;
+      setIsTruncated(truncated);
+      if (!truncated) setIsOpen(false);
+    };
+
+    updateTruncation();
+    window.addEventListener("resize", updateTruncation);
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateTruncation);
+    resizeObserver?.observe(label);
+
+    return () => {
+      window.removeEventListener("resize", updateTruncation);
+      resizeObserver?.disconnect();
+    };
+  }, [text]);
+
+  return (
+    <Tooltip
+      open={isTruncated ? isOpen : false}
+      onOpenChange={open => setIsOpen(isTruncated && open)}
+    >
+      <TooltipTrigger asChild>
+        <span
+          ref={labelRef}
+          className={cn("inline-block max-w-full truncate align-bottom", className)}
+          tabIndex={isTruncated ? 0 : undefined}
+          onClick={() => isTruncated && setIsOpen(true)}
+        >
+          {text}
+        </span>
+      </TooltipTrigger>
+      {isTruncated && <TooltipContent side="bottom">{text}</TooltipContent>}
+    </Tooltip>
+  );
+};
+
 const formatMessageTime = (createdAt: string): string => {
   const date = new Date(createdAt);
   const today = new Date();
@@ -150,8 +203,6 @@ const ChannelScreen: React.FC = () => {
   const queryClient = useQueryClient();
   const isDesktopWeb = useIsDesktopWeb();
   const [message, setMessage] = useDraft(gameId, channelId);
-  const [isTitleOpen, setIsTitleOpen] = useState(false);
-  const [isSubtitleOpen, setIsSubtitleOpen] = useState(false);
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
@@ -195,25 +246,17 @@ const ChannelScreen: React.FC = () => {
   const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
   const channelTitle = (
     <div className="min-w-0 flex-1 text-left">
-      <Tooltip open={isTitleOpen} onOpenChange={setIsTitleOpen}>
-        <TooltipTrigger
-          className="block w-full truncate text-left text-xl font-semibold leading-9"
-          onClick={() => setIsTitleOpen(true)}
-        >
-          {channelDisplayName}
-        </TooltipTrigger>
-        <TooltipContent side="bottom">{channelDisplayName}</TooltipContent>
-      </Tooltip>
+      <TruncatedTooltipLabel
+        text={channelDisplayName}
+        className="text-xl font-semibold leading-9"
+      />
       {channelSubtitle && (
-        <Tooltip open={isSubtitleOpen} onOpenChange={setIsSubtitleOpen}>
-          <TooltipTrigger
-            className="block w-full truncate text-left text-xs leading-tight text-muted-foreground"
-            onClick={() => setIsSubtitleOpen(true)}
-          >
-            {channelSubtitle}
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{channelSubtitle}</TooltipContent>
-        </Tooltip>
+        <div className="leading-none">
+          <TruncatedTooltipLabel
+            text={channelSubtitle}
+            className="text-xs leading-tight text-muted-foreground"
+          />
+        </div>
       )}
     </div>
   );
@@ -223,7 +266,7 @@ const ChannelScreen: React.FC = () => {
         <Button
           variant="outline"
           size="icon-sm"
-          className="rounded-full"
+          className="rounded-md"
           aria-label="Rename channel"
           asChild
         >
@@ -367,7 +410,13 @@ const ChannelScreen: React.FC = () => {
                           }
                         >
                           {item.showAvatar ? (
-                            <div className="size-8 shrink-0 overflow-hidden rounded-full border">
+                            <div
+                              className={cn(
+                                "size-8 shrink-0",
+                                item.sender.isGameMaster &&
+                                  "overflow-hidden rounded-full border"
+                              )}
+                            >
                               {item.sender.isGameMaster ? (
                                 <Avatar className="size-8 rounded-none">
                                   <AvatarImage src={item.sender.picture ?? undefined} />
@@ -385,6 +434,7 @@ const ChannelScreen: React.FC = () => {
                                   alt={item.sender.nationName ?? item.sender.name}
                                   className="size-8"
                                   color={item.sender.nationColor}
+                                  ringWidth={2}
                                 />
                               )}
                             </div>
@@ -428,7 +478,7 @@ const ChannelScreen: React.FC = () => {
             </div>
           </Panel.Content>
           {canPost && (
-            <Panel.Footer divider className="px-2 py-2 md:px-3">
+            <Panel.Footer className="px-2 py-2 md:px-3">
               <div className="flex gap-2 w-full">
                 <Textarea
                   placeholder="Type a message"

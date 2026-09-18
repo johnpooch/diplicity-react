@@ -138,7 +138,11 @@ describe("ChannelListScreen", () => {
 
     renderChannelList();
 
-    expect(screen.getAllByRole("link", { name: /create channel/i })).toHaveLength(2);
+    const createLinks = screen.getAllByRole("link", { name: /create channel/i });
+    expect(createLinks).toHaveLength(2);
+    for (const link of createLinks) {
+      expect(link.querySelector("svg")).toBeInTheDocument();
+    }
   });
 
   it("hides create channel button when the user is not a member", () => {
