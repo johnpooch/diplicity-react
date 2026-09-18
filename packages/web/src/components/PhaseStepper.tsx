@@ -113,7 +113,8 @@ const PhaseStepperTitle: React.FC = () => {
           remainingTime={phase.remainingTime}
           scheduledResolution={phase.scheduledResolution}
           isPaused={game.isPaused}
-          className="block text-xs text-muted-foreground"
+          showResolutionLabel
+          className="block w-fit text-xs text-muted-foreground"
         />
       ) : phase.status !== "active" ? (
         <span className="block text-xs text-muted-foreground">Resolved</span>

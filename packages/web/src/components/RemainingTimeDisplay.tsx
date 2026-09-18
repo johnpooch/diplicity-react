@@ -7,6 +7,7 @@ interface RemainingTimeDisplayProps {
   scheduledResolution: string;
   isPaused?: boolean;
   className?: string;
+  showResolutionLabel?: boolean;
 }
 
 export const RemainingTimeDisplay: React.FC<RemainingTimeDisplayProps> = ({
@@ -14,6 +15,7 @@ export const RemainingTimeDisplay: React.FC<RemainingTimeDisplayProps> = ({
   scheduledResolution,
   isPaused,
   className,
+  showResolutionLabel = false,
 }) => {
   if (isPaused) {
     return (
@@ -40,7 +42,15 @@ export const RemainingTimeDisplay: React.FC<RemainingTimeDisplayProps> = ({
           {formatRemainingTime(remainingTime)}
         </span>
       </TooltipTrigger>
-      <TooltipContent side="bottom">
+      <TooltipContent
+        side="bottom"
+        className={showResolutionLabel ? "text-center" : undefined}
+      >
+        {showResolutionLabel && (
+          <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+            Phase resolves
+          </p>
+        )}
         <p>{formatDateTime(scheduledResolution)}</p>
       </TooltipContent>
     </Tooltip>
