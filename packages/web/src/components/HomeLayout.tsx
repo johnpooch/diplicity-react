@@ -67,6 +67,8 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
 
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
+  const isCommunityRoute = location.pathname === "/community";
+
   return (
     <SidebarProvider>
       <SafeAreaView
@@ -117,7 +119,12 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
           <SidebarInset className="flex min-w-0 flex-1 flex-col">
             {/* Center content - scrollable */}
             <div className="@container flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-[672px] py-4 px-2">
+              <div
+                className={cn(
+                  "mx-auto w-full max-w-[672px] py-4 px-2",
+                  isCommunityRoute && "flex h-full flex-col"
+                )}
+              >
                 {children}
               </div>
             </div>
