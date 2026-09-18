@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -32,6 +33,7 @@ from notification.utils import (
     FIREBASE_UNCONFIGURED_ERROR,
     NO_ACTIVE_DEVICE_ERROR,
     PUSH_TTL,
+    build_collapse_id,
     build_push_message,
     push_results_by_user,
     send_notification_to_users,
@@ -1295,3 +1297,32 @@ class TestBuildPushMessage:
 
         assert message.data == {"game_id": "1", "type": "game_start"}
         assert data == {"game_id": "1"}
+
+    def test_collapses_pushes_for_the_same_game_on_every_transport(self):
+        message = build_push_message("Game", "Started", "game_start", {"game_id": "a-game"})
+
+        collapse_id = build_collapse_id("a-game")
+        assert message.apns.headers["apns-collapse-id"] == collapse_id
+        assert message.webpush.headers["Topic"] == collapse_id
+        assert message.android.collapse_key == collapse_id
+        assert message.android.notification.tag == collapse_id
+
+    def test_pushes_for_different_games_collapse_separately(self):
+        one = build_push_message("Game", "Started", "game_start", {"game_id": "a-game"})
+        two = build_push_message("Game", "Started", "game_start", {"game_id": "another-game"})
+
+        assert one.apns.headers["apns-collapse-id"] != two.apns.headers["apns-collapse-id"]
+
+    def test_push_without_a_game_is_not_collapsed(self):
+        message = build_push_message("Game", "Started", "game_start")
+
+        assert "apns-collapse-id" not in message.apns.headers
+        assert "Topic" not in message.webpush.headers
+        assert message.android.collapse_key is None
+        assert message.android.notification is None
+
+    def test_collapse_id_fits_every_transport_limit(self):
+        collapse_id = build_collapse_id("the-assault-of-the-adroit-advertisement-65162925")
+
+        assert len(collapse_id) <= 32
+        assert re.fullmatch(r"[A-Za-z0-9_-]+", collapse_id)
