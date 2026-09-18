@@ -2940,6 +2940,9 @@ components:
         is_game_creator:
           type: boolean
           readOnly: true
+        is_admin:
+          type: boolean
+          readOnly: true
         nmr_extensions_remaining:
           type: integer
           readOnly: true
@@ -2965,6 +2968,7 @@ components:
       - commitment
       - eliminated
       - id
+      - is_admin
       - is_bot
       - is_current_user
       - is_game_creator

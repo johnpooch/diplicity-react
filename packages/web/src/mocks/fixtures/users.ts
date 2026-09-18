@@ -49,6 +49,7 @@ export const makeMember = (
   eliminated: false,
   kicked: false,
   isGameCreator: false,
+  isAdmin: false,
   nmrExtensionsRemaining: 2,
   civilDisorder: false,
   seekingReplacement: false,
