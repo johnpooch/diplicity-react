@@ -64,6 +64,7 @@ const NationSeatFlag: React.FC<NationSeatFlagProps> = ({
     <NationFlag
       flagUrl={shown.flagUrl}
       alt={shown.name}
+      size={size}
       className={sizeClass}
       color={shown.color}
     />

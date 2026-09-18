@@ -88,7 +88,7 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations, size = 40 }) => 
       style={{
         width: size,
         height: size,
-        boxShadow: isSingle ? `0 0 0 1px ${items[0].color}` : undefined,
+        boxShadow: isSingle ? `0 0 0 3px ${items[0].color}` : undefined,
       }}
     >
       <div

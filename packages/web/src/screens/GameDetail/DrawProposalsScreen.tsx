@@ -86,6 +86,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
         size="md"
         className="size-8 self-start"
         color={nationColor}
+        ringWidth={3}
       />
       <ItemContent>
         <div className="flex items-center justify-between">

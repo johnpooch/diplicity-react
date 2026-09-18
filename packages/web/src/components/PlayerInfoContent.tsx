@@ -63,14 +63,14 @@ const PlayerMedia: React.FC<{
     const nationColor = findNationColor(variant.nations, member.nation);
     return (
       <div className="relative size-12 shrink-0">
-        <div className="size-12 overflow-hidden rounded-full border">
-          <NationFlag
-            flagUrl={findNationFlagUrl(variant.nations, member.nation)}
-            alt={member.nation}
-            className="size-12"
-            color={nationColor}
-          />
-        </div>
+        <NationFlag
+          flagUrl={findNationFlagUrl(variant.nations, member.nation)}
+          alt={member.nation}
+          size="lg"
+          className="size-12"
+          color={nationColor}
+          ringWidth={3}
+        />
         {member.userId && (
           <span className="absolute -bottom-0.5 -right-0.5">
             <Avatar className="size-5 ring-2 ring-background">

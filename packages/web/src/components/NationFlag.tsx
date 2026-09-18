@@ -6,6 +6,7 @@ interface NationFlagProps {
   alt?: string;
   size?: "sm" | "md" | "lg";
   color?: string | null;
+  ringWidth?: 2 | 3;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -16,11 +17,18 @@ const sizeClasses = {
   lg: "size-6",
 };
 
+const ringWidths = {
+  sm: 2,
+  md: 2,
+  lg: 3,
+};
+
 const NationFlag: React.FC<NationFlagProps> = ({
   flagUrl,
   alt,
   size = "md",
   color,
+  ringWidth,
   className,
   style,
 }) => {
@@ -30,7 +38,14 @@ const NationFlag: React.FC<NationFlagProps> = ({
         src={flagUrl}
         alt={alt ?? ""}
         className={cn("rounded-full object-cover", sizeClasses[size], className)}
-        style={color ? { boxShadow: `0 0 0 1px ${color}`, ...style } : style}
+        style={
+          color
+            ? {
+                boxShadow: `0 0 0 ${ringWidth ?? ringWidths[size]}px ${color}`,
+                ...style,
+              }
+            : style
+        }
       />
     );
   }

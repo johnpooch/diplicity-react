@@ -36,7 +36,22 @@ vi.mock("@/api/generated/endpoints", () => ({
 }));
 
 vi.mock("@/components/NationFlag", () => ({
-  NationFlag: () => null,
+  NationFlag: ({
+    size,
+    ringWidth,
+    className,
+  }: {
+    size?: string;
+    ringWidth?: number;
+    className?: string;
+  }) => (
+    <div
+      data-testid="nation-flag"
+      data-size={size}
+      data-ring-width={ringWidth}
+      className={className}
+    />
+  ),
   findNationFlagUrl: () => null,
   findNationColor: () => null,
   getContrastColor: () => "#ffffff",
@@ -178,6 +193,43 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.getAllByText("(Bot)")).toHaveLength(1);
+  });
+
+  it("shows the nation above the player name in active games", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    const nation = screen.getByText("England");
+    const playerName = screen.getByText("Alice");
+    expect(
+      nation.compareDocumentPosition(playerName) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it("shows large player flags with an unclipped 3px ring", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    const flag = screen.getByTestId("nation-flag");
+    expect(flag).toHaveAttribute("data-size", "lg");
+    expect(flag).toHaveAttribute("data-ring-width", "3");
+    expect(flag.parentElement).not.toHaveClass("overflow-hidden");
   });
 
   it("shows an admin label for the member holding admin rights only", () => {

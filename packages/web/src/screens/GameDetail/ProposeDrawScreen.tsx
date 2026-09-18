@@ -95,6 +95,7 @@ const ProposeDrawScreen: React.FC = () => {
                         size="md"
                         className="size-10"
                         color={variant ? findNationColor(variant.nations, member.nation) : null}
+                        ringWidth={3}
                       />
                     </ItemMedia>
                     <ItemContent>
@@ -115,6 +116,7 @@ const ProposeDrawScreen: React.FC = () => {
                         size="md"
                         className="size-10"
                         color={variant ? findNationColor(variant.nations, member.nation) : null}
+                        ringWidth={3}
                       />
                     </ItemMedia>
                     <ItemContent>
