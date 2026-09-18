@@ -29,6 +29,7 @@ import {
 } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
+import { formatMessageTime } from "@/utils/formatMessageTime";
 import {
   useGameRetrieveSuspense,
   useUserRetrieveSuspense,
@@ -56,18 +57,6 @@ type MessageDisplayItem = {
   isCurrentUser: boolean;
   showAvatar: boolean;
   formattedTime: string;
-};
-
-const formatMessageTime = (createdAt: string): string => {
-  const date = new Date(createdAt);
-  const today = new Date();
-  const isToday =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (isToday) return time;
-  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 };
 
 const buildMessageItems = (

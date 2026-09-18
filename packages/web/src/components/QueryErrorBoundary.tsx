@@ -57,6 +57,7 @@ interface ErrorBoundaryClassProps {
   fallback?: ReactNode;
   onReset?: () => void;
   renderFallback?: (error: Error, onReset: () => void) => ReactNode;
+  reportErrors?: boolean;
 }
 
 interface ErrorBoundaryClassState {
@@ -74,10 +75,14 @@ class ErrorBoundaryClass extends Component<
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryClassState {
-    if (!isNetworkError(error) && !isNotFoundError(error)) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    const reportErrors = this.props.reportErrors ?? true;
+    if (reportErrors && !isNetworkError(error) && !isNotFoundError(error)) {
       Sentry.captureException(error);
     }
-    return { hasError: true, error };
   }
 
   handleReset = () => {
@@ -111,12 +116,14 @@ interface QueryErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
   renderFallback?: (error: Error, onReset: () => void) => ReactNode;
+  reportErrors?: boolean;
 }
 
 const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
   children,
   fallback,
   renderFallback,
+  reportErrors,
 }) => {
   const { reset } = useQueryErrorResetBoundary();
 
@@ -125,6 +132,7 @@ const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
       onReset={reset}
       fallback={fallback}
       renderFallback={renderFallback}
+      reportErrors={reportErrors}
     >
       {children}
     </ErrorBoundaryClass>
