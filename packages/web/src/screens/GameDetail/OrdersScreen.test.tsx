@@ -463,6 +463,42 @@ describe("OrdersScreen delete order button", () => {
 
     expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
   });
+
+  it("uses a long-tailed upward arrow for movement orders", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        target: { id: "nth", name: "North Sea" },
+        orderType: "Move",
+        summary: "Move to North Sea",
+        resolution: null,
+      },
+    ]);
+
+    const { container } = renderOrdersScreen();
+
+    expect(container.querySelector(".lucide-move-up")).toBeInTheDocument();
+    expect(container.querySelector(".lucide-arrow-up")).not.toBeInTheDocument();
+    expect(container.querySelector(".lucide-move-up-right")).not.toBeInTheDocument();
+  });
+
+  it("keeps support order arrows pointing upward", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        target: { id: "nth", name: "North Sea" },
+        orderType: "Support",
+        summary: "Support North Sea",
+        resolution: null,
+      },
+    ]);
+
+    const { container } = renderOrdersScreen();
+
+    expect(container.querySelector(".lucide-merge")).not.toHaveClass("rotate-90");
+  });
 });
 
 describe("OrdersScreen no orders required (active phase, has a member)", () => {
@@ -570,6 +606,18 @@ describe("OrdersScreen historical multi-nation view", () => {
     await userEvent.click(franceHeading);
 
     expect(screen.getByText("Paris")).toBeInTheDocument();
+  });
+
+  it("styles collapsible nation headings as interactive controls", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /france/i })).toHaveClass(
+      "cursor-pointer",
+      "rounded-md",
+      "px-2",
+      "py-1.5",
+      "hover:bg-sidebar-accent/50"
+    );
   });
 });
 
