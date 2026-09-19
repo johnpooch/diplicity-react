@@ -828,6 +828,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
+  /game/{gameId}/muster/:
+    post:
+      operationId: gameMusterCreate
+      description: Confirm the requesting user's seat in a mustering game.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
   /game/{gameId}/options/:
     get:
       operationId: gameOptionsRetrieve
