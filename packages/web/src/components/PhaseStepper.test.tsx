@@ -1,8 +1,17 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { PhaseStepperTitle, PhaseStepperActions } from "./PhaseStepper";
+
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+beforeAll(() => vi.stubGlobal("ResizeObserver", ResizeObserverMock));
+afterAll(() => vi.unstubAllGlobals());
 
 const mockNavigate = vi.fn();
 
