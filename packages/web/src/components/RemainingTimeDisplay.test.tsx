@@ -1,13 +1,52 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import { TooltipProvider } from "./ui/tooltip";
+
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+beforeAll(() => vi.stubGlobal("ResizeObserver", ResizeObserverMock));
+afterAll(() => vi.unstubAllGlobals());
 
 const renderWithTooltip = (ui: React.ReactElement) =>
   render(<TooltipProvider>{ui}</TooltipProvider>);
 
 describe("RemainingTimeDisplay", () => {
   describe("Formatted remaining time", () => {
+    it("labels the scheduled resolution in the tooltip", async () => {
+      renderWithTooltip(
+        <RemainingTimeDisplay
+          remainingTime={1800}
+          scheduledResolution="2026-02-07T21:00:00Z"
+          showResolutionLabel
+        />
+      );
+
+      await userEvent.hover(screen.getByText("30m remaining"));
+
+      expect(await screen.findAllByText("Phase resolves")).not.toHaveLength(0);
+    });
+
+    it("does not label shared deadline tooltips by default", async () => {
+      renderWithTooltip(
+        <RemainingTimeDisplay
+          remainingTime={1800}
+          scheduledResolution="2026-02-07T21:00:00Z"
+        />
+      );
+
+      await userEvent.hover(screen.getByText("30m remaining"));
+
+      expect(await screen.findByRole("tooltip")).not.toHaveTextContent(
+        "Phase resolves"
+      );
+    });
+
     it("renders minutes remaining for short durations", () => {
       renderWithTooltip(
         <RemainingTimeDisplay
