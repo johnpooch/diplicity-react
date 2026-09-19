@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Hexagon,
   Merge,
-  MoveUpRight,
+  MoveUp,
   Plus,
   RedoDot,
   X,
@@ -30,7 +30,6 @@ import { ListItem, ListSection } from "@/components/ui/list";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { NationBadge } from "@/components/NationBadge";
-import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
@@ -159,8 +158,8 @@ const buildNationGroups = (
 };
 
 const orderIcons: Partial<Record<OrderTypeEnum, LucideIcon>> = {
-  Move: MoveUpRight,
-  MoveViaConvoy: MoveUpRight,
+  Move: MoveUp,
+  MoveViaConvoy: MoveUp,
   Hold: Hexagon,
   Support: Merge,
   Convoy: RedoDot,
@@ -313,7 +312,7 @@ const NationHeading: React.FC<{
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className="flex w-full items-center justify-between gap-3 text-sm font-medium text-muted-foreground"
+      className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {content}
     </button>
@@ -356,7 +355,7 @@ const NationOrdersSections: React.FC<{
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {orderedGroups.map(({ nation, member, items }) => {
         const open = !collapsible || openNations.includes(nation);
         return (
@@ -527,14 +526,6 @@ const OrdersScreen: React.FC = () => {
     }
   };
 
-  const handleNavigateToGameInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
-  };
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   const nationGroups = buildNationGroups(
     isActivePhase,
     safePhaseStates,
@@ -586,16 +577,7 @@ const OrdersScreen: React.FC = () => {
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={<PhaseStepperTitle />}
-        rightButton={
-          <div className="flex items-center gap-1">
-            <PhaseStepperActions />
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
-          </div>
-        }
+        rightButton={<PhaseStepperActions />}
         onNavigateBack={() => navigate("/")}
       />
       <div className="flex-1 overflow-y-auto">
@@ -667,7 +649,7 @@ const OrdersScreen: React.FC = () => {
           </Panel.Content>
 
           {!isCurrentMemberInCivilDisorder && (rightFooterButton || showDrawProposalsButton) && (
-            <Panel.Footer divider>
+            <Panel.Footer>
               <div className="flex w-full items-center">
                 <div className="flex-1">
                   {showDrawProposalsButton && (
