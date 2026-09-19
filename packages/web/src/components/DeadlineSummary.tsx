@@ -82,6 +82,48 @@ function formatTime12Hour(time: string): string {
   return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
 }
 
+export function describePhaseTiming(
+  game: DeadlineSummaryGame,
+  phase: "movement" | "retreat"
+): string {
+  const {
+    movementPhaseDuration,
+    retreatPhaseDuration,
+    deadlineMode = "duration",
+    fixedDeadlineTime,
+    fixedDeadlineTimezone,
+    movementFrequency,
+    retreatFrequency,
+  } = game;
+
+  if (deadlineMode === "fixed_time") {
+    const frequency =
+      phase === "movement" ? movementFrequency : retreatFrequency ?? movementFrequency;
+    if (!fixedDeadlineTime || !fixedDeadlineTimezone || !frequency) {
+      return "Not set";
+    }
+
+    const tz = TIMEZONE_ABBREVS[fixedDeadlineTimezone] ?? fixedDeadlineTimezone;
+
+    if (isSubDaily(frequency)) {
+      if (phase === "movement") {
+        const firstEnd = formatTime12Hour(firstPhaseEndTime(fixedDeadlineTime, frequency));
+        return `Ends at ${firstEnd} ${tz}, then every hour`;
+      }
+      const intervalLabel = FREQUENCY_INTERVAL_LABELS[frequency] ?? frequency;
+      return `${intervalLabel} after Movement resolves`;
+    }
+
+    const label = FREQUENCY_LABELS[frequency] ?? frequency;
+    const time = formatTime12Hour(fixedDeadlineTime);
+    return `${label} at ${time} ${tz}`;
+  }
+
+  const duration =
+    phase === "movement" ? movementPhaseDuration : retreatPhaseDuration ?? movementPhaseDuration;
+  return duration ?? "No automatic deadline";
+}
+
 export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
   const {
     movementPhaseDuration,
