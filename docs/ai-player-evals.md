@@ -473,14 +473,33 @@ they yield counts rather than scores.
 
 ### Calibration protocol
 
-1. 100 to 150 human-labelled examples, split train / dev / test.
-2. Iterate the judge prompt on dev only.
+1. 100 to 150 human-labelled examples, split **two ways**: dev and test, roughly evenly.
+2. Iterate the judge prompt on dev.
 3. Report Cohen's kappa on test.
 4. **Double-label a subset** so the human-human ceiling is known. A judge at kappa 0.6 is
    good if humans agree at 0.65 and useless if they agree at 0.95. This is the most-skipped
    step and the one that makes judge numbers mean anything.
 5. Use a different model family for the judge than the one being evaluated, or at minimum
    test for self-preference bias.
+
+**Two splits, not three.** The usual train / dev / test split does not transfer here.
+Those three sets exist because train fits parameters, dev selects hyperparameters and
+architecture, and test estimates generalisation. Nothing is fitted by gradient in an LLM
+judge, so train has no job: the artefact being fitted is the prompt, and it is fitted by
+hand against a set that gets looked at. That is one set, not two. At 100 to 150 examples a
+three-way split also leaves roughly 40 to 50 per set, and kappa on n = 40 has a confidence
+interval wide enough to hide most of what we want to detect.
+
+**The one exception is few-shot.** If labelled examples are embedded in the judge prompt,
+they are the closest thing to training data and cannot also be measured on. Then three sets
+become real: train is the examples living in the prompt, dev is what wording and example
+selection are iterated against, test stays untouched. Without few-shot examples in the
+prompt, a third split is cargo cult.
+
+**Budget the looks at test.** It degrades every time it is read, even with no automated
+search: a human who checks test each round and keeps the best-scoring variant has fitted it
+by hand. Check test when the judge looks done, not every iteration. If it ends up being
+tuned against, treat the set as burned and label more.
 
 ### Building the rubric inductively
 
