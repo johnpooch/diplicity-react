@@ -273,10 +273,26 @@ export const createAuthenticatedRoutes = (
                 ),
               },
               {
+                path: "chat/channel/:channelId/rename",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ChannelRenameScreen />
+                  </Suspense>
+                ),
+              },
+              {
                 path: "game-info",
                 element: (
                   <Suspense fallback={<RouteFallback />}>
                     <GameDetail.GameInfoScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "game-info/variant",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.VariantDetailsScreen />
                   </Suspense>
                 ),
               },

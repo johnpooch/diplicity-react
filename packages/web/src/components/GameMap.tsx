@@ -1,5 +1,6 @@
 import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -69,6 +70,11 @@ const GameMap: React.FC = () => {
   }>();
   const selectedPhase = Number(phaseId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sourceParam = searchParams.get("source");
+  const [focusProvince, setFocusProvince] = useState<string | null>(null);
+  const [focusToken, setFocusToken] = useState(0);
+
   const queryClient = useQueryClient();
 
   const { data: game } = useGameRetrieve(gameId);
@@ -126,6 +132,14 @@ const GameMap: React.FC = () => {
     return [];
   }, [isWizardActive, wizard.nextField, wizard.choices]);
 
+  const selectedProvinces = useMemo(() => {
+    const source = wizard.resolvedSelections["source"];
+    if (!source) return wizard.selectedArray;
+    return wizard.selectedArray.includes(source)
+      ? wizard.selectedArray
+      : [...wizard.selectedArray, source];
+  }, [wizard.resolvedSelections, wizard.selectedArray]);
+
   const renderableProvinces = useMemo(() => {
     if (!variant) return [];
     return determineRenderableProvinces(variant.provinces, highlightedIds);
@@ -178,6 +192,30 @@ const GameMap: React.FC = () => {
       }
     }
   };
+
+  useEffect(() => {
+    if (!sourceParam) return;
+    if (wizard.nextField === "source" && wizard.choices.some((c) => c.id === sourceParam)) {
+      wizard.select(sourceParam);
+      setFocusProvince(sourceParam);
+      setFocusToken((token) => token + 1);
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setMenuPosition({ x: rect.width / 2, y: rect.height / 2 });
+      }
+    }
+    // Always clear once read, even when the wizard wasn't ready for it (e.g.
+    // mid-flow on a different field) — otherwise it lingers and hijacks the
+    // wizard's next "source" step instead of this one.
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("source");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [sourceParam, wizard, setSearchParams]);
 
   const handleProvinceClick = (
     province: string,
@@ -285,11 +323,14 @@ const GameMap: React.FC = () => {
             variant={variant}
             phase={phase}
             orders={displayOrders}
-            selected={wizard.selectedArray}
+            selected={selectedProvinces}
             onClickProvince={handleProvinceClick}
             renderableProvinces={renderableProvinces}
             highlighted={highlightedIds}
             civilDisorderNations={civilDisorderNations}
+            focus={focusProvince ? [focusProvince] : undefined}
+            focusKeepZoom
+            focusToken={focusToken}
           />
           <FloatingMenu
             open={showMenu}

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
@@ -777,6 +779,8 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["losses"] == 0
         assert response.data["nmr_rate"] == 0.0
         assert response.data["cd_rate"] == 0.0
+        assert response.data["favourite_nation"] is None
+        assert response.data["recent_results"] == []
 
     @pytest.mark.django_db
     def test_stats_with_completed_games(
@@ -954,6 +958,8 @@ class TestPublicUserProfileRetrieveView:
 
         assert response.data["total_games"] == 0
         assert response.data["solo_wins"] == 0
+        assert response.data["favourite_nation"] is None
+        assert response.data["recent_results"] == []
 
     @pytest.mark.django_db
     def test_draw_with_solo_victory_counted_as_draw_not_solo_win(
@@ -1023,6 +1029,8 @@ class TestPublicUserProfileRetrieveView:
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 0
+        assert response.data["favourite_nation"] is None
+        assert response.data["recent_results"] == []
 
     @pytest.mark.django_db
     def test_retreat_phase_nmrs_count_toward_nmr_rate(
@@ -1088,6 +1096,296 @@ class TestPublicUserProfileRetrieveView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == secondary_user.profile.name
+
+    @pytest.mark.django_db
+    def test_favourite_nation_is_most_played_nation(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="favnationuser", email="favnation@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Fav Nation User")
+
+        for i in range(3):
+            game = Game.objects.create(
+                name=f"England Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
+            )
+            game.members.create(user=user, nation=classical_england_nation)
+
+        for i in range(2):
+            game = Game.objects.create(
+                name=f"France Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
+            )
+            game.members.create(user=user, nation=classical_france_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["favourite_nation"]["nation"]["name"] == "England"
+        assert response.data["favourite_nation"]["games_played"] == 3
+
+    @pytest.mark.django_db
+    def test_favourite_nation_tie_breaks_alphabetically(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="tienationuser", email="tienation@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Tie Nation User")
+
+        for nation in [classical_france_nation, classical_england_nation]:
+            for i in range(2):
+                game = Game.objects.create(
+                    name=f"{nation.name} Game {i}",
+                    variant=classical_variant,
+                    status=GameStatus.COMPLETED,
+                    finished_at=timezone.now(),
+                )
+                game.members.create(user=user, nation=nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["favourite_nation"]["nation"]["name"] == "England"
+        assert response.data["favourite_nation"]["games_played"] == 2
+
+    @pytest.mark.django_db
+    def test_total_games_includes_active_games(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="activegamesuser", email="activegames@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Active Games User")
+
+        completed_game = Game.objects.create(
+            name="Completed Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        completed_game.members.create(user=user, nation=classical_england_nation)
+
+        active_game = Game.objects.create(
+            name="Active Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        active_game.members.create(user=user, nation=classical_france_nation)
+
+        pending_game = Game.objects.create(
+            name="Pending Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        pending_game.members.create(user=user)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 2
+        assert response.data["losses"] == 1
+
+    @pytest.mark.django_db
+    def test_favourite_nation_counts_active_games(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="activefavnationuser", email="activefavnation@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Active Fav Nation User")
+
+        completed_game = Game.objects.create(
+            name="Completed Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        completed_game.members.create(user=user, nation=classical_france_nation)
+
+        for i in range(2):
+            active_game = Game.objects.create(
+                name=f"Active Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            active_game.members.create(user=user, nation=classical_england_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["favourite_nation"]["nation"]["name"] == "England"
+        assert response.data["favourite_nation"]["games_played"] == 2
+        assert response.data["total_games"] == 3
+
+    @pytest.mark.django_db
+    def test_reliability_tier_ignores_active_games_in_new_player_threshold(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="activereliabilityuser", email="activereliability@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Active Reliability User")
+
+        for i in range(3):
+            game = Game.objects.create(
+                name=f"Completed Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
+            )
+            game.members.create(user=user, nation=classical_england_nation)
+
+        for i in range(9):
+            game = Game.objects.create(
+                name=f"Active Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=user, nation=classical_england_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 12
+        assert response.data["reliability_tier"] == "new"
+
+    @pytest.mark.django_db
+    def test_recent_results_ordered_most_recent_first_and_limited(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="recentresultsuser", email="recentresults@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Recent Results User")
+
+        base_time = timezone.now()
+        for i in range(7):
+            game = Game.objects.create(
+                name=f"Recent Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+                finished_at=base_time - timedelta(days=i),
+            )
+            game.members.create(user=user, nation=classical_england_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        results = response.data["recent_results"]
+        assert len(results) == 5
+        assert [r["game_name"] for r in results] == [
+            f"Recent Game {i}" for i in range(5)
+        ]
+
+    @pytest.mark.django_db
+    def test_recent_results_outcome_labels(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="outcomeuser", email="outcome@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Outcome User")
+
+        won_game = Game.objects.create(
+            name="Won Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        won_member = won_game.members.create(user=user, nation=classical_england_nation)
+        won_phase = won_game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        won_victory = Victory.objects.create(game=won_game, winning_phase=won_phase)
+        won_victory.members.add(won_member)
+
+        drew_game = Game.objects.create(
+            name="Drew Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        drew_member = drew_game.members.create(
+            user=user, nation=classical_england_nation, drew=True
+        )
+        other_drew_member = drew_game.members.create(
+            nation=classical_france_nation, drew=True
+        )
+        drew_phase = drew_game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        draw_victory = Victory.objects.create(game=drew_game, winning_phase=drew_phase)
+        draw_victory.members.add(drew_member, other_drew_member)
+
+        eliminated_game = Game.objects.create(
+            name="Eliminated Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        eliminated_game.members.create(
+            user=user, nation=classical_england_nation, eliminated=True
+        )
+
+        survived_game = Game.objects.create(
+            name="Survived Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        survived_game.members.create(user=user, nation=classical_england_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        outcomes = {r["game_name"]: r["outcome"] for r in response.data["recent_results"]}
+        assert outcomes["Won Game"] == "won"
+        assert outcomes["Drew Game"] == "drew"
+        assert outcomes["Eliminated Game"] == "eliminated"
+        assert outcomes["Survived Game"] == "survived"
 
 
 class TestTierAllowsMinReliability:

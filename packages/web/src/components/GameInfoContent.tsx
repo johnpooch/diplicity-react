@@ -1,75 +1,58 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { BookOpen, Calendar, Clock, Users, Flag, Lock, Unlock, User, Map, Trophy, Pause, Shield, ShieldCheck, MessageSquare, MessageSquareOff } from "lucide-react";
+import {
+  Calendar,
+  ChevronRight,
+  Flag,
+  Lock,
+  MessageCircleOff,
+  Pause,
+  Share2,
+  ShieldPlus,
+  Trophy,
+} from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { getNationSeatState } from "@/components/NationSeat";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
+import { GameAdminActions } from "@/components/GameAdminActions";
+import { CloneToSandboxAction } from "@/components/CloneToSandboxAction";
+import { DeleteGameAction } from "@/components/DeleteGameAction";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
-import { DeadlineSummary } from "@/components/DeadlineSummary";
+import { describePhaseTiming } from "@/components/DeadlineSummary";
+import { MapView } from "@/components/MapView";
+import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
+import { buildVariantInfoRows } from "@/components/variantInfoRows";
 import {
   useGameRetrieveSuspense,
-  useGamePhaseRetrieve,
   useUserRetrieveSuspense,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
-import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
-import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
-import { CardTitle } from "@/components/ui/card";
-import {
-  ScreenCard,
-  ScreenCardContent,
-  ScreenCardHeader,
-} from "@/components/ui/screen-card";
+import { formatDateTime, formatTimeAgo } from "@/util";
 import { useRequiredParams } from "@/hooks";
 
-interface MetadataRowProps {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}
-
-const MetadataRow: React.FC<MetadataRowProps> = ({ icon, label, value }) => {
-  return (
-    <div className="flex items-center justify-between py-3 px-2">
-      <div className="flex items-center gap-3">
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="text-sm">{label}</span>
-      </div>
-      <div className="text-sm text-muted-foreground">{value}</div>
-    </div>
-  );
-};
-
-interface MetadataTextRowProps {
-  icon: React.ReactNode;
-  label: string;
-  text: string;
-}
-
-const MetadataTextRow: React.FC<MetadataTextRowProps> = ({ icon, label, text }) => {
-  return (
-    <div className="py-3 px-2">
-      <div className="flex items-center gap-3 mb-1">
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="text-sm">{label}</span>
-      </div>
-      <p className="text-sm text-muted-foreground whitespace-pre-line pl-7">{text}</p>
-    </div>
-  );
-};
-
 interface GameInfoContentProps {
-  onNavigateToPlayerInfo: () => void;
   pendingAction?: React.ReactNode;
+  onOpenVariantDetails?: () => void;
+  onShare?: () => void;
+  showTitle?: boolean;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
-  onNavigateToPlayerInfo,
   pendingAction,
+  onOpenVariantDetails,
+  onShare,
+  showTitle = true,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
@@ -81,13 +64,9 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const isPending = game.status === "pending";
   const isGameMaster =
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
-
-  const currentPhaseId = getCurrentPhaseId(game);
-  const { data: currentPhase } = useGamePhaseRetrieve(
-    gameId,
-    currentPhaseId ?? 0,
-    { query: { enabled: !!currentPhaseId } }
-  );
+  const canShowAdminActions = game.canManage && game.status === "active";
+  const canCloneToSandbox = !game.sandbox && game.status === "active";
+  const canDeleteGame = game.canDelete;
 
   const nationSeatAlert = isPending && currentMember && (
     <Alert>
@@ -119,168 +98,194 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
     </Alert>
   );
 
+  const phaseDeadlineRows: SettingsRow[] = [
+    {
+      key: "movement",
+      label: "Movement",
+      value: describePhaseTiming(game, "movement"),
+    },
+    {
+      key: "retreat",
+      label: "Retreat/Adjustment",
+      value: describePhaseTiming(game, "retreat"),
+    },
+    {
+      key: "extensions",
+      label: "Deadline extensions",
+      value:
+        game.nmrExtensionsAllowed > 0
+          ? `${game.nmrExtensionsAllowed} per player`
+          : "None",
+      info: "If a player does not submit orders on time, a deadline extension is used.",
+    },
+  ];
+
+  const settingsRows: SettingsRow[] = [
+    {
+      key: "created",
+      icon: Calendar,
+      label: "Created",
+      value: formatTimeAgo(game.createdAt),
+    },
+    ...(game.private
+      ? [{ key: "private", icon: Lock, label: "Private" }]
+      : []),
+    ...(game.pressType === "no_press"
+      ? [
+          {
+            key: "gunboat",
+            icon: MessageCircleOff,
+            label: "Gunboat",
+            info: "Player names are hidden and chat is disabled.",
+          },
+        ]
+      : []),
+    ...(game.commitmentRequirement === "committed"
+      ? [
+          {
+            key: "commitment",
+            icon: ShieldPlus,
+            label: "High commitment players",
+          },
+        ]
+      : []),
+    ...(game.isPaused && game.pausedAt
+      ? [
+          {
+            key: "paused",
+            icon: Pause,
+            label: "Paused since",
+            value: formatDateTime(game.pausedAt),
+          },
+        ]
+      : []),
+    ...(game.status === "completed" && game.victory
+      ? [
+          {
+            key: "victory",
+            icon: Trophy,
+            label: game.victory.type === "solo" ? "Winner" : "Draw",
+            value: game.victory.members.map(m => m.name).join(", "),
+          },
+        ]
+      : []),
+  ];
+
+  const variantDialogRows: SettingsRow[] = variant
+    ? buildVariantInfoRows(variant)
+    : [];
+
+  const variantSummary = variant && (
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <h3 className="truncate font-semibold">{variant.name}</h3>
+      {variant.description && (
+        <p className="truncate text-sm text-muted-foreground">
+          {variant.description}
+        </p>
+      )}
+      {variant.rules && (
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Trophy className="size-4 shrink-0" />
+          <span className="truncate">{variant.rules}</span>
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
+      <GameStatusAlerts
+        game={game}
+        variant={variant}
+        action={pendingAction}
+        adminAction={
+          canShowAdminActions ? <GameAdminActions game={game} /> : undefined
+        }
+      />
+      {(onShare || canCloneToSandbox || canDeleteGame) && (
+        <div className="flex flex-wrap gap-2">
+          {onShare && (
+            <Button size="sm" variant="outline" className="flex-1" onClick={onShare}>
+              <Share2 />
+              Share game
+            </Button>
+          )}
+          {canCloneToSandbox ? (
+            <CloneToSandboxAction game={game} />
+          ) : (
+            canDeleteGame && <DeleteGameAction game={game} />
+          )}
+        </div>
+      )}
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
       {nationSeatAlert}
-      <ScreenCard>
-        <ScreenCardHeader>
-          <CardTitle>{game.name}</CardTitle>
-        </ScreenCardHeader>
-        <ScreenCardContent>
-          <MetadataRow
-            icon={<Map className="size-4" />}
-            label="Variant"
-            value={variant?.name ?? <Skeleton className="h-4 w-24" />}
-          />
-          {variant?.description && (
-            <MetadataTextRow
-              icon={<Map className="size-4" />}
-              label="Description"
-              text={variant.description}
-            />
-          )}
-          <MetadataRow
-            icon={<Clock className="size-4" />}
-            label="Created"
-            value={formatTimeAgo(game.createdAt)}
-          />
-          <div className="py-3 px-2">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="text-muted-foreground"><Calendar className="size-4" /></div>
-              <span className="text-sm">Phase deadlines</span>
-            </div>
-            <div className="text-sm text-muted-foreground pl-7">
-              <DeadlineSummary game={game} />
-            </div>
-          </div>
-          <MetadataRow
-            icon={
-              game.private ? (
-                <Lock className="size-4" />
-              ) : (
-                <Unlock className="size-4" />
-              )
-            }
-            label="Visibility"
-            value={game.private ? "Private" : "Public"}
-          />
-          <MetadataRow
-            icon={
-              game.pressType === "no_press" ? (
-                <MessageSquareOff className="size-4" />
-              ) : (
-                <MessageSquare className="size-4" />
-              )
-            }
-            label="Press type"
-            value={game.pressType === "no_press" ? "No Press" : "Full Press"}
-          />
-          {game.status === "completed" && game.victory && (
-            <MetadataRow
-              icon={<Trophy className="size-4" />}
-              label={game.victory.type === "solo" ? "Winner" : "Draw"}
-              value={game.victory.members.map(m => m.name).join(", ")}
-            />
-          )}
-          {game.isPaused && game.pausedAt && (
-            <MetadataRow
-              icon={<Pause className="size-4" />}
-              label="Paused since"
-              value={formatDateTime(game.pausedAt)}
-            />
-          )}
-          {game.nmrExtensionsAllowed > 0 && (
-            <MetadataRow
-              icon={<Shield className="size-4" />}
-              label="NMR extensions"
-              value={`${game.nmrExtensionsAllowed} per player`}
-            />
-          )}
-          <MetadataRow
-            icon={<ShieldCheck className="size-4" />}
-            label="Commitment"
-            value={
-              game.commitmentRequirement === "committed"
-                ? "Committed players only"
-                : "Open"
-            }
-          />
-          <MetadataRow
-            icon={<Users className="size-4" />}
-            label="Players"
-            value={
-              variant ? (
+      {showTitle && (
+        <h1 className="truncate text-xl font-semibold leading-9">
+          {game.name}
+        </h1>
+      )}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">Variant</h2>
+        {variant ? (
+          <Card className="overflow-hidden py-0">
+            <CardContent className="flex flex-row p-0">
+              <div className="w-1/3 shrink-0 overflow-hidden">
+                <MapView
+                  mode="static"
+                  variant={variant}
+                  phase={variant.templatePhase}
+                  cover
+                  className="aspect-video h-full w-full"
+                />
+              </div>
+              {onOpenVariantDetails ? (
                 <button
-                  onClick={onNavigateToPlayerInfo}
-                  className="flex -space-x-2"
+                  type="button"
+                  onClick={onOpenVariantDetails}
+                  className="flex min-w-0 flex-1 items-center gap-3 p-4 text-left"
                 >
-                  {game.members.slice(0, 7).map(member => (
-                    <Avatar
-                      key={member.id}
-                      className="h-8 w-8 border-2 border-background"
-                    >
-                      <AvatarImage src={member.picture ?? undefined} />
-                      <AvatarFallback>
-                        {member.name?.[0]?.toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                  {game.members.length > 7 && (
-                    <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                      +{game.members.length - 7}
-                    </div>
-                  )}
+                  {variantSummary}
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </button>
               ) : (
-                <Skeleton className="h-8 w-24" />
-              )
-            }
-          />
-          <MetadataRow
-            icon={<Users className="size-4" />}
-            label="Number of nations"
-            value={
-              variant?.nations.length.toString() ?? (
-                <Skeleton className="h-4 w-8" />
-              )
-            }
-          />
-          <MetadataRow
-            icon={<Calendar className="size-4" />}
-            label="Start year"
-            value={
-              variant?.templatePhase.year?.toString() ?? (
-                <Skeleton className="h-4 w-12" />
-              )
-            }
-          />
-          <MetadataRow
-            icon={<User className="size-4" />}
-            label="Original author"
-            value={variant?.author ?? <Skeleton className="h-4 w-24" />}
-          />
-          {variant?.rules && (
-            <MetadataTextRow
-              icon={<BookOpen className="size-4" />}
-              label="Rules"
-              text={variant.rules}
-            />
-          )}
-          {variant && currentPhase ? (
-            <div className="w-full overflow-hidden rounded-lg">
-              <ExpandableMapPreview
-                variant={variant}
-                phase={currentPhase}
-                style={{ width: "100%" }}
-              />
-            </div>
-          ) : (
-            <Skeleton className="w-full h-64 rounded-lg" />
-          )}
-        </ScreenCardContent>
-      </ScreenCard>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center gap-3 p-4 text-left"
+                    >
+                      {variantSummary}
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{variant.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                      <SettingsTable rows={variantDialogRows} />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Skeleton className="h-28 w-full rounded-xl" />
+        )}
+      </section>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">
+          Phase deadlines
+        </h2>
+        <SettingsTable rows={phaseDeadlineRows} />
+      </section>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">
+          Game settings
+        </h2>
+        <SettingsTable rows={settingsRows} />
+      </section>
     </>
   );
 };

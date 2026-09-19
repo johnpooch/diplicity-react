@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 
@@ -83,6 +83,34 @@ const renderOrdersScreen = () => {
             path="/game/:gameId/phase/:phaseId/orders"
             element={<OrdersScreen />}
           />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+};
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="location">
+      {location.pathname}
+      {location.search}
+    </div>
+  );
+};
+
+const renderOrdersScreenWithLocation = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/game/game-1/phase/1/orders"]}>
+        <LocationProbe />
+        <Routes>
+          <Route
+            path="/game/:gameId/phase/:phaseId/orders"
+            element={<OrdersScreen />}
+          />
+          <Route path="/game/:gameId/phase/:phaseId" element={<div>Map screen</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -412,6 +440,10 @@ describe("OrdersScreen named coast display", () => {
 
 describe("OrdersScreen delete order button", () => {
   beforeEach(() => {
+    mockDeleteOrderMutation.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
     mockGameData.mockReturnValue({
       variantId: "classical",
@@ -451,7 +483,7 @@ describe("OrdersScreen delete order button", () => {
   });
 
   it("disables the delete button while a delete is pending", () => {
-    mockDeleteOrderMutation.mockReturnValueOnce({ mutateAsync: vi.fn(), isPending: true });
+    mockDeleteOrderMutation.mockReturnValue({ mutateAsync: vi.fn(), isPending: true });
 
     renderOrdersScreen();
 
@@ -462,6 +494,42 @@ describe("OrdersScreen delete order button", () => {
     renderOrdersScreen();
 
     expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
+  });
+
+  it("uses a long-tailed upward arrow for movement orders", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        target: { id: "nth", name: "North Sea" },
+        orderType: "Move",
+        summary: "Move to North Sea",
+        resolution: null,
+      },
+    ]);
+
+    const { container } = renderOrdersScreen();
+
+    expect(container.querySelector(".lucide-move-up")).toBeInTheDocument();
+    expect(container.querySelector(".lucide-arrow-up")).not.toBeInTheDocument();
+    expect(container.querySelector(".lucide-move-up-right")).not.toBeInTheDocument();
+  });
+
+  it("keeps support order arrows pointing upward", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        target: { id: "nth", name: "North Sea" },
+        orderType: "Support",
+        summary: "Support North Sea",
+        resolution: null,
+      },
+    ]);
+
+    const { container } = renderOrdersScreen();
+
+    expect(container.querySelector(".lucide-merge")).not.toHaveClass("rotate-90");
   });
 });
 
@@ -571,6 +639,18 @@ describe("OrdersScreen historical multi-nation view", () => {
 
     expect(screen.getByText("Paris")).toBeInTheDocument();
   });
+
+  it("styles collapsible nation headings as interactive controls", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /france/i })).toHaveClass(
+      "cursor-pointer",
+      "rounded-md",
+      "px-2",
+      "py-1.5",
+      "hover:bg-sidebar-accent/50"
+    );
+  });
 });
 
 describe("OrdersScreen historical phase with unordered units", () => {
@@ -612,5 +692,65 @@ describe("OrdersScreen historical phase with unordered units", () => {
     expect(screen.getByText(/Army Rome/)).toBeInTheDocument();
     expect(screen.getByText(/Army Venice/)).toBeInTheDocument();
     expect(screen.getAllByText("Order not provided")).toHaveLength(3);
+  });
+});
+
+describe("OrdersScreen order creation entry point", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember(),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+      },
+    ]);
+    mockOrdersData.mockReturnValue([]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+  });
+
+  it("sets the source search param without navigating away on desktop", async () => {
+    renderOrdersScreenWithLocation();
+
+    await userEvent.click(screen.getByRole("button", { name: /create order for london/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/game-1/phase/1/orders?source=lon"
+    );
+  });
+
+  it("navigates to the map screen with the source search param on mobile", async () => {
+    window.innerWidth = 500;
+
+    renderOrdersScreenWithLocation();
+
+    await userEvent.click(screen.getByRole("button", { name: /create order for london/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/game-1/phase/1?source=lon"
+    );
+
+    window.innerWidth = 1024;
+  });
+
+  it("does not make the row clickable when the order is already provided", () => {
+    mockOrdersData.mockReturnValue([
+      { nation: { name: "England" }, source: { id: "lon", name: "London" }, summary: "Hold" },
+    ]);
+
+    renderOrdersScreenWithLocation();
+
+    expect(
+      screen.queryByRole("button", { name: /create order for london/i })
+    ).not.toBeInTheDocument();
   });
 });

@@ -16,6 +16,8 @@ paths:
 
 In a cloud session (no Firebase, DEBUG off), a clean `git diff` shows only the `/devices/` + `FCMDevice` removal — that is environmental, not a stale-checkout signal. Do not commit that removal: satisfy the `_FIREBASE_PROJECT_ID` guard first with a throwaway service account (any `FIREBASE_PROJECT_ID` plus a locally generated RSA key in `FIREBASE_PRIVATE_KEY`), which `credentials.Certificate` accepts without contacting Google, and the generated schema then matches production.
 
+The `codegen` service carries `profiles: [tools]` in `docker-compose.yml` specifically so a bare `docker compose up` (or `docker compose build && docker compose up`) never runs it — local `.env` has `DJANGO_DEBUG=True` and no Firebase, so an unintended run silently reintroduces the `/devices/` removal and `/api/test-sentry/` addition into committed output. `docker compose up codegen` / `docker compose run codegen` still work: Compose activates a service's profile when it's targeted explicitly on the command line. Do not remove that `profiles` entry.
+
 After codegen, always run `npx tsc -b --noEmit` in `packages/web`. When codegen adds required fields to an existing type, grep `packages/web/src/` for inline objects of that type — especially in `src/mocks/` and test files — and add the new fields.
 
 Serializer class names become OpenAPI component names, which become type names in `endpoints.ts` and `harness/generated/api.py`. Renaming a serializer is a codegen change — rerun codegen and `npx tsc -b --noEmit` in the same commit. Renaming a URL path or `name=` is a wire change and breaks shipped mobile builds; treat it separately.

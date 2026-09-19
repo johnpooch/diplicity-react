@@ -122,7 +122,7 @@ describe("PhaseStepperTitle", () => {
     expect(screen.getByText("Resolved")).toBeInTheDocument();
   });
 
-  it("shows the remaining time, not Resolved, for the active phase", () => {
+  it("shows the remaining time and resolution label for the active phase", async () => {
     mockPhaseData.mockReturnValue({
       name: "Fall 1901",
       status: "active",
@@ -133,6 +133,11 @@ describe("PhaseStepperTitle", () => {
     });
     renderAtRoute(<PhaseStepperTitle />, "/game/1/phase/6");
     expect(screen.queryByText("Resolved")).not.toBeInTheDocument();
+    const remainingTime = screen.getByText("1h 0m remaining");
+    expect(remainingTime).toHaveClass("block", "w-fit");
+
+    await userEvent.hover(remainingTime);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Phase resolves");
   });
 
   it("opens a phase list marking the active phase Current, and navigates on selection", async () => {

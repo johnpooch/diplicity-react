@@ -61,20 +61,13 @@ const NationSeatFlag: React.FC<NationSeatFlagProps> = ({
   const sizeClass = size === "sm" ? "size-4" : "size-8";
 
   const flag = shown ? (
-    shown.flagUrl ? (
-      <NationFlag
-        flagUrl={shown.flagUrl}
-        alt={shown.name}
-        className={sizeClass}
-        color={shown.color}
-      />
-    ) : (
-      <span
-        className={cn("rounded-full", sizeClass)}
-        style={{ backgroundColor: shown.color }}
-        aria-label={shown.name}
-      />
-    )
+    <NationFlag
+      flagUrl={shown.flagUrl}
+      alt={shown.name}
+      size={size}
+      className={sizeClass}
+      color={shown.color}
+    />
   ) : (
     <span
       className={cn(

@@ -1,6 +1,8 @@
 services:
   codegen:
     container_name: diplicity-codegen
+    profiles:
+      - tools
     build:
       context: .
       dockerfile: Dockerfile

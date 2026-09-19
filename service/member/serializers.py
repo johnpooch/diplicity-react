@@ -92,6 +92,7 @@ class MemberSerializer(BaseMemberSerializer):
     eliminated = serializers.BooleanField(read_only=True)
     kicked = serializers.BooleanField(read_only=True)
     is_game_creator = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
@@ -115,6 +116,13 @@ class MemberSerializer(BaseMemberSerializer):
             return False
         game = self._get_game(obj)
         return obj.user_id is not None and obj.user_id == game.created_by_id
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_is_admin(self, obj):
+        if self._is_masked(obj):
+            return False
+        game = self._get_game(obj)
+        return obj.user_id is not None and obj.user_id == game.admin_id
 
 
 class MemberJoinSerializer(MemberSerializer):

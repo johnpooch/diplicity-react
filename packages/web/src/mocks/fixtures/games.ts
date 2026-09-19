@@ -33,6 +33,7 @@ const makeActiveMembers = (): Member[] =>
   NATION_ASSIGNMENT.map(([playerIndex, nation]) =>
     makeMember(players[playerIndex], nation, {
       isGameCreator: playerIndex === 1,
+      isAdmin: playerIndex === 1,
     })
   );
 
@@ -41,7 +42,7 @@ const makePendingMembers = (count: number, includeCurrentUser = true): Member[] 
   return seeds
     .slice(0, count)
     .map((player, index) =>
-      makeMember(player, null, { isGameCreator: index === 0 })
+      makeMember(player, null, { isGameCreator: index === 0, isAdmin: index === 0 })
     );
 };
 
@@ -192,6 +193,32 @@ const buildActiveMovement = () => {
         ),
       ],
       { unreadMessageCount: 1 }
+    ),
+    makeChannel(
+      "England, France, Germany",
+      [members[0], members[2], members[3]],
+      [
+        makeMessage(
+          members[3],
+          "The three of us, then. Nobody else hears about this.",
+          "2026-05-01T13:00:00Z"
+        ),
+        makeMessage(
+          members[2],
+          "Better. Austria kept asking what we called ourselves.",
+          "2026-05-01T13:04:00Z"
+        ),
+      ],
+      {
+        title: "The great alliance",
+        events: [
+          {
+            id: 1,
+            text: "France renamed the channel to The great alliance",
+            createdAt: "2026-05-01T13:02:00Z",
+          },
+        ],
+      }
     ),
   ];
   return makeFixture({

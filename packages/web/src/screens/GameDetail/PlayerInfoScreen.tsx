@@ -3,6 +3,11 @@ import { useNavigate } from "react-router";
 import { Share2 } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Panel } from "@/components/Panel";
 import { PlayerInfoContent } from "@/components/PlayerInfoContent";
 import { useRequiredParams } from "@/hooks";
@@ -18,14 +23,19 @@ const PlayerInfoScreen: React.FC = () => {
         title="Players"
         onNavigateBack={() => navigate("/")}
         rightButton={
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Share"
-            onClick={() => copyLink(`/game/${gameId}`)}
-          >
-            <Share2 />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Share game"
+                onClick={() => copyLink(`/game/${gameId}`)}
+              >
+                <Share2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Share game</TooltipContent>
+          </Tooltip>
         }
       />
       <div className="flex-1 overflow-y-auto">

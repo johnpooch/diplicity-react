@@ -24,7 +24,7 @@ const PlayerProfileScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
             <PlayerProfileContent userId={Number(userId)} />
           </Panel.Content>
         </Panel>

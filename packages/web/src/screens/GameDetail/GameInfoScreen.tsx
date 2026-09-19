@@ -9,6 +9,7 @@ import { Panel } from "@/components/Panel";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useRequiredParams } from "@/hooks";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { copyLink } from "@/utils/copyLink";
 import {
   useGameRetrieveSuspense,
   useGameMemberJoinCreate,
@@ -25,10 +26,6 @@ const GameInfoScreen: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameMemberJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
 
   const handleJoinGame = async () => {
     try {
@@ -66,8 +63,14 @@ const GameInfoScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
-            <GameInfoContent onNavigateToPlayerInfo={handleNavigateToPlayerInfo} />
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+            <GameInfoContent
+              showTitle={false}
+              onOpenVariantDetails={() =>
+                navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
+              }
+              onShare={() => copyLink(`/game/${gameId}`)}
+            />
           </Panel.Content>
         </Panel>
       </div>
