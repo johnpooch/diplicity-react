@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from collections import defaultdict
 from datetime import timedelta
@@ -10,12 +11,20 @@ logger = logging.getLogger(__name__)
 PUSH_TTL = timedelta(hours=1)
 FIREBASE_UNCONFIGURED_ERROR = "firebase is not configured"
 NO_ACTIVE_DEVICE_ERROR = "no active device"
+COLLAPSE_ID_LENGTH = 24
+
+
+def build_collapse_id(game_id):
+    if not game_id:
+        return None
+    return hashlib.sha256(str(game_id).encode()).hexdigest()[:COLLAPSE_ID_LENGTH]
 
 
 def build_push_message(title, body, notification_type, data=None):
     from firebase_admin.messaging import (
         APNSConfig,
         AndroidConfig,
+        AndroidNotification,
         Message,
         Notification,
         WebpushConfig,
@@ -25,12 +34,23 @@ def build_push_message(title, body, notification_type, data=None):
     message_data["type"] = notification_type
     expiration = int((timezone.now() + PUSH_TTL).timestamp())
 
+    collapse_id = build_collapse_id(message_data.get("game_id"))
+    apns_headers = {"apns-expiration": str(expiration)}
+    webpush_headers = {"TTL": str(int(PUSH_TTL.total_seconds()))}
+    if collapse_id:
+        apns_headers["apns-collapse-id"] = collapse_id
+        webpush_headers["Topic"] = collapse_id
+
     return Message(
         notification=Notification(title=title, body=body),
         data=message_data,
-        android=AndroidConfig(ttl=PUSH_TTL),
-        apns=APNSConfig(headers={"apns-expiration": str(expiration)}),
-        webpush=WebpushConfig(headers={"TTL": str(int(PUSH_TTL.total_seconds()))}),
+        android=AndroidConfig(
+            ttl=PUSH_TTL,
+            collapse_key=collapse_id,
+            notification=AndroidNotification(tag=collapse_id) if collapse_id else None,
+        ),
+        apns=APNSConfig(headers=apns_headers),
+        webpush=WebpushConfig(headers=webpush_headers),
     )
 
 
