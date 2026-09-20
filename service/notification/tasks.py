@@ -46,6 +46,7 @@ def _send_push(deliveries):
         body=first.body,
         notification_type=first.notification.event_type,
         data=first.data,
+        tag=first.tag,
     )
 
 

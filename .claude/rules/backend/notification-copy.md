@@ -15,7 +15,7 @@ Notifications go out over push only; there is no email channel. A player is usua
 
 ## Collapsing
 
-**Pushes collapse per game.** `build_push_message` in `service/notification/utils.py` stamps every push that carries a `game_id` with a collapse id derived from it (`apns-collapse-id`, an Android `tag`, a Webpush `Topic`), so the newest push for a game replaces the previous one rather than stacking beneath it.
+**Pushes collapse on the spec's tag.** `get_tag()` decides what a push replaces: the base spec returns a per-game tag, so the newest push for a game supersedes the previous one rather than stacking beneath it, and a spec that wants a finer slot overrides it — `ChannelMessageSpec` collapses per channel so a busy chat cannot bury a deadline warning. The tag rides `render()` and `NotificationDelivery.tag` into `build_push_message`, which stamps it on every transport (`apns-collapse-id`, the APNs thread id, an Android `tag` and `collapse_key`, and a hashed Webpush `Topic`, hashed because that header caps at 32 URL-safe characters).
 
 Two things follow. **A body must stand on its own**, because the push it replaces may never have been read. And **a repeat must not be byte-identical** — an identical body silently overwrites its predecessor and the player sees nothing new, so where the same situation can warn twice, say what changed between them.
 
@@ -48,3 +48,9 @@ Two things follow. **A body must stand on its own**, because the push it replace
 **Every push has somewhere to land.** `get_link()` returns the most specific view relevant to the event, not the game root, when one exists. A linkless push still opens the app — the `notificationclick` handler in `packages/web/public/firebase-messaging-sw.js` focuses or opens a window, and on native the OS foregrounds it — but it drops the player on the home screen instead of at the event. The link is what makes a tap useful, not what makes it work.
 
 **`link = None` is a documented exception, not a per-spec judgement call.** A spec may omit the link only where there is genuinely nowhere to send the player, and it records that reason in `no_link_reason` on the spec — `render()` reads that declaration rather than calling `get_link()` at all — so the set of untappable notifications can be read off the registry by grepping one attribute. An override that returns `None` with no stated reason is not an exception, it is an oversight.
+
+## Collapsing
+
+**A spec that can fire repeatedly about the same thing returns a stable `get_tag()`.** The tag rides through `render()` and the `NotificationDelivery` row into `build_push_message`, where it becomes the Android notification tag, the `apns-collapse-id` header and the APNs `thread-id`, so a run of pushes replaces itself on the lock screen instead of stacking. The default is `None` — a spec opts in only where a pile of its own notifications is noise rather than signal, and the tag has to identify the thing being collapsed (the channel, not the game), or two unrelated events will overwrite each other.
+
+**The tag is also the only handle a delivered notification has.** Android's `getDeliveredNotifications` omits `data`, so a tag that encodes the subject is what makes targeted clearing possible later; one derived from the message or the timestamp is not a tag.
