@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -32,6 +33,7 @@ from notification.utils import (
     FIREBASE_UNCONFIGURED_ERROR,
     NO_ACTIVE_DEVICE_ERROR,
     PUSH_TTL,
+    build_webpush_topic,
     build_push_message,
     push_results_by_user,
     send_notification_to_users,
@@ -287,7 +289,7 @@ class TestRegistry:
 
     @pytest.mark.django_db
     @pytest.mark.parametrize("event_type", sorted(set(NOTIFICATION_REGISTRY) - {"channel_message"}))
-    def test_channel_message_is_the_only_tagged_spec(self, active_game, event_type):
+    def test_every_spec_outside_chat_is_tagged_per_game(self, active_game, event_type):
         channel = Channel.objects.create(game=active_game, name="Global", private=False)
         context = build_context(
             event_type,
@@ -295,7 +297,7 @@ class TestRegistry:
             phase=active_game.current_phase,
             channel=channel,
         )
-        assert NOTIFICATION_REGISTRY[event_type](context).get_tag() is None
+        assert NOTIFICATION_REGISTRY[event_type](context).get_tag() == f"game-{active_game.id}"
 
     def test_game_deleted_is_the_only_declared_link_exception(self):
         declared = {
@@ -1359,12 +1361,29 @@ class TestBuildPushMessage:
         message = build_push_message("Game", "Hello", "channel_message", tag="channel-7")
 
         assert message.android.notification.tag == "channel-7"
+        assert message.android.collapse_key == "channel-7"
         assert message.apns.headers["apns-collapse-id"] == "channel-7"
         assert message.apns.payload.aps.thread_id == "channel-7"
+        assert message.webpush.headers["Topic"] == build_webpush_topic("channel-7")
 
     def test_untagged_message_carries_no_collapse_instruction(self):
         message = build_push_message("Game", "Started", "game_start")
 
         assert message.android.notification is None
+        assert message.android.collapse_key is None
         assert "apns-collapse-id" not in message.apns.headers
         assert message.apns.payload is None
+        assert "Topic" not in message.webpush.headers
+
+    def test_different_tags_collapse_separately(self):
+        one = build_push_message("Game", "Started", "game_start", tag="game-a")
+        two = build_push_message("Game", "Started", "game_start", tag="game-b")
+
+        assert one.apns.headers["apns-collapse-id"] != two.apns.headers["apns-collapse-id"]
+        assert one.webpush.headers["Topic"] != two.webpush.headers["Topic"]
+
+    def test_webpush_topic_fits_the_header_limit(self):
+        topic = build_webpush_topic("game-the-assault-of-the-adroit-advertisement-65162925")
+
+        assert len(topic) <= 32
+        assert re.fullmatch(r"[A-Za-z0-9_-]+", topic)

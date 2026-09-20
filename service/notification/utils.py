@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from collections import defaultdict
 from datetime import timedelta
@@ -10,6 +11,13 @@ logger = logging.getLogger(__name__)
 PUSH_TTL = timedelta(hours=1)
 FIREBASE_UNCONFIGURED_ERROR = "firebase is not configured"
 NO_ACTIVE_DEVICE_ERROR = "no active device"
+WEBPUSH_TOPIC_LENGTH = 24
+
+
+def build_webpush_topic(tag):
+    if not tag:
+        return None
+    return hashlib.sha256(tag.encode()).hexdigest()[:WEBPUSH_TOPIC_LENGTH]
 
 
 def build_push_message(title, body, notification_type, data=None, tag=None):
@@ -29,18 +37,24 @@ def build_push_message(title, body, notification_type, data=None, tag=None):
     expiration = int((timezone.now() + PUSH_TTL).timestamp())
 
     apns_headers = {"apns-expiration": str(expiration)}
+    webpush_headers = {"TTL": str(int(PUSH_TTL.total_seconds()))}
     if tag:
         apns_headers["apns-collapse-id"] = tag
+        webpush_headers["Topic"] = build_webpush_topic(tag)
 
     return Message(
         notification=Notification(title=title, body=body),
         data=message_data,
-        android=AndroidConfig(ttl=PUSH_TTL, notification=AndroidNotification(tag=tag) if tag else None),
+        android=AndroidConfig(
+            ttl=PUSH_TTL,
+            collapse_key=tag,
+            notification=AndroidNotification(tag=tag) if tag else None,
+        ),
         apns=APNSConfig(
             headers=apns_headers,
             payload=APNSPayload(aps=Aps(thread_id=tag)) if tag else None,
         ),
-        webpush=WebpushConfig(headers={"TTL": str(int(PUSH_TTL.total_seconds()))}),
+        webpush=WebpushConfig(headers=webpush_headers),
     )
 
 

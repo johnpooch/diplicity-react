@@ -61,7 +61,9 @@ class NotificationSpec:
         return self._game_url()
 
     def get_tag(self):
-        return None
+        if self.context.game is None:
+            return None
+        return f"game-{self.context.game.id}"
 
     def _game_url(self):
         return f"{settings.FRONTEND_URL}/game/{self.context.game.id}"
