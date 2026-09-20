@@ -48,3 +48,7 @@ export const addNotificationTapListener = (
     }
   );
 };
+
+export const clearDeliveredNotifications = async (): Promise<void> => {
+  await FirebaseMessaging.removeAllDeliveredNotifications();
+};
