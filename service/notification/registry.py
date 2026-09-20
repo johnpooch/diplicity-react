@@ -60,6 +60,9 @@ class NotificationSpec:
     def get_link(self):
         return self._game_url()
 
+    def get_tag(self):
+        return None
+
     def _game_url(self):
         return f"{settings.FRONTEND_URL}/game/{self.context.game.id}"
 
@@ -77,6 +80,7 @@ class NotificationSpec:
             "body": self.get_body(),
             "link": link,
             "data": self._push_data(link),
+            "tag": self.get_tag(),
         }
 
     def _push_data(self, link):
@@ -111,6 +115,9 @@ class ChannelMessageSpec(NotificationSpec):
 
     def get_link(self):
         return f"{self._game_url()}/phase/{self.context.phase.id}/chat/channel/{self.context.channel.id}"
+
+    def get_tag(self):
+        return f"channel-{self.context.channel.id}"
 
     def get_body(self):
         return f"{self.player_name()}: {self._truncate(self.context.payload['body'])}"
