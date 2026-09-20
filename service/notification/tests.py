@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -32,6 +33,7 @@ from notification.utils import (
     FIREBASE_UNCONFIGURED_ERROR,
     NO_ACTIVE_DEVICE_ERROR,
     PUSH_TTL,
+    build_webpush_topic,
     build_push_message,
     push_results_by_user,
     send_notification_to_users,
@@ -61,6 +63,7 @@ def _rendered_push(**overrides):
         "body": "Started",
         "link": None,
         "data": None,
+        "tag": None,
     }
     content.update(overrides)
     return content
@@ -285,6 +288,18 @@ class TestRegistry:
             channel=channel,
         )
         assert NOTIFICATION_REGISTRY[event_type](context).get_title() == active_game.name
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("event_type", sorted(set(NOTIFICATION_REGISTRY) - {"channel_message"}))
+    def test_every_spec_outside_chat_is_tagged_per_game(self, active_game, event_type):
+        channel = Channel.objects.create(game=active_game, name="Global", private=False)
+        context = build_context(
+            event_type,
+            game=active_game,
+            phase=active_game.current_phase,
+            channel=channel,
+        )
+        assert NOTIFICATION_REGISTRY[event_type](context).get_tag() == f"game-{active_game.id}"
 
     def test_game_deleted_is_the_only_declared_link_exception(self):
         declared = {
@@ -660,6 +675,37 @@ def test_channel_message_notification_uses_display_name(active_game, in_memory_p
     assert notification.body.split(": ", 1)[0] != sender_member.user.username, (
         f"Notification body should not use username '{sender_member.user.username}' as the sender prefix"
     )
+
+
+@pytest.mark.django_db
+def test_channel_message_notification_is_tagged_with_the_channel(active_game, in_memory_procrastinate):
+    sender_member = active_game.members.first()
+    recipient_member = active_game.members.exclude(id=sender_member.id).first()
+    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+
+    _send_channel_message(channel, sender_member, "Hello everyone")
+
+    assert_notification(recipient_member.user, "channel_message", tag=f"channel-{channel.id}")
+
+
+@pytest.mark.django_db
+def test_channel_message_notifications_in_different_channels_are_tagged_apart(
+    active_game, in_memory_procrastinate
+):
+    sender_member = active_game.members.first()
+    recipient_member = active_game.members.exclude(id=sender_member.id).first()
+    one = Channel.objects.create(game=active_game, name="Global Press", private=False)
+    two = Channel.objects.create(game=active_game, name="Back Channel", private=False)
+
+    _send_channel_message(one, sender_member, "Hello everyone")
+    _send_channel_message(two, sender_member, "Psst")
+
+    tags = set(
+        _push("channel_message")
+        .filter(notification__recipient=recipient_member.user)
+        .values_list("tag", flat=True)
+    )
+    assert tags == {f"channel-{one.id}", f"channel-{two.id}"}
 
 
 @pytest.mark.django_db
@@ -1078,6 +1124,21 @@ class TestNotificationDeliver:
         assert call.kwargs["body"] == "Started"
 
     @pytest.mark.django_db
+    def test_passes_the_delivery_tag_to_the_transport(
+        self, user_factory, mock_send_notification_to_users, in_memory_procrastinate
+    ):
+        one = user_factory()
+        notifications = Notification.objects.bulk_create(
+            [Notification(recipient_id=one.id, event_type="channel_message")]
+        )
+        NotificationDelivery.objects.broadcast(notifications, _StubSpec(_rendered_push(tag="channel-7")))
+        deliveries = NotificationDelivery.objects.filter(notification__in=notifications)
+
+        deliver(delivery_ids=[d.id for d in deliveries])
+
+        assert mock_send_notification_to_users.call_args.kwargs["tag"] == "channel-7"
+
+    @pytest.mark.django_db
     def test_missing_ids_is_noop(self, mock_send_notification_to_users, in_memory_procrastinate):
         deliver(delivery_ids=[9999])
 
@@ -1297,3 +1358,34 @@ class TestBuildPushMessage:
 
         assert message.data == {"game_id": "1", "type": "game_start"}
         assert data == {"game_id": "1"}
+
+    def test_collapses_on_the_tag_across_every_transport(self):
+        message = build_push_message("Game", "Hello", "channel_message", tag="channel-7")
+
+        assert message.android.notification.tag == "channel-7"
+        assert message.android.collapse_key == "channel-7"
+        assert message.apns.headers["apns-collapse-id"] == "channel-7"
+        assert message.apns.payload.aps.thread_id == "channel-7"
+        assert message.webpush.headers["Topic"] == build_webpush_topic("channel-7")
+
+    def test_untagged_message_carries_no_collapse_instruction(self):
+        message = build_push_message("Game", "Started", "game_start")
+
+        assert message.android.notification is None
+        assert message.android.collapse_key is None
+        assert "apns-collapse-id" not in message.apns.headers
+        assert message.apns.payload is None
+        assert "Topic" not in message.webpush.headers
+
+    def test_different_tags_collapse_separately(self):
+        one = build_push_message("Game", "Started", "game_start", tag="game-a")
+        two = build_push_message("Game", "Started", "game_start", tag="game-b")
+
+        assert one.apns.headers["apns-collapse-id"] != two.apns.headers["apns-collapse-id"]
+        assert one.webpush.headers["Topic"] != two.webpush.headers["Topic"]
+
+    def test_webpush_topic_fits_the_header_limit(self):
+        topic = build_webpush_topic("game-the-assault-of-the-adroit-advertisement-65162925")
+
+        assert len(topic) <= 32
+        assert re.fullmatch(r"[A-Za-z0-9_-]+", topic)

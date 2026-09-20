@@ -285,10 +285,16 @@ class PhaseManager(models.Manager):
                 if total_units == 0:
                     continue
 
+                deadline_extended = (
+                    ps.deadline_warning_sent_for is not None
+                    and ps.deadline_warning_sent_for < phase.scheduled_resolution
+                )
+
                 body = build_notification_body(
                     ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
                     ps.member.nmr_extensions_remaining,
                     is_adjustment=is_adjustment,
+                    deadline_extended=deadline_extended,
                 )
                 if body is None:
                     continue

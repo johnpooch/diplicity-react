@@ -79,6 +79,7 @@ class NotificationDelivery(BaseModel):
     body = models.TextField()
     link = models.CharField(max_length=500, null=True, blank=True)
     data = models.JSONField(null=True, blank=True)
+    tag = models.CharField(max_length=64, null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     error = models.TextField(null=True, blank=True)
 
