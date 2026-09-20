@@ -1,0 +1,184 @@
+name: Screenshot Diff
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/web/src/**"
+      - "packages/web/index.html"
+      - "packages/web/package-lock.json"
+      - "packages/web/scripts/**"
+      - ".github/workflows/screenshot-diff.yml"
+
+concurrency:
+  group: screenshot-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: head
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: head/packages/web/package-lock.json
+
+      - name: Create a worktree at the merge base
+        working-directory: head
+        run: |
+          git fetch --no-tags origin ${{ github.event.pull_request.base.ref }}
+          MERGE_BASE=$(git merge-base FETCH_HEAD HEAD)
+          echo "Comparing against $MERGE_BASE"
+          git worktree add ../base "$MERGE_BASE"
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix head/packages/web
+          npm ci --prefix base/packages/web
+
+      - name: Install Chromium
+        working-directory: head/packages/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Start both dev servers
+        run: |
+          (cd head/packages/web && npm run dev:mocks -- --port 5173 --strictPort &)
+          (cd base/packages/web && npm run dev:mocks -- --port 5174 --strictPort &)
+          for port in 5173 5174; do
+            for _ in $(seq 1 60); do
+              curl -sf -o /dev/null "http://localhost:$port/" && break
+              sleep 2
+            done
+            curl -sf -o /dev/null "http://localhost:$port/" \
+              || { echo "dev server on $port never came up"; exit 1; }
+          done
+
+      - name: Capture this PR
+        working-directory: head/packages/web
+        run: |
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/head" \
+            --base http://localhost:5173 --concurrency 4 --require-fonts
+
+      - name: Capture the merge base
+        working-directory: head/packages/web
+        run: |
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/base" \
+            --base http://localhost:5174 --concurrency 4 --require-fonts --allow-failures
+
+      - name: Compare
+        working-directory: head/packages/web
+        run: |
+          node scripts/screenshot-diff/compare.mjs \
+            "$GITHUB_WORKSPACE/shots/base" \
+            "$GITHUB_WORKSPACE/shots/head" \
+            "$GITHUB_WORKSPACE/shots/diff" \
+            --min-pixels 25
+
+      - name: Re-capture changed screens
+        id: verify
+        working-directory: head/packages/web
+        run: |
+          jq -r '(.changed[].name), (.added[])' \
+            "$GITHUB_WORKSPACE/shots/diff/diff-report.json" > "$GITHUB_WORKSPACE/changed.txt"
+          if [ ! -s "$GITHUB_WORKSPACE/changed.txt" ]; then
+            echo "Nothing changed; skipping verification."
+            exit 0
+          fi
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/verify-head" \
+            --base http://localhost:5173 --concurrency 4 --require-fonts \
+            --screens "$GITHUB_WORKSPACE/changed.txt"
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/verify-base" \
+            --base http://localhost:5174 --concurrency 4 --require-fonts --allow-failures \
+            --screens "$GITHUB_WORKSPACE/changed.txt"
+          node scripts/screenshot-diff/compare.mjs \
+            "$GITHUB_WORKSPACE/shots/verify-base" \
+            "$GITHUB_WORKSPACE/shots/verify-head" \
+            "$GITHUB_WORKSPACE/shots/verified" \
+            --min-pixels 25
+
+      - name: Upload captures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: shots
+          retention-days: 14
+
+      - name: Publish diff images
+        id: publish
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SCREENSHOT_SITE_ID }}
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/shots/verified/diff-report.json" ]; then
+            echo "No verified differences to publish."
+            echo "url=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "Netlify credentials absent; skipping publish."
+            echo "url=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          RESULT=$(npx --yes netlify-cli@23 deploy \
+            --dir "$GITHUB_WORKSPACE/shots/verified" \
+            --site "$NETLIFY_SITE_ID" \
+            --alias "pr-${{ github.event.pull_request.number }}-${{ github.run_id }}" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --message "PR #${{ github.event.pull_request.number }} screenshot diff" \
+            --json)
+          echo "url=$(echo "$RESULT" | jq -r '.deploy_url')" >> "$GITHUB_OUTPUT"
+
+      - name: Build comment body
+        if: steps.publish.outputs.url != ''
+        working-directory: head/packages/web
+        run: |
+          node scripts/screenshot-diff/comment.mjs \
+            "$GITHUB_WORKSPACE/shots/verified/diff-report.json" \
+            "${{ steps.publish.outputs.url }}" > "$GITHUB_WORKSPACE/comment.md"
+
+      - name: Post comment
+        if: steps.publish.outputs.url != ''
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- screenshot-diff -->";
+            const body = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/comment.md`, "utf8");
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+            });
+            const existing = comments.find(
+              comment => comment.user.type === "Bot" && comment.body.includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }

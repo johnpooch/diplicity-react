@@ -97,6 +97,8 @@ Issues have three sections (enforced by the `create-issue` skill): **Goal** (alw
 
 **Never commit screenshots.** Write them outside the working tree (`/tmp/shots/`) and upload them as GitHub attachments — do not add image files to the repo or reference them via `raw.githubusercontent.com`. `screenshots/` and `shots/` are gitignored; if you find committed screenshots, remove them.
 
+**The `Screenshot Diff` workflow captures every screen automatically.** On each PR touching `packages/web`, it renders the merge base and the PR head against the MSW mocks at mobile and desktop, compares them, and comments with a before/head/difference image for each screen that changed. The screen matrix is expanded from the game fixtures by `packages/web/scripts/screenshot-diff/manifest.mjs`, so a new fixture gains coverage without editing the manifest, and images are published to Netlify rather than committed. This does not replace the rule above: the workflow shows what moved, the PR description still states what the reviewer should look at.
+
 ## Maintaining this document
 
 When you establish a convention or make an architectural decision, update this file or the relevant file in `.claude/rules/` in the same session — do not park lasting guidance only in a walkthrough ledger.

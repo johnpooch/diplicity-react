@@ -16,7 +16,7 @@
 //   --logged-out     Clear auth tokens so the logged-out UI renders
 //   --wait MS        Extra settle time after network idle (default 1000)
 
-import { chromium } from "playwright";
+import { launchChromium } from "./chromium.mjs";
 
 const args = process.argv.slice(2);
 const positional = args.filter(a => !a.startsWith("--"));
@@ -40,23 +40,7 @@ const fullPage = args.includes("--full-page");
 const loggedOut = args.includes("--logged-out");
 const settleMs = Number(getOption("wait") ?? 1000);
 
-const resolveExecutablePath = async () => {
-  try {
-    const probe = await chromium.launch({ headless: true });
-    await probe.close();
-    return undefined;
-  } catch {
-    const sparticuz = (await import("@sparticuz/chromium")).default;
-    return sparticuz.executablePath();
-  }
-};
-
-const executablePath = await resolveExecutablePath();
-const browser = await chromium.launch({
-  headless: true,
-  executablePath,
-  args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
-});
+const browser = await launchChromium();
 
 try {
   const context = await browser.newContext({ viewport: { width, height } });
