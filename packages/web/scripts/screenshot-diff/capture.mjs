@@ -35,7 +35,7 @@ const STABLE_FRAMES = 3;
 const FRAME_INTERVAL_MS = 300;
 const MAX_FRAMES = 25;
 const FONT_ORIGINS = ["fonts.googleapis.com", "fonts.gstatic.com"];
-const FONT_PROBE = '16px "Cabin"';
+const FONT_FAMILY = "Cabin";
 
 const args = process.argv.slice(2);
 const positional = args.filter(a => !a.startsWith("--"));
@@ -105,6 +105,22 @@ const waitForReady = async page => {
     await page.evaluate(() => document.fonts.ready);
   }
 
+  const fontsLoaded = offline
+    ? false
+    : await page
+        .waitForFunction(
+          family =>
+            Array.from(document.fonts).some(
+              face => face.family.includes(family) && face.status === "loaded"
+            ),
+          FONT_FAMILY,
+          { polling: SETTLE_POLL_MS, timeout: READY_TIMEOUT_MS }
+        )
+        .then(
+          () => true,
+          () => false
+        );
+
   await page
     .waitForFunction(
       () => Array.from(document.images).every(image => image.complete),
@@ -167,11 +183,6 @@ const waitForReady = async page => {
       () => false
     ),
   ]);
-
-  const fontsLoaded = await page.evaluate(
-    probe => document.fonts.check(probe),
-    FONT_PROBE
-  );
 
   return {
     domSettled: settled[0],
@@ -350,6 +361,9 @@ const run = async () => {
     console.error(
       `\nFAIL webfont did not load on ${missingFonts.length} screen(s); aborting rather than reporting false differences`
     );
+    for (const result of missingFonts) {
+      console.error(`  no webfont: ${result.name}`);
+    }
     process.exit(1);
   }
   if (failures.length > 0 && !allowFailures) process.exit(1);
