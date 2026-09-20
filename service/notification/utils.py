@@ -12,10 +12,13 @@ FIREBASE_UNCONFIGURED_ERROR = "firebase is not configured"
 NO_ACTIVE_DEVICE_ERROR = "no active device"
 
 
-def build_push_message(title, body, notification_type, data=None):
+def build_push_message(title, body, notification_type, data=None, tag=None):
     from firebase_admin.messaging import (
         APNSConfig,
+        APNSPayload,
         AndroidConfig,
+        AndroidNotification,
+        Aps,
         Message,
         Notification,
         WebpushConfig,
@@ -25,11 +28,18 @@ def build_push_message(title, body, notification_type, data=None):
     message_data["type"] = notification_type
     expiration = int((timezone.now() + PUSH_TTL).timestamp())
 
+    apns_headers = {"apns-expiration": str(expiration)}
+    if tag:
+        apns_headers["apns-collapse-id"] = tag
+
     return Message(
         notification=Notification(title=title, body=body),
         data=message_data,
-        android=AndroidConfig(ttl=PUSH_TTL),
-        apns=APNSConfig(headers={"apns-expiration": str(expiration)}),
+        android=AndroidConfig(ttl=PUSH_TTL, notification=AndroidNotification(tag=tag) if tag else None),
+        apns=APNSConfig(
+            headers=apns_headers,
+            payload=APNSPayload(aps=Aps(thread_id=tag)) if tag else None,
+        ),
         webpush=WebpushConfig(headers={"TTL": str(int(PUSH_TTL.total_seconds()))}),
     )
 
@@ -50,7 +60,7 @@ def push_results_by_user(user_ids, tokens_by_user, result):
     return results
 
 
-def send_notification_to_users(user_ids, title, body, notification_type, data=None):
+def send_notification_to_users(user_ids, title, body, notification_type, data=None, tag=None):
     if not user_ids:
         return {}
 
@@ -67,7 +77,7 @@ def send_notification_to_users(user_ids, title, body, notification_type, data=No
     if not tokens_by_user:
         return {user_id: NO_ACTIVE_DEVICE_ERROR for user_id in user_ids}
 
-    message = build_push_message(title, body, notification_type, data)
+    message = build_push_message(title, body, notification_type, data, tag)
 
     try:
         result = devices.send_message(message)
