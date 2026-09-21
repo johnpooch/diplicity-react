@@ -14,7 +14,6 @@ import {
   useGamePhaseRetrieveSuspense,
   useGameRetrieveSuspense,
 } from "@/api/generated/endpoints";
-import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 
 const usePathSuffix = () => {
   const { gameId, phaseId } = useRequiredParams<{
@@ -108,17 +107,9 @@ const PhaseStepperTitle: React.FC = () => {
           </div>
         </PopoverContent>
       </Popover>
-      {phase.status === "active" && phase.scheduledResolution ? (
-        <RemainingTimeDisplay
-          remainingTime={phase.remainingTime}
-          scheduledResolution={phase.scheduledResolution}
-          isPaused={game.isPaused}
-          showResolutionLabel
-          className="block w-fit text-xs text-muted-foreground"
-        />
-      ) : phase.status !== "active" ? (
+      {phase.status !== "active" && (
         <span className="block text-xs text-muted-foreground">Resolved</span>
-      ) : null}
+      )}
     </div>
   );
 };

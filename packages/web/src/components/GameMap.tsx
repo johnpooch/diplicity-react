@@ -11,6 +11,7 @@ import {
 } from "../utils/buildOrderProgressText";
 import { MapView } from "./MapView";
 import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
+import { PhaseDeadlineBadge } from "./PhaseDeadlineBadge";
 import {
   useGameRetrieve,
   useVariantsList,
@@ -313,6 +314,9 @@ const GameMap: React.FC = () => {
             ))}
           </FloatingMenu>
         </>
+      )}
+      {game && phase && (
+        <PhaseDeadlineBadge phase={phase} isPaused={game.isPaused} />
       )}
       {displayBannerText !== null && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium pointer-events-none whitespace-nowrap">
