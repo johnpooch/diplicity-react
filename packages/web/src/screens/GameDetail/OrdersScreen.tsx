@@ -4,7 +4,6 @@ import { useNavigate } from "react-router";
 import {
   Trash2,
   CheckSquare,
-  Square,
   Play,
   SearchX,
   Star,
@@ -30,6 +29,7 @@ import { ListItem, ListSection } from "@/components/ui/list";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { NationBadge } from "@/components/NationBadge";
+import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
@@ -43,7 +43,6 @@ import {
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
   useGamePhaseStatesListSuspense,
-  useGameConfirmPhasePartialUpdate,
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
   useGamesDrawProposalsListSuspense,
@@ -429,7 +428,6 @@ const OrdersScreen: React.FC = () => {
   const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
-  const confirmOrdersMutation = useGameConfirmPhasePartialUpdate();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
   const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
@@ -476,28 +474,6 @@ const OrdersScreen: React.FC = () => {
       toast.success("Order deleted");
     } catch {
       toast.error("Failed to delete order");
-    }
-  };
-
-  const handleConfirmOrders = async () => {
-    const newConfirmedState = !game.phaseConfirmed;
-    try {
-      await confirmOrdersMutation.mutateAsync({
-        gameId,
-        data: { ordersConfirmed: newConfirmedState },
-      });
-      queryClient.invalidateQueries({
-        queryKey: getGameRetrieveQueryKey(gameId),
-      });
-      toast.success(
-        newConfirmedState ? "Orders confirmed" : "Orders unconfirmed"
-      );
-    } catch {
-      toast.error(
-        newConfirmedState
-          ? "Failed to confirm orders"
-          : "Failed to unconfirm orders"
-      );
     }
   };
 
@@ -556,14 +532,7 @@ const OrdersScreen: React.FC = () => {
       );
     if (hasContent)
       return (
-        <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>
-          {game.phaseConfirmed ? (
-            <CheckSquare className="size-4" />
-          ) : (
-            <Square className="size-4" />
-          )}
-          {game.phaseConfirmed ? "Orders confirmed" : "Confirm orders"}
-        </Button>
+        <ConfirmOrdersButton gameId={gameId} confirmed={game.phaseConfirmed} />
       );
     return (
       <Button disabled>
