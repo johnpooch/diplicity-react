@@ -147,7 +147,7 @@ describe("OrdersScreen civil disorder handling", () => {
 
     renderOrdersScreen();
 
-    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 
   it("shows 'I'm back' button when current member is in civil disorder", () => {
@@ -208,7 +208,7 @@ describe("OrdersScreen confirm orders button", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm (0/1)" })).toBeInTheDocument();
   });
 
   it("shows confirm orders button for duration game", () => {
@@ -223,7 +223,7 @@ describe("OrdersScreen confirm orders button", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm (0/1)" })).toBeInTheDocument();
   });
 });
 
@@ -254,8 +254,8 @@ describe("OrdersScreen spectating", () => {
   it("hides the confirm orders button when the user is not a member", () => {
     renderOrdersScreen();
 
-    expect(screen.queryByRole("button", { name: /orders confirmed/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirmed/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 });
 
