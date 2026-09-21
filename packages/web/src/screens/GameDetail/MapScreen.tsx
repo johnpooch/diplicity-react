@@ -44,7 +44,7 @@ const MapConfirmOrders: React.FC = () => {
   if (!canModifyOrders || !count) return null;
 
   return (
-    <div className="absolute bottom-5 left-1/2 z-[1000] -translate-x-1/2">
+    <div className="absolute bottom-5 right-16 z-[1000]">
       <ConfirmOrdersButton
         gameId={gameId}
         confirmed={game.phaseConfirmed}
