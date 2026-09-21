@@ -12,7 +12,6 @@ interface ConfirmOrdersButtonProps {
   gameId: string;
   confirmed: boolean;
   count?: OrderCount | null;
-  compact?: boolean;
   className?: string;
 }
 
@@ -20,7 +19,6 @@ const ConfirmOrdersButton: React.FC<ConfirmOrdersButtonProps> = ({
   gameId,
   confirmed,
   count,
-  compact = false,
   className,
 }) => {
   const queryClient = useQueryClient();
@@ -48,13 +46,7 @@ const ConfirmOrdersButton: React.FC<ConfirmOrdersButtonProps> = ({
     }
   };
 
-  const label = compact
-    ? confirmed
-      ? "Confirmed"
-      : "Confirm"
-    : confirmed
-      ? "Orders confirmed"
-      : "Confirm orders";
+  const label = confirmed ? "Confirmed" : "Confirm";
 
   return (
     <Button

@@ -50,6 +50,12 @@ describe("countOrders", () => {
     ).toBeNull();
   });
 
+  it("treats a missing maxOrders as uncapped", () => {
+    const state = phaseState();
+    delete (state as { maxOrders?: number | null }).maxOrders;
+    expect(countOrders([state], [])).toEqual({ submitted: 0, total: 3 });
+  });
+
   it("returns null when nothing is orderable", () => {
     expect(countOrders([phaseState({ orderableProvinces: [] })], [])).toBeNull();
   });

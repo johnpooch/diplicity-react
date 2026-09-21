@@ -18,10 +18,7 @@ const countOrders = (
   const submitted = orderable.filter(p =>
     orders.some(o => o.source.id === p.id)
   ).length;
-  const total =
-    phaseState.maxOrders === null
-      ? orderable.length
-      : Math.min(phaseState.maxOrders, orderable.length);
+  const total = Math.min(phaseState.maxOrders ?? Infinity, orderable.length);
 
   return { submitted, total };
 };

@@ -57,6 +57,7 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+import { countOrders } from "@/utils/orderCount";
 import { cn } from "@/lib/utils";
 
 type NationGroup = {
@@ -532,12 +533,16 @@ const OrdersScreen: React.FC = () => {
       );
     if (hasContent)
       return (
-        <ConfirmOrdersButton gameId={gameId} confirmed={game.phaseConfirmed} />
+        <ConfirmOrdersButton
+          gameId={gameId}
+          confirmed={game.phaseConfirmed}
+          count={countOrders(safePhaseStates, safeOrders)}
+        />
       );
     return (
       <Button disabled>
         <CheckSquare className="size-4" />
-        Orders confirmed
+        Confirmed
       </Button>
     );
   })();

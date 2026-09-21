@@ -49,7 +49,6 @@ const MapConfirmOrders: React.FC = () => {
         gameId={gameId}
         confirmed={game.phaseConfirmed}
         count={count}
-        compact
         className="shadow-lg"
       />
     </div>
