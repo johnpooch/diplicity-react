@@ -1,7 +1,7 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach, beforeAll } from "vitest";
 import { GameMap } from "./GameMap";
 import type { Order } from "@/api/generated/endpoints";
 
@@ -424,6 +424,44 @@ describe("GameMap", () => {
       expect(
         orders.some((o) => o.source?.id === "lon" && o.orderType === "Move")
       ).toBe(false);
+    });
+  });
+  describe("deadline badge", () => {
+    beforeEach(() => {
+      mockPhase.scheduledResolution = "2026-01-01T00:00:00Z";
+      mockPhase.remainingTime = 3600;
+    });
+
+    afterEach(() => {
+      mockPhase.scheduledResolution = "";
+      mockPhase.remainingTime = 0;
+    });
+
+    it("sits at the top of the map when no order banner is showing", async () => {
+      render(gameMapJsx());
+
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+
+      const badge = screen.getByText("1h 0m remaining").parentElement;
+      expect(badge).toHaveClass("top-4");
+      expect(badge).not.toHaveClass("top-16");
+    });
+
+    it("drops below the order banner while an order is being built", async () => {
+      mockWizardState = {
+        ...buildIdleWizard(),
+        resolvedSelections: { source: "lon" },
+        resolvedLabels: { source: "London" },
+      };
+
+      render(gameMapJsx());
+
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+
+      expect(screen.getByText("A London")).toBeInTheDocument();
+      const badge = screen.getByText("1h 0m remaining").parentElement;
+      expect(badge).toHaveClass("top-16");
+      expect(badge).not.toHaveClass("top-4");
     });
   });
 });

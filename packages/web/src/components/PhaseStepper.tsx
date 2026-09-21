@@ -65,52 +65,47 @@ const PhaseStepperTitle: React.FC = () => {
   const orderedPhases = [...phases].reverse();
 
   return (
-    <div className="min-h-12 min-w-0 flex-1 pt-1.5 md:min-h-14 md:pt-2.5">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label={`${phase.name}. Choose phase`}
-            className="group flex max-w-full items-center gap-1 rounded-md text-left transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <span className="min-w-0 truncate text-base font-semibold leading-7 md:text-xl md:leading-9">
-              {phase.name}
-            </span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent-foreground" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 p-1">
-          <div className="flex max-h-80 flex-col overflow-y-auto">
-            {orderedPhases.map(p => (
-              <button
-                key={p.id}
-                type="button"
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
-                onClick={() => {
-                  goTo(p.id);
-                  setOpen(false);
-                }}
-              >
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {p.name}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${phase.name}. Choose phase`}
+          className="group flex max-w-full items-center gap-1 rounded-md text-left transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <span className="min-w-0 truncate text-base font-semibold leading-7 md:text-xl md:leading-9">
+            {phase.name}
+          </span>
+          <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 p-1">
+        <div className="flex max-h-80 flex-col overflow-y-auto">
+          {orderedPhases.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+              onClick={() => {
+                goTo(p.id);
+                setOpen(false);
+              }}
+            >
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                {p.name}
+              </span>
+              {p.status === "active" && (
+                <span className="text-xs font-medium text-muted-foreground">
+                  Current
                 </span>
-                {p.status === "active" && (
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Current
-                  </span>
-                )}
-                {p.id === Number(phaseId) && (
-                  <Check className="size-4 shrink-0" aria-hidden />
-                )}
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-      {phase.status !== "active" && (
-        <span className="block text-xs text-muted-foreground">Resolved</span>
-      )}
-    </div>
+              )}
+              {p.id === Number(phaseId) && (
+                <Check className="size-4 shrink-0" aria-hidden />
+              )}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

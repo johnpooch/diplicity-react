@@ -126,12 +126,13 @@ describe("PhaseStepperTitle", () => {
     expect(screen.getByText("Spring 1901")).toBeInTheDocument();
   });
 
-  it("shows Resolved for a historical phase", () => {
+  it("renders only the phase name for a historical phase", () => {
     renderAtRoute(<PhaseStepperTitle />, "/game/1/phase/5");
-    expect(screen.getByText("Resolved")).toBeInTheDocument();
+    expect(screen.queryByText("Resolved")).not.toBeInTheDocument();
+    expect(screen.queryByText(/remaining/)).not.toBeInTheDocument();
   });
 
-  it("shows no status line or deadline for the active phase", () => {
+  it("renders only the phase name for the active phase", () => {
     mockPhaseData.mockReturnValue({
       name: "Fall 1901",
       status: "active",

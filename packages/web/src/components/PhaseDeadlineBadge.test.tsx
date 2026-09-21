@@ -48,6 +48,22 @@ describe("PhaseDeadlineBadge", () => {
     expect(screen.queryByText(/remaining/)).not.toBeInTheDocument();
   });
 
+  it("applies the position supplied by its container", () => {
+    renderBadge(
+      <PhaseDeadlineBadge
+        phase={makePhase(101, 1)}
+        isPaused={false}
+        className="absolute left-4 top-16"
+      />
+    );
+
+    expect(screen.getByText(/remaining/).parentElement).toHaveClass(
+      "absolute",
+      "left-4",
+      "top-16"
+    );
+  });
+
   it("keeps the deadline tooltip reachable by keyboard", () => {
     renderBadge(
       <PhaseDeadlineBadge phase={makePhase(101, 1)} isPaused={false} />

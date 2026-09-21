@@ -1,6 +1,7 @@
 import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
+import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -276,6 +277,11 @@ const GameMap: React.FC = () => {
 
   const displayBannerText = progressText ?? banner.message;
 
+  const deadlineBadgePosition = cn(
+    "absolute left-4 z-10 transition-[top] duration-200",
+    displayBannerText !== null ? "top-16" : "top-4"
+  );
+
   return (
     <div ref={containerRef} className="relative w-full h-full">
       {game && variant && phase && orders && (
@@ -316,7 +322,11 @@ const GameMap: React.FC = () => {
         </>
       )}
       {game && phase && (
-        <PhaseDeadlineBadge phase={phase} isPaused={game.isPaused} />
+        <PhaseDeadlineBadge
+          phase={phase}
+          isPaused={game.isPaused}
+          className={deadlineBadgePosition}
+        />
       )}
       {displayBannerText !== null && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium pointer-events-none whitespace-nowrap">
