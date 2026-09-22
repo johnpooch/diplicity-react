@@ -509,9 +509,9 @@ class GameCreateSerializer(serializers.Serializer):
         if not attrs.get("game_master"):
             request = self.context["request"]
             commitment = request.user.profile.commitment
-            if commitment == Commitment.LOW:
+            if commitment == Commitment.LOW and not attrs.get("private"):
                 raise serializers.ValidationError(
-                    {"commitment_requirement": "Your commitment rating does not allow creating games."}
+                    {"commitment_requirement": "Your commitment rating does not allow creating public games."}
                 )
             if (
                 attrs["commitment_requirement"] == CommitmentRequirement.COMMITTED
