@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import type { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
-import { getChannelFlagUrls, getMessageSenderLabel } from "./channelUtils";
+import {
+  getChannelDisplayName,
+  getChannelFlagUrls,
+  getChannelSubtitle,
+  getMessageSenderLabel,
+  isGroupChannel,
+} from "./channelUtils";
 
 const member = (id: number, nation: string, overrides: Partial<Member> = {}) =>
   ({
@@ -29,6 +35,33 @@ const variantNations = [
   { name: "Italy", flagUrl: "italy.svg", color: "#00ff00" },
 ];
 
+describe("getChannelDisplayName", () => {
+  it("shows the other nations in a private channel", () => {
+    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+
+    expect(getChannelDisplayName(channel, "England")).toBe("Italy");
+  });
+});
+
+describe("getChannelSubtitle", () => {
+  it("names the players behind the nations in a private channel", () => {
+    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const members = [member(1, "England"), member(2, "Italy")];
+
+    expect(getChannelSubtitle(channel, members, "England")).toBe("Player 2");
+  });
+
+  it("is empty for a public channel", () => {
+    expect(getChannelSubtitle(publicChannel, [], "England")).toBeNull();
+  });
+
+  it("is empty when no member holds the nation any more", () => {
+    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+
+    expect(getChannelSubtitle(channel, [member(1, "England")], "England")).toBeNull();
+  });
+});
+
 describe("getChannelFlagUrls", () => {
   it("shows one flag per seat when a replaced member still sits in the channel", () => {
     const members = [
@@ -51,6 +84,30 @@ describe("getChannelFlagUrls", () => {
     expect(
       getChannelFlagUrls(privateChannel, [], "England", variantNations)
     ).toEqual([{ flagUrl: "italy.svg", color: "#00ff00" }]);
+  });
+});
+
+describe("isGroupChannel", () => {
+  it("is false for a direct channel between two nations", () => {
+    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+
+    expect(isGroupChannel(channel, [], "England")).toBe(false);
+  });
+
+  it("is true for a private channel with more than one other nation", () => {
+    const channel = { id: 2, name: "England, Italy, France", private: true } as Channel;
+
+    expect(isGroupChannel(channel, [], "England")).toBe(true);
+  });
+
+  it("is true for a public channel with more than one active member", () => {
+    const members = [member(1, "England"), member(2, "Italy")];
+
+    expect(isGroupChannel(publicChannel, members, "England")).toBe(true);
+  });
+
+  it("is true for a public channel with only one active member", () => {
+    expect(isGroupChannel(publicChannel, [member(1, "England")], "England")).toBe(true);
   });
 });
 
