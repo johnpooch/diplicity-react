@@ -95,6 +95,14 @@ const onMessageReceived = (callback: (payload: any) => void) => {
   });
 };
 
+const clearDeliveredNotifications = async (): Promise<void> => {
+  if (!("serviceWorker" in navigator)) return;
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return;
+  const notifications = await registration.getNotifications();
+  notifications.forEach(notification => notification.close());
+};
+
 const onNotificationClick = (callback: (link: string) => void): (() => void) => {
   if (!("serviceWorker" in navigator)) return () => {};
   const handler = (event: MessageEvent) => {
@@ -109,6 +117,7 @@ const onNotificationClick = (callback: (link: string) => void): (() => void) => 
 export {
   getFirebaseToken as getToken,
   deleteFirebaseToken as deleteToken,
+  clearDeliveredNotifications,
   onMessageReceived,
   onNotificationClick,
   registerServiceWorker,
