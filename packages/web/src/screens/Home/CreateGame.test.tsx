@@ -486,6 +486,120 @@ describe("CreateGame — game master option", () => {
   });
 });
 
+describe("CreateGame — private short duration options", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+  });
+
+  const switchToDurationMode = async (
+    user: ReturnType<typeof userEvent.setup>
+  ) => {
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("tab", { name: /duration/i }));
+  };
+
+  it("hides short durations when the game is not private", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await switchToDurationMode(user);
+
+    await user.click(screen.getByRole("combobox", { name: /movement/i }));
+
+    expect(
+      screen.queryByRole("option", { name: /^5 minutes$/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /^15 minutes$/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /^30 minutes$/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /^1 hour$/i })
+    ).toBeInTheDocument();
+  });
+
+  it("shows short durations when the game is private", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await switchToDurationMode(user);
+
+    await user.click(screen.getByRole("combobox", { name: /movement/i }));
+
+    expect(
+      screen.getByRole("option", { name: /^5 minutes$/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /^15 minutes$/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /^30 minutes$/i })
+    ).toBeInTheDocument();
+  });
+
+  it("submits a short duration for a private game", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await switchToDurationMode(user);
+
+    await user.click(screen.getByRole("combobox", { name: /movement/i }));
+    await user.click(screen.getByRole("option", { name: /^15 minutes$/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    const payload = createGameMutateAsync.mock.calls[0][0].data;
+    expect(payload.private).toBe(true);
+    expect(payload.movementPhaseDuration).toBe("15 minutes");
+  });
+
+  it("resets a short movement duration when private is unchecked", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await switchToDurationMode(user);
+
+    await user.click(screen.getByRole("combobox", { name: /movement/i }));
+    await user.click(screen.getByRole("option", { name: /^5 minutes$/i }));
+
+    await user.click(screen.getByRole("button", { name: /back/i }));
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await switchToDurationMode(user);
+
+    expect(screen.getByRole("combobox", { name: /movement/i })).toHaveTextContent(
+      "24 hours"
+    );
+    await user.click(screen.getByRole("combobox", { name: /movement/i }));
+    expect(
+      screen.queryByRole("option", { name: /^5 minutes$/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("CreateGame — multi-step navigation", () => {
   beforeEach(() => {
     vi.clearAllMocks();

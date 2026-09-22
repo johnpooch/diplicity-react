@@ -543,6 +543,15 @@ class GameCreateSerializer(serializers.Serializer):
             attrs["fixed_deadline_timezone"] = None
             attrs["movement_frequency"] = None
             attrs["retreat_frequency"] = None
+            if not attrs.get("private"):
+                private_only_error = "Short phase durations are only available in private games."
+                errors = {}
+                if attrs.get("movement_phase_duration") in MovementPhaseDuration.PRIVATE_ONLY_DURATIONS:
+                    errors["movement_phase_duration"] = private_only_error
+                if attrs.get("retreat_phase_duration") in MovementPhaseDuration.PRIVATE_ONLY_DURATIONS:
+                    errors["retreat_phase_duration"] = private_only_error
+                if errors:
+                    raise serializers.ValidationError(errors)
 
         return attrs
 

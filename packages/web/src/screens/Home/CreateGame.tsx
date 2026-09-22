@@ -54,6 +54,8 @@ import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   DURATION_OPTIONS,
   DURATION_ENUM_VALUES,
+  PRIVATE_ONLY_DURATION_OPTIONS,
+  PRIVATE_ONLY_DURATION_VALUES,
   FREQUENCY_OPTIONS,
   TIMEZONE_OPTIONS,
   NMR_EXTENSION_OPTIONS,
@@ -465,6 +467,9 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
   const deadlineMode = form.watch("deadlineMode");
   const isPrivate = form.watch("private");
+  const durationOptions = isPrivate
+    ? [...PRIVATE_ONLY_DURATION_OPTIONS, ...DURATION_OPTIONS]
+    : DURATION_OPTIONS;
   const isSandbox = form.watch("mode") === "sandbox";
   const lastStep = isSandbox ? 0 : STEPS.length - 1;
   const isInitialVariantDraft =
@@ -574,6 +579,20 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                           form.setValue("committedOnly", false);
                         } else {
                           form.setValue("gameMaster", false);
+                          if (
+                            PRIVATE_ONLY_DURATION_VALUES.has(
+                              form.getValues("movementPhaseDuration") ?? ""
+                            )
+                          ) {
+                            form.setValue("movementPhaseDuration", "24 hours");
+                          }
+                          if (
+                            PRIVATE_ONLY_DURATION_VALUES.has(
+                              form.getValues("retreatPhaseDuration") ?? ""
+                            )
+                          ) {
+                            form.setValue("retreatPhaseDuration", null);
+                          }
                         }
                       }}
                       disabled={
@@ -672,7 +691,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {DURATION_OPTIONS.map(option => (
+                                  {durationOptions.map(option => (
                                     <SelectItem
                                       key={option.value}
                                       value={option.value}
@@ -704,7 +723,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {DURATION_OPTIONS.map(option => (
+                                  {durationOptions.map(option => (
                                     <SelectItem
                                       key={option.value}
                                       value={option.value}

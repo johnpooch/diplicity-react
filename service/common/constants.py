@@ -44,6 +44,9 @@ class MusterJob:
 
 
 class MovementPhaseDuration:
+    FIVE_MINUTES = "5 minutes"
+    FIFTEEN_MINUTES = "15 minutes"
+    THIRTY_MINUTES = "30 minutes"
     ONE_HOUR = "1 hour"
     TWO_HOURS = "2 hours"
     FOUR_HOURS = "4 hours"
@@ -57,6 +60,9 @@ class MovementPhaseDuration:
     TWO_WEEKS = "2 weeks"
 
     MOVEMENT_PHASE_DURATION_CHOICES = (
+        (FIVE_MINUTES, "5 minutes"),
+        (FIFTEEN_MINUTES, "15 minutes"),
+        (THIRTY_MINUTES, "30 minutes"),
         (ONE_HOUR, "1 hour"),
         (TWO_HOURS, "2 hours"),
         (FOUR_HOURS, "4 hours"),
@@ -69,6 +75,8 @@ class MovementPhaseDuration:
         (ONE_WEEK, "1 week"),
         (TWO_WEEKS, "2 weeks"),
     )
+
+    PRIVATE_ONLY_DURATIONS = frozenset({FIVE_MINUTES, FIFTEEN_MINUTES, THIRTY_MINUTES})
 
 
 class DeadlineMode:
@@ -99,6 +107,9 @@ def duration_to_seconds(duration: Optional[str]) -> Optional[int]:
     if duration is None:
         return None
     duration_map = {
+        MovementPhaseDuration.FIVE_MINUTES: 5 * 60,
+        MovementPhaseDuration.FIFTEEN_MINUTES: 15 * 60,
+        MovementPhaseDuration.THIRTY_MINUTES: 30 * 60,
         MovementPhaseDuration.ONE_HOUR: 1 * 60 * 60,
         MovementPhaseDuration.TWO_HOURS: 2 * 60 * 60,
         MovementPhaseDuration.FOUR_HOURS: 4 * 60 * 60,

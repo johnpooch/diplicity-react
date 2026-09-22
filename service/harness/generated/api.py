@@ -48,6 +48,9 @@ class DrawVoteUpdate(TypedDict):
 
 
 type DurationEnum = Literal[
+    '5 minutes',
+    '15 minutes',
+    '30 minutes',
     '1 hour',
     '2 hours',
     '4 hours',

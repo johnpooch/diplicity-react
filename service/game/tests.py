@@ -2125,6 +2125,84 @@ class TestGameDurationOptions:
         assert game.movement_phase_duration == duration
         assert game.movement_phase_duration_seconds == expected_seconds
 
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("duration,expected_seconds", [
+        (MovementPhaseDuration.FIVE_MINUTES, 300),
+        (MovementPhaseDuration.FIFTEEN_MINUTES, 900),
+        (MovementPhaseDuration.THIRTY_MINUTES, 1800),
+    ])
+    def test_private_game_short_duration_options(
+        self, authenticated_client, classical_variant, duration, expected_seconds
+    ):
+        url = reverse(create_viewname)
+        payload = {
+            "name": f"Private Game {duration}",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": duration,
+            "private": True,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration == duration
+        assert game.movement_phase_duration_seconds == expected_seconds
+        assert game.private is True
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("duration", [
+        MovementPhaseDuration.FIVE_MINUTES,
+        MovementPhaseDuration.FIFTEEN_MINUTES,
+        MovementPhaseDuration.THIRTY_MINUTES,
+    ])
+    def test_public_game_rejects_short_duration(self, authenticated_client, classical_variant, duration):
+        url = reverse(create_viewname)
+        payload = {
+            "name": f"Public Game {duration}",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": duration,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "movement_phase_duration" in response.data
+
+    @pytest.mark.django_db
+    def test_public_game_rejects_short_retreat_duration(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Public Game Short Retreat",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            "retreat_phase_duration": MovementPhaseDuration.FIFTEEN_MINUTES,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "retreat_phase_duration" in response.data
+
+    @pytest.mark.django_db
+    def test_private_game_accepts_short_retreat_duration(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Private Game Short Retreat",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": MovementPhaseDuration.THIRTY_MINUTES,
+            "retreat_phase_duration": MovementPhaseDuration.FIVE_MINUTES,
+            "private": True,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration == MovementPhaseDuration.THIRTY_MINUTES
+        assert game.retreat_phase_duration == MovementPhaseDuration.FIVE_MINUTES
+        assert game.retreat_phase_duration_seconds == 300
+
 
 class TestRetreatPhaseDuration:
 

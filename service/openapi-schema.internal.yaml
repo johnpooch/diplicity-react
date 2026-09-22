@@ -1154,15 +1154,21 @@ paths:
           - 1 hour
           - 1 week
           - 12 hours
+          - 15 minutes
           - 2 hours
           - 2 weeks
           - 24 hours
           - 3 days
+          - 30 minutes
           - 4 days
           - 4 hours
           - 48 hours
+          - 5 minutes
           - 8 hours
         description: |-
+          * `5 minutes` - 5 minutes
+          * `15 minutes` - 15 minutes
+          * `30 minutes` - 30 minutes
           * `1 hour` - 1 hour
           * `2 hours` - 2 hours
           * `4 hours` - 4 hours
@@ -2154,6 +2160,9 @@ components:
       - accepted
     DurationEnum:
       enum:
+      - 5 minutes
+      - 15 minutes
+      - 30 minutes
       - 1 hour
       - 2 hours
       - 4 hours
@@ -2167,6 +2176,9 @@ components:
       - 2 weeks
       type: string
       description: |-
+        * `5 minutes` - 5 minutes
+        * `15 minutes` - 15 minutes
+        * `30 minutes` - 30 minutes
         * `1 hour` - 1 hour
         * `2 hours` - 2 hours
         * `4 hours` - 4 hours
