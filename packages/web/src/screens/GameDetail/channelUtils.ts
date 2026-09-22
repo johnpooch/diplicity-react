@@ -43,12 +43,14 @@ export const getChannelDisplayName = (
   channel: Channel,
   currentNationName: string | undefined
 ): string => {
+  if (channel.title) return channel.title;
   if (!channel.private || !currentNationName) return channel.name;
   const others = getOtherNationNames(channel, currentNationName);
   return others.length > 0 ? others.join(", ") : channel.name;
 };
 
-// Names the players behind the nations in a private channel.
+// Whatever the title does not already say: the nations for a named
+// channel, and the players behind them for an unnamed one.
 export const getChannelSubtitle = (
   channel: Channel,
   members: readonly Member[],
@@ -57,6 +59,7 @@ export const getChannelSubtitle = (
   if (!channel.private) return null;
   const others = getOtherNationNames(channel, currentNationName);
   if (others.length === 0) return null;
+  if (channel.title) return others.join(", ");
   const playerNames = others
     .map(nation => members.find(m => m.nation === nation)?.name)
     .filter((name): name is string => name !== undefined);

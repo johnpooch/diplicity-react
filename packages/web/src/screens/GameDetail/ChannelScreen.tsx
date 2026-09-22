@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { SendHorizontal, MessageCircle, MessageSquareOff } from "lucide-react";
+import { SendHorizontal, MessageCircle, MessageSquareOff, Pencil } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { toast } from "sonner";
@@ -39,10 +39,12 @@ import {
   getGamesChannelsListQueryKey,
   getGameRetrieveQueryKey,
   ChannelMessage as ChannelMessageType,
+  ChannelEvent as ChannelEventType,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 
 type MessageDisplayItem = {
+  kind: "message";
   id: number;
   body: string;
   sender: {
@@ -57,6 +59,14 @@ type MessageDisplayItem = {
   showAvatar: boolean;
   formattedTime: string;
 };
+
+type EventDisplayItem = {
+  kind: "event";
+  id: number;
+  text: string;
+};
+
+type ThreadItem = MessageDisplayItem | EventDisplayItem;
 
 const TruncatedTooltipLabel: React.FC<{
   text: string;
@@ -123,17 +133,30 @@ const formatMessageTime = (createdAt: string): string => {
   return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 };
 
-const buildMessageItems = (
-  messages: readonly ChannelMessageType[]
-): MessageDisplayItem[] => {
+const buildThreadItems = (
+  messages: readonly ChannelMessageType[],
+  events: readonly ChannelEventType[]
+): ThreadItem[] => {
+  const entries = [
+    ...messages.map(message => ({ createdAt: message.createdAt, message })),
+    ...events.map(event => ({ createdAt: event.createdAt, event })),
+  ].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+
   let previousLabel: string | null = null;
 
-  return messages.map(msg => {
+  return entries.map(entry => {
+    if (!("message" in entry)) {
+      previousLabel = null;
+      return { kind: "event", id: entry.event.id, text: entry.event.text };
+    }
+
+    const msg = entry.message;
     const label = getMessageSenderLabel(msg.sender);
     const showAvatar = previousLabel !== label;
     previousLabel = label;
 
     return {
+      kind: "message",
       id: msg.id,
       body: msg.body,
       sender: {
@@ -152,6 +175,14 @@ const buildMessageItems = (
 };
 
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
+
+const ThreadEventNotice: React.FC<{ text: string }> = ({ text }) => (
+  <div className="flex justify-center py-1">
+    <p className="max-w-[80%] rounded-lg border bg-background px-3 py-1 text-center text-xs font-medium text-muted-foreground shadow-xs">
+      {text}
+    </p>
+  </div>
+);
 
 const NewMessagesDivider: React.FC = () => (
   <div className="flex items-center gap-2 my-1">
@@ -229,6 +260,23 @@ const ChannelScreen: React.FC = () => {
       )}
     </div>
   );
+  const headerButtons = (
+    <>
+      {channel.private && currentMember && (
+        <Button
+          variant="outline"
+          size="icon-sm"
+          className="rounded-md"
+          aria-label="Rename channel"
+          asChild
+        >
+          <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/rename`}>
+            <Pencil />
+          </Link>
+        </Button>
+      )}
+    </>
+  );
 
   useEffect(() => {
     if (!canPost) return;
@@ -253,7 +301,7 @@ const ChannelScreen: React.FC = () => {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
-  }, [channel.messages]);
+  }, [channel.messages, channel.events]);
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
@@ -286,9 +334,9 @@ const ChannelScreen: React.FC = () => {
     game.status !== "completed" &&
     game.status !== "abandoned";
 
-  const messageItems = useMemo(
-    () => buildMessageItems(channel.messages),
-    [channel.messages]
+  const threadItems = useMemo(
+    () => buildThreadItems(channel.messages, channel.events),
+    [channel.messages, channel.events]
   );
 
   if (isNoPressActiveGame) {
@@ -300,6 +348,7 @@ const ChannelScreen: React.FC = () => {
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
           variant="secondary"
+          rightButton={headerButtons}
         />
         <div className="flex-1 overflow-hidden">
           <Panel>
@@ -322,12 +371,13 @@ const ChannelScreen: React.FC = () => {
         title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
+        rightButton={headerButtons}
       />
       <div className="flex-1 overflow-hidden">
         <Panel>
           <Panel.Content>
             <div className="h-full flex flex-col">
-              {messageItems.length === 0 ? (
+              {threadItems.length === 0 ? (
                 <Notice
                   icon={MessageCircle}
                   title="No messages yet"
@@ -339,76 +389,80 @@ const ChannelScreen: React.FC = () => {
                   ref={messagesContainerRef}
                   className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 px-3 py-4"
                 >
-                  {messageItems.map(item => (
-                    <React.Fragment key={item.id}>
-                      {item.id === firstUnreadMessageId && <NewMessagesDivider />}
-                      <Message
-                        className={
-                          item.isCurrentUser ? "flex-row-reverse" : undefined
-                        }
-                      >
-                        {item.showAvatar ? (
-                          <div
-                            className={cn(
-                              "size-8 shrink-0",
-                              item.sender.isGameMaster &&
-                                "overflow-hidden rounded-full border"
-                            )}
-                          >
-                            {item.sender.isGameMaster ? (
-                              <Avatar className="size-8 rounded-none">
-                                <AvatarImage src={item.sender.picture ?? undefined} />
-                                <AvatarFallback className="rounded-none text-xs">
-                                  {item.sender.name[0]?.toUpperCase() ?? "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                            ) : (
-                              <NationFlag
-                                flagUrl={
-                                  variant
-                                    ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                    : null
-                                }
-                                alt={item.sender.nationName ?? item.sender.name}
-                                className="size-8"
-                                color={item.sender.nationColor}
-                              />
-                            )}
+                  {threadItems.map(item =>
+                    item.kind === "event" ? (
+                      <ThreadEventNotice key={`event-${item.id}`} text={item.text} />
+                    ) : (
+                      <React.Fragment key={`message-${item.id}`}>
+                        {item.id === firstUnreadMessageId && <NewMessagesDivider />}
+                        <Message
+                          className={
+                            item.isCurrentUser ? "flex-row-reverse" : undefined
+                          }
+                        >
+                          {item.showAvatar ? (
+                            <div
+                              className={cn(
+                                "size-8 shrink-0",
+                                item.sender.isGameMaster &&
+                                  "overflow-hidden rounded-full border"
+                              )}
+                            >
+                              {item.sender.isGameMaster ? (
+                                <Avatar className="size-8 rounded-none">
+                                  <AvatarImage src={item.sender.picture ?? undefined} />
+                                  <AvatarFallback className="rounded-none text-xs">
+                                    {item.sender.name[0]?.toUpperCase() ?? "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                <NationFlag
+                                  flagUrl={
+                                    variant
+                                      ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                      : null
+                                  }
+                                  alt={item.sender.nationName ?? item.sender.name}
+                                  className="size-8"
+                                  color={item.sender.nationColor}
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="size-8 shrink-0" />
+                          )}
+                          <div className="max-w-[80%]">
+                            <MessageContent
+                              className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
+                              style={{
+                                backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
+                                border: brightnessByColor(item.sender.nationColor) > 128
+                                  ? `1px solid ${item.sender.nationColor}`
+                                  : undefined,
+                              }}
+                            >
+                              {item.showAvatar && showSenderLabels && (
+                                <p
+                                  className="mb-0.5 text-xs font-semibold"
+                                  style={{ color: item.sender.nationColor }}
+                                >
+                                  {item.isCurrentUser && !item.sender.isGameMaster
+                                    ? "You"
+                                    : item.sender.label}
+                                </p>
+                              )}
+                              {item.body}
+                            </MessageContent>
+                            <MessageTimestamp
+                              className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
+                            >
+                              {item.formattedTime}
+                            </MessageTimestamp>
                           </div>
-                        ) : (
-                          <div className="size-8 shrink-0" />
-                        )}
-                        <div className="max-w-[80%]">
-                          <MessageContent
-                            className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
-                            style={{
-                              backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                              border: brightnessByColor(item.sender.nationColor) > 128
-                                ? `1px solid ${item.sender.nationColor}`
-                                : undefined,
-                            }}
-                          >
-                            {item.showAvatar && showSenderLabels && (
-                              <p
-                                className="mb-0.5 text-xs font-semibold"
-                                style={{ color: item.sender.nationColor }}
-                              >
-                                {item.isCurrentUser && !item.sender.isGameMaster
-                                  ? "You"
-                                  : item.sender.label}
-                              </p>
-                            )}
-                            {item.body}
-                          </MessageContent>
-                          <MessageTimestamp
-                            className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
-                          >
-                            {item.formattedTime}
-                          </MessageTimestamp>
-                        </div>
-                      </Message>
-                    </React.Fragment>
-                  ))}
+                        </Message>
+                      </React.Fragment>
+                    )
+                  )}
                 </div>
               )}
             </div>

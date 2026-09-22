@@ -98,7 +98,23 @@ describe("ChannelCreateScreen", () => {
     expect(screen.getByText("The Dealmaker (bot)")).toBeInTheDocument();
   });
 
-  it("creates the channel with the selected members", async () => {
+  it("names the channel it creates", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.type(screen.getByLabelText("Channel name"), "The great alliance");
+    await user.click(screen.getByLabelText("Select Italy"));
+    await user.click(screen.getByRole("button", { name: "Create channel" }));
+
+    await waitFor(() =>
+      expect(createChannel).toHaveBeenCalledWith({
+        gameId: "game-1",
+        data: { memberIds: [3], title: "The great alliance" },
+      })
+    );
+  });
+
+  it("creates an unnamed channel when no name is given", async () => {
     const user = userEvent.setup();
     renderScreen();
 
@@ -108,7 +124,7 @@ describe("ChannelCreateScreen", () => {
     await waitFor(() =>
       expect(createChannel).toHaveBeenCalledWith({
         gameId: "game-1",
-        data: { memberIds: [3] },
+        data: { memberIds: [3], title: "" },
       })
     );
   });

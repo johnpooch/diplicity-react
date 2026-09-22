@@ -1240,6 +1240,68 @@ paths:
                 items:
                   $ref: '#/components/schemas/Channel'
           description: ''
+  /games/{game_id}/channels/{channel_id}/:
+    put:
+      operationId: games_channels_update
+      description: Rename a private channel.
+      parameters:
+      - in: path
+        name: channel_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelUpdate'
+          description: ''
+    patch:
+      operationId: games_channels_partial_update
+      description: Rename a private channel.
+      parameters:
+      - in: path
+        name: channel_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChannelUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelUpdate'
+          description: ''
   /games/{game_id}/channels/{channel_id}/mark-read/:
     post:
       operationId: games_channels_mark_read_create
@@ -1936,6 +1998,9 @@ components:
         name:
           type: string
           readOnly: true
+        title:
+          type: string
+          maxLength: 50
         private:
           type: boolean
           readOnly: true
@@ -1943,6 +2008,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChannelMessage'
+          readOnly: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelEvent'
           readOnly: true
         unread_message_count:
           type: integer
@@ -1954,12 +2024,30 @@ components:
             type: integer
           writeOnly: true
       required:
+      - events
       - id
       - member_ids
       - messages
       - name
       - private
       - unread_message_count
+    ChannelEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - text
     ChannelMember:
       type: object
       properties:
@@ -2026,6 +2114,18 @@ components:
       - created_at
       - id
       - sender
+    ChannelUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 50
+      required:
+      - id
+      - title
     CommitmentEligibilityEnum:
       enum:
       - eligible
@@ -3279,6 +3379,15 @@ components:
       - new_password
       - token
       - uid
+    PatchedChannelUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 50
     PatchedDrawVoteUpdate:
       type: object
       properties:

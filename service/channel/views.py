@@ -1,15 +1,32 @@
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
-from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
+from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame, IsPrivateChannel
 
 from .models import Channel
-from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer
+from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelUpdateSerializer
 from common.views import SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsNotKickedGamePlayer, IsNotSandboxGame, IsNotNoPressActiveGame]
     serializer_class = ChannelSerializer
+
+
+class ChannelUpdateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+    """Rename a private channel."""
+
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsNotKickedGameParticipant,
+        IsChannelMember,
+        IsPrivateChannel,
+        IsNotSandboxGame,
+        IsNotNoPressActiveGame,
+    ]
+    serializer_class = ChannelUpdateSerializer
+
+    def get_object(self):
+        return self.get_channel()
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
