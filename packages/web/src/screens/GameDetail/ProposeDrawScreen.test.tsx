@@ -36,7 +36,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   getGamesDrawProposalsListQueryKey: () => ["drawList"],
 }));
 
-vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null, findNationFlagUrl: () => null, findNationColor: () => null }));
+vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null, findNationFlagUrl: () => null, findNationColor: () => null, getContrastColor: () => "#ffffff" }));
 
 const baseMember = (overrides = {}) => ({
   id: 1,
