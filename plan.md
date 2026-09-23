@@ -55,25 +55,6 @@ Do not build these as part of this plan. Each was considered and deferred.
 
 ---
 
-## 2. Vocabulary
-
-This was got backwards in discussion, so it is pinned here.
-
-- An **order** is one instruction to one **unit**. `A Mun - Sil` is an order.
-  In code it is a single record with `source`, `order_type`, `target`, `aux`,
-  `unit_type`, `named_coast` (`service/harness/generated/api.py:79`).
-- An **order set** is every order a nation submits for one phase. The code calls
-  it `orders`, a list.
-- **Move** is one of the order *types*, alongside Hold, Support, Convoy, Build,
-  Disband and MoveViaConvoy (`service/agent/management/commands/dump_phase.py:16`,
-  `service/harness/tasks/select_orders/scorers/coherence.py:6`). Never use "move"
-  to mean the whole set.
-- Orders are given to **units** (armies and fleets), never to supply centres.
-  Supply centres are owned territory and determine how many units a nation may
-  have. Units and supply centres are two separate lists on every fixture.
-
----
-
 ## 3. What exists today
 
 Read these before changing anything.
@@ -144,7 +125,7 @@ why the rollout horizon is counted in game-years.
 ## 5. Key decisions
 
 **D1. The UI is the cornerstone, and it is a labelling tool, not a viewer.**
-Human labels gate every downstream metric, so throughput of labelling is the
+Human labels are important to many downstream metrics, so throughput of labelling is the
 thing to optimise. A read-only inspection view does not move the constraint.
 
 **D2. Label per option, three-way: reasonable / unreasonable / unlabelled.**
@@ -245,10 +226,6 @@ timing constraint in section 4. It is always zero.
 **R5. Win rate as the rollout statistic.** At a one-game-year horizon nobody has
 won, so it is undefined. Over a full game against dumbbot it is almost entirely
 variance. Use supply-centre delta and units lost, as a paired distribution.
-
-**R6. Absolute rollout values.** The position dominates the outcome, so in a
-winning position every order rolls out well. Always show the difference against
-a baseline, never the absolute number alone.
 
 **R7. Relying on the existing dumbbot match for per-move signal.** The match
 (`service/integration/test_dumbbot_match.py`, results in
