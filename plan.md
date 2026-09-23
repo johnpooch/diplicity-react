@@ -130,12 +130,12 @@ why the rollout horizon is counted in game-years.
 ## 4. Key decisions
 
 **D1. The UI has two jobs: labelling and prompt iteration.**
-Human labels gate every downstream metric, so labelling throughput is one thing
-to optimise. The other is the loop someone actually runs when improving the bot:
-edit the prompt, run it against a known position, see what the orders became and
-what they cost on the board. Today that loop means editing Python, running an
-inspect eval and reading aggregate scores, which is far too slow to iterate
-against. A read-only inspection view serves neither job.
+Human labels are important to many downstream metrics, so labelling throughput
+is one thing to optimise. The other is the loop someone actually runs when
+improving the bot: edit the prompt, run it against a known position, see what
+the orders became and what they cost on the board. Today that loop means editing
+Python, running an inspect eval and reading aggregate scores, which is far too
+slow to iterate against. A read-only inspection view serves neither job.
 
 **D2. Label per option, three-way: reasonable / unreasonable / unlabelled.**
 Forced by the combinatorics in section 3. Three-way rather than binary because
