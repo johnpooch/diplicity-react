@@ -94,7 +94,7 @@ const ChannelListScreen: React.FC = () => {
                 className="h-full"
               />
             ) : (
-              <Card className="overflow-hidden py-0">
+              <Card className="shrink-0 overflow-hidden py-0">
                 <CardContent className="flex flex-col divide-y p-0">
                   {channels.map(channel => (
                     <Link
