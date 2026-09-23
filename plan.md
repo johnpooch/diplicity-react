@@ -21,8 +21,13 @@ labelling fast, plus the fixtures to label.
 
 ### In scope
 
-- A **local labelling tool** for order fixtures: board view, legal option list,
-  prompt editing, run the model, see consequences, label options.
+- A **local tool** for order fixtures: board view, legal option list, run the
+  model, see consequences, label options.
+- **Prompt iteration inside that tool**: view and edit the system prompt, re-run
+  it against the loaded fixture, and see straight away what the orders became and
+  what they cost. The tool is as much a prompt workbench as a labelling tool.
+- **Eval-set curation**: mark a fixture as belonging to a named eval set, or
+  discard it as unsuitable, from inside the tool.
 - A **harvester** that turns real archived Diplicity phases into self-contained
   fixtures.
 - **Fixture schema v2**, including what the real players actually ordered.
@@ -55,26 +60,7 @@ Do not build these as part of this plan. Each was considered and deferred.
 
 ---
 
-## 2. Vocabulary
-
-This was got backwards in discussion, so it is pinned here.
-
-- An **order** is one instruction to one **unit**. `A Mun - Sil` is an order.
-  In code it is a single record with `source`, `order_type`, `target`, `aux`,
-  `unit_type`, `named_coast` (`service/harness/generated/api.py:79`).
-- An **order set** is every order a nation submits for one phase. The code calls
-  it `orders`, a list.
-- **Move** is one of the order *types*, alongside Hold, Support, Convoy, Build,
-  Disband and MoveViaConvoy (`service/agent/management/commands/dump_phase.py:16`,
-  `service/harness/tasks/select_orders/scorers/coherence.py:6`). Never use "move"
-  to mean the whole set.
-- Orders are given to **units** (armies and fleets), never to supply centres.
-  Supply centres are owned territory and determine how many units a nation may
-  have. Units and supply centres are two separate lists on every fixture.
-
----
-
-## 3. What exists today
+## 2. What exists today
 
 Read these before changing anything.
 
@@ -98,7 +84,7 @@ Read these before changing anything.
 
 ---
 
-## 4. Measured facts
+## 3. Measured facts
 
 Measured on 2026-09-23 against the classical variant in a local dev container.
 Reproduce with `DJANGO_DEBUG=True service/.venv/bin/python manage.py shell`.
@@ -141,18 +127,30 @@ why the rollout horizon is counted in game-years.
 
 ---
 
-## 5. Key decisions
+## 4. Key decisions
 
-**D1. The UI is the cornerstone, and it is a labelling tool, not a viewer.**
-Human labels gate every downstream metric, so throughput of labelling is the
-thing to optimise. A read-only inspection view does not move the constraint.
+**D1. The UI has two jobs: labelling and prompt iteration.**
+Human labels gate every downstream metric, so labelling throughput is one thing
+to optimise. The other is the loop someone actually runs when improving the bot:
+edit the prompt, run it against a known position, see what the orders became and
+what they cost on the board. Today that loop means editing Python, running an
+inspect eval and reading aggregate scores, which is far too slow to iterate
+against. A read-only inspection view serves neither job.
 
 **D2. Label per option, three-way: reasonable / unreasonable / unlabelled.**
-Forced by the combinatorics in section 4. Three-way rather than binary because
+Forced by the combinatorics in section 3. Three-way rather than binary because
 "unlabelled" is the honest state for most of a 30-option list, and forcing a
 call on every option produces worse labels. The labeller must be able to label
 options the model did *not* pick, which falls out of labelling over the full
 legal list.
+
+A label may cover a **tuple** of options, not only a single one. Some orders are
+reasonable only in combination: a support is worth nothing unless the supported
+move is also ordered. A tuple label is satisfied only when every option in it is
+present in the order set. Singletons are the common case and tuples the
+exception, which keeps labelling cheap while capturing the coupling that pure
+per-option labelling would otherwise lose. This is the narrow, affordable part of
+what full order-set labelling would have given us (R2).
 
 **D3. Select from the option list, render on the board.** Authoring orders by
 clicking provinces needs the interactive map (pan, zoom, hit-testing), which is
@@ -206,7 +204,7 @@ spots. Their job is to stop the labeller staring at 133 options with no prior.
 
 **D11. Moves and messages stay separate.** Consequence: the `select_orders`
 prompt keeps no chat history for now, and the full-press move-quality eval stays
-parked. Side benefit: the privacy policy gap (section 9) only binds on player
+parked. Side benefit: the privacy policy gap (section 8) only binds on player
 messages, so it gates nothing in this plan.
 
 **D12. `option_labels` is the source of truth; `ranked_options` is derived.**
@@ -216,9 +214,37 @@ The existing `quality_strong` and `quality_avoidance` scorers read
 from `option_labels` at load time so those scorers keep working unchanged
 instead of being rewritten before there is data to justify it.
 
+**D13. The system prompt is editable in the tool; the user prompt is not.**
+The system prompt is assembled from a few constant text blocks plus a
+phase-dependent task instruction
+(`service/harness/tasks/select_orders/system_prompt.py:61`), so exposing those
+blocks as editable text is straightforward, and `PRINCIPLES` is where the
+Diplomacy strategy guidance actually lives. The user prompt is not text: it is
+rendered from the context in Python
+(`service/harness/tasks/select_orders/user_prompt.py:15`), and its rendered
+option list is positionally coupled to the parser, which maps each
+`option_index` into `group_options_by_source(context["order_options"])`
+(`service/harness/tasks/select_orders/parser.py:20`). Let someone reorder or trim
+that list as free text and indices silently map to different orders. Worse, an
+out-of-range index is skipped rather than raised
+(`service/harness/tasks/select_orders/parser.py:24`), so a desync surfaces as a
+missing order rather than an error. Show the user prompt read-only. Changing how
+the board is described is a code change to `user_prompt.py`, not a text edit.
+
+The `FORMAT` block is a special case: it is editable text like the rest of the
+system prompt, but it specifies the JSON shape the parser expects, so editing it
+will break parsing. Mark it as such in the UI.
+
+**D14. Baselines are precomputed at harvest, not at labelling time.**
+The human's order set and dumbbot's pick are properties of the fixture. Neither
+depends on the model or on the prompt being iterated, so both rollouts are
+computed once when the fixture is harvested, stored in the fixture, and read for
+free thereafter. Only the model's own rollout runs live. This removes the reason
+the baselines were going to be optional.
+
 ---
 
-## 6. Rejected alternatives
+## 5. Rejected alternatives
 
 **R1. Build the UI in `packages/design-playground`.** Proposed in #1368, rejected.
 That package's own `CLAUDE.md` overrides the root one and forbids nearly
@@ -229,7 +255,7 @@ code is disposable", and prototypes get deleted once a decision lands. This tool
 is durable, has a backend, and reads real data. It does not belong there.
 
 **R2. Exact order-set matching against hand-authored "reasonable" sets.**
-Rejected on the numbers in section 4. Against roughly 10^8 legal sets, exact
+Rejected on the numbers in section 3. Against roughly 10^8 legal sets, exact
 matching reads zero almost always and teaches nothing.
 
 **R3. Per-order marginal rollouts.** The idea was to fix one order, let dumbbot
@@ -240,15 +266,20 @@ fills the rest makes good orders look worthless. Signal to noise is too poor.
 Replaced by D4.
 
 **R4. Supply-centre delta from a one-phase counterfactual.** Impossible, see the
-timing constraint in section 4. It is always zero.
+timing constraint in section 3. It is always zero.
 
 **R5. Win rate as the rollout statistic.** At a one-game-year horizon nobody has
 won, so it is undefined. Over a full game against dumbbot it is almost entirely
 variance. Use supply-centre delta and units lost, as a paired distribution.
 
-**R6. Absolute rollout values.** The position dominates the outcome, so in a
-winning position every order rolls out well. Always show the difference against
-a baseline, never the absolute number alone.
+**R6. Reporting a rollout without a baseline.** The position dominates the
+outcome, so in a winning position every order rolls out well, and an absolute
+distribution mostly describes the position rather than the orders. The first fix
+proposed was a UI toggle trading the baselines away for speed, which would have
+meant sometimes showing exactly the number this rejects. D14 removes the trade
+rather than the principle: baselines are precomputed at harvest, so they cost
+nothing at default settings and are always available. A toggle survives only as a
+way to hide them on screen, never as a way to avoid computing them.
 
 **R7. Relying on the existing dumbbot match for per-move signal.** The match
 (`service/integration/test_dumbbot_match.py`, results in
@@ -261,7 +292,7 @@ set cost me a game-year later". Rollouts do.
 
 ---
 
-## 7. Fixture schema v2
+## 6. Fixture schema v2
 
 One JSON file per fixture. Recommended location
 `service/harness/tasks/select_orders/fixtures/<id>.json`, one file per fixture
@@ -284,17 +315,28 @@ New fields:
 - `actual_outcome`: which orders succeeded or failed, and the resulting units and
   supply centres. `_order_state` already computes a `failed` flag per order
   (`service/agent/management/commands/dump_phase.py:35`).
-- `option_labels`: list of `{ option, label: "reasonable" | "unreasonable",
-  labeller, labelled_at, note }`. Absence of an entry means unlabelled.
+- `option_labels`: list of `{ options, label: "reasonable" | "unreasonable",
+  labeller, labelled_at, note }`. `options` is a list: one entry in the ordinary
+  case, several when the judgement holds only for a combination (D2). Absence of
+  an entry means unlabelled.
+- `baselines`: the precomputed human and dumbbot rollout results (D14), each
+  recording the horizon and seed list it was computed with so a settings change
+  can invalidate it rather than silently comparing unlike things.
+- `eval_sets`: list of named eval sets this fixture belongs to. Empty by default.
+  A harvested fixture starts in none: harvesting is cheap and deciding a position
+  is worth evaluating against is a judgement, so they must be separate actions.
+- `discarded`: `{ by, at, reason }`, or absent. A fixture judged unsuitable is
+  marked rather than deleted, so the same position is not re-harvested and
+  re-judged later.
 - `decision_richness`: integer, the product of per-unit option counts for the
   eval nation. Free to compute while enumerating, and useful for sorting
   candidate positions by how much was actually at stake.
-- `split`: `null` for now. Reserved so the dev/test split can be made later
-  without a migration. See open question Q5.
+There is deliberately no `split` field. A dev/test split is just two eval sets
+named for the purpose, so `eval_sets` already expresses it. See Q5.
 
 ---
 
-## 8. Metrics
+## 7. Metrics
 
 ### One-phase counterfactual
 
@@ -323,11 +365,12 @@ what makes you own it at the following Adjustment.
 - **Seeds**: 30 by default, configurable.
 - **Candidates**: the model's order set, plus two baselines, the human's actual
   order set and dumbbot's own pick for the eval nation. All three over the same
-  seed list (D9).
+  seed list (D9). The two baselines are precomputed at harvest and stored in the
+  fixture (D14), so at default settings only the model's rollout runs live.
 - **Report**: supply-centre count delta and units remaining at the horizon, as a
   distribution over seeds, shown as a paired difference against the baselines.
 
-Expected cost, from the 40 ms per phase measured in section 4:
+Expected cost, from the 40 ms per phase measured in section 3:
 
 | Setting | Phases | Per candidate | Three candidates, serial |
 |---|---|---|---|
@@ -335,13 +378,16 @@ Expected cost, from the 40 ms per phase measured in section 4:
 | 1 game-year from Spring, 30 seeds | 4 | ~5 s | ~15 s |
 | 2 game-years from Spring, 30 seeds | 8 | ~10 s | ~30 s |
 
-The three candidates are independent, so run them in parallel processes to keep
-wall clock near the per-candidate figure. Baselines sit behind a single UI
-toggle, default on, so a labeller working fast can turn them off.
+At default settings only the model's rollout runs at labelling time, so the cost
+is the per-candidate column, not the three-candidate one. The three-candidate
+figure applies at harvest, and when someone changes the horizon or seed count and
+invalidates the stored baselines. The candidates are independent, so run them in
+parallel processes when all three are needed. The UI toggle hides the baselines,
+it does not skip computing them (R6).
 
 ---
 
-## 9. Constraints and conventions
+## 8. Constraints and conventions
 
 - Root `CLAUDE.md` applies: follow existing patterns, no code comments or
   docstrings (DRF view docstrings excepted, they feed OpenAPI), never suppress
@@ -370,7 +416,7 @@ toggle, default on, so a labeller working fast can turn them off.
 
 ---
 
-## 10. Open questions
+## 9. Open questions
 
 - **Q1.** Name and location of the backend app that serves the tool. A DEBUG-gated
   URL include in a small Django app gets DRF and existing serializer patterns for
@@ -387,17 +433,19 @@ toggle, default on, so a labeller working fast can turn them off.
   played are the highest-value source, since the bot's real orders, the resulting
   board and eventually whether it got kicked all come for free.
 - **Q4.** Whether `decision_richness` is stored in the fixture or computed on load.
-- **Q5.** The dev/test split. Deferred by agreement; the `split` field is reserved
-  so it can be made later. The reason it will eventually matter: tuning prompts
-  against every fixture means the numbers stop predicting anything.
-- **Q6.** The `support_coherence` bug in section 11, task 0.1: fix now or when
+- **Q5.** The dev/test split. Deferred by agreement, and it needs no schema work:
+  two eval sets named for the purpose express it. The reason it matters is sharper
+  now that prompt iteration happens inside the tool (D1), because iterating
+  against a fixture is exactly what stops it being a fair test of the prompt.
+  Decide before the first eval set is used to judge a prompt change.
+- **Q6.** The `support_coherence` bug in section 10, task 0.1: fix now or when
   press lands.
 - **Q7.** What "good enough" means for any of these metrics. Unanswered in #1368
   and still unanswered.
 
 ---
 
-## 11. Tasks
+## 10. Tasks
 
 Each task states how to tell it is done.
 
@@ -430,12 +478,13 @@ the way `service/adjudicator/tests.py` does.
   reconstructed historical phase match those for the same board as a current phase.
 
 - [ ] **0.3 Implement fixture schema v2.**
-  Add the fields in section 7 to the fixture builder
+  Add the fields in section 6 to the fixture builder
   (`service/harness/adapter.py:214`) and have `dump_phase` populate them, including
   every nation's `actual_orders` and the real `actual_outcome`.
   *Done when*: a harvested fixture round-trips through the schema with all new
   fields populated, a test asserts `actual_orders` covers every nation with units
-  in the phase, and no fixture contains a user identifier.
+  in the phase, a newly harvested fixture has `eval_sets` empty, and no fixture
+  contains a user identifier.
 
 - [ ] **0.4 Derive `ranked_options` from `option_labels`.**
   Keep `quality_strong` and `quality_avoidance` working unchanged (D12).
@@ -451,7 +500,7 @@ the way `service/adjudicator/tests.py` does.
 ### Phase 1: the rollout engine, headless
 
 - [ ] **1.1 One-phase counterfactual.**
-  Pure function: fixture plus a candidate order set in, the section 8 metrics out.
+  Pure function: fixture plus a candidate order set in, the section 7 metrics out.
   No Django models.
   *Done when*: replaying a fixture's own `actual_orders` reproduces its
   `actual_outcome` exactly. That is the test that proves the counterfactual is
@@ -469,8 +518,15 @@ the way `service/adjudicator/tests.py` does.
   Run the counterfactual and rollout for a fixture and print the comparison for
   model, human and dumbbot candidates.
   *Done when*: the command runs end to end on a harvested fixture and its timings
-  land within roughly the section 8 table. If they are far off, re-measure before
+  land within roughly the section 7 table. If they are far off, re-measure before
   building UI on top.
+
+- [ ] **1.4 Precompute and store the baselines.**
+  Compute the human and dumbbot rollouts for every fixture at the default horizon
+  and seed list, and write them into the fixture's `baselines` (D14).
+  *Done when*: every harvested fixture carries both baselines; each records the
+  horizon and seed list used; and reading them back reproduces what a live run
+  with the same settings produces.
 
 ### Phase 2: the tool
 
@@ -495,48 +551,74 @@ the way `service/adjudicator/tests.py` does.
 
 - [ ] **2.4 Option list and labelling.**
   Full legal option list, filterable, grouped by unit. Click an option to see it
-  drawn on the board. Mark reasonable, unreasonable, or leave unlabelled.
+  drawn on the board. Mark reasonable, unreasonable, or leave unlabelled. Select
+  several options together to label them as a tuple (D2).
   *Done when*: labelling an option writes it to the fixture file and the label
-  survives a reload; options the model did not pick are labellable.
+  survives a reload; options the model did not pick are labellable; a support and
+  its supported move can be labelled as one tuple and both are drawn on the board
+  together.
 
-- [ ] **2.5 Prompt editing and model runs.**
-  Edit the system and user prompt in the tool, run against the fixture, show the
-  model's chosen orders and its reasoning beside the option list.
-  *Done when*: an edited prompt produces a different order set, and an unparseable
-  completion surfaces the parse error rather than failing silently.
+- [ ] **2.5 Prompt workbench.**
+  Expose the system prompt's blocks as editable text, run the edited prompt
+  against the loaded fixture, and show the model's chosen orders and its
+  `reasoning` beside the option list. The user prompt is shown read-only, and the
+  `FORMAT` block is marked as parser-coupled (D13). Keep the previous run visible
+  so a prompt change can be compared against what it replaced.
+  *Done when*: an edited `PRINCIPLES` block produces a different order set on the
+  same fixture; the run before and after an edit can be seen side by side; the
+  user prompt cannot be edited; and an unparseable completion surfaces the parse
+  error rather than failing silently.
 
 - [ ] **2.6 Metrics panel.**
   One-phase counterfactual metrics, plus the rollout with its paired baselines.
-  Horizon and seed count configurable with the section 8 defaults. Baselines
-  behind a single toggle, default on.
+  Horizon and seed count configurable with the section 7 defaults. A toggle hides
+  the baselines on screen without skipping them (R6).
   *Done when*: the panel shows model, human and dumbbot as a paired comparison on
-  the same seeds; turning baselines off drops it to one computation; and the
-  filled order set dumbbot produced around each candidate is inspectable, not just
-  the summary number.
+  the same seeds; at default settings only the model's rollout runs, with the
+  baselines read from the fixture; changing the horizon or seed count visibly
+  invalidates the stored baselines rather than comparing unlike things; and the
+  order set dumbbot filled in around each candidate is inspectable, not just the
+  summary number.
+
+- [ ] **2.7 Eval-set curation.**
+  Add the loaded fixture to a named eval set, remove it, or discard it with a
+  reason, writing `eval_sets` and `discarded` back to the file.
+  *Done when*: set membership and discarding both survive a reload; a discarded
+  fixture is visibly excluded from the working list but still present on disk; and
+  the fixture list can be filtered by eval set.
 
 ### Phase 3: close the loop
 
-- [ ] **3.1 Re-baseline the evals** against the harvested fixtures and update
+- [ ] **3.1 Point the inspect task at the fixture directory.**
+  `select_orders` currently loads a single `dataset.json`
+  (`service/harness/tasks/select_orders/evals.py:22`). Load the fixture directory
+  instead, filtered by eval-set membership, so what an eval run covers is decided
+  by curation rather than by which file someone edited.
+  *Done when*: `select_orders(eval_set=...)` runs over exactly the fixtures in that
+  set, discarded fixtures are never included, and an empty or unknown set name
+  fails loudly rather than silently running zero samples.
+
+- [ ] **3.2 Re-baseline the evals** against the harvested fixtures and update
   `EVAL_RESULTS.md` and `service/dumbbot/EVAL_RESULTS.md`. Note in each that the
   dataset changed, so the new numbers are not comparable to the old ones.
   *Done when*: both files record a run against the new dataset with its fixture
   count and the incomparability noted.
 
-- [ ] **3.2 Write the conventions down.** Root `CLAUDE.md` requires that an
+- [ ] **3.3 Write the conventions down.** Root `CLAUDE.md` requires that an
   architectural decision is recorded in the same session it is made. Add the new
   package's boundary (what may import what, that it is local only and not
   deployed) alongside the existing design-playground boundary, and resolve Q2.
   *Done when*: root `CLAUDE.md` describes the boundary and a fresh session could
   infer where this tool's code belongs without reading this plan.
 
-- [ ] **3.3 Reply to discussion #1368** summarising what was decided and what was
+- [ ] **3.4 Reply to discussion #1368** summarising what was decided and what was
   dropped, so the thread does not stay at the original proposal.
   *Done when*: the comment is posted and links to this plan.
 
 ### Not now
 
 Message-side work, listed here only so it is not lost: the privacy policy
-correction (section 9), message fixtures, the negatives-first rubric with
+correction (section 8), message fixtures, the negatives-first rubric with
 code-checkable board-grounding claims separated from judge-only ones, the
 should-reply classifier (cheapest item on the list, its answer key needs no human
 labelling since "did a human reply, and how fast" comes straight from the
