@@ -1,0 +1,543 @@
+# AI player evals: the order side
+
+Implementation plan. Nothing here is built yet.
+
+Source material: discussion [#1368 "AI player evals"](https://github.com/johnpooch/diplicity-react/discussions/1368),
+a call with John, and a design session on 22-23 September 2026. Where this plan
+contradicts #1368, this plan is later and wins.
+
+---
+
+## 1. Goal
+
+Build the data and the tooling needed to tell whether the AI player's order
+selection is any good, and to make prompt iteration produce a trustworthy
+signal rather than vibes.
+
+The binding constraint is human labels. Everything downstream (scorers, answer
+keys, judges) needs positions that a human has judged, and only a human can
+produce those. So the first deliverable is not a metric, it is a tool that makes
+labelling fast, plus the fixtures to label.
+
+### In scope
+
+- A **local labelling tool** for order fixtures: board view, legal option list,
+  prompt editing, run the model, see consequences, label options.
+- A **harvester** that turns real archived Diplicity phases into self-contained
+  fixtures.
+- **Fixture schema v2**, including what the real players actually ordered.
+- A **one-phase counterfactual**: swap the model's order set in against the
+  other nations' archived orders and measure what changes.
+- **Zero-token dumbbot rollouts** to show board-level consequences a game-year out.
+- **Per-option human labels** written back into the fixture, as the answer key
+  future scorers will use.
+
+### Explicitly out of scope
+
+Do not build these as part of this plan. Each was considered and deferred.
+
+- **Everything on the message side.** Message quality rubrics, the should-reply
+  decision, prompt-injection and jailbreak fixtures, LLM-judge calibration.
+  Parked by decision, see D11.
+- **Order consistency with respect to reasoning** as an LLM judge. Deferred.
+- **Persisting eval runs, and any dashboard.** Issue
+  [#1142](https://github.com/johnpooch/diplicity-react/issues/1142) posed this
+  and was closed as not planned.
+- **Deploying the tool.** v1 is local only, see D5.
+- **Changing production bot behaviour.** This plan is measurement only.
+- **The dumbbot match protocol.** Settled in
+  [#1126](https://github.com/johnpooch/diplicity-react/issues/1126). Do not
+  redefine it.
+- **New inspect scorers.** This plan produces the labelled data a scorer would
+  need. Writing scorers before labels exist leaves them idle.
+- **Chat history in the `select_orders` context.** Moves and messages stay
+  separate for now, see D11.
+
+---
+
+## 2. Vocabulary
+
+This was got backwards in discussion, so it is pinned here.
+
+- An **order** is one instruction to one **unit**. `A Mun - Sil` is an order.
+  In code it is a single record with `source`, `order_type`, `target`, `aux`,
+  `unit_type`, `named_coast` (`service/harness/generated/api.py:79`).
+- An **order set** is every order a nation submits for one phase. The code calls
+  it `orders`, a list.
+- **Move** is one of the order *types*, alongside Hold, Support, Convoy, Build,
+  Disband and MoveViaConvoy (`service/agent/management/commands/dump_phase.py:16`,
+  `service/harness/tasks/select_orders/scorers/coherence.py:6`). Never use "move"
+  to mean the whole set.
+- Orders are given to **units** (armies and fleets), never to supply centres.
+  Supply centres are owned territory and determine how many units a nation may
+  have. Units and supply centres are two separate lists on every fixture.
+
+---
+
+## 3. What exists today
+
+Read these before changing anything.
+
+- `service/harness/tasks/select_orders/evals.py` is the only inspect `Task` in
+  the repo. Seven scorers over `dataset.json`.
+- `service/harness/tasks/select_orders/dataset.json` holds 10 fixtures. They are
+  hand-built toy positions, not harvested. One has a single legal option. Only 4
+  carry `ranked_options`, which is why `quality_strong` and `quality_avoidance`
+  report stderr of 0.14 and 0.24 in `EVAL_RESULTS.md`.
+- `service/dumbbot/` holds a heuristic policy that plays legal Diplomacy for
+  zero tokens (`service/dumbbot/EVAL_RESULTS.md`). It currently beats the LLM on
+  every scorer, five of them trivially because it picks from the engine's own
+  option enumeration and so cannot emit an illegal order.
+- `service/adjudicator/` is a pure, Django-free engine. Its public facade is
+  `adjudicate(variant, game_state)` (`service/adjudicator/__init__.py:16`), and
+  `service/adjudicator/options.py:47` exposes `get_options(state)`.
+- `service/agent/management/commands/dump_phase.py` is the existing harvester.
+  It has two problems, see D6.
+- `packages/design-playground/` is a prototyping app. Not suitable for this
+  tool, see R1.
+
+---
+
+## 4. Measured facts
+
+Measured on 2026-09-23 against the classical variant in a local dev container.
+Reproduce with `DJANGO_DEBUG=True service/.venv/bin/python manage.py shell`.
+
+| Quantity | Value |
+|---|---|
+| `get_options` on a full board | 35 ms |
+| `Engine().adjudicate` on a full board | 0.66 ms |
+| Legal order sets, Spring 1901, Turkey (3 units) | 693 |
+| Legal order sets, Spring 1901, Russia (4 units) | 9,216 |
+| Legal options, constructed 6-unit midgame position | 133 |
+| Legal order sets, that same position | 105,257,880 |
+
+Consequences that shaped the design:
+
+- Option enumeration costs about fifty times adjudication and dominates rollout
+  cost. Budget roughly **40 ms per rollout phase**.
+- The space of order sets is far too large for exact-set matching against a
+  handful of hand-authored "reasonable" sets. Labelling is **per option**.
+- Option enumeration is **per unit and unconditional**. Legality depends on where
+  units physically stand, not on what other units are ordered. Convoy
+  enumeration falls back to `convoy_path_exists` over physical fleet positions
+  and deliberately does not depend on submitted convoys
+  (`service/adjudicator/options.py:8`). This is why per-unit counts multiply
+  cleanly, and why `support_coherence` and `convoy_coherence` exist at all: the
+  option list cannot rule out legal-but-incoherent combinations.
+
+### The supply-centre timing constraint
+
+**Supply-centre ownership cannot change within a single phase.** Ownership is
+recomputed only when the *next* phase is an Adjustment phase; otherwise current
+ownership is carried through unchanged
+(`service/adjudicator/engine.py:1143`). In the classical progression, Adjustment
+follows Fall **Retreat**, not Fall Movement.
+
+So a one-phase counterfactual always reports a supply-centre delta of zero,
+whether the phase is Spring or Fall. Ownership moves once per game-year. This is
+why the counterfactual measures occupancy and the rollout measures centres, and
+why the rollout horizon is counted in game-years.
+
+---
+
+## 5. Key decisions
+
+**D1. The UI is the cornerstone, and it is a labelling tool, not a viewer.**
+Human labels gate every downstream metric, so throughput of labelling is the
+thing to optimise. A read-only inspection view does not move the constraint.
+
+**D2. Label per option, three-way: reasonable / unreasonable / unlabelled.**
+Forced by the combinatorics in section 4. Three-way rather than binary because
+"unlabelled" is the honest state for most of a 30-option list, and forcing a
+call on every option produces worse labels. The labeller must be able to label
+options the model did *not* pick, which falls out of labelling over the full
+legal list.
+
+**D3. Select from the option list, render on the board.** Authoring orders by
+clicking provinces needs the interactive map (pan, zoom, hit-testing), which is
+roughly 3,500 lines nobody wants a second copy of. Selecting from the list and
+drawing the result on a board is cheap and is how judgement actually happens:
+nobody can evaluate `Support Munich -> Silesia` as a string. Render the board
+once and overlay arrows as SVG in the browser; do not round-trip to a PNG
+renderer per click.
+
+**D4. Order-set level machine measurement, order level human attribution.**
+The machine resolves a whole order set and reports what changed. The human then
+attributes that outcome to individual orders. Machines are bad at attribution
+here and humans are bad at simulation, so each does what it is good at.
+
+**D5. v1 is local only.** Runs against a local Django and writes fixture JSON
+straight to disk. This removes staff authentication, deployment, and the
+"how does a deployed app write to git" problem in one move, and keeps the
+privacy question away from the order work entirely. Deploy later only if it
+earns it.
+
+**D6. Fixtures are self-contained JSON files committed to the repo.** They carry
+their own variant id, phase, units, supply centres and full legal option list,
+so the eval does not need a database at rest. This also delivers what John asked
+for, a Diplomacy eval rather than a Diplicity-specific one: the portable
+contract is the fixture schema plus `adjudicate()`, and only the harvester
+touches Django.
+
+**D7. Fixtures carry no user identifiers.** The current builder records nation
+names only (`service/harness/adapter.py:214`). Preserve that deliberately: this
+repository is public and fixtures will be committed to it. A source game id as
+provenance is fine, user ids are not.
+
+**D8. Rollout horizon is counted in game-years, not phases.** Default 1 game-year,
+meaning roll forward until the next Adjustment has resolved. Forced by the
+supply-centre timing constraint: a fixed 3-phase horizon stops one short of
+Adjustment from a Spring position and overshoots from a Fall one. Counting in
+game-years makes the supply-centre delta always defined and comparable across
+fixtures.
+
+**D9. Paired seeds across all candidate order sets.** The model's set, the human's
+set and dumbbot's set are rolled out over the *same* seed list. Diplomacy
+rollouts are high variance and the position dominates the outcome, so comparing
+independent samples at 30 seeds mostly measures noise. Common random numbers
+cancel the shared randomness. This is the difference between 30 seeds being
+useful and 30 seeds being decorative.
+
+**D10. Rollouts are a labelling aid, never a metric.** They are never a number
+anyone tunes a prompt against. The value they measure is value against a weak
+continuation, so optimising it would mean optimising against dumbbot's blind
+spots. Their job is to stop the labeller staring at 133 options with no prior.
+
+**D11. Moves and messages stay separate.** Consequence: the `select_orders`
+prompt keeps no chat history for now, and the full-press move-quality eval stays
+parked. Side benefit: the privacy policy gap (section 9) only binds on player
+messages, so it gates nothing in this plan.
+
+**D12. `option_labels` is the source of truth; `ranked_options` is derived.**
+The existing `quality_strong` and `quality_avoidance` scorers read
+`ranked_options` good/bad lists
+(`service/harness/tasks/select_orders/scorers/quality.py:7`). Derive that shape
+from `option_labels` at load time so those scorers keep working unchanged
+instead of being rewritten before there is data to justify it.
+
+---
+
+## 6. Rejected alternatives
+
+**R1. Build the UI in `packages/design-playground`.** Proposed in #1368, rejected.
+That package's own `CLAUDE.md` overrides the root one and forbids nearly
+everything this tool needs: "no backend, no API client, no authentication and no
+real data", "no MSW, no react-query, no generated OpenAPI types, and no network
+layer. Do not add them", "Never rebuild the interactive map", "No tests. This
+code is disposable", and prototypes get deleted once a decision lands. This tool
+is durable, has a backend, and reads real data. It does not belong there.
+
+**R2. Exact order-set matching against hand-authored "reasonable" sets.**
+Rejected on the numbers in section 4. Against roughly 10^8 legal sets, exact
+matching reads zero almost always and teaches nothing.
+
+**R3. Per-order marginal rollouts.** The idea was to fix one order, let dumbbot
+fill the remaining units, and read off that order's marginal value. Rejected
+because order quality is tightly coupled within a set: a support only has value
+if the supported move is also ordered, so fixing a support while something else
+fills the rest makes good orders look worthless. Signal to noise is too poor.
+Replaced by D4.
+
+**R4. Supply-centre delta from a one-phase counterfactual.** Impossible, see the
+timing constraint in section 4. It is always zero.
+
+**R5. Win rate as the rollout statistic.** At a one-game-year horizon nobody has
+won, so it is undefined. Over a full game against dumbbot it is almost entirely
+variance. Use supply-centre delta and units lost, as a paired distribution.
+
+**R6. Absolute rollout values.** The position dominates the outcome, so in a
+winning position every order rolls out well. Always show the difference against
+a baseline, never the absolute number alone.
+
+**R7. Relying on the existing dumbbot match for per-move signal.** The match
+(`service/integration/test_dumbbot_match.py`, results in
+`service/integration/MATCH_RESULTS.md`) measures a whole policy over a whole
+game and cannot attribute the outcome to any single decision. Archive replay
+gives only one phase of consequence, because the moment the model's orders are
+substituted the real game diverges and every later archived order was
+conditioned on a board that no longer exists. Neither gives "what did this order
+set cost me a game-year later". Rollouts do.
+
+---
+
+## 7. Fixture schema v2
+
+One JSON file per fixture. Recommended location
+`service/harness/tasks/select_orders/fixtures/<id>.json`, one file per fixture
+rather than a single `dataset.json`, so label changes produce readable diffs.
+
+Existing fields, keep as they are: `id`, `variant`, `nation`, `phase`
+(`season`, `year`, `type`), `units`, `supply_centers`, `order_options`,
+`max_orders` (optional), `notes`.
+
+New fields:
+
+- `schema_version`: `2`.
+- `provenance`: `{ source: "harvested" | "handbuilt", game_id, phase_id,
+  phase_ordinal, harvested_at, press_type }`. The existing 10 fixtures are
+  `handbuilt` and behave nothing like harvested positions, so the distinction
+  must be explicit rather than implied.
+- `actual_orders`: the real order set **for every nation** in the phase, not just
+  the eval nation. Without the other six, counterfactual re-adjudication is
+  impossible. This is the single most important addition.
+- `actual_outcome`: which orders succeeded or failed, and the resulting units and
+  supply centres. `_order_state` already computes a `failed` flag per order
+  (`service/agent/management/commands/dump_phase.py:35`).
+- `option_labels`: list of `{ option, label: "reasonable" | "unreasonable",
+  labeller, labelled_at, note }`. Absence of an entry means unlabelled.
+- `decision_richness`: integer, the product of per-unit option counts for the
+  eval nation. Free to compute while enumerating, and useful for sorting
+  candidate positions by how much was actually at stake.
+- `split`: `null` for now. Reserved so the dev/test split can be made later
+  without a migration. See open question Q5.
+
+---
+
+## 8. Metrics
+
+### One-phase counterfactual
+
+Swap the eval nation's candidate order set in, hold the other six nations'
+`actual_orders` fixed, adjudicate once. Report:
+
+- units dislodged, own and enemy
+- units lost outright (dislodged with no legal retreat)
+- moves succeeded over moves attempted
+- provinces taken, held, given up
+- **occupancy** delta on supply-centre provinces
+
+Do **not** report supply-centre ownership delta here. It is always zero. Occupancy
+of supply-centre provinces is the leading indicator: occupying Munich in Fall is
+what makes you own it at the following Adjustment.
+
+### Rollout
+
+- **Phase 0**: the candidate order set against the other nations' `actual_orders`.
+  Not dumbbot. This keeps the first step grounded in reality and makes the
+  one-phase counterfactual the zero-game-year case of the same code path rather
+  than a second implementation.
+- **Phases 1..N**: every seat plays dumbbot, RNG seeded per repeat.
+- **Horizon**: 1 game-year by default (roll until the next Adjustment has
+  resolved), configurable to 2.
+- **Seeds**: 30 by default, configurable.
+- **Candidates**: the model's order set, plus two baselines, the human's actual
+  order set and dumbbot's own pick for the eval nation. All three over the same
+  seed list (D9).
+- **Report**: supply-centre count delta and units remaining at the horizon, as a
+  distribution over seeds, shown as a paired difference against the baselines.
+
+Expected cost, from the 40 ms per phase measured in section 4:
+
+| Setting | Phases | Per candidate | Three candidates, serial |
+|---|---|---|---|
+| 1 game-year from Fall, 30 seeds | 2 | ~2.5 s | ~7.5 s |
+| 1 game-year from Spring, 30 seeds | 4 | ~5 s | ~15 s |
+| 2 game-years from Spring, 30 seeds | 8 | ~10 s | ~30 s |
+
+The three candidates are independent, so run them in parallel processes to keep
+wall clock near the per-candidate figure. Baselines sit behind a single UI
+toggle, default on, so a labeller working fast can turn them off.
+
+---
+
+## 9. Constraints and conventions
+
+- Root `CLAUDE.md` applies: follow existing patterns, no code comments or
+  docstrings (DRF view docstrings excepted, they feed OpenAPI), never suppress
+  lint or type errors, write tests alongside features, cite file and line when
+  asserting something about the codebase.
+- `packages/web` must never import from any prototype or tool package, and the
+  reverse holds too.
+- The new frontend package must not import from `packages/web` or from
+  `packages/design-playground`. Copy what it needs.
+- The adjudicator has its own architectural rubric in
+  `service/adjudicator/CLAUDE.md` and deviations get rejected even when they
+  work. Rollout code calls the engine from outside; it does not reach into it.
+- `service/harness/` has no `models.py` today and the rollout logic needs none,
+  so it stays that way. See Q2.
+- Backend runs on `service/.venv/bin/python`. System `python3` is 3.11 and Django
+  6 needs 3.12+.
+- SQLite is not viable; some migrations use Postgres-only SQL.
+- Variants are seeded by data migrations, so a local database has the classical
+  variant after `migrate`. No production data is needed to run the engine.
+- **Privacy**: `PRIVACY.md:67` lists four third parties and Anthropic is not among
+  them, while `PRIVACY.md:76` states no data is shared with other third parties
+  and `PRIVACY.md:38` confirms chat messages are collected. Production already
+  sends player messages to Anthropic through the reply task, so the policy is
+  inaccurate today. This blocks the message work, not this plan (D11), but it
+  needs fixing before any message eval touches real data.
+
+---
+
+## 10. Open questions
+
+- **Q1.** Name and location of the backend app that serves the tool. A DEBUG-gated
+  URL include in a small Django app gets DRF and existing serializer patterns for
+  free; a standalone management command serving HTTP is simpler but diverges from
+  every other pattern in the service.
+- **Q2.** Issue #1142 claimed `CLAUDE.md` explicitly forbids Django models in
+  `harness`. That wording is not in the current `CLAUDE.md` or `.claude/rules/`.
+  `harness` has no `models.py` today and this plan adds none, so nothing is
+  blocked, but the rule should be written down or dropped.
+- **Q3.** How fixtures get selected for harvesting. Deliberately unanswered: criteria
+  designed before anything has been labelled will be wrong. For the first batch,
+  take 20 to 30 phases across 3 to 5 completed games spread over early, middle and
+  late game, and let labelling teach us what matters. Positions the bot itself
+  played are the highest-value source, since the bot's real orders, the resulting
+  board and eventually whether it got kicked all come for free.
+- **Q4.** Whether `decision_richness` is stored in the fixture or computed on load.
+- **Q5.** The dev/test split. Deferred by agreement; the `split` field is reserved
+  so it can be made later. The reason it will eventually matter: tuning prompts
+  against every fixture means the numbers stop predicting anything.
+- **Q6.** The `support_coherence` bug in section 11, task 0.1: fix now or when
+  press lands.
+- **Q7.** What "good enough" means for any of these metrics. Unanswered in #1368
+  and still unanswered.
+
+---
+
+## 11. Tasks
+
+Each task states how to tell it is done.
+
+Test placement is governed by `.claude/rules/backend/tests.md`: every Django app
+keeps a single `tests.py`, never a `tests/` package or split modules, and
+behaviour is asserted through HTTP endpoints rather than against models,
+managers or querysets directly. Pure engine-side functions are tested directly,
+the way `service/adjudicator/tests.py` does.
+
+### Phase 0: groundwork
+
+- [ ] **0.1 Fix the dangling-support false positive.**
+  `dangling()` builds its destination map only from the eval nation's own orders
+  (`service/harness/tasks/select_orders/scorers/coherence.py:9`), so supporting an
+  *ally's* move always scores as incoherent, because the ally's unit never appears
+  in the order set. Supporting an ally is normal full-press play. See Q6 for
+  whether to do this now.
+  *Done when*: a test covering a support of a foreign nation's ordered move scores
+  CORRECT, and the existing dangling-support tests still pass.
+
+- [ ] **0.2 Teach the harvester to read historical phases.**
+  `dump_phase` only emits fixture stubs when the phase is the game's *current*
+  phase, and otherwise skips with "order options unavailable"
+  (`service/agent/management/commands/dump_phase.py:94`), because it pulls the
+  option list from the live API. The archive is entirely historical phases, so the
+  harvester cannot currently do the job it exists for. Reconstruct the state and
+  call `get_options` instead.
+  *Done when*: `dump_phase --game <id> --phase <historical id>` writes a fixture
+  with a non-empty `order_options`, and a test asserts the enumerated options for a
+  reconstructed historical phase match those for the same board as a current phase.
+
+- [ ] **0.3 Implement fixture schema v2.**
+  Add the fields in section 7 to the fixture builder
+  (`service/harness/adapter.py:214`) and have `dump_phase` populate them, including
+  every nation's `actual_orders` and the real `actual_outcome`.
+  *Done when*: a harvested fixture round-trips through the schema with all new
+  fields populated, a test asserts `actual_orders` covers every nation with units
+  in the phase, and no fixture contains a user identifier.
+
+- [ ] **0.4 Derive `ranked_options` from `option_labels`.**
+  Keep `quality_strong` and `quality_avoidance` working unchanged (D12).
+  *Done when*: `python -m pytest service/harness -v` passes, and a fixture carrying
+  only `option_labels` produces the same scores as the equivalent legacy
+  `ranked_options` fixture.
+
+- [ ] **0.5 Harvest the first batch.**
+  20 to 30 phases per Q3. Commit the fixture files.
+  *Done when*: the fixture directory holds the batch, every file validates against
+  schema v2, and each declares `provenance.source: "harvested"`.
+
+### Phase 1: the rollout engine, headless
+
+- [ ] **1.1 One-phase counterfactual.**
+  Pure function: fixture plus a candidate order set in, the section 8 metrics out.
+  No Django models.
+  *Done when*: replaying a fixture's own `actual_orders` reproduces its
+  `actual_outcome` exactly. That is the test that proves the counterfactual is
+  wired up correctly.
+
+- [ ] **1.2 N-game-year rollout.**
+  Phase 0 against archived orders, all-dumbbot forward to the horizon, seeded per
+  repeat, paired seeds across candidates (D8, D9).
+  *Done when*: the same seed produces byte-identical results across runs; a
+  one-game-year rollout from a Spring position advances through Adjustment so the
+  supply-centre delta is defined; and a rollout with a horizon of zero game-years
+  equals the 1.1 result.
+
+- [ ] **1.3 Management command.**
+  Run the counterfactual and rollout for a fixture and print the comparison for
+  model, human and dumbbot candidates.
+  *Done when*: the command runs end to end on a harvested fixture and its timings
+  land within roughly the section 8 table. If they are far off, re-measure before
+  building UI on top.
+
+### Phase 2: the tool
+
+- [ ] **2.1 Package scaffold.**
+  New frontend package, Vite, React, TypeScript strict. No imports from
+  `packages/web` or `packages/design-playground`, enforced by
+  `no-restricted-imports` the way the playground does it.
+  *Done when*: `npm run build` and `npm run lint` pass, and a deliberate import
+  from `packages/web` fails lint.
+
+- [ ] **2.2 Local backend API.**
+  Per Q1. Endpoints: list fixtures, read a fixture, run the model against an
+  edited prompt, run counterfactual and rollout, write `option_labels` back to
+  the fixture file.
+  *Done when*: every endpoint has a test, and the label-write endpoint round-trips
+  a label into the JSON file on disk.
+
+- [ ] **2.3 Fixture list and board view.**
+  Board rendered from the fixture, arrows overlaid as SVG (D3).
+  *Done when*: a harvested fixture renders with units, supply centres and the real
+  orders drawn, with failed orders visibly distinguished.
+
+- [ ] **2.4 Option list and labelling.**
+  Full legal option list, filterable, grouped by unit. Click an option to see it
+  drawn on the board. Mark reasonable, unreasonable, or leave unlabelled.
+  *Done when*: labelling an option writes it to the fixture file and the label
+  survives a reload; options the model did not pick are labellable.
+
+- [ ] **2.5 Prompt editing and model runs.**
+  Edit the system and user prompt in the tool, run against the fixture, show the
+  model's chosen orders and its reasoning beside the option list.
+  *Done when*: an edited prompt produces a different order set, and an unparseable
+  completion surfaces the parse error rather than failing silently.
+
+- [ ] **2.6 Metrics panel.**
+  One-phase counterfactual metrics, plus the rollout with its paired baselines.
+  Horizon and seed count configurable with the section 8 defaults. Baselines
+  behind a single toggle, default on.
+  *Done when*: the panel shows model, human and dumbbot as a paired comparison on
+  the same seeds; turning baselines off drops it to one computation; and the
+  filled order set dumbbot produced around each candidate is inspectable, not just
+  the summary number.
+
+### Phase 3: close the loop
+
+- [ ] **3.1 Re-baseline the evals** against the harvested fixtures and update
+  `EVAL_RESULTS.md` and `service/dumbbot/EVAL_RESULTS.md`. Note in each that the
+  dataset changed, so the new numbers are not comparable to the old ones.
+  *Done when*: both files record a run against the new dataset with its fixture
+  count and the incomparability noted.
+
+- [ ] **3.2 Write the conventions down.** Root `CLAUDE.md` requires that an
+  architectural decision is recorded in the same session it is made. Add the new
+  package's boundary (what may import what, that it is local only and not
+  deployed) alongside the existing design-playground boundary, and resolve Q2.
+  *Done when*: root `CLAUDE.md` describes the boundary and a fresh session could
+  infer where this tool's code belongs without reading this plan.
+
+- [ ] **3.3 Reply to discussion #1368** summarising what was decided and what was
+  dropped, so the thread does not stay at the original proposal.
+  *Done when*: the comment is posted and links to this plan.
+
+### Not now
+
+Message-side work, listed here only so it is not lost: the privacy policy
+correction (section 9), message fixtures, the negatives-first rubric with
+code-checkable board-grounding claims separated from judge-only ones, the
+should-reply classifier (cheapest item on the list, its answer key needs no human
+labelling since "did a human reply, and how fast" comes straight from the
+archive), and prompt-injection fixtures.
