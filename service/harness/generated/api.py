@@ -23,6 +23,17 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
+class ChannelEvent(TypedDict):
+    id: int
+    text: str
+    created_at: str
+
+
+class ChannelUpdate(TypedDict):
+    id: int
+    title: str
+
+
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
 
 
@@ -219,6 +230,11 @@ class PasswordResetConfirm(TypedDict):
     token: str
     new_password: str
     confirm_password: str
+
+
+class PatchedChannelUpdate(TypedDict):
+    id: NotRequired[int]
+    title: NotRequired[str]
 
 
 class PatchedDrawVoteUpdate(TypedDict):
@@ -587,8 +603,10 @@ class VariantTemplatePhase(TypedDict):
 class Channel(TypedDict):
     id: int
     name: str
+    title: NotRequired[str]
     private: bool
     messages: list[ChannelMessage]
+    events: list[ChannelEvent]
     unread_message_count: int
     member_ids: list[int]
 

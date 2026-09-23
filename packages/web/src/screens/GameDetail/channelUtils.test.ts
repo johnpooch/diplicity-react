@@ -36,7 +36,18 @@ const variantNations = [
 ];
 
 describe("getChannelDisplayName", () => {
-  it("shows the other nations in a private channel", () => {
+  it("prefers the name the players gave the channel", () => {
+    const channel = {
+      id: 2,
+      name: "England, Italy",
+      title: "The great alliance",
+      private: true,
+    } as Channel;
+
+    expect(getChannelDisplayName(channel, "England")).toBe("The great alliance");
+  });
+
+  it("falls back to the other nations when the channel has no name", () => {
     const channel = { id: 2, name: "England, Italy", private: true } as Channel;
 
     expect(getChannelDisplayName(channel, "England")).toBe("Italy");
@@ -44,14 +55,26 @@ describe("getChannelDisplayName", () => {
 });
 
 describe("getChannelSubtitle", () => {
-  it("names the players behind the nations in a private channel", () => {
+  it("names the players behind the nations when the channel has no name", () => {
     const channel = { id: 2, name: "England, Italy", private: true } as Channel;
     const members = [member(1, "England"), member(2, "Italy")];
 
     expect(getChannelSubtitle(channel, members, "England")).toBe("Player 2");
   });
 
-  it("is empty for a public channel", () => {
+  it("lists the nations when the channel has a name of its own", () => {
+    const channel = {
+      id: 2,
+      name: "England, Italy",
+      title: "The great alliance",
+      private: true,
+    } as Channel;
+    const members = [member(1, "England"), member(2, "Italy")];
+
+    expect(getChannelSubtitle(channel, members, "England")).toBe("Italy");
+  });
+
+  it("is empty for a public channel, whose title says everything", () => {
     expect(getChannelSubtitle(publicChannel, [], "England")).toBeNull();
   });
 

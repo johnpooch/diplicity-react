@@ -64,13 +64,14 @@ const message = (overrides = {}) => ({
   ...overrides,
 });
 
-const publicChannel = (messages: unknown[] = []) => ({
+const publicChannel = (messages: unknown[] = [], events: unknown[] = []) => ({
   id: 7,
   name: "Public Press",
   private: false,
   memberIds: [1],
   unreadMessageCount: 0,
   messages,
+  events,
 });
 
 const gameRunByGameMaster = (overrides = {}) => ({
@@ -173,16 +174,25 @@ describe("ChannelScreen", () => {
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Public Press");
   });
 
-  it("renders the footer without a divider", () => {
+  it("uses a rounded square rename button and no footer divider", () => {
     mockGameData.mockReturnValue(
       gameRunByGameMaster({
         members: [player({ isCurrentUser: true })],
         gameMaster: null,
       })
     );
+    mockChannelsData.mockReturnValue([
+      { ...publicChannel([message()]), name: "Austria, France", private: true },
+    ]);
 
     renderChannel();
 
+    expect(screen.getByRole("link", { name: "Rename channel" })).toHaveClass(
+      "rounded-md"
+    );
+    expect(screen.getByRole("link", { name: "Rename channel" })).not.toHaveClass(
+      "rounded-full"
+    );
     expect(screen.queryByRole("separator")).not.toBeInTheDocument();
   });
 
@@ -281,9 +291,11 @@ describe("ChannelScreen", () => {
       {
         id: 1,
         name: "England, France",
+        title: "",
         private: true,
         unreadMessageCount: 0,
         messages: [],
+        events: [],
       },
     ]);
 
@@ -308,6 +320,7 @@ describe("ChannelScreen", () => {
       {
         id: 1,
         name: "England, France",
+        title: "",
         private: true,
         unreadMessageCount: 0,
         messages: [
@@ -325,6 +338,7 @@ describe("ChannelScreen", () => {
             },
           }),
         ],
+        events: [],
       },
     ]);
 
@@ -350,6 +364,7 @@ describe("ChannelScreen", () => {
       {
         id: 1,
         name: "England, France, Germany",
+        title: "",
         private: true,
         unreadMessageCount: 0,
         messages: [
@@ -367,6 +382,7 @@ describe("ChannelScreen", () => {
             },
           }),
         ],
+        events: [],
       },
     ]);
 
@@ -374,5 +390,77 @@ describe("ChannelScreen", () => {
 
     expect(screen.getByText("Hello there")).toBeInTheDocument();
     expect(screen.getByText("France")).toBeInTheDocument();
+  });
+
+  it("shows a rename between the messages it happened between", () => {
+    mockGameData.mockReturnValue(
+      gameRunByGameMaster({
+        variantId: "standard",
+        members: [
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
+          player({ id: 2, name: "Player 2", nation: "France" }),
+        ],
+        gameMaster: null,
+      })
+    );
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "England, France",
+        title: "The great alliance",
+        private: true,
+        unreadMessageCount: 0,
+        messages: [
+          message({
+            id: 1,
+            body: "Before",
+            createdAt: "2026-09-15T10:00:00Z",
+            sender: {
+              id: 2,
+              name: "Player 2",
+              picture: null,
+              isCurrentUser: false,
+              nation: { name: "France", color: "#0000ff" },
+              isGameMaster: false,
+            },
+          }),
+          message({
+            id: 2,
+            body: "After",
+            createdAt: "2026-09-15T10:10:00Z",
+            sender: {
+              id: 2,
+              name: "Player 2",
+              picture: null,
+              isCurrentUser: false,
+              nation: { name: "France", color: "#0000ff" },
+              isGameMaster: false,
+            },
+          }),
+        ],
+        events: [
+          {
+            id: 1,
+            text: "France renamed the channel to The great alliance",
+            createdAt: "2026-09-15T10:05:00Z",
+          },
+        ],
+      },
+    ]);
+
+    renderChannel(1);
+
+    const before = screen.getByText("Before");
+    const notice = screen.getByText(
+      "France renamed the channel to The great alliance"
+    );
+    const after = screen.getByText("After");
+
+    expect(
+      before.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      notice.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 });

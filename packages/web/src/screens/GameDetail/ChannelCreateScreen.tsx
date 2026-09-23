@@ -11,6 +11,7 @@ import { useRequiredParams } from "@/hooks";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -34,7 +35,15 @@ import {
   type Member,
 } from "@/api/generated/endpoints";
 
+const CHANNEL_TITLE_MAX_LENGTH = 50;
+
 const channelSchema = z.object({
+  title: z
+    .string()
+    .max(
+      CHANNEL_TITLE_MAX_LENGTH,
+      `Channel names cannot be longer than ${CHANNEL_TITLE_MAX_LENGTH} characters.`
+    ),
   memberIds: z.array(z.number()).min(1),
 });
 
@@ -118,7 +127,7 @@ const ChannelCreateScreen: React.FC = () => {
 
   const form = useForm<ChannelFormValues>({
     resolver: zodResolver(channelSchema),
-    defaultValues: { memberIds: [] },
+    defaultValues: { title: "", memberIds: [] },
   });
 
   const handleCreateChannel = async (values: ChannelFormValues) => {
@@ -127,6 +136,7 @@ const ChannelCreateScreen: React.FC = () => {
         gameId: gameId,
         data: {
           memberIds: values.memberIds,
+          title: values.title,
         },
       });
       queryClient.setQueryData<Channel[]>(
@@ -163,6 +173,24 @@ const ChannelCreateScreen: React.FC = () => {
                 onSubmit={form.handleSubmit(handleCreateChannel)}
                 className="flex flex-col gap-4 px-3 py-4"
               >
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Channel name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Optional"
+                          maxLength={CHANNEL_TITLE_MAX_LENGTH}
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="memberIds"
