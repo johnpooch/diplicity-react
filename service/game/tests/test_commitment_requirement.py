@@ -63,7 +63,7 @@ class TestGameCreateCommitmentRequirement:
         assert "commitment_requirement" in response.data
 
     @pytest.mark.django_db
-    def test_low_creator_cannot_create(
+    def test_low_creator_cannot_create_public_game(
         self, authenticated_client, primary_user, classical_variant, set_commitment
     ):
         set_commitment(primary_user, Commitment.LOW)
@@ -71,6 +71,35 @@ class TestGameCreateCommitmentRequirement:
         response = authenticated_client.post(
             url, create_payload(classical_variant.id), format="json"
         )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "commitment_requirement" in response.data
+
+    @pytest.mark.django_db
+    def test_low_creator_can_create_private_game(
+        self, authenticated_client, primary_user, classical_variant, set_commitment
+    ):
+        set_commitment(primary_user, Commitment.LOW)
+        url = reverse(create_viewname)
+        response = authenticated_client.post(
+            url, create_payload(classical_variant.id, private=True), format="json"
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        game = Game.objects.get(id=response.data["id"])
+        assert game.private is True
+        assert game.members.filter(user=primary_user).exists()
+
+    @pytest.mark.django_db
+    def test_low_creator_cannot_require_committed_in_private_game(
+        self, authenticated_client, primary_user, classical_variant, set_commitment
+    ):
+        set_commitment(primary_user, Commitment.LOW)
+        url = reverse(create_viewname)
+        payload = create_payload(
+            classical_variant.id,
+            private=True,
+            commitment_requirement=CommitmentRequirement.COMMITTED,
+        )
+        response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "commitment_requirement" in response.data
 

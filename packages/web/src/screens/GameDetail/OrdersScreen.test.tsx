@@ -147,7 +147,7 @@ describe("OrdersScreen civil disorder handling", () => {
 
     renderOrdersScreen();
 
-    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 
   it("shows 'I'm back' button when current member is in civil disorder", () => {
@@ -208,7 +208,7 @@ describe("OrdersScreen confirm orders button", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm (0/1)" })).toBeInTheDocument();
   });
 
   it("shows confirm orders button for duration game", () => {
@@ -223,7 +223,7 @@ describe("OrdersScreen confirm orders button", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm (0/1)" })).toBeInTheDocument();
   });
 });
 
@@ -254,8 +254,8 @@ describe("OrdersScreen spectating", () => {
   it("hides the confirm orders button when the user is not a member", () => {
     renderOrdersScreen();
 
-    expect(screen.queryByRole("button", { name: /orders confirmed/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirmed/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 });
 
@@ -463,6 +463,42 @@ describe("OrdersScreen delete order button", () => {
 
     expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
   });
+
+  it("uses a long-tailed upward arrow for movement orders", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        target: { id: "nth", name: "North Sea" },
+        orderType: "Move",
+        summary: "Move to North Sea",
+        resolution: null,
+      },
+    ]);
+
+    const { container } = renderOrdersScreen();
+
+    expect(container.querySelector(".lucide-move-up")).toBeInTheDocument();
+    expect(container.querySelector(".lucide-arrow-up")).not.toBeInTheDocument();
+    expect(container.querySelector(".lucide-move-up-right")).not.toBeInTheDocument();
+  });
+
+  it("keeps support order arrows pointing upward", () => {
+    mockOrdersData.mockReturnValue([
+      {
+        nation: { name: "England" },
+        source: { id: "lon", name: "London" },
+        target: { id: "nth", name: "North Sea" },
+        orderType: "Support",
+        summary: "Support North Sea",
+        resolution: null,
+      },
+    ]);
+
+    const { container } = renderOrdersScreen();
+
+    expect(container.querySelector(".lucide-merge")).not.toHaveClass("rotate-90");
+  });
 });
 
 describe("OrdersScreen no orders required (active phase, has a member)", () => {
@@ -570,6 +606,18 @@ describe("OrdersScreen historical multi-nation view", () => {
     await userEvent.click(franceHeading);
 
     expect(screen.getByText("Paris")).toBeInTheDocument();
+  });
+
+  it("styles collapsible nation headings as interactive controls", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /france/i })).toHaveClass(
+      "cursor-pointer",
+      "rounded-md",
+      "px-2",
+      "py-1.5",
+      "hover:bg-sidebar-accent/50"
+    );
   });
 });
 

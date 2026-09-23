@@ -18,7 +18,7 @@ def format_deadline(dt, tz_name=None):
 
 def build_notification_body(
     orders_confirmed, is_fixed_time, orders_given, total_units, extensions_remaining,
-    is_adjustment=False,
+    is_adjustment=False, deadline_extended=False,
 ):
     if extensions_remaining > 0:
         nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
@@ -30,36 +30,40 @@ def build_notification_body(
     if orders_confirmed:
         return None
 
+    lead = "The deadline has been extended" if deadline_extended else "Deadline approaching"
+    still = "still " if deadline_extended else ""
+
     if is_fixed_time:
         if orders_given == total_units:
+            ready = f"{lead} - all orders ready." if deadline_extended else "All orders ready."
             return (
-                "All orders ready. Confirm to advance the game early — "
+                f"{ready} Confirm to advance the game early — "
                 "the next deadline may move sooner too."
             )
         if orders_given > 0:
             return (
-                f"Deadline approaching - orders incomplete. "
+                f"{lead} - orders {still}incomplete. "
                 f"{orders_given}/{total_units} units have an order."
             )
         return (
-            f"Deadline approaching - no orders given. "
+            f"{lead} - {still}no orders given. "
             f"Your units have not received orders. "
             f"{nmr_suffix}"
         )
     else:
         if orders_given == total_units:
             return (
-                "Deadline approaching - orders ready, waiting confirmation. "
+                f"{lead} - orders ready, {still}waiting confirmation. "
                 "If not confirmed, standing orders will execute."
             )
         if orders_given > 0:
             return (
-                f"Deadline approaching - orders incomplete. "
+                f"{lead} - orders {still}incomplete. "
                 f"{orders_given}/{total_units} units have an order. "
                 f"If not confirmed, standing orders will execute."
             )
         return (
-            f"Deadline approaching - no orders given. "
+            f"{lead} - {still}no orders given. "
             f"Your units don't have orders yet. "
             f"{nmr_suffix}"
         )

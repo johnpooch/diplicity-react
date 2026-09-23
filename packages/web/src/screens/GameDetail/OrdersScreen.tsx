@@ -4,7 +4,6 @@ import { useNavigate } from "react-router";
 import {
   Trash2,
   CheckSquare,
-  Square,
   Play,
   SearchX,
   Star,
@@ -15,7 +14,7 @@ import {
   ChevronRight,
   Hexagon,
   Merge,
-  MoveUpRight,
+  MoveUp,
   Plus,
   RedoDot,
   X,
@@ -30,6 +29,7 @@ import { ListItem, ListSection } from "@/components/ui/list";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { NationBadge } from "@/components/NationBadge";
+import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
@@ -43,7 +43,6 @@ import {
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
   useGamePhaseStatesListSuspense,
-  useGameConfirmPhasePartialUpdate,
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
   useGamesDrawProposalsListSuspense,
@@ -58,6 +57,7 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+import { countOrders } from "@/utils/orderCount";
 import { cn } from "@/lib/utils";
 
 type NationGroup = {
@@ -158,8 +158,8 @@ const buildNationGroups = (
 };
 
 const orderIcons: Partial<Record<OrderTypeEnum, LucideIcon>> = {
-  Move: MoveUpRight,
-  MoveViaConvoy: MoveUpRight,
+  Move: MoveUp,
+  MoveViaConvoy: MoveUp,
   Hold: Hexagon,
   Support: Merge,
   Convoy: RedoDot,
@@ -312,7 +312,7 @@ const NationHeading: React.FC<{
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className="flex w-full items-center justify-between gap-3 text-sm font-medium text-muted-foreground"
+      className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {content}
     </button>
@@ -355,7 +355,7 @@ const NationOrdersSections: React.FC<{
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {orderedGroups.map(({ nation, member, items }) => {
         const open = !collapsible || openNations.includes(nation);
         return (
@@ -429,7 +429,6 @@ const OrdersScreen: React.FC = () => {
   const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
-  const confirmOrdersMutation = useGameConfirmPhasePartialUpdate();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
   const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
@@ -476,28 +475,6 @@ const OrdersScreen: React.FC = () => {
       toast.success("Order deleted");
     } catch {
       toast.error("Failed to delete order");
-    }
-  };
-
-  const handleConfirmOrders = async () => {
-    const newConfirmedState = !game.phaseConfirmed;
-    try {
-      await confirmOrdersMutation.mutateAsync({
-        gameId,
-        data: { ordersConfirmed: newConfirmedState },
-      });
-      queryClient.invalidateQueries({
-        queryKey: getGameRetrieveQueryKey(gameId),
-      });
-      toast.success(
-        newConfirmedState ? "Orders confirmed" : "Orders unconfirmed"
-      );
-    } catch {
-      toast.error(
-        newConfirmedState
-          ? "Failed to confirm orders"
-          : "Failed to unconfirm orders"
-      );
     }
   };
 
@@ -556,19 +533,16 @@ const OrdersScreen: React.FC = () => {
       );
     if (hasContent)
       return (
-        <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>
-          {game.phaseConfirmed ? (
-            <CheckSquare className="size-4" />
-          ) : (
-            <Square className="size-4" />
-          )}
-          {game.phaseConfirmed ? "Orders confirmed" : "Confirm orders"}
-        </Button>
+        <ConfirmOrdersButton
+          gameId={gameId}
+          confirmed={game.phaseConfirmed}
+          count={countOrders(safePhaseStates, safeOrders)}
+        />
       );
     return (
       <Button disabled>
         <CheckSquare className="size-4" />
-        Orders confirmed
+        Confirmed
       </Button>
     );
   })();
@@ -649,7 +623,7 @@ const OrdersScreen: React.FC = () => {
           </Panel.Content>
 
           {!isCurrentMemberInCivilDisorder && (rightFooterButton || showDrawProposalsButton) && (
-            <Panel.Footer divider>
+            <Panel.Footer>
               <div className="flex w-full items-center">
                 <div className="flex-1">
                   {showDrawProposalsButton && (

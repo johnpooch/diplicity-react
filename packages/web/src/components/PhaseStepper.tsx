@@ -66,7 +66,7 @@ const PhaseStepperTitle: React.FC = () => {
   const orderedPhases = [...phases].reverse();
 
   return (
-    <div className="min-h-14 min-w-0 flex-1 pt-2.5">
+    <div className="min-h-12 min-w-0 flex-1 pt-1.5 md:min-h-14 md:pt-2.5">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -74,7 +74,7 @@ const PhaseStepperTitle: React.FC = () => {
             aria-label={`${phase.name}. Choose phase`}
             className="group flex max-w-full items-center gap-1 rounded-md text-left transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <span className="min-w-0 truncate text-xl font-semibold leading-9">
+            <span className="min-w-0 truncate text-base font-semibold leading-7 md:text-xl md:leading-9">
               {phase.name}
             </span>
             <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent-foreground" />
@@ -113,7 +113,8 @@ const PhaseStepperTitle: React.FC = () => {
           remainingTime={phase.remainingTime}
           scheduledResolution={phase.scheduledResolution}
           isPaused={game.isPaused}
-          className="block text-xs text-muted-foreground"
+          showResolutionLabel
+          className="block w-fit text-xs text-muted-foreground"
         />
       ) : phase.status !== "active" ? (
         <span className="block text-xs text-muted-foreground">Resolved</span>

@@ -188,7 +188,10 @@ export interface DrawVoteUpdate {
 }
 
 /**
- * * `1 hour` - 1 hour
+ * * `5 minutes` - 5 minutes
+ * `15 minutes` - 15 minutes
+ * `30 minutes` - 30 minutes
+ * `1 hour` - 1 hour
  * `2 hours` - 2 hours
  * `4 hours` - 4 hours
  * `8 hours` - 8 hours
@@ -203,6 +206,9 @@ export interface DrawVoteUpdate {
 export type DurationEnum = (typeof DurationEnum)[keyof typeof DurationEnum];
 
 export const DurationEnum = {
+  "5_minutes": "5 minutes",
+  "15_minutes": "15 minutes",
+  "30_minutes": "30 minutes",
   "1_hour": "1 hour",
   "2_hours": "2 hours",
   "4_hours": "4 hours",
@@ -1124,7 +1130,10 @@ export type GamesListParams = {
   eligible_only?: boolean;
   mine?: boolean;
   /**
-   * * `1 hour` - 1 hour
+   * * `5 minutes` - 5 minutes
+   * `15 minutes` - 15 minutes
+   * `30 minutes` - 30 minutes
+   * `1 hour` - 1 hour
    * `2 hours` - 2 hours
    * `4 hours` - 4 hours
    * `8 hours` - 8 hours
@@ -1160,13 +1169,16 @@ export const GamesListMovementPhaseDuration = {
   "1_hour": "1 hour",
   "1_week": "1 week",
   "12_hours": "12 hours",
+  "15_minutes": "15 minutes",
   "2_hours": "2 hours",
   "2_weeks": "2 weeks",
   "24_hours": "24 hours",
   "3_days": "3 days",
+  "30_minutes": "30 minutes",
   "4_days": "4 days",
   "4_hours": "4 hours",
   "48_hours": "48 hours",
+  "5_minutes": "5 minutes",
   "8_hours": "8 hours",
 } as const;
 
