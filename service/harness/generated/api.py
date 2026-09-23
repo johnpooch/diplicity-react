@@ -149,6 +149,7 @@ class Member(TypedDict):
     eliminated: bool
     kicked: bool
     is_game_creator: bool
+    is_admin: bool
     nmr_extensions_remaining: int
     civil_disorder: bool
     seeking_replacement: bool

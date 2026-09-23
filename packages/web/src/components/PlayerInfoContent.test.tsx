@@ -84,6 +84,7 @@ const baseMember = {
   eliminated: false,
   kicked: false,
   isGameCreator: false,
+  isAdmin: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
   removable: false,
@@ -177,6 +178,24 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.getAllByText("(Bot)")).toHaveLength(1);
+  });
+
+  it("shows an admin label for the member holding admin rights only", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", isAdmin: true },
+        { ...baseMember, id: 2, name: "Bob", isCurrentUser: false, isAdmin: false },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getAllByText("(Admin)")).toHaveLength(1);
   });
 
   it("shows add AI player rows for each open seat to a managing admin", () => {

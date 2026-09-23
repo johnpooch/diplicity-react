@@ -470,6 +470,7 @@ export interface Member {
   readonly eliminated: boolean;
   readonly kicked: boolean;
   readonly isGameCreator: boolean;
+  readonly isAdmin: boolean;
   readonly nmrExtensionsRemaining: number;
   readonly civilDisorder: boolean;
   readonly seekingReplacement: boolean;
