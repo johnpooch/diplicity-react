@@ -214,7 +214,8 @@ The existing `quality_strong` and `quality_avoidance` scorers read
 from `option_labels` at load time so those scorers keep working unchanged
 instead of being rewritten before there is data to justify it.
 
-**D13. The system prompt is editable in the tool; the user prompt is not.**
+**D13. The system prompt is editable in the tool; the user prompt is read-only
+for now.**
 The system prompt is assembled from a few constant text blocks plus a
 phase-dependent task instruction
 (`service/harness/tasks/select_orders/system_prompt.py:61`), so exposing those
@@ -228,19 +229,51 @@ option list is positionally coupled to the parser, which maps each
 that list as free text and indices silently map to different orders. Worse, an
 out-of-range index is skipped rather than raised
 (`service/harness/tasks/select_orders/parser.py:24`), so a desync surfaces as a
-missing order rather than an error. Show the user prompt read-only. Changing how
-the board is described is a code change to `user_prompt.py`, not a text edit.
+missing order rather than an error.
+
+This is a v1 limitation, not a judgement that the user prompt does not matter.
+The board description is very likely one of the more important parts of the
+prompt and nobody knows yet whether the current one is any good, so it should
+become editable. What blocks it is the positional index, not the generated text:
+options are addressed by their position in the rendered list, so any edit that
+reorders or trims that list silently changes what an index means. Until that is
+fixed, changing how the board is described is a code change to `user_prompt.py`.
+See Q8 for the change that would lift the restriction.
 
 The `FORMAT` block is a special case: it is editable text like the rest of the
 system prompt, but it specifies the JSON shape the parser expects, so editing it
 will break parsing. Mark it as such in the UI.
 
-**D14. Baselines are precomputed at harvest, not at labelling time.**
+**D14. Baselines are precomputed at harvest, keyed by the settings they used.**
 The human's order set and dumbbot's pick are properties of the fixture. Neither
 depends on the model or on the prompt being iterated, so both rollouts are
-computed once when the fixture is harvested, stored in the fixture, and read for
-free thereafter. Only the model's own rollout runs live. This removes the reason
-the baselines were going to be optional.
+computed once at harvest, stored in the fixture, and read for free thereafter.
+Only the model's own rollout runs live.
+
+A baseline is only valid against a model run that used the **same horizon and the
+same seeds**, so a stored baseline is keyed by both and a mismatch invalidates it
+rather than silently comparing unlike things. Two mechanisms keep that from
+becoming a straitjacket:
+
+- **Precompute every offered horizon.** The UI offers 1 and 2 game-years, so both
+  are computed at harvest. A horizon nobody precomputed is computed on demand and
+  cached into the fixture.
+- **Use a canonical, nested seed list.** Seeds are `0..N-1` in order, so the first
+  30 seeds of a 100-seed run are exactly the 30-seed run. Precompute baselines
+  deep (100 seeds), and any live model run at `m <= 100` seeds compares against
+  the first `m` baseline seeds and stays a valid paired comparison. Seed count
+  then becomes a slider that trades precision against wait, with no
+  recomputation.
+
+**D15. The seed count is measured, not guessed.** Nobody knows what number is
+enough, and it is an empirical question with a cheap answer: with baselines
+precomputed to 100 seeds, plot the standard error of the paired difference
+against seed count on the first real fixtures and read the default off the curve.
+Until that is done, treat 30 as a placeholder rather than a decision. The number
+that matters is not the seed count but whether the interval around a difference
+is narrow enough to separate two order sets; the UI should show that interval
+rather than a bare mean, so a difference that 30 seeds cannot resolve is visibly
+unresolved.
 
 ---
 
@@ -319,9 +352,9 @@ New fields:
   labeller, labelled_at, note }`. `options` is a list: one entry in the ordinary
   case, several when the judgement holds only for a combination (D2). Absence of
   an entry means unlabelled.
-- `baselines`: the precomputed human and dumbbot rollout results (D14), each
-  recording the horizon and seed list it was computed with so a settings change
-  can invalidate it rather than silently comparing unlike things.
+- `baselines`: the precomputed human and dumbbot rollout results (D14), keyed by
+  horizon and seed list, keeping the per-seed results rather than only a summary,
+  so a run at fewer seeds compares against a prefix of a deeper baseline.
 - `eval_sets`: list of named eval sets this fixture belongs to. Empty by default.
   A harvested fixture starts in none: harvesting is cheap and deciding a position
   is worth evaluating against is a judgement, so they must be separate actions.
@@ -361,14 +394,18 @@ what makes you own it at the following Adjustment.
   than a second implementation.
 - **Phases 1..N**: every seat plays dumbbot, RNG seeded per repeat.
 - **Horizon**: 1 game-year by default (roll until the next Adjustment has
-  resolved), configurable to 2.
-- **Seeds**: 30 by default, configurable.
+  resolved), with 2 game-years offered. Both are precomputed for the baselines
+  (D14).
+- **Seeds**: canonical list `0..N-1`, baselines precomputed to 100, live runs use
+  any `m <= 100` and compare against the first `m`. Placeholder default 30, to be
+  set properly by D15.
 - **Candidates**: the model's order set, plus two baselines, the human's actual
   order set and dumbbot's own pick for the eval nation. All three over the same
   seed list (D9). The two baselines are precomputed at harvest and stored in the
   fixture (D14), so at default settings only the model's rollout runs live.
 - **Report**: supply-centre count delta and units remaining at the horizon, as a
-  distribution over seeds, shown as a paired difference against the baselines.
+  distribution over seeds, shown as a paired difference against the baselines with
+  its uncertainty, never a bare mean (D15).
 
 Expected cost, from the 40 ms per phase measured in section 3:
 
@@ -378,12 +415,15 @@ Expected cost, from the 40 ms per phase measured in section 3:
 | 1 game-year from Spring, 30 seeds | 4 | ~5 s | ~15 s |
 | 2 game-years from Spring, 30 seeds | 8 | ~10 s | ~30 s |
 
-At default settings only the model's rollout runs at labelling time, so the cost
-is the per-candidate column, not the three-candidate one. The three-candidate
-figure applies at harvest, and when someone changes the horizon or seed count and
-invalidates the stored baselines. The candidates are independent, so run them in
-parallel processes when all three are needed. The UI toggle hides the baselines,
-it does not skip computing them (R6).
+Only the model's rollout runs at labelling time, so the live cost is the
+per-candidate column. Everything else is paid once at harvest: two baselines at
+two horizons, 100 seeds each, is roughly 96 s for a Spring fixture and half that
+for a Fall one, so a 30-fixture batch is under an hour single-core and a few
+minutes across cores. That is a one-time job, not something anyone waits on.
+
+The candidates are independent, so run them in parallel processes when all three
+are needed. The UI toggle hides the baselines, it does not skip computing them
+(R6).
 
 ---
 
@@ -442,6 +482,19 @@ it does not skip computing them (R6).
   press lands.
 - **Q7.** What "good enough" means for any of these metrics. Unanswered in #1368
   and still unanswered.
+- **Q8.** Whether to address options by a content-derived id instead of by
+  position, which is what would make the user prompt editable as text (D13).
+  Today the model returns an `option_index` into the rendered per-province list.
+  That is not an accident: an index cannot name an order that is not on the list,
+  so illegal orders are unrepresentable, which is part of why `legality` sits at
+  0.993. A stable id derived from the option's own content
+  (source, order type, target, aux) keeps that property, since an unknown id is
+  rejected exactly as an out-of-range index is, while surviving any reordering or
+  trimming of the rendered list. It would also let the parser reject an unknown id
+  loudly instead of skipping it
+  (`service/harness/tasks/select_orders/parser.py:24`). The cost is a change to
+  `FORMAT`, the parser and the output schema, and a re-baseline of every scorer,
+  so it is a real piece of work rather than a free fix.
 
 ---
 
@@ -522,11 +575,21 @@ the way `service/adjudicator/tests.py` does.
   building UI on top.
 
 - [ ] **1.4 Precompute and store the baselines.**
-  Compute the human and dumbbot rollouts for every fixture at the default horizon
-  and seed list, and write them into the fixture's `baselines` (D14).
-  *Done when*: every harvested fixture carries both baselines; each records the
-  horizon and seed list used; and reading them back reproduces what a live run
-  with the same settings produces.
+  Compute the human and dumbbot rollouts for every fixture at both offered
+  horizons over the canonical 100-seed list, and write them into `baselines`
+  keyed by those settings, keeping per-seed results (D14).
+  *Done when*: every harvested fixture carries both baselines at both horizons;
+  reading them back reproduces what a live run with the same settings produces;
+  and a 30-seed live run compares against the first 30 stored seeds rather than a
+  resampled set.
+
+- [ ] **1.5 Set the seed count from data.**
+  With baselines precomputed to 100 seeds, plot the standard error of the paired
+  difference against seed count across the first batch and choose the default
+  from the curve (D15).
+  *Done when*: the curve exists for the first batch, the default is set from it,
+  and this plan records the number and the reasoning that replaced the 30
+  placeholder.
 
 ### Phase 2: the tool
 
@@ -562,8 +625,10 @@ the way `service/adjudicator/tests.py` does.
   Expose the system prompt's blocks as editable text, run the edited prompt
   against the loaded fixture, and show the model's chosen orders and its
   `reasoning` beside the option list. The user prompt is shown read-only, and the
-  `FORMAT` block is marked as parser-coupled (D13). Keep the previous run visible
-  so a prompt change can be compared against what it replaced.
+  `FORMAT` block is marked as parser-coupled (D13). The user prompt is displayed
+  in full so its board description can be read and judged even though it cannot
+  yet be edited, and the UI says why. Keep the previous run visible so a prompt
+  change can be compared against what it replaced.
   *Done when*: an edited `PRINCIPLES` block produces a different order set on the
   same fixture; the run before and after an edit can be seen side by side; the
   user prompt cannot be edited; and an unparseable completion surfaces the parse
@@ -571,14 +636,17 @@ the way `service/adjudicator/tests.py` does.
 
 - [ ] **2.6 Metrics panel.**
   One-phase counterfactual metrics, plus the rollout with its paired baselines.
-  Horizon and seed count configurable with the section 7 defaults. A toggle hides
-  the baselines on screen without skipping them (R6).
+  Horizon selectable between the two precomputed values, seed count adjustable up
+  to the precomputed depth, so both stay valid paired comparisons without
+  recomputing baselines (D14). A toggle hides the baselines on screen without
+  skipping them (R6).
   *Done when*: the panel shows model, human and dumbbot as a paired comparison on
-  the same seeds; at default settings only the model's rollout runs, with the
-  baselines read from the fixture; changing the horizon or seed count visibly
-  invalidates the stored baselines rather than comparing unlike things; and the
-  order set dumbbot filled in around each candidate is inspectable, not just the
-  summary number.
+  the same seeds; only the model's rollout runs live, with baselines read from the
+  fixture; switching horizon or seed count within the precomputed range keeps the
+  comparison valid with no recomputation, and going outside it is visibly flagged
+  rather than silently compared; differences carry their uncertainty rather than
+  being bare means; and the order set dumbbot filled in around each candidate is
+  inspectable, not just the summary number.
 
 - [ ] **2.7 Eval-set curation.**
   Add the loaded fixture to a named eval set, remove it, or discard it with a
