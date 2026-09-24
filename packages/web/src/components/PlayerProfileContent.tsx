@@ -1,13 +1,8 @@
 import React from "react";
-import { Info } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CommitmentBadge, COMMITMENT_TIERS } from "@/components/CommitmentBadge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { CommitmentBadge } from "@/components/CommitmentBadge";
+import { InfoButton } from "@/components/InfoButton";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
 
@@ -17,32 +12,21 @@ interface PlayerProfileContentProps {
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
 
-interface StatRowProps {
+interface StatTileProps {
   label: string;
   value: string | number;
+  hint?: string;
   info?: string;
 }
 
-const StatRow: React.FC<StatRowProps> = ({ label, value, info }) => (
-  <div className="flex items-center justify-between py-2">
-    <span className="text-sm text-muted-foreground flex items-center gap-1">
+const StatTile: React.FC<StatTileProps> = ({ label, value, hint, info }) => (
+  <div>
+    <p className="text-2xl font-semibold tabular-nums">{value}</p>
+    <span className="flex items-center gap-1 text-sm text-muted-foreground">
       {label}
-      {info && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="text-muted-foreground/60 hover:text-muted-foreground"
-              aria-label={`What is ${label}?`}
-            >
-              <Info className="size-3.5" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="text-sm">{info}</PopoverContent>
-        </Popover>
-      )}
+      {info && <InfoButton label={label} text={info} />}
     </span>
-    <span className="text-sm font-medium">{value}</span>
+    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
   </div>
 );
 
@@ -81,34 +65,23 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
 
       <ScreenCard>
         <ScreenCardContent>
-          <h3 className="text-sm font-semibold mb-2">Commitment</h3>
-          <div className="divide-y">
-            <StatRow
-              label="Tier"
-              value={COMMITMENT_TIERS[profile.commitment]?.label ?? profile.commitment}
-              info={
-                profile.commitment === "undefined"
-                  ? "This player hasn't played enough rated phases to have a commitment rating yet. A rating appears after 10 rated phases."
-                  : "How consistently this player submits orders, based on their last 10 rated phases."
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatTile label="Games" value={profile.totalGames} />
+            <StatTile
+              label="Victory"
+              value={profile.soloWins}
+              hint={
+                profile.totalGames > 0
+                  ? `${formatPercent(profile.soloWins / profile.totalGames)} of games`
+                  : undefined
               }
             />
-            <StatRow
-              label="NMR Rate"
-              value={formatPercent(profile.nmrRate)}
-              info="The percentage of movement phases where this player submitted no orders, based on their last 10 games."
+            <StatTile label="Draws" value={profile.draws} />
+            <StatTile
+              label="Reliability"
+              value={formatPercent(1 - profile.nmrRate)}
+              info="How consistently this player submits orders, based on their last 10 rated phases."
             />
-          </div>
-        </ScreenCardContent>
-      </ScreenCard>
-
-      <ScreenCard>
-        <ScreenCardContent>
-          <h3 className="text-sm font-semibold mb-2">Games</h3>
-          <div className="divide-y">
-            <StatRow label="Total Games" value={profile.totalGames} />
-            <StatRow label="Solo Wins" value={profile.soloWins} />
-            <StatRow label="Draws" value={profile.draws} />
-            <StatRow label="Losses" value={profile.losses} />
           </div>
         </ScreenCardContent>
       </ScreenCard>
