@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { MemoryRouter, Route, Routes, useNavigate, type NavigateFunction } from "react-router";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { GameDetailLayout } from "./GameDetailLayout";
@@ -51,30 +51,36 @@ const pollGame = async (
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 };
 
+let navigate: NavigateFunction;
+
+const NavigateProbe: React.FC = () => {
+  navigate = useNavigate();
+  return null;
+};
+
 const renderLayout = () => {
   const queryClient = new QueryClient();
   const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
-  const router = createMemoryRouter(
-    [
-      {
-        path: "/game/:gameId/phase/:phaseId",
-        element: (
-          <GameDetailLayout>
-            <div />
-          </GameDetailLayout>
-        ),
-      },
-    ],
-    { initialEntries: ["/game/game-1/phase/1"] }
-  );
   render(
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <MemoryRouter initialEntries={["/game/game-1/phase/1"]}>
+        <NavigateProbe />
+        <Routes>
+          <Route
+            path="/game/:gameId/phase/:phaseId"
+            element={
+              <GameDetailLayout>
+                <div />
+              </GameDetailLayout>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>
   );
   const invalidatedKeys = () =>
     invalidateQueries.mock.calls.map(([filters]) => filters?.queryKey);
-  return { queryClient, router, invalidatedKeys };
+  return { queryClient, invalidatedKeys };
 };
 
 describe("GameDetailLayout phase transitions", () => {
@@ -129,10 +135,10 @@ describe("GameDetailLayout phase transitions", () => {
   });
 
   it("does not treat navigating to another game as a phase transition", async () => {
-    const { queryClient, router, invalidatedKeys } = renderLayout();
+    const { queryClient, invalidatedKeys } = renderLayout();
     await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
 
-    await act(() => router.navigate("/game/game-2/phase/7"));
+    act(() => navigate("/game/game-2/phase/7"));
     await pollGame(queryClient, "game-2", { currentPhaseId: 7, status: "completed" });
 
     expect(invalidatedKeys()).toEqual([]);
