@@ -30,9 +30,12 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useGamePhaseRetrieveSuspense: () => ({ data: mockPhaseData() }),
   useGameOrdersListSuspense: () => ({ data: mockOrdersData() }),
-  useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
+  useGamePhaseStatesListSuspense: (...args: unknown[]) => ({
+    data: mockPhaseStatesData(...args),
+  }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   getGameRetrieveQueryKey: () => ["game"],
+  getGamePhaseStatesListQueryKey: () => ["phase-states"],
 }));
 
 vi.mock("@/components/GameMap", () => ({ GameMap: () => null }));
@@ -54,9 +57,11 @@ const renderScreen = () =>
 
 describe("MapScreen confirm orders button", () => {
   beforeEach(() => {
+    mockPhaseStatesData.mockClear();
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: false,
       members: [{ id: 1, isCurrentUser: true, civilDisorder: false }],
@@ -75,12 +80,16 @@ describe("MapScreen confirm orders button", () => {
   it("shows the submitted and required order counts", () => {
     renderScreen();
     expect(screen.getByRole("button", { name: "Confirm (1/3)" })).toBeInTheDocument();
+    expect(mockPhaseStatesData).toHaveBeenLastCalledWith("1", {
+      query: { queryKey: ["phase-states", 5] },
+    });
   });
 
   it("reads as confirmed once orders are confirmed", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: true,
       members: [{ id: 1, isCurrentUser: true, civilDisorder: false }],
@@ -93,12 +102,21 @@ describe("MapScreen confirm orders button", () => {
     mockPhaseData.mockReturnValue({ status: "completed" });
     renderScreen();
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+    expect(mockPhaseStatesData).not.toHaveBeenCalled();
+  });
+
+  it("hides the button on a phase the game has moved past", () => {
+    mockGameData.mockReturnValue({ ...mockGameData(), currentPhaseId: 6 });
+    renderScreen();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+    expect(mockPhaseStatesData).not.toHaveBeenCalled();
   });
 
   it("hides the button for a spectator", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: false,
       members: [{ id: 2, isCurrentUser: false, civilDisorder: false }],
@@ -111,6 +129,7 @@ describe("MapScreen confirm orders button", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: false,
       members: [{ id: 1, isCurrentUser: true, civilDisorder: true }],

@@ -9,11 +9,49 @@ import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { useRequiredParams } from "@/hooks";
 import { countOrders } from "@/utils/orderCount";
 import {
+  getGamePhaseStatesListQueryKey,
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
   useGamePhaseStatesListSuspense,
   useGameRetrieveSuspense,
 } from "@/api/generated/endpoints";
+
+interface CurrentPhaseConfirmOrdersProps {
+  gameId: string;
+  currentPhaseId: number;
+  confirmed: boolean;
+}
+
+const CurrentPhaseConfirmOrders: React.FC<CurrentPhaseConfirmOrdersProps> = ({
+  gameId,
+  currentPhaseId,
+  confirmed,
+}) => {
+  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
+    query: {
+      queryKey: [...getGamePhaseStatesListQueryKey(gameId), currentPhaseId],
+    },
+  });
+  const { data: orders } = useGameOrdersListSuspense(gameId, currentPhaseId);
+
+  const count = countOrders(
+    Array.isArray(phaseStates) ? phaseStates : [],
+    Array.isArray(orders) ? orders : []
+  );
+
+  if (!count) return null;
+
+  return (
+    <div className="absolute bottom-5 right-16 z-[1000]">
+      <ConfirmOrdersButton
+        gameId={gameId}
+        confirmed={confirmed}
+        count={count}
+        className="shadow-lg"
+      />
+    </div>
+  );
+};
 
 const MapConfirmOrders: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
@@ -24,8 +62,6 @@ const MapConfirmOrders: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
-  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
-  const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
 
   const members = Array.isArray(game.members) ? game.members : [];
   const currentMember = members.find(m => m.isCurrentUser);
@@ -34,24 +70,17 @@ const MapConfirmOrders: React.FC = () => {
     !currentMember.civilDisorder &&
     !game.sandbox &&
     game.status === "active" &&
-    phase.status === "active";
+    phase.status === "active" &&
+    game.currentPhaseId === selectedPhase;
 
-  const count = countOrders(
-    Array.isArray(phaseStates) ? phaseStates : [],
-    Array.isArray(orders) ? orders : []
-  );
-
-  if (!canModifyOrders || !count) return null;
+  if (!canModifyOrders) return null;
 
   return (
-    <div className="absolute bottom-5 right-16 z-[1000]">
-      <ConfirmOrdersButton
-        gameId={gameId}
-        confirmed={game.phaseConfirmed}
-        count={count}
-        className="shadow-lg"
-      />
-    </div>
+    <CurrentPhaseConfirmOrders
+      gameId={gameId}
+      currentPhaseId={selectedPhase}
+      confirmed={game.phaseConfirmed}
+    />
   );
 };
 

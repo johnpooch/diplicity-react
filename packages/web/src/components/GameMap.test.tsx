@@ -1,9 +1,9 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { GameMap } from "./GameMap";
-import type { Order } from "@/api/generated/endpoints";
+import type { Order, OrderOptionsResponse } from "@/api/generated/endpoints";
 
 // vi.hoisted ensures these are initialized before vi.mock hoisting runs
 const {
@@ -11,11 +11,15 @@ const {
   mockToastError,
   mockWizardReset,
   mockMapView,
+  mockUseOrderWizard,
+  mockOptionsRetrieve,
 } = vi.hoisted(() => ({
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockWizardReset: vi.fn(),
   mockMapView: vi.fn(),
+  mockUseOrderWizard: vi.fn(),
+  mockOptionsRetrieve: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -59,7 +63,7 @@ function buildIdleWizard(): WizardState {
 }
 
 vi.mock("@/hooks/useOrderWizard", () => ({
-  useOrderWizard: () => mockWizardState,
+  useOrderWizard: mockUseOrderWizard,
 }));
 
 let mockMutateAsync = vi.fn();
@@ -73,13 +77,18 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsRetrieve: () => ({ data: mockRetrievedVariant }),
   useGamePhaseRetrieve: () => ({ data: mockPhase }),
   useGameOrdersList: () => ({ data: mockExistingOrders }),
-  useGameOptionsRetrieve: () => ({ data: { orders: [], fieldOrder: {} } }),
+  useGameOptionsRetrieve: (...args: unknown[]) => ({
+    data: mockOptionsRetrieve(...args),
+  }),
   useGameOrdersCreate: () => ({ mutateAsync: mockMutateAsync }),
   getGameOrdersListQueryKey: (gameId: string, phaseId: number) => [
     `/game/${gameId}/orders/${phaseId}`,
   ],
   getGamePhaseStatesListQueryKey: (gameId: string) => [
     `/game/${gameId}/phase-states/`,
+  ],
+  getGameOptionsRetrieveQueryKey: (gameId: string) => [
+    `/game/${gameId}/options/`,
   ],
 }));
 
@@ -198,6 +207,13 @@ function getLastOrdersProp(): Order[] {
   return props.orders ?? [];
 }
 
+function getLastOnClickProvinceProp() {
+  const props = mockMapView.mock.calls.at(-1)?.[0] as {
+    onClickProvince: (province: string, position: { x: number; y: number }) => void;
+  };
+  return props.onClickProvince;
+}
+
 function getLastCivilDisorderNationsProp(): string[] {
   const last = mockMapView.mock.calls.at(-1);
   if (!last) return [];
@@ -231,6 +247,10 @@ describe("GameMap", () => {
     mockPublishedVariants = [mockVariant];
     mockRetrievedVariant = undefined;
     mockGame.members = [];
+    mockGame.status = "active";
+    mockGame.currentPhaseId = 1;
+    mockUseOrderWizard.mockImplementation(() => mockWizardState);
+    mockOptionsRetrieve.mockReturnValue({ orders: [], fieldOrder: {} });
   });
 
   it("stops shading a nation in civil disorder once its member has been replaced", async () => {
@@ -424,6 +444,94 @@ describe("GameMap", () => {
       expect(
         orders.some((o) => o.source?.id === "lon" && o.orderType === "Move")
       ).toBe(false);
+    });
+  });
+
+  describe("order entry", () => {
+    const lonOptions: OrderOptionsResponse = {
+      orders: [
+        {
+          source: { id: "lon", label: "London" },
+          orderType: { id: "Hold", label: "Hold" },
+          target: null,
+          aux: null,
+          unitType: null,
+          namedCoast: null,
+        },
+        {
+          source: { id: "lon", label: "London" },
+          orderType: { id: "Move", label: "Move" },
+          target: { id: "nth", label: "North Sea" },
+          aux: null,
+          unitType: null,
+          namedCoast: null,
+        },
+      ],
+      fieldOrder: { Hold: ["source", "orderType"], Move: ["source", "orderType", "target"] },
+    };
+
+    beforeEach(async () => {
+      const actual = await vi.importActual<typeof import("@/hooks/useOrderWizard")>(
+        "@/hooks/useOrderWizard"
+      );
+      mockUseOrderWizard.mockImplementation(actual.useOrderWizard);
+      mockOptionsRetrieve.mockReturnValue(lonOptions);
+    });
+
+    it("keys order options by the game's current phase", async () => {
+      const queryClient = makeQueryClient();
+      const { rerender } = render(gameMapJsx(queryClient));
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+
+      expect(mockOptionsRetrieve).toHaveBeenLastCalledWith("game-1", {
+        query: { queryKey: ["/game/game-1/options/", 1], enabled: true },
+      });
+
+      mockGame.currentPhaseId = 2;
+      rerender(gameMapJsx(queryClient));
+
+      expect(mockOptionsRetrieve).toHaveBeenLastCalledWith("game-1", {
+        query: { queryKey: ["/game/game-1/options/", 2], enabled: false },
+      });
+    });
+
+    it("does not request order options for a completed game", async () => {
+      mockGame.status = "completed";
+      render(gameMapJsx());
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+
+      expect(mockOptionsRetrieve).toHaveBeenLastCalledWith("game-1", {
+        query: { queryKey: ["/game/game-1/options/", 1], enabled: false },
+      });
+    });
+
+    it("cannot start or submit an order on a phase the game has moved past", async () => {
+      mockGame.currentPhaseId = 2;
+      render(gameMapJsx());
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+
+      act(() => getLastOnClickProvinceProp()("lon", { x: 10, y: 10 }));
+
+      expect(screen.queryByText("Hold")).not.toBeInTheDocument();
+      expect(screen.queryByText(/^A lon/i)).not.toBeInTheDocument();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("discards an in-progress order when the game moves on to a new phase", async () => {
+      const queryClient = makeQueryClient();
+      const { rerender } = render(gameMapJsx(queryClient));
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+
+      act(() => getLastOnClickProvinceProp()("lon", { x: 10, y: 10 }));
+      expect(screen.getByText("Hold")).toBeInTheDocument();
+      expect(screen.getByText("A London")).toBeInTheDocument();
+
+      mockGame.currentPhaseId = 2;
+      rerender(gameMapJsx(queryClient));
+
+      expect(screen.queryByText("Hold")).not.toBeInTheDocument();
+      expect(screen.queryByText(/^A lon/i)).not.toBeInTheDocument();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
   });
 });

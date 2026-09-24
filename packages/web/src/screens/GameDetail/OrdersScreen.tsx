@@ -50,7 +50,6 @@ import {
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
-  getGameOptionsRetrieveQueryKey,
   Order,
   OrderTypeEnum,
   Member,
@@ -413,7 +412,12 @@ const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }>
   );
 };
 
-const OrdersScreen: React.FC = () => {
+interface OrdersPanelProps {
+  isActivePhase: boolean;
+  phaseStates: readonly PhaseState[];
+}
+
+const OrdersPanel: React.FC<OrdersPanelProps> = ({ isActivePhase, phaseStates }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { gameId, phaseId } = useRequiredParams<{
@@ -426,7 +430,6 @@ const OrdersScreen: React.FC = () => {
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
   const variant = useGameVariant(game);
-  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
@@ -440,9 +443,6 @@ const OrdersScreen: React.FC = () => {
     );
   }
 
-  const isActivePhase = phase.status === "active";
-  const isGameFinished =
-    game.status === "completed" || game.status === "abandoned";
   const members = Array.isArray(game.members) ? game.members : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safePhaseStates = Array.isArray(phaseStates) ? phaseStates : [];
@@ -450,10 +450,7 @@ const OrdersScreen: React.FC = () => {
   const isSpectator = !currentMember;
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
-    !isSpectator &&
-    isActivePhase &&
-    !isGameFinished &&
-    !isCurrentMemberInCivilDisorder;
+    !isSpectator && isActivePhase && !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -481,8 +478,8 @@ const OrdersScreen: React.FC = () => {
   const handleResolvePhase = async () => {
     try {
       const result = await resolvePhaseMutation.mutateAsync({ gameId });
-      queryClient.invalidateQueries({
-        queryKey: getGameOptionsRetrieveQueryKey(gameId),
+      await queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
       });
       toast.success("Phase resolved");
       navigate(`/game/${gameId}/phase/${result.id}/orders`);
@@ -651,6 +648,46 @@ const OrdersScreen: React.FC = () => {
       </div>
     </div>
   );
+};
+
+interface CurrentPhaseOrdersProps {
+  gameId: string;
+  currentPhaseId: number;
+}
+
+const CurrentPhaseOrders: React.FC<CurrentPhaseOrdersProps> = ({
+  gameId,
+  currentPhaseId,
+}) => {
+  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
+    query: {
+      queryKey: [...getGamePhaseStatesListQueryKey(gameId), currentPhaseId],
+    },
+  });
+
+  return <OrdersPanel isActivePhase phaseStates={phaseStates} />;
+};
+
+const OrdersScreen: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const selectedPhase = Number(phaseId);
+
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
+
+  const isCurrentPhase =
+    game.status === "active" &&
+    phase.status === "active" &&
+    game.currentPhaseId === selectedPhase;
+
+  if (!isCurrentPhase) {
+    return <OrdersPanel isActivePhase={false} phaseStates={[]} />;
+  }
+
+  return <CurrentPhaseOrders gameId={gameId} currentPhaseId={selectedPhase} />;
 };
 
 const OrdersScreenSuspense: React.FC = () => (

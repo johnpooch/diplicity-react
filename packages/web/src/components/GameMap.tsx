@@ -20,6 +20,7 @@ import {
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
+  getGameOptionsRetrieveQueryKey,
   useGameOptionsRetrieve,
   type Order,
 } from "../api/generated/endpoints";
@@ -62,7 +63,7 @@ const ORDER_TYPE_KEYS: Record<string, string> = {
   Build: "B",
 };
 
-const GameMap: React.FC = () => {
+const PhaseGameMap: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
@@ -75,7 +76,17 @@ const GameMap: React.FC = () => {
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
-  const { data: optionsData } = useGameOptionsRetrieve(gameId);
+  const canEnterOrders =
+    game?.status === "active" &&
+    phase?.status === "active" &&
+    game.currentPhaseId === selectedPhase;
+  const { data: optionsData } = useGameOptionsRetrieve(gameId, {
+    query: {
+      queryKey: [...getGameOptionsRetrieveQueryKey(gameId), game?.currentPhaseId],
+      enabled: canEnterOrders,
+    },
+  });
+  const orderOptions = canEnterOrders ? optionsData : undefined;
 
   const publishedVariant = variants?.find((v) => v.id === game?.variantId);
   const { data: fetchedVariant } = useVariantsRetrieve(
@@ -94,8 +105,8 @@ const GameMap: React.FC = () => {
   const createOrderMutation = useGameOrdersCreate();
 
   const wizard = useOrderWizard(
-    optionsData?.orders ?? [],
-    optionsData?.fieldOrder ?? {}
+    orderOptions?.orders ?? [],
+    orderOptions?.fieldOrder ?? {}
   );
 
   const variant = publishedVariant ?? fetchedVariant;
@@ -321,6 +332,16 @@ const GameMap: React.FC = () => {
       )}
     </div>
   );
+};
+
+const GameMap: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const { data: game } = useGameRetrieve(gameId);
+
+  return <PhaseGameMap key={`${phaseId}:${game?.currentPhaseId}`} />;
 };
 
 export { GameMap };
