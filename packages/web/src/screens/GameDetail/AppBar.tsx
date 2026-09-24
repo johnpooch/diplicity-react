@@ -66,7 +66,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
       )));
 
   return (
-    <div className="flex min-h-12 items-center gap-3 px-2 md:min-h-14 md:px-3">
+    <div className="flex min-h-14 items-center gap-3 px-2 md:px-3">
       {/* Left section */}
       {leftContent && (
         <div className="flex items-center gap-2">{leftContent}</div>
@@ -79,7 +79,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
             <TooltipTrigger asChild>
               <h1
                 ref={titleRef}
-                className="w-full truncate text-left text-base font-semibold leading-7 md:text-xl md:leading-9"
+                className="w-full truncate text-left text-xl font-semibold leading-9"
                 onClick={() => handleTitleOpenChange(true)}
               >
                 {title}

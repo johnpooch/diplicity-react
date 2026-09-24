@@ -57,6 +57,7 @@ describe("MapScreen confirm orders button", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: false,
       members: [{ id: 1, isCurrentUser: true, civilDisorder: false }],
@@ -81,6 +82,7 @@ describe("MapScreen confirm orders button", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: true,
       members: [{ id: 1, isCurrentUser: true, civilDisorder: false }],
@@ -95,10 +97,29 @@ describe("MapScreen confirm orders button", () => {
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 
+  it("hides the button on a phase that is no longer the game's current phase", () => {
+    mockGameData.mockReturnValue({ ...mockGameData(), currentPhaseId: 6 });
+    renderScreen();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+
+  it("hides the button while the phase is processing", () => {
+    mockPhaseData.mockReturnValue({ status: "processing" });
+    renderScreen();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+
+  it("hides the button once the game is completed", () => {
+    mockGameData.mockReturnValue({ ...mockGameData(), status: "completed" });
+    renderScreen();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+
   it("hides the button for a spectator", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: false,
       members: [{ id: 2, isCurrentUser: false, civilDisorder: false }],
@@ -111,6 +132,7 @@ describe("MapScreen confirm orders button", () => {
     mockGameData.mockReturnValue({
       id: "1",
       status: "active",
+      currentPhaseId: 5,
       sandbox: false,
       phaseConfirmed: false,
       members: [{ id: 1, isCurrentUser: true, civilDisorder: true }],

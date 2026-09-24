@@ -3,7 +3,7 @@ from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Channel, ChannelMessage, ChannelMember
+from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
 from emit import emit
@@ -44,11 +44,26 @@ class ChannelMessageSerializer(serializers.Serializer):
         return message
 
 
+class ChannelEventSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    text = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class ChannelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
+    title = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=CHANNEL_TITLE_MAX_LENGTH,
+        error_messages={
+            "max_length": f"Channel names cannot be longer than {CHANNEL_TITLE_MAX_LENGTH} characters."
+        },
+    )
     private = serializers.BooleanField(read_only=True)
     messages = ChannelMessageSerializer(many=True, read_only=True)
+    events = ChannelEventSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
@@ -67,14 +82,47 @@ class ChannelSerializer(serializers.Serializer):
         channel_name = ", ".join(nations)
 
         if game.channels.filter(name=channel_name).exists():
-            raise serializers.ValidationError("A channel with the same members already exists.")
+            raise serializers.ValidationError("Channel already exists.")
 
         return value
 
     def create(self, validated_data):
         request = self.context["request"]
         game = self.context["game"]
-        return Channel.objects.create_from_member_ids(request.user, validated_data["member_ids"], game)
+        return Channel.objects.create_from_member_ids(
+            request.user, validated_data["member_ids"], game, validated_data.get("title", "")
+        )
+
+
+class ChannelUpdateSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    title = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        max_length=CHANNEL_TITLE_MAX_LENGTH,
+        error_messages={
+            "max_length": f"Channel names cannot be longer than {CHANNEL_TITLE_MAX_LENGTH} characters."
+        },
+    )
+
+    def update(self, instance, validated_data):
+        title = validated_data["title"]
+        if title == instance.title:
+            return instance
+
+        member = self.context["current_game_member"]
+        instance.title = title
+        instance.save(update_fields=["title"])
+
+        emit(
+            "channel_renamed",
+            game=instance.game,
+            phase=instance.game.current_phase,
+            channel=instance,
+            nation=member.nation.name,
+            name=title,
+        )
+        return instance
 
 
 class ChannelMarkReadSerializer(serializers.Serializer):

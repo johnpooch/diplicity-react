@@ -1,25 +1,30 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import {
-  Item,
-  ItemContent,
-  ItemTitle,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemActions,
-  ItemMedia,
-} from "@/components/ui/item";
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { cn } from "@/lib/utils";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
 import {
@@ -27,7 +32,85 @@ import {
   useGameRetrieveSuspense,
   useGamesChannelsCreateCreate,
   type Channel,
+  type Member,
 } from "@/api/generated/endpoints";
+
+const CHANNEL_TITLE_MAX_LENGTH = 50;
+
+const channelSchema = z.object({
+  title: z
+    .string()
+    .max(
+      CHANNEL_TITLE_MAX_LENGTH,
+      `Channel names cannot be longer than ${CHANNEL_TITLE_MAX_LENGTH} characters.`
+    ),
+  memberIds: z.array(z.number()).min(1),
+});
+
+type ChannelFormValues = z.infer<typeof channelSchema>;
+
+const createChannelErrorMessage = (error: unknown, fallback: string) => {
+  const data = (error as AxiosError<{ memberIds?: string[]; detail?: string }>)
+    .response?.data;
+  return data?.memberIds?.[0] ?? data?.detail ?? fallback;
+};
+
+const roleLabel = (member: Member): string | undefined => {
+  if (member.isBot) return "bot";
+  return undefined;
+};
+
+const MemberRow: React.FC<{
+  member: Member;
+  nationFlagUrl: string | null;
+  nationColor: string | null;
+  selected: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}> = ({ member, nationFlagUrl, nationColor, selected, disabled, onToggle }) => {
+  const role = roleLabel(member);
+  const nation = member.nation ?? member.name;
+
+  return (
+    <label
+      className={cn(
+        "flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-accent/50",
+        selected && "bg-accent/50"
+      )}
+    >
+      <div className="relative size-12 shrink-0">
+        <NationFlag
+          flagUrl={nationFlagUrl}
+          alt={nation}
+          size="lg"
+          className="size-12"
+          color={nationColor}
+        />
+        <span className="absolute -bottom-0.5 -right-0.5">
+          <Avatar className="size-5 ring-2 ring-card">
+            <AvatarImage src={member.picture ?? undefined} />
+            <AvatarFallback className="text-[8px]">
+              {member.name[0]?.toUpperCase() ?? "?"}
+            </AvatarFallback>
+          </Avatar>
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold leading-tight">{nation}</p>
+        <p className="truncate text-sm text-muted-foreground">
+          {member.name}
+          {role && ` (${role})`}
+        </p>
+      </div>
+      <Checkbox
+        checked={selected}
+        onCheckedChange={onToggle}
+        disabled={disabled}
+        aria-label={`Select ${nation}`}
+      />
+    </label>
+  );
+};
 
 const ChannelCreateScreen: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
@@ -36,25 +119,24 @@ const ChannelCreateScreen: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const variant = useGameVariant(game);
+  const variantNations = variant?.nations ?? [];
   const createChannelMutation = useGamesChannelsCreateCreate();
 
-  const handleToggle = (memberId: number) => {
-    setSelectedMembers(prevSelected =>
-      prevSelected.includes(memberId)
-        ? prevSelected.filter(id => id !== memberId)
-        : [...prevSelected, memberId]
-    );
-  };
+  const form = useForm<ChannelFormValues>({
+    resolver: zodResolver(channelSchema),
+    defaultValues: { title: "", memberIds: [] },
+  });
 
-  const handleCreateChannel = async () => {
+  const handleCreateChannel = async (values: ChannelFormValues) => {
     try {
       const response = await createChannelMutation.mutateAsync({
         gameId: gameId,
         data: {
-          memberIds: selectedMembers,
+          memberIds: values.memberIds,
+          title: values.title,
         },
       });
       queryClient.setQueryData<Channel[]>(
@@ -65,8 +147,8 @@ const ChannelCreateScreen: React.FC = () => {
       if (response) {
         navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);
       }
-    } catch {
-      toast.error("Failed to create channel");
+    } catch (error) {
+      toast.error(createChannelErrorMessage(error, "Failed to create channel"));
     }
   };
 
@@ -79,56 +161,82 @@ const ChannelCreateScreen: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title="Create Channel"
+        title="Create channel"
         variant="secondary"
         onNavigateBack={handleBack}
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
-            <ItemGroup>
-              {game.members
-                .filter(m => !m.isCurrentUser && !m.kicked)
-                .map(member => (
-                  <React.Fragment key={member.id}>
-                    <Item
-                      className="cursor-pointer hover:bg-accent/50"
-                      onClick={() => handleToggle(member.id)}
-                    >
-                      <ItemMedia>
-                        <Avatar>
-                          <AvatarImage src={member.picture ?? undefined} />
-                          <AvatarFallback>{member.nation?.[0]}</AvatarFallback>
-                        </Avatar>
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle>{member.nation}</ItemTitle>
-                        <ItemDescription>{member.name}</ItemDescription>
-                      </ItemContent>
-                      <ItemActions>
-                        <Checkbox
-                          checked={selectedMembers.includes(member.id)}
-                          disabled={isSubmitting}
-                        />
-                      </ItemActions>
-                    </Item>
-                    <ItemSeparator />
-                  </React.Fragment>
-                ))}
-            </ItemGroup>
-          </Panel.Content>
-          <Separator />
-          <Panel.Footer>
-            <div className="flex justify-end w-full">
-              <Button
-                disabled={selectedMembers.length === 0 || isSubmitting}
-                onClick={handleCreateChannel}
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handleCreateChannel)}
+                className="flex flex-col gap-4 px-3 py-4"
               >
-                <UserPlus />
-                Select Members
-              </Button>
-            </div>
-          </Panel.Footer>
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Channel name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Optional"
+                          maxLength={CHANNEL_TITLE_MAX_LENGTH}
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="memberIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-muted-foreground">Members</FormLabel>
+                      <FormControl>
+                        <Card className="overflow-hidden py-0">
+                          <CardContent className="flex flex-col divide-y p-0">
+                            {game.members
+                              .filter(m => !m.isCurrentUser && !m.kicked)
+                              .map(member => (
+                                <MemberRow
+                                  key={member.id}
+                                  member={member}
+                                  nationFlagUrl={findNationFlagUrl(variantNations, member.nation)}
+                                  nationColor={findNationColor(variantNations, member.nation)}
+                                  selected={field.value.includes(member.id)}
+                                  disabled={isSubmitting}
+                                  onToggle={() =>
+                                    field.onChange(
+                                      field.value.includes(member.id)
+                                        ? field.value.filter(id => id !== member.id)
+                                        : [...field.value, member.id]
+                                    )
+                                  }
+                                />
+                              ))}
+                          </CardContent>
+                        </Card>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={form.watch("memberIds").length === 0 || isSubmitting}
+                >
+                  Create channel
+                </Button>
+              </form>
+            </Form>
+          </Panel.Content>
         </Panel>
       </div>
     </div>

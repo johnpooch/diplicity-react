@@ -16,6 +16,7 @@ import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
+import { clearDeliveredNotifications } from "./utils/deliveredNotifications";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
 import { useNotificationPermissionPrompt } from "./hooks/useNotificationPermissionPrompt";
 
@@ -99,6 +100,30 @@ function App() {
 
     return () => {
       listener.then((handle) => handle.remove());
+    };
+  }, []);
+
+  useEffect(() => {
+    clearDeliveredNotifications();
+
+    if (isNativePlatform()) {
+      const listener = CapacitorApp.addListener(
+        "appStateChange",
+        ({ isActive }) => {
+          if (isActive) clearDeliveredNotifications();
+        }
+      );
+      return () => {
+        listener.then((l) => l.remove());
+      };
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") clearDeliveredNotifications();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

@@ -23,6 +23,17 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
+class ChannelEvent(TypedDict):
+    id: int
+    text: str
+    created_at: str
+
+
+class ChannelUpdate(TypedDict):
+    id: int
+    title: str
+
+
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
 
 
@@ -48,6 +59,9 @@ class DrawVoteUpdate(TypedDict):
 
 
 type DurationEnum = Literal[
+    '5 minutes',
+    '15 minutes',
+    '30 minutes',
     '1 hour',
     '2 hours',
     '4 hours',
@@ -146,6 +160,7 @@ class Member(TypedDict):
     eliminated: bool
     kicked: bool
     is_game_creator: bool
+    is_admin: bool
     nmr_extensions_remaining: int
     civil_disorder: bool
     seeking_replacement: bool
@@ -215,6 +230,11 @@ class PasswordResetConfirm(TypedDict):
     token: str
     new_password: str
     confirm_password: str
+
+
+class PatchedChannelUpdate(TypedDict):
+    id: NotRequired[int]
+    title: NotRequired[str]
 
 
 class PatchedDrawVoteUpdate(TypedDict):
@@ -583,8 +603,10 @@ class VariantTemplatePhase(TypedDict):
 class Channel(TypedDict):
     id: int
     name: str
+    title: NotRequired[str]
     private: bool
     messages: list[ChannelMessage]
+    events: list[ChannelEvent]
     unread_message_count: int
     member_ids: list[int]
 

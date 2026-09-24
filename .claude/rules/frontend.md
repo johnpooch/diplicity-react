@@ -54,6 +54,10 @@ useEffect(() => { mut.mutateAsync(data); }, [condition]);
 
 This is the **only** sanctioned `eslint-disable` in the codebase.
 
+### Polling
+
+Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` — see `.claude/rules/backend/views.md`. The browser/WebView revalidates with `If-None-Match` and receives an empty 304 when nothing changed; client code needs nothing extra. Do not add cache-busting query params or `Cache-Control` request headers to a polled request — both defeat revalidation.
+
 Otherwise, minimise `useEffect` — prefer derived state and event handlers. See `docs/frontend/react-use-effect-minimizer.md`.
 
 ## Components
@@ -191,6 +195,16 @@ Skip the success toast when the UI change is itself the confirmation (checkbox t
 ## Runtime safety
 
 Use `parseOnlyInDev` for API parsing so a schema mismatch does not crash production. Define Zod schemas first and infer TypeScript types with `z.infer`. Never use `any`.
+
+## Screenshot stability
+
+The `Screenshot Diff` workflow renders every screen twice per PR and reports the pixels that moved, so anything that varies between two runs of the same commit surfaces as a false difference and trains reviewers to ignore the comment. Writing a screen that captures cleanly:
+
+- **Suspense fallbacks must render `Skeleton`.** The capture treats `[data-slot="skeleton"]` as "still loading". A fallback that renders an empty pulsing div reads as loaded and gets captured blank.
+- **Never derive fixture or component state from `Date.now()` in a way a fixed clock cannot pin.** Capture freezes the clock; a value computed from real elapsed time changes between runs.
+- **Content must not depend on scroll or intersection to appear.** Capture forces `IntersectionObserver` to report intersecting, so lazy content loads eagerly; anything gated on a real scroll event will not.
+
+Toasts are hidden during capture because they dismiss on a timer, so a change to toast styling will not appear in the diff.
 
 ## Before submitting
 

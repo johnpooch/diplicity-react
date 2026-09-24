@@ -19,7 +19,7 @@ const SettingsTable: React.FC<{ rows: SettingsRow[] }> = ({ rows }) => {
   }
 
   return (
-    <Card className="overflow-hidden py-0">
+    <Card className="shrink-0 overflow-hidden py-0">
       <CardContent className="flex flex-col divide-y p-0">
         {rows.map(row => (
           <div key={row.key} className="px-6 py-3">

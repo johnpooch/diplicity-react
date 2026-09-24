@@ -31,7 +31,7 @@ const VariantDetailsScreen: React.FC = () => {
           <Panel.Content className="flex flex-col gap-4 px-3 py-4">
             {variant ? (
               <>
-                <div className="w-full overflow-hidden rounded-xl">
+                <div className="w-full shrink-0 overflow-hidden rounded-xl">
                   <MapView
                     mode="static"
                     variant={variant}

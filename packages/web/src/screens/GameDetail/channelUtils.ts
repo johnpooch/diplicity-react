@@ -30,17 +30,53 @@ export const brightnessByColor = (hex: string): number => {
 };
 
 // Private channel names are formatted by the backend as "Nation1, Nation2, ..."
+const getOtherNationNames = (
+  channel: Channel,
+  currentNationName: string | undefined
+): string[] =>
+  channel.name
+    .split(",")
+    .map(s => s.trim())
+    .filter(n => n !== currentNationName);
+
 export const getChannelDisplayName = (
   channel: Channel,
   currentNationName: string | undefined
 ): string => {
+  if (channel.title) return channel.title;
   if (!channel.private || !currentNationName) return channel.name;
-  const others = channel.name
-    .split(",")
-    .map(s => s.trim())
-    .filter(n => n !== currentNationName);
+  const others = getOtherNationNames(channel, currentNationName);
   return others.length > 0 ? others.join(", ") : channel.name;
 };
+
+// Whatever the title does not already say: the nations for a named
+// channel, and the players behind them for an unnamed one.
+export const getChannelSubtitle = (
+  channel: Channel,
+  members: readonly Member[],
+  currentNationName: string | undefined
+): string | null => {
+  if (!channel.private) return null;
+  const others = getOtherNationNames(channel, currentNationName);
+  if (others.length === 0) return null;
+  if (channel.title) return others.join(", ");
+  const playerNames = others
+    .map(nation => members.find(m => m.nation === nation)?.name)
+    .filter((name): name is string => name !== undefined);
+  return playerNames.length > 0 ? playerNames.join(", ") : null;
+};
+
+const getChannelNationNames = (
+  channel: Channel,
+  members: readonly Member[],
+  currentNationName: string | undefined
+): string[] =>
+  channel.private
+    ? getOtherNationNames(channel, currentNationName)
+    : members
+        .filter(m => !m.kicked)
+        .map(m => m.nation)
+        .filter((n): n is string => n !== null);
 
 export const getChannelFlagUrls = (
   channel: Channel,
@@ -48,14 +84,20 @@ export const getChannelFlagUrls = (
   currentNationName: string | undefined,
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
 ): ChannelNation[] => {
-  const nationNames = channel.private
-    ? channel.name.split(",").map(s => s.trim()).filter(n => n !== currentNationName)
-    : members
-        .filter(m => !m.kicked)
-        .map(m => m.nation)
-        .filter((n): n is string => n !== null);
+  const nationNames = getChannelNationNames(channel, members, currentNationName);
   return nationNames.map(name => {
     const vn = variantNations.find(n => n.name === name);
     return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
   });
 };
+
+// Public Press is never a direct 1:1 conversation, however few nations
+// currently have a seat in it, so it always shows sender labels; only a
+// private channel can be the direct kind that hides them.
+export const isGroupChannel = (
+  channel: Channel,
+  members: readonly Member[],
+  currentNationName: string | undefined
+): boolean =>
+  !channel.private ||
+  getChannelNationNames(channel, members, currentNationName).length > 1;
