@@ -4,6 +4,7 @@ import type {
   PublicUserProfile,
   UserProfile,
 } from "@/api/generated/endpoints";
+import { nation } from "./classical";
 
 export const currentUserProfile: UserProfile = {
   id: 1,
@@ -95,5 +96,22 @@ for (const player of players) {
     cdRate: 0,
     reliabilityTier: "reliable",
     commitment: "high",
+    favouriteNation: { nation: nation("england"), gamesPlayed: 5 },
+    recentResults: [
+      {
+        gameId: "recent-game-1",
+        gameName: "The Long Game",
+        nation: nation("england"),
+        outcome: "won",
+        finishedAt: "2025-08-01T12:00:00Z",
+      },
+      {
+        gameId: "recent-game-2",
+        gameName: "Winter Standoff",
+        nation: nation("france"),
+        outcome: "survived",
+        finishedAt: "2025-06-15T12:00:00Z",
+      },
+    ],
   };
 }

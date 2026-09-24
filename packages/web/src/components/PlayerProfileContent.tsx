@@ -2,20 +2,42 @@ import React from "react";
 import { Info } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { CommitmentBadge, COMMITMENT_TIERS } from "@/components/CommitmentBadge";
+import { NationFlag } from "@/components/NationFlag";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
-import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
+import {
+  useUsersRetrieveSuspense,
+  type OutcomeEnum,
+} from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
   userId: number;
 }
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
+
+const outcomeLabel: Record<OutcomeEnum, string> = {
+  won: "Won",
+  drew: "Drew",
+  eliminated: "Eliminated",
+  survived: "Survived",
+};
+
+const outcomeVariant: Record<
+  OutcomeEnum,
+  "default" | "secondary" | "outline"
+> = {
+  won: "default",
+  drew: "secondary",
+  eliminated: "outline",
+  survived: "outline",
+};
 
 interface StatRowProps {
   label: string;
@@ -112,6 +134,73 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
           </div>
         </ScreenCardContent>
       </ScreenCard>
+
+      {profile.favouriteNation && (
+        <ScreenCard>
+          <ScreenCardContent>
+            <h3 className="text-sm font-semibold mb-2">Most Played</h3>
+            <div className="flex items-center gap-3">
+              <NationFlag
+                flagUrl={profile.favouriteNation.nation.flagUrl}
+                color={profile.favouriteNation.nation.color}
+                alt={profile.favouriteNation.nation.name}
+                className="size-10"
+              />
+              <div>
+                <p className="text-sm font-medium">
+                  {profile.favouriteNation.nation.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {profile.favouriteNation.gamesPlayed} of {profile.totalGames}{" "}
+                  games
+                </p>
+              </div>
+            </div>
+          </ScreenCardContent>
+        </ScreenCard>
+      )}
+
+      {profile.recentResults.length > 0 && (
+        <ScreenCard>
+          <ScreenCardContent>
+            <h3 className="text-sm font-semibold mb-2">Recent Results</h3>
+            <div className="divide-y">
+              {profile.recentResults.map(result => (
+                <div
+                  key={result.gameId}
+                  className="flex items-center gap-3 py-2"
+                >
+                  <NationFlag
+                    flagUrl={result.nation.flagUrl}
+                    color={result.nation.color}
+                    alt={result.nation.name}
+                    className="size-10"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {result.gameName}
+                    </p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {result.nation.name} ·{" "}
+                      {new Date(result.finishedAt).toLocaleDateString(
+                        undefined,
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
+                    </p>
+                  </div>
+                  <Badge variant={outcomeVariant[result.outcome]}>
+                    {outcomeLabel[result.outcome]}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </ScreenCardContent>
+        </ScreenCard>
+      )}
     </div>
   );
 };

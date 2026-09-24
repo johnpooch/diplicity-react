@@ -2354,6 +2354,19 @@ components:
       - id
       - registration_id
       - type
+    FavouriteNation:
+      type: object
+      properties:
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        games_played:
+          type: integer
+          readOnly: true
+      required:
+      - games_played
+      - nation
     FieldValue:
       type: object
       properties:
@@ -3341,6 +3354,18 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    OutcomeEnum:
+      enum:
+      - won
+      - drew
+      - eliminated
+      - survived
+      type: string
+      description: |-
+        * `won` - Won
+        * `drew` - Drew
+        * `eliminated` - Eliminated
+        * `survived` - Survived
     PaginatedGameListList:
       type: object
       required:
@@ -3599,6 +3624,33 @@ components:
       description: |-
         * `ios` - iOS
         * `android` - Android
+    PlayerGameResult:
+      type: object
+      properties:
+        game_id:
+          type: string
+          readOnly: true
+        game_name:
+          type: string
+          readOnly: true
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        outcome:
+          allOf:
+          - $ref: '#/components/schemas/OutcomeEnum'
+          readOnly: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - finished_at
+      - game_id
+      - game_name
+      - nation
+      - outcome
     PressTypeEnum:
       enum:
       - full_press
@@ -3677,16 +3729,28 @@ components:
         commitment:
           type: string
           readOnly: true
+        favourite_nation:
+          allOf:
+          - $ref: '#/components/schemas/FavouriteNation'
+          readOnly: true
+          nullable: true
+        recent_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerGameResult'
+          readOnly: true
       required:
       - cd_rate
       - commitment
       - created_at
       - draws
+      - favourite_nation
       - id
       - losses
       - name
       - nmr_rate
       - picture
+      - recent_results
       - reliability_tier
       - solo_wins
       - total_games
