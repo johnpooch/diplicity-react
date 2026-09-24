@@ -815,6 +815,7 @@ class Game(BaseModel):
         current_phase = self.current_phase
         if current_phase:
             Phase.objects.arm_resolution(current_phase)
+            Phase.objects.arm_warning(current_phase)
 
     @transaction.atomic
     def unpause(self):
@@ -835,6 +836,7 @@ class Game(BaseModel):
 
         if current_phase:
             Phase.objects.arm_resolution(current_phase)
+            Phase.objects.arm_warning(current_phase)
 
     def delete_if_empty_pending(self):
         human_members = self.members.players().exclude(user__profile__kind__in=UserKind.BOT_KINDS)

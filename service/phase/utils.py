@@ -16,6 +16,25 @@ def format_deadline(dt, tz_name=None):
     return dt.strftime("%b %d, %Y at %I:%M %p UTC")
 
 
+def deadline_warning_offset(duration_seconds):
+    thresholds = (
+        (3600, 900),
+        (12 * 3600, 3600),
+        (24 * 3600, 3600),
+        (48 * 3600, 7200),
+        (72 * 3600, 7200),
+        (96 * 3600, 7200),
+        (168 * 3600, 14400),
+        (336 * 3600, 14400),
+    )
+    if not duration_seconds:
+        return timedelta(seconds=3600)
+    for phase_duration, warning in thresholds:
+        if duration_seconds <= phase_duration:
+            return timedelta(seconds=warning)
+    return timedelta(seconds=14400)
+
+
 def build_notification_body(
     orders_confirmed, is_fixed_time, orders_given, total_units, extensions_remaining,
     is_adjustment=False, deadline_extended=False,
