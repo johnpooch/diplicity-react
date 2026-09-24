@@ -1,18 +1,31 @@
-import React from "react";
-import { Info } from "lucide-react";
+import React, { useState } from "react";
+import { Check, Info, Pencil, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
+import { AccountSettingsCard } from "@/components/AccountSettingsCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { CommitmentBadge, COMMITMENT_TIERS } from "@/components/CommitmentBadge";
+import { Input } from "@/components/ui/input";
+import { ProfilePictureEditor } from "@/components/ProfilePictureEditor";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
-import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
+import { useLogout } from "@/hooks/useLogout";
+import {
+  useUserRetrieveSuspense,
+  useUserUpdatePartialUpdate,
+  useUsersRetrieveSuspense,
+  getUserRetrieveQueryKey,
+  getUsersRetrieveQueryKey,
+} from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
-  userId: number;
+  userId?: number;
+  showAccountSettings?: boolean;
 }
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
@@ -48,25 +61,133 @@ const StatRow: React.FC<StatRowProps> = ({ label, value, info }) => (
 
 export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
   userId,
+  showAccountSettings = false,
 }) => {
-  const { data: profile } = useUsersRetrieveSuspense(userId);
+  const queryClient = useQueryClient();
+  const logout = useLogout();
+  const { data: currentUser } = useUserRetrieveSuspense();
+  const profileUserId = userId ?? currentUser.userId;
+  const { data: profile } = useUsersRetrieveSuspense(profileUserId);
+  const updateProfileMutation = useUserUpdatePartialUpdate();
+  const isOwnProfile = profileUserId === currentUser.userId;
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [saveNameError, setSaveNameError] = useState(false);
+
+  const handleStartEditName = () => {
+    setEditedName(profile.name);
+    setSaveNameError(false);
+    setIsEditingName(true);
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+    setEditedName("");
+    setSaveNameError(false);
+  };
+
+  const handleSaveName = async () => {
+    const trimmedName = editedName.trim();
+    if (trimmedName.length >= 2) {
+      try {
+        await updateProfileMutation.mutateAsync({
+          data: { name: trimmedName },
+        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: getUserRetrieveQueryKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: getUsersRetrieveQueryKey(profileUserId),
+          }),
+        ]);
+        setIsEditingName(false);
+        setEditedName("");
+        setSaveNameError(false);
+      } catch {
+        setSaveNameError(true);
+      }
+    }
+  };
 
   return (
     <div className="space-y-4">
       <ScreenCard>
         <ScreenCardContent>
           <div className="flex items-center gap-4">
-            <Avatar className="size-16">
-              <AvatarImage src={profile.picture ?? undefined} />
-              <AvatarFallback className="text-lg">
-                {profile.name[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            {isOwnProfile ? (
+              <ProfilePictureEditor
+                userId={profileUserId}
+                name={profile.name}
+                picture={profile.picture}
+              />
+            ) : (
+              <Avatar className="size-16">
+                <AvatarImage src={profile.picture ?? undefined} />
+                <AvatarFallback className="text-lg">
+                  {profile.name[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            )}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-lg font-semibold">{profile.name}</span>
-                <CommitmentBadge commitment={profile.commitment} />
-              </div>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedName}
+                    onChange={e => setEditedName(e.target.value)}
+                    autoFocus
+                    disabled={updateProfileMutation.isPending}
+                    className="max-w-xs"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleSaveName();
+                      else if (e.key === "Escape") handleCancelEditName();
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSaveName}
+                    disabled={
+                      updateProfileMutation.isPending ||
+                      !editedName ||
+                      editedName.trim().length < 2
+                    }
+                    aria-label="Save"
+                  >
+                    <Check className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleCancelEditName}
+                    disabled={updateProfileMutation.isPending}
+                    aria-label="Cancel"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-lg font-semibold">{profile.name}</span>
+                  {isOwnProfile && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleStartEditName}
+                      aria-label="Edit name"
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  )}
+                  <CommitmentBadge commitment={profile.commitment} />
+                </div>
+              )}
+              {saveNameError && (
+                <p className="text-sm text-destructive">
+                  Failed to update name. Please try again.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 Joined{" "}
                 {new Date(profile.createdAt).toLocaleDateString(undefined, {
@@ -75,9 +196,16 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
                 })}
               </p>
             </div>
+            {isOwnProfile && (
+              <Button variant="outline" onClick={logout}>
+                Log out
+              </Button>
+            )}
           </div>
         </ScreenCardContent>
       </ScreenCard>
+
+      {isOwnProfile && showAccountSettings && <AccountSettingsCard />}
 
       <ScreenCard>
         <ScreenCardContent>

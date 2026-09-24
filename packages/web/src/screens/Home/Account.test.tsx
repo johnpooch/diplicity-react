@@ -16,7 +16,7 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
-let mockUserProfile: {
+const mockUserProfile: {
   id: number;
   userId: number;
   email: string;
@@ -30,23 +30,54 @@ let mockUserProfile: {
   picture: null,
 };
 
+let mockPublicProfile: {
+  id: number;
+  name: string;
+  picture: string | null;
+  createdAt: string;
+  totalGames: number;
+  soloWins: number;
+  draws: number;
+  losses: number;
+  nmrRate: number;
+  cdRate: number;
+  reliabilityTier: string;
+  commitment: string;
+} = {
+  id: 1,
+  name: "Test Player",
+  picture: null,
+  createdAt: "2025-01-15T12:00:00Z",
+  totalGames: 12,
+  soloWins: 1,
+  draws: 3,
+  losses: 6,
+  nmrRate: 0.05,
+  cdRate: 0,
+  reliabilityTier: "reliable",
+  commitment: "high",
+};
+
 const mockSetPreference = vi.fn();
 const {
   mockUploadPicture,
   mockRemovePicture,
   mockToastError,
   mockDownscaleImage,
+  mockUpdateName,
 } = vi.hoisted(() => ({
   mockUploadPicture: vi.fn(),
   mockRemovePicture: vi.fn(),
   mockToastError: vi.fn(),
   mockDownscaleImage: vi.fn(),
+  mockUpdateName: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useUserRetrieveSuspense: () => ({ data: mockUserProfile }),
+  useUsersRetrieveSuspense: () => ({ data: mockPublicProfile }),
   useUserUpdatePartialUpdate: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: mockUpdateName,
     isPending: false,
   }),
   useUserPictureUpdate: () => ({
@@ -139,16 +170,11 @@ describe("Account - Appearance section", () => {
     expect(await screen.findByText("System")).toBeInTheDocument();
   });
 
-  it("renders the Theme label", async () => {
+  it("renders the theme radio options", async () => {
     renderAccount();
-    expect(await screen.findByText("Theme")).toBeInTheDocument();
-  });
-
-  it("renders the theme select trigger", async () => {
-    renderAccount();
-    expect(
-      await screen.findByRole("combobox", { name: /theme/i })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "System" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Light" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeInTheDocument();
   });
 
   it("Appearance section appears before Notifications section", async () => {
@@ -167,7 +193,7 @@ describe("Account - profile picture", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDownscaleImage.mockImplementation(async (file: File) => file);
-    mockUserProfile = { ...mockUserProfile, picture: null };
+    mockPublicProfile = { ...mockPublicProfile, picture: null };
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       configurable: true,
@@ -241,8 +267,8 @@ describe("Account - profile picture", () => {
   });
 
   it("removes the picture when one is set", async () => {
-    mockUserProfile = {
-      ...mockUserProfile,
+    mockPublicProfile = {
+      ...mockPublicProfile,
       picture: "https://example.com/me.png",
     };
     const user = userEvent.setup();
@@ -254,5 +280,38 @@ describe("Account - profile picture", () => {
     );
 
     expect(mockRemovePicture).toHaveBeenCalled();
+  });
+});
+
+describe("Account - name and log out", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPublicProfile = { ...mockPublicProfile, name: "Test Player" };
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      configurable: true,
+      value: createMatchMediaMock(false),
+    });
+    themeStorage.initialize();
+  });
+
+  it("renders the player's name and a log out button", async () => {
+    renderAccount();
+    expect(await screen.findByText("Test Player")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Log out" })
+    ).toBeInTheDocument();
+  });
+
+  it("saves an edited name", async () => {
+    const user = userEvent.setup();
+    renderAccount();
+
+    await user.click(await screen.findByRole("button", { name: "Edit name" }));
+    await user.clear(screen.getByDisplayValue("Test Player"));
+    await user.type(screen.getByRole("textbox"), "New Name");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(mockUpdateName).toHaveBeenCalledWith({ data: { name: "New Name" } });
   });
 });
