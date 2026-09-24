@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommitmentBadge } from "@/components/CommitmentBadge";
 import { InfoButton } from "@/components/InfoButton";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { Separator } from "@/components/ui/separator";
 import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
@@ -38,7 +39,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
   return (
     <div className="space-y-4">
       <ScreenCard>
-        <ScreenCardContent>
+        <ScreenCardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <Avatar className="size-16">
               <AvatarImage src={profile.picture ?? undefined} />
@@ -60,11 +61,9 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
               </p>
             </div>
           </div>
-        </ScreenCardContent>
-      </ScreenCard>
 
-      <ScreenCard>
-        <ScreenCardContent>
+          <Separator />
+
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <StatTile label="Games" value={profile.totalGames} />
             <StatTile
