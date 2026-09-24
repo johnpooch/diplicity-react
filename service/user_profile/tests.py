@@ -776,6 +776,7 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["draws"] == 0
         assert response.data["losses"] == 0
         assert response.data["nmr_rate"] == 0.0
+        assert response.data["nmr_count"] == 0
         assert response.data["cd_rate"] == 0.0
 
     @pytest.mark.django_db
@@ -827,6 +828,7 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["draws"] == 2
         assert response.data["losses"] == 7
         assert response.data["nmr_rate"] == 0.0
+        assert response.data["nmr_count"] == 0
         assert response.data["cd_rate"] == 0.0
         assert response.data["reliability_tier"] == "reliable"
 
@@ -872,6 +874,7 @@ class TestPublicUserProfileRetrieveView:
         response = authenticated_client.get(url)
 
         assert response.data["nmr_rate"] == 0.3
+        assert response.data["nmr_count"] == 3
         assert response.data["reliability_tier"] is None
 
     @pytest.mark.django_db

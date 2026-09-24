@@ -92,6 +92,7 @@ for (const player of players) {
     draws: 3,
     losses: 6,
     nmrRate: 0.05,
+    nmrCount: 2,
     cdRate: 0,
     reliabilityTier: "reliable",
     commitment: "high",

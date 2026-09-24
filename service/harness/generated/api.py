@@ -286,6 +286,7 @@ class PublicUserProfile(TypedDict):
     draws: int
     losses: int
     nmr_rate: float
+    nmr_count: int
     cd_rate: float
     reliability_tier: str | None
     commitment: str

@@ -879,6 +879,7 @@ export interface PublicUserProfile {
   readonly draws: number;
   readonly losses: number;
   readonly nmrRate: number;
+  readonly nmrCount: number;
   readonly cdRate: number;
   /** @nullable */
   readonly reliabilityTier: string | null;

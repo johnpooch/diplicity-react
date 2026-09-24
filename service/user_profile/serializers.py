@@ -61,6 +61,7 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     draws = serializers.IntegerField(read_only=True)
     losses = serializers.IntegerField(read_only=True)
     nmr_rate = serializers.FloatField(read_only=True)
+    nmr_count = serializers.IntegerField(read_only=True)
     cd_rate = serializers.FloatField(read_only=True)
     reliability_tier = serializers.CharField(read_only=True, allow_null=True)
     commitment = serializers.CharField(read_only=True)

@@ -13,6 +13,9 @@ interface PlayerProfileContentProps {
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
 
+const formatMissedDeadlines = (count: number) =>
+  count > 0 ? `${count} missed deadline${count === 1 ? "" : "s"}` : undefined;
+
 interface StatTileProps {
   label: string;
   value: string | number;
@@ -79,6 +82,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
             <StatTile
               label="Reliability"
               value={formatPercent(1 - profile.nmrRate)}
+              hint={formatMissedDeadlines(profile.nmrCount)}
               info="How consistently this player submits orders, based on their last 10 rated phases."
             />
           </div>

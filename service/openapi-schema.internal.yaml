@@ -3666,6 +3666,9 @@ components:
           type: number
           format: double
           readOnly: true
+        nmr_count:
+          type: integer
+          readOnly: true
         cd_rate:
           type: number
           format: double
@@ -3685,6 +3688,7 @@ components:
       - id
       - losses
       - name
+      - nmr_count
       - nmr_rate
       - picture
       - reliability_tier

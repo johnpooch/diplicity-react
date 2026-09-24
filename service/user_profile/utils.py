@@ -120,6 +120,7 @@ def get_player_stats(user):
         "draws": draws,
         "losses": losses,
         "nmr_rate": round(nmr_rate, 4),
+        "nmr_count": nmr_phases,
         "cd_rate": round(cd_rate, 4),
         "reliability_tier": reliability_tier,
     }
