@@ -43,6 +43,10 @@ A view that deletes a row re-fetches it under `select_for_update()` inside the t
 
 Every view needs a docstring. drf-spectacular extracts it, and without one it picks up the mixin's — which is why unrelated endpoints in the committed schema are described as "Used by views that have a game parameter in the URL".
 
+## Polled endpoints answer unchanged polls with 304
+
+Any GET the client polls mixes in `ConditionalGetMixin` from `common.views`. It hashes the rendered body into an ETag, sets `Cache-Control: private, no-cache`, and returns an empty 304 when `If-None-Match` matches (weak comparison, so Railway's gzip-downgraded `W/` ETags still match). Because the ETag is the body, it cannot go stale — but a polled response must not contain values that change on their own between polls (a countdown in seconds, a server `now`), or every poll becomes a 200 again. The 304 test for the endpoint guards this.
+
 **Review check:** using a DRF generic, not a raw `APIView`? permission classes declared rather than checked in the body? view is thin? mixins used for shared context? queryset uses a QuerySet method (`with_list_data()`, etc.)? generic matches the mutation, with no body override just to change the status code? docstring present?
 
 - When two endpoints differ only in a small input (who is seated) or authz, share one create path. Thin wrappers are fine when the public API wants distinct operations.

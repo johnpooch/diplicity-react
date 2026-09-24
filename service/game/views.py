@@ -19,7 +19,7 @@ from .serializers import (
     GameUnpauseSerializer,
     GameExtendDeadlineSerializer,
 )
-from common.views import SelectedGameMixin, resolve_game
+from common.views import ConditionalGetMixin, SelectedGameMixin, resolve_game
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGamePlayer, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
@@ -29,7 +29,7 @@ from .filters import GameFilter
 tracer = trace.get_tracer(__name__)
 
 
-class GameRetrieveView(generics.RetrieveAPIView):
+class GameRetrieveView(ConditionalGetMixin, generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = GameRetrieveSerializer
 

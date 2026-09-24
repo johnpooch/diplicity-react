@@ -4,7 +4,7 @@ from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsCha
 
 from .models import Channel
 from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelUpdateSerializer
-from common.views import SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
+from common.views import ConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
@@ -45,7 +45,7 @@ class ChannelMarkReadView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMe
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ChannelListView(SelectedGameMixin, generics.ListAPIView):
+class ChannelListView(ConditionalGetMixin, SelectedGameMixin, generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ChannelSerializer
 

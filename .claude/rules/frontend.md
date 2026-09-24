@@ -54,6 +54,10 @@ useEffect(() => { mut.mutateAsync(data); }, [condition]);
 
 This is the **only** sanctioned `eslint-disable` in the codebase.
 
+### Polling
+
+Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` — see `.claude/rules/backend/views.md`. The browser/WebView revalidates with `If-None-Match` and receives an empty 304 when nothing changed; client code needs nothing extra. Do not add cache-busting query params or `Cache-Control` request headers to a polled request — both defeat revalidation.
+
 Otherwise, minimise `useEffect` — prefer derived state and event handlers. See `docs/frontend/react-use-effect-minimizer.md`.
 
 ## Components

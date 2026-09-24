@@ -59,6 +59,51 @@ class TestGameRetrieveView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
+    def test_retrieve_game_requires_revalidation_on_every_poll(self, authenticated_client, active_game_with_phase_state):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response["Cache-Control"] == "private, no-cache"
+        assert response["ETag"].startswith('"')
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_304_when_unchanged(self, authenticated_client, active_game_with_phase_state):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_304_when_weakened_etag_matches(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_game_changes(
+        self, authenticated_client, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+    ):
+        url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        etag = authenticated_client.get(url)["ETag"]
+        authenticated_client_for_secondary_user.post(reverse("game-join", args=[pending_game_created_by_primary_user.id]))
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["members"]) == 2
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
     def test_retrieve_game_response_structure(self, authenticated_client, pending_game_created_by_primary_user):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client.get(url)

@@ -402,6 +402,52 @@ class TestChannelListView:
         assert "Private Member" in channel_names
         assert "Public Channel" in channel_names
 
+    @pytest.mark.django_db
+    def test_list_channels_requires_revalidation_on_every_poll(self, authenticated_client, active_game_with_channels):
+        url = reverse("channel-list", args=[active_game_with_channels.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response["Cache-Control"] == "private, no-cache"
+        assert response["ETag"].startswith('"')
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_304_when_unchanged(self, authenticated_client, active_game_with_channels):
+        url = reverse("channel-list", args=[active_game_with_channels.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_304_when_weakened_etag_matches(self, authenticated_client, active_game_with_channels):
+        url = reverse("channel-list", args=[active_game_with_channels.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_200_after_new_message(
+        self, authenticated_client, authenticated_client_for_secondary_user, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        public_channel = game.channels.get(name="Public Press")
+        url = reverse("channel-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        authenticated_client_for_secondary_user.post(
+            reverse("channel-message-create", args=[game.id, public_channel.id]), {"body": "Message 3"}, format="json"
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["messages"][-1]["body"] == "Message 3"
+        assert response["ETag"] != etag
+
 
 class TestChannelListOrdering:
 
