@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { Map, Gavel, MessageCircle, Users, Info } from "lucide-react";
@@ -16,7 +17,14 @@ import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { useGameRetrieve } from "@/api/generated/endpoints";
+import {
+  useGameRetrieve,
+  getGameOptionsRetrieveQueryKey,
+  getGameOrdersListQueryKey,
+  getGamePhaseRetrieveQueryKey,
+  getGamePhasesListQueryKey,
+  getGamePhaseStatesListQueryKey,
+} from "@/api/generated/endpoints";
 
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
@@ -49,6 +57,40 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         query.state.data?.status === "active" ? 5000 : false,
     },
   });
+
+  const queryClient = useQueryClient();
+  const currentPhaseId = game?.currentPhaseId;
+  const status = game?.status;
+  const observedGameRef = useRef<{
+    gameId: string;
+    currentPhaseId: number | null;
+    status: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (currentPhaseId === undefined || status === undefined) return;
+    const previous = observedGameRef.current;
+    observedGameRef.current = { gameId, currentPhaseId, status };
+    if (
+      !previous ||
+      previous.gameId !== gameId ||
+      (previous.currentPhaseId === currentPhaseId && previous.status === status)
+    ) {
+      return;
+    }
+    const queryKeys = [
+      getGamePhaseStatesListQueryKey(gameId),
+      getGameOptionsRetrieveQueryKey(gameId),
+      getGamePhasesListQueryKey(gameId),
+      ...[...new Set([previous.currentPhaseId, currentPhaseId])]
+        .filter((id): id is number => id !== null)
+        .flatMap(id => [
+          getGamePhaseRetrieveQueryKey(gameId, id),
+          getGameOrdersListQueryKey(gameId, id),
+        ]),
+    ];
+    queryKeys.forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
+  }, [gameId, currentPhaseId, status, queryClient]);
 
   const [searchParams] = useSearchParams();
 
