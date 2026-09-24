@@ -55,6 +55,10 @@ Use `Prefetch` objects for complex prefetch strategies with custom querysets (e.
 
 A QuerySet method must earn its place by encapsulating something a caller would otherwise get wrong — a prefetch strategy, a multi-clause access rule, a correlated annotation. A one-line `.filter(field=value)` wrapper is not that; call `.filter()` directly. Delete helpers with no callers rather than keeping them for a future one.
 
+**Never select a "latest row per parent" with a global subquery inside a prefetch.** A `DISTINCT ON (game_id)` subquery in a `Prefetch` queryset is not correlated to the prefetched parents, so it scans every game's phases on every request. Prefetch the parent's children on the queryset, then derive the latest ones in Python once the page is known and hydrate their relations with `prefetch_related_objects()` — `GameManager.hydrate_list_phases()` is the pattern, called from the view's `paginate_queryset()`. Give the non-target rows an empty cache (`queryset.none()` issues no query) so touching them stays free.
+
+Add an index to a live table with `AddIndexConcurrently` in a migration that sets `atomic = False`, so the deploy does not block writes while it builds.
+
 A queryset feeding a serializer must cover every relation that serializer touches, including the ones reached inside a `SerializerMethodField`. `BaseMemberSerializer` reads `user.profile`, and a nested `NationSerializer` reads `nation.flag` — miss either and every member costs extra queries. Assert the count in a test.
 
 A user upload lives in its own model alongside a sha256 `content_hash` of the stored bytes, and is served by a hash-keyed view with `Cache-Control: immutable` rather than from a storage URL — the hash in the path is what makes the response cacheable forever. `NationFlag` and `UserProfilePicture` are the two examples. Binary payloads go through `MEDIA_ROOT`, which points at a mounted volume in production because the container filesystem is ephemeral; text payloads stay in a column.

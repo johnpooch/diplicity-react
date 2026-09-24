@@ -12,7 +12,6 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Prefetch,
-    Q,
     Subquery,
     Value,
     prefetch_related_objects,
@@ -96,35 +95,6 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation"),
         )
 
-        current_phase_ids = (
-            Phase.objects.order_by("game_id", "-ordinal", "-id")
-            .distinct("game_id")
-            .values("id")
-        )
-        latest_completed_phase_ids = (
-            Phase.objects.filter(status=PhaseStatus.COMPLETED)
-            .order_by("game_id", "-ordinal", "-id")
-            .distinct("game_id")
-            .values("id")
-        )
-        phase_states_prefetch = Prefetch(
-            "phase_states",
-            queryset=PhaseState.objects.filter(
-                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
-            )
-            .select_related("member")
-            .annotate(order_count=Count("orders")),
-        )
-        current_units_prefetch = Prefetch(
-            "units",
-            queryset=Unit.objects.filter(phase__in=current_phase_ids)
-            .select_related("nation", "province"),
-        )
-        current_supply_centers_prefetch = Prefetch(
-            "supply_centers",
-            queryset=SupplyCenter.objects.filter(phase__in=current_phase_ids)
-            .select_related("nation", "province"),
-        )
         phases_prefetch = Prefetch(
             "phases",
             queryset=Phase.objects.only(
@@ -137,10 +107,6 @@ class GameQuerySet(models.QuerySet):
                 "scheduled_resolution",
                 "game_id",
                 "variant_id",
-            ).prefetch_related(
-                phase_states_prefetch,
-                current_units_prefetch,
-                current_supply_centers_prefetch,
             ),
         )
 
@@ -164,30 +130,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
         )
 
-        current_phase_ids = (
-            Phase.objects.order_by("game_id", "-ordinal", "-id")
-            .distinct("game_id")
-            .values("id")
-        )
-        latest_completed_phase_ids = (
-            Phase.objects.filter(status=PhaseStatus.COMPLETED)
-            .order_by("game_id", "-ordinal", "-id")
-            .distinct("game_id")
-            .values("id")
-        )
-        phase_states_prefetch = Prefetch(
-            "phase_states",
-            queryset=PhaseState.objects.filter(
-                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
-            ).select_related("member__user").annotate(
-                order_count=Count("orders")
-            )
-        )
-
-        phases_prefetch = Prefetch(
-            "phases",
-            queryset=Phase.objects.defer("options").prefetch_related(phase_states_prefetch)
-        )
+        phases_prefetch = Prefetch("phases", queryset=Phase.objects.defer("options"))
 
         return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
             members_prefetch,
@@ -284,6 +227,49 @@ class GameManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def hydrate_list_phases(self, games):
+        phases, current_phases, latest_completed_phases = self._latest_phases(games)
+        self._prefetch_for_phases(
+            phases,
+            current_phases + latest_completed_phases,
+            "phase_states",
+            PhaseState.objects.select_related("member").annotate(order_count=Count("orders")),
+        )
+        self._prefetch_for_phases(
+            phases, current_phases, "units", Unit.objects.select_related("nation", "province")
+        )
+        self._prefetch_for_phases(
+            phases, current_phases, "supply_centers", SupplyCenter.objects.select_related("nation", "province")
+        )
+
+    def hydrate_retrieve_phases(self, games):
+        phases, current_phases, latest_completed_phases = self._latest_phases(games)
+        self._prefetch_for_phases(
+            phases,
+            current_phases + latest_completed_phases,
+            "phase_states",
+            PhaseState.objects.select_related("member__user").annotate(order_count=Count("orders")),
+        )
+
+    def _latest_phases(self, games):
+        phases, current_phases, latest_completed_phases = [], [], []
+        for game in games:
+            game_phases = list(game.phases.all())
+            completed_phases = [phase for phase in game_phases if phase.status == PhaseStatus.COMPLETED]
+            phases += game_phases
+            current_phases += game_phases[-1:]
+            latest_completed_phases += completed_phases[-1:]
+        return phases, current_phases, latest_completed_phases
+
+    def _prefetch_for_phases(self, phases, target_phases, lookup, queryset):
+        target_ids = {phase.id for phase in target_phases}
+        prefetch_related_objects(
+            [phase for phase in phases if phase.id in target_ids], Prefetch(lookup, queryset=queryset)
+        )
+        prefetch_related_objects(
+            [phase for phase in phases if phase.id not in target_ids], Prefetch(lookup, queryset=queryset.none())
+        )
 
     def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase
