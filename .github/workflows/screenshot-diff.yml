@@ -1,0 +1,225 @@
+name: Screenshot Diff
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "packages/web/src/**"
+      - "!packages/web/src/**/*.test.ts"
+      - "!packages/web/src/**/*.test.tsx"
+      - "!packages/web/src/__tests__/**"
+      - "!packages/web/src/test-setup.js"
+      - "packages/web/public/**"
+      - "packages/web/index.html"
+      - "packages/web/package.json"
+      - "packages/web/package-lock.json"
+      - "packages/web/vite.config.ts"
+      - "packages/web/tsconfig*.json"
+      - "packages/web/scripts/screenshot-diff/**"
+      - "packages/web/scripts/chromium.mjs"
+      - ".github/workflows/screenshot-diff.yml"
+
+concurrency:
+  group: screenshot-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  screenshots:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: head
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: head/packages/web/package-lock.json
+
+      - name: Create a worktree at the merge base
+        working-directory: head
+        run: |
+          git fetch --no-tags origin ${{ github.event.pull_request.base.ref }}
+          MERGE_BASE=$(git merge-base FETCH_HEAD HEAD)
+          echo "Comparing against $MERGE_BASE"
+          git worktree add ../base "$MERGE_BASE"
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix head/packages/web
+          npm ci --prefix base/packages/web
+
+      - name: Install Chromium
+        working-directory: head/packages/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Start both dev servers
+        run: |
+          (cd head/packages/web && npm run dev:mocks -- --port 5173 --strictPort &)
+          (cd base/packages/web && npm run dev:mocks -- --port 5174 --strictPort &)
+          for port in 5173 5174; do
+            for _ in $(seq 1 60); do
+              curl -sf -o /dev/null "http://localhost:$port/" && break
+              sleep 2
+            done
+            curl -sf -o /dev/null "http://localhost:$port/" \
+              || { echo "dev server on $port never came up"; exit 1; }
+          done
+
+      - name: Capture this PR
+        working-directory: head/packages/web
+        run: |
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/head" \
+            --base http://localhost:5173 --concurrency 4 --require-fonts
+
+      - name: Capture the merge base
+        working-directory: head/packages/web
+        run: |
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/base" \
+            --base http://localhost:5174 --concurrency 4 --require-fonts --allow-failures
+
+      - name: Compare
+        working-directory: head/packages/web
+        run: |
+          node scripts/screenshot-diff/compare.mjs \
+            "$GITHUB_WORKSPACE/shots/base" \
+            "$GITHUB_WORKSPACE/shots/head" \
+            "$GITHUB_WORKSPACE/shots/diff" \
+            --min-pixels 25
+
+      - name: Re-capture changed screens
+        id: verify
+        working-directory: head/packages/web
+        run: |
+          jq -r '(.changed[].name), (.added[])' \
+            "$GITHUB_WORKSPACE/shots/diff/diff-report.json" > "$GITHUB_WORKSPACE/changed.txt"
+          if [ ! -s "$GITHUB_WORKSPACE/changed.txt" ]; then
+            echo "Nothing changed; skipping verification."
+            mkdir -p "$GITHUB_WORKSPACE/shots/verified"
+            cp "$GITHUB_WORKSPACE/shots/diff/diff-report.json" \
+              "$GITHUB_WORKSPACE/shots/verified/diff-report.json"
+            exit 0
+          fi
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/verify-head" \
+            --base http://localhost:5173 --concurrency 4 --require-fonts \
+            --screens "$GITHUB_WORKSPACE/changed.txt"
+          npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/verify-base" \
+            --base http://localhost:5174 --concurrency 4 --require-fonts --allow-failures \
+            --screens "$GITHUB_WORKSPACE/changed.txt"
+          node scripts/screenshot-diff/compare.mjs \
+            "$GITHUB_WORKSPACE/shots/verify-base" \
+            "$GITHUB_WORKSPACE/shots/verify-head" \
+            "$GITHUB_WORKSPACE/shots/verified" \
+            --min-pixels 25
+
+      - name: Upload verified results
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-diff
+          path: shots/verified
+          retention-days: 14
+
+      - name: Summarise verified differences
+        id: summary
+        run: |
+          DIR="$GITHUB_WORKSPACE/shots/verified"
+          IMAGES=0
+          if [ -d "$DIR" ]; then
+            IMAGES=$(find "$DIR" -name '*.png' | wc -l)
+          fi
+          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
+          if [ -f "$DIR/diff-report.json" ]; then
+            echo "report=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "report=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "captured=$(jq 'length' "$GITHUB_WORKSPACE/shots/head/capture-report.json")" \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Publish diff images
+        id: publish
+        if: steps.summary.outputs.images != '0'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SCREENSHOT_SITE_ID }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "Netlify credentials absent; skipping publish."
+            echo "url=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          RESULT=$(npx --yes netlify-cli@23 deploy \
+            --dir "$GITHUB_WORKSPACE/shots/verified" \
+            --site "$NETLIFY_SITE_ID" \
+            --alias "pr-${{ github.event.pull_request.number }}-${{ github.run_id }}" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --message "PR #${{ github.event.pull_request.number }} screenshot diff" \
+            --json)
+          echo "url=$(echo "$RESULT" | jq -r '.deploy_url')" >> "$GITHUB_OUTPUT"
+
+      - name: Build comment body
+        if: steps.summary.outputs.report == 'true'
+        working-directory: head/packages/web
+        run: |
+          node scripts/screenshot-diff/comment.mjs \
+            "$GITHUB_WORKSPACE/shots/verified/diff-report.json" \
+            --captured "${{ steps.summary.outputs.captured }}" \
+            --images "${{ steps.publish.outputs.url }}" > "$GITHUB_WORKSPACE/comment.md"
+
+      - name: Post comment
+        if: steps.summary.outputs.report == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- screenshot-diff -->";
+            const body = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/comment.md`, "utf8");
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+            });
+            const existing = comments.find(
+              comment => comment.user.type === "Bot" && comment.body.includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
+
+      - name: Upload raw captures for diagnosis
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-diff-captures
+          path: |
+            shots/head
+            shots/base
+            shots/verify-head
+            shots/verify-base
+            shots/diff
+          retention-days: 3
+          if-no-files-found: ignore
