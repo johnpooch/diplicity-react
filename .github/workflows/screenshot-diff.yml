@@ -94,6 +94,9 @@ jobs:
             "$GITHUB_WORKSPACE/shots/diff/diff-report.json" > "$GITHUB_WORKSPACE/changed.txt"
           if [ ! -s "$GITHUB_WORKSPACE/changed.txt" ]; then
             echo "Nothing changed; skipping verification."
+            mkdir -p "$GITHUB_WORKSPACE/shots/verified"
+            cp "$GITHUB_WORKSPACE/shots/diff/diff-report.json" \
+              "$GITHUB_WORKSPACE/shots/verified/diff-report.json"
             exit 0
           fi
           npx vite-node scripts/screenshot-diff/capture.mjs "$GITHUB_WORKSPACE/shots/verify-head" \
@@ -116,17 +119,30 @@ jobs:
           path: shots
           retention-days: 14
 
+      - name: Summarise verified differences
+        id: summary
+        run: |
+          DIR="$GITHUB_WORKSPACE/shots/verified"
+          IMAGES=0
+          if [ -d "$DIR" ]; then
+            IMAGES=$(find "$DIR" -name '*.png' | wc -l)
+          fi
+          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
+          if [ -f "$DIR/diff-report.json" ]; then
+            echo "report=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "report=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "captured=$(jq 'length' "$GITHUB_WORKSPACE/shots/head/capture-report.json")" \
+            >> "$GITHUB_OUTPUT"
+
       - name: Publish diff images
         id: publish
+        if: steps.summary.outputs.images != '0'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SCREENSHOT_SITE_ID }}
         run: |
-          if [ ! -f "$GITHUB_WORKSPACE/shots/verified/diff-report.json" ]; then
-            echo "No verified differences to publish."
-            echo "url=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
             echo "Netlify credentials absent; skipping publish."
             echo "url=" >> "$GITHUB_OUTPUT"
@@ -142,15 +158,16 @@ jobs:
           echo "url=$(echo "$RESULT" | jq -r '.deploy_url')" >> "$GITHUB_OUTPUT"
 
       - name: Build comment body
-        if: steps.publish.outputs.url != ''
+        if: steps.summary.outputs.report == 'true'
         working-directory: head/packages/web
         run: |
           node scripts/screenshot-diff/comment.mjs \
             "$GITHUB_WORKSPACE/shots/verified/diff-report.json" \
-            "${{ steps.publish.outputs.url }}" > "$GITHUB_WORKSPACE/comment.md"
+            --captured "${{ steps.summary.outputs.captured }}" \
+            --images "${{ steps.publish.outputs.url }}" > "$GITHUB_WORKSPACE/comment.md"
 
       - name: Post comment
-        if: steps.publish.outputs.url != ''
+        if: steps.summary.outputs.report == 'true'
         uses: actions/github-script@v9
         with:
           script: |
