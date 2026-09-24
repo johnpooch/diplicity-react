@@ -33,6 +33,10 @@ class ResolutionJob:
         return f"resolve-game-{game_id}"
 
 
+class DeadlineWarningJob:
+    TASK_NAME = "phase.send_deadline_warning"
+
+
 class MusterJob:
     TASK_NAME = "game.start_if_mustered"
     REMINDER_TASK_NAME = "game.send_muster_reminder"

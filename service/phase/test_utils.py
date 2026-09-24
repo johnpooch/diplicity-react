@@ -5,7 +5,7 @@ import pytest
 from django.utils import timezone
 
 from common.constants import PhaseFrequency
-from phase.utils import calculate_next_fixed_deadline, compress_deadline, FREQUENCY_INTERVALS
+from phase.utils import calculate_next_fixed_deadline, compress_deadline, deadline_warning_offset, FREQUENCY_INTERVALS
 
 
 class TestCalculateNextFixedDeadline:
@@ -427,3 +427,21 @@ class TestCompressDeadline:
 
         pulled_in = next_deadline - result
         assert pulled_in.total_seconds() % interval.total_seconds() == 0
+
+
+class TestDeadlineWarningOffset:
+
+    @pytest.mark.parametrize(
+        "duration_seconds, expected",
+        [
+            (None, timedelta(hours=1)),
+            (30 * 60, timedelta(minutes=15)),
+            (3600, timedelta(minutes=15)),
+            (24 * 3600, timedelta(hours=1)),
+            (48 * 3600, timedelta(hours=2)),
+            (7 * 24 * 3600, timedelta(hours=4)),
+            (30 * 24 * 3600, timedelta(hours=4)),
+        ],
+    )
+    def test_offset_scales_with_phase_duration(self, duration_seconds, expected):
+        assert deadline_warning_offset(duration_seconds) == expected

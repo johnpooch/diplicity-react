@@ -8,11 +8,11 @@ from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind, ResolutionJob
+from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind, ResolutionJob, DeadlineWarningJob
 from adjudicator.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options, build_notification_body, compress_deadline, format_deadline
+from phase.utils import transform_options, build_notification_body, compress_deadline, deadline_warning_offset, format_deadline
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -153,6 +153,43 @@ class PhaseManager(models.Manager):
 
         return True, scheduled_resolution
 
+    def arm_warning(self, phase):
+        state = list(
+            self.filter(pk=phase.pk)
+            .annotate(armable=Exists(self.filter_armable().filter(pk=OuterRef("pk"))))
+            .values_list("warning_job_id", "scheduled_resolution", "armable")[:1]
+        )
+        if not state:
+            return None
+        current_job_id, scheduled_resolution, armable = state[0]
+
+        schedule_at = self._warning_schedule(phase, scheduled_resolution, armable)
+
+        if current_job_id is not None:
+            armed = procrastinate_app.job_manager.list_jobs(id=current_job_id)
+            if schedule_at is not None and armed and armed[0].scheduled_at == schedule_at:
+                return current_job_id
+            procrastinate_app.job_manager.cancel_job_by_id(current_job_id)
+
+        new_job_id = None
+        if schedule_at is not None:
+            new_job_id = procrastinate_app.configure_task(
+                DeadlineWarningJob.TASK_NAME,
+                schedule_at=schedule_at,
+            ).defer(phase_id=phase.pk)
+
+        if new_job_id != current_job_id:
+            self.filter(pk=phase.pk).update(warning_job_id=new_job_id)
+            phase.warning_job_id = new_job_id
+
+        return new_job_id
+
+    def _warning_schedule(self, phase, scheduled_resolution, armable):
+        if not armable or scheduled_resolution is None:
+            return None
+        duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
+        return scheduled_resolution - deadline_warning_offset(duration_seconds)
+
     def _is_resolvable(self, phase):
         states = list(
             PhaseState.objects.filter(phase_id=phase.pk).values_list(
@@ -207,6 +244,7 @@ class PhaseManager(models.Manager):
             Member.objects.bulk_update(members_with_extensions, ['nmr_extensions_remaining'])
 
             self.arm_resolution(phase, not_before=new_resolution)
+            self.arm_warning(phase)
 
             for member in members_with_extensions:
                 if member.user_id is None:
@@ -217,100 +255,67 @@ class PhaseManager(models.Manager):
 
         return members_with_extensions
 
-    def send_deadline_warnings(self):
-        WARNING_THRESHOLDS = {
-            3600: 900,
-            12 * 3600: 3600,
-            24 * 3600: 3600,
-            48 * 3600: 7200,
-            72 * 3600: 7200,
-            96 * 3600: 7200,
-            168 * 3600: 14400,
-            336 * 3600: 14400,
-        }
-
-        def get_warning_threshold(duration_seconds):
-            if not duration_seconds:
-                return 3600
-            for phase_duration, warning in sorted(WARNING_THRESHOLDS.items()):
-                if duration_seconds <= phase_duration:
-                    return warning
-            return 14400
-
-        now = timezone.now()
-
-        active_phases = self.filter(
-            status=PhaseStatus.ACTIVE,
-            game__sandbox=False,
-            game__paused_at__isnull=True,
-            scheduled_resolution__isnull=False,
-        ).exclude(
-            Q(game__status=GameStatus.COMPLETED) | Q(game__status=GameStatus.ABANDONED)
-        ).select_related('game').prefetch_related(
-            'phase_states__member__user',
-            'phase_states__member__nation',
-            'phase_states__orders',
-            Prefetch('units', queryset=Unit.objects.select_related('nation')),
-            Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation')),
+    def send_deadline_warning(self, phase_id):
+        phase = (
+            self.filter_armable()
+            .filter(pk=phase_id, scheduled_resolution__gt=timezone.now())
+            .select_related('game')
+            .prefetch_related(
+                'phase_states__member__user',
+                'phase_states__member__nation',
+                'phase_states__orders',
+                Prefetch('units', queryset=Unit.objects.select_related('nation')),
+                Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation')),
+            )
+            .first()
         )
+        if phase is None:
+            return {"notifications_sent": 0}
 
-        notifications_sent = 0
+        is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
 
-        for phase in active_phases:
-            duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
-            warning_threshold = get_warning_threshold(duration_seconds)
-            time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
+        actionable_units = phase.actionable_units
+        forced_nations = phase.nations_with_forced_orders
 
-            if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
+        is_adjustment = phase.type == PhaseType.ADJUSTMENT
+        warned_states = []
+
+        for ps in phase.phase_states.all():
+            if not ps.has_possible_orders:
+                continue
+            if ps.member.nation_id in forced_nations:
                 continue
 
-            is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+            total_units = actionable_units.get(ps.member.nation_id, 0)
 
-            actionable_units = phase.actionable_units
-            forced_nations = phase.nations_with_forced_orders
+            if total_units == 0:
+                continue
 
-            is_adjustment = phase.type == PhaseType.ADJUSTMENT
-            warned_states = []
+            deadline_extended = (
+                ps.deadline_warning_sent_for is not None
+                and ps.deadline_warning_sent_for < phase.scheduled_resolution
+            )
 
-            for ps in phase.phase_states.all():
-                if not ps.has_possible_orders:
-                    continue
-                if ps.deadline_warning_sent_for == phase.scheduled_resolution:
-                    continue
-                if ps.member.nation_id in forced_nations:
-                    continue
+            body = build_notification_body(
+                ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
+                ps.member.nmr_extensions_remaining,
+                is_adjustment=is_adjustment,
+                deadline_extended=deadline_extended,
+            )
+            if body is None:
+                continue
 
-                total_units = actionable_units.get(ps.member.nation_id, 0)
+            if ps.member.user_id is None:
+                continue
 
-                if total_units == 0:
-                    continue
+            emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
+            ps.deadline_warning_sent_for = phase.scheduled_resolution
+            warned_states.append(ps)
 
-                deadline_extended = (
-                    ps.deadline_warning_sent_for is not None
-                    and ps.deadline_warning_sent_for < phase.scheduled_resolution
-                )
+        if warned_states:
+            PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
 
-                body = build_notification_body(
-                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
-                    ps.member.nmr_extensions_remaining,
-                    is_adjustment=is_adjustment,
-                    deadline_extended=deadline_extended,
-                )
-                if body is None:
-                    continue
-
-                if ps.member.user_id is None:
-                    continue
-
-                emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
-                ps.deadline_warning_sent_for = phase.scheduled_resolution
-                warned_states.append(ps)
-                notifications_sent += 1
-
-            if warned_states:
-                PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
-
-        return {"notifications_sent": notifications_sent}
+        return {"notifications_sent": len(warned_states)}
 
     def _set_orders_outcome(self, phase):
         base_qs = phase.phase_states.filter(
@@ -763,6 +768,7 @@ class Phase(BaseModel):
     type = models.CharField(max_length=10)
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
     resolution_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
+    warning_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
     options = models.JSONField(default=dict)
     contested_provinces = models.JSONField(default=list)
 

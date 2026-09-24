@@ -9,16 +9,27 @@ from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
 from rest_framework import serializers, status
 
-from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus, ResolutionJob
+from common.constants import (
+    DeadlineMode,
+    DeadlineWarningJob,
+    GameStatus,
+    PhaseFrequency,
+    PhaseStatus,
+    ResolutionJob,
+)
 from game.models import Game
 from member.models import Member
 from phase.models import Phase
 from phase.serializers import PhaseStateSerializer
-from phase.tasks import resolve_phase
+from phase.tasks import resolve_phase, send_deadline_warning
 
 
 def _resolve_jobs(connector):
     return [j for j in connector.jobs.values() if j["task_name"] == ResolutionJob.TASK_NAME]
+
+
+def _warning_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == DeadlineWarningJob.TASK_NAME]
 
 
 def _immediate_resolve_jobs(connector):
@@ -475,6 +486,153 @@ class TestDeadlineTimerArming:
 
         phase.refresh_from_db()
         assert phase.resolution_job_id is None
+
+
+class TestDeadlineWarningArming:
+
+    @pytest.fixture
+    def armed_phase(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation, classical_london_province
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.refresh_from_db()
+        return phase
+
+    @pytest.mark.django_db
+    def test_active_future_deadline_arms_warning_ahead_of_it(self, armed_phase, in_memory_procrastinate):
+        jobs = _warning_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["id"] == armed_phase.warning_job_id
+        assert jobs[0]["args"] == {"phase_id": armed_phase.id}
+        assert jobs[0]["scheduled_at"] == armed_phase.scheduled_resolution - timedelta(hours=1)
+
+    @pytest.mark.django_db
+    def test_pending_phase_does_not_arm_warning(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            status=PhaseStatus.PENDING,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        assert _warning_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_phase_with_no_scheduled_resolution_does_not_arm_warning(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        phase_factory(
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        assert _warning_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_deadline_change_rearms_warning(self, armed_phase, in_memory_procrastinate):
+        old_job_id = armed_phase.warning_job_id
+
+        armed_phase.scheduled_resolution += timedelta(hours=2)
+        armed_phase.save()
+
+        armed_phase.refresh_from_db()
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+        new_job = in_memory_procrastinate.jobs[armed_phase.warning_job_id]
+        assert new_job["status"] == "todo"
+        assert new_job["scheduled_at"] == armed_phase.scheduled_resolution - timedelta(hours=1)
+
+    @pytest.mark.django_db
+    def test_unchanged_deadline_does_not_rearm_a_warning_that_already_fired(
+        self, armed_phase, in_memory_procrastinate
+    ):
+        in_memory_procrastinate.jobs[armed_phase.warning_job_id]["status"] = "succeeded"
+
+        armed_phase.save()
+
+        assert len(_warning_jobs(in_memory_procrastinate)) == 1
+
+    @pytest.mark.django_db
+    def test_extending_the_deadline_rearms_warning(self, armed_phase, in_memory_procrastinate):
+        old_job_id = armed_phase.warning_job_id
+        in_memory_procrastinate.jobs[old_job_id]["status"] = "succeeded"
+
+        armed_phase.game.extend_deadline("1 hour")
+
+        armed_phase.refresh_from_db()
+        assert armed_phase.warning_job_id != old_job_id
+        new_job = in_memory_procrastinate.jobs[armed_phase.warning_job_id]
+        assert new_job["scheduled_at"] == armed_phase.scheduled_resolution - timedelta(hours=1)
+
+    @pytest.mark.django_db
+    def test_an_nmr_extension_rearms_warning_at_the_new_deadline(
+        self, armed_phase, in_memory_procrastinate
+    ):
+        armed_phase.game.members.update(nmr_extensions_remaining=1)
+        Phase.objects.filter(pk=armed_phase.pk).update(scheduled_resolution=timezone.now() - timedelta(minutes=1))
+        old_job_id = armed_phase.warning_job_id
+
+        Phase.objects.resolve_if_due(armed_phase.id)
+
+        armed_phase.refresh_from_db()
+        assert armed_phase.status == PhaseStatus.ACTIVE
+        assert armed_phase.warning_job_id != old_job_id
+        new_job = in_memory_procrastinate.jobs[armed_phase.warning_job_id]
+        assert new_job["scheduled_at"] == armed_phase.scheduled_resolution - timedelta(hours=1)
+
+    @pytest.mark.django_db
+    def test_phase_completion_cancels_warning(self, armed_phase, in_memory_procrastinate):
+        old_job_id = armed_phase.warning_job_id
+
+        armed_phase.status = PhaseStatus.COMPLETED
+        armed_phase.save()
+
+        armed_phase.refresh_from_db()
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+        assert armed_phase.warning_job_id is None
+
+    @pytest.mark.django_db
+    def test_the_armed_warning_notifies_only_unconfirmed_players(
+        self,
+        phase_factory,
+        in_memory_procrastinate,
+        classical_england_nation,
+        classical_france_nation,
+        classical_london_province,
+        classical_paris_province,
+        secondary_user,
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_france_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                    "user": secondary_user,
+                },
+            ],
+        )
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Army", nation=classical_france_nation, province=classical_paris_province)
+        job = _warning_jobs(in_memory_procrastinate)[0]
+
+        with patch("phase.models.emit") as mock_emit:
+            send_deadline_warning.func(**job["args"])
+
+        mock_emit.assert_called_once()
+        assert mock_emit.call_args.args == ("deadline_warning",)
+        assert mock_emit.call_args.kwargs["recipients"] == [secondary_user.id]
 
 
 class TestProcessingStatus:
