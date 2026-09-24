@@ -1,5 +1,11 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useNavigate,
+  type NavigateFunction,
+} from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AxiosRequestConfig } from "axios";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
@@ -170,23 +176,29 @@ const lastMapViewProps = () =>
     onClickProvince: (province: string, position: { x: number; y: number }) => void;
   };
 
+let navigate: NavigateFunction;
+
+const CaptureNavigate: React.FC = () => {
+  navigate = useNavigate();
+  return null;
+};
+
 const renderAt = (path: string, element: React.ReactNode) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const router = createMemoryRouter(
-    [
-      { path: "/game/:gameId/phase/:phaseId", element },
-      { path: "/game/:gameId/phase/:phaseId/orders", element },
-    ],
-    { initialEntries: [path] }
-  );
   render(
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <MemoryRouter initialEntries={[path]}>
+        <CaptureNavigate />
+        <Routes>
+          <Route path="/game/:gameId/phase/:phaseId" element={element} />
+          <Route path="/game/:gameId/phase/:phaseId/orders" element={element} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>
   );
-  return { queryClient, router };
+  return { queryClient };
 };
 
 const advanceCurrentPhase = async (queryClient: QueryClient, phaseId: number) => {
@@ -204,14 +216,14 @@ describe("current-phase-only resources", () => {
   });
 
   it("loads fresh phase states under a new cache key when the current phase advances", async () => {
-    const { queryClient, router } = renderAt(
+    const { queryClient } = renderAt(
       "/game/game-1/phase/1/orders",
       <OrdersScreen />
     );
     expect(await screen.findByText("Army London")).toBeInTheDocument();
 
     await advanceCurrentPhase(queryClient, 2);
-    await act(() => router.navigate("/game/game-1/phase/2/orders"));
+    await act(() => navigate("/game/game-1/phase/2/orders"));
 
     expect(await screen.findByText("Army Edinburgh")).toBeInTheDocument();
     expect(requestsTo("/game/game-1/phase-states/")).toHaveLength(2);
@@ -225,11 +237,11 @@ describe("current-phase-only resources", () => {
   });
 
   it("loads fresh order options under a new cache key when the current phase advances", async () => {
-    const { queryClient, router } = renderAt("/game/game-1/phase/1", <MapScreen />);
+    const { queryClient } = renderAt("/game/game-1/phase/1", <MapScreen />);
     await waitFor(() => expect(requestsTo("/game/game-1/options/")).toHaveLength(1));
 
     await advanceCurrentPhase(queryClient, 2);
-    await act(() => router.navigate("/game/game-1/phase/2"));
+    await act(() => navigate("/game/game-1/phase/2"));
 
     await waitFor(() => expect(requestsTo("/game/game-1/options/")).toHaveLength(2));
     const optionsKey = getGameOptionsRetrieveQueryKey("game-1");
@@ -247,10 +259,10 @@ describe("current-phase-only resources", () => {
 
   it("does not fetch phase states while navigating among historical phases on the orders screen", async () => {
     currentPhaseId = 3;
-    const { router } = renderAt("/game/game-1/phase/1/orders", <OrdersScreen />);
+    renderAt("/game/game-1/phase/1/orders", <OrdersScreen />);
     expect(await screen.findByText("Army London")).toBeInTheDocument();
 
-    await act(() => router.navigate("/game/game-1/phase/2/orders"));
+    await act(() => navigate("/game/game-1/phase/2/orders"));
 
     expect(await screen.findByText("Army Edinburgh")).toBeInTheDocument();
     expect(requestsTo("/game/game-1/phase-states/")).toHaveLength(0);
@@ -259,10 +271,10 @@ describe("current-phase-only resources", () => {
 
   it("does not fetch options or phase states while navigating among historical phases on the map", async () => {
     currentPhaseId = 3;
-    const { router } = renderAt("/game/game-1/phase/1", <MapScreen />);
+    renderAt("/game/game-1/phase/1", <MapScreen />);
     await waitFor(() => expect(lastMapViewProps()?.phase.id).toBe(1));
 
-    await act(() => router.navigate("/game/game-1/phase/2"));
+    await act(() => navigate("/game/game-1/phase/2"));
 
     await waitFor(() => expect(lastMapViewProps().phase.id).toBe(2));
     expect(requestsTo("/game/game-1/options/")).toHaveLength(0);
@@ -271,7 +283,7 @@ describe("current-phase-only resources", () => {
 
   it("resets the order wizard and cannot create orders on a historical map", async () => {
     currentPhaseId = 3;
-    const { router } = renderAt("/game/game-1/phase/3", <MapScreen />);
+    renderAt("/game/game-1/phase/3", <MapScreen />);
     await waitFor(() => expect(requestsTo("/game/game-1/options/")).toHaveLength(1));
     await waitFor(() => expect(lastMapViewProps()?.phase.id).toBe(3));
 
@@ -280,7 +292,7 @@ describe("current-phase-only resources", () => {
       expect(screen.getByText("Hold")).toBeInTheDocument();
     });
 
-    await act(() => router.navigate("/game/game-1/phase/1"));
+    await act(() => navigate("/game/game-1/phase/1"));
     await waitFor(() => expect(lastMapViewProps().phase.id).toBe(1));
     expect(screen.queryByText("Hold")).not.toBeInTheDocument();
 
@@ -289,7 +301,7 @@ describe("current-phase-only resources", () => {
     expect(screen.queryByText("Hold")).not.toBeInTheDocument();
     expect(lastMapViewProps().selected).toEqual([]);
 
-    await act(() => router.navigate("/game/game-1/phase/3"));
+    await act(() => navigate("/game/game-1/phase/3"));
     await waitFor(() => expect(lastMapViewProps().phase.id).toBe(3));
     expect(screen.queryByText("Hold")).not.toBeInTheDocument();
     expect(
