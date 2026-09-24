@@ -78,18 +78,23 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     ) {
       return;
     }
+    const affectedPhaseIds = [
+      ...new Set([previous.currentPhaseId, currentPhaseId]),
+    ].filter((id): id is number => id !== null);
+
     const queryKeys = [
       getGamePhaseStatesListQueryKey(gameId),
       getGameOptionsRetrieveQueryKey(gameId),
       getGamePhasesListQueryKey(gameId),
-      ...[...new Set([previous.currentPhaseId, currentPhaseId])]
-        .filter((id): id is number => id !== null)
-        .flatMap(id => [
-          getGamePhaseRetrieveQueryKey(gameId, id),
-          getGameOrdersListQueryKey(gameId, id),
-        ]),
+      ...affectedPhaseIds.flatMap(id => [
+        getGamePhaseRetrieveQueryKey(gameId, id),
+        getGameOrdersListQueryKey(gameId, id),
+      ]),
     ];
-    queryKeys.forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
+
+    void Promise.all(
+      queryKeys.map(queryKey => queryClient.invalidateQueries({ queryKey }))
+    );
   }, [gameId, currentPhaseId, status, queryClient]);
 
   const [searchParams] = useSearchParams();
