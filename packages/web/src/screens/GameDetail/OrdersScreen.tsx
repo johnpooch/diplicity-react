@@ -58,6 +58,7 @@ import {
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { countOrders } from "@/utils/orderCount";
+import { canEnterOrdersForPhase } from "@/utils/orderEntry";
 import { cn } from "@/lib/utils";
 
 type NationGroup = {
@@ -441,8 +442,6 @@ const OrdersScreen: React.FC = () => {
   }
 
   const isActivePhase = phase.status === "active";
-  const isGameFinished =
-    game.status === "completed" || game.status === "abandoned";
   const members = Array.isArray(game.members) ? game.members : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safePhaseStates = Array.isArray(phaseStates) ? phaseStates : [];
@@ -451,8 +450,7 @@ const OrdersScreen: React.FC = () => {
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
     !isSpectator &&
-    isActivePhase &&
-    !isGameFinished &&
+    canEnterOrdersForPhase(game, phase, selectedPhase) &&
     !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {

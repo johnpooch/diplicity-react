@@ -11,11 +11,15 @@ const {
   mockToastError,
   mockWizardReset,
   mockMapView,
+  mockUseOrderWizard,
+  mockUseGameOptionsRetrieve,
 } = vi.hoisted(() => ({
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockWizardReset: vi.fn(),
   mockMapView: vi.fn(),
+  mockUseOrderWizard: vi.fn(),
+  mockUseGameOptionsRetrieve: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -59,7 +63,10 @@ function buildIdleWizard(): WizardState {
 }
 
 vi.mock("@/hooks/useOrderWizard", () => ({
-  useOrderWizard: () => mockWizardState,
+  useOrderWizard: (...args: unknown[]) => {
+    mockUseOrderWizard(...args);
+    return mockWizardState;
+  },
 }));
 
 let mockMutateAsync = vi.fn();
@@ -73,7 +80,10 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsRetrieve: () => ({ data: mockRetrievedVariant }),
   useGamePhaseRetrieve: () => ({ data: mockPhase }),
   useGameOrdersList: () => ({ data: mockExistingOrders }),
-  useGameOptionsRetrieve: () => ({ data: { orders: [], fieldOrder: {} } }),
+  useGameOptionsRetrieve: (...args: unknown[]) => {
+    mockUseGameOptionsRetrieve(...args);
+    return { data: { orders: [mockOrderOption], fieldOrder: {} } };
+  },
   useGameOrdersCreate: () => ({ mutateAsync: mockMutateAsync }),
   getGameOrdersListQueryKey: (gameId: string, phaseId: number) => [
     `/game/${gameId}/orders/${phaseId}`,
@@ -88,6 +98,8 @@ vi.mock("@/utils/provinces", () => ({
 }));
 
 // --- Fixture data ---
+const mockOrderOption = { source: { id: "lon", label: "London" } };
+
 const england = { name: "England", color: "rgb(255,0,0)" };
 
 const makeProvince = (id: string) => ({
@@ -231,6 +243,8 @@ describe("GameMap", () => {
     mockPublishedVariants = [mockVariant];
     mockRetrievedVariant = undefined;
     mockGame.members = [];
+    mockGame.currentPhaseId = 1;
+    mockGame.status = "active";
   });
 
   it("stops shading a nation in civil disorder once its member has been replaced", async () => {
@@ -257,6 +271,42 @@ describe("GameMap", () => {
 
     const props = mockMapView.mock.calls.at(-1)?.[0] as { variant: { id: string } };
     expect(props.variant.id).toBe("standard");
+  });
+
+  describe("order entry", () => {
+    it("enables and uses order options on the current phase", async () => {
+      render(gameMapJsx());
+
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+      expect(mockUseGameOptionsRetrieve).toHaveBeenLastCalledWith("game-1", {
+        query: { enabled: true },
+      });
+      expect(mockUseOrderWizard.mock.calls.at(-1)?.[0]).toEqual([mockOrderOption]);
+    });
+
+    it("disables and ignores order options on a phase that is no longer current", async () => {
+      mockGame.currentPhaseId = 2;
+
+      render(gameMapJsx());
+
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+      expect(mockUseGameOptionsRetrieve).toHaveBeenLastCalledWith("game-1", {
+        query: { enabled: false },
+      });
+      expect(mockUseOrderWizard.mock.calls.at(-1)?.[0]).toEqual([]);
+    });
+
+    it("disables and ignores order options once the game is completed", async () => {
+      mockGame.status = "completed";
+
+      render(gameMapJsx());
+
+      await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+      expect(mockUseGameOptionsRetrieve).toHaveBeenLastCalledWith("game-1", {
+        query: { enabled: false },
+      });
+      expect(mockUseOrderWizard.mock.calls.at(-1)?.[0]).toEqual([]);
+    });
   });
 
   describe("optimistic order rendering", () => {

@@ -8,6 +8,7 @@ import { GameMap } from "@/components/GameMap";
 import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { useRequiredParams } from "@/hooks";
 import { countOrders } from "@/utils/orderCount";
+import { canEnterOrdersForPhase } from "@/utils/orderEntry";
 import {
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
@@ -33,8 +34,7 @@ const MapConfirmOrders: React.FC = () => {
     currentMember !== undefined &&
     !currentMember.civilDisorder &&
     !game.sandbox &&
-    game.status === "active" &&
-    phase.status === "active";
+    canEnterOrdersForPhase(game, phase, selectedPhase);
 
   const count = countOrders(
     Array.isArray(phaseStates) ? phaseStates : [],
