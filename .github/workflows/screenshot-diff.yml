@@ -3,11 +3,21 @@ name: Screenshot Diff
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "packages/web/src/**"
+      - "!packages/web/src/**/*.test.ts"
+      - "!packages/web/src/**/*.test.tsx"
+      - "!packages/web/src/__tests__/**"
+      - "!packages/web/src/test-setup.js"
+      - "packages/web/public/**"
       - "packages/web/index.html"
+      - "packages/web/package.json"
       - "packages/web/package-lock.json"
-      - "packages/web/scripts/**"
+      - "packages/web/vite.config.ts"
+      - "packages/web/tsconfig*.json"
+      - "packages/web/scripts/screenshot-diff/**"
+      - "packages/web/scripts/chromium.mjs"
       - ".github/workflows/screenshot-diff.yml"
 
 concurrency:
@@ -20,6 +30,7 @@ permissions:
 
 jobs:
   screenshots:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -111,12 +122,11 @@ jobs:
             "$GITHUB_WORKSPACE/shots/verified" \
             --min-pixels 25
 
-      - name: Upload captures
-        if: always()
+      - name: Upload verified results
         uses: actions/upload-artifact@v7
         with:
-          name: screenshots
-          path: shots
+          name: screenshot-diff
+          path: shots/verified
           retention-days: 14
 
       - name: Summarise verified differences
@@ -199,3 +209,17 @@ jobs:
                 body,
               });
             }
+
+      - name: Upload raw captures for diagnosis
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-diff-captures
+          path: |
+            shots/head
+            shots/base
+            shots/verify-head
+            shots/verify-base
+            shots/diff
+          retention-days: 3
+          if-no-files-found: ignore
