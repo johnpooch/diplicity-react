@@ -15,6 +15,7 @@ from common.constants import (
     PhaseFrequency,
     PhaseStatus,
 )
+from game import tasks
 from game.models import Game
 from notification.models import Notification
 from phase.models import Phase
@@ -30,6 +31,17 @@ def _job(job_id):
 def _expiry_job(game):
     game.refresh_from_db()
     return _job(game.muster_job_id)
+
+
+def _expiry_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == MusterJob.TASK_NAME]
+
+
+def _expire_deadline(game):
+    Game.objects.filter(pk=game.pk).update(
+        muster_deadline=timezone.now() - timedelta(seconds=1)
+    )
+    game.refresh_from_db()
 
 
 @pytest.fixture
@@ -197,6 +209,37 @@ class TestArming:
         assert response.status_code == status.HTTP_200_OK
         assert _expiry_job(game).scheduled_at is None
 
+    @pytest.mark.django_db
+    def test_running_expiry_is_not_rearmed_on_the_next_save(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+        job_id = game.muster_job_id
+        in_memory_procrastinate.jobs[job_id]["status"] = MusterJob.DOING
+
+        game.save()
+
+        game.refresh_from_db()
+        assert game.muster_job_id == job_id
+        assert len(_expiry_jobs(in_memory_procrastinate)) == 1
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("job_status", ["succeeded", "failed", MusterJob.CANCELLED])
+    def test_a_dead_expiry_is_rearmed_on_the_next_save(
+        self, muster_game_factory, in_memory_procrastinate, job_status
+    ):
+        game = muster_game_factory()
+        old_job_id = game.muster_job_id
+        in_memory_procrastinate.jobs[old_job_id]["status"] = job_status
+
+        game.save()
+
+        game.refresh_from_db()
+        assert game.muster_job_id != old_job_id
+        new_job = in_memory_procrastinate.jobs[game.muster_job_id]
+        assert new_job["status"] == MusterJob.TODO
+        assert new_job["scheduled_at"] == game.muster_deadline
+
 
 class TestStartIfMustered:
 
@@ -211,6 +254,7 @@ class TestStartIfMustered:
     ):
         game = muster_game_factory()
         authenticated_client.post(reverse("game-muster", args=[game.id]))
+        _expire_deadline(game)
 
         Game.objects.start_if_mustered(game.id)
 
@@ -261,6 +305,7 @@ class TestStartIfMustered:
     ):
         game = muster_game_factory()
         authenticated_client.post(reverse("game-muster", args=[game.id]))
+        _expire_deadline(game)
 
         Game.objects.start_if_mustered(game.id)
 
@@ -288,6 +333,7 @@ class TestStartIfMustered:
     ):
         game = muster_game_factory()
         authenticated_client.post(reverse("game-muster", args=[game.id]))
+        _expire_deadline(game)
         Game.objects.start_if_mustered(game.id)
 
         removed = game.members.get(user=secondary_user)
@@ -304,6 +350,7 @@ class TestStartIfMustered:
         self, muster_game_factory, in_memory_procrastinate, bot_user
     ):
         game = muster_game_factory(second_user=bot_user)
+        _expire_deadline(game)
 
         Game.objects.start_if_mustered(game.id)
 
@@ -318,6 +365,65 @@ class TestStartIfMustered:
         game = muster_game_factory(muster_required=False)
 
         assert Game.objects.start_if_mustered(game.id) is None
+
+    @pytest.mark.django_db
+    def test_expiry_before_the_deadline_keeps_unconfirmed_seats_mustering(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client
+    ):
+        game = muster_game_factory()
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+
+        tasks.start_if_mustered(game.id)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.MUSTERING
+        assert game.muster_deadline is not None
+        assert not game.members.filter(kicked=True).exists()
+
+    @pytest.mark.django_db
+    def test_expiry_before_the_deadline_starts_a_fully_confirmed_game(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+    ):
+        game = muster_game_factory()
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        authenticated_client_for_secondary_user.post(
+            reverse("game-muster", args=[game.id])
+        )
+
+        tasks.start_if_mustered(game.id)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+        assert not game.members.filter(kicked=True).exists()
+
+    @pytest.mark.django_db
+    def test_expiry_from_an_old_window_cannot_start_the_next_one(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        tertiary_user,
+    ):
+        game = muster_game_factory()
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        authenticated_client_for_secondary_user.delete(
+            reverse("game-leave", args=[game.id])
+        )
+        game.refresh_from_db()
+        game.seat(tertiary_user)
+        game.start_if_full()
+
+        tasks.start_if_mustered(game.id)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.MUSTERING
+        assert game.members.get(user=tertiary_user).mustered_at is None
+        assert not game.members.filter(kicked=True).exists()
 
 
 class TestMusterEndpoint:

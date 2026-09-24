@@ -317,7 +317,7 @@ class GameManager(models.Manager):
             if (
                 should_arm
                 and armed
-                and armed[0].status == MusterJob.TODO
+                and armed[0].status in MusterJob.LIVE_STATUSES
                 and armed[0].scheduled_at == schedule_at
             ):
                 return current_job_id
@@ -343,6 +343,11 @@ class GameManager(models.Manager):
                 return None
 
             unmustered = list(game.unmustered_members().select_related("user"))
+            if unmustered and (
+                game.muster_deadline is None or game.muster_deadline > timezone.now()
+            ):
+                return None
+
             unmustered_user_ids = {
                 member.user_id for member in unmustered if member.user_id is not None
             }
