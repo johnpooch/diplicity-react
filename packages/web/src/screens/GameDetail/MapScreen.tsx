@@ -13,6 +13,7 @@ import {
   useGamePhaseRetrieveSuspense,
   useGamePhaseStatesListSuspense,
   useGameRetrieveSuspense,
+  getGamePhaseStatesListQueryKey,
 } from "@/api/generated/endpoints";
 
 const MapConfirmOrders: React.FC = () => {
@@ -24,7 +25,11 @@ const MapConfirmOrders: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
-  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
+  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
+    query: {
+      queryKey: [...getGamePhaseStatesListQueryKey(gameId), selectedPhase],
+    },
+  });
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
 
   const members = Array.isArray(game.members) ? game.members : [];

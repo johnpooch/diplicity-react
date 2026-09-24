@@ -33,6 +33,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   getGameRetrieveQueryKey: () => ["game"],
+  getGamePhaseStatesListQueryKey: () => ["phase-states"],
 }));
 
 vi.mock("@/components/GameMap", () => ({ GameMap: () => null }));

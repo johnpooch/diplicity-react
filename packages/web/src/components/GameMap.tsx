@@ -21,6 +21,7 @@ import {
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
   useGameOptionsRetrieve,
+  getGameOptionsRetrieveQueryKey,
   type Order,
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
@@ -75,7 +76,11 @@ const GameMap: React.FC = () => {
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
-  const { data: optionsData } = useGameOptionsRetrieve(gameId);
+  const { data: optionsData } = useGameOptionsRetrieve(gameId, {
+    query: {
+      queryKey: [...getGameOptionsRetrieveQueryKey(gameId), selectedPhase],
+    },
+  });
 
   const publishedVariant = variants?.find((v) => v.id === game?.variantId);
   const { data: fetchedVariant } = useVariantsRetrieve(

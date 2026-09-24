@@ -426,7 +426,11 @@ const OrdersScreen: React.FC = () => {
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
   const variant = useGameVariant(game);
-  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
+  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
+    query: {
+      queryKey: [...getGamePhaseStatesListQueryKey(gameId), selectedPhase],
+    },
+  });
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
