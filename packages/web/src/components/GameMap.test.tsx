@@ -306,6 +306,10 @@ describe("GameMap", () => {
         );
       });
 
+      expect(mockMutateAsync).toHaveBeenCalledWith({
+        gameId: "game-1",
+        data: { selected: ["lon", "Move", "nth"], expectedPhaseId: 1 },
+      });
       expect(mockWizardReset).toHaveBeenCalled();
 
       // After success the pending order must be gone from the displayed list

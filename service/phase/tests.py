@@ -58,6 +58,30 @@ def test_confirm_phase_already_confirmed(authenticated_client, active_game_with_
 
 
 @pytest.mark.django_db
+def test_confirm_phase_with_current_expected_phase(authenticated_client, active_game_with_phase_state):
+    phase = active_game_with_phase_state.current_phase
+    url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
+    response = authenticated_client.patch(url, {"expected_phase_id": phase.id}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+
+    assert phase.phase_states.get().orders_confirmed
+
+
+@pytest.mark.django_db
+def test_confirm_phase_rejected_for_stale_expected_phase(
+    authenticated_client, active_game_with_phase_state, advance_to_next_phase
+):
+    stale_phase = advance_to_next_phase(active_game_with_phase_state)
+
+    url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
+    response = authenticated_client.patch(url, {"expected_phase_id": stale_phase.id}, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "expected_phase_id" in response.data
+    assert not PhaseState.objects.filter(orders_confirmed=True).exists()
+
+
+@pytest.mark.django_db
 def test_confirm_phase_game_not_active(authenticated_client, pending_game_created_by_primary_user):
     url = reverse("game-confirm-phase", args=[pending_game_created_by_primary_user.id])
     response = authenticated_client.post(url)

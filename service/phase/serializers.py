@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from common.constants import PhaseStatus, PhaseType
 from common.permissions import IsCurrentPhaseActive
+from common.serializers import ExpectedPhaseSerializer
 from emit import emit
 from member.serializers import MemberSerializer
 from phase.models import Phase
@@ -12,7 +13,7 @@ from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
 
 
-class PhaseStateSerializer(serializers.Serializer):
+class PhaseStateSerializer(ExpectedPhaseSerializer):
     id = serializers.CharField(read_only=True)
     orders_confirmed = serializers.BooleanField(read_only=True)
     eliminated = serializers.BooleanField(read_only=True)

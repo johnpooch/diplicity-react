@@ -4,6 +4,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics, serializers, status
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from phase.models import Phase
 from .models import Order
@@ -13,7 +14,7 @@ from common.constants import PhaseStatus
 from common.etag import if_none_match
 from common.permissions import IsActiveGame, IsActiveGamePlayer, IsCurrentPhaseActive
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
-from common.serializers import EmptySerializer
+from common.serializers import EmptySerializer, ExpectedPhaseSerializer
 
 
 # Orders on a completed phase never change, and completed-phase visibility is
@@ -89,6 +90,7 @@ class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
+@extend_schema(parameters=[ExpectedPhaseSerializer])
 class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
@@ -100,6 +102,7 @@ class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
 
     def get_object(self):
         phase = self.get_phase()
+        ExpectedPhaseSerializer(data=self.request.query_params, context={"phase": phase}).is_valid(raise_exception=True)
         return get_object_or_404(
             Order.objects.select_related("phase_state"),
             source__province_id=self.kwargs["source_id"],

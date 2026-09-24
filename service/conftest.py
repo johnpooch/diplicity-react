@@ -1213,6 +1213,29 @@ def game_with_options(active_game, sample_options):
     return game
 
 
+@pytest.fixture
+def advance_to_next_phase(db):
+    def _advance(game):
+        previous_phase = game.current_phase
+        Phase.objects.filter(pk=previous_phase.pk).update(status=PhaseStatus.COMPLETED)
+        next_phase = game.phases.create(
+            variant=game.variant,
+            season="Fall",
+            year=previous_phase.year,
+            type=previous_phase.type,
+            status=PhaseStatus.ACTIVE,
+            ordinal=previous_phase.ordinal + 1,
+            options=previous_phase.options,
+        )
+        for phase_state in previous_phase.phase_states.all():
+            next_phase.phase_states.create(
+                member=phase_state.member, has_possible_orders=phase_state.has_possible_orders
+            )
+        return previous_phase
+
+    return _advance
+
+
 # ---------------------------------------------------------------------------
 # Order scenario fixtures
 # ---------------------------------------------------------------------------

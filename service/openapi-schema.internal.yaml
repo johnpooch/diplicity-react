@@ -916,6 +916,10 @@ paths:
         Used by views that have a game parameter in the URL. Provides a get_phase
         method that returns the current phase for the game. Also adds phase to the serializer context.
       parameters:
+      - in: query
+        name: expected_phase_id
+        schema:
+          type: integer
       - in: path
         name: game_id
         schema:
@@ -3200,6 +3204,9 @@ components:
     Order:
       type: object
       properties:
+        expected_phase_id:
+          type: integer
+          writeOnly: true
         source:
           allOf:
           - $ref: '#/components/schemas/Province'
@@ -3417,6 +3424,9 @@ components:
     PatchedPhaseState:
       type: object
       properties:
+        expected_phase_id:
+          type: integer
+          writeOnly: true
         id:
           type: string
           readOnly: true
@@ -3562,6 +3572,9 @@ components:
     PhaseState:
       type: object
       properties:
+        expected_phase_id:
+          type: integer
+          writeOnly: true
         id:
           type: string
           readOnly: true

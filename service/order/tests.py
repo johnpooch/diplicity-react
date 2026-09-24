@@ -788,6 +788,42 @@ class TestOrderCreateView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 0
 
+    @pytest.mark.django_db
+    def test_order_create_with_current_expected_phase(self, authenticated_client, game_with_options):
+        url = reverse("order-create", args=[game_with_options.id])
+        data = {"selected": ["bud", "Hold"], "expected_phase_id": game_with_options.current_phase.id}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.get().phase_state.phase == game_with_options.current_phase
+
+    @pytest.mark.django_db
+    def test_order_create_rejected_for_stale_expected_phase(
+        self, authenticated_client, game_with_options, advance_to_next_phase
+    ):
+        stale_phase = advance_to_next_phase(game_with_options)
+
+        url = reverse("order-create", args=[game_with_options.id])
+        data = {"selected": ["bud", "Hold"], "expected_phase_id": stale_phase.id}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "expected_phase_id" in response.data
+        assert Order.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_order_create_partial_rejected_for_stale_expected_phase(
+        self, authenticated_client, game_with_options, advance_to_next_phase
+    ):
+        stale_phase = advance_to_next_phase(game_with_options)
+
+        url = reverse("order-create", args=[game_with_options.id])
+        data = {"selected": ["bud"], "expected_phase_id": stale_phase.id}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "expected_phase_id" in response.data
+
 
 class TestOrderDeleteView:
     @pytest.mark.django_db
@@ -839,6 +875,50 @@ class TestOrderDeleteView:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert Order.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_delete_order_with_current_expected_phase(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+    ):
+        phase = order_active_game.current_phase
+        Order.objects.create(
+            phase_state=phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
+
+        url = reverse("order-delete", args=[order_active_game.id, "lon"])
+        response = authenticated_client.delete(f"{url}?expected_phase_id={phase.id}")
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert Order.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_delete_order_rejected_for_stale_expected_phase(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        advance_to_next_phase,
+    ):
+        stale_phase = advance_to_next_phase(order_active_game)
+        Order.objects.create(
+            phase_state=order_active_game.current_phase.phase_states.get(member__user=primary_user),
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
+
+        url = reverse("order-delete", args=[order_active_game.id, "lon"])
+        response = authenticated_client.delete(f"{url}?expected_phase_id={stale_phase.id}")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "expected_phase_id" in response.data
+        assert Order.objects.count() == 1
 
     @pytest.mark.django_db
     def test_delete_order_not_found(

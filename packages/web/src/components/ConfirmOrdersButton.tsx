@@ -10,6 +10,7 @@ import type { OrderCount } from "@/utils/orderCount";
 
 interface ConfirmOrdersButtonProps {
   gameId: string;
+  phaseId: number;
   confirmed: boolean;
   count?: OrderCount | null;
   className?: string;
@@ -17,6 +18,7 @@ interface ConfirmOrdersButtonProps {
 
 const ConfirmOrdersButton: React.FC<ConfirmOrdersButtonProps> = ({
   gameId,
+  phaseId,
   confirmed,
   count,
   className,
@@ -29,7 +31,7 @@ const ConfirmOrdersButton: React.FC<ConfirmOrdersButtonProps> = ({
     try {
       await confirmOrdersMutation.mutateAsync({
         gameId,
-        data: { ordersConfirmed: newConfirmedState },
+        data: { expectedPhaseId: phaseId },
       });
       queryClient.invalidateQueries({
         queryKey: getGameRetrieveQueryKey(gameId),

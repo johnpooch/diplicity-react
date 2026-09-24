@@ -692,6 +692,7 @@ export const StepEnum = {
 } as const;
 
 export interface Order {
+  expectedPhaseId?: number;
   readonly source: Province;
   readonly sourceCoast: Province | null;
   readonly target: Province;
@@ -757,6 +758,7 @@ export interface PatchedGameExtendDeadline {
 }
 
 export interface PatchedPhaseState {
+  expectedPhaseId?: number;
   readonly id?: string;
   readonly ordersConfirmed?: boolean;
   readonly eliminated?: boolean;
@@ -848,6 +850,7 @@ export interface PhaseRetrieve {
 }
 
 export interface PhaseState {
+  expectedPhaseId?: number;
   readonly id: string;
   readonly ordersConfirmed: boolean;
   readonly eliminated: boolean;
@@ -1145,6 +1148,10 @@ export type ApiSchemaRetrieve200Two = { [key: string]: unknown };
 export type ApiSchemaRetrieve200Three = { [key: string]: unknown };
 
 export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
+
+export type GameOrdersDeleteDestroyParams = {
+  expected_phase_id?: number;
+};
 
 export type GamesListParams = {
   can_join?: boolean;
@@ -5194,11 +5201,13 @@ method that returns the current phase for the game. Also adds phase to the seria
 export const gameOrdersDeleteDestroy = (
   gameId: string,
   sourceId: string,
+  params?: GameOrdersDeleteDestroyParams,
   signal?: AbortSignal
 ) => {
   return customInstance<void>({
     url: `/game/${gameId}/orders/delete/${sourceId}`,
     method: "DELETE",
+    params,
     signal,
   });
 };
@@ -5210,13 +5219,17 @@ export const getGameOrdersDeleteDestroyMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof gameOrdersDeleteDestroy>>,
     TError,
-    { gameId: string; sourceId: string },
+    {
+      gameId: string;
+      sourceId: string;
+      params?: GameOrdersDeleteDestroyParams;
+    },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof gameOrdersDeleteDestroy>>,
   TError,
-  { gameId: string; sourceId: string },
+  { gameId: string; sourceId: string; params?: GameOrdersDeleteDestroyParams },
   TContext
 > => {
   const mutationKey = ["gameOrdersDeleteDestroy"];
@@ -5230,11 +5243,11 @@ export const getGameOrdersDeleteDestroyMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof gameOrdersDeleteDestroy>>,
-    { gameId: string; sourceId: string }
+    { gameId: string; sourceId: string; params?: GameOrdersDeleteDestroyParams }
   > = props => {
-    const { gameId, sourceId } = props ?? {};
+    const { gameId, sourceId, params } = props ?? {};
 
-    return gameOrdersDeleteDestroy(gameId, sourceId);
+    return gameOrdersDeleteDestroy(gameId, sourceId, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5254,7 +5267,11 @@ export const useGameOrdersDeleteDestroy = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof gameOrdersDeleteDestroy>>,
       TError,
-      { gameId: string; sourceId: string },
+      {
+        gameId: string;
+        sourceId: string;
+        params?: GameOrdersDeleteDestroyParams;
+      },
       TContext
     >;
   },
@@ -5262,7 +5279,7 @@ export const useGameOrdersDeleteDestroy = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof gameOrdersDeleteDestroy>>,
   TError,
-  { gameId: string; sourceId: string },
+  { gameId: string; sourceId: string; params?: GameOrdersDeleteDestroyParams },
   TContext
 > => {
   return useMutation(

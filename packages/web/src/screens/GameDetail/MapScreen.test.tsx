@@ -55,8 +55,10 @@ const renderScreen = () =>
 
 describe("MapScreen confirm orders button", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockGameData.mockReturnValue({
       id: "1",
+      currentPhaseId: 5,
       status: "active",
       sandbox: false,
       phaseConfirmed: false,
@@ -81,6 +83,7 @@ describe("MapScreen confirm orders button", () => {
   it("reads as confirmed once orders are confirmed", () => {
     mockGameData.mockReturnValue({
       id: "1",
+      currentPhaseId: 5,
       status: "active",
       sandbox: false,
       phaseConfirmed: true,
@@ -90,15 +93,25 @@ describe("MapScreen confirm orders button", () => {
     expect(screen.getByRole("button", { name: "Confirmed (1/3)" })).toBeInTheDocument();
   });
 
-  it("hides the button on a historical phase", () => {
+  it("hides the button on a historical phase without loading phase states", () => {
+    mockGameData.mockReturnValue({
+      id: "1",
+      currentPhaseId: 6,
+      status: "active",
+      sandbox: false,
+      phaseConfirmed: false,
+      members: [{ id: 1, isCurrentUser: true, civilDisorder: false }],
+    });
     mockPhaseData.mockReturnValue({ status: "completed" });
     renderScreen();
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+    expect(mockPhaseStatesData).not.toHaveBeenCalled();
   });
 
   it("hides the button for a spectator", () => {
     mockGameData.mockReturnValue({
       id: "1",
+      currentPhaseId: 5,
       status: "active",
       sandbox: false,
       phaseConfirmed: false,
@@ -111,6 +124,7 @@ describe("MapScreen confirm orders button", () => {
   it("hides the button when the user is in civil disorder", () => {
     mockGameData.mockReturnValue({
       id: "1",
+      currentPhaseId: 5,
       status: "active",
       sandbox: false,
       phaseConfirmed: false,

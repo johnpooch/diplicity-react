@@ -413,7 +413,11 @@ const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }>
   );
 };
 
-const OrdersScreen: React.FC = () => {
+interface OrdersScreenProps {
+  phaseStates: readonly PhaseState[];
+}
+
+const OrdersScreen: React.FC<OrdersScreenProps> = ({ phaseStates }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { gameId, phaseId } = useRequiredParams<{
@@ -426,11 +430,6 @@ const OrdersScreen: React.FC = () => {
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
   const variant = useGameVariant(game);
-  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
-    query: {
-      queryKey: [...getGamePhaseStatesListQueryKey(gameId), selectedPhase],
-    },
-  });
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
@@ -444,7 +443,8 @@ const OrdersScreen: React.FC = () => {
     );
   }
 
-  const isActivePhase = phase.status === "active";
+  const isCurrentPhase = selectedPhase === game.currentPhaseId;
+  const isActivePhase = isCurrentPhase && phase.status === "active";
   const isGameFinished =
     game.status === "completed" || game.status === "abandoned";
   const members = Array.isArray(game.members) ? game.members : [];
@@ -469,7 +469,11 @@ const OrdersScreen: React.FC = () => {
 
   const handleDeleteOrder = async (sourceId: string) => {
     try {
-      await deleteOrderMutation.mutateAsync({ gameId, sourceId });
+      await deleteOrderMutation.mutateAsync({
+        gameId,
+        sourceId,
+        params: { expected_phase_id: selectedPhase },
+      });
       queryClient.invalidateQueries({
         queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
       });
@@ -539,6 +543,7 @@ const OrdersScreen: React.FC = () => {
       return (
         <ConfirmOrdersButton
           gameId={gameId}
+          phaseId={selectedPhase}
           confirmed={game.phaseConfirmed}
           count={countOrders(safePhaseStates, safeOrders)}
         />
@@ -657,10 +662,46 @@ const OrdersScreen: React.FC = () => {
   );
 };
 
+interface CurrentPhaseOrdersScreenProps {
+  gameId: string;
+  currentPhaseId: number;
+}
+
+const CurrentPhaseOrdersScreen: React.FC<CurrentPhaseOrdersScreenProps> = ({
+  gameId,
+  currentPhaseId,
+}) => {
+  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
+    query: {
+      queryKey: [...getGamePhaseStatesListQueryKey(gameId), currentPhaseId],
+    },
+  });
+  return <OrdersScreen phaseStates={phaseStates} />;
+};
+
+const SelectedPhaseOrdersScreen: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+
+  if (game.currentPhaseId !== Number(phaseId)) {
+    return <OrdersScreen phaseStates={[]} />;
+  }
+
+  return (
+    <CurrentPhaseOrdersScreen
+      gameId={gameId}
+      currentPhaseId={game.currentPhaseId}
+    />
+  );
+};
+
 const OrdersScreenSuspense: React.FC = () => (
   <QueryErrorBoundary>
     <Suspense fallback={<div></div>}>
-      <OrdersScreen />
+      <SelectedPhaseOrdersScreen />
     </Suspense>
   </QueryErrorBoundary>
 );

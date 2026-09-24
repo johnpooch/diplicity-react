@@ -541,6 +541,7 @@ class OrderResolution(TypedDict):
 
 
 class PatchedPhaseState(TypedDict):
+    expected_phase_id: NotRequired[int]
     id: NotRequired[str]
     orders_confirmed: NotRequired[bool]
     eliminated: NotRequired[bool]
@@ -577,6 +578,7 @@ class PhaseRetrieve(TypedDict):
 
 
 class PhaseState(TypedDict):
+    expected_phase_id: NotRequired[int]
     id: str
     orders_confirmed: bool
     eliminated: bool
@@ -651,6 +653,7 @@ class GameList(TypedDict):
 
 
 class Order(TypedDict):
+    expected_phase_id: NotRequired[int]
     source: Province
     source_coast: Province | None
     target: Province

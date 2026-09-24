@@ -1,11 +1,23 @@
 import { useState, useMemo } from "react";
 import { deriveWizardStep, OrderOption } from "../utils/deriveWizardStep";
 
+const NO_SELECTIONS: Record<string, string> = {};
+
 function useOrderWizard(
   orders: OrderOption[],
-  fieldOrder: Record<string, string[]>
+  fieldOrder: Record<string, string[]>,
+  scope: number | null
 ) {
-  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [state, setState] = useState<{
+    scope: number | null;
+    selections: Record<string, string>;
+  }>({ scope, selections: NO_SELECTIONS });
+
+  if (state.scope !== scope) {
+    setState({ scope, selections: NO_SELECTIONS });
+  }
+
+  const selections = state.scope === scope ? state.selections : NO_SELECTIONS;
 
   const step = useMemo(
     () => deriveWizardStep(orders, fieldOrder, selections),
@@ -14,10 +26,13 @@ function useOrderWizard(
 
   const select = (value: string) => {
     if (!step.nextField) return;
-    setSelections((prev) => ({ ...prev, [step.nextField!]: value }));
+    setState({
+      scope,
+      selections: { ...selections, [step.nextField]: value },
+    });
   };
 
-  const reset = () => setSelections({});
+  const reset = () => setState({ scope, selections: NO_SELECTIONS });
 
   return { ...step, selections, select, reset };
 }

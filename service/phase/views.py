@@ -10,7 +10,7 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
-from common.views import SelectedGameMixin, CurrentGameMemberMixin
+from common.views import SelectedGameMixin, CurrentGameMemberMixin, CurrentPhaseMixin
 from rest_framework.response import Response
 from .models import Phase
 from .serializers import PhaseStateSerializer, PhaseRetrieveSerializer, PhaseListSerializer
@@ -18,7 +18,7 @@ from .serializers import PhaseStateSerializer, PhaseRetrieveSerializer, PhaseLis
 tracer = trace.get_tracer(__name__)
 
 
-class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, CurrentPhaseMixin, generics.UpdateAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,

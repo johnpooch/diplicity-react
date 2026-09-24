@@ -16,21 +16,23 @@ import {
   getGamePhaseStatesListQueryKey,
 } from "@/api/generated/endpoints";
 
-const MapConfirmOrders: React.FC = () => {
-  const { gameId, phaseId } = useRequiredParams<{
-    gameId: string;
-    phaseId: string;
-  }>();
-  const selectedPhase = Number(phaseId);
+interface CurrentPhaseConfirmOrdersProps {
+  gameId: string;
+  currentPhaseId: number;
+}
 
+const CurrentPhaseConfirmOrders: React.FC<CurrentPhaseConfirmOrdersProps> = ({
+  gameId,
+  currentPhaseId,
+}) => {
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
+  const { data: phase } = useGamePhaseRetrieveSuspense(gameId, currentPhaseId);
   const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
     query: {
-      queryKey: [...getGamePhaseStatesListQueryKey(gameId), selectedPhase],
+      queryKey: [...getGamePhaseStatesListQueryKey(gameId), currentPhaseId],
     },
   });
-  const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
+  const { data: orders } = useGameOrdersListSuspense(gameId, currentPhaseId);
 
   const members = Array.isArray(game.members) ? game.members : [];
   const currentMember = members.find(m => m.isCurrentUser);
@@ -52,11 +54,30 @@ const MapConfirmOrders: React.FC = () => {
     <div className="absolute bottom-5 right-16 z-[1000]">
       <ConfirmOrdersButton
         gameId={gameId}
+        phaseId={currentPhaseId}
         confirmed={game.phaseConfirmed}
         count={count}
         className="shadow-lg"
       />
     </div>
+  );
+};
+
+const MapConfirmOrders: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+
+  const { data: game } = useGameRetrieveSuspense(gameId);
+
+  if (game.currentPhaseId !== Number(phaseId)) return null;
+
+  return (
+    <CurrentPhaseConfirmOrders
+      gameId={gameId}
+      currentPhaseId={game.currentPhaseId}
+    />
   );
 };
 

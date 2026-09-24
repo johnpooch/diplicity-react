@@ -76,11 +76,14 @@ const GameMap: React.FC = () => {
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
+  const isCurrentPhase = game?.currentPhaseId === selectedPhase;
   const { data: optionsData } = useGameOptionsRetrieve(gameId, {
     query: {
-      queryKey: [...getGameOptionsRetrieveQueryKey(gameId), selectedPhase],
+      queryKey: [...getGameOptionsRetrieveQueryKey(gameId), game?.currentPhaseId],
+      enabled: isCurrentPhase,
     },
   });
+  const orderOptions = isCurrentPhase ? optionsData : undefined;
 
   const publishedVariant = variants?.find((v) => v.id === game?.variantId);
   const { data: fetchedVariant } = useVariantsRetrieve(
@@ -99,8 +102,9 @@ const GameMap: React.FC = () => {
   const createOrderMutation = useGameOrdersCreate();
 
   const wizard = useOrderWizard(
-    optionsData?.orders ?? [],
-    optionsData?.fieldOrder ?? {}
+    orderOptions?.orders ?? [],
+    orderOptions?.fieldOrder ?? {},
+    isCurrentPhase ? selectedPhase : null
   );
 
   const variant = publishedVariant ?? fetchedVariant;
@@ -146,7 +150,7 @@ const GameMap: React.FC = () => {
     createOrderMutation
       .mutateAsync({
         gameId,
-        data: { selected: wizard.selectedArray },
+        data: { selected: wizard.selectedArray, expectedPhaseId: selectedPhase },
       })
       .then((order) => {
         queryClient.setQueryData<Order[]>(
@@ -259,7 +263,7 @@ const GameMap: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showMenu, isDesktopWeb, wizard]);
 
-  const displayOrders = pendingOrder
+  const displayOrders = pendingOrder && isCurrentPhase
     ? [
         ...(orders ?? []).filter(
           (o) => o.source.id !== pendingOrder.source.id

@@ -27,7 +27,8 @@ const mockPhaseData = vi.fn();
 const mockOrdersData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockPhaseStatesData = vi.fn();
-const mockDeleteOrderMutation = vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false }));
+const mockDeleteOrder = vi.fn();
+const mockDeleteOrderMutation = vi.fn(() => ({ mutateAsync: mockDeleteOrder, isPending: false }));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -102,6 +103,7 @@ describe("OrdersScreen civil disorder handling", () => {
   it("shows civil disorder banner when current member is in civil disorder", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -117,6 +119,7 @@ describe("OrdersScreen civil disorder handling", () => {
   it("does not show civil disorder banner when current member is not in CD", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -132,6 +135,7 @@ describe("OrdersScreen civil disorder handling", () => {
   it("hides the confirm orders button when current member is in CD", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -153,6 +157,7 @@ describe("OrdersScreen civil disorder handling", () => {
   it("shows 'I'm back' button when current member is in civil disorder", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -168,6 +173,7 @@ describe("OrdersScreen civil disorder handling", () => {
   it("does not show 'I'm back' button when current member is not in civil disorder", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -199,6 +205,7 @@ describe("OrdersScreen confirm orders button", () => {
   it("shows confirm orders button for fixed-time game", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "fixed_time",
@@ -214,6 +221,7 @@ describe("OrdersScreen confirm orders button", () => {
   it("shows confirm orders button for duration game", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -237,6 +245,7 @@ describe("OrdersScreen spectating", () => {
     mockOrdersData.mockReturnValue([]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -271,6 +280,7 @@ describe("OrdersScreen resilience to malformed list data", () => {
   it("renders without crashing when game.members is not an array", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -287,6 +297,7 @@ describe("OrdersScreen resilience to malformed list data", () => {
   it("falls back to an unmatched member instead of crashing when game.members is not an array and there are past orders to group by nation", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "completed",
       sandbox: false,
       deadlineMode: "duration",
@@ -313,6 +324,7 @@ describe("OrdersScreen resilience to malformed list data", () => {
   it("renders without crashing when orders is not an array", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "completed",
       sandbox: false,
       deadlineMode: "duration",
@@ -336,6 +348,7 @@ describe("OrdersScreen named coast display", () => {
     mockOrdersData.mockReturnValue([]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -395,6 +408,7 @@ describe("OrdersScreen named coast display", () => {
     ]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "completed",
       sandbox: false,
       deadlineMode: "duration",
@@ -415,6 +429,7 @@ describe("OrdersScreen delete order button", () => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -462,6 +477,36 @@ describe("OrdersScreen delete order button", () => {
     renderOrdersScreen();
 
     expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
+  });
+
+  it("deletes the order against the phase being viewed", async () => {
+    renderOrdersScreen();
+
+    await userEvent.click(screen.getByLabelText(/Delete order for/));
+
+    expect(mockDeleteOrder).toHaveBeenCalledWith({
+      gameId: "game-1",
+      sourceId: "lon",
+      params: { expected_phase_id: 1 },
+    });
+  });
+
+  it("offers no delete controls on a historical phase", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      currentPhaseId: 2,
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+    mockPhaseStatesData.mockClear();
+
+    renderOrdersScreen();
+
+    expect(screen.queryByLabelText(/Delete order for/)).not.toBeInTheDocument();
+    expect(mockPhaseStatesData).not.toHaveBeenCalled();
   });
 
   it("uses a long-tailed upward arrow for movement orders", () => {
@@ -513,6 +558,7 @@ describe("OrdersScreen no orders required (active phase, has a member)", () => {
     ]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "active",
       sandbox: false,
       deadlineMode: "duration",
@@ -539,6 +585,7 @@ describe("OrdersScreen historical multi-nation view", () => {
     mockPhaseStatesData.mockReturnValue([]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "completed",
       sandbox: false,
       deadlineMode: "duration",
@@ -646,6 +693,7 @@ describe("OrdersScreen historical phase with unordered units", () => {
     ]);
     mockGameData.mockReturnValue({
       variantId: "classical",
+      currentPhaseId: 1,
       status: "completed",
       sandbox: false,
       deadlineMode: "duration",

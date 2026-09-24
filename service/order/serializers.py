@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.core import exceptions
 from django.db import transaction
 from common.permissions import IsCurrentPhaseActive
+from common.serializers import ExpectedPhaseSerializer
 from order.utils import get_options_for_order
 from phase.models import Phase
 from province.serializers import ProvinceSerializer
@@ -34,7 +35,7 @@ class OrderResolutionSerializer(serializers.Serializer):
     by = ProvinceSerializer(allow_null=True)
 
 
-class OrderSerializer(serializers.Serializer):
+class OrderSerializer(ExpectedPhaseSerializer):
     source = ProvinceSerializer(read_only=True)
     source_coast = ProvinceSerializer(read_only=True, allow_null=True)
     target = ProvinceSerializer(read_only=True)
