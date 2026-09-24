@@ -767,6 +767,37 @@ def victory_factory(db):
 
 
 @pytest.fixture
+def game_with_phase_history_factory(
+    db, classical_variant, primary_user, classical_england_nation, classical_edinburgh_province
+):
+    def _create(phase_count, last_status=PhaseStatus.ACTIVE, **kwargs):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name=f"History Game {Game.objects.count()}",
+            status=GameStatus.ACTIVE,
+            **kwargs,
+        )
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+        for ordinal in range(1, phase_count + 1):
+            phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=PhaseType.MOVEMENT,
+                status=last_status if ordinal == phase_count else PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+            )
+            phase.phase_states.create(member=member, has_possible_orders=True)
+            phase.units.create(
+                type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province
+            )
+            phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        return game
+
+    return _create
+
+
+@pytest.fixture
 def draw_proposal_factory(db, member_factory):
     def _create(game=None, created_by=None, phase=None, included_member_ids=None, cancelled=False):
         if game is None:
