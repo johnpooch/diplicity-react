@@ -36,6 +36,12 @@ class ResolutionJob:
 class DeadlineWarningJob:
     TASK_NAME = "phase.send_deadline_warning"
 
+    TODO = "todo"
+    DOING = "doing"
+    SUCCEEDED = "succeeded"
+
+    LIVE_STATUSES = (TODO, DOING, SUCCEEDED)
+
 
 class MusterJob:
     TASK_NAME = "game.start_if_mustered"

@@ -601,6 +601,46 @@ class TestDeadlineWarningArming:
         assert armed_phase.warning_job_id is None
 
     @pytest.mark.django_db
+    def test_a_failed_warning_is_rearmed_on_the_next_save(self, armed_phase, in_memory_procrastinate):
+        old_job_id = armed_phase.warning_job_id
+        in_memory_procrastinate.jobs[old_job_id]["status"] = "failed"
+
+        armed_phase.save()
+
+        armed_phase.refresh_from_db()
+        assert armed_phase.warning_job_id != old_job_id
+        assert in_memory_procrastinate.jobs[armed_phase.warning_job_id]["status"] == "todo"
+
+    @pytest.mark.django_db
+    def test_pausing_cancels_warning(self, armed_phase, in_memory_procrastinate):
+        old_job_id = armed_phase.warning_job_id
+
+        armed_phase.game.pause()
+
+        armed_phase.refresh_from_db()
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+        assert armed_phase.warning_job_id is None
+
+    @pytest.mark.django_db
+    def test_unpausing_rearms_warning_at_the_extended_deadline(self, armed_phase, in_memory_procrastinate):
+        game = armed_phase.game
+        game.pause()
+        game.unpause()
+
+        armed_phase.refresh_from_db()
+        assert armed_phase.warning_job_id is not None
+        new_job = in_memory_procrastinate.jobs[armed_phase.warning_job_id]
+        assert new_job["status"] == "todo"
+        assert new_job["scheduled_at"] == armed_phase.scheduled_resolution - timedelta(hours=1)
+
+    @pytest.mark.django_db
+    def test_a_warning_job_running_before_its_time_sends_nothing(self, armed_phase, in_memory_procrastinate):
+        with patch("phase.models.emit") as mock_emit:
+            send_deadline_warning.func(phase_id=armed_phase.id)
+
+        mock_emit.assert_not_called()
+
+    @pytest.mark.django_db
     def test_the_armed_warning_notifies_only_unconfirmed_players(
         self,
         phase_factory,
@@ -612,7 +652,7 @@ class TestDeadlineWarningArming:
         secondary_user,
     ):
         phase = phase_factory(
-            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
                 {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
                 {

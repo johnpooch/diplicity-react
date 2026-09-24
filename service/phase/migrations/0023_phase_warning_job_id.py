@@ -1,5 +1,4 @@
 from django.db import migrations, models
-from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
 
 from common.constants import DeadlineMode, DeadlineWarningJob, PhaseType, duration_to_seconds
@@ -21,7 +20,6 @@ def _duration_seconds(game, phase_type):
 
 def arm_warning_jobs(apps, schema_editor):
     Phase = apps.get_model("phase", "Phase")
-    now = timezone.now()
 
     armable = (
         Phase.objects.filter(
@@ -38,8 +36,6 @@ def arm_warning_jobs(apps, schema_editor):
     for phase in armable:
         offset = deadline_warning_offset(_duration_seconds(phase.game, phase.type))
         schedule_at = phase.scheduled_resolution - offset
-        if schedule_at <= now:
-            continue
         job_id = procrastinate_app.configure_task(
             DeadlineWarningJob.TASK_NAME,
             schedule_at=schedule_at,

@@ -163,11 +163,18 @@ class PhaseManager(models.Manager):
             return None
         current_job_id, scheduled_resolution, armable = state[0]
 
-        schedule_at = self._warning_schedule(phase, scheduled_resolution, armable)
+        schedule_at = None
+        if armable and scheduled_resolution is not None:
+            schedule_at = self._warning_at(phase, scheduled_resolution)
 
         if current_job_id is not None:
             armed = procrastinate_app.job_manager.list_jobs(id=current_job_id)
-            if schedule_at is not None and armed and armed[0].scheduled_at == schedule_at:
+            if (
+                schedule_at is not None
+                and armed
+                and armed[0].status in DeadlineWarningJob.LIVE_STATUSES
+                and armed[0].scheduled_at == schedule_at
+            ):
                 return current_job_id
             procrastinate_app.job_manager.cancel_job_by_id(current_job_id)
 
@@ -184,9 +191,7 @@ class PhaseManager(models.Manager):
 
         return new_job_id
 
-    def _warning_schedule(self, phase, scheduled_resolution, armable):
-        if not armable or scheduled_resolution is None:
-            return None
+    def _warning_at(self, phase, scheduled_resolution):
         duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
         return scheduled_resolution - deadline_warning_offset(duration_seconds)
 
@@ -256,64 +261,69 @@ class PhaseManager(models.Manager):
         return members_with_extensions
 
     def send_deadline_warning(self, phase_id):
-        phase = (
-            self.filter_armable()
-            .filter(pk=phase_id, scheduled_resolution__gt=timezone.now())
-            .select_related('game')
-            .prefetch_related(
-                'phase_states__member__user',
-                'phase_states__member__nation',
-                'phase_states__orders',
-                Prefetch('units', queryset=Unit.objects.select_related('nation')),
-                Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation')),
+        now = timezone.now()
+        with transaction.atomic():
+            phase = (
+                self.filter_armable()
+                .filter(pk=phase_id, scheduled_resolution__gt=now)
+                .select_for_update(of=("self",))
+                .select_related('game')
+                .prefetch_related(
+                    'phase_states__member__user',
+                    'phase_states__member__nation',
+                    'phase_states__orders',
+                    Prefetch('units', queryset=Unit.objects.select_related('nation')),
+                    Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation')),
+                )
+                .first()
             )
-            .first()
-        )
-        if phase is None:
-            return {"notifications_sent": 0}
+            if phase is None or self._warning_at(phase, phase.scheduled_resolution) > now:
+                return {"notifications_sent": 0}
 
-        is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+            is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
 
-        actionable_units = phase.actionable_units
-        forced_nations = phase.nations_with_forced_orders
+            actionable_units = phase.actionable_units
+            forced_nations = phase.nations_with_forced_orders
 
-        is_adjustment = phase.type == PhaseType.ADJUSTMENT
-        warned_states = []
+            is_adjustment = phase.type == PhaseType.ADJUSTMENT
+            warned_states = []
 
-        for ps in phase.phase_states.all():
-            if not ps.has_possible_orders:
-                continue
-            if ps.member.nation_id in forced_nations:
-                continue
+            for ps in phase.phase_states.all():
+                if not ps.has_possible_orders:
+                    continue
+                if ps.deadline_warning_sent_for == phase.scheduled_resolution:
+                    continue
+                if ps.member.nation_id in forced_nations:
+                    continue
 
-            total_units = actionable_units.get(ps.member.nation_id, 0)
+                total_units = actionable_units.get(ps.member.nation_id, 0)
 
-            if total_units == 0:
-                continue
+                if total_units == 0:
+                    continue
 
-            deadline_extended = (
-                ps.deadline_warning_sent_for is not None
-                and ps.deadline_warning_sent_for < phase.scheduled_resolution
-            )
+                deadline_extended = (
+                    ps.deadline_warning_sent_for is not None
+                    and ps.deadline_warning_sent_for < phase.scheduled_resolution
+                )
 
-            body = build_notification_body(
-                ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
-                ps.member.nmr_extensions_remaining,
-                is_adjustment=is_adjustment,
-                deadline_extended=deadline_extended,
-            )
-            if body is None:
-                continue
+                body = build_notification_body(
+                    ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
+                    ps.member.nmr_extensions_remaining,
+                    is_adjustment=is_adjustment,
+                    deadline_extended=deadline_extended,
+                )
+                if body is None:
+                    continue
 
-            if ps.member.user_id is None:
-                continue
+                if ps.member.user_id is None:
+                    continue
 
-            emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
-            ps.deadline_warning_sent_for = phase.scheduled_resolution
-            warned_states.append(ps)
+                emit("deadline_warning", game=phase.game, recipients=[ps.member.user_id], body=body)
+                ps.deadline_warning_sent_for = phase.scheduled_resolution
+                warned_states.append(ps)
 
-        if warned_states:
-            PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
+            if warned_states:
+                PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
 
         return {"notifications_sent": len(warned_states)}
 

@@ -5,6 +5,8 @@ import pytest
 from django.utils import timezone
 
 from common.constants import DeadlineMode, GameStatus, PhaseStatus, UnitType
+from emit import emit
+from notification.models import Notification
 from phase.models import Phase
 
 
@@ -143,3 +145,60 @@ class TestSendDeadlineWarning:
 
         assert result["notifications_sent"] == 0
         mock_emit.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_a_player_already_warned_for_this_deadline_is_not_warned_again(
+        self, phase_factory, classical_england_nation, classical_edinburgh_province
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(minutes=30),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+
+        with patch("phase.models.emit") as mock_emit:
+            first = Phase.objects.send_deadline_warning(phase.id)
+            second = Phase.objects.send_deadline_warning(phase.id)
+
+        assert first["notifications_sent"] == 1
+        assert second["notifications_sent"] == 0
+        mock_emit.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_a_failed_send_leaves_no_warning_behind(
+        self,
+        phase_factory,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+        classical_paris_province,
+        secondary_user,
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(minutes=30),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_france_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                    "user": secondary_user,
+                },
+            ],
+        )
+        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(type=UnitType.ARMY, nation=classical_france_nation, province=classical_paris_province)
+
+        def emit_then_fail(*args, **kwargs):
+            if mock_emit.call_count > 1:
+                raise RuntimeError("boom")
+            emit(*args, **kwargs)
+
+        with patch("phase.models.emit", side_effect=emit_then_fail) as mock_emit:
+            with pytest.raises(RuntimeError):
+                Phase.objects.send_deadline_warning(phase.id)
+
+        assert not Notification.objects.filter(event_type="deadline_warning").exists()
+        assert list(phase.phase_states.values_list("deadline_warning_sent_for", flat=True)) == [None, None]
