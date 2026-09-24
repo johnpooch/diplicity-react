@@ -283,9 +283,14 @@ existing `EVAL_RESULTS.md`; that is accepted, since `evals/` re-baselines anyway
 The prompt is therefore assembled from named parts, each editable in the tool:
 the system blocks (`ROLE`, `PRINCIPLES`, the phase task instruction, `FORMAT`)
 and the user prompt sections (players, board, units, supply centres, options).
-Each user prompt section can have more than one renderer, and the tool lets you
-pick between them. `FORMAT` stays editable but is marked as parser-coupled,
-because it specifies the JSON shape the parser expects.
+`FORMAT` stays editable but is marked as parser-coupled, because it specifies the
+JSON shape the parser expects.
+
+Two kinds of change are distinguished. **Wording** (how a section phrases what it
+is given) is edited in the tool and re-run on the spot. **What data is fed into
+the prompt** (for example, only the provinces a unit can reach) is decided in
+`evals/` code and changed there directly (D19). It is not a menu of alternatives
+to switch between in the UI.
 
 **D14. Baselines are precomputed at harvest, keyed by the settings they used.**
 The human's order set and dumbbot's pick are properties of the fixture. Neither
@@ -365,9 +370,11 @@ copy it into `evals/` at that point.
 **D19. Reshape the data however works best.** The fixture is raw material, not a
 prompt. Any structure that helps the model or the labeller and can be built from
 data the fixture already carries, or from the variant, is fair game: pruning
-unreachable provinces, per-unit neighbourhoods, a different board encoding. These
-live as prompt renderers (D13) so they can be compared on the same fixtures
-rather than argued about.
+unreachable provinces, per-unit neighbourhoods, a different board encoding. This
+is what gets fed into the prompt, so it lives in `evals/` code and is changed
+there as the design evolves; the tool shows the result in the rendered prompt
+(task 3.5). The fixture itself stays complete, so reshaping never needs a
+re-harvest.
 
 **D20. The tool shows whether the evals are right, not only the model.**
 Running the full suite from the tool shows, per fixture, every scorer's verdict
@@ -584,8 +591,34 @@ are needed. The UI toggle hides the baselines, it does not skip computing them
 - **Q1.** Where the harvester reads from. It must not import app code (D16), so
   the candidates are the app's HTTP API or a one-off export. Whether the HTTP API
   exposes past phases with every nation's orders and resolutions is **not
-  verified**; check before building task 1.4. If it does not, a read-only SQL
-  export is the fallback.
+  verified**. Recommended: the export, because it needs no API work and keeps the
+  whole fixture format inside `evals/`. How it would work:
+  - A read-only SQL query, committed in `evals/`, run against the app's Postgres
+    (production via the existing read-only access, or a local database for
+    testing). It writes a raw snapshot file. No app code runs.
+  - The snapshot holds, for the chosen games, one row per: game (`id`, variant,
+    `press_type`, `status`); phase (`id`, game, `ordinal`, `season`, `year`,
+    `type`); unit (phase, province, type, nation name, `dislodged`); supply
+    centre (phase, province, nation name); order (phase, nation name,
+    `order_type`, source, target, aux, `unit_type`, named coast, resolution
+    status); and per game and nation a bare `was_bot` flag. Tables and fields
+    are from `service/phase/models.py:748`, `service/unit/models.py:7`,
+    `service/supply_center/models.py:4`, `service/order/models.py:126` and
+    `:391`, `service/game/models.py:402`; the bot flag comes from the user's
+    profile (`service/member/models.py:160`).
+  - Deliberately not exported: users, member and user ids, names, emails, chat
+    channels and messages (D7, D11). The raw snapshot is gitignored; only the
+    fixtures built from it are committed.
+  - Everything after the snapshot happens in `evals/`: the v2 schema, legal
+    options via `get_options`, `actual_orders`, `actual_outcome`,
+    `decision_richness`, baselines. The snapshot is the only thing that knows
+    the app's table layout, so an app schema change breaks one SQL file and
+    nothing else.
+  - Caveat, **not verified**: phases in which nobody can act (for example an empty
+    Retreat) are skipped and never persisted (`service/adjudicator/service.py:145`),
+    so the next stored phase is not always the next engine phase. Compute
+    `actual_outcome` by adjudicating `actual_orders` with the engine, and use the
+    next stored phase only as a cross-check.
 - **Q2.** Issue #1142 claimed `CLAUDE.md` explicitly forbids Django models in
   `harness`. That wording is not in the current `CLAUDE.md` or `.claude/rules/`.
   Moot for `evals/`, which needs no models (fixtures are files), but the rule
@@ -656,13 +689,12 @@ or `packages/`.
   dumbbot solver still scores as in 0.3.
 
 - [ ] **0.5 Assemble the prompt from named, editable parts** (D13, D19).
-  System blocks and user prompt sections become named parts that can be
-  overridden per run, and each user prompt section can have several renderers.
-  Ship the current rendering as the default, plus one reshaped board renderer
-  (provinces reachable this phase only) to prove the mechanism.
+  System blocks and user prompt sections become named parts whose wording can be
+  overridden per run. The data each section is given is prepared separately in
+  code, so it can be reshaped (D19) without touching the wording.
   *Done when*: with no overrides, the rendered prompt matches what the copied
-  code produced in 0.3; an override of any single part changes only that part;
-  and switching the board renderer changes the board section and nothing else.
+  code produced in 0.3; and an override of any single part changes only that
+  part.
 
 ### Phase 1: data
 
@@ -685,14 +717,17 @@ or `packages/`.
   `ranked_options` fixture.
 
 - [ ] **1.4 Harvester.**
-  Build v2 fixtures from Diplicity game data without importing app code, per Q1.
+  Two steps, per Q1: the export query that writes a raw snapshot, and a command
+  that builds v2 fixtures from the snapshot without importing app code.
   Reconstruct each phase's state, list legal options with `get_options`, and
   record every nation's `actual_orders` and the real `actual_outcome`. Works for
   any phase, not only a game's current one.
-  *Done when*: harvesting a past phase writes a fixture with a non-empty option
-  list; `actual_orders` covers every nation with units in the phase; and a test
-  asserts the options for a reconstructed past phase match those for the same
-  board as a current phase.
+  *Done when*: the export query runs against a local app database with a played
+  game in it; building from that snapshot writes a fixture for a past phase with
+  a non-empty option list; `actual_orders` covers every nation with units in the
+  phase; a test asserts the options for a reconstructed past phase match those
+  for the same board as a current phase; and a test fails if the snapshot or a
+  fixture contains a user identifier.
 
 - [ ] **1.5 Harvest the first batch.**
   20 to 30 phases per Q3. Commit the fixture files.
@@ -772,14 +807,13 @@ or `packages/`.
   together.
 
 - [ ] **3.5 Prompt workbench.**
-  Every prompt part editable (D13), board renderer selectable (D19), run against
-  the loaded fixture, and show the model's chosen orders and its `reasoning`
+  Every prompt part editable (D13), run against the loaded fixture, and show the model's chosen orders and its `reasoning`
   beside the option list and on the board. `FORMAT` is marked as parser-coupled.
   Show the fully rendered prompt exactly as sent. Keep the previous run visible so
   a prompt change can be compared against what it replaced.
   *Done when*: an edited `PRINCIPLES` block produces a different order set on the
-  same fixture; an edited or reshaped board section is visible in the rendered
-  prompt and the run uses it; the runs before and after an edit can be seen side
+  same fixture; an edited board section is visible in the rendered prompt and
+  the run uses it; the runs before and after an edit can be seen side
   by side; and an unparseable completion surfaces the parse error rather than
   failing silently.
 
