@@ -11,3 +11,8 @@ logger = logging.getLogger(__name__)
 @receiver(post_save, sender=Phase)
 def arm_phase_resolution(sender, instance, created, **kwargs):
     Phase.objects.arm_resolution(instance)
+
+
+@receiver(post_save, sender=Phase)
+def arm_phase_warning(sender, instance, created, **kwargs):
+    Phase.objects.arm_warning(instance)

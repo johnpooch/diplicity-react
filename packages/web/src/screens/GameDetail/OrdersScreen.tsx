@@ -4,7 +4,6 @@ import { useNavigate } from "react-router";
 import {
   Trash2,
   CheckSquare,
-  Square,
   Play,
   SearchX,
   Star,
@@ -30,6 +29,7 @@ import { ListItem, ListSection } from "@/components/ui/list";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { NationBadge } from "@/components/NationBadge";
+import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
@@ -43,7 +43,6 @@ import {
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
   useGamePhaseStatesListSuspense,
-  useGameConfirmPhasePartialUpdate,
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
   useGamesDrawProposalsListSuspense,
@@ -58,6 +57,8 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+import { countOrders } from "@/utils/orderCount";
+import { canEnterOrdersForPhase } from "@/utils/orderEntry";
 import { cn } from "@/lib/utils";
 
 type NationGroup = {
@@ -429,7 +430,6 @@ const OrdersScreen: React.FC = () => {
   const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
-  const confirmOrdersMutation = useGameConfirmPhasePartialUpdate();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
   const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
@@ -442,8 +442,6 @@ const OrdersScreen: React.FC = () => {
   }
 
   const isActivePhase = phase.status === "active";
-  const isGameFinished =
-    game.status === "completed" || game.status === "abandoned";
   const members = Array.isArray(game.members) ? game.members : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safePhaseStates = Array.isArray(phaseStates) ? phaseStates : [];
@@ -452,8 +450,7 @@ const OrdersScreen: React.FC = () => {
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
     !isSpectator &&
-    isActivePhase &&
-    !isGameFinished &&
+    canEnterOrdersForPhase(game, phase, selectedPhase) &&
     !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {
@@ -476,28 +473,6 @@ const OrdersScreen: React.FC = () => {
       toast.success("Order deleted");
     } catch {
       toast.error("Failed to delete order");
-    }
-  };
-
-  const handleConfirmOrders = async () => {
-    const newConfirmedState = !game.phaseConfirmed;
-    try {
-      await confirmOrdersMutation.mutateAsync({
-        gameId,
-        data: { ordersConfirmed: newConfirmedState },
-      });
-      queryClient.invalidateQueries({
-        queryKey: getGameRetrieveQueryKey(gameId),
-      });
-      toast.success(
-        newConfirmedState ? "Orders confirmed" : "Orders unconfirmed"
-      );
-    } catch {
-      toast.error(
-        newConfirmedState
-          ? "Failed to confirm orders"
-          : "Failed to unconfirm orders"
-      );
     }
   };
 
@@ -556,19 +531,16 @@ const OrdersScreen: React.FC = () => {
       );
     if (hasContent)
       return (
-        <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>
-          {game.phaseConfirmed ? (
-            <CheckSquare className="size-4" />
-          ) : (
-            <Square className="size-4" />
-          )}
-          {game.phaseConfirmed ? "Orders confirmed" : "Confirm orders"}
-        </Button>
+        <ConfirmOrdersButton
+          gameId={gameId}
+          confirmed={game.phaseConfirmed}
+          count={countOrders(safePhaseStates, safeOrders)}
+        />
       );
     return (
       <Button disabled>
         <CheckSquare className="size-4" />
-        Orders confirmed
+        Confirmed
       </Button>
     );
   })();

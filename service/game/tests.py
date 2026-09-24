@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from adjudicator import service as adjudication_service
 from unittest.mock import patch
@@ -10,7 +12,7 @@ from zoneinfo import ZoneInfo
 from rest_framework import status
 from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType
 
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
@@ -22,6 +24,14 @@ list_viewname = "game-list"
 create_viewname = "game-create"
 sandbox_create_viewname = "sandbox-game-create"
 find_similar_viewname = "game-find-similar"
+
+
+def queried_phase_ids(table):
+    phase_ids = set()
+    for query in connection.queries:
+        for match in re.finditer(rf'"{table}"\."phase_id" IN \(([\d, ]+)\)', query["sql"]):
+            phase_ids |= {int(phase_id) for phase_id in match.group(1).split(", ")}
+    return phase_ids
 
 
 class TestGameRetrieveView:
@@ -57,6 +67,51 @@ class TestGameRetrieveView:
         url = reverse(retrieve_viewname, args=["non-existent-game"])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_retrieve_game_requires_revalidation_on_every_poll(self, authenticated_client, active_game_with_phase_state):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response["Cache-Control"] == "private, no-cache"
+        assert response["ETag"].startswith('"')
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_304_when_unchanged(self, authenticated_client, active_game_with_phase_state):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_304_when_weakened_etag_matches(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}")
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_game_changes(
+        self, authenticated_client, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+    ):
+        url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        etag = authenticated_client.get(url)["ETag"]
+        authenticated_client_for_secondary_user.post(reverse("game-join", args=[pending_game_created_by_primary_user.id]))
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["members"]) == 2
+        assert response["ETag"] != etag
 
     @pytest.mark.django_db
     def test_retrieve_game_response_structure(self, authenticated_client, pending_game_created_by_primary_user):
@@ -270,6 +325,33 @@ class TestGameRetrieveView:
         assert len(response.data["phases"]) == 2
 
 
+    @pytest.mark.django_db
+    def test_retrieve_game_reports_order_status_from_current_phase(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game = game_with_phase_history_factory(phase_count=3)
+        PhaseState.objects.filter(phase__game=game).exclude(phase=game.current_phase).update(orders_confirmed=True)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["order_status"] == "orders_required"
+        assert response.data["phase_confirmed"] is False
+
+    @pytest.mark.django_db
+    def test_retrieve_game_reports_nmr_from_latest_completed_phase(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game = game_with_phase_history_factory(phase_count=3)
+        latest_completed_phase = list(game.phases.all())[-2]
+        PhaseState.objects.filter(phase=latest_completed_phase).update(orders_outcome=PhaseState.OrdersOutcome.NMR)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["member_status"] == ["nmr"]
+
+
 class TestGameRetrieveViewQueryPerformance:
 
     @pytest.mark.django_db
@@ -395,6 +477,35 @@ class TestGameRetrieveViewQueryPerformance:
         assert query_count == 5
 
 
+    @pytest.mark.django_db
+    def test_retrieve_game_does_not_select_latest_phases_across_all_games(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game = game_with_phase_history_factory(phase_count=3)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert all("DISTINCT ON" not in q["sql"] for q in connection.queries)
+
+    @pytest.mark.django_db
+    def test_retrieve_game_phase_state_query_only_current_and_latest_completed_phases(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game_with_phase_history_factory(phase_count=3)
+        game = game_with_phase_history_factory(phase_count=4)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        phases = list(game.phases.all())
+        assert queried_phase_ids("phase_phasestate") == {phases[-1].id, phases[-2].id}
+
+
 class TestGameCurrentPhase:
 
     @pytest.mark.django_db
@@ -477,6 +588,62 @@ class TestGameListView:
 
         listed = next(g for g in response.data["results"] if g["id"] == game.id)
         assert [member["id"] for member in listed["members"]] == [replacement.id]
+
+    @pytest.mark.django_db
+    def test_list_games_reports_order_status_from_current_phase(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        submitted_game = game_with_phase_history_factory(phase_count=3)
+        required_game = game_with_phase_history_factory(phase_count=3)
+        PhaseState.objects.filter(phase=submitted_game.current_phase).update(orders_confirmed=True)
+        PhaseState.objects.filter(phase__game=required_game).exclude(phase=required_game.current_phase).update(
+            orders_confirmed=True
+        )
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        order_statuses = {g["id"]: g["order_status"] for g in response.data["results"]}
+        assert order_statuses[submitted_game.id] == "orders_submitted"
+        assert order_statuses[required_game.id] == "orders_required"
+
+    @pytest.mark.django_db
+    def test_list_games_reports_nmr_from_latest_completed_phase(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        nmr_game = game_with_phase_history_factory(phase_count=3)
+        earlier_nmr_game = game_with_phase_history_factory(phase_count=3)
+        finished_nmr_game = game_with_phase_history_factory(phase_count=3, last_status=PhaseStatus.COMPLETED)
+        nmr_phases = [
+            list(nmr_game.phases.all())[-2],
+            list(earlier_nmr_game.phases.all())[0],
+            finished_nmr_game.current_phase,
+        ]
+        PhaseState.objects.filter(phase__in=nmr_phases).update(orders_outcome=PhaseState.OrdersOutcome.NMR)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        member_statuses = {g["id"]: g["member_status"] for g in response.data["results"]}
+        assert member_statuses[nmr_game.id] == ["nmr"]
+        assert member_statuses[earlier_nmr_game.id] == []
+        assert member_statuses[finished_nmr_game.id] == ["nmr"]
+
+    @pytest.mark.django_db
+    def test_list_games_later_page_includes_current_phase_board(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game = game_with_phase_history_factory(phase_count=3)
+        game_with_phase_history_factory(phase_count=3)
+
+        response = authenticated_client.get(reverse(list_viewname), {"page_size": 1, "page": 2})
+
+        assert response.status_code == status.HTTP_200_OK
+        [result] = response.data["results"]
+        assert result["id"] == game.id
+        assert result["current_phase"]["id"] == game.current_phase.id
+        assert len(result["current_phase"]["units"]) == 1
+        assert len(result["current_phase"]["supply_centers"]) == 1
 
     @pytest.mark.django_db
     def test_list_games_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
@@ -1267,6 +1434,7 @@ class TestGameListViewQueryPerformance:
             .order_by("-created_at")
         )
         games = list(queryset)
+        Game.objects.hydrate_list_phases(games)
 
         with django_assert_num_queries(0):
             hydrated_units = sum(
@@ -1280,61 +1448,106 @@ class TestGameListViewQueryPerformance:
         assert hydrated_supply_centers == games_count * supply_centers_per_phase
 
     @pytest.mark.django_db
-    def test_list_games_scopes_board_with_set_based_subquery(
+    @pytest.mark.parametrize(
+        ("client_name", "params", "expected_query_count"),
+        [
+            ("authenticated", {}, 8),
+            ("authenticated", {"mine": "true"}, 8),
+            ("authenticated", {"sandbox": "true"}, 8),
+            ("unauthenticated", {}, 8),
+        ],
+    )
+    def test_list_games_query_count_is_constant_as_games_and_phases_grow(
         self,
         authenticated_client,
-        primary_user,
-        classical_variant,
-        classical_england_nation,
-        classical_edinburgh_province,
+        unauthenticated_client,
+        game_with_phase_history_factory,
+        client_name,
+        params,
+        expected_query_count,
     ):
-        games_count = 2
-        phases_per_game = 8
-
-        for i in range(games_count):
-            game = Game.objects.create(
-                name=f"Set based game {i}",
-                variant=classical_variant,
-                status=GameStatus.ACTIVE,
-            )
-            game.members.create(user=primary_user, nation=classical_england_nation)
-            for ordinal in range(1, phases_per_game + 1):
-                phase = game.phases.create(
-                    game=game,
-                    variant=game.variant,
-                    season="Spring",
-                    year=1900 + ordinal,
-                    type=PhaseType.MOVEMENT,
-                    status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
-                    ordinal=ordinal,
-                )
-                phase.units.create(
-                    type=UnitType.FLEET,
-                    nation=classical_england_nation,
-                    province=classical_edinburgh_province,
-                )
-                phase.supply_centers.create(
-                    nation=classical_england_nation,
-                    province=classical_edinburgh_province,
-                )
-
+        client = authenticated_client if client_name == "authenticated" else unauthenticated_client
         url = reverse(list_viewname)
-        connection.queries_log.clear()
 
+        def list_query_count():
+            connection.queries_log.clear()
+            with override_settings(DEBUG=True):
+                response = client.get(url, params)
+            assert response.status_code == status.HTTP_200_OK
+            return len(connection.queries)
+
+        for _ in range(2):
+            game_with_phase_history_factory(phase_count=2)
+        assert list_query_count() == expected_query_count
+
+        for _ in range(4):
+            game_with_phase_history_factory(phase_count=8)
+        assert list_query_count() == expected_query_count
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        ("client_name", "params"),
+        [
+            ("authenticated", {}),
+            ("authenticated", {"mine": "true"}),
+            ("authenticated", {"sandbox": "true"}),
+            ("unauthenticated", {}),
+        ],
+    )
+    def test_list_games_does_not_select_latest_phases_across_all_games(
+        self,
+        authenticated_client,
+        unauthenticated_client,
+        game_with_phase_history_factory,
+        client_name,
+        params,
+    ):
+        client = authenticated_client if client_name == "authenticated" else unauthenticated_client
+        game_with_phase_history_factory(phase_count=3)
+
+        connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(url, {"mine": "true"})
+            response = client.get(reverse(list_viewname), params)
 
         assert response.status_code == status.HTTP_200_OK
+        assert all("DISTINCT ON" not in q["sql"] for q in connection.queries)
 
-        unit_queries = [q["sql"] for q in connection.queries if 'FROM "unit_unit"' in q["sql"]]
-        supply_center_queries = [
-            q["sql"] for q in connection.queries if 'FROM "supply_center_supplycenter"' in q["sql"]
-        ]
+    @pytest.mark.django_db
+    def test_list_games_board_queries_only_current_phases_on_page(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game_with_phase_history_factory(phase_count=4)
+        page_games = [game_with_phase_history_factory(phase_count=4) for _ in range(2)]
 
-        assert len(unit_queries) == 1
-        assert len(supply_center_queries) == 1
-        assert "DISTINCT ON" in unit_queries[0]
-        assert "DISTINCT ON" in supply_center_queries[0]
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(list_viewname), {"page_size": 2})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert {g["id"] for g in response.data["results"]} == {game.id for game in page_games}
+        current_phase_ids = {game.current_phase.id for game in page_games}
+        assert queried_phase_ids("unit_unit") == current_phase_ids
+        assert queried_phase_ids("supply_center_supplycenter") == current_phase_ids
+
+    @pytest.mark.django_db
+    def test_list_games_phase_state_query_only_current_and_latest_completed_phases_on_page(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game_with_phase_history_factory(phase_count=4)
+        active_game = game_with_phase_history_factory(phase_count=4)
+        finished_game = game_with_phase_history_factory(phase_count=4, last_status=PhaseStatus.COMPLETED)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(list_viewname), {"page_size": 2})
+
+        assert response.status_code == status.HTTP_200_OK
+        active_phases = list(active_game.phases.all())
+        assert queried_phase_ids("phase_phasestate") == {
+            active_phases[-1].id,
+            active_phases[-2].id,
+            finished_game.current_phase.id,
+        }
 
     @pytest.mark.django_db
     def test_list_games_board_is_lean(
@@ -1472,6 +1685,7 @@ class TestGameListViewQueryPerformance:
         hydrated = list(
             Game.objects.filter(id=game.id).with_list_data()
         )
+        Game.objects.hydrate_list_phases(hydrated)
         game_obj = hydrated[0]
 
         with django_assert_num_queries(0):
@@ -1951,7 +2165,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 46
+        assert query_count == 47
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1970,7 +2184,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 46
+        assert query_count == 47
 
 
 class TestGamePrivateFiltering:
@@ -2124,6 +2338,84 @@ class TestGameDurationOptions:
         game = Game.objects.get(id=response.data["id"])
         assert game.movement_phase_duration == duration
         assert game.movement_phase_duration_seconds == expected_seconds
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("duration,expected_seconds", [
+        (MovementPhaseDuration.FIVE_MINUTES, 300),
+        (MovementPhaseDuration.FIFTEEN_MINUTES, 900),
+        (MovementPhaseDuration.THIRTY_MINUTES, 1800),
+    ])
+    def test_private_game_short_duration_options(
+        self, authenticated_client, classical_variant, duration, expected_seconds
+    ):
+        url = reverse(create_viewname)
+        payload = {
+            "name": f"Private Game {duration}",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": duration,
+            "private": True,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration == duration
+        assert game.movement_phase_duration_seconds == expected_seconds
+        assert game.private is True
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("duration", [
+        MovementPhaseDuration.FIVE_MINUTES,
+        MovementPhaseDuration.FIFTEEN_MINUTES,
+        MovementPhaseDuration.THIRTY_MINUTES,
+    ])
+    def test_public_game_rejects_short_duration(self, authenticated_client, classical_variant, duration):
+        url = reverse(create_viewname)
+        payload = {
+            "name": f"Public Game {duration}",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": duration,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "movement_phase_duration" in response.data
+
+    @pytest.mark.django_db
+    def test_public_game_rejects_short_retreat_duration(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Public Game Short Retreat",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            "retreat_phase_duration": MovementPhaseDuration.FIFTEEN_MINUTES,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "retreat_phase_duration" in response.data
+
+    @pytest.mark.django_db
+    def test_private_game_accepts_short_retreat_duration(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Private Game Short Retreat",
+            "variant_id": classical_variant.id,
+            "movement_phase_duration": MovementPhaseDuration.THIRTY_MINUTES,
+            "retreat_phase_duration": MovementPhaseDuration.FIVE_MINUTES,
+            "private": True,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration == MovementPhaseDuration.THIRTY_MINUTES
+        assert game.retreat_phase_duration == MovementPhaseDuration.FIVE_MINUTES
+        assert game.retreat_phase_duration_seconds == 300
 
 
 class TestRetreatPhaseDuration:
@@ -2445,7 +2737,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 52
+        assert query_count == 54
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2466,7 +2758,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 52
+        assert query_count == 54
 
 
 class TestSandboxGameFiltering:

@@ -103,6 +103,7 @@ describe("OrdersScreen civil disorder handling", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -118,6 +119,7 @@ describe("OrdersScreen civil disorder handling", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -133,6 +135,7 @@ describe("OrdersScreen civil disorder handling", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -147,13 +150,14 @@ describe("OrdersScreen civil disorder handling", () => {
 
     renderOrdersScreen();
 
-    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 
   it("shows 'I'm back' button when current member is in civil disorder", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -169,6 +173,7 @@ describe("OrdersScreen civil disorder handling", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -200,6 +205,7 @@ describe("OrdersScreen confirm orders button", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "fixed_time",
       phaseConfirmed: false,
@@ -208,13 +214,14 @@ describe("OrdersScreen confirm orders button", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm (0/1)" })).toBeInTheDocument();
   });
 
   it("shows confirm orders button for duration game", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -223,7 +230,7 @@ describe("OrdersScreen confirm orders button", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm (0/1)" })).toBeInTheDocument();
   });
 });
 
@@ -238,6 +245,7 @@ describe("OrdersScreen spectating", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -254,8 +262,8 @@ describe("OrdersScreen spectating", () => {
   it("hides the confirm orders button when the user is not a member", () => {
     renderOrdersScreen();
 
-    expect(screen.queryByRole("button", { name: /orders confirmed/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirmed/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 });
 
@@ -272,6 +280,7 @@ describe("OrdersScreen resilience to malformed list data", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -337,6 +346,7 @@ describe("OrdersScreen named coast display", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -416,6 +426,7 @@ describe("OrdersScreen delete order button", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
@@ -462,6 +473,21 @@ describe("OrdersScreen delete order button", () => {
     renderOrdersScreen();
 
     expect(screen.getByLabelText(/Delete order for/)).not.toBeDisabled();
+  });
+
+  it.each([
+    ["is no longer the game's current phase", { currentPhaseId: 2 }, {}],
+    ["is processing", {}, { status: "processing" }],
+    ["belongs to a completed game", { status: "completed" }, {}],
+  ])("hides delete and confirm when the phase %s", (_, gameOverrides, phaseOverrides) => {
+    mockGameData.mockReturnValue({ ...mockGameData(), ...gameOverrides });
+    mockPhaseData.mockReturnValue({ ...mockPhaseData(), ...phaseOverrides });
+
+    renderOrdersScreen();
+
+    expect(screen.getByText("Army London")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Delete order for/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 
   it("uses a long-tailed upward arrow for movement orders", () => {
@@ -514,6 +540,7 @@ describe("OrdersScreen no orders required (active phase, has a member)", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,

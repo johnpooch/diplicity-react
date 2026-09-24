@@ -1,6 +1,9 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.apps import apps
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import conditional_page
 
 Phase = apps.get_model("phase", "Phase")
 Game = apps.get_model("game", "Game")
@@ -131,3 +134,11 @@ class CurrentGameMemberMixin:
         context = super().get_serializer_context()
         context["current_game_member"] = self.get_current_game_member()
         return context
+
+
+class ConditionalGetMixin:
+
+    @method_decorator(conditional_page)
+    @method_decorator(cache_control(private=True, no_cache=True))
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)

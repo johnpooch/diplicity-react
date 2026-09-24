@@ -101,13 +101,28 @@ export interface ChannelMessage {
   readonly createdAt: string;
 }
 
+export interface ChannelEvent {
+  readonly id: number;
+  readonly text: string;
+  readonly createdAt: string;
+}
+
 export interface Channel {
   readonly id: number;
   readonly name: string;
+  /** @maxLength 50 */
+  title?: string;
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
+  readonly events: readonly ChannelEvent[];
   readonly unreadMessageCount: number;
   memberIds: number[];
+}
+
+export interface ChannelUpdate {
+  readonly id: number;
+  /** @maxLength 50 */
+  title: string;
 }
 
 /**
@@ -188,7 +203,10 @@ export interface DrawVoteUpdate {
 }
 
 /**
- * * `1 hour` - 1 hour
+ * * `5 minutes` - 5 minutes
+ * `15 minutes` - 15 minutes
+ * `30 minutes` - 30 minutes
+ * `1 hour` - 1 hour
  * `2 hours` - 2 hours
  * `4 hours` - 4 hours
  * `8 hours` - 8 hours
@@ -203,6 +221,9 @@ export interface DrawVoteUpdate {
 export type DurationEnum = (typeof DurationEnum)[keyof typeof DurationEnum];
 
 export const DurationEnum = {
+  "5_minutes": "5 minutes",
+  "15_minutes": "15 minutes",
+  "30_minutes": "30 minutes",
   "1_hour": "1 hour",
   "2_hours": "2 hours",
   "4_hours": "4 hours",
@@ -464,6 +485,7 @@ export interface Member {
   readonly eliminated: boolean;
   readonly kicked: boolean;
   readonly isGameCreator: boolean;
+  readonly isAdmin: boolean;
   readonly nmrExtensionsRemaining: number;
   readonly civilDisorder: boolean;
   readonly seekingReplacement: boolean;
@@ -718,6 +740,12 @@ export interface PasswordResetConfirm {
   newPassword: string;
   /** @minLength 8 */
   confirmPassword: string;
+}
+
+export interface PatchedChannelUpdate {
+  readonly id?: number;
+  /** @maxLength 50 */
+  title?: string;
 }
 
 export interface PatchedDrawVoteUpdate {
@@ -1123,7 +1151,10 @@ export type GamesListParams = {
   eligible_only?: boolean;
   mine?: boolean;
   /**
-   * * `1 hour` - 1 hour
+   * * `5 minutes` - 5 minutes
+   * `15 minutes` - 15 minutes
+   * `30 minutes` - 30 minutes
+   * `1 hour` - 1 hour
    * `2 hours` - 2 hours
    * `4 hours` - 4 hours
    * `8 hours` - 8 hours
@@ -1159,13 +1190,16 @@ export const GamesListMovementPhaseDuration = {
   "1_hour": "1 hour",
   "1_week": "1 week",
   "12_hours": "12 hours",
+  "15_minutes": "15 minutes",
   "2_hours": "2 hours",
   "2_weeks": "2 weeks",
   "24_hours": "24 hours",
   "3_days": "3 days",
+  "30_minutes": "30 minutes",
   "4_days": "4 days",
   "4_hours": "4 hours",
   "48_hours": "48 hours",
+  "5_minutes": "5 minutes",
   "8_hours": "8 hours",
 } as const;
 
@@ -7070,6 +7104,196 @@ export function useGamesChannelsListSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Rename a private channel.
+ */
+export const gamesChannelsUpdate = (
+  gameId: string,
+  channelId: number,
+  channelUpdate: NonReadonly<ChannelUpdate>,
+  signal?: AbortSignal
+) => {
+  return customInstance<ChannelUpdate>({
+    url: `/games/${gameId}/channels/${channelId}/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: channelUpdate,
+    signal,
+  });
+};
+
+export const getGamesChannelsUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsUpdate>>,
+    TError,
+    { gameId: string; channelId: number; data: NonReadonly<ChannelUpdate> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsUpdate>>,
+  TError,
+  { gameId: string; channelId: number; data: NonReadonly<ChannelUpdate> },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsUpdate>>,
+    { gameId: string; channelId: number; data: NonReadonly<ChannelUpdate> }
+  > = props => {
+    const { gameId, channelId, data } = props ?? {};
+
+    return gamesChannelsUpdate(gameId, channelId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsUpdate>>
+>;
+export type GamesChannelsUpdateMutationBody = NonReadonly<ChannelUpdate>;
+export type GamesChannelsUpdateMutationError = unknown;
+
+export const useGamesChannelsUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsUpdate>>,
+      TError,
+      { gameId: string; channelId: number; data: NonReadonly<ChannelUpdate> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsUpdate>>,
+  TError,
+  { gameId: string; channelId: number; data: NonReadonly<ChannelUpdate> },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Rename a private channel.
+ */
+export const gamesChannelsPartialUpdate = (
+  gameId: string,
+  channelId: number,
+  patchedChannelUpdate: NonReadonly<PatchedChannelUpdate>,
+  signal?: AbortSignal
+) => {
+  return customInstance<ChannelUpdate>({
+    url: `/games/${gameId}/channels/${channelId}/`,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    data: patchedChannelUpdate,
+    signal,
+  });
+};
+
+export const getGamesChannelsPartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsPartialUpdate>>,
+    TError,
+    {
+      gameId: string;
+      channelId: number;
+      data: NonReadonly<PatchedChannelUpdate>;
+    },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsPartialUpdate>>,
+  TError,
+  {
+    gameId: string;
+    channelId: number;
+    data: NonReadonly<PatchedChannelUpdate>;
+  },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsPartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsPartialUpdate>>,
+    {
+      gameId: string;
+      channelId: number;
+      data: NonReadonly<PatchedChannelUpdate>;
+    }
+  > = props => {
+    const { gameId, channelId, data } = props ?? {};
+
+    return gamesChannelsPartialUpdate(gameId, channelId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsPartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsPartialUpdate>>
+>;
+export type GamesChannelsPartialUpdateMutationBody =
+  NonReadonly<PatchedChannelUpdate>;
+export type GamesChannelsPartialUpdateMutationError = unknown;
+
+export const useGamesChannelsPartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsPartialUpdate>>,
+      TError,
+      {
+        gameId: string;
+        channelId: number;
+        data: NonReadonly<PatchedChannelUpdate>;
+      },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsPartialUpdate>>,
+  TError,
+  {
+    gameId: string;
+    channelId: number;
+    data: NonReadonly<PatchedChannelUpdate>;
+  },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsPartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
 
 /**
  * Used by views that have a game parameter in the URL. Provides a get_game

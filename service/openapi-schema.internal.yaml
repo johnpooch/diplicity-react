@@ -1154,15 +1154,21 @@ paths:
           - 1 hour
           - 1 week
           - 12 hours
+          - 15 minutes
           - 2 hours
           - 2 weeks
           - 24 hours
           - 3 days
+          - 30 minutes
           - 4 days
           - 4 hours
           - 48 hours
+          - 5 minutes
           - 8 hours
         description: |-
+          * `5 minutes` - 5 minutes
+          * `15 minutes` - 15 minutes
+          * `30 minutes` - 30 minutes
           * `1 hour` - 1 hour
           * `2 hours` - 2 hours
           * `4 hours` - 4 hours
@@ -1239,6 +1245,68 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Channel'
+          description: ''
+  /games/{game_id}/channels/{channel_id}/:
+    put:
+      operationId: games_channels_update
+      description: Rename a private channel.
+      parameters:
+      - in: path
+        name: channel_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelUpdate'
+          description: ''
+    patch:
+      operationId: games_channels_partial_update
+      description: Rename a private channel.
+      parameters:
+      - in: path
+        name: channel_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChannelUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelUpdate'
           description: ''
   /games/{game_id}/channels/{channel_id}/mark-read/:
     post:
@@ -1936,6 +2004,9 @@ components:
         name:
           type: string
           readOnly: true
+        title:
+          type: string
+          maxLength: 50
         private:
           type: boolean
           readOnly: true
@@ -1943,6 +2014,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChannelMessage'
+          readOnly: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelEvent'
           readOnly: true
         unread_message_count:
           type: integer
@@ -1954,12 +2030,30 @@ components:
             type: integer
           writeOnly: true
       required:
+      - events
       - id
       - member_ids
       - messages
       - name
       - private
       - unread_message_count
+    ChannelEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - text
     ChannelMember:
       type: object
       properties:
@@ -2026,6 +2120,18 @@ components:
       - created_at
       - id
       - sender
+    ChannelUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 50
+      required:
+      - id
+      - title
     CommitmentEligibilityEnum:
       enum:
       - eligible
@@ -2154,6 +2260,9 @@ components:
       - accepted
     DurationEnum:
       enum:
+      - 5 minutes
+      - 15 minutes
+      - 30 minutes
       - 1 hour
       - 2 hours
       - 4 hours
@@ -2167,6 +2276,9 @@ components:
       - 2 weeks
       type: string
       description: |-
+        * `5 minutes` - 5 minutes
+        * `15 minutes` - 15 minutes
+        * `30 minutes` - 30 minutes
         * `1 hour` - 1 hour
         * `2 hours` - 2 hours
         * `4 hours` - 4 hours
@@ -2940,6 +3052,9 @@ components:
         is_game_creator:
           type: boolean
           readOnly: true
+        is_admin:
+          type: boolean
+          readOnly: true
         nmr_extensions_remaining:
           type: integer
           readOnly: true
@@ -2965,6 +3080,7 @@ components:
       - commitment
       - eliminated
       - id
+      - is_admin
       - is_bot
       - is_current_user
       - is_game_creator
@@ -3279,6 +3395,15 @@ components:
       - new_password
       - token
       - uid
+    PatchedChannelUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 50
     PatchedDrawVoteUpdate:
       type: object
       properties:

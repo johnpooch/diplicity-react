@@ -7,6 +7,8 @@ from common.models import BaseModel
 
 User = get_user_model()
 
+CHANNEL_TITLE_MAX_LENGTH = 50
+
 
 class ChannelQuerySet(models.QuerySet):
     def accessible_to_user(self, user, game):
@@ -22,7 +24,8 @@ class ChannelQuerySet(models.QuerySet):
 
     def with_related_data(self):
         return self.prefetch_related(
-            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile__uploaded_picture", "members", "members__user", "members__user__profile__uploaded_picture"
+            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile__uploaded_picture", "members", "members__user", "members__user__profile__uploaded_picture",
+            models.Prefetch("events", queryset=ChannelEvent.objects.for_display()),
         )
 
     def order_for_list(self):
@@ -55,12 +58,12 @@ class ChannelManager(models.Manager):
     def get_queryset(self):
         return ChannelQuerySet(self.model, using=self._db)
 
-    def create_from_member_ids(self, user, member_ids, game):
+    def create_from_member_ids(self, user, member_ids, game, title=""):
         member_ids = member_ids + [game.members.players().get(user=user).id]
         channel_members = game.members.players().filter(id__in=member_ids)
         nations = sorted([m.nation.name for m in channel_members])
         channel_name = ", ".join(nations)
-        channel = self.create(name=channel_name, private=True, game=game)
+        channel = self.create(name=channel_name, title=title, private=True, game=game)
         channel.members.set(channel_members)
         return channel
 
@@ -85,6 +88,7 @@ class Channel(BaseModel):
     objects = ChannelManager()
 
     name = models.CharField(max_length=1000)
+    title = models.CharField(max_length=CHANNEL_TITLE_MAX_LENGTH, blank=True, default="")
     private = models.BooleanField(default=False)
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="channels")
     members = models.ManyToManyField(
@@ -136,7 +140,18 @@ class ChannelMessage(BaseModel):
         ordering = ["created_at"]
 
 
+class ChannelEventQuerySet(models.QuerySet):
+    def for_display(self):
+        return self.filter(type__in=channel_registry.displayed_event_types())
+
+
 class ChannelEventManager(models.Manager):
+    def get_queryset(self):
+        return ChannelEventQuerySet(self.model, using=self._db)
+
+    def for_display(self):
+        return self.get_queryset().for_display()
+
     def create_from_event(self, event_type, context):
         spec_class = channel_registry.REGISTRY.get(event_type)
         if spec_class is None:
@@ -144,11 +159,16 @@ class ChannelEventManager(models.Manager):
         channels = spec_class().get_channels(context)
         if not channels:
             return []
-        return self.create_for_channels(event_type, channels, phase=context.phase)
+        return self.create_for_channels(
+            event_type, channels, phase=context.phase, payload=spec_class().build_payload(context)
+        )
 
-    def create_for_channels(self, event_type, channels, phase=None):
+    def create_for_channels(self, event_type, channels, phase=None, payload=None):
         return self.bulk_create(
-            [self.model(channel=channel, type=event_type, phase=phase) for channel in channels]
+            [
+                self.model(channel=channel, type=event_type, phase=phase, payload=payload or {})
+                for channel in channels
+            ]
         )
 
 
@@ -158,8 +178,16 @@ class ChannelEvent(BaseModel):
         "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_events"
     )
     type = models.CharField(max_length=100)
+    payload = models.JSONField(default=dict, blank=True)
 
     objects = ChannelEventManager()
 
     class Meta:
         ordering = ["created_at"]
+
+    @property
+    def text(self):
+        spec_class = channel_registry.REGISTRY.get(self.type)
+        if spec_class is None:
+            return None
+        return spec_class().render(self)

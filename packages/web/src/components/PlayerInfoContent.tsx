@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import {
-  Bot,
+  ChevronDown,
   ChevronRight,
   Link2,
-  MoreVertical,
-  Shield,
+  RotateCcw,
   Star,
-  Trophy,
-  User,
+  Swords,
   UserMinus,
   UserPlus,
 } from "lucide-react";
@@ -16,12 +14,15 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { AddBotSheet } from "@/components/AddBotSheet";
-import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
-import { CommitmentBadge } from "@/components/CommitmentBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
+import { InfoButton } from "@/components/InfoButton";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
-import { KickedBadge } from "@/components/KickedBadge";
-import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import {
+  NationFlag,
+  findNationFlagUrl,
+  findNationColor,
+  getContrastColor,
+} from "@/components/NationFlag";
 import { NationSeatFlag, getNationSeatLabel } from "@/components/NationSeat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -35,15 +36,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { cn } from "@/lib/utils";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
@@ -52,11 +47,69 @@ import {
   getGameAddableUserListQueryKey,
   getGameRetrieveQueryKey,
   Member,
+  Variant,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
+
+const PlayerMedia: React.FC<{
+  member: Member;
+  variant: Variant | undefined;
+  showNationSeat: boolean;
+}> = ({ member, variant, showNationSeat }) => {
+  if (member.nation && variant && !showNationSeat) {
+    const nationColor = findNationColor(variant.nations, member.nation);
+    return (
+      <div className="relative size-12 shrink-0">
+        <div className="size-12 overflow-hidden rounded-full border">
+          <NationFlag
+            flagUrl={findNationFlagUrl(variant.nations, member.nation)}
+            alt={member.nation}
+            className="size-12"
+            color={nationColor}
+          />
+        </div>
+        {member.userId && (
+          <span className="absolute -bottom-0.5 -right-0.5">
+            <Avatar className="size-5 ring-2 ring-background">
+              <AvatarImage src={member.picture ?? undefined} />
+              <AvatarFallback
+                className="text-[8px] leading-none"
+                style={{
+                  backgroundColor: nationColor ?? undefined,
+                  color: getContrastColor(nationColor),
+                }}
+              >
+                {member.name[0]?.toUpperCase() ?? "?"}
+              </AvatarFallback>
+            </Avatar>
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative size-12 shrink-0">
+      <Avatar className="size-12">
+        <AvatarImage src={member.picture ?? undefined} />
+        <AvatarFallback>{member.name[0]?.toUpperCase() ?? "?"}</AvatarFallback>
+      </Avatar>
+      {showNationSeat && variant && (
+        <span className="absolute -bottom-0.5 -right-0.5">
+          <NationSeatFlag
+            nations={variant.nations}
+            nation={member.nation}
+            preferenceIds={member.nationPreferenceIds}
+            size="sm"
+          />
+        </span>
+      )}
+    </div>
+  );
+};
 
 export const PlayerInfoContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -70,6 +123,7 @@ export const PlayerInfoContent: React.FC = () => {
   const kickMutation = useGameKickDestroy();
 
   const [addBotOpen, setAddBotOpen] = useState(false);
+  const [formerOpen, setFormerOpen] = useState(true);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
 
   const currentPhaseId = getCurrentPhaseId(game);
@@ -86,7 +140,10 @@ export const PlayerInfoContent: React.FC = () => {
     ).length;
   };
 
-  const winnerIds = game.victory?.members?.map(m => m.id) || [];
+  const getUnitCount = (member: Member) => {
+    if (!currentPhase) return undefined;
+    return currentPhase.units.filter(u => u.nation.name === member.nation).length;
+  };
 
   const isPending = game.status === "pending";
   const isGameMaster = !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
@@ -128,217 +185,283 @@ export const PlayerInfoContent: React.FC = () => {
     }
   };
 
+  const formerMembers = game.members.filter(m => m.kicked);
+  const eliminatedMembers = game.members.filter(m => m.eliminated && !m.kicked);
+  const activeMembers = game.members.filter(m => !m.kicked && !m.eliminated);
+
+  const renderMemberRow = (member: Member) => {
+    const supplyCenterCount = getSupplyCenterCount(member);
+    const unitCount = getUnitCount(member);
+    const showNationSeat = isPending && member.isCurrentUser;
+
+    const stopRowClick = (e: React.SyntheticEvent) => e.stopPropagation();
+
+    return (
+      <div key={member.id} className="flex items-center p-3 hover:bg-accent/50">
+        <div
+          className={cn(
+            "flex flex-1 min-w-0 items-center gap-3",
+            member.userId && "cursor-pointer"
+          )}
+          role={member.userId ? "link" : undefined}
+          tabIndex={member.userId ? 0 : undefined}
+          aria-label={member.userId ? `View profile for ${member.name}` : undefined}
+          onClick={member.userId ? () => navigate(profilePath(member)) : undefined}
+          onKeyDown={
+            member.userId
+              ? e => {
+                  if (e.key === "Enter") navigate(profilePath(member));
+                }
+              : undefined
+          }
+        >
+          <PlayerMedia member={member} variant={variant} showNationSeat={showNationSeat} />
+
+          <div className="flex-1 min-w-0">
+            {member.nation && !isPending ? (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={cn(
+                      "font-medium truncate",
+                      member.civilDisorder && "text-destructive/80"
+                    )}
+                  >
+                    {member.nation}
+                  </span>
+                </div>
+
+                <div
+                  className={cn(
+                    "flex items-center gap-2 flex-wrap text-sm mt-0.5",
+                    member.civilDisorder ? "text-destructive/80" : "text-muted-foreground"
+                  )}
+                >
+                  <span>{member.name}</span>
+                  {member.isAdmin && <span>(Admin)</span>}
+                  {member.isBot && <span>(Bot)</span>}
+                  {member.civilDisorder && (
+                    <InfoButton
+                      label="Civil Disorder"
+                      text="This player stopped playing and is in Civil Disorder."
+                      className="text-destructive/70 hover:text-destructive"
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={cn(
+                    "font-medium",
+                    member.civilDisorder && "text-destructive/80"
+                  )}
+                >
+                  {member.name}
+                </span>
+                {member.isAdmin && (
+                  <span className="text-sm text-muted-foreground">(Admin)</span>
+                )}
+                {member.isBot && (
+                  <span className="text-sm text-muted-foreground">(Bot)</span>
+                )}
+                {member.civilDisorder && (
+                  <InfoButton
+                    label="Civil Disorder"
+                    text="This player stopped playing and is in Civil Disorder."
+                    className="text-destructive/70 hover:text-destructive"
+                  />
+                )}
+              </div>
+            )}
+
+            {member.isCurrentUser && isPending && (
+              <button
+                onClick={e => {
+                  stopRowClick(e);
+                  navigate(`/nation-preference/${gameId}`);
+                }}
+                onKeyDown={stopRowClick}
+                className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                {getNationSeatLabel(member.nation, member.nationPreferenceIds)}
+                <ChevronRight className="size-3.5" />
+              </button>
+            )}
+
+            {member.replaceable && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {canTakeOverSeat && (
+                  <Button
+                    size="sm"
+                    onClick={e => {
+                      stopRowClick(e);
+                      navigate(`/game/${gameId}/replace/${member.id}`);
+                    }}
+                    onKeyDown={stopRowClick}
+                  >
+                    <UserPlus />
+                    Replace
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={e => {
+                    stopRowClick(e);
+                    copyLink(`/game/${gameId}/replace/${member.id}`);
+                  }}
+                  onKeyDown={stopRowClick}
+                >
+                  <Link2 />
+                  Invite replacement
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {member.nation && !isPending && (
+            <div className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Star className="size-3" />
+                {supplyCenterCount !== undefined ? (
+                  <span>{supplyCenterCount}</span>
+                ) : (
+                  <Skeleton className="h-3 w-4" />
+                )}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Swords className="size-3" />
+                {unitCount !== undefined ? (
+                  <span>{unitCount}</span>
+                ) : (
+                  <Skeleton className="h-3 w-4" />
+                )}
+              </span>
+              {game.nmrExtensionsAllowed > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <RotateCcw className="size-3" />
+                  <span>{member.nmrExtensionsRemaining}</span>
+                </span>
+              )}
+            </div>
+          )}
+
+          {member.userId && (
+            <ChevronRight className="shrink-0 text-muted-foreground" />
+          )}
+        </div>
+
+        {canRemove(member) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-1 shrink-0"
+            aria-label={`Remove ${member.name}`}
+            onClick={() => setMemberToRemove(member)}
+          >
+            <UserMinus />
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} showPausedNotice={false} />
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
 
-      <ScreenCard>
-        <ScreenCardContent className="divide-y">
-          {game.gameMaster && (
-            <div className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-              <Avatar className="size-8">
+      {game.gameMaster && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Game master</h2>
+          <Card className="overflow-hidden py-0">
+            <CardContent className="flex items-center gap-3 p-3">
+              <Avatar className="size-12">
                 <AvatarImage src={game.gameMaster.picture ?? undefined} />
                 <AvatarFallback>
                   {game.gameMaster.name[0]?.toUpperCase() ?? "?"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                 <Link
                   to={`/player/${game.gameMaster.userId}`}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
+                  className="font-medium text-primary underline-offset-4 hover:underline truncate"
                 >
                   {game.gameMaster.name}
                 </Link>
-                <Badge variant="secondary" className="gap-1">
-                  <Shield className="size-3" />
-                  Game Master
-                </Badge>
+                <span className="text-sm text-muted-foreground">(Admin)</span>
               </div>
-            </div>
-          )}
-          {game.members.map(member => {
-            const supplyCenterCount = getSupplyCenterCount(member);
-            const isWinner = winnerIds.includes(member.id);
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
-            return (
-              <div
-                key={member.id}
-                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
-              >
-                {isPending && member.isCurrentUser && variant ? (
-                  <NationSeatFlag
-                    nations={variant.nations}
-                    nation={member.nation}
-                    preferenceIds={member.nationPreferenceIds}
-                  />
-                ) : (
-                  member.nation &&
-                  variant && (
-                    <NationFlag
-                      flagUrl={findNationFlagUrl(variant.nations, member.nation)}
-                      alt={member.nation}
-                      size="lg"
-                      className="size-8"
-                      color={findNationColor(variant.nations, member.nation)}
-                    />
-                  )
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {member.userId ? (
-                      <Link
-                        to={profilePath(member)}
-                        className="font-medium text-primary underline-offset-4 hover:underline"
-                      >
-                        {member.name}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{member.name}</span>
-                    )}
-                    {member.isBot && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Bot className="size-3" />
-                        Bot
-                      </Badge>
-                    )}
-                    {!member.isBot && member.commitment && (
-                      <CommitmentBadge commitment={member.commitment} />
-                    )}
-                    {member.isGameCreator && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Shield className="size-3" />
-                        Game Creator
-                      </Badge>
-                    )}
-                    {isWinner && (
-                      <Badge variant="default" className="gap-1">
-                        <Trophy className="size-3" />
-                        {game.victory?.type === "solo" ? "Winner" : "Draw"}
-                      </Badge>
-                    )}
-                    {member.kicked && <KickedBadge />}
-                    {member.civilDisorder && <CivilDisorderBadge />}
+      <section className="flex flex-col gap-2">
+        {game.gameMaster && (
+          <h2 className="text-sm font-medium text-muted-foreground">Players</h2>
+        )}
+        <Card className="overflow-hidden py-0">
+          <CardContent className="flex flex-col divide-y p-0">
+            {activeMembers.map(renderMemberRow)}
+            {Array.from({ length: openSeats }, (_, index) =>
+              canAddBots ? (
+                <button
+                  key={`open-seat-${index}`}
+                  onClick={() => setAddBotOpen(true)}
+                  className="flex items-center gap-3 p-3 text-left"
+                >
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
+                    <UserPlus className="size-4 text-muted-foreground" />
                   </div>
-
-                  {member.nation && !isPending && (
-                    <div className="text-sm text-muted-foreground mt-1">
-                      <span className="inline-flex items-center gap-2">
-                        <span>{member.nation}</span>
-                        <span>•</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="size-3" />
-                          {supplyCenterCount !== undefined ? (
-                            <span>{supplyCenterCount}</span>
-                          ) : (
-                            <Skeleton className="h-3 w-4" />
-                          )}
-                        </span>
-                        {game.nmrExtensionsAllowed > 0 && (
-                          <>
-                            <span>•</span>
-                            <span>{member.nmrExtensionsRemaining} ext. remaining</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  {member.isCurrentUser && isPending && (
-                    <button
-                      onClick={() => navigate(`/nation-preference/${gameId}`)}
-                      className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      {getNationSeatLabel(member.nation, member.nationPreferenceIds)}
-                      <ChevronRight className="size-3.5" />
-                    </button>
-                  )}
-
-                  {member.replaceable && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {canTakeOverSeat && (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/game/${gameId}/replace/${member.id}`)
-                          }
-                        >
-                          <UserPlus />
-                          Replace
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          copyLink(`/game/${gameId}/replace/${member.id}`)
-                        }
-                      >
-                        <Link2 />
-                        Invite replacement
-                      </Button>
-                    </div>
-                  )}
+                  <span className="font-medium text-primary underline-offset-4 hover:underline">
+                    Add AI player
+                  </span>
+                </button>
+              ) : (
+                <div key={`open-seat-${index}`} className="flex items-center gap-3 p-3">
+                  <div className="size-12 shrink-0 rounded-full border border-dashed border-muted-foreground/50" />
+                  <span className="text-muted-foreground">Open seat</span>
                 </div>
+              )
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Options for ${member.name}`}
-                    >
-                      <MoreVertical />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      disabled={!member.userId}
-                      onClick={() => navigate(profilePath(member))}
-                    >
-                      <User />
-                      View Profile
-                    </DropdownMenuItem>
-                    {canRemove(member) && (
-                      <DropdownMenuItem
-                        onClick={() => setMemberToRemove(member)}
-                      >
-                        <UserMinus />
-                        Remove Player
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            );
-          })}
-          {Array.from({ length: openSeats }, (_, index) =>
-            canAddBots ? (
-              <button
-                key={`open-seat-${index}`}
-                onClick={() => setAddBotOpen(true)}
-                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0 w-full text-left"
-              >
-                <div className="size-8 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center">
-                  <UserPlus className="size-4 text-muted-foreground" />
-                </div>
-                <span className="font-medium text-primary underline-offset-4 hover:underline">
-                  Add AI player
-                </span>
-              </button>
-            ) : (
-              <div
-                key={`open-seat-${index}`}
-                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
-              >
-                <div className="size-8 rounded-full border border-dashed border-muted-foreground/50" />
-                <span className="text-muted-foreground">Open seat</span>
-              </div>
-            )
+      {eliminatedMembers.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Eliminated</h2>
+          <Card className="overflow-hidden py-0">
+            <CardContent className="flex flex-col divide-y p-0">
+              {eliminatedMembers.map(renderMemberRow)}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      {formerMembers.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            aria-expanded={formerOpen}
+            onClick={() => setFormerOpen(open => !open)}
+          >
+            <ChevronDown
+              className={cn("size-4 transition-transform", !formerOpen && "-rotate-90")}
+            />
+            Former players ({formerMembers.length})
+          </button>
+          {formerOpen && (
+            <Card className="overflow-hidden py-0">
+              <CardContent className="flex flex-col divide-y p-0">
+                {formerMembers.map(renderMemberRow)}
+              </CardContent>
+            </Card>
           )}
-        </ScreenCardContent>
-      </ScreenCard>
+        </section>
+      )}
 
       <AlertDialog
         open={memberToRemove !== null}

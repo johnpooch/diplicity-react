@@ -49,7 +49,7 @@ class TestChannelEventManager:
 
 class TestChannelEventDispatch:
     @pytest.mark.django_db
-    def test_emit_creates_channel_event_on_public_press_channel(
+    def test_emit_creates_channel_event_on_every_channel(
         self, game_factory, classical_variant, in_memory_procrastinate
     ):
         game = game_factory(variant=classical_variant)
@@ -68,8 +68,46 @@ class TestChannelEventDispatch:
         emit.emit("phase_resolved", phase=phase)
 
         events = ChannelEvent.objects.filter(type="phase_resolved")
-        assert events.count() == 1
-        event = events.first()
-        assert event.channel_id == public.id
-        assert event.phase_id == phase.id
-        assert not ChannelEvent.objects.filter(channel=private).exists()
+        assert events.count() == 2
+        assert {e.channel_id for e in events} == {public.id, private.id}
+        assert all(e.phase_id == phase.id for e in events)
+
+
+class TestPhaseResolvedEventDisplay:
+    @pytest.mark.django_db
+    def test_phase_resolved_event_is_displayed_with_phase_name(self, game_factory, classical_variant):
+        game = game_factory(variant=classical_variant)
+        channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+
+        event = ChannelEvent.objects.create_for_channels("phase_resolved", [channel], phase=phase)[0]
+
+        assert ChannelEvent.objects.for_display().filter(id=event.id).exists()
+        assert event.text == "Spring 1901, Movement has been resolved"
+
+    @pytest.mark.django_db
+    def test_phase_resolved_early_event_is_displayed_with_phase_name(self, game_factory, classical_variant):
+        game = game_factory(variant=classical_variant)
+        channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+
+        event = ChannelEvent.objects.create_for_channels("phase_resolved_early", [channel], phase=phase)[0]
+
+        assert ChannelEvent.objects.for_display().filter(id=event.id).exists()
+        assert event.text == "Spring 1901, Movement resolved early — all players confirmed their orders"
