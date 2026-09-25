@@ -1764,6 +1764,7 @@ class TestGameListViewQueryPerformance:
         assert channel_message_queries() == []
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize("can_join", ["true", "True"])
     def test_list_games_can_join_does_not_query_unread_messages(
         self,
         authenticated_client,
@@ -1774,6 +1775,7 @@ class TestGameListViewQueryPerformance:
         classical_germany_nation,
         base_pending_phase,
         channel_with_messages_factory,
+        can_join,
     ):
         game = Game.objects.create(name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING)
         base_pending_phase(game)
@@ -1783,7 +1785,7 @@ class TestGameListViewQueryPerformance:
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(list_viewname), {"can_join": "true"})
+            response = authenticated_client.get(reverse(list_viewname), {"can_join": can_join})
 
         assert response.status_code == status.HTTP_200_OK
         assert [g["total_unread_message_count"] for g in response.data["results"]] == [0]

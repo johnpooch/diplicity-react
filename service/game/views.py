@@ -72,9 +72,13 @@ class GameListView(generics.ListAPIView):
         Game.objects.hydrate_total_unread_counts(
             page,
             self.request.user,
-            joinable_only=self.request.query_params.get("can_join") == "true",
+            joinable_only=self.lists_joinable_games(),
         )
         return page
+
+    def lists_joinable_games(self):
+        form = self.filterset_class(self.request.query_params, request=self.request).form
+        return form.is_valid() and form.cleaned_data["can_join"] is True
 
 
 class GameCreateView(generics.CreateAPIView):
