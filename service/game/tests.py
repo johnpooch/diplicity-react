@@ -1513,6 +1513,67 @@ class TestGameListViewQueryPerformance:
         assert all("DISTINCT ON" not in q["sql"] for q in connection.queries)
 
     @pytest.mark.django_db
+    def test_list_joinable_games_skips_unread_message_subquery(
+        self,
+        authenticated_client,
+        classical_variant,
+        base_pending_phase,
+        user_factory,
+        game_with_public_channel_and_messages,
+    ):
+        games_by_member_count = {}
+        for member_count in [0, 3, 1, 2]:
+            game = Game.objects.create(
+                name=f"{member_count} Member Game",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+            )
+            base_pending_phase(game)
+            for _ in range(member_count):
+                game.members.create(user=user_factory())
+            games_by_member_count[member_count] = game
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(
+                reverse(list_viewname), {"can_join": "true", "ordering": "slots_remaining"}
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [g["id"] for g in response.data["results"]] == [
+            games_by_member_count[member_count].id for member_count in [3, 2, 1, 0]
+        ]
+        assert all(g["total_unread_message_count"] == 0 for g in response.data["results"])
+        game_queries = [q["sql"] for q in connection.queries if 'FROM "game_game"' in q["sql"]]
+        assert len([sql for sql in game_queries if sql.startswith("SELECT COUNT(*)")]) == 1
+        assert len([sql for sql in game_queries if not sql.startswith("SELECT COUNT(*)")]) == 1
+        assert all("channel_channelmessage" not in sql for sql in game_queries)
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "can_join_params",
+        [{"can_join": "false"}, {"can_join": "maybe"}, {}],
+        ids=["false", "malformed", "absent"],
+    )
+    def test_list_games_counts_unread_messages_unless_can_join_is_true(
+        self, authenticated_client, game_with_public_channel_and_messages, can_join_params
+    ):
+        game = game_with_public_channel_and_messages
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(
+                reverse(list_viewname), {**can_join_params, "ordering": "slots_remaining"}
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        result = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert result["total_unread_message_count"] == 2
+        game_queries = [q["sql"] for q in connection.queries if 'FROM "game_game"' in q["sql"]]
+        assert len(game_queries) == 2
+        assert all("channel_channelmessage" in sql for sql in game_queries)
+
+    @pytest.mark.django_db
     def test_list_games_board_queries_only_current_phases_on_page(
         self, authenticated_client, game_with_phase_history_factory
     ):
