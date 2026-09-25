@@ -42,7 +42,7 @@ from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
-from channel.models import ChannelMember, ChannelMessage
+from channel.models import ChannelMessage
 from adjudicator import service as adjudication_service
 from game.utils import assign_nations
 
@@ -56,19 +56,9 @@ class GameQuerySet(models.QuerySet):
             return self.annotate(
                 total_unread_message_count=Value(0, output_field=IntegerField())
             )
-        last_read_subquery = Subquery(
-            ChannelMember.objects.filter(
-                channel=OuterRef("channel"),
-                member__user=user,
-            ).values("last_read_at")[:1]
-        )
         unread_count_subquery = (
-            ChannelMessage.objects.filter(
-                channel__game=OuterRef("pk"),
-                channel__member_channels__member__user=user,
-                created_at__gt=last_read_subquery,
-            )
-            .exclude(sender__user=user)
+            ChannelMessage.objects.unread_by(user)
+            .filter(channel__game=OuterRef("pk"))
             .order_by()
             .values("channel__game")
             .annotate(count=Count("id", distinct=True))
@@ -242,6 +232,19 @@ class GameManager(models.Manager):
         self._prefetch_for_phases(
             phases, current_phases, "supply_centers", SupplyCenter.objects.select_related("nation", "province")
         )
+
+    def hydrate_total_unread_counts(self, games, user, joinable_only=False):
+        counts = {}
+        if games and user.is_authenticated and not joinable_only:
+            counts = dict(
+                ChannelMessage.objects.unread_by(user)
+                .filter(channel__game__in=[game.id for game in games])
+                .order_by()
+                .values_list("channel__game")
+                .annotate(count=Count("id", distinct=True))
+            )
+        for game in games:
+            game.total_unread_message_count = counts.get(game.id, 0)
 
     def hydrate_retrieve_phases(self, games):
         phases, current_phases, latest_completed_phases = self._latest_phases(games)
