@@ -180,7 +180,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     }
     controller.focusProvinces(props.focus, 1.4, true, props.focusKeepZoom);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- focus compared by joined key; provincePaths gates controller readiness
-  }, [focusKey, provincePaths]);
+  }, [focusKey, provincePaths, props.focusKeepZoom]);
 
   useEffect(() => {
     controllerRef.current?.setFill(fill);

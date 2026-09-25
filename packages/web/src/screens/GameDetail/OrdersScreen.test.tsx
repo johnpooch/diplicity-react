@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 
 import { OrdersScreen } from "./OrdersScreen";
 
@@ -738,6 +738,10 @@ describe("OrdersScreen order creation entry point", () => {
     });
   });
 
+  afterEach(() => {
+    window.innerWidth = 1024;
+  });
+
   it("sets the source search param without navigating away on desktop", async () => {
     renderOrdersScreenWithLocation();
 
@@ -758,8 +762,6 @@ describe("OrdersScreen order creation entry point", () => {
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/game/game-1/phase/1?source=lon"
     );
-
-    window.innerWidth = 1024;
   });
 
   it("does not make the row clickable when the order is already provided", () => {
