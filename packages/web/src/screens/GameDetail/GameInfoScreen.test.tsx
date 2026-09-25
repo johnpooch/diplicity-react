@@ -131,17 +131,17 @@ describe("GameInfoScreen (shell)", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("shows neither header button once neither joining nor leaving is possible", () => {
+    it("shows a disabled Join button once neither joining nor leaving is possible, rather than no button at all", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
         data: pendingGameReliabilityRequired,
       });
       renderGameInfo(pendingGameReliabilityRequired.id);
 
       const content = screen.getByTestId("game-info-content");
-      const headerButtons = screen
-        .queryAllByRole("button", { name: /join game|leave game/i })
-        .filter((button) => !content.contains(button));
-      expect(headerButtons).toHaveLength(0);
+      const headerJoinButton = screen
+        .getAllByRole("button", { name: /join game/i })
+        .find((button) => !content.contains(button));
+      expect(headerJoinButton).toBeDisabled();
     });
 
     it("calls the join mutation when Join is clicked", async () => {
@@ -180,18 +180,19 @@ describe("GameInfoScreen (shell)", () => {
   });
 
   describe("pendingAction content", () => {
-    it("shows the disabled Join button with a reliability message when reliability-gated", () => {
+    it("shows a reliability message when reliability-gated (the disabled Join button itself lives in the header)", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
         data: pendingGameReliabilityRequired,
       });
       renderGameInfo(pendingGameReliabilityRequired.id);
 
       const content = screen.getByTestId("game-info-content");
-      const joinButton = within(content).getByRole("button", { name: /join game/i });
-      expect(joinButton).toBeDisabled();
       expect(
         within(content).getByText(/your reliability is too low to join this game/i)
       ).toBeInTheDocument();
+      expect(
+        within(content).queryByRole("button", { name: /join game/i })
+      ).not.toBeInTheDocument();
     });
 
     it("shows 'Add AI player' for a pending game the user manages", async () => {

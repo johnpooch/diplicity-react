@@ -73,6 +73,12 @@ const GameInfoScreen: React.FC = () => {
     userProfile.canCreateBotGames &&
     openSeats > 0;
 
+  const canJoinOrLeave = game.canJoin || game.canLeave;
+  const reliabilityBlocked =
+    game.status === "pending" &&
+    !canJoinOrLeave &&
+    game.minReliability !== "open";
+
   const pendingAction =
     game.status === "pending" ? (
       canAddBots ? (
@@ -83,15 +89,10 @@ const GameInfoScreen: React.FC = () => {
           <Bot className="size-4" />
           Add AI player
         </Button>
-      ) : !game.canJoin && !game.canLeave && game.minReliability !== "open" ? (
-        <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <Button disabled className="w-full sm:w-auto">
-            Join game
-          </Button>
-          <p className="text-xs text-muted-foreground text-center">
-            Your reliability is too low to join this game
-          </p>
-        </div>
+      ) : reliabilityBlocked ? (
+        <p className="text-xs text-muted-foreground text-center w-full sm:w-auto">
+          Your reliability is too low to join this game
+        </p>
       ) : null
     ) : null;
 
@@ -120,6 +121,15 @@ const GameInfoScreen: React.FC = () => {
               disabled={leaveGameMutation.isPending}
             >
               <LogOut />
+            </Button>
+          ) : game.status === "pending" ? (
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Join game"
+              disabled
+            >
+              <UserPlus />
             </Button>
           ) : undefined
         }

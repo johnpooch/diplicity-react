@@ -448,9 +448,12 @@ export const PlayerInfoContent: React.FC = () => {
                     <div className="size-12 rounded-full border border-dashed border-muted-foreground/50" />
                     <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary ring-2 ring-background" />
                   </div>
-                  <span className="font-medium text-primary underline-offset-4 hover:underline">
-                    Click to join
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Open seat</span>
+                    <span className="text-sm text-primary underline-offset-4 hover:underline">
+                      Join game
+                    </span>
+                  </div>
                 </button>
               ) : (
                 <div key={`open-seat-${index}`} className="flex items-center gap-3 p-3">

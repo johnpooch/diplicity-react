@@ -261,8 +261,8 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(screen.queryByText("Open seat")).not.toBeInTheDocument();
-    await user.click(screen.getAllByText("Click to join")[0]);
+    expect(screen.getAllByText("Open seat").length).toBeGreaterThan(0);
+    await user.click(screen.getAllByText("Join game")[0]);
 
     expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: "game-1" });
   });
