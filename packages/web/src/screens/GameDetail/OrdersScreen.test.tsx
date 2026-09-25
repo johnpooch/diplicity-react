@@ -486,6 +486,7 @@ describe("OrdersScreen delete order button", () => {
 
   it("disables the delete button while a delete is pending", () => {
     mockDeleteOrderMutation.mockReturnValueOnce({ mutateAsync: vi.fn(), isPending: true });
+    mockDeleteOrderMutation.mockReturnValueOnce({ mutateAsync: vi.fn(), isPending: true });
 
     renderOrdersScreen();
 
@@ -729,6 +730,7 @@ describe("OrdersScreen order creation entry point", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
+      currentPhaseId: 1,
       sandbox: false,
       deadlineMode: "duration",
       phaseConfirmed: false,
