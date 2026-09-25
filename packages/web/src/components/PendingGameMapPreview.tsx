@@ -1,5 +1,5 @@
 import React from "react";
-import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
+import { MapView } from "@/components/MapView";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import type { GameRetrieve } from "@/api/generated/endpoints";
 
@@ -14,7 +14,8 @@ const PendingGameMapPreview: React.FC<PendingGameMapPreviewProps> = ({
   if (!variant) return null;
 
   return (
-    <ExpandableMapPreview
+    <MapView
+      mode="pannable"
       variant={variant}
       phase={variant.templatePhase}
       style={{ width: "100%", height: "100%" }}

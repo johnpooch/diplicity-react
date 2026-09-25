@@ -2,14 +2,14 @@ import React, { Suspense, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bot, LogOut, UserPlus } from "lucide-react";
+import { Bot, UserPlus } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { AddBotSheet } from "@/components/AddBotSheet";
-import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
+import { MapView } from "@/components/MapView";
 import { useRequiredParams } from "@/hooks";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
@@ -73,26 +73,47 @@ const GameInfoScreen: React.FC = () => {
     userProfile.canCreateBotGames &&
     openSeats > 0;
 
-  const canJoinOrLeave = game.canJoin || game.canLeave;
-  const reliabilityBlocked =
-    game.status === "pending" &&
-    !canJoinOrLeave &&
-    game.minReliability !== "open";
-
   const pendingAction =
     game.status === "pending" ? (
-      canAddBots ? (
+      game.canJoin ? (
         <Button
-          onClick={() => setAddBotOpen(true)}
+          onClick={handleJoinGame}
+          disabled={joinGameMutation.isPending}
           className="w-full sm:w-auto"
         >
-          <Bot className="size-4" />
-          Add AI player
+          Join game
         </Button>
-      ) : reliabilityBlocked ? (
-        <p className="text-xs text-muted-foreground text-center w-full sm:w-auto">
-          Your reliability is too low to join this game
-        </p>
+      ) : canAddBots || game.canLeave ? (
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {canAddBots && (
+            <Button
+              onClick={() => setAddBotOpen(true)}
+              className="flex-1 sm:flex-none"
+            >
+              <Bot className="size-4" />
+              Add AI player
+            </Button>
+          )}
+          {game.canLeave && (
+            <Button
+              onClick={handleLeaveGame}
+              disabled={leaveGameMutation.isPending}
+              variant="outline"
+              className="flex-1 sm:flex-none"
+            >
+              Leave
+            </Button>
+          )}
+        </div>
+      ) : game.minReliability !== "open" ? (
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <Button disabled className="w-full sm:w-auto">
+            Join game
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Your reliability is too low to join this game
+          </p>
+        </div>
       ) : null
     ) : null;
 
@@ -102,32 +123,13 @@ const GameInfoScreen: React.FC = () => {
         title={game.name}
         onNavigateBack={() => navigate("/")}
         rightButton={
-          game.canJoin ? (
+          game.status !== "pending" && game.canJoin ? (
             <Button
               variant="outline"
               size="icon"
               aria-label="Join game"
               onClick={handleJoinGame}
               disabled={joinGameMutation.isPending}
-            >
-              <UserPlus />
-            </Button>
-          ) : game.status === "pending" && game.canLeave ? (
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Leave game"
-              onClick={handleLeaveGame}
-              disabled={leaveGameMutation.isPending}
-            >
-              <LogOut />
-            </Button>
-          ) : game.status === "pending" ? (
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Join game"
-              disabled
             >
               <UserPlus />
             </Button>
@@ -151,15 +153,16 @@ const GameInfoScreen: React.FC = () => {
               onShare={() => copyLink(`/game/${gameId}`)}
             />
             {!phaseId && (
-              <div className="w-full overflow-hidden rounded-lg md:hidden">
+              <div className="w-full h-64 overflow-hidden rounded-lg md:hidden">
                 {variant ? (
-                  <ExpandableMapPreview
+                  <MapView
+                    mode="pannable"
                     variant={variant}
                     phase={variant.templatePhase}
-                    style={{ width: "100%" }}
+                    style={{ width: "100%", height: "100%" }}
                   />
                 ) : (
-                  <Skeleton className="w-full h-64 rounded-lg" />
+                  <Skeleton className="w-full h-full rounded-lg" />
                 )}
               </div>
             )}

@@ -57,8 +57,8 @@ vi.mock("@/components/GameInfoContent", () => ({
   }) => <div data-testid="game-info-content">{pendingAction}</div>,
 }));
 
-vi.mock("@/components/ExpandableMapPreview", () => ({
-  ExpandableMapPreview: () => <div data-testid="map-preview" />,
+vi.mock("@/components/MapView", () => ({
+  MapView: () => <div data-testid="map-preview" />,
 }));
 
 vi.mock("@/hooks/use-mobile", () => ({
@@ -106,68 +106,33 @@ describe("GameInfoScreen (shell)", () => {
     mockLeaveMutateAsync.mockResolvedValue(undefined);
   });
 
-  describe("header Join/Leave button", () => {
-    it("shows a Join button for a pending game the user can join", () => {
+  describe("header button", () => {
+    it("shows no header button for a pending game (Join/Leave live in the body)", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
       renderGameInfo(pendingGameCanJoin.id);
+
+      const content = screen.getByTestId("game-info-content");
+      const headerButtons = screen
+        .queryAllByRole("button", { name: /join game|leave game/i })
+        .filter((button) => !content.contains(button));
+      expect(headerButtons).toHaveLength(0);
+    });
+
+    it("shows a Join icon button for an active game the user can join", () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({
+        data: { ...mockActiveGames[0], canJoin: true },
+      });
+      renderGameInfo(mockActiveGames[0].id);
 
       expect(
         screen.getByRole("button", { name: /join game/i })
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: /leave game/i })
-      ).not.toBeInTheDocument();
     });
 
-    it("shows a Leave button, in the same slot, for a pending game the user has joined", () => {
-      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanLeave });
-      renderGameInfo(pendingGameCanLeave.id);
-
-      expect(
-        screen.getByRole("button", { name: /leave game/i })
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: /join game/i })
-      ).not.toBeInTheDocument();
-    });
-
-    it("shows a disabled Join button once neither joining nor leaving is possible, rather than no button at all", () => {
+    it("shows no join/leave button for an active game the user cannot join", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
-        data: pendingGameReliabilityRequired,
+        data: { ...mockActiveGames[0], canJoin: false },
       });
-      renderGameInfo(pendingGameReliabilityRequired.id);
-
-      const content = screen.getByTestId("game-info-content");
-      const headerJoinButton = screen
-        .getAllByRole("button", { name: /join game/i })
-        .find((button) => !content.contains(button));
-      expect(headerJoinButton).toBeDisabled();
-    });
-
-    it("calls the join mutation when Join is clicked", async () => {
-      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
-      renderGameInfo(pendingGameCanJoin.id);
-
-      await userEvent.click(screen.getByRole("button", { name: /join game/i }));
-
-      expect(mockJoinMutateAsync).toHaveBeenCalledWith({
-        gameId: pendingGameCanJoin.id,
-      });
-    });
-
-    it("calls the leave mutation when Leave is clicked", async () => {
-      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanLeave });
-      renderGameInfo(pendingGameCanLeave.id);
-
-      await userEvent.click(screen.getByRole("button", { name: /leave game/i }));
-
-      expect(mockLeaveMutateAsync).toHaveBeenCalledWith({
-        gameId: pendingGameCanLeave.id,
-      });
-    });
-
-    it("shows no join/leave button for an active game", () => {
-      mockUseGameRetrieveSuspense.mockReturnValue({ data: mockActiveGames[0] });
       renderGameInfo(mockActiveGames[0].id);
 
       expect(
@@ -180,19 +145,66 @@ describe("GameInfoScreen (shell)", () => {
   });
 
   describe("pendingAction content", () => {
-    it("shows a reliability message when reliability-gated (the disabled Join button itself lives in the header)", () => {
+    it("shows a primary 'Join game' button in the body for a pending game the user can join", () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
+      renderGameInfo(pendingGameCanJoin.id);
+
+      const content = screen.getByTestId("game-info-content");
+      expect(
+        within(content).getByRole("button", { name: /join game/i })
+      ).toBeInTheDocument();
+    });
+
+    it("calls the join mutation when the body Join button is clicked", async () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
+      renderGameInfo(pendingGameCanJoin.id);
+
+      const content = screen.getByTestId("game-info-content");
+      await userEvent.click(
+        within(content).getByRole("button", { name: /join game/i })
+      );
+
+      expect(mockJoinMutateAsync).toHaveBeenCalledWith({
+        gameId: pendingGameCanJoin.id,
+      });
+    });
+
+    it("shows a 'Leave' button in the body for a pending game the user has joined", () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanLeave });
+      renderGameInfo(pendingGameCanLeave.id);
+
+      const content = screen.getByTestId("game-info-content");
+      expect(
+        within(content).getByRole("button", { name: /^leave$/i })
+      ).toBeInTheDocument();
+    });
+
+    it("calls the leave mutation when the body Leave button is clicked", async () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanLeave });
+      renderGameInfo(pendingGameCanLeave.id);
+
+      const content = screen.getByTestId("game-info-content");
+      await userEvent.click(
+        within(content).getByRole("button", { name: /^leave$/i })
+      );
+
+      expect(mockLeaveMutateAsync).toHaveBeenCalledWith({
+        gameId: pendingGameCanLeave.id,
+      });
+    });
+
+    it("shows a disabled Join button with a reliability message when reliability-gated", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
         data: pendingGameReliabilityRequired,
       });
       renderGameInfo(pendingGameReliabilityRequired.id);
 
       const content = screen.getByTestId("game-info-content");
+      const joinButton = within(content).getByRole("button", { name: /join game/i });
+      expect(joinButton).toBeDisabled();
       expect(
         within(content).getByText(/your reliability is too low to join this game/i)
       ).toBeInTheDocument();
-      expect(
-        within(content).queryByRole("button", { name: /join game/i })
-      ).not.toBeInTheDocument();
     });
 
     it("shows 'Add AI player' for a pending game the user manages", async () => {
