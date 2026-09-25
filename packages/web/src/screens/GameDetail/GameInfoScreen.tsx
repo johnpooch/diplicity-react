@@ -1,18 +1,24 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { Bot, LogOut, UserPlus } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/Panel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { AddBotSheet } from "@/components/AddBotSheet";
+import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { useRequiredParams } from "@/hooks";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
 import {
   useGameRetrieveSuspense,
+  useUserRetrieveSuspense,
   useGameMemberJoinCreate,
+  useGameLeaveDestroy,
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 
@@ -22,8 +28,13 @@ const GameInfoScreen: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
   const { phaseId } = useParams<{ phaseId: string }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: userProfile } = useUserRetrieveSuspense();
+  const variant = useGameVariant(game);
   const joinGameMutation = useGameMemberJoinCreate();
+  const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
+
+  const [addBotOpen, setAddBotOpen] = useState(false);
 
   const handleJoinGame = async () => {
     try {
@@ -39,6 +50,50 @@ const GameInfoScreen: React.FC = () => {
       toast.error("Failed to join game");
     }
   };
+
+  const handleLeaveGame = async () => {
+    try {
+      await leaveGameMutation.mutateAsync({ gameId });
+      await queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
+      });
+      toast.success("Game left successfully");
+    } catch {
+      toast.error("Failed to leave game");
+    }
+  };
+
+  const playableSeats = variant
+    ? variant.nations.filter(n => !n.nonPlayable).length
+    : 0;
+  const openSeats = Math.max(0, playableSeats - game.members.length);
+  const canAddBots =
+    game.status === "pending" &&
+    game.canManage &&
+    userProfile.canCreateBotGames &&
+    openSeats > 0;
+
+  const pendingAction =
+    game.status === "pending" ? (
+      canAddBots ? (
+        <Button
+          onClick={() => setAddBotOpen(true)}
+          className="w-full sm:w-auto"
+        >
+          <Bot className="size-4" />
+          Add AI player
+        </Button>
+      ) : !game.canJoin && !game.canLeave && game.minReliability !== "open" ? (
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <Button disabled className="w-full sm:w-auto">
+            Join game
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Your reliability is too low to join this game
+          </p>
+        </div>
+      ) : null
+    ) : null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -56,6 +111,16 @@ const GameInfoScreen: React.FC = () => {
             >
               <UserPlus />
             </Button>
+          ) : game.status === "pending" && game.canLeave ? (
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Leave game"
+              onClick={handleLeaveGame}
+              disabled={leaveGameMutation.isPending}
+            >
+              <LogOut />
+            </Button>
           ) : undefined
         }
       />
@@ -64,6 +129,7 @@ const GameInfoScreen: React.FC = () => {
           <Panel.Content className="flex flex-col gap-4 px-3 py-4">
             <GameInfoContent
               showTitle={false}
+              pendingAction={pendingAction}
               onOpenVariantDetails={
                 phaseId
                   ? () =>
@@ -74,9 +140,29 @@ const GameInfoScreen: React.FC = () => {
               }
               onShare={() => copyLink(`/game/${gameId}`)}
             />
+            {!phaseId && (
+              <div className="w-full overflow-hidden rounded-lg md:hidden">
+                {variant ? (
+                  <ExpandableMapPreview
+                    variant={variant}
+                    phase={variant.templatePhase}
+                    style={{ width: "100%" }}
+                  />
+                ) : (
+                  <Skeleton className="w-full h-64 rounded-lg" />
+                )}
+              </div>
+            )}
           </Panel.Content>
         </Panel>
       </div>
+      {canAddBots && (
+        <AddBotSheet
+          gameId={gameId}
+          open={addBotOpen}
+          onOpenChange={setAddBotOpen}
+        />
+      )}
     </div>
   );
 };

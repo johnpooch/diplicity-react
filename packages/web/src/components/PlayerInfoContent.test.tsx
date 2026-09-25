@@ -20,6 +20,7 @@ const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
 const mockUserProfileData = vi.fn();
 const mockKickMutateAsync = vi.fn();
+const mockJoinMutateAsync = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -31,8 +32,16 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockKickMutateAsync,
     isPending: false,
   }),
+  useGameMemberJoinCreate: () => ({
+    mutateAsync: mockJoinMutateAsync,
+    isPending: false,
+  }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameAddableUserListQueryKey: () => ["addable-user"],
+}));
+
+vi.mock("@/hooks/useCheckNotificationPermission", () => ({
+  useCheckNotificationPermission: () => vi.fn(),
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -233,6 +242,29 @@ describe("PlayerInfoContent", () => {
 
     expect(screen.getAllByText("Open seat")).toHaveLength(6);
     expect(screen.queryByText("Add AI player")).not.toBeInTheDocument();
+  });
+
+  it("lets a player join directly by clicking an open seat", async () => {
+    const user = userEvent.setup();
+    mockJoinMutateAsync.mockResolvedValue(undefined);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      canManage: false,
+      canJoin: true,
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [],
+      members: [{ ...baseMember, nation: null }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByText("Open seat")).not.toBeInTheDocument();
+    await user.click(screen.getAllByText("Click to join")[0]);
+
+    expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: "game-1" });
   });
 
   it("shows open seat rows when the admin cannot use bot opponents", () => {

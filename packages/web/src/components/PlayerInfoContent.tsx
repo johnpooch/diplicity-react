@@ -43,6 +43,7 @@ import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
   useGameKickDestroy,
+  useGameMemberJoinCreate,
   useUserRetrieveSuspense,
   getGameAddableUserListQueryKey,
   getGameRetrieveQueryKey,
@@ -50,6 +51,7 @@ import {
   Variant,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
@@ -121,6 +123,8 @@ export const PlayerInfoContent: React.FC = () => {
   const { data: userProfile } = useUserRetrieveSuspense();
   const queryClient = useQueryClient();
   const kickMutation = useGameKickDestroy();
+  const joinGameMutation = useGameMemberJoinCreate();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const [addBotOpen, setAddBotOpen] = useState(false);
   const [formerOpen, setFormerOpen] = useState(true);
@@ -164,6 +168,21 @@ export const PlayerInfoContent: React.FC = () => {
     phaseId
       ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
       : `/player/${member.userId}`;
+
+  const handleJoinGame = async () => {
+    try {
+      await joinGameMutation.mutateAsync({ gameId });
+      await queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
+      });
+      toast.success("Game joined successfully");
+      if (!game.sandbox) {
+        checkNotificationPermission();
+      }
+    } catch {
+      toast.error("Failed to join game");
+    }
+  };
 
   const handleRemove = async () => {
     const member = memberToRemove;
@@ -416,6 +435,21 @@ export const PlayerInfoContent: React.FC = () => {
                   </div>
                   <span className="font-medium text-primary underline-offset-4 hover:underline">
                     Add AI player
+                  </span>
+                </button>
+              ) : game.canJoin ? (
+                <button
+                  key={`open-seat-${index}`}
+                  onClick={handleJoinGame}
+                  disabled={joinGameMutation.isPending}
+                  className="flex items-center gap-3 p-3 text-left"
+                >
+                  <div className="relative size-12 shrink-0">
+                    <div className="size-12 rounded-full border border-dashed border-muted-foreground/50" />
+                    <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary ring-2 ring-background" />
+                  </div>
+                  <span className="font-medium text-primary underline-offset-4 hover:underline">
+                    Click to join
                   </span>
                 </button>
               ) : (
