@@ -236,17 +236,20 @@ class GameManager(models.Manager):
             phases, current_phases, "supply_centers", SupplyCenter.objects.select_related("nation", "province")
         )
 
-    def hydrate_total_unread_counts(self, games, user, joinable_only=False):
+    def hydrate_total_unread_counts(self, games, user):
+        games_without_counts = [
+            game for game in games if not hasattr(game, "total_unread_message_count")
+        ]
         counts = {}
-        if games and user.is_authenticated and not joinable_only:
+        if games_without_counts and user.is_authenticated:
             counts = dict(
                 ChannelMessage.objects.unread_by(user)
-                .filter(channel__game__in=[game.id for game in games])
+                .filter(channel__game__in=[game.id for game in games_without_counts])
                 .order_by()
                 .values_list("channel__game")
                 .annotate(count=Count("id", distinct=True))
             )
-        for game in games:
+        for game in games_without_counts:
             game.total_unread_message_count = counts.get(game.id, 0)
 
     def hydrate_retrieve_phases(self, games):

@@ -69,16 +69,8 @@ class GameListView(generics.ListAPIView):
     def paginate_queryset(self, queryset):
         page = super().paginate_queryset(queryset)
         Game.objects.hydrate_list_phases(page)
-        Game.objects.hydrate_total_unread_counts(
-            page,
-            self.request.user,
-            joinable_only=self.lists_joinable_games(),
-        )
+        Game.objects.hydrate_total_unread_counts(page, self.request.user)
         return page
-
-    def lists_joinable_games(self):
-        form = self.filterset_class(self.request.query_params, request=self.request).form
-        return form.is_valid() and form.cleaned_data["can_join"] is True
 
 
 class GameCreateView(generics.CreateAPIView):
