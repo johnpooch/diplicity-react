@@ -52,12 +52,12 @@ class GameListView(generics.ListAPIView):
     pagination_class = StandardPageNumberPagination
 
     def get_queryset(self):
-        queryset = (
-            Game.objects.all()
-            .with_list_data()
-            .with_total_unread_counts(self.request.user)
-            .order_by("-created_at")
-        )
+        queryset = Game.objects.all().with_list_data()
+        if self.lists_joinable_games():
+            queryset = queryset.with_zero_unread_counts()
+        else:
+            queryset = queryset.with_total_unread_counts(self.request.user)
+        queryset = queryset.order_by("-created_at")
 
         if "sandbox" not in self.request.query_params and "mine" not in self.request.query_params:
             queryset = queryset.filter(sandbox=False)
@@ -71,6 +71,10 @@ class GameListView(generics.ListAPIView):
         page = super().paginate_queryset(queryset)
         Game.objects.hydrate_list_phases(page)
         return page
+
+    def lists_joinable_games(self):
+        form = self.filterset_class(self.request.query_params, request=self.request).form
+        return form.is_valid() and form.cleaned_data["can_join"] is True
 
 
 class GameCreateView(generics.CreateAPIView):

@@ -51,11 +51,14 @@ tracer = trace.get_tracer(__name__)
 
 class GameQuerySet(models.QuerySet):
 
+    def with_zero_unread_counts(self):
+        return self.annotate(
+            total_unread_message_count=Value(0, output_field=IntegerField())
+        )
+
     def with_total_unread_counts(self, user):
         if not user.is_authenticated:
-            return self.annotate(
-                total_unread_message_count=Value(0, output_field=IntegerField())
-            )
+            return self.with_zero_unread_counts()
         last_read_subquery = Subquery(
             ChannelMember.objects.filter(
                 channel=OuterRef("channel"),
