@@ -1,6 +1,6 @@
 import io
 import json
-from datetime import time
+from datetime import time, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1433,6 +1433,25 @@ def game_with_public_channel_and_messages(db, active_game_with_phase_state, seco
     ChannelMessage.objects.create(channel=public_channel, sender=secondary_member, body="Message 2")
 
     return game
+
+
+@pytest.fixture
+def channel_with_messages_factory(db):
+    def _create(reader, sender, last_read_at, read=0, unread=0, own_unread=0):
+        channel = Channel.objects.create(game=reader.game, name=f"Channel {Channel.objects.count()}", private=True)
+        ChannelMember.objects.create(member=reader, channel=channel, last_read_at=last_read_at)
+        ChannelMember.objects.create(member=sender, channel=channel)
+        for author, created_at, count in [
+            (sender, last_read_at - timedelta(minutes=1), read),
+            (sender, last_read_at + timedelta(minutes=1), unread),
+            (reader, last_read_at + timedelta(minutes=1), own_unread),
+        ]:
+            for _ in range(count):
+                message = ChannelMessage.objects.create(channel=channel, sender=author, body="Message")
+                ChannelMessage.objects.filter(id=message.id).update(created_at=created_at)
+        return channel
+
+    return _create
 
 
 # ---------------------------------------------------------------------------
