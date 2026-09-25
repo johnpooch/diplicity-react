@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { Map, Gavel, MessageCircle, Users, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,8 +21,11 @@ import {
 import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
+import { PendingGameMapPreview } from "@/components/PendingGameMapPreview";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { getGameLandingPath } from "@/util";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   useGameRetrieve,
   getGameOptionsRetrieveQueryKey,
@@ -27,11 +36,11 @@ import {
 } from "@/api/generated/endpoints";
 
 const navigationItems = [
-  { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
-  { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
-  { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
-  { label: "Players", icon: Users, path: "/game/:gameId/phase/:phaseId/player-info" },
-  { label: "Info", icon: Info, path: "/game/:gameId/phase/:phaseId/game-info" },
+  { label: "Map", icon: Map, path: "", pendingVisible: false },
+  { label: "Orders", icon: Gavel, path: "/orders", pendingVisible: false },
+  { label: "Chat", icon: MessageCircle, path: "/chat", pendingVisible: false },
+  { label: "Players", icon: Users, path: "/player-info", pendingVisible: true },
+  { label: "Info", icon: Info, path: "/game-info", pendingVisible: true },
 ];
 
 interface GameDetailLayoutProps {
@@ -45,16 +54,17 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { gameId, phaseId } = useRequiredParams<{
-    gameId: string;
-    phaseId: string;
-  }>();
+  const isMobile = useIsMobile();
+  const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { phaseId } = useParams<{ phaseId: string }>();
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   const { data: game } = useGameRetrieve(gameId, {
     query: {
-      refetchInterval: (query) =>
-        query.state.data?.status === "active" ? 5000 : false,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        return status === "active" ? 5000 : status === "pending" ? 10000 : false;
+      },
     },
   });
 
@@ -95,21 +105,41 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     void Promise.all(
       queryKeys.map(queryKey => queryClient.invalidateQueries({ queryKey }))
     );
-  }, [gameId, currentPhaseId, status, queryClient]);
+
+    if (!phaseId && previous.currentPhaseId === null && currentPhaseId !== null) {
+      const leaf = location.pathname.slice(`/game/${gameId}`.length);
+      const target =
+        leaf === "/game-info" || leaf === "/player-info"
+          ? `/game/${gameId}/phase/${currentPhaseId}${leaf}`
+          : getGameLandingPath({ id: gameId, status, currentPhaseId }, isMobile);
+      navigate(target, { replace: true });
+    }
+  }, [
+    gameId,
+    currentPhaseId,
+    status,
+    queryClient,
+    phaseId,
+    location.pathname,
+    navigate,
+    isMobile,
+  ]);
 
   const [searchParams] = useSearchParams();
 
+  const shellBasePath = phaseId
+    ? `/game/${gameId}/phase/${phaseId}`
+    : `/game/${gameId}`;
+
   const navItems = useMemo(() => {
-    const items = game?.sandbox
-      ? navigationItems.filter(item => item.label !== "Chat")
-      : navigationItems;
+    const visibleItems = navigationItems.filter(
+      item => (phaseId || item.pendingVisible) && (!game?.sandbox || item.label !== "Chat")
+    );
     const searchParamsStr = searchParams.toString();
-    const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+    const chatBasePath = `${shellBasePath}/chat`;
     const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");
-    return items.map(item => {
-      const basePath = item.path
-        .replace(":gameId", gameId)
-        .replace(":phaseId", phaseId);
+    return visibleItems.map(item => {
+      const basePath = `${shellBasePath}${item.path}`;
       const badge =
         (item.label === "Chat" &&
           game?.totalUnreadMessageCount &&
@@ -138,7 +168,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
+  }, [shellBasePath, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
 
   // Filter out Map for desktop sidebar since map is already visible in right
   // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
@@ -148,7 +178,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     const params = new URLSearchParams(searchParams);
     params.delete("channelId");
     const paramsStr = params.toString();
-    const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+    const chatBasePath = `${shellBasePath}/chat`;
     return navItems
       .filter(item => item.label !== "Map")
       .map(item =>
@@ -159,7 +189,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
             }
           : item
       );
-  }, [navItems, searchParams, gameId, phaseId]);
+  }, [navItems, searchParams, shellBasePath]);
 
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
@@ -213,7 +243,11 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 
           {/* Right Panel - GameMap (desktop only) */}
           <div className="hidden md:flex flex-1 border-l overflow-hidden bg-muted">
-            <GameMap />
+            {phaseId ? (
+              <GameMap />
+            ) : (
+              game && <PendingGameMapPreview game={game} />
+            )}
           </div>
         </div>
 

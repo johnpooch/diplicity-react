@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
@@ -19,10 +19,8 @@ import {
 const GameInfoScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { gameId, phaseId } = useRequiredParams<{
-    gameId: string;
-    phaseId: string;
-  }>();
+  const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { phaseId } = useParams<{ phaseId: string }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameMemberJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
@@ -66,8 +64,13 @@ const GameInfoScreen: React.FC = () => {
           <Panel.Content className="flex flex-col gap-4 px-3 py-4">
             <GameInfoContent
               showTitle={false}
-              onOpenVariantDetails={() =>
-                navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
+              onOpenVariantDetails={
+                phaseId
+                  ? () =>
+                      navigate(
+                        `/game/${gameId}/phase/${phaseId}/game-info/variant`
+                      )
+                  : undefined
               }
               onShare={() => copyLink(`/game/${gameId}`)}
             />
