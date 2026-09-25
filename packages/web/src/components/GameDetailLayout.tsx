@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
+  Navigate,
   useLocation,
   useNavigate,
   useParams,
@@ -105,25 +106,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     void Promise.all(
       queryKeys.map(queryKey => queryClient.invalidateQueries({ queryKey }))
     );
-
-    if (!phaseId && previous.currentPhaseId === null && currentPhaseId !== null) {
-      const leaf = location.pathname.slice(`/game/${gameId}`.length);
-      const target =
-        leaf === "/game-info" || leaf === "/player-info"
-          ? `/game/${gameId}/phase/${currentPhaseId}${leaf}`
-          : getGameLandingPath({ id: gameId, status, currentPhaseId }, isMobile);
-      navigate(target, { replace: true });
-    }
-  }, [
-    gameId,
-    currentPhaseId,
-    status,
-    queryClient,
-    phaseId,
-    location.pathname,
-    navigate,
-    isMobile,
-  ]);
+  }, [gameId, currentPhaseId, status, queryClient]);
 
   const [searchParams] = useSearchParams();
 
@@ -192,6 +175,20 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   }, [navItems, searchParams, shellBasePath]);
 
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
+
+  // The backend pre-creates a game's first phase before it starts, so
+  // currentPhaseId is already non-null while pending — status (not
+  // currentPhaseId nullness) is what flips when the game starts. Declarative
+  // (like GamePhaseRedirect/GameReplaceRedirect) rather than an effect
+  // calling navigate(), so it can't miss a transition observed elsewhere.
+  if (!phaseId && game && status !== "pending" && currentPhaseId) {
+    const leaf = location.pathname.slice(`/game/${gameId}`.length);
+    const target =
+      leaf === "/game-info" || leaf === "/player-info"
+        ? `/game/${gameId}/phase/${currentPhaseId}${leaf}`
+        : getGameLandingPath(game, isMobile);
+    return <Navigate to={target} replace />;
+  }
 
   return (
     <SidebarProvider>
