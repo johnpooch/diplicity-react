@@ -5,7 +5,7 @@
 // so a new fixture in src/mocks/fixtures/games.ts gains screenshot coverage
 // without touching this file.
 
-import { fixtureByGameId } from "../../src/mocks/fixtures/index.ts";
+import { fixtureByGameId, publicProfiles } from "../../src/mocks/fixtures/index.ts";
 
 export const viewports = [
   { name: "mobile", width: 390, height: 844 },
@@ -32,6 +32,7 @@ const homeScreens = [
   { name: "tutorial", path: "/learn-to-play/tutorial" },
   { name: "variants", path: "/variants" },
   { name: "variants-create", path: "/variants/create" },
+  { name: "player-profile", path: "/player/2" },
 ];
 
 const pendingGameScreens = gameId => [
@@ -54,6 +55,23 @@ const phaseGameScreens = (gameId, phaseId, fixture) => {
     screens.push({
       name: `draw-proposals__${gameId}`,
       path: `${base}/draw-proposals`,
+    });
+  }
+  const [channel] = fixture.channels ?? [];
+  if (channel) {
+    screens.push({
+      name: `channel__${gameId}`,
+      path: `${base}/chat/channel/${channel.id}`,
+    });
+  }
+  const members = (fixture.game.members ?? []).filter(
+    member => publicProfiles[member.userId]
+  );
+  const profiled = members.find(member => !member.isCurrentUser) ?? members[0];
+  if (profiled) {
+    screens.push({
+      name: `player-profile__${gameId}`,
+      path: `${base}/player/${profiled.userId}`,
     });
   }
   return screens;

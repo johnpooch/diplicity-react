@@ -39,7 +39,9 @@ class GameRetrieveView(ConditionalGetMixin, generics.RetrieveAPIView):
             .with_retrieve_data()
             .with_total_unread_counts(self.request.user)
         )
-        return get_object_or_404(queryset, id=self.kwargs.get("game_id"))
+        game = get_object_or_404(queryset, id=self.kwargs.get("game_id"))
+        Game.objects.hydrate_retrieve_phases([game])
+        return game
 
 
 class GameListView(generics.ListAPIView):
@@ -64,6 +66,11 @@ class GameListView(generics.ListAPIView):
             queryset = queryset.filter(private=False)
 
         return queryset
+
+    def paginate_queryset(self, queryset):
+        page = super().paginate_queryset(queryset)
+        Game.objects.hydrate_list_phases(page)
+        return page
 
 
 class GameCreateView(generics.CreateAPIView):
@@ -109,6 +116,7 @@ class GameFindSimilarView(generics.GenericAPIView):
                 -g.created_at.timestamp(),
             )
         )
+        Game.objects.hydrate_list_phases(candidates[:1])
         match_data = GameListSerializer(candidates[0], context={"request": request}).data
         return Response({"game": match_data})
 

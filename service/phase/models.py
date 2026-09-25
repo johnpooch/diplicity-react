@@ -791,6 +791,14 @@ class Phase(BaseModel):
                 name="unique_live_phase_ordinal_per_game",
             )
         ]
+        indexes = [
+            models.Index(fields=["game", "-ordinal", "-id"], name="phase_latest_idx"),
+            models.Index(
+                fields=["game", "-ordinal", "-id"],
+                condition=Q(status=PhaseStatus.COMPLETED),
+                name="phase_latest_completed_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.game.name if self.game else '-'})"

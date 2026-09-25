@@ -24,6 +24,7 @@ import {
   type Order,
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
+import { canEnterOrdersForPhase } from "../utils/orderEntry";
 
 function useBanner(duration = 3000) {
   const [message, setMessage] = useState<string | null>(null);
@@ -75,7 +76,11 @@ const GameMap: React.FC = () => {
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
-  const { data: optionsData } = useGameOptionsRetrieve(gameId);
+  const canEnterOrders =
+    !!game && !!phase && canEnterOrdersForPhase(game, phase, selectedPhase);
+  const { data: optionsData } = useGameOptionsRetrieve(gameId, {
+    query: { enabled: canEnterOrders },
+  });
 
   const publishedVariant = variants?.find((v) => v.id === game?.variantId);
   const { data: fetchedVariant } = useVariantsRetrieve(
@@ -94,7 +99,7 @@ const GameMap: React.FC = () => {
   const createOrderMutation = useGameOrdersCreate();
 
   const wizard = useOrderWizard(
-    optionsData?.orders ?? [],
+    canEnterOrders ? (optionsData?.orders ?? []) : [],
     optionsData?.fieldOrder ?? {}
   );
 
