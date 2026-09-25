@@ -656,7 +656,7 @@ describe("PlayerInfoContent", () => {
 
     await user.click(seat[0]);
 
-    expect(mockNavigate).toHaveBeenCalledWith("/nation-preference/game-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/game-1/nation-preference");
   });
 
   it("marks the current user's seat once preferences are provided", () => {

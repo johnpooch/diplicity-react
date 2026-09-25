@@ -279,7 +279,7 @@ export const PlayerInfoContent: React.FC = () => {
               <button
                 onClick={e => {
                   stopRowClick(e);
-                  navigate(`/nation-preference/${gameId}`);
+                  navigate(`/game/${gameId}/nation-preference`);
                 }}
                 onKeyDown={stopRowClick}
                 className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"

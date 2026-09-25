@@ -26,6 +26,6 @@ describe("NationAssignmentAlert", () => {
 
     await user.click(screen.getByRole("button", { name: /assign nations/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/nation-assignment/game-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/game-1/nation-assignment");
   });
 });

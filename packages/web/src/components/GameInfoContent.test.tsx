@@ -63,9 +63,9 @@ vi.mock("@/components/MapView", () => ({
 const renderGameInfo = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/game-info/game-1"]}>
+      <MemoryRouter initialEntries={["/game/game-1/game-info"]}>
         <Routes>
-          <Route path="/game-info/:gameId" element={<GameInfoContent />} />
+          <Route path="/game/:gameId/game-info" element={<GameInfoContent />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -90,7 +90,7 @@ describe("GameInfoContent nation preference alert", () => {
 
     await user.click(screen.getByRole("button", { name: "Set Nation Preferences" }));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/nation-preference/game-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/game-1/nation-preference");
   });
 
   it("confirms that a player has provided preferences", () => {

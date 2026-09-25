@@ -38,7 +38,12 @@ import {
   useGameMemberJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo, getGameLandingPath } from "../util";
+import {
+  formatTimeAgo,
+  getGameLandingPath,
+  getGameInfoPath,
+  getPlayerInfoPath,
+} from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -107,11 +112,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   };
 
   const handleClickGameInfo = () => {
-    navigate(`/game-info/${game.id}`);
+    navigate(getGameInfoPath(game));
   };
 
   const handleClickPlayerInfo = () => {
-    navigate(`/player-info/${game.id}`);
+    navigate(getPlayerInfoPath(game));
   };
 
   const handleJoinGame = async () => {
@@ -301,7 +306,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
         nation={playerNation}
         preferenceIds={currentMember.nationPreferenceIds}
         className={seatPillPosition}
-        onClick={() => navigate(`/nation-preference/${game.id}`)}
+        onClick={() => navigate(`/game/${game.id}/nation-preference`)}
       />
     ) : (
       (isActive || isFinished) &&

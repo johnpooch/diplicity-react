@@ -10,7 +10,7 @@ const GameReplaceRedirectInner: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
 
-  if (!game.currentPhaseId) return <Navigate to={`/game-info/${gameId}`} replace />;
+  if (!game.currentPhaseId) return <Navigate to={`/game/${gameId}/game-info`} replace />;
 
   return (
     <Navigate

@@ -50,10 +50,10 @@ vi.mock("@/api/generated/endpoints", () => ({
 const renderContent = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/nation-preference/pending-1"]}>
+      <MemoryRouter initialEntries={["/game/pending-1/nation-preference"]}>
         <Routes>
           <Route
-            path="/nation-preference/:gameId"
+            path="/game/:gameId/nation-preference"
             element={<NationPreferenceContent />}
           />
         </Routes>
@@ -146,7 +146,7 @@ describe("NationPreferenceContent", () => {
     await user.click(screen.getByRole("button", { name: /england/i }));
     await user.click(screen.getByRole("button", { name: /save preferences/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/game-info/pending-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/pending-1/game-info");
   });
 
   it("explains a nation assigned by the game master instead of ranking", () => {

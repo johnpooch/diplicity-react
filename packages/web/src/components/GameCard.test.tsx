@@ -74,7 +74,7 @@ describe("GameCard", () => {
         screen.getByRole("button", { name: mockPendingGames[0].name })
       );
       expect(mockNavigate).toHaveBeenCalledWith(
-        `/game-info/${mockPendingGames[0].id}`
+        `/game/${mockPendingGames[0].id}/game-info`
       );
     });
 
@@ -346,7 +346,7 @@ describe("GameCard", () => {
 
       await user.click(screen.getByRole("button", { name: /Choose nation/ }));
 
-      expect(mockNavigate).toHaveBeenCalledWith(`/nation-preference/${game.id}`);
+      expect(mockNavigate).toHaveBeenCalledWith(`/game/${game.id}/nation-preference`);
     });
 
     it("names the top choice and counts the rest", () => {

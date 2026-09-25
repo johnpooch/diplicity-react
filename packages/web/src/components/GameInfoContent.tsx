@@ -86,7 +86,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             <Button
               variant="outline"
               className="w-full sm:w-auto"
-              onClick={() => navigate(`/nation-preference/${gameId}`)}
+              onClick={() => navigate(`/game/${gameId}/nation-preference`)}
             >
               {(currentMember.nationPreferenceIds?.length ?? 0) > 0
                 ? "Edit Preferences"
