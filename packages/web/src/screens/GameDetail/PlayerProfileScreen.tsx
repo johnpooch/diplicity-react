@@ -2,7 +2,10 @@ import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
-import { PlayerProfileContent } from "@/components/PlayerProfileContent";
+import {
+  PlayerProfileContent,
+  PlayerProfileContentSkeleton,
+} from "@/components/PlayerProfileContent";
 import { useRequiredParams } from "@/hooks";
 
 const PlayerProfileScreen: React.FC = () => {
@@ -24,8 +27,10 @@ const PlayerProfileScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
-            <PlayerProfileContent userId={Number(userId)} />
+          <Panel.Content className="px-3 py-4">
+            <Suspense fallback={<PlayerProfileContentSkeleton />}>
+              <PlayerProfileContent userId={Number(userId)} />
+            </Suspense>
           </Panel.Content>
         </Panel>
       </div>
@@ -33,10 +38,4 @@ const PlayerProfileScreen: React.FC = () => {
   );
 };
 
-const PlayerProfileScreenSuspense: React.FC = () => (
-  <Suspense fallback={<div></div>}>
-    <PlayerProfileScreen />
-  </Suspense>
-);
-
-export { PlayerProfileScreenSuspense as PlayerProfileScreen };
+export { PlayerProfileScreen };

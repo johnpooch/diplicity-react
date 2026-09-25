@@ -2,13 +2,14 @@ import React from "react";
 import { Info } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CommitmentBadge, COMMITMENT_TIERS } from "@/components/CommitmentBadge";
+import { Card, CardContent } from "@/components/ui/card";
+import { CommitmentBadge } from "@/components/CommitmentBadge";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
@@ -17,22 +18,38 @@ interface PlayerProfileContentProps {
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
 
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, children }) => (
+  <section className="flex flex-col gap-2">
+    <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
+    <Card className="overflow-hidden py-0">
+      <CardContent className="flex flex-col divide-y p-0">
+        {children}
+      </CardContent>
+    </Card>
+  </section>
+);
+
 interface StatRowProps {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   info?: string;
 }
 
 const StatRow: React.FC<StatRowProps> = ({ label, value, info }) => (
-  <div className="flex items-center justify-between py-2">
-    <span className="text-sm text-muted-foreground flex items-center gap-1">
+  <div className="flex items-center justify-between gap-4 px-6 py-3">
+    <span className="flex items-center gap-1 text-sm">
       {label}
       {info && (
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="text-muted-foreground/60 hover:text-muted-foreground"
+              className="-m-2 p-2 text-muted-foreground/60 hover:text-muted-foreground"
               aria-label={`What is ${label}?`}
             >
               <Info className="size-3.5" />
@@ -42,7 +59,38 @@ const StatRow: React.FC<StatRowProps> = ({ label, value, info }) => (
         </Popover>
       )}
     </span>
-    <span className="text-sm font-medium">{value}</span>
+    <span className="truncate text-sm text-muted-foreground">{value}</span>
+  </div>
+);
+
+const gameStats = [
+  { label: "Total games", key: "totalGames" },
+  { label: "Solo wins", key: "soloWins" },
+  { label: "Draws", key: "draws" },
+  { label: "Losses", key: "losses" },
+] as const;
+
+export const PlayerProfileContentSkeleton: React.FC = () => (
+  <div className="space-y-4">
+    <div className="flex items-center gap-4">
+      <Skeleton className="size-16 rounded-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-4 w-40" />
+      </div>
+    </div>
+    <Section title="Commitment">
+      <StatRow label="NMR rate" value={<Skeleton className="h-5 w-8" />} />
+    </Section>
+    <Section title="Games">
+      {gameStats.map(({ label }) => (
+        <StatRow
+          key={label}
+          label={label}
+          value={<Skeleton className="h-5 w-6" />}
+        />
+      ))}
+    </Section>
   </div>
 );
 
@@ -53,65 +101,43 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
 
   return (
     <div className="space-y-4">
-      <ScreenCard>
-        <ScreenCardContent>
-          <div className="flex items-center gap-4">
-            <Avatar className="size-16">
-              <AvatarImage src={profile.picture ?? undefined} />
-              <AvatarFallback className="text-lg">
-                {profile.name[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-lg font-semibold">{profile.name}</span>
-                <CommitmentBadge commitment={profile.commitment} />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Joined{" "}
-                {new Date(profile.createdAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "long",
-                })}
-              </p>
-            </div>
+      <div className="flex items-center gap-4">
+        <Avatar className="size-16">
+          <AvatarImage src={profile.picture ?? undefined} />
+          <AvatarFallback className="text-lg">
+            {profile.name[0]?.toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-lg font-semibold">
+              {profile.name}
+            </span>
+            <CommitmentBadge commitment={profile.commitment} />
           </div>
-        </ScreenCardContent>
-      </ScreenCard>
+          <p className="text-sm text-muted-foreground">
+            Joined{" "}
+            {new Date(profile.createdAt).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "long",
+            })}
+          </p>
+        </div>
+      </div>
 
-      <ScreenCard>
-        <ScreenCardContent>
-          <h3 className="text-sm font-semibold mb-2">Commitment</h3>
-          <div className="divide-y">
-            <StatRow
-              label="Tier"
-              value={COMMITMENT_TIERS[profile.commitment]?.label ?? profile.commitment}
-              info={
-                profile.commitment === "undefined"
-                  ? "This player hasn't played enough rated phases to have a commitment rating yet. A rating appears after 10 rated phases."
-                  : "How consistently this player submits orders, based on their last 10 rated phases."
-              }
-            />
-            <StatRow
-              label="NMR Rate"
-              value={formatPercent(profile.nmrRate)}
-              info="The percentage of movement phases where this player submitted no orders, based on their last 10 games."
-            />
-          </div>
-        </ScreenCardContent>
-      </ScreenCard>
+      <Section title="Commitment">
+        <StatRow
+          label="NMR rate"
+          value={formatPercent(profile.nmrRate)}
+          info="The percentage of movement phases where this player submitted no orders, based on their last 10 games."
+        />
+      </Section>
 
-      <ScreenCard>
-        <ScreenCardContent>
-          <h3 className="text-sm font-semibold mb-2">Games</h3>
-          <div className="divide-y">
-            <StatRow label="Total Games" value={profile.totalGames} />
-            <StatRow label="Solo Wins" value={profile.soloWins} />
-            <StatRow label="Draws" value={profile.draws} />
-            <StatRow label="Losses" value={profile.losses} />
-          </div>
-        </ScreenCardContent>
-      </ScreenCard>
+      <Section title="Games">
+        {gameStats.map(({ label, key }) => (
+          <StatRow key={key} label={label} value={profile[key]} />
+        ))}
+      </Section>
     </div>
   );
 };

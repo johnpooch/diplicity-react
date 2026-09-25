@@ -1,7 +1,10 @@
 import React, { Suspense } from "react";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { PlayerProfileContent } from "@/components/PlayerProfileContent";
+import {
+  PlayerProfileContent,
+  PlayerProfileContentSkeleton,
+} from "@/components/PlayerProfileContent";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { useRequiredParams } from "@/hooks";
@@ -16,7 +19,7 @@ const PlayerProfileSuspense: React.FC = () => (
   <ScreenContainer>
     <ScreenHeader title="Player Profile" />
     <QueryErrorBoundary>
-      <Suspense fallback={<div></div>}>
+      <Suspense fallback={<PlayerProfileContentSkeleton />}>
         <PlayerProfile />
       </Suspense>
     </QueryErrorBoundary>
