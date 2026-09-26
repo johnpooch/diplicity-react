@@ -1,5 +1,5 @@
 import React from "react";
-import { Info, Trophy, AlertTriangle, Pause, UserCog } from "lucide-react";
+import { Info, Trophy, Users, AlertTriangle, Pause, UserCog } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
@@ -69,16 +69,28 @@ export function GameStatusAlerts({
         )
       )}
 
-      {game.victory && (
-        <Alert>
-          <Trophy className="size-4" />
-          <AlertDescription>
-            {game.victory.type === "solo"
-              ? `${game.victory.members[0]?.name ?? "A player"} has won the game!`
-              : `The game ended in a draw between ${game.victory.members.length} players.`}
-          </AlertDescription>
-        </Alert>
-      )}
+      {game.victory &&
+        (game.victory.type === "solo" ? (
+          <Alert className="p-5 border-amber-500/50 bg-amber-500/10 dark:bg-amber-400/10">
+            <Trophy className="text-amber-600 dark:text-amber-400" />
+            <AlertTitle className="text-base font-semibold text-amber-900 dark:text-amber-200">
+              {game.victory.members[0]?.name ?? "A player"} has won!
+            </AlertTitle>
+            <AlertDescription className="text-amber-700 dark:text-amber-300">
+              Solo victory
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="p-5 border-sky-500/50 bg-sky-500/10 dark:bg-sky-400/10">
+            <Users className="text-sky-600 dark:text-sky-400" />
+            <AlertTitle className="text-base font-semibold text-sky-900 dark:text-sky-200">
+              The game ended in a draw
+            </AlertTitle>
+            <AlertDescription className="text-sky-700 dark:text-sky-300">
+              Between {game.victory.members.length} players
+            </AlertDescription>
+          </Alert>
+        ))}
 
       {game.status === "abandoned" && (
         <Alert variant="destructive">
