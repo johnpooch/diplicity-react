@@ -57,10 +57,10 @@ vi.mock("@/api/generated/endpoints", () => ({
 const renderContent = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/nation-assignment/pending-1"]}>
+      <MemoryRouter initialEntries={["/game/pending-1/nation-assignment"]}>
         <Routes>
           <Route
-            path="/nation-assignment/:gameId"
+            path="/game/:gameId/nation-assignment"
             element={<NationAssignmentContent />}
           />
         </Routes>

@@ -153,38 +153,6 @@ export const createAuthenticatedRoutes = (
             ),
           },
           {
-            path: "game-info/:gameId",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <Home.GameInfoScreen />
-              </Suspense>
-            ),
-          },
-          {
-            path: "player-info/:gameId",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <Home.PlayerInfoScreen />
-              </Suspense>
-            ),
-          },
-          {
-            path: "nation-preference/:gameId",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <Home.NationPreferenceScreen />
-              </Suspense>
-            ),
-          },
-          {
-            path: "nation-assignment/:gameId",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <Home.NationAssignmentScreen />
-              </Suspense>
-            ),
-          },
-          {
             path: "player/:userId",
             element: (
               <Suspense fallback={<RouteFallback />}>
@@ -234,6 +202,43 @@ export const createAuthenticatedRoutes = (
           {
             path: "replace/:memberId",
             element: <GameReplaceRedirect />,
+          },
+          {
+            element: <GameDetailLayoutWrapper />,
+            children: [
+              {
+                path: "game-info",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.GameInfoScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "player-info",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.PlayerInfoScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "nation-preference",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.NationPreferenceScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "nation-assignment",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.NationAssignmentScreen />
+                  </Suspense>
+                ),
+              },
+            ],
           },
           {
             path: "phase/:phaseId",

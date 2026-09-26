@@ -56,6 +56,18 @@ export const pendingGameNoPlayers = makeFixture({
   }),
 });
 
+export const pendingGameCommitmentLocked = makeFixture({
+  description:
+    "Pending public game with zero members. canJoin is true (the current user isn't a member and the game is pending), but their commitment rating is too low to actually join — commitmentEligibility gates the real affordance, not canJoin alone.",
+  game: makeGame("pending-commitment-locked", "Veterans' Table", [], [], {
+    status: "pending",
+    canJoin: true,
+    commitmentEligibility: "committed_locked",
+    commitmentRequirement: "committed",
+    movementPhaseDuration: "48 hours",
+  }),
+});
+
 export const pendingGameCommitted = makeFixture({
   description:
     "Pending public game that requires committed players. The current user has high commitment and can join.",

@@ -17,6 +17,7 @@ import {
   pendingGameAlmostFull,
   pendingGameCommitted,
   pendingGameCommittedLocked,
+  pendingGameCommitmentLocked,
   pendingGameNoPlayers,
   pendingGameSomePlayers,
 } from "./games";
@@ -28,6 +29,7 @@ export { botRoster, currentUserProfile, makeBotMember, makeMember, publicProfile
 
 export const gameFixtures = {
   pendingGameNoPlayers,
+  pendingGameCommitmentLocked,
   pendingGameSomePlayers,
   pendingGameAlmostFull,
   pendingGameCommitted,

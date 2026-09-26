@@ -25,7 +25,7 @@ export const NationAssignmentAlert: React.FC<NationAssignmentAlertProps> = ({
           <Button
             variant="outline"
             className="w-full sm:w-auto"
-            onClick={() => navigate(`/nation-assignment/${gameId}`)}
+            onClick={() => navigate(`/game/${gameId}/nation-assignment`)}
           >
             Assign nations
           </Button>

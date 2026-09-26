@@ -20,6 +20,7 @@ const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
 const mockUserProfileData = vi.fn();
 const mockKickMutateAsync = vi.fn();
+const mockJoinMutateAsync = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -31,8 +32,16 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockKickMutateAsync,
     isPending: false,
   }),
+  useGameMemberJoinCreate: () => ({
+    mutateAsync: mockJoinMutateAsync,
+    isPending: false,
+  }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameAddableUserListQueryKey: () => ["addable-user"],
+}));
+
+vi.mock("@/hooks/useCheckNotificationPermission", () => ({
+  useCheckNotificationPermission: () => vi.fn(),
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -109,6 +118,40 @@ describe("PlayerInfoContent", () => {
     mockVariantsData.mockReturnValue([classicalVariant]);
     mockCurrentPhaseData.mockReturnValue({ supplyCenters: [], units: [] });
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true });
+  });
+
+  it("shows a red civil-disorder icon on the nation row, not the player-name row", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, civilDisorder: true }],
+    });
+
+    const { container } = renderPlayerInfo();
+
+    const icon = container.querySelector(".lucide-user-x");
+    expect(icon).toBeInTheDocument();
+    expect(icon).toHaveClass("text-destructive");
+    expect(icon!.parentElement).toHaveTextContent(baseMember.nation);
+    expect(icon!.parentElement).not.toHaveTextContent(baseMember.name);
+  });
+
+  it("does not show the civil-disorder icon for a member not in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, civilDisorder: false }],
+    });
+
+    const { container } = renderPlayerInfo();
+
+    expect(container.querySelector(".lucide-user-x")).not.toBeInTheDocument();
   });
 
   it("does not show a paused-game notice even when the game is paused", () => {
@@ -233,6 +276,49 @@ describe("PlayerInfoContent", () => {
 
     expect(screen.getAllByText("Open seat")).toHaveLength(6);
     expect(screen.queryByText("Add AI player")).not.toBeInTheDocument();
+  });
+
+  it("lets a player join directly by clicking an open seat", async () => {
+    const user = userEvent.setup();
+    mockJoinMutateAsync.mockResolvedValue(undefined);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      canManage: false,
+      canJoin: true,
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [],
+      members: [{ ...baseMember, nation: null }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByText("Open seat")).not.toBeInTheDocument();
+    await user.click(screen.getAllByText("Join game")[0]);
+
+    expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: "game-1" });
+  });
+
+  it("shows an inert 'Open seat' row, not a clickable 'Join game', when canJoin is true but the viewer is commitment-locked", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      canManage: false,
+      canJoin: true,
+      commitmentEligibility: "committed_locked",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [],
+      members: [{ ...baseMember, nation: null }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getAllByText("Open seat").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Join game")).not.toBeInTheDocument();
   });
 
   it("shows open seat rows when the admin cannot use bot opponents", () => {
@@ -656,7 +742,7 @@ describe("PlayerInfoContent", () => {
 
     await user.click(seat[0]);
 
-    expect(mockNavigate).toHaveBeenCalledWith("/nation-preference/game-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/game-1/nation-preference");
   });
 
   it("marks the current user's seat once preferences are provided", () => {

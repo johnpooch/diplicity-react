@@ -57,6 +57,6 @@ describe("GameReplaceRedirect", () => {
 
     renderAtReplaceRoute("abc-2", "12");
 
-    expect(screen.getByTestId("location")).toHaveTextContent("/game-info/abc-2");
+    expect(screen.getByTestId("location")).toHaveTextContent("/game/abc-2/game-info");
   });
 });
