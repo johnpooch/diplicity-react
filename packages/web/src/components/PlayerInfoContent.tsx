@@ -56,6 +56,31 @@ import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
 
+// lucide-react has no "robot with a plus" icon. Mirrors UserPlus's own
+// construction (glyph + a "+" drawn to its right, in one icon) using Bot's
+// unmodified path data, so it sits at the same proportions as UserPlus.
+const BotPlus: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 28 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M12 8V4H8" />
+    <rect width="16" height="12" x="4" y="8" rx="2" />
+    <path d="M2 14h2" />
+    <path d="M20 14h2" />
+    <path d="M15 13v2" />
+    <path d="M9 13v2" />
+    <path d="M25 8v6" />
+    <path d="M22 11h6" />
+  </svg>
+);
+
 const PlayerMedia: React.FC<{
   member: Member;
   variant: Variant | undefined;
@@ -431,7 +456,7 @@ export const PlayerInfoContent: React.FC = () => {
                   className="flex items-center gap-3 p-3 text-left"
                 >
                   <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
-                    <UserPlus className="size-4 text-muted-foreground" />
+                    <BotPlus className="size-4 text-muted-foreground" />
                   </div>
                   <span className="font-medium text-primary underline-offset-4 hover:underline">
                     Add AI player
@@ -444,16 +469,12 @@ export const PlayerInfoContent: React.FC = () => {
                   disabled={joinGameMutation.isPending}
                   className="flex items-center gap-3 p-3 text-left"
                 >
-                  <div className="relative size-12 shrink-0">
-                    <div className="size-12 rounded-full border border-dashed border-muted-foreground/50" />
-                    <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary ring-2 ring-background" />
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
+                    <UserPlus className="size-4 text-muted-foreground" />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Open seat</span>
-                    <span className="text-sm text-primary underline-offset-4 hover:underline">
-                      Join game
-                    </span>
-                  </div>
+                  <span className="font-medium text-primary underline-offset-4 hover:underline">
+                    Join game
+                  </span>
                 </button>
               ) : (
                 <div key={`open-seat-${index}`} className="flex items-center gap-3 p-3">
