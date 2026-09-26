@@ -52,7 +52,7 @@ import {
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
-import { getCurrentPhaseId } from "@/util";
+import { getCurrentPhaseId, isCommitmentLocked } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
 
@@ -185,6 +185,7 @@ export const PlayerInfoContent: React.FC = () => {
     : 0;
   const canAddBots =
     isPending && game.canManage && userProfile.canCreateBotGames;
+  const canReallyJoin = game.canJoin && !isCommitmentLocked(game);
 
   const canRemove = (member: Member) =>
     game.canManage && !member.isCurrentUser && member.removable;
@@ -462,7 +463,7 @@ export const PlayerInfoContent: React.FC = () => {
                     Add AI player
                   </span>
                 </button>
-              ) : game.canJoin ? (
+              ) : canReallyJoin ? (
                 <button
                   key={`open-seat-${index}`}
                   onClick={handleJoinGame}

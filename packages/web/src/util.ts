@@ -39,6 +39,19 @@ const getPlayerInfoPath = (game: {
     ? `/game/${game.id}/phase/${game.currentPhaseId}/player-info`
     : `/game/${game.id}/player-info`;
 
+const isCommitmentLocked = (game: {
+  commitmentEligibility?: string | null;
+}): boolean =>
+  game.commitmentEligibility === "committed_locked" ||
+  game.commitmentEligibility === "low_locked";
+
+const getCommitmentLockedReason = (game: {
+  commitmentEligibility?: string | null;
+}): string =>
+  game.commitmentEligibility === "low_locked"
+    ? "Your commitment rating is Low, so you can't join games right now. Your rating is based on your last 10 rated phases."
+    : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
+
 function dziemba_levenshtein(a: string, b: string) {
   let tmp;
   if (a.length === 0) {
@@ -204,4 +217,6 @@ export {
   getGameLandingPath,
   getGameInfoPath,
   getPlayerInfoPath,
+  isCommitmentLocked,
+  getCommitmentLockedReason,
 };

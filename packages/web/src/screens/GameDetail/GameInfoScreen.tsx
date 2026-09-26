@@ -14,6 +14,7 @@ import { useRequiredParams } from "@/hooks";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
+import { isCommitmentLocked, getCommitmentLockedReason } from "@/util";
 import {
   useGameRetrieveSuspense,
   useUserRetrieveSuspense,
@@ -73,9 +74,11 @@ const GameInfoScreen: React.FC = () => {
     userProfile.canCreateBotGames &&
     openSeats > 0;
 
+  const canReallyJoin = game.canJoin && !isCommitmentLocked(game);
+
   const pendingAction =
     game.status === "pending" ? (
-      game.canJoin ? (
+      canReallyJoin ? (
         <Button
           onClick={handleJoinGame}
           disabled={joinGameMutation.isPending}
@@ -105,13 +108,13 @@ const GameInfoScreen: React.FC = () => {
             </Button>
           )}
         </div>
-      ) : game.minReliability !== "open" ? (
+      ) : game.canJoin && isCommitmentLocked(game) ? (
         <div className="flex flex-col gap-1 w-full sm:w-auto">
           <Button disabled className="w-full sm:w-auto">
             Join game
           </Button>
           <p className="text-xs text-muted-foreground text-center">
-            Your reliability is too low to join this game
+            {getCommitmentLockedReason(game)}
           </p>
         </div>
       ) : null

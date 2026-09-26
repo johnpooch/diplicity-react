@@ -43,6 +43,8 @@ import {
   getGameLandingPath,
   getGameInfoPath,
   getPlayerInfoPath,
+  isCommitmentLocked,
+  getCommitmentLockedReason,
 } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
@@ -132,18 +134,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     }
   };
 
-  const isCommitmentLocked =
-    game.commitmentEligibility === "committed_locked" ||
-    game.commitmentEligibility === "low_locked";
-
-  const lockedReason =
-    game.commitmentEligibility === "low_locked"
-      ? "Your commitment rating is Low, so you can't join games right now. Your rating is based on your last 10 rated phases."
-      : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
+  const commitmentLocked = isCommitmentLocked(game);
+  const lockedReason = getCommitmentLockedReason(game);
 
   const joinGameButton =
     game.canJoin &&
-    (isCommitmentLocked ? (
+    (commitmentLocked ? (
       <Button variant="outline" aria-label="Locked" disabled>
         <Lock className="size-4" />
       </Button>
@@ -404,7 +400,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
             )}
           </CardDescription>
 
-          {isPending && game.commitmentRequirement === "committed" && !isCommitmentLocked && (
+          {isPending && game.commitmentRequirement === "committed" && !commitmentLocked && (
             <div>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -420,7 +416,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
             </div>
           )}
 
-          {isPending && isCommitmentLocked && (
+          {isPending && commitmentLocked && (
             <p className="flex items-center gap-1 text-xs text-muted-foreground">
               <Lock className="size-3" />
               {game.commitmentEligibility === "low_locked"

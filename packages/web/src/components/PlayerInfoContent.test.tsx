@@ -267,6 +267,26 @@ describe("PlayerInfoContent", () => {
     expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: "game-1" });
   });
 
+  it("shows an inert 'Open seat' row, not a clickable 'Join game', when canJoin is true but the viewer is commitment-locked", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "pending",
+      canManage: false,
+      canJoin: true,
+      commitmentEligibility: "committed_locked",
+      sandbox: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [],
+      members: [{ ...baseMember, nation: null }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getAllByText("Open seat").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Join game")).not.toBeInTheDocument();
+  });
+
   it("shows open seat rows when the admin cannot use bot opponents", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
