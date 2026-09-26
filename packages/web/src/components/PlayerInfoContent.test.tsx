@@ -120,6 +120,40 @@ describe("PlayerInfoContent", () => {
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true });
   });
 
+  it("shows a red civil-disorder icon on the nation row, not the player-name row", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, civilDisorder: true }],
+    });
+
+    const { container } = renderPlayerInfo();
+
+    const icon = container.querySelector(".lucide-user-x");
+    expect(icon).toBeInTheDocument();
+    expect(icon).toHaveClass("text-destructive");
+    expect(icon!.parentElement).toHaveTextContent(baseMember.nation);
+    expect(icon!.parentElement).not.toHaveTextContent(baseMember.name);
+  });
+
+  it("does not show the civil-disorder icon for a member not in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, civilDisorder: false }],
+    });
+
+    const { container } = renderPlayerInfo();
+
+    expect(container.querySelector(".lucide-user-x")).not.toBeInTheDocument();
+  });
+
   it("does not show a paused-game notice even when the game is paused", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",

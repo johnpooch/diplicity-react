@@ -8,6 +8,7 @@ import {
   Swords,
   UserMinus,
   UserPlus,
+  UserX,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -274,6 +275,9 @@ export const PlayerInfoContent: React.FC = () => {
                   >
                     {member.nation}
                   </span>
+                  {member.civilDisorder && (
+                    <UserX className="size-3.5 text-destructive" />
+                  )}
                 </div>
 
                 <div
@@ -304,6 +308,9 @@ export const PlayerInfoContent: React.FC = () => {
                 >
                   {member.name}
                 </span>
+                {member.civilDisorder && (
+                  <UserX className="size-3.5 text-destructive" />
+                )}
                 {member.isAdmin && (
                   <span className="text-sm text-muted-foreground">(Admin)</span>
                 )}
