@@ -38,16 +38,12 @@ export function GameStatusAlerts({
       {game.status === "pending" && (
         <Alert className="p-5">
           <Info className="size-4" />
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col gap-3">
             <AlertDescription>
               This game has not started yet. The game will start once{" "}
               {nationCount} players have joined.
             </AlertDescription>
-            {action && (
-              <div className="shrink-0 w-full sm:w-auto">
-                {action}
-              </div>
-            )}
+            {action && <div className="w-full sm:w-auto">{action}</div>}
           </div>
         </Alert>
       )}
