@@ -202,6 +202,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           canShowAdminActions ? <GameAdminActions game={game} /> : undefined
         }
       />
+      {nationSeatAlert}
       {(onShare || canCloneToSandbox || canDeleteGame) && (
         <div className="flex flex-wrap gap-2">
           {onShare && (
@@ -218,7 +219,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
         </div>
       )}
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
-      {nationSeatAlert}
       {showTitle && (
         <h1 className="truncate text-xl font-semibold leading-9">
           {game.name}
