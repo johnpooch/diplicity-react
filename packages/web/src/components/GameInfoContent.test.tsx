@@ -284,3 +284,45 @@ describe("GameInfoContent clone to sandbox", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("GameInfoContent commitment-locked message", () => {
+  it("tells a commitment-locked viewer why they can't join, in the pending status alert", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...mockPendingGames[0],
+      status: "pending",
+      canJoin: true,
+      canLeave: false,
+      canManage: false,
+      commitmentEligibility: "committed_locked",
+      members: [],
+    });
+
+    renderGameInfo();
+
+    expect(
+      screen.getByText(
+        "You can't join because you don't meet the commitment requirements."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("is not shown when the viewer can actually join", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...mockPendingGames[0],
+      status: "pending",
+      canJoin: true,
+      canLeave: false,
+      canManage: false,
+      commitmentEligibility: "eligible",
+      members: [],
+    });
+
+    renderGameInfo();
+
+    expect(
+      screen.queryByText(/don't meet the commitment requirements/)
+    ).not.toBeInTheDocument();
+  });
+});

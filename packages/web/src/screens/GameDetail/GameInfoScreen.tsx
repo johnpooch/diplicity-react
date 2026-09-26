@@ -14,7 +14,7 @@ import { useRequiredParams } from "@/hooks";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
-import { isCommitmentLocked, getCommitmentLockedReason } from "@/util";
+import { isCommitmentLocked } from "@/util";
 import {
   useGameRetrieveSuspense,
   useUserRetrieveSuspense,
@@ -107,15 +107,6 @@ const GameInfoScreen: React.FC = () => {
               Leave
             </Button>
           )}
-        </div>
-      ) : game.canJoin && isCommitmentLocked(game) ? (
-        <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <Button disabled className="w-full sm:w-auto">
-            Join game
-          </Button>
-          <p className="text-xs text-muted-foreground text-center">
-            {getCommitmentLockedReason(game)}
-          </p>
         </div>
       ) : null
     ) : null;

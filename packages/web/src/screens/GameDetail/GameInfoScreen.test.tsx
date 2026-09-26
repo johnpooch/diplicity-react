@@ -193,18 +193,16 @@ describe("GameInfoScreen (shell)", () => {
       });
     });
 
-    it("shows a disabled Join button with a commitment-locked message when the viewer's commitment is too low, even though canJoin is true", () => {
+    it("shows no body action when the viewer's commitment is too low, even though canJoin is true (the reason is explained by the shared status alert instead)", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
         data: pendingGameCommitmentLocked,
       });
       renderGameInfo(pendingGameCommitmentLocked.id);
 
       const content = screen.getByTestId("game-info-content");
-      const joinButton = within(content).getByRole("button", { name: /join game/i });
-      expect(joinButton).toBeDisabled();
       expect(
-        within(content).getByText(/this game admits players with high commitment only/i)
-      ).toBeInTheDocument();
+        within(content).queryByRole("button", { name: /join game/i })
+      ).not.toBeInTheDocument();
     });
 
     it("shows 'Add AI player' for a pending game the user manages", async () => {

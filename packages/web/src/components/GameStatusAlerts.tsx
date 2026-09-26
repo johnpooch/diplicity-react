@@ -2,11 +2,14 @@ import React from "react";
 import { Info, Trophy, Users, AlertTriangle, Pause, UserCog } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { isCommitmentLocked } from "@/util";
 
 interface GameStatusAlertsProps {
   game: {
     status: string;
     isPaused?: boolean;
+    canJoin?: boolean;
+    commitmentEligibility?: string | null;
     victory?: {
       type: string;
       members: readonly { name: string }[];
@@ -33,6 +36,9 @@ export function GameStatusAlerts({
       : variant.nations.length
     : undefined;
 
+  const commitmentBlocked =
+    game.status === "pending" && game.canJoin && isCommitmentLocked(game);
+
   return (
     <>
       {game.status === "pending" && (
@@ -42,6 +48,12 @@ export function GameStatusAlerts({
             <AlertDescription>
               This game has not started yet. The game will start once{" "}
               {nationCount} players have joined.
+              {commitmentBlocked && (
+                <p>
+                  You can't join because you don't meet the commitment
+                  requirements.
+                </p>
+              )}
             </AlertDescription>
             {action && <div className="w-full sm:w-auto">{action}</div>}
           </div>
