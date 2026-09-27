@@ -268,9 +268,10 @@ export const myGamesAllStates: Game[] = [
     musteringStatus: "unconfirmed",
     preferredNations: ["Germany", "France"],
     confirmedPlayers: 5,
-    phase: { ...activeGame.phase, deadline: "seat held for 28 min" },
+    phase: { ...activeGame.phase, deadline: "28 min left" },
     orderStatus: "no_orders_required",
     urgencyRank: 0,
+    deadlineMinutes: 28,
   }),
   withGameState({
     id: "my-muster-confirmed",
@@ -282,18 +283,7 @@ export const myGamesAllStates: Game[] = [
     phase: { ...activeGame.phase, deadline: "starts in 9 hours" },
     orderStatus: "no_orders_required",
     urgencyRank: 100,
-  }),
-  withGameState({
-    id: "my-muster-last",
-    name: "Seven Crowns",
-    status: "mustering",
-    attention: "last_seat_to_confirm",
-    musteringStatus: "last_to_confirm",
-    preferredNations: ["Italy"],
-    confirmedPlayers: 6,
-    phase: { ...activeGame.phase, deadline: "seat held for 2 hours" },
-    orderStatus: "no_orders_required",
-    urgencyRank: 1,
+    deadlineMinutes: 540,
   }),
   withGameState({
     id: "my-orders-required",
@@ -302,6 +292,7 @@ export const myGamesAllStates: Game[] = [
     orderStatus: "orders_required",
     phase: { ...activeGame.phase, deadline: "12 hours left" },
     urgencyRank: 30,
+    deadlineMinutes: 720,
   }),
   withGameState({
     id: "my-orders-unconfirmed",
@@ -311,6 +302,7 @@ export const myGamesAllStates: Game[] = [
     nation: "England",
     phase: { ...activeGame.phase, deadline: "1 day left" },
     urgencyRank: 40,
+    deadlineMinutes: 1440,
   }),
   withGameState({
     id: "my-orders-confirmed",
@@ -318,15 +310,16 @@ export const myGamesAllStates: Game[] = [
     orderStatus: "orders_confirmed",
     nation: "Russia",
     phase: { ...activeGame.phase, deadline: "2 days left" },
+    deadlineMinutes: 2880,
   }),
   withGameState({
     id: "my-civil-disorder",
     name: "Active: you are in civil disorder",
-    attention: "civil_disorder",
     userInCivilDisorder: true,
     orderStatus: "orders_required",
     phase: { ...activeGame.phase, deadline: "6 hours left" },
     urgencyRank: 5,
+    deadlineMinutes: 360,
   }),
   withGameState({
     id: "my-other-civil-disorder",
@@ -334,6 +327,7 @@ export const myGamesAllStates: Game[] = [
     otherPlayerInCivilDisorder: true,
     orderStatus: "orders_confirmed",
     phase: { ...activeGame.phase, deadline: "1 day left" },
+    deadlineMinutes: 1440,
   }),
   withGameState({
     id: "my-missed-deadline",
@@ -342,6 +336,7 @@ export const myGamesAllStates: Game[] = [
     orderStatus: "orders_required",
     phase: { ...activeGame.phase, deadline: "10 hours left" },
     urgencyRank: 6,
+    deadlineMinutes: 600,
   }),
   withGameState({
     id: "my-eliminated",
@@ -350,6 +345,7 @@ export const myGamesAllStates: Game[] = [
     nation: "Italy",
     orderStatus: "no_orders_required",
     phase: { ...activeGame.phase, deadline: "3 days left" },
+    deadlineMinutes: 4320,
   }),
   withGameState({
     id: "my-replaceable",
@@ -357,6 +353,7 @@ export const myGamesAllStates: Game[] = [
     replaceableSeat: true,
     orderStatus: "orders_confirmed",
     phase: { ...activeGame.phase, deadline: "18 hours left" },
+    deadlineMinutes: 1080,
   }),
   withGameState({
     id: "my-paused",
@@ -372,6 +369,7 @@ export const myGamesAllStates: Game[] = [
     orderStatus: "orders_required",
     phase: { season: "Fall", year: 1905, type: "Retreat", deadline: "40 min left" },
     urgencyRank: 10,
+    deadlineMinutes: 40,
   }),
   withGameState({
     id: "my-adjustment",
@@ -380,6 +378,7 @@ export const myGamesAllStates: Game[] = [
     orderStatus: "orders_required",
     phase: { season: "Winter", year: 1904, type: "Adjustment", deadline: "6 hours left" },
     urgencyRank: 20,
+    deadlineMinutes: 360,
   }),
   withGameState({
     id: "my-unread",
@@ -389,6 +388,7 @@ export const myGamesAllStates: Game[] = [
     orderStatus: "orders_confirmed",
     phase: { season: "Fall", year: 1902, type: "Movement", deadline: "1 day left" },
     urgencyRank: 60,
+    deadlineMinutes: 1440,
   }),
   withGameState({
     id: "my-pending-owner",
@@ -458,7 +458,7 @@ export const myGamesAllStates: Game[] = [
   }),
   withGameState({
     id: "my-sandbox",
-    name: "Sandbox: practice game",
+    name: "Classical Sandbox",
     sandbox: true,
     nation: "France",
     orderStatus: "no_orders_required",
@@ -466,18 +466,24 @@ export const myGamesAllStates: Game[] = [
   }),
 ];
 
-export const myGamesDefault: Game[] = [
-  myGamesAllStates[0],
-  myGamesAllStates[3],
-  myGamesAllStates[4],
-  myGamesAllStates[5],
-  myGamesAllStates[9],
-  myGamesAllStates[11],
-  myGamesAllStates[15],
-  myGamesAllStates[22],
-];
+const myGamesDefaultIds = new Set([
+  "my-muster-unconfirmed",
+  "my-orders-required",
+  "my-orders-unconfirmed",
+  "my-orders-confirmed",
+  "my-eliminated",
+  "my-paused",
+  "my-pending-owner",
+  "my-sandbox",
+]);
 
-export const myGamesMustering: Game[] = myGamesAllStates.slice(0, 3);
+export const myGamesDefault: Game[] = myGamesAllStates.filter(game =>
+  myGamesDefaultIds.has(game.id)
+);
+
+export const myGamesMustering: Game[] = myGamesAllStates.filter(
+  game => game.status === "mustering"
+);
 
 export const myGamesMany: Game[] = Array.from({ length: 40 }, (_, index) => {
   const game = myGamesAllStates[index % myGamesAllStates.length];

@@ -22,13 +22,11 @@ import type { Game, GameAttention } from "@/data/types";
 
 const attentionPriority: Record<GameAttention, number> = {
   confirm_seat: 0,
-  last_seat_to_confirm: 1,
-  civil_disorder: 2,
-  missed_deadline: 3,
-  orders_required: 4,
-  orders_unconfirmed: 5,
-  unread_messages: 6,
-  none: 7,
+  missed_deadline: 1,
+  orders_required: 2,
+  orders_unconfirmed: 3,
+  unread_messages: 4,
+  none: 5,
 };
 
 const gameNeedsAction = (game: Game) =>
@@ -54,7 +52,7 @@ const preferenceLabel = (game: Game) => {
 };
 
 const identityLabel = (game: Game) => {
-  if (game.sandbox) return "Practice";
+  if (game.sandbox) return "Sandbox";
   if (game.status === "pending" || game.status === "mustering") {
     return preferenceLabel(game);
   }
@@ -70,8 +68,7 @@ const resultLabel = (game: Game) => {
 
 const actionLabel = (game: Game) => {
   if (game.attention === "confirm_seat") return "Confirm your seat";
-  if (game.attention === "last_seat_to_confirm") return "You are last to confirm";
-  if (game.attention === "civil_disorder") return "Recover your position";
+  if (game.userInCivilDisorder) return "Civil disorder";
   if (game.attention === "missed_deadline") return "You missed the last deadline";
   if (game.attention === "orders_required") return `${game.phase.type} orders due`;
   if (game.attention === "orders_unconfirmed") return "Orders not confirmed";
@@ -89,7 +86,7 @@ const actionLabel = (game: Game) => {
   if (game.status === "completed" || game.status === "abandoned") {
     return resultLabel(game);
   }
-  if (game.sandbox) return "Resume practice";
+  if (game.sandbox) return "Sandbox";
   if (game.orderStatus === "orders_confirmed") return "Orders confirmed";
   return game.phase.deadline;
 };
@@ -122,7 +119,7 @@ const gameSubtitle = (game: Game) => {
   if (game.status === "completed" || game.status === "abandoned") {
     return `${game.phase.season} ${game.phase.year}, ${game.phase.type}`;
   }
-  if (game.sandbox) return "Classical practice board";
+  if (game.sandbox) return "Classical sandbox";
   return `${game.phase.season} ${game.phase.year}, ${game.phase.type}`;
 };
 
@@ -133,7 +130,7 @@ interface MyGameCardProps {
 
 const MyGameCard: React.FC<MyGameCardProps> = ({ game, prominent = false }) => {
   const ActionIcon = actionIcon(game);
-  const urgent = game.attention === "confirm_seat" || game.attention === "last_seat_to_confirm";
+  const urgent = game.attention === "confirm_seat";
 
   return (
     <Card
@@ -227,7 +224,7 @@ const CompactGameRow: React.FC<{ game: Game }> = ({ game }) => {
 
 const MusteringAlert: React.FC<{ games: Game[] }> = ({ games }) => {
   const atRisk = sortByAttention(games).find(
-    game => game.attention === "confirm_seat" || game.attention === "last_seat_to_confirm"
+    game => game.attention === "confirm_seat"
   );
   if (!atRisk) return null;
 

@@ -97,7 +97,7 @@ const ActionQueue: React.FC<{ state: string }> = ({ state }) => {
                     <div>
                       <h2 className="text-sm font-medium">Coming up</h2>
                       <p className="text-xs text-muted-foreground">
-                        Urgent first, practice and history last
+                        Urgent first, sandbox and history last
                       </p>
                     </div>
                     <Button size="sm" variant="ghost" className="gap-1">

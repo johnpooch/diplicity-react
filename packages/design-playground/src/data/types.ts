@@ -15,18 +15,13 @@ export type OrderStatus =
 
 export type GameAttention =
   | "confirm_seat"
-  | "last_seat_to_confirm"
   | "orders_required"
   | "orders_unconfirmed"
-  | "civil_disorder"
   | "missed_deadline"
   | "unread_messages"
   | "none";
 
-export type MusteringStatus =
-  | "unconfirmed"
-  | "confirmed"
-  | "last_to_confirm";
+export type MusteringStatus = "unconfirmed" | "confirmed";
 
 export type GameResult = "solo_win" | "solo_loss" | "draw" | "abandoned";
 
@@ -117,6 +112,7 @@ export interface Game {
   userEliminated?: boolean;
   replaceableSeat?: boolean;
   urgencyRank?: number;
+  deadlineMinutes?: number;
 }
 
 export interface Message {

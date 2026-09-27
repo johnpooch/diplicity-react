@@ -42,7 +42,7 @@ const filters: Array<{ key: FilterKey; label: string }> = [
   { key: "active", label: "Active" },
   { key: "pending", label: "Staging" },
   { key: "finished", label: "Finished" },
-  { key: "sandbox", label: "Practice" },
+  { key: "sandbox", label: "Sandbox" },
 ];
 
 const matchesFilter = (game: Game, filter: FilterKey) => {

@@ -4,6 +4,7 @@ import { GroupedByPhase } from "@/prototypes/my-games/GroupedByPhase";
 import { ActionQueue } from "@/prototypes/my-games/ActionQueue";
 import { FilterChips } from "@/prototypes/my-games/FilterChips";
 import { QueryView } from "@/prototypes/my-games/QueryView";
+import { SectionedViews } from "@/prototypes/my-games/SectionedViews";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
 import { Channel } from "@/prototypes/channel/Default";
@@ -115,6 +116,24 @@ export const prototypes: Prototype[] = [
           { slug: "mustering", title: "Mustering" },
         ],
         render: state => <QueryView state={state} />,
+      },
+      {
+        slug: "sectioned-views",
+        title: "Sectioned views",
+        description:
+          "Treat filters as named views and organize each view into exclusive inbox-like sections, with action-required games ordered first but styled quietly.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "empty", title: "No games" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedViews state={state} />,
       },
     ],
   },

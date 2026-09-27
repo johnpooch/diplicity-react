@@ -33,7 +33,7 @@ const presets = [
   { label: "Needs me", query: "needs:me" },
   { label: "Mustering", query: "status:mustering" },
   { label: "History", query: "status:finished" },
-  { label: "Practice", query: "sandbox:true" },
+  { label: "Sandbox", query: "sandbox:true" },
 ];
 
 const gamesForState = (state: string): Game[] => {
