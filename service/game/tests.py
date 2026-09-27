@@ -1,8 +1,11 @@
 import re
+from io import StringIO
 
 import pytest
 from adjudicator import service as adjudication_service
 from unittest.mock import patch
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from django.test.utils import override_settings
 from django.db import connection
@@ -10,13 +13,15 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile
+from login.models import AuthUser
+from .management.commands.seed_staging import TESTER_EMAIL
 from .models import Game
 
 retrieve_viewname = "game-retrieve"
@@ -4591,3 +4596,134 @@ class TestGameFindSimilarView:
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
+
+
+@pytest.mark.django_db
+class TestSeedStagingCommand:
+    @pytest.fixture
+    def staging(self, settings):
+        settings.DEBUG = False
+        settings.ENVIRONMENT = "staging"
+
+    def _seed(self, *args):
+        call_command("seed_staging", *args, stdout=StringIO())
+
+    def _games_by_name(self, client, query):
+        response = client.get(f"{reverse(list_viewname)}?{query}&page_size=100")
+        assert response.status_code == status.HTTP_200_OK
+        return {game["name"]: game for game in response.data["results"]}
+
+    def _current_member(self, game):
+        return next(member for member in game["members"] if member["is_current_user"])
+
+    def test_refuses_to_run_outside_staging(self, settings):
+        settings.DEBUG = False
+        settings.ENVIRONMENT = "production"
+
+        with pytest.raises(CommandError):
+            self._seed()
+
+        assert not AuthUser.objects.filter(email=TESTER_EMAIL).exists()
+
+    def test_skip_if_seeded_leaves_existing_tester_untouched(self, staging, authenticated_client_factory):
+        tester = AuthUser.objects.create(email=TESTER_EMAIL, username="test-user")
+        UserProfile.objects.create(user=tester, name="Existing")
+
+        self._seed("--skip-if-seeded")
+
+        response = authenticated_client_factory(tester).get(f"{reverse(list_viewname)}?mine=true")
+        assert response.data["results"] == []
+
+    def test_reseeding_replaces_previously_seeded_games(self, staging, authenticated_client_factory):
+        self._seed()
+        self._seed()
+
+        client = authenticated_client_factory(AuthUser.objects.get(email=TESTER_EMAIL))
+        response = client.get(f"{reverse(list_viewname)}?mine=true&page_size=100")
+        assert response.data["count"] == 20
+
+    def test_seeds_loginable_tester_with_games_in_each_state(
+        self, staging, authenticated_client_factory, unauthenticated_client
+    ):
+        self._seed()
+
+        tester = AuthUser.objects.get(email=TESTER_EMAIL)
+        client = authenticated_client_factory(tester)
+        finished = self._games_by_name(client, "mine=true&status=completed,abandoned")
+        active = self._games_by_name(client, "mine=true&status=active")
+        pending = self._games_by_name(client, "mine=true&status=pending")
+        spectating = self._games_by_name(client, "status=active")
+        joinable = self._games_by_name(client, "can_join=true")
+
+        login = unauthenticated_client.post(
+            reverse("email-login"), {"email": TESTER_EMAIL, "password": "password"}, format="json"
+        )
+        assert login.status_code == status.HTTP_201_CREATED
+        profile = client.get(reverse("user-profile"))
+        assert profile.data["commitment"] == Commitment.HIGH
+        assert (len(finished), len(active), len(pending), len(joinable)) == (4, 13, 3, 3)
+
+        won = finished["Finished: you won solo"]
+        assert won["victory"]["type"] == "solo"
+        assert won["victory"]["members"][0]["is_current_user"]
+
+        lost = finished["Finished: another player won solo"]
+        assert lost["victory"]["type"] == "solo"
+        assert not lost["victory"]["members"][0]["is_current_user"]
+
+        draw = finished["Finished: five-way draw"]
+        assert draw["victory"]["type"] == "draw"
+        assert len(draw["victory"]["members"]) == 5
+
+        assert finished["Finished: abandoned"]["status"] == GameStatus.ABANDONED
+
+        assert active["Active: you are in civil disorder"]["member_status"] == ["civil_disorder", "nmr"]
+        assert active["Active: you missed the last deadline"]["member_status"] == ["nmr"]
+
+        players_in_disorder = active["Active: players in civil disorder"]["members"]
+        assert [member["name"] for member in players_in_disorder if member["civil_disorder"]] == ["Bruno Keller"]
+        assert "Gustav Lind" in [member["name"] for member in players_in_disorder]
+
+        replaceable = spectating["Active: take over an abandoned seat"]["members"]
+        assert not any(member["is_current_user"] for member in replaceable)
+        assert [member["name"] for member in replaceable if member["replaceable"]] == ["Dmitri Volkov"]
+
+        assert self._current_member(active["Active: you were eliminated"])["eliminated"]
+
+        retreat = active["Active: retreat phase"]
+        assert retreat["current_phase"]["type"] == PhaseType.RETREAT
+        assert retreat["order_status"] == "orders_required"
+
+        adjustment = active["Active: adjustment phase"]
+        assert adjustment["current_phase"]["type"] == PhaseType.ADJUSTMENT
+        assert adjustment["order_status"] == "orders_required"
+
+        mid_game = active["Active: mid-game with messages"]
+        assert (mid_game["current_phase"]["season"], mid_game["current_phase"]["year"]) == ("Fall", 1902)
+        assert mid_game["total_unread_message_count"] == 4
+        assert mid_game["nmr_extensions_allowed"] == 2
+
+        proposals = client.get(reverse("draw-proposal-list", args=[active["Active: draw proposed"]["id"]])).data
+        assert sorted((proposal["status"], proposal["my_vote"]["accepted"]) for proposal in proposals) == [
+            ("pending", None),
+            ("rejected", None),
+        ]
+
+        orders_required = active["Active: orders required"]
+        assert orders_required["order_status"] == "orders_required"
+        assert [member["name"] for member in orders_required["members"] if member["is_bot"]] == ["Staging Bot"]
+        assert active["Active: orders not confirmed"]["order_status"] == "orders_not_confirmed"
+        assert active["Active: orders not confirmed"]["anonymous"]
+        assert active["Active: orders confirmed"]["order_status"] == "orders_submitted"
+        assert active["Active: orders confirmed"]["press_type"] == PressType.NO_PRESS
+        assert active["Active: paused"]["is_paused"]
+        assert active["Sandbox: practice game"]["sandbox"]
+
+        waiting = self._current_member(pending["Pending: waiting for players"])
+        assert waiting["nation_preference_ids"] == ["france", "england", "germany"]
+        assert pending["Pending: you are the game master"]["game_master"]["name"] == "Staging Tester"
+        assert pending["Pending: joined another player's game"]["can_leave"]
+
+        assert len(joinable["Open: one seat left"]["members"]) == 6
+        assert joinable["Open: committed players only"]["commitment_requirement"] == CommitmentRequirement.COMMITTED
+        assert joinable["Open: gunboat Italy vs Germany"]["variant_id"] == "italy-vs-germany"
