@@ -11,6 +11,7 @@ import { SectionedCompactHorizontal } from "@/prototypes/my-games/SectionedCompa
 import { SectionedProductionCard } from "@/prototypes/my-games/SectionedProductionCard";
 import { SectionedFilterMenu } from "@/prototypes/my-games/SectionedFilterMenu";
 import { SectionedHeaderFilter } from "@/prototypes/my-games/SectionedHeaderFilter";
+import { SectionedEssentialContext } from "@/prototypes/my-games/SectionedEssentialContext";
 import { SectionedTwoColumn } from "@/prototypes/my-games/SectionedTwoColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
@@ -249,6 +250,24 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <SectionedHeaderFilter state={state} />,
+      },
+      {
+        slug: "sectioned-essential-context",
+        title: "Sectioned essential context",
+        description:
+          "Strip away inventory counts and variant labels so each card and section carries only information that can change what the player does next.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedEssentialContext state={state} />,
       },
       {
         slug: "sectioned-two-column",
