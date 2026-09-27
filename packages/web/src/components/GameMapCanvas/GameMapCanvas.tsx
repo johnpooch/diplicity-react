@@ -41,6 +41,7 @@ type GameMapCanvasProps = {
   mode?: MapMode;
   showFillToggle?: boolean;
   focus?: string[];
+  focusKeepZoom?: boolean;
   onClickProvince?: (province: string, position: { x: number; y: number }) => void;
   style?: React.CSSProperties;
 };
@@ -177,9 +178,9 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     if (!controller || !provincePaths || !props.focus || props.focus.length === 0) {
       return;
     }
-    controller.focusProvinces(props.focus);
+    controller.focusProvinces(props.focus, 1.4, true, props.focusKeepZoom);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- focus compared by joined key; provincePaths gates controller readiness
-  }, [focusKey, provincePaths]);
+  }, [focusKey, provincePaths, props.focusKeepZoom]);
 
   useEffect(() => {
     controllerRef.current?.setFill(fill);
