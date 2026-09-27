@@ -1,5 +1,12 @@
-import { act, render } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useNavigate, type NavigateFunction } from "react-router";
+import { act, render, screen } from "@testing-library/react";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  type NavigateFunction,
+} from "react-router";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { GameDetailLayout } from "./GameDetailLayout";
@@ -58,16 +65,38 @@ const NavigateProbe: React.FC = () => {
   return null;
 };
 
-const renderLayout = () => {
+const LocationProbe: React.FC = () => {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+};
+
+const renderLayout = (initialEntry = "/game/game-1/phase/1") => {
   const queryClient = new QueryClient();
   const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/game/game-1/phase/1"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <NavigateProbe />
+        <LocationProbe />
         <Routes>
           <Route
             path="/game/:gameId/phase/:phaseId"
+            element={
+              <GameDetailLayout>
+                <div />
+              </GameDetailLayout>
+            }
+          />
+          <Route
+            path="/game/:gameId/game-info"
+            element={
+              <GameDetailLayout>
+                <div />
+              </GameDetailLayout>
+            }
+          />
+          <Route
+            path="/game/:gameId/player-info"
             element={
               <GameDetailLayout>
                 <div />
@@ -142,5 +171,31 @@ describe("GameDetailLayout phase transitions", () => {
     await pollGame(queryClient, "game-2", { currentPhaseId: 7, status: "completed" });
 
     expect(invalidatedKeys()).toEqual([]);
+  });
+});
+
+describe("GameDetailLayout pending -> active redirect", () => {
+  it("redirects from the pathless game-info route to the phase-based one once the game starts, even though currentPhaseId was already non-null while pending", async () => {
+    const { queryClient } = renderLayout("/game/game-1/game-info");
+    // The backend pre-creates a game's first phase before it starts, so a
+    // pending game already carries a real currentPhaseId.
+    await pollGame(queryClient, "game-1", { currentPhaseId: 16, status: "pending" });
+
+    await pollGame(queryClient, "game-1", { currentPhaseId: 16, status: "active" });
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/game-1/phase/16/game-info"
+    );
+  });
+
+  it("does not redirect while the game is still pending", async () => {
+    const { queryClient } = renderLayout("/game/game-1/game-info");
+    await pollGame(queryClient, "game-1", { currentPhaseId: 16, status: "pending" });
+
+    await pollGame(queryClient, "game-1", { currentPhaseId: 16, status: "pending" });
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/game-1/game-info"
+    );
   });
 });

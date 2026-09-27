@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { formatDateTime, formatRemainingTime, getGameLandingPath } from "./util";
+import {
+  formatDateTime,
+  formatRemainingTime,
+  getGameLandingPath,
+  getGameInfoPath,
+  getPlayerInfoPath,
+} from "./util";
 
 describe("formatRemainingTime", () => {
   it("returns 'Deadline passed' for 0 seconds", () => {
@@ -47,14 +53,14 @@ describe("formatDateTime", () => {
 describe("getGameLandingPath", () => {
   it("routes pending games to game-info regardless of viewport", () => {
     const game = { id: "abc-1", status: "pending", currentPhaseId: 5 };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-1");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-1");
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-1/game-info");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-1/game-info");
   });
 
   it("routes pending games to game-info even when currentPhaseId is null", () => {
     const game = { id: "abc-2", status: "pending", currentPhaseId: null };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-2");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-2");
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-2/game-info");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-2/game-info");
   });
 
   it("routes active games on mobile to the phase index", () => {
@@ -77,5 +83,33 @@ describe("getGameLandingPath", () => {
     const game = { id: "abc-5", status: "completed", currentPhaseId: 12 };
     expect(getGameLandingPath(game, true)).toBe("/game/abc-5/phase/12");
     expect(getGameLandingPath(game, false)).toBe("/game/abc-5/phase/12/orders");
+  });
+});
+
+describe("getGameInfoPath", () => {
+  it("uses the pathless shell route when there is no current phase", () => {
+    expect(getGameInfoPath({ id: "abc-1", currentPhaseId: null })).toBe(
+      "/game/abc-1/game-info"
+    );
+  });
+
+  it("uses the phase-scoped shell route when a phase exists", () => {
+    expect(getGameInfoPath({ id: "abc-1", currentPhaseId: 5 })).toBe(
+      "/game/abc-1/phase/5/game-info"
+    );
+  });
+});
+
+describe("getPlayerInfoPath", () => {
+  it("uses the pathless shell route when there is no current phase", () => {
+    expect(getPlayerInfoPath({ id: "abc-1", currentPhaseId: null })).toBe(
+      "/game/abc-1/player-info"
+    );
+  });
+
+  it("uses the phase-scoped shell route when a phase exists", () => {
+    expect(getPlayerInfoPath({ id: "abc-1", currentPhaseId: 5 })).toBe(
+      "/game/abc-1/phase/5/player-info"
+    );
   });
 });

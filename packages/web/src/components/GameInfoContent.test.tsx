@@ -63,9 +63,9 @@ vi.mock("@/components/MapView", () => ({
 const renderGameInfo = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/game-info/game-1"]}>
+      <MemoryRouter initialEntries={["/game/game-1/game-info"]}>
         <Routes>
-          <Route path="/game-info/:gameId" element={<GameInfoContent />} />
+          <Route path="/game/:gameId/game-info" element={<GameInfoContent />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -90,7 +90,7 @@ describe("GameInfoContent nation preference alert", () => {
 
     await user.click(screen.getByRole("button", { name: "Set Nation Preferences" }));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/nation-preference/game-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/game/game-1/nation-preference");
   });
 
   it("confirms that a player has provided preferences", () => {
@@ -281,6 +281,48 @@ describe("GameInfoContent clone to sandbox", () => {
 
     expect(
       screen.queryByRole("button", { name: /clone to sandbox/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("GameInfoContent commitment-locked message", () => {
+  it("tells a commitment-locked viewer why they can't join, in the pending status alert", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...mockPendingGames[0],
+      status: "pending",
+      canJoin: true,
+      canLeave: false,
+      canManage: false,
+      commitmentEligibility: "committed_locked",
+      members: [],
+    });
+
+    renderGameInfo();
+
+    expect(
+      screen.getByText(
+        "You can't join because you don't meet the commitment requirements."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("is not shown when the viewer can actually join", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...mockPendingGames[0],
+      status: "pending",
+      canJoin: true,
+      canLeave: false,
+      canManage: false,
+      commitmentEligibility: "eligible",
+      members: [],
+    });
+
+    renderGameInfo();
+
+    expect(
+      screen.queryByText(/don't meet the commitment requirements/)
     ).not.toBeInTheDocument();
   });
 });

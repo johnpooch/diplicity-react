@@ -60,7 +60,7 @@ export const NationPreferenceContent: React.FC = () => {
         }),
       ]);
       toast.success("Nation preferences saved");
-      navigate(`/game-info/${gameId}`);
+      navigate(`/game/${gameId}/game-info`);
     } catch {
       toast.error("Failed to save nation preferences");
     }

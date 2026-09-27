@@ -17,11 +17,40 @@ const getGameLandingPath = (
   game: { id: string; status: string; currentPhaseId: number | null },
   isMobile: boolean
 ): string => {
-  if (game.status === StatusEnum.pending) return `/game-info/${game.id}`;
+  if (game.status === StatusEnum.pending) return `/game/${game.id}/game-info`;
   if (!game.currentPhaseId) return "/";
   const base = `/game/${game.id}/phase/${game.currentPhaseId}`;
   return isMobile ? base : `${base}/orders`;
 };
+
+const getGameInfoPath = (game: {
+  id: string;
+  currentPhaseId: number | null;
+}): string =>
+  game.currentPhaseId
+    ? `/game/${game.id}/phase/${game.currentPhaseId}/game-info`
+    : `/game/${game.id}/game-info`;
+
+const getPlayerInfoPath = (game: {
+  id: string;
+  currentPhaseId: number | null;
+}): string =>
+  game.currentPhaseId
+    ? `/game/${game.id}/phase/${game.currentPhaseId}/player-info`
+    : `/game/${game.id}/player-info`;
+
+const isCommitmentLocked = (game: {
+  commitmentEligibility?: string | null;
+}): boolean =>
+  game.commitmentEligibility === "committed_locked" ||
+  game.commitmentEligibility === "low_locked";
+
+const getCommitmentLockedReason = (game: {
+  commitmentEligibility?: string | null;
+}): string =>
+  game.commitmentEligibility === "low_locked"
+    ? "Your commitment rating is Low, so you can't join games right now. Your rating is based on your last 10 rated phases."
+    : "This game admits players with High commitment only. Submit orders on time in your games to raise your rating.";
 
 function dziemba_levenshtein(a: string, b: string) {
   let tmp;
@@ -180,4 +209,14 @@ function formatTimeAgo(djangoDatetime: string): string {
   return rtf.format(-diffYears, "year");
 }
 
-export { formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameLandingPath };
+export {
+  formatDateTime,
+  formatRemainingTime,
+  formatTimeAgo,
+  getCurrentPhaseId,
+  getGameLandingPath,
+  getGameInfoPath,
+  getPlayerInfoPath,
+  isCommitmentLocked,
+  getCommitmentLockedReason,
+};

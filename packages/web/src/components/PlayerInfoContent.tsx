@@ -8,6 +8,7 @@ import {
   Swords,
   UserMinus,
   UserPlus,
+  UserX,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
   useGameKickDestroy,
+  useGameMemberJoinCreate,
   useUserRetrieveSuspense,
   getGameAddableUserListQueryKey,
   getGameRetrieveQueryKey,
@@ -50,9 +52,35 @@ import {
   Variant,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
-import { getCurrentPhaseId } from "@/util";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { getCurrentPhaseId, isCommitmentLocked } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
+
+// lucide-react has no "robot with a plus" icon. Mirrors UserPlus's own
+// construction (glyph + a "+" drawn to its right, in one icon) using Bot's
+// unmodified path data, so it sits at the same proportions as UserPlus.
+const BotPlus: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 28 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M12 8V4H8" />
+    <rect width="16" height="12" x="4" y="8" rx="2" />
+    <path d="M2 14h2" />
+    <path d="M20 14h2" />
+    <path d="M15 13v2" />
+    <path d="M9 13v2" />
+    <path d="M25 8v6" />
+    <path d="M22 11h6" />
+  </svg>
+);
 
 const PlayerMedia: React.FC<{
   member: Member;
@@ -121,6 +149,8 @@ export const PlayerInfoContent: React.FC = () => {
   const { data: userProfile } = useUserRetrieveSuspense();
   const queryClient = useQueryClient();
   const kickMutation = useGameKickDestroy();
+  const joinGameMutation = useGameMemberJoinCreate();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const [addBotOpen, setAddBotOpen] = useState(false);
   const [formerOpen, setFormerOpen] = useState(true);
@@ -156,6 +186,7 @@ export const PlayerInfoContent: React.FC = () => {
     : 0;
   const canAddBots =
     isPending && game.canManage && userProfile.canCreateBotGames;
+  const canReallyJoin = game.canJoin && !isCommitmentLocked(game);
 
   const canRemove = (member: Member) =>
     game.canManage && !member.isCurrentUser && member.removable;
@@ -164,6 +195,21 @@ export const PlayerInfoContent: React.FC = () => {
     phaseId
       ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
       : `/player/${member.userId}`;
+
+  const handleJoinGame = async () => {
+    try {
+      await joinGameMutation.mutateAsync({ gameId });
+      await queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
+      });
+      toast.success("Game joined successfully");
+      if (!game.sandbox) {
+        checkNotificationPermission();
+      }
+    } catch {
+      toast.error("Failed to join game");
+    }
+  };
 
   const handleRemove = async () => {
     const member = memberToRemove;
@@ -229,6 +275,9 @@ export const PlayerInfoContent: React.FC = () => {
                   >
                     {member.nation}
                   </span>
+                  {member.civilDisorder && (
+                    <UserX className="size-3.5 text-destructive" />
+                  )}
                 </div>
 
                 <div
@@ -259,6 +308,9 @@ export const PlayerInfoContent: React.FC = () => {
                 >
                   {member.name}
                 </span>
+                {member.civilDisorder && (
+                  <UserX className="size-3.5 text-destructive" />
+                )}
                 {member.isAdmin && (
                   <span className="text-sm text-muted-foreground">(Admin)</span>
                 )}
@@ -279,7 +331,7 @@ export const PlayerInfoContent: React.FC = () => {
               <button
                 onClick={e => {
                   stopRowClick(e);
-                  navigate(`/nation-preference/${gameId}`);
+                  navigate(`/game/${gameId}/nation-preference`);
                 }}
                 onKeyDown={stopRowClick}
                 className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
@@ -412,10 +464,24 @@ export const PlayerInfoContent: React.FC = () => {
                   className="flex items-center gap-3 p-3 text-left"
                 >
                   <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
-                    <UserPlus className="size-4 text-muted-foreground" />
+                    <BotPlus className="size-4 text-muted-foreground" />
                   </div>
                   <span className="font-medium text-primary underline-offset-4 hover:underline">
                     Add AI player
+                  </span>
+                </button>
+              ) : canReallyJoin ? (
+                <button
+                  key={`open-seat-${index}`}
+                  onClick={handleJoinGame}
+                  disabled={joinGameMutation.isPending}
+                  className="flex items-center gap-3 p-3 text-left"
+                >
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
+                    <UserPlus className="size-4 text-muted-foreground" />
+                  </div>
+                  <span className="font-medium text-primary underline-offset-4 hover:underline">
+                    Join game
                   </span>
                 </button>
               ) : (
