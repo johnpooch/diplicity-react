@@ -57,6 +57,11 @@ User.objects.create_superuser('superuser', 'superuser@example.com', '$DJANGO_SUP
 print("Superuser created successfully")
 EOF
 
+if [ "$SEED_STAGING_DATA" = "True" ]; then
+    echo "Seeding staging test data..."
+    python manage.py seed_staging --skip-if-seeded || echo "Seeding staging test data failed; continuing startup." >&2
+fi
+
 echo "Starting Gunicorn..."
 exec gunicorn project.wsgi:application \
     --bind 0.0.0.0:8000 \
