@@ -1,6 +1,16 @@
-import { act, render } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useNavigate, type NavigateFunction } from "react-router";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { act, render, screen } from "@testing-library/react";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useNavigate,
+  type NavigateFunction,
+} from "react-router";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { GameDetailLayout } from "./GameDetailLayout";
 
@@ -86,9 +96,15 @@ const renderLayout = () => {
 describe("GameDetailLayout phase transitions", () => {
   it("invalidates phase-dependent queries when the current phase advances", async () => {
     const { queryClient, invalidatedKeys } = renderLayout();
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+    });
 
-    await pollGame(queryClient, "game-1", { currentPhaseId: 2, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 2,
+      status: "active",
+    });
 
     expect(invalidatedKeys()).toEqual([
       ["/game/game-1/phase-states/"],
@@ -103,9 +119,15 @@ describe("GameDetailLayout phase transitions", () => {
 
   it("invalidates phase-dependent queries when the game status changes on the same phase", async () => {
     const { queryClient, invalidatedKeys } = renderLayout();
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+    });
 
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "completed" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "completed",
+    });
 
     expect(invalidatedKeys()).toEqual([
       ["/game/game-1/phase-states/"],
@@ -118,9 +140,15 @@ describe("GameDetailLayout phase transitions", () => {
 
   it("does not invalidate the polled game query", async () => {
     const { queryClient, invalidatedKeys } = renderLayout();
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+    });
 
-    await pollGame(queryClient, "game-1", { currentPhaseId: 2, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 2,
+      status: "active",
+    });
 
     expect(invalidatedKeys()).not.toContainEqual(["/game/game-1/"]);
   });
@@ -128,19 +156,49 @@ describe("GameDetailLayout phase transitions", () => {
   it("does not invalidate on initial load or when a poll returns the same phase", async () => {
     const { queryClient, invalidatedKeys } = renderLayout();
 
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+    });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+    });
 
     expect(invalidatedKeys()).toEqual([]);
   });
 
   it("does not treat navigating to another game as a phase transition", async () => {
     const { queryClient, invalidatedKeys } = renderLayout();
-    await pollGame(queryClient, "game-1", { currentPhaseId: 1, status: "active" });
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+    });
 
     act(() => navigate("/game/game-2/phase/7"));
-    await pollGame(queryClient, "game-2", { currentPhaseId: 7, status: "completed" });
+    await pollGame(queryClient, "game-2", {
+      currentPhaseId: 7,
+      status: "completed",
+    });
 
     expect(invalidatedKeys()).toEqual([]);
   });
+
+  it.each(["completed", "abandoned"])(
+    "renames the Players navigation item to Results when the game is %s",
+    async status => {
+      const { queryClient } = renderLayout();
+
+      await pollGame(queryClient, "game-1", {
+        currentPhaseId: 1,
+        status,
+      });
+
+      const resultsButton = screen.getByRole("button", { name: "Results" });
+      expect(resultsButton.querySelector(".lucide-trophy")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Players" })
+      ).not.toBeInTheDocument();
+    }
+  );
 });

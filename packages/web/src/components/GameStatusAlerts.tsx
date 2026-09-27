@@ -1,5 +1,5 @@
 import React from "react";
-import { Info, Trophy, AlertTriangle, Pause, UserCog } from "lucide-react";
+import { Info, Trophy, Pause, UserCog } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
@@ -44,9 +44,7 @@ export function GameStatusAlerts({
               {nationCount} players have joined.
             </AlertDescription>
             {action && (
-              <div className="shrink-0 w-full sm:w-auto">
-                {action}
-              </div>
+              <div className="shrink-0 w-full sm:w-auto">{action}</div>
             )}
           </div>
         </Alert>
@@ -86,8 +84,7 @@ export function GameStatusAlerts({
 
       {game.status === "abandoned" && (
         <Alert variant="destructive">
-          <AlertTriangle className="size-4" />
-          <AlertDescription>
+          <AlertDescription className="!text-foreground">
             This game was abandoned due to inactivity.
           </AlertDescription>
         </Alert>

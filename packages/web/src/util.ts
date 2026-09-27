@@ -13,6 +13,9 @@ const getCurrentPhaseId = (game: GameRetrieve) => {
   return game.phases[game.phases.length - 1];
 };
 
+const isFinishedGameStatus = (status: string) =>
+  status === "completed" || status === "abandoned";
+
 const getGameLandingPath = (
   game: { id: string; status: string; currentPhaseId: number | null },
   isMobile: boolean
@@ -140,7 +143,7 @@ function formatDateTime(djangoDatetime: string) {
     timeZoneName: "short",
   })
     .formatToParts(date)
-    .find((part) => part.type === "timeZoneName")?.value;
+    .find(part => part.type === "timeZoneName")?.value;
   const timeString = timeZoneName
     ? `${hours}:${minutes} ${timeZoneName}`
     : `${hours}:${minutes}`;
@@ -180,4 +183,11 @@ function formatTimeAgo(djangoDatetime: string): string {
   return rtf.format(-diffYears, "year");
 }
 
-export { formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameLandingPath };
+export {
+  formatDateTime,
+  formatRemainingTime,
+  formatTimeAgo,
+  getCurrentPhaseId,
+  getGameLandingPath,
+  isFinishedGameStatus,
+};
