@@ -5,6 +5,7 @@ import { ActionQueue } from "@/prototypes/my-games/ActionQueue";
 import { FilterChips } from "@/prototypes/my-games/FilterChips";
 import { QueryView } from "@/prototypes/my-games/QueryView";
 import { SectionedViews } from "@/prototypes/my-games/SectionedViews";
+import { SectionedSingleColumn } from "@/prototypes/my-games/SectionedSingleColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
 import { Channel } from "@/prototypes/channel/Default";
@@ -134,6 +135,24 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <SectionedViews state={state} />,
+      },
+      {
+        slug: "sectioned-single-column",
+        title: "Sectioned single column",
+        description:
+          "Keep the inbox-like views in one reading column on every screen, trading desktop density for stable ordering and no incomplete rows.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedSingleColumn state={state} />,
       },
     ],
   },
