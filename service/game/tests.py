@@ -1,8 +1,11 @@
 import re
+from io import StringIO
 
 import pytest
 from adjudicator import service as adjudication_service
 from unittest.mock import patch
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from django.test.utils import override_settings
 from django.db import connection
@@ -10,13 +13,15 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile
+from login.models import AuthUser
+from .management.commands.seed_staging import TESTER_EMAIL
 from .models import Game
 
 retrieve_viewname = "game-retrieve"
@@ -32,6 +37,19 @@ def queried_phase_ids(table):
         for match in re.finditer(rf'"{table}"\."phase_id" IN \(([\d, ]+)\)', query["sql"]):
             phase_ids |= {int(phase_id) for phase_id in match.group(1).split(", ")}
     return phase_ids
+
+
+def channel_message_queries():
+    return [q["sql"] for q in connection.queries if '"channel_channelmessage"' in q["sql"]]
+
+
+def game_queries():
+    return [q["sql"] for q in connection.queries if 'FROM "game_game"' in q["sql"]]
+
+
+def queried_unread_game_ids(sql):
+    match = re.search(r'"channel_channel"\."game_id" IN \(([^)]*)\)', sql)
+    return set(re.findall(r"'([^']+)'", match.group(1)))
 
 
 class TestGameRetrieveView:
@@ -646,6 +664,120 @@ class TestGameListView:
         assert len(result["current_phase"]["supply_centers"]) == 1
 
     @pytest.mark.django_db
+    def test_list_games_counts_unread_messages_since_each_channel_was_read(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+    ):
+        now = timezone.now()
+        games = [game_with_phase_history_factory(phase_count=1) for _ in range(2)]
+        readers = [game.members.get(user=primary_user) for game in games]
+        senders = [game.members.create(user=secondary_user, nation=classical_france_nation) for game in games]
+        channel_with_messages_factory(readers[0], senders[0], now - timedelta(hours=3), read=1, unread=2)
+        channel_with_messages_factory(readers[0], senders[0], now - timedelta(hours=1), read=2, unread=1)
+        channel_with_messages_factory(readers[1], senders[1], now - timedelta(hours=2), read=1, unread=4)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        unread_counts = {g["id"]: g["total_unread_message_count"] for g in response.data["results"]}
+        assert unread_counts == {games[0].id: 3, games[1].id: 4}
+
+    @pytest.mark.django_db
+    def test_list_games_unread_count_excludes_own_messages(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+    ):
+        game = game_with_phase_history_factory(phase_count=1)
+        reader = game.members.get(user=primary_user)
+        sender = game.members.create(user=secondary_user, nation=classical_france_nation)
+        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2, own_unread=3)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        [result] = response.data["results"]
+        assert result["total_unread_message_count"] == 2
+
+    @pytest.mark.django_db
+    def test_list_games_unread_count_zero_when_all_messages_read(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+    ):
+        unread_game = game_with_phase_history_factory(phase_count=1)
+        read_game = game_with_phase_history_factory(phase_count=1)
+        for game, unread in [(unread_game, 1), (read_game, 0)]:
+            reader = game.members.get(user=primary_user)
+            sender = game.members.create(user=secondary_user, nation=classical_france_nation)
+            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), read=2, unread=unread)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        unread_counts = {g["id"]: g["total_unread_message_count"] for g in response.data["results"]}
+        assert unread_counts == {unread_game.id: 1, read_game.id: 0}
+
+    @pytest.mark.django_db
+    def test_list_games_unread_count_zero_for_unauthenticated_user(
+        self,
+        unauthenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+    ):
+        game = game_with_phase_history_factory(phase_count=1)
+        reader = game.members.get(user=primary_user)
+        sender = game.members.create(user=secondary_user, nation=classical_france_nation)
+        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+
+        response = unauthenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        [result] = response.data["results"]
+        assert result["total_unread_message_count"] == 0
+
+    @pytest.mark.django_db
+    def test_list_games_joinable_games_report_zero_unread(
+        self,
+        authenticated_client,
+        secondary_user,
+        tertiary_user,
+        classical_variant,
+        classical_france_nation,
+        classical_germany_nation,
+        base_pending_phase,
+        channel_with_messages_factory,
+    ):
+        game = Game.objects.create(name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING)
+        base_pending_phase(game)
+        reader = game.members.create(user=secondary_user, nation=classical_france_nation)
+        sender = game.members.create(user=tertiary_user, nation=classical_germany_nation)
+        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+
+        response = authenticated_client.get(reverse(list_viewname), {"can_join": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+        [result] = response.data["results"]
+        assert result["id"] == game.id
+        assert result["total_unread_message_count"] == 0
+
+    @pytest.mark.django_db
     def test_list_games_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
         url = reverse(list_viewname)
         response = unauthenticated_client.get(url)
@@ -1237,7 +1369,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 8
+        assert query_count == 9
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -1278,7 +1410,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 8
+        assert query_count == 9
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -1329,7 +1461,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 8
+        assert query_count == 9
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -1379,7 +1511,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 8
+        assert query_count == 9
 
     @pytest.mark.django_db
     def test_list_games_hydrates_units_for_current_phase_only(
@@ -1430,7 +1562,6 @@ class TestGameListViewQueryPerformance:
         queryset = (
             Game.objects.filter(id__in=created_game_ids)
             .with_list_data()
-            .with_total_unread_counts(primary_user)
             .order_by("-created_at")
         )
         games = list(queryset)
@@ -1451,9 +1582,9 @@ class TestGameListViewQueryPerformance:
     @pytest.mark.parametrize(
         ("client_name", "params", "expected_query_count"),
         [
-            ("authenticated", {}, 8),
-            ("authenticated", {"mine": "true"}, 8),
-            ("authenticated", {"sandbox": "true"}, 8),
+            ("authenticated", {}, 9),
+            ("authenticated", {"mine": "true"}, 9),
+            ("authenticated", {"sandbox": "true"}, 9),
             ("unauthenticated", {}, 8),
         ],
     )
@@ -1513,6 +1644,67 @@ class TestGameListViewQueryPerformance:
         assert all("DISTINCT ON" not in q["sql"] for q in connection.queries)
 
     @pytest.mark.django_db
+    def test_list_joinable_games_skips_unread_message_subquery(
+        self,
+        authenticated_client,
+        classical_variant,
+        base_pending_phase,
+        user_factory,
+        game_with_public_channel_and_messages,
+    ):
+        games_by_member_count = {}
+        for member_count in [0, 3, 1, 2]:
+            game = Game.objects.create(
+                name=f"{member_count} Member Game",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+            )
+            base_pending_phase(game)
+            for _ in range(member_count):
+                game.members.create(user=user_factory())
+            games_by_member_count[member_count] = game
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(
+                reverse(list_viewname), {"can_join": "true", "ordering": "slots_remaining"}
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [g["id"] for g in response.data["results"]] == [
+            games_by_member_count[member_count].id for member_count in [3, 2, 1, 0]
+        ]
+        assert all(g["total_unread_message_count"] == 0 for g in response.data["results"])
+        game_queries = [q["sql"] for q in connection.queries if 'FROM "game_game"' in q["sql"]]
+        assert len([sql for sql in game_queries if sql.startswith("SELECT COUNT(*)")]) == 1
+        assert len([sql for sql in game_queries if not sql.startswith("SELECT COUNT(*)")]) == 1
+        assert all("channel_channelmessage" not in sql for sql in game_queries)
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "can_join_params",
+        [{"can_join": "false"}, {"can_join": "maybe"}, {}],
+        ids=["false", "malformed", "absent"],
+    )
+    def test_list_games_counts_unread_messages_unless_can_join_is_true(
+        self, authenticated_client, game_with_public_channel_and_messages, can_join_params
+    ):
+        game = game_with_public_channel_and_messages
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(
+                reverse(list_viewname), {**can_join_params, "ordering": "slots_remaining"}
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        result = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert result["total_unread_message_count"] == 2
+        assert len(game_queries()) == 2
+        assert all("channel_channelmessage" not in sql for sql in game_queries())
+        assert len(channel_message_queries()) == 1
+
+    @pytest.mark.django_db
     def test_list_games_board_queries_only_current_phases_on_page(
         self, authenticated_client, game_with_phase_history_factory
     ):
@@ -1548,6 +1740,122 @@ class TestGameListViewQueryPerformance:
             active_phases[-2].id,
             finished_game.current_phase.id,
         }
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "params",
+        [{}, {"mine": "true"}, {"ordering": "slots_remaining"}],
+    )
+    def test_list_games_counts_unread_messages_outside_pagination_and_game_selection(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+        params,
+    ):
+        games = [game_with_phase_history_factory(phase_count=2) for _ in range(3)]
+        for unread, game in enumerate(games, start=1):
+            reader = game.members.get(user=primary_user)
+            sender = game.members.create(user=secondary_user, nation=classical_france_nation)
+            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=unread)
+            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=2), unread=unread)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(list_viewname), params)
+
+        assert response.status_code == status.HTTP_200_OK
+        count_queries = [sql for sql in game_queries() if sql.startswith("SELECT COUNT(*)")]
+        assert len(count_queries) == 1
+        assert len(game_queries()) == 2
+        assert all('"channel_channelmessage"' not in sql for sql in game_queries())
+        unread_counts = {g["id"]: g["total_unread_message_count"] for g in response.data["results"]}
+        [unread_query] = channel_message_queries()
+        assert queried_unread_game_ids(unread_query) == set(unread_counts)
+        assert {game.id: unread_counts[game.id] for game in games} == {
+            game.id: 2 * unread for unread, game in enumerate(games, start=1)
+        }
+
+    @pytest.mark.django_db
+    def test_list_games_unread_query_only_counts_games_on_page(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+    ):
+        games = [game_with_phase_history_factory(phase_count=2) for _ in range(3)]
+        for game in games:
+            reader = game.members.get(user=primary_user)
+            sender = game.members.create(user=secondary_user, nation=classical_france_nation)
+            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(list_viewname), {"page_size": 1, "page": 2})
+
+        assert response.status_code == status.HTTP_200_OK
+        [result] = response.data["results"]
+        assert result["id"] == games[1].id
+        assert result["total_unread_message_count"] == 2
+        [unread_query] = channel_message_queries()
+        assert queried_unread_game_ids(unread_query) == {games[1].id}
+
+    @pytest.mark.django_db
+    def test_list_games_unauthenticated_does_not_query_unread_messages(
+        self,
+        unauthenticated_client,
+        primary_user,
+        secondary_user,
+        classical_france_nation,
+        game_with_phase_history_factory,
+        channel_with_messages_factory,
+    ):
+        game = game_with_phase_history_factory(phase_count=2)
+        reader = game.members.get(user=primary_user)
+        sender = game.members.create(user=secondary_user, nation=classical_france_nation)
+        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = unauthenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [g["total_unread_message_count"] for g in response.data["results"]] == [0]
+        assert channel_message_queries() == []
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("can_join", ["true", "True"])
+    def test_list_games_can_join_does_not_query_unread_messages(
+        self,
+        authenticated_client,
+        secondary_user,
+        tertiary_user,
+        classical_variant,
+        classical_france_nation,
+        classical_germany_nation,
+        base_pending_phase,
+        channel_with_messages_factory,
+        can_join,
+    ):
+        game = Game.objects.create(name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING)
+        base_pending_phase(game)
+        reader = game.members.create(user=secondary_user, nation=classical_france_nation)
+        sender = game.members.create(user=tertiary_user, nation=classical_germany_nation)
+        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(reverse(list_viewname), {"can_join": can_join})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [g["total_unread_message_count"] for g in response.data["results"]] == [0]
+        assert channel_message_queries() == []
 
     @pytest.mark.django_db
     def test_list_games_board_is_lean(
@@ -4288,3 +4596,134 @@ class TestGameFindSimilarView:
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
+
+
+@pytest.mark.django_db
+class TestSeedStagingCommand:
+    @pytest.fixture
+    def staging(self, settings):
+        settings.DEBUG = False
+        settings.ENVIRONMENT = "staging"
+
+    def _seed(self, *args):
+        call_command("seed_staging", *args, stdout=StringIO())
+
+    def _games_by_name(self, client, query):
+        response = client.get(f"{reverse(list_viewname)}?{query}&page_size=100")
+        assert response.status_code == status.HTTP_200_OK
+        return {game["name"]: game for game in response.data["results"]}
+
+    def _current_member(self, game):
+        return next(member for member in game["members"] if member["is_current_user"])
+
+    def test_refuses_to_run_outside_staging(self, settings):
+        settings.DEBUG = False
+        settings.ENVIRONMENT = "production"
+
+        with pytest.raises(CommandError):
+            self._seed()
+
+        assert not AuthUser.objects.filter(email=TESTER_EMAIL).exists()
+
+    def test_skip_if_seeded_leaves_existing_tester_untouched(self, staging, authenticated_client_factory):
+        tester = AuthUser.objects.create(email=TESTER_EMAIL, username="test-user")
+        UserProfile.objects.create(user=tester, name="Existing")
+
+        self._seed("--skip-if-seeded")
+
+        response = authenticated_client_factory(tester).get(f"{reverse(list_viewname)}?mine=true")
+        assert response.data["results"] == []
+
+    def test_reseeding_replaces_previously_seeded_games(self, staging, authenticated_client_factory):
+        self._seed()
+        self._seed()
+
+        client = authenticated_client_factory(AuthUser.objects.get(email=TESTER_EMAIL))
+        response = client.get(f"{reverse(list_viewname)}?mine=true&page_size=100")
+        assert response.data["count"] == 20
+
+    def test_seeds_loginable_tester_with_games_in_each_state(
+        self, staging, authenticated_client_factory, unauthenticated_client
+    ):
+        self._seed()
+
+        tester = AuthUser.objects.get(email=TESTER_EMAIL)
+        client = authenticated_client_factory(tester)
+        finished = self._games_by_name(client, "mine=true&status=completed,abandoned")
+        active = self._games_by_name(client, "mine=true&status=active")
+        pending = self._games_by_name(client, "mine=true&status=pending")
+        spectating = self._games_by_name(client, "status=active")
+        joinable = self._games_by_name(client, "can_join=true")
+
+        login = unauthenticated_client.post(
+            reverse("email-login"), {"email": TESTER_EMAIL, "password": "password"}, format="json"
+        )
+        assert login.status_code == status.HTTP_201_CREATED
+        profile = client.get(reverse("user-profile"))
+        assert profile.data["commitment"] == Commitment.HIGH
+        assert (len(finished), len(active), len(pending), len(joinable)) == (4, 13, 3, 3)
+
+        won = finished["Finished: you won solo"]
+        assert won["victory"]["type"] == "solo"
+        assert won["victory"]["members"][0]["is_current_user"]
+
+        lost = finished["Finished: another player won solo"]
+        assert lost["victory"]["type"] == "solo"
+        assert not lost["victory"]["members"][0]["is_current_user"]
+
+        draw = finished["Finished: five-way draw"]
+        assert draw["victory"]["type"] == "draw"
+        assert len(draw["victory"]["members"]) == 5
+
+        assert finished["Finished: abandoned"]["status"] == GameStatus.ABANDONED
+
+        assert active["Active: you are in civil disorder"]["member_status"] == ["civil_disorder", "nmr"]
+        assert active["Active: you missed the last deadline"]["member_status"] == ["nmr"]
+
+        players_in_disorder = active["Active: players in civil disorder"]["members"]
+        assert [member["name"] for member in players_in_disorder if member["civil_disorder"]] == ["Bruno Keller"]
+        assert "Gustav Lind" in [member["name"] for member in players_in_disorder]
+
+        replaceable = spectating["Active: take over an abandoned seat"]["members"]
+        assert not any(member["is_current_user"] for member in replaceable)
+        assert [member["name"] for member in replaceable if member["replaceable"]] == ["Dmitri Volkov"]
+
+        assert self._current_member(active["Active: you were eliminated"])["eliminated"]
+
+        retreat = active["Active: retreat phase"]
+        assert retreat["current_phase"]["type"] == PhaseType.RETREAT
+        assert retreat["order_status"] == "orders_required"
+
+        adjustment = active["Active: adjustment phase"]
+        assert adjustment["current_phase"]["type"] == PhaseType.ADJUSTMENT
+        assert adjustment["order_status"] == "orders_required"
+
+        mid_game = active["Active: mid-game with messages"]
+        assert (mid_game["current_phase"]["season"], mid_game["current_phase"]["year"]) == ("Fall", 1902)
+        assert mid_game["total_unread_message_count"] == 4
+        assert mid_game["nmr_extensions_allowed"] == 2
+
+        proposals = client.get(reverse("draw-proposal-list", args=[active["Active: draw proposed"]["id"]])).data
+        assert sorted((proposal["status"], proposal["my_vote"]["accepted"]) for proposal in proposals) == [
+            ("pending", None),
+            ("rejected", None),
+        ]
+
+        orders_required = active["Active: orders required"]
+        assert orders_required["order_status"] == "orders_required"
+        assert [member["name"] for member in orders_required["members"] if member["is_bot"]] == ["Staging Bot"]
+        assert active["Active: orders not confirmed"]["order_status"] == "orders_not_confirmed"
+        assert active["Active: orders not confirmed"]["anonymous"]
+        assert active["Active: orders confirmed"]["order_status"] == "orders_submitted"
+        assert active["Active: orders confirmed"]["press_type"] == PressType.NO_PRESS
+        assert active["Active: paused"]["is_paused"]
+        assert active["Sandbox: practice game"]["sandbox"]
+
+        waiting = self._current_member(pending["Pending: waiting for players"])
+        assert waiting["nation_preference_ids"] == ["france", "england", "germany"]
+        assert pending["Pending: you are the game master"]["game_master"]["name"] == "Staging Tester"
+        assert pending["Pending: joined another player's game"]["can_leave"]
+
+        assert len(joinable["Open: one seat left"]["members"]) == 6
+        assert joinable["Open: committed players only"]["commitment_requirement"] == CommitmentRequirement.COMMITTED
+        assert joinable["Open: gunboat Italy vs Germany"]["variant_id"] == "italy-vs-germany"

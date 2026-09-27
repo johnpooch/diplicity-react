@@ -55,7 +55,6 @@ class GameListView(generics.ListAPIView):
         queryset = (
             Game.objects.all()
             .with_list_data()
-            .with_total_unread_counts(self.request.user)
             .order_by("-created_at")
         )
 
@@ -70,6 +69,7 @@ class GameListView(generics.ListAPIView):
     def paginate_queryset(self, queryset):
         page = super().paginate_queryset(queryset)
         Game.objects.hydrate_list_phases(page)
+        Game.objects.hydrate_total_unread_counts(page, self.request.user)
         return page
 
 

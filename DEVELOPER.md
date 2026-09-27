@@ -129,6 +129,8 @@ Every PR can be deployed to an isolated environment with a copy of the productio
 
 Google OAuth is not configured for staging — use email/password login. The environment is torn down automatically when the PR closes or merges.
 
+Staging also seeds a test account, `test-user@example.com` / `password`, with games in every state worth testing: pending, joinable, active at each order status, retreat and adjustment phases, civil disorder (yours and another player's), eliminated, paused, draw proposed, solo win, solo loss, draw, and abandoned. The seed is `python manage.py seed_staging` (see `service/game/management/commands/seed_staging.py`). It refuses to run unless `DJANGO_DEBUG=True` or `ENVIRONMENT=staging`, so you can also run it locally with `docker compose exec service python manage.py seed_staging`. Each run deletes the games it seeded last time and seeds them again.
+
 ## Contribution norms
 
 - Keep changes small and focused — one PR per concern. Big sweeping changes are hard to review and slow to land.

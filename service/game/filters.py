@@ -38,7 +38,7 @@ class GameFilter(django_filters.FilterSet):
             queryset = queryset.filter(status=GameStatus.PENDING, private=False)
             if self.request.user.is_authenticated:
                 queryset = queryset.exclude(members__user=self.request.user)
-            return queryset
+            return queryset.with_zero_unread_counts()
         return queryset
 
     def filter_eligible_only(self, queryset, name, value):

@@ -125,6 +125,18 @@ class ChannelMessageQuerySet(models.QuerySet):
     def with_sender_data(self):
         return self.select_related("sender", "sender__user", "sender__user__profile__uploaded_picture")
 
+    def unread_by(self, user):
+        last_read_subquery = Subquery(
+            ChannelMember.objects.filter(
+                channel=OuterRef("channel"),
+                member__user=user,
+            ).values("last_read_at")[:1]
+        )
+        return self.filter(
+            channel__member_channels__member__user=user,
+            created_at__gt=last_read_subquery,
+        ).exclude(sender__user=user)
+
 
 class ChannelMessage(BaseModel):
     channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="messages")
