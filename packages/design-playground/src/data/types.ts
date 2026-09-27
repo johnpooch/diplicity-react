@@ -1,4 +1,9 @@
-export type GameStatus = "pending" | "active" | "completed";
+export type GameStatus =
+  | "pending"
+  | "mustering"
+  | "active"
+  | "completed"
+  | "abandoned";
 
 export type PhaseType = "Movement" | "Retreat" | "Adjustment";
 
@@ -7,6 +12,23 @@ export type OrderStatus =
   | "orders_submitted"
   | "orders_confirmed"
   | "no_orders_required";
+
+export type GameAttention =
+  | "confirm_seat"
+  | "last_seat_to_confirm"
+  | "orders_required"
+  | "orders_unconfirmed"
+  | "civil_disorder"
+  | "missed_deadline"
+  | "unread_messages"
+  | "none";
+
+export type MusteringStatus =
+  | "unconfirmed"
+  | "confirmed"
+  | "last_to_confirm";
+
+export type GameResult = "solo_win" | "solo_loss" | "draw" | "abandoned";
 
 export interface Member {
   nation: string;
@@ -81,6 +103,20 @@ export interface Game {
   unreadCount: number;
   isPrivate: boolean;
   winner?: string;
+  attention?: GameAttention;
+  nation?: string;
+  preferredNations?: string[];
+  musteringStatus?: MusteringStatus;
+  confirmedPlayers?: number;
+  result?: GameResult;
+  isGameMaster?: boolean;
+  isPaused?: boolean;
+  sandbox?: boolean;
+  userInCivilDisorder?: boolean;
+  otherPlayerInCivilDisorder?: boolean;
+  userEliminated?: boolean;
+  replaceableSeat?: boolean;
+  urgencyRank?: number;
 }
 
 export interface Message {

@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { SingleList } from "@/prototypes/my-games/SingleList";
 import { GroupedByPhase } from "@/prototypes/my-games/GroupedByPhase";
+import { ActionQueue } from "@/prototypes/my-games/ActionQueue";
+import { FilterChips } from "@/prototypes/my-games/FilterChips";
+import { QueryView } from "@/prototypes/my-games/QueryView";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
 import { Channel } from "@/prototypes/channel/Default";
@@ -71,6 +74,47 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <GroupedByPhase state={state} />,
+      },
+      {
+        slug: "action-queue",
+        title: "Action queue",
+        description:
+          "Treat My Games as a next-action queue: one game earns the spotlight and the rest become a compact backlog.",
+        states: [
+          defaultState,
+          { slug: "empty", title: "No games" },
+          { slug: "many", title: "Many games" },
+          { slug: "mustering", title: "Mustering" },
+        ],
+        render: state => <ActionQueue state={state} />,
+      },
+      {
+        slug: "filter-chips",
+        title: "Filter chips",
+        description:
+          "Keep one flat collection and let lightweight, counted filters do all of the organizing; finished games stay out of the default view.",
+        states: [
+          defaultState,
+          { slug: "empty", title: "No games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+          { slug: "mustering", title: "Mustering" },
+        ],
+        render: state => <FilterChips state={state} />,
+      },
+      {
+        slug: "query-view",
+        title: "Query view",
+        description:
+          "Make filtering explicit and composable with a GitHub-style expression, testing whether power-user control is worth the mobile learning cost.",
+        states: [
+          defaultState,
+          { slug: "empty", title: "No games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+          { slug: "mustering", title: "Mustering" },
+        ],
+        render: state => <QueryView state={state} />,
       },
     ],
   },
