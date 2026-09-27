@@ -9,6 +9,7 @@ import { SectionedSingleColumn } from "@/prototypes/my-games/SectionedSingleColu
 import { SectionedHorizontalCards } from "@/prototypes/my-games/SectionedHorizontalCards";
 import { SectionedCompactHorizontal } from "@/prototypes/my-games/SectionedCompactHorizontal";
 import { SectionedProductionCard } from "@/prototypes/my-games/SectionedProductionCard";
+import { SectionedFilterMenu } from "@/prototypes/my-games/SectionedFilterMenu";
 import { SectionedTwoColumn } from "@/prototypes/my-games/SectionedTwoColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
@@ -211,6 +212,24 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <SectionedProductionCard state={state} />,
+      },
+      {
+        slug: "sectioned-filter-menu",
+        title: "Sectioned filter menu",
+        description:
+          "Keep only the selected view visible and place every alternative behind a compact filter menu, avoiding wrapping controls on desktop and card-like choices on mobile.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedFilterMenu state={state} />,
       },
       {
         slug: "sectioned-two-column",
