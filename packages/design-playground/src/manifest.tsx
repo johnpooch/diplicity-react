@@ -7,6 +7,7 @@ import { QueryView } from "@/prototypes/my-games/QueryView";
 import { SectionedViews } from "@/prototypes/my-games/SectionedViews";
 import { SectionedSingleColumn } from "@/prototypes/my-games/SectionedSingleColumn";
 import { SectionedHorizontalCards } from "@/prototypes/my-games/SectionedHorizontalCards";
+import { SectionedCompactHorizontal } from "@/prototypes/my-games/SectionedCompactHorizontal";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
 import { Channel } from "@/prototypes/channel/Default";
@@ -172,6 +173,24 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <SectionedHorizontalCards state={state} />,
+      },
+      {
+        slug: "sectioned-compact-horizontal",
+        title: "Sectioned compact horizontal",
+        description:
+          "Use a shorter horizontal desktop card with the title anchored at the top and both identity and action state kept over the map.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedCompactHorizontal state={state} />,
       },
     ],
   },
