@@ -12,6 +12,7 @@ import { SectionedProductionCard } from "@/prototypes/my-games/SectionedProducti
 import { SectionedFilterMenu } from "@/prototypes/my-games/SectionedFilterMenu";
 import { SectionedHeaderFilter } from "@/prototypes/my-games/SectionedHeaderFilter";
 import { SectionedEssentialContext } from "@/prototypes/my-games/SectionedEssentialContext";
+import { SectionedLeanDrawer } from "@/prototypes/my-games/SectionedLeanDrawer";
 import { SectionedTwoColumn } from "@/prototypes/my-games/SectionedTwoColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
@@ -268,6 +269,24 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <SectionedEssentialContext state={state} />,
+      },
+      {
+        slug: "sectioned-lean-drawer",
+        title: "Sectioned lean drawer",
+        description:
+          "Make mobile view selection feel like a lightweight action menu, removing the drawer heading, outlined controls, and generous side inset.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedLeanDrawer state={state} />,
       },
       {
         slug: "sectioned-two-column",
