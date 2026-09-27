@@ -598,7 +598,7 @@ jobs:
                 dataLine,
                 'Use email/password login to test (Google OAuth is not configured for staging).',
                 '',
-                'Log in as `staging-tester@example.com` / `password` to find seeded games in every state (pending, active, finished, civil disorder, draws, solo wins and more). The seed runs on the backend at startup, so the games appear once the backend is ready.',
+                'Log in as `test-user@example.com` / `password` to find seeded games in every state (pending, active, finished, civil disorder, draws, solo wins and more). The seed runs on the backend at startup, so the games appear once the backend is ready.',
                 '',
                 'The frontend preview derives its backend URL from the PR number at build time.',
                 'Refresh the preview page once the staging backend is ready.',

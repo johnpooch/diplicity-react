@@ -35,7 +35,7 @@ from supply_center.models import SupplyCenter
 from user_profile.models import UserProfile
 from variant.models import Variant
 
-TESTER_EMAIL = "staging-tester@example.com"
+TESTER_EMAIL = "test-user@example.com"
 TESTER_NAME = "Staging Tester"
 BOT_EMAIL = "staging-bot@example.com"
 BOT_NAME = "Staging Bot"

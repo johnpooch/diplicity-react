@@ -4626,7 +4626,7 @@ class TestSeedStagingCommand:
         assert not AuthUser.objects.filter(email=TESTER_EMAIL).exists()
 
     def test_skip_if_seeded_leaves_existing_tester_untouched(self, staging, authenticated_client_factory):
-        tester = AuthUser.objects.create(email=TESTER_EMAIL, username="staging-tester")
+        tester = AuthUser.objects.create(email=TESTER_EMAIL, username="test-user")
         UserProfile.objects.create(user=tester, name="Existing")
 
         self._seed("--skip-if-seeded")
