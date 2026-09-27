@@ -21,6 +21,7 @@ from province.models import Province
 from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile
 from login.models import AuthUser
+from member.models import Member
 from .management.commands.seed_staging import TESTER_EMAIL
 from .models import Game
 
@@ -4616,6 +4617,10 @@ class TestSeedStagingCommand:
     def _current_member(self, game):
         return next(member for member in game["members"] if member["is_current_user"])
 
+    def _mustered_user_ids(self, game):
+        members = Member.objects.filter(game_id=game["id"], mustered_at__isnull=False)
+        return set(members.values_list("user_id", flat=True))
+
     def test_refuses_to_run_outside_staging(self, settings):
         settings.DEBUG = False
         settings.ENVIRONMENT = "production"
@@ -4640,7 +4645,7 @@ class TestSeedStagingCommand:
 
         client = authenticated_client_factory(AuthUser.objects.get(email=TESTER_EMAIL))
         response = client.get(f"{reverse(list_viewname)}?mine=true&page_size=100")
-        assert response.data["count"] == 20
+        assert response.data["count"] == 23
 
     def test_seeds_loginable_tester_with_games_in_each_state(
         self, staging, authenticated_client_factory, unauthenticated_client
@@ -4652,6 +4657,7 @@ class TestSeedStagingCommand:
         finished = self._games_by_name(client, "mine=true&status=completed,abandoned")
         active = self._games_by_name(client, "mine=true&status=active")
         pending = self._games_by_name(client, "mine=true&status=pending")
+        mustering = self._games_by_name(client, "mine=true&status=mustering")
         spectating = self._games_by_name(client, "status=active")
         joinable = self._games_by_name(client, "can_join=true")
 
@@ -4661,7 +4667,7 @@ class TestSeedStagingCommand:
         assert login.status_code == status.HTTP_201_CREATED
         profile = client.get(reverse("user-profile"))
         assert profile.data["commitment"] == Commitment.HIGH
-        assert (len(finished), len(active), len(pending), len(joinable)) == (4, 13, 3, 3)
+        assert (len(finished), len(active), len(pending), len(mustering), len(joinable)) == (4, 13, 3, 3, 3)
 
         won = finished["Finished: you won solo"]
         assert won["victory"]["type"] == "solo"
@@ -4718,6 +4724,18 @@ class TestSeedStagingCommand:
         assert active["Active: orders confirmed"]["press_type"] == PressType.NO_PRESS
         assert active["Active: paused"]["is_paused"]
         assert active["Sandbox: practice game"]["sandbox"]
+
+        not_confirmed = mustering["Mustering: you have not confirmed"]
+        assert tester.id not in self._mustered_user_ids(not_confirmed)
+        assert len(self._mustered_user_ids(not_confirmed)) == 3
+
+        confirmed = mustering["Mustering: waiting for other players"]
+        assert tester.id in self._mustered_user_ids(confirmed)
+        assert len(self._mustered_user_ids(confirmed)) == 5
+
+        last_seat = mustering["Mustering: yours is the last seat to confirm"]
+        assert tester.id not in self._mustered_user_ids(last_seat)
+        assert len(self._mustered_user_ids(last_seat)) == 6
 
         waiting = self._current_member(pending["Pending: waiting for players"])
         assert waiting["nation_preference_ids"] == ["france", "england", "germany"]
