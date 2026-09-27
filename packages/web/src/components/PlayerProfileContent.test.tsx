@@ -26,13 +26,17 @@ vi.mock("@/api/generated/endpoints", () => ({
 const getRow = (label: string) => screen.getByText(label).closest("div")!;
 
 describe("PlayerProfileContent", () => {
-  it("shows the commitment tier only as the badge", () => {
+  it("renders the commitment tier as a row under Commitment", () => {
     render(<PlayerProfileContent userId={2} />);
 
+    const section = screen
+      .getByRole("heading", { name: "Commitment" })
+      .closest("section")!;
+    expect(within(getRow("Tier")).getByText("High")).toBeInTheDocument();
+    expect(within(section).getByText("Tier")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Commitment: High" })
-    ).toBeInTheDocument();
-    expect(screen.queryByText("Tier")).not.toBeInTheDocument();
+      screen.queryByRole("button", { name: /^Commitment:/ })
+    ).not.toBeInTheDocument();
   });
 
   it("renders the NMR rate as a percentage under Commitment", () => {
@@ -64,6 +68,17 @@ describe("PlayerProfileContent", () => {
 
     expect(
       screen.getByText(/percentage of movement phases/i)
+    ).toBeInTheDocument();
+  });
+
+  it("explains the commitment tier when the info button is tapped", async () => {
+    const user = userEvent.setup();
+    render(<PlayerProfileContent userId={2} />);
+
+    await user.click(screen.getByRole("button", { name: "What is Tier?" }));
+
+    expect(
+      screen.getByText(/how consistently this player submits orders/i)
     ).toBeInTheDocument();
   });
 });

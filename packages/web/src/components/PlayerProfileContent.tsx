@@ -3,7 +3,6 @@ import { Info } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { CommitmentBadge } from "@/components/CommitmentBadge";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +16,19 @@ interface PlayerProfileContentProps {
 }
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
+
+const RATED_TIER_INFO =
+  "How consistently this player submits orders, based on their last 10 rated phases.";
+
+const commitmentTiers: Record<string, { label: string; info: string }> = {
+  high: { label: "High", info: RATED_TIER_INFO },
+  medium: { label: "Medium", info: RATED_TIER_INFO },
+  low: { label: "Low", info: RATED_TIER_INFO },
+  undefined: {
+    label: "New",
+    info: "This player hasn't played enough rated phases to have a commitment rating yet. A rating appears after 10 rated phases.",
+  },
+};
 
 interface SectionProps {
   title: string;
@@ -80,6 +92,7 @@ export const PlayerProfileContentSkeleton: React.FC = () => (
       </div>
     </div>
     <Section title="Commitment">
+      <StatRow label="Tier" value={<Skeleton className="h-5 w-12" />} />
       <StatRow label="NMR rate" value={<Skeleton className="h-5 w-8" />} />
     </Section>
     <Section title="Games">
@@ -98,6 +111,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
   userId,
 }) => {
   const { data: profile } = useUsersRetrieveSuspense(userId);
+  const tier = commitmentTiers[profile.commitment];
 
   return (
     <div className="space-y-4">
@@ -109,12 +123,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-lg font-semibold">
-              {profile.name}
-            </span>
-            <CommitmentBadge commitment={profile.commitment} />
-          </div>
+          <p className="truncate text-lg font-semibold">{profile.name}</p>
           <p className="text-sm text-muted-foreground">
             Joined{" "}
             {new Date(profile.createdAt).toLocaleDateString(undefined, {
@@ -126,6 +135,11 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
       </div>
 
       <Section title="Commitment">
+        <StatRow
+          label="Tier"
+          value={tier?.label ?? profile.commitment}
+          info={tier?.info}
+        />
         <StatRow
           label="NMR rate"
           value={formatPercent(profile.nmrRate)}
