@@ -8,6 +8,7 @@ import { SectionedViews } from "@/prototypes/my-games/SectionedViews";
 import { SectionedSingleColumn } from "@/prototypes/my-games/SectionedSingleColumn";
 import { SectionedHorizontalCards } from "@/prototypes/my-games/SectionedHorizontalCards";
 import { SectionedCompactHorizontal } from "@/prototypes/my-games/SectionedCompactHorizontal";
+import { SectionedTwoColumn } from "@/prototypes/my-games/SectionedTwoColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
 import { Channel } from "@/prototypes/channel/Default";
@@ -191,6 +192,25 @@ export const prototypes: Prototype[] = [
           { slug: "many", title: "Many games" },
         ],
         render: state => <SectionedCompactHorizontal state={state} />,
+      },
+      {
+        slug: "sectioned-two-column",
+        title: "Sectioned two column",
+        description:
+          "Refine the denser two-column layout with one compact desktop filter row and a separate lifecycle-aware home for games you manage but do not play.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "game-master", title: "Non-playing game master" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedTwoColumn state={state} />,
       },
     ],
   },

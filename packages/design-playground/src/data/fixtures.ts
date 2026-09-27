@@ -363,6 +363,16 @@ export const myGamesAllStates: Game[] = [
     phase: { ...activeGame.phase, deadline: "Deadline paused" },
   }),
   withGameState({
+    id: "my-active-gm",
+    name: "Active: you are the game master",
+    nation: undefined,
+    members: fullTable.map(player => ({ ...player, isCurrentUser: false })),
+    isGameMaster: true,
+    orderStatus: "no_orders_required",
+    phase: { ...activeGame.phase, deadline: "1 day left" },
+    deadlineMinutes: 1440,
+  }),
+  withGameState({
     id: "my-retreat",
     name: "Active: retreat phase",
     attention: "orders_required",
