@@ -480,7 +480,7 @@ jobs:
             --arg csrf "https://${STAGING_DOMAIN}" \
             '{
               query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging" }, skipDeploys: true } }
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging", SEED_STAGING_DATA: "True" }, skipDeploys: true } }
             }')
 
           RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
@@ -514,7 +514,9 @@ jobs:
           }
 
           # Deploy Django first: its migrations install the Procrastinate schema
-          # the worker needs. Deploy the worker only once Django is up.
+          # the worker needs, and SEED_STAGING_DATA makes its entrypoint seed the
+          # test user and games before Gunicorn starts. Deploy the worker only
+          # once Django is up.
           deploy_service "$DJANGO_SERVICE_ID" "diplicity-react"
 
           STATUS_PAYLOAD=$(jq -n \
@@ -595,6 +597,8 @@ jobs:
                 '',
                 dataLine,
                 'Use email/password login to test (Google OAuth is not configured for staging).',
+                '',
+                'Log in as `staging-tester@example.com` / `password` to find seeded games in every state (pending, active, finished, civil disorder, draws, solo wins and more). The seed runs on the backend at startup, so the games appear once the backend is ready.',
                 '',
                 'The frontend preview derives its backend URL from the PR number at build time.',
                 'Refresh the preview page once the staging backend is ready.',
