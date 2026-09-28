@@ -7,7 +7,7 @@ from inspect_ai.solver import generate
 
 from select_orders.context import fixture_to_context
 from select_orders.dumbbot_solver import dumbbot_solver
-from select_orders.fixtures import foreign_orders, read_fixture
+from select_orders.fixtures import foreign_orders, ranked_options, read_fixture
 from select_orders.scorers import (
     convoy_coherence,
     coverage,
@@ -38,7 +38,7 @@ def fixture_to_sample(fixture: Fixture) -> Sample:
         metadata={
             "context": context,
             "notes": fixture.get("notes", ""),
-            "ranked_options": fixture.get("ranked_options"),
+            "ranked_options": ranked_options(fixture),
             "foreign_orders": foreign_orders(fixture),
         },
     )

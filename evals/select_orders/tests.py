@@ -12,7 +12,7 @@ from inspect_ai.solver import generate
 from select_orders.context import fixture_to_context
 from select_orders.evals import dumbbot_select_orders, fixture_to_sample, load_fixtures
 from select_orders.exceptions import FixtureError, ParsingError, PromptError
-from select_orders.fixtures import read_fixture, validate_fixture, write_fixture
+from select_orders.fixtures import ranked_options, read_fixture, validate_fixture, write_fixture
 from select_orders.options import option_id
 from select_orders.parser import parse_completion
 from select_orders.prompt import DEFAULT_PARTS, system_prompt, user_prompt
@@ -361,6 +361,40 @@ class TestQualityScorers:
             value = _run(scorer_factory, state).value
             assert isinstance(value, float) and math.isnan(value)
 
+
+def _labelled_fixture(labels):
+    fixture = _quality_fixture(ranked=False)
+    fixture["option_labels"] = [
+        {"options": options, "label": label, "labeller": "labeller", "labelled_at": "2026-09-28T12:00:00+00:00"}
+        for options, label in labels
+    ]
+    return fixture
+
+
+class TestRankedOptionsFromLabels:
+
+    def _scores(self, fixture, choices):
+        sample = fixture_to_sample(fixture)
+        state = _FakeState(_completion(choices), sample.metadata["context"])
+        state.metadata = sample.metadata
+        return [_run(scorer_factory, state).value for scorer_factory in (quality_strong, quality_avoidance)]
+
+    @pytest.mark.parametrize("choices", [["lon:Hold:lon"], ["lon:Move:eng"], []])
+    def test_labels_score_the_same_as_the_equivalent_ranked_options(self, choices):
+        labelled = _labelled_fixture([(["lon:Hold:lon"], "reasonable"), (["lon:Move:eng"], "unreasonable")])
+        ranked = _quality_fixture(ranked=True)
+        assert self._scores(labelled, choices) == self._scores(ranked, choices)
+
+    def test_tuple_labels_are_left_out_of_the_derived_ranking(self):
+        fixture = _labelled_fixture([(["lon:Hold:lon", "lon:Move:eng"], "reasonable")])
+        assert ranked_options(fixture) == {"good": [], "neutral": [], "bad": []}
+
+    def test_fixture_without_labels_has_no_ranking(self):
+        assert ranked_options(_quality_fixture(ranked=False)) is None
+
+    def test_label_for_an_unknown_option_raises(self):
+        with pytest.raises(FixtureError):
+            ranked_options(_labelled_fixture([(["lon:Move:atlantis"], "reasonable")]))
 
 class TestQualityMetricAggregation:
 
