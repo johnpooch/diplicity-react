@@ -4,8 +4,9 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 from select_orders.exceptions import FixtureError
+from select_orders.options import OPTION_KEYS
 from select_orders.schema import FIXTURE_SCHEMA
-from select_orders.types import Fixture
+from select_orders.types import Fixture, FixtureOrderOption, OrderOption
 
 _VALIDATOR = Draft202012Validator(FIXTURE_SCHEMA)
 
@@ -24,3 +25,14 @@ def read_fixture(path: Path) -> Fixture:
 
 def write_fixture(path: Path, fixture: Fixture) -> None:
     path.write_text(json.dumps(validate_fixture(fixture), indent=2) + "\n")
+
+
+def full_option(option: FixtureOrderOption) -> OrderOption:
+    return {key: option.get(key) for key in OPTION_KEYS}
+
+
+def foreign_orders(fixture: Fixture) -> list[OrderOption] | None:
+    actual = fixture.get("actual_orders")
+    if actual is None:
+        return None
+    return [full_option(order) for nation, orders in actual.items() if nation != fixture["nation"] for order in orders]

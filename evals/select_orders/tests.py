@@ -10,7 +10,7 @@ from inspect_ai.scorer import CORRECT, INCORRECT, Target
 from inspect_ai.solver import generate
 
 from select_orders.context import fixture_to_context
-from select_orders.evals import dumbbot_select_orders, load_fixtures
+from select_orders.evals import dumbbot_select_orders, fixture_to_sample, load_fixtures
 from select_orders.exceptions import FixtureError, ParsingError, PromptError
 from select_orders.fixtures import read_fixture, validate_fixture, write_fixture
 from select_orders.options import option_id
@@ -232,6 +232,51 @@ class TestSupportCoherence:
         assert _run(support_coherence, state).value == CORRECT
 
 
+    def _foreign_state(self, choices, foreign_orders):
+        context = {
+            **_context(SUPPORT_OPTIONS),
+            "members": [
+                {"name": "England", "nation": "England", "is_current_user": True},
+                {"name": "France", "nation": "France", "is_current_user": False},
+            ],
+            "units": [
+                {"type": "Army", "nation": "France", "province": "lon", "dislodged": False},
+                {"type": "Army", "nation": "England", "province": "wal", "dislodged": False},
+            ],
+        }
+        state = _FakeState(_completion(choices), context)
+        state.metadata["foreign_orders"] = foreign_orders
+        return state
+
+    def test_support_of_a_foreign_units_ordered_move_is_coherent(self):
+        state = self._foreign_state(["wal:Support:lvp:lon"], [_option("lon", "Move", target="lvp")])
+        assert _run(support_coherence, state).value == CORRECT
+
+    def test_support_of_a_foreign_move_that_was_not_ordered_dangles(self):
+        state = self._foreign_state(["wal:Support:lvp:lon"], [_option("lon", "Hold")])
+        assert _run(support_coherence, state).value == INCORRECT
+
+    def test_support_hold_of_a_foreign_unit_left_without_orders_is_coherent(self):
+        state = self._foreign_state(["wal:Support:lon:lon"], [])
+        assert _run(support_coherence, state).value == CORRECT
+
+    def test_support_of_a_foreign_unit_with_unknown_orders_is_not_judged(self):
+        state = self._foreign_state(["wal:Support:lvp:lon"], None)
+        assert _run(support_coherence, state).value == CORRECT
+
+    def test_sample_carries_every_other_nations_real_orders(self):
+        fixture = {
+            **_harvested_fixture(),
+            "actual_orders": {
+                "Germany": [{"source": "mun", "order_type": "Move", "target": "bur"}],
+                "France": [{"source": "bur", "order_type": "Hold"}],
+            },
+        }
+        assert fixture_to_sample(fixture).metadata["foreign_orders"] == [_option("bur", "Hold")]
+
+    def test_sample_without_real_orders_carries_none(self):
+        assert fixture_to_sample(_quality_fixture()).metadata["foreign_orders"] is None
+
 CONVOY_OPTIONS = [
     _option("eng", "Convoy", aux="lon", target="bre"),
     _option("eng", "Hold"),
@@ -256,6 +301,16 @@ class TestConvoyCoherence:
 
     def test_no_convoy_selected_is_coherent(self):
         state = _state(_completion(["eng:Hold", "lon:Move:bre"]), CONVOY_OPTIONS)
+        assert _run(convoy_coherence, state).value == CORRECT
+
+    def test_convoy_of_a_foreign_armys_ordered_move_is_coherent(self):
+        context = {
+            **_context(CONVOY_OPTIONS),
+            "members": [{"name": "England", "nation": "England", "is_current_user": True}],
+            "units": [{"type": "Army", "nation": "France", "province": "lon", "dislodged": False}],
+        }
+        state = _FakeState(_completion(["eng:Convoy:bre:lon"]), context)
+        state.metadata["foreign_orders"] = [_option("lon", "Move", target="bre")]
         assert _run(convoy_coherence, state).value == CORRECT
 
 
