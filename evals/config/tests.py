@@ -7,7 +7,11 @@ IGNORED_DIRECTORIES = {".venv", "node_modules"}
 
 
 def _packages(root):
-    return {path.name for path in root.iterdir() if (path / "__init__.py").exists()}
+    return {
+        path.name
+        for path in root.iterdir()
+        if path.is_dir() and path.name not in IGNORED_DIRECTORIES and any(path.glob("*.py"))
+    }
 
 
 def _evals_sources():

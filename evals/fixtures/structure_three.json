@@ -1,0 +1,46 @@
+{
+  "id": "structure_three",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "Three provinces, two options each, in reading order. Dedup and coverage are nominally in play but the path of least resistance already passes both, so green here is weak evidence.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "order_options": [
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "eng"
+    },
+    {
+      "source": "par",
+      "order_type": "Hold",
+      "target": "par"
+    },
+    {
+      "source": "par",
+      "order_type": "Move",
+      "target": "bur"
+    },
+    {
+      "source": "ber",
+      "order_type": "Hold",
+      "target": "ber"
+    },
+    {
+      "source": "ber",
+      "order_type": "Move",
+      "target": "kie"
+    }
+  ]
+}

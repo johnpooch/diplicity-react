@@ -1,0 +1,21 @@
+{
+  "id": "structure_single",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "One province, one option. The control. A competent model cannot fail this on structure; red here means prompting or parsing is broken, not judgement.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "order_options": [
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    }
+  ]
+}

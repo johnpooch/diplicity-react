@@ -1,0 +1,49 @@
+{
+  "id": "convoy_coherence",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "A fleet convoys an army across water; coherent iff the army actually makes the convoyed move. Convoying an army that holds is the dangling case.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "eng"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lon"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "eng",
+      "order_type": "Convoy",
+      "target": "bre",
+      "aux": "lon"
+    },
+    {
+      "source": "eng",
+      "order_type": "Hold",
+      "target": "eng"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "bre"
+    },
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    }
+  ]
+}
