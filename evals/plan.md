@@ -43,9 +43,12 @@ own space, cut off from the app (D16).
 - A **harvester** that turns real Diplicity phases into self-contained fixtures,
   without importing app code.
 - **Fixture schema v2**, including what the real players actually ordered.
-- A **one-phase counterfactual**: swap the model's order set in against the
-  other nations' archived orders and measure what changes.
-- **Zero-token dumbbot rollouts** to show board-level consequences a game-year out.
+- **Tactical-soundness checks** on the model's order set, with no adjudication
+  and no judge: provably wrong combinations, and diagnostic rates compared
+  against the human on the same position (section 7).
+- A **one-phase counterfactual** (order efficacy): swap the model's order set in
+  against the other nations' archived orders, measure what changes, and compare
+  with the same measures for what the human actually ordered (D10).
 - **Per-option human labels** written back into the fixture, as the answer key
   future scorers will use.
 
@@ -67,12 +70,17 @@ Do not build these as part of this plan. Each was considered and deferred.
   and was closed as not planned. Suite results live in memory for the session
   (D20).
 - **Deploying the tool.** Local only, see D5.
+- **Dumbbot rollouts** (playing a game-year or more forward with dumbbot in every
+  seat). Deferred until the one-phase comparison with the human has been tried
+  and found not to be enough. The design work already done is kept in section 11.
 - **The dumbbot match protocol.** Settled in
   [#1126](https://github.com/johnpooch/diplicity-react/issues/1126). Do not
   redefine it.
 - **Changing dumbbot or the adjudicator.** Both are used as they are (D18).
-- **New inspect scorers.** This plan produces the labelled data a scorer would
-  need. Writing scorers before labels exist leaves them idle.
+- **Label-based scorers beyond the two that exist.** This plan produces the
+  labelled data such a scorer would need; writing one before labels exist leaves
+  it idle. The Tier 1 tactical-soundness scorers (section 7) are the exception:
+  they check the order set against the rules of the board and need no labels.
 - **Chat history in the `select_orders` context.** Moves and messages stay
   separate for now, see D11.
 
@@ -129,8 +137,10 @@ Reproduce with `DJANGO_DEBUG=True service/.venv/bin/python manage.py shell`.
 
 Consequences that shaped the design:
 
-- Option enumeration costs about fifty times adjudication and dominates rollout
-  cost. Budget roughly **40 ms per rollout phase**.
+- Option enumeration costs about fifty times adjudication. A one-phase
+  counterfactual only adjudicates, so it costs about a millisecond; enumeration is
+  paid once per fixture at harvest. (It would dominate the cost of the deferred
+  rollouts, at roughly 40 ms per rolled-out phase, see section 11.)
 - The space of order sets is far too large for exact-set matching against a
   handful of hand-authored "reasonable" sets. Labelling is **per option**.
 - Option enumeration is **per unit and unconditional**. Legality depends on where
@@ -161,8 +171,10 @@ follows Fall **Retreat**, not Fall Movement.
 
 So a one-phase counterfactual always reports a supply-centre delta of zero,
 whether the phase is Spring or Fall. Ownership moves once per game-year. This is
-why the counterfactual measures occupancy and the rollout measures centres, and
-why the rollout horizon is counted in game-years.
+why the counterfactual measures occupancy of supply-centre provinces rather than
+ownership. #1368 lists "supply center changes during fall phases" under order
+efficacy; by this constraint that number is always zero, so it is replaced by
+occupancy (R4).
 
 ---
 
@@ -222,24 +234,24 @@ names only (`service/harness/adapter.py:214`). Preserve that deliberately: this
 repository is public and fixtures will be committed to it. A source game id as
 provenance is fine, user ids are not.
 
-**D8. Rollout horizon is counted in game-years, not phases.** Default 1 game-year,
-meaning roll forward until the next Adjustment has resolved. Forced by the
-supply-centre timing constraint: a fixed 3-phase horizon stops one short of
-Adjustment from a Spring position and overshoots from a Fall one. Counting in
-game-years makes the supply-centre delta always defined and comparable across
-fixtures.
+**D8, D9.** Deferred with the rollouts; see section 11.
 
-**D9. Paired seeds across all candidate order sets.** The model's set, the human's
-set and dumbbot's set are rolled out over the *same* seed list. Diplomacy
-rollouts are high variance and the position dominates the outcome, so comparing
-independent samples at 30 seeds mostly measures noise. Common random numbers
-cancel the shared randomness. This is the difference between 30 seeds being
-useful and 30 seeds being decorative.
+**D10. The consequence signal is one phase deep, compared against the human.**
+Two families of measure, both from #1368 (section 7): tactical soundness, which
+inspects the order set against the board without adjudicating, and order
+efficacy, which adjudicates the model's order set once against the other
+nations' real orders. Both are computed for the order set the human actually
+played on the same position, and shown side by side. The human's side costs
+nothing: the orders are `actual_orders` and the outcome is `actual_outcome`,
+both already in the fixture. Looking further ahead with dumbbot rollouts is
+deferred (section 11) until this simpler comparison has been tried on real
+fixtures and found wanting (Q9).
 
-**D10. Rollouts are a labelling aid, never a metric.** They are never a number
-anyone tunes a prompt against. The value they measure is value against a weak
-continuation, so optimising it would mean optimising against dumbbot's blind
-spots. Their job is to stop the labeller staring at 133 options with no prior.
+The human is a reference point, not an oracle. They may have been playing a
+diplomatic line the metrics cannot see, and they chose their orders knowing
+things (agreements, bluffs) the fixture does not record. #1368 makes the same
+point about the Tier 2 diagnostics: each has legitimate strategic uses, and
+becomes meaningful only against the human rate on identical positions.
 
 **D11. Moves and messages stay separate.** Consequence: the `select_orders`
 prompt keeps no chat history for now, and the full-press move-quality eval stays
@@ -292,36 +304,7 @@ the prompt** (for example, only the provinces a unit can reach) is decided in
 `evals/` code and changed there directly (D19). It is not a menu of alternatives
 to switch between in the UI.
 
-**D14. Baselines are precomputed at harvest, keyed by the settings they used.**
-The human's order set and dumbbot's pick are properties of the fixture. Neither
-depends on the model or on the prompt being iterated, so both rollouts are
-computed once at harvest, stored in the fixture, and read for free thereafter.
-Only the model's own rollout runs live.
-
-A baseline is only valid against a model run that used the **same horizon and the
-same seeds**, so a stored baseline is keyed by both and a mismatch invalidates it
-rather than silently comparing unlike things. Two mechanisms keep that from
-becoming a straitjacket:
-
-- **Precompute every offered horizon.** The UI offers 1 and 2 game-years, so both
-  are computed at harvest. A horizon nobody precomputed is computed on demand and
-  cached into the fixture.
-- **Use a canonical, nested seed list.** Seeds are `0..N-1` in order, so the first
-  30 seeds of a 100-seed run are exactly the 30-seed run. Precompute baselines
-  deep (100 seeds), and any live model run at `m <= 100` seeds compares against
-  the first `m` baseline seeds and stays a valid paired comparison. Seed count
-  then becomes a slider that trades precision against wait, with no
-  recomputation.
-
-**D15. The seed count is measured, not guessed.** Nobody knows what number is
-enough, and it is an empirical question with a cheap answer: with baselines
-precomputed to 100 seeds, plot the standard error of the paired difference
-against seed count on the first real fixtures and read the default off the curve.
-Until that is done, treat 30 as a placeholder rather than a decision. The number
-that matters is not the seed count but whether the interval around a difference
-is narrow enough to separate two order sets; the UI should show that interval
-rather than a bare mean, so a difference that 30 seeds cannot resolve is visibly
-unresolved.
+**D14, D15.** Deferred with the rollouts; see section 11.
 
 **D16. `evals/` is a separate space, deliberately cut off from the app.**
 A new top-level folder holding its own Django project and its own frontend. It
@@ -356,9 +339,9 @@ Nothing under `service/` or `packages/` is edited, stubbed or disabled, and the
 production bot keeps running on `service/harness` exactly as it does today.
 
 **D18. The adjudicator and dumbbot are imported, not copied.** `evals/` needs the
-adjudicator to list legal options for harvested phases, to replay the
-counterfactual, and to run rollouts, and needs dumbbot to play every seat in a
-rollout. Neither will be changed as part of this work, and both are Django-free:
+adjudicator to list legal options for harvested phases and to adjudicate the
+counterfactual, and needs dumbbot as the zero-token solver that checks the copied
+eval task still scores as the original (task 0.3). Neither will be changed as part of this work, and both are Django-free:
 their imports are the standard library, `yaml`, `jsonschema`, and
 `common/constants.py`, which itself only imports `adjudicator.types`. Dumbbot also
 imports types and helpers from `service/harness` (`harness.types`,
@@ -409,18 +392,7 @@ Replaced by D4.
 **R4. Supply-centre delta from a one-phase counterfactual.** Impossible, see the
 timing constraint in section 3. It is always zero.
 
-**R5. Win rate as the rollout statistic.** At a one-game-year horizon nobody has
-won, so it is undefined. Over a full game against dumbbot it is almost entirely
-variance. Use supply-centre delta and units lost, as a paired distribution.
-
-**R6. Reporting a rollout without a baseline.** The position dominates the
-outcome, so in a winning position every order rolls out well, and an absolute
-distribution mostly describes the position rather than the orders. The first fix
-proposed was a UI toggle trading the baselines away for speed, which would have
-meant sometimes showing exactly the number this rejects. D14 removes the trade
-rather than the principle: baselines are precomputed at harvest, so they cost
-nothing at default settings and are always available. A toggle survives only as a
-way to hide them on screen, never as a way to avoid computing them.
+**R5, R6.** Rollout-specific; kept in section 11.
 
 **R7. Relying on the existing dumbbot match for per-move signal.** The match
 (`service/integration/test_dumbbot_match.py`, results in
@@ -428,8 +400,9 @@ way to hide them on screen, never as a way to avoid computing them.
 game and cannot attribute the outcome to any single decision. Archive replay
 gives only one phase of consequence, because the moment the model's orders are
 substituted the real game diverges and every later archived order was
-conditioned on a board that no longer exists. Neither gives "what did this order
-set cost me a game-year later". Rollouts do.
+conditioned on a board that no longer exists. One phase of consequence is what
+this plan accepts for now (D10); looking further ahead is what the deferred
+rollouts are for (section 11).
 
 **R8. Build the tool inside `service/`.** The first version of this plan added a
 DEBUG-gated Django app to `service/`, extended `service/harness` in place and
@@ -469,14 +442,12 @@ New fields:
   the eval nation. Without the other six, counterfactual re-adjudication is
   impossible. This is the single most important addition.
 - `actual_outcome`: which orders succeeded or failed, and the resulting units and
-  supply centres.
+  supply centres. The human's side of the comparison (D10) comes from this and
+  `actual_orders`.
 - `option_labels`: list of `{ options, label: "reasonable" | "unreasonable",
   labeller, labelled_at, note }`. `options` is a list of option ids (D13): one
   entry in the ordinary case, several when the judgement holds only for a
   combination (D2). Absence of an entry means unlabelled.
-- `baselines`: the precomputed human and dumbbot rollout results (D14), keyed by
-  horizon and seed list, keeping the per-seed results rather than only a summary,
-  so a run at fewer seeds compares against a prefix of a deeper baseline.
 - `eval_sets`: list of named eval sets this fixture belongs to. Empty by default.
   A harvested fixture starts in none: harvesting is cheap and deciding a position
   is worth evaluating against is a judgement, so they must be separate actions.
@@ -494,59 +465,54 @@ named for the purpose, so `eval_sets` already expresses it. See Q5.
 
 ## 7. Metrics
 
-### One-phase counterfactual
+Both families come from #1368 ("Tactical soundness" and "Order efficacy"). Every
+measure is computed for the model's order set and for the human's real order set
+on the same position, and reported as model, human, and the difference (D10).
+There is no randomness anywhere in this section, so every number is exact.
 
-Swap the eval nation's candidate order set in, hold the other six nations'
+### Tactical soundness
+
+Code-based, no judge, no adjudication: each check reads the order set against
+the board.
+
+**Tier 1: provably wrong.** Binary scorers; any hit is a mistake.
+
+- Two of your own units ordered to the same province (guaranteed self-bounce).
+- Support for a move nobody is making. Exists today as `support_coherence`,
+  with the false positive fixed in task 1.2.
+- Convoy for a move nobody is making. Exists today as `convoy_coherence`.
+- Support for an enemy unit moving into a province you hold.
+
+**Tier 2: diagnostics.** Reported as rates, never as pass or fail. Each has
+legitimate strategic uses, so a rate means something only beside the human's
+rate on the same positions.
+
+- Idle hold: holding where no enemy unit can enter this phase.
+- Undefended home centre: moving the only defender out of a home centre an
+  adjacent enemy can enter.
+- Wasted support: supporting a province no enemy could contest.
+- Certain bounce: moving into a province where an enemy has a supported move and
+  you have no support.
+
+"Certain bounce" depends on what the enemy actually ordered, so it reads the
+other nations' `actual_orders`. The rest need only the board and the order set.
+
+### Order efficacy: the one-phase counterfactual
+
+Swap the eval nation's candidate order set in, hold the other nations'
 `actual_orders` fixed, adjudicate once. Report:
 
-- units dislodged, own and enemy
-- units lost outright (dislodged with no legal retreat)
+- units lost outright (dislodged with no legal retreat), and units dislodged,
+  own and enemy
 - moves succeeded over moves attempted
-- provinces taken, held, given up
+- provinces contested and held, taken, given up
+- progress: moves into contested or capturable provinces
 - **occupancy** delta on supply-centre provinces
 
-Do **not** report supply-centre ownership delta here. It is always zero. Occupancy
-of supply-centre provinces is the leading indicator: occupying Munich in Fall is
-what makes you own it at the following Adjustment.
-
-### Rollout
-
-- **Phase 0**: the candidate order set against the other nations' `actual_orders`.
-  Not dumbbot. This keeps the first step grounded in reality and makes the
-  one-phase counterfactual the zero-game-year case of the same code path rather
-  than a second implementation.
-- **Phases 1..N**: every seat plays dumbbot, RNG seeded per repeat.
-- **Horizon**: 1 game-year by default (roll until the next Adjustment has
-  resolved), with 2 game-years offered. Both are precomputed for the baselines
-  (D14).
-- **Seeds**: canonical list `0..N-1`, baselines precomputed to 100, live runs use
-  any `m <= 100` and compare against the first `m`. Placeholder default 30, to be
-  set properly by D15.
-- **Candidates**: the model's order set, plus two baselines, the human's actual
-  order set and dumbbot's own pick for the eval nation. All three over the same
-  seed list (D9). The two baselines are precomputed at harvest and stored in the
-  fixture (D14), so at default settings only the model's rollout runs live.
-- **Report**: supply-centre count delta and units remaining at the horizon, as a
-  distribution over seeds, shown as a paired difference against the baselines with
-  its uncertainty, never a bare mean (D15).
-
-Expected cost, from the 40 ms per phase measured in section 3:
-
-| Setting | Phases | Per candidate | Three candidates, serial |
-|---|---|---|---|
-| 1 game-year from Fall, 30 seeds | 2 | ~2.5 s | ~7.5 s |
-| 1 game-year from Spring, 30 seeds | 4 | ~5 s | ~15 s |
-| 2 game-years from Spring, 30 seeds | 8 | ~10 s | ~30 s |
-
-Only the model's rollout runs at labelling time, so the live cost is the
-per-candidate column. Everything else is paid once at harvest: two baselines at
-two horizons, 100 seeds each, is roughly 96 s for a Spring fixture and half that
-for a Fall one, so a 30-fixture batch is under an hour single-core and a few
-minutes across cores. That is a one-time job, not something anyone waits on.
-
-The candidates are independent, so run them in parallel processes when all three
-are needed. The UI toggle hides the baselines, it does not skip computing them
-(R6).
+#1368 also lists supply-centre changes in Fall phases. Do **not** report that:
+it is always zero after one phase (section 3, R4). Occupancy of supply-centre
+provinces is the leading indicator: occupying Munich in Fall is what makes you
+own it at the following Adjustment.
 
 ---
 
@@ -562,7 +528,7 @@ are needed. The UI toggle hides the baselines, it does not skip computing them
   Follow them anyway where they apply, notably the single `tests.py` per Django
   app and asserting behaviour through HTTP endpoints
   (`.claude/rules/backend/tests.md`). Pure functions (prompt rendering, the
-  parser, the counterfactual, rollouts) are tested directly, the way
+  parser, the tactical checks, the counterfactual) are tested directly, the way
   `service/adjudicator/tests.py` does.
 - The dependency rules in D16 are hard rules, not preferences.
 - The adjudicator has its own architectural rubric in
@@ -611,7 +577,7 @@ are needed. The UI toggle hides the baselines, it does not skip computing them
     fixtures built from it are committed.
   - Everything after the snapshot happens in `evals/`: the v2 schema, legal
     options via `get_options`, `actual_orders`, `actual_outcome`,
-    `decision_richness`, baselines. The snapshot is the only thing that knows
+    `decision_richness`. The snapshot is the only thing that knows
     the app's table layout, so an app schema change breaks one SQL file and
     nothing else.
   - Caveat, **not verified**: phases in which nobody can act (for example an empty
@@ -638,6 +604,9 @@ are needed. The UI toggle hides the baselines, it does not skip computing them
   Decide before the first eval set is used to judge a prompt change.
 - **Q7.** What "good enough" means for any of these metrics. Unanswered in #1368
   and still unanswered.
+- **Q9.** Whether the one-phase comparison with the human is enough, or the
+  deferred rollouts (section 11) are needed after all. Decide after labelling
+  the first batch with these metrics beside it.
 
 Q6 (fix `support_coherence` now) is resolved: yes, in the `evals/` copy (task
 1.2). Q8 (address options by content-derived id) is resolved: yes, it is required
@@ -734,45 +703,29 @@ or `packages/`.
   *Done when*: `evals/fixtures/` holds the batch, every file validates against
   schema v2, and each declares `provenance.source: "harvested"`.
 
-### Phase 2: the rollout engine, headless
+### Phase 2: the metrics, headless
 
-- [ ] **2.1 One-phase counterfactual.**
-  Pure function: fixture plus a candidate order set in, the section 7 metrics out.
+- [ ] **2.1 Tactical-soundness checks** (section 7).
+  Tier 1 as inspect scorers alongside the copied ones; Tier 2 as pure functions
+  returning rates.
+  *Done when*: each Tier 1 check has a test that catches it and a test that
+  passes a clean order set; each Tier 2 diagnostic has a test for a position
+  where it fires and one where it does not; and supporting an enemy into your own
+  province is caught.
+
+- [ ] **2.2 One-phase counterfactual** (order efficacy).
+  Pure function: fixture plus a candidate order set in, the section 7 efficacy
+  measures out.
   *Done when*: replaying a fixture's own `actual_orders` reproduces its
-  `actual_outcome` exactly. That is the test that proves the counterfactual is
-  wired up correctly.
+  `actual_outcome` exactly, which proves the counterfactual is wired up
+  correctly.
 
-- [ ] **2.2 N-game-year rollout.**
-  Phase 0 against archived orders, all-dumbbot forward to the horizon, seeded per
-  repeat, paired seeds across candidates (D8, D9).
-  *Done when*: the same seed produces byte-identical results across runs; a
-  one-game-year rollout from a Spring position advances through Adjustment so the
-  supply-centre delta is defined; and a rollout with a horizon of zero game-years
-  equals the 2.1 result.
-
-- [ ] **2.3 Management command.**
-  Run the counterfactual and rollout for a fixture and print the comparison for
-  model, human and dumbbot candidates.
-  *Done when*: the command runs end to end on a harvested fixture and its timings
-  land within roughly the section 7 table. If they are far off, re-measure before
-  building UI on top.
-
-- [ ] **2.4 Precompute and store the baselines.**
-  Compute the human and dumbbot rollouts for every fixture at both offered
-  horizons over the canonical 100-seed list, and write them into `baselines`
-  keyed by those settings, keeping per-seed results (D14).
-  *Done when*: every harvested fixture carries both baselines at both horizons;
-  reading them back reproduces what a live run with the same settings produces;
-  and a 30-seed live run compares against the first 30 stored seeds rather than a
-  resampled set.
-
-- [ ] **2.5 Set the seed count from data.**
-  With baselines precomputed to 100 seeds, plot the standard error of the paired
-  difference against seed count across the first batch and choose the default
-  from the curve (D15).
-  *Done when*: the curve exists for the first batch, the default is set from it,
-  and this plan records the number and the reasoning that replaced the 30
-  placeholder.
+- [ ] **2.3 Human comparison and management command.**
+  Compute both families for the human's real order set and for a candidate, and
+  print them side by side with the difference.
+  *Done when*: the command runs end to end on a harvested fixture, and the
+  human's efficacy measures computed by replay equal those computed from
+  `actual_outcome`.
 
 ### Phase 3: the tool
 
@@ -785,7 +738,7 @@ or `packages/`.
 
 - [ ] **3.2 Local backend API.**
   Endpoints: list fixtures, read a fixture, render the prompt for a set of part
-  overrides, run the model against it, run the counterfactual and rollout, run
+  overrides, run the model against it, compute the section 7 metrics, run
   the eval suite, and write `option_labels`, `eval_sets` and `discarded` back to
   the fixture file.
   *Done when*: every endpoint has a test, and the label-write endpoint round-trips
@@ -828,18 +781,12 @@ or `packages/`.
   different prompts can be compared.
 
 - [ ] **3.7 Metrics panel.**
-  One-phase counterfactual metrics, plus the rollout with its paired baselines.
-  Horizon selectable between the two precomputed values, seed count adjustable up
-  to the precomputed depth, so both stay valid paired comparisons without
-  recomputing baselines (D14). A toggle hides the baselines on screen without
-  skipping them (R6).
-  *Done when*: the panel shows model, human and dumbbot as a paired comparison on
-  the same seeds; only the model's rollout runs live, with baselines read from the
-  fixture; switching horizon or seed count within the precomputed range keeps the
-  comparison valid with no recomputation, and going outside it is visibly flagged
-  rather than silently compared; differences carry their uncertainty rather than
-  being bare means; and the order set dumbbot filled in around each candidate is
-  inspectable, not just the summary number.
+  Both section 7 families for the model's order set and the human's, side by
+  side, with the difference. Tier 1 hits are shown as errors; Tier 2 as rates.
+  *Done when*: the human's metrics show as soon as a fixture loads; the model's
+  appear after a run; the suite view (3.6) shows Tier 2 rates for model and human
+  across the eval set; and each metric can be traced to the orders that caused it
+  (which unit bounced, which support was wasted), drawn on the board.
 
 - [ ] **3.8 Eval-set curation.**
   Add the loaded fixture to a named eval set, remove it, or discard it with a
@@ -872,6 +819,8 @@ or `packages/`.
 
 ### Not now
 
+Dumbbot rollouts, see section 11.
+
 Reconnecting `evals/` to production: porting a better prompt, the option-id
 format or the reshaped board back into `service/harness`. Do this deliberately,
 once there is a measured improvement worth shipping.
@@ -882,3 +831,52 @@ code-checkable board-grounding claims separated from judge-only ones, the
 should-reply classifier (cheapest item on the list, its answer key needs no human
 labelling since "did a human reply, and how fast" comes straight from the
 archive), and prompt-injection fixtures.
+
+---
+
+## 11. Deferred: dumbbot rollouts
+
+Kept so the design work is not lost. Not part of the current plan (D10, Q9).
+Revisit only if the one-phase comparison with the human turns out not to be
+enough.
+
+**The idea.** Start from the one-phase counterfactual (phase 0: the candidate
+order set against the other nations' real orders), then play forward with
+dumbbot in every seat, and measure supply-centre count delta and units remaining
+at the horizon, for the model's order set, the human's, and dumbbot's own pick.
+This is what would answer "what did this order set cost me a game-year later",
+which one phase cannot (R7).
+
+**Decisions already made, should it come back:**
+
+- **D8. Horizon in game-years, not phases.** Default 1 game-year, meaning roll
+  forward until the next Adjustment has resolved, with 2 offered. A fixed 3-phase
+  horizon stops one short of Adjustment from a Spring position and overshoots
+  from a Fall one (section 3).
+- **D9. Paired seeds across all candidates.** Rollouts are high variance and the
+  position dominates the outcome, so every candidate is rolled out over the same
+  seed list; common random numbers cancel the shared randomness.
+- **Rollouts are an aid, never a metric.** They measure value against a weak
+  continuation, so tuning a prompt against them means tuning against dumbbot's
+  blind spots.
+- **D14. Baselines precomputed at harvest**, keyed by horizon and seed list, with
+  per-seed results kept in a `baselines` fixture field. Seeds are a canonical
+  nested list `0..N-1` precomputed to 100, so a live run at `m <= 100` seeds
+  compares against the first `m` with no recomputation.
+- **D15. Seed count measured, not guessed.** Plot the standard error of the
+  paired difference against seed count on real fixtures and read the default off
+  the curve; 30 is only a placeholder. Show the interval, never a bare mean.
+- **R5.** Win rate rejected as the statistic: undefined at one game-year, almost
+  pure variance over a full game.
+- **R6.** A rollout is never reported without its baselines. A UI toggle may hide
+  them, never skip computing them.
+
+**Expected cost**, from the roughly 40 ms per rolled-out phase in section 3: about
+2.5 s per candidate for 1 game-year from Fall at 30 seeds, 5 s from Spring, 10 s
+for 2 game-years from Spring. Baselines at two horizons and 100 seeds are roughly
+96 s per Spring fixture, paid once at harvest.
+
+**Tasks it would add:** an N-game-year rollout (the same seed gives
+byte-identical results; a zero-game-year rollout equals the one-phase
+counterfactual), stored baselines, the seed-count measurement, and rollout
+results with their uncertainty in the metrics panel.
