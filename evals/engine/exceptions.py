@@ -1,0 +1,2 @@
+class UnknownVariantError(Exception):
+    pass
