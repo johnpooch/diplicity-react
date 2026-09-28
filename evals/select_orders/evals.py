@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 from inspect_ai import Task, task
@@ -8,6 +7,7 @@ from inspect_ai.solver import generate
 
 from select_orders.context import fixture_to_context
 from select_orders.dumbbot_solver import dumbbot_solver
+from select_orders.fixtures import read_fixture
 from select_orders.scorers import (
     convoy_coherence,
     coverage,
@@ -24,7 +24,7 @@ FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 
 
 def load_fixtures() -> list[Fixture]:
-    return [json.loads(path.read_text()) for path in sorted(FIXTURES_DIR.glob("*.json"))]
+    return [read_fixture(path) for path in sorted(FIXTURES_DIR.glob("*.json"))]
 
 
 def fixture_to_sample(fixture: Fixture) -> Sample:

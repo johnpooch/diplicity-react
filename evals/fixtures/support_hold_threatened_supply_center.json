@@ -1,4 +1,5 @@
 {
+  "schema_version": 2,
   "id": "support_hold_threatened_supply_center",
   "provenance": {
     "source": "handbuilt"
@@ -98,5 +99,6 @@
         "target": "ruh"
       }
     ]
-  }
+  },
+  "eval_sets": []
 }

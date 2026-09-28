@@ -1,4 +1,5 @@
 {
+  "schema_version": 2,
   "id": "build_toward_open_supply_center",
   "provenance": {
     "source": "handbuilt"
@@ -70,5 +71,6 @@
         "unit_type": "Army"
       }
     ]
-  }
+  },
+  "eval_sets": []
 }

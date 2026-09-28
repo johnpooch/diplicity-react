@@ -12,6 +12,7 @@ from inspect_ai.solver import generate
 from select_orders.context import fixture_to_context
 from select_orders.evals import dumbbot_select_orders, load_fixtures
 from select_orders.exceptions import FixtureError, ParsingError, PromptError
+from select_orders.fixtures import read_fixture, validate_fixture, write_fixture
 from select_orders.options import option_id
 from select_orders.parser import parse_completion
 from select_orders.prompt import DEFAULT_PARTS, system_prompt, user_prompt
@@ -358,6 +359,112 @@ class TestFixtureToContext:
     def test_unknown_variant_raises(self):
         with pytest.raises(FixtureError):
             fixture_to_context({**_quality_fixture(), "variant": "nonexistent"})
+
+
+def _harvested_fixture():
+    return {
+        "schema_version": 2,
+        "id": "game_p4_germany",
+        "provenance": {
+            "source": "harvested",
+            "game_id": "game",
+            "phase_id": 12,
+            "phase_ordinal": 4,
+            "harvested_at": "2026-09-28T12:00:00+00:00",
+            "press_type": "full_press",
+            "was_bot": True,
+        },
+        "variant": "classical",
+        "nation": "Germany",
+        "phase": {"season": "Fall", "year": 1902, "type": "Movement"},
+        "units": [
+            {"type": "Army", "nation": "Germany", "province": "mun"},
+            {"type": "Army", "nation": "France", "province": "bur", "dislodged": True, "dislodged_from": "mun"},
+        ],
+        "supply_centers": [{"nation": "Germany", "province": "mun"}],
+        "contested_provinces": ["ruh"],
+        "order_options": [
+            {"source": "mun", "order_type": "Hold"},
+            {"source": "mun", "order_type": "Move", "target": "bur"},
+        ],
+        "max_orders": None,
+        "decision_richness": 2,
+        "actual_orders": {
+            "Germany": [{"source": "mun", "order_type": "Move", "target": "bur"}],
+            "France": [],
+        },
+        "actual_outcome": {
+            "resolutions": [{"nation": "Germany", "source": "mun", "result": "OK"}],
+            "units": [{"type": "Army", "nation": "Germany", "province": "bur"}],
+            "supply_centers": [{"nation": "Germany", "province": "mun"}],
+        },
+        "option_labels": [
+            {
+                "options": ["mun:Move:bur"],
+                "label": "reasonable",
+                "labeller": "labeller",
+                "labelled_at": "2026-09-28T12:05:00+00:00",
+                "note": "takes the centre",
+            }
+        ],
+        "eval_sets": ["dev"],
+        "discarded": {"by": "labeller", "at": "2026-09-28T12:06:00+00:00", "reason": "duplicate position"},
+    }
+
+
+class TestFixtureSchema:
+
+    def test_fixture_with_every_field_round_trips(self, tmp_path):
+        path = tmp_path / "fixture.json"
+        write_fixture(path, _harvested_fixture())
+        assert read_fixture(path) == _harvested_fixture()
+
+    def test_every_committed_fixture_is_schema_version_2(self):
+        assert {fixture["schema_version"] for fixture in load_fixtures()} == {2}
+
+    @pytest.mark.parametrize(
+        "place",
+        [
+            lambda fixture: fixture["provenance"],
+            lambda fixture: fixture,
+            lambda fixture: fixture["units"][0],
+            lambda fixture: fixture["actual_outcome"]["resolutions"][0],
+            lambda fixture: fixture["option_labels"][0],
+        ],
+    )
+    def test_user_identifier_is_rejected(self, place):
+        fixture = _harvested_fixture()
+        place(fixture)["user_id"] = 42
+        with pytest.raises(FixtureError):
+            validate_fixture(fixture)
+
+    def test_harvested_fixture_requires_what_the_players_ordered(self):
+        fixture = _harvested_fixture()
+        del fixture["actual_orders"]
+        with pytest.raises(FixtureError):
+            validate_fixture(fixture)
+
+    def test_harvested_provenance_requires_its_source_phase(self):
+        fixture = _harvested_fixture()
+        del fixture["provenance"]["phase_id"]
+        with pytest.raises(FixtureError):
+            validate_fixture(fixture)
+
+    def test_eval_sets_are_required(self):
+        fixture = _harvested_fixture()
+        del fixture["eval_sets"]
+        with pytest.raises(FixtureError):
+            validate_fixture(fixture)
+
+    def test_other_schema_versions_are_rejected(self):
+        with pytest.raises(FixtureError):
+            validate_fixture({**_harvested_fixture(), "schema_version": 1})
+
+    def test_write_refuses_an_invalid_fixture(self, tmp_path):
+        path = tmp_path / "fixture.json"
+        with pytest.raises(FixtureError):
+            write_fixture(path, {**_harvested_fixture(), "members": []})
+        assert not path.exists()
 
 
 class TestFixtures:

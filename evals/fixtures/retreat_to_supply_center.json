@@ -1,4 +1,5 @@
 {
+  "schema_version": 2,
   "id": "retreat_to_supply_center",
   "provenance": {
     "source": "handbuilt"
@@ -84,5 +85,6 @@
         "target": "alb"
       }
     ]
-  }
+  },
+  "eval_sets": []
 }

@@ -63,6 +63,7 @@ class FixtureUnit(TypedDict):
     nation: str
     province: str
     dislodged: NotRequired[bool]
+    dislodged_from: NotRequired[str]
 
 
 class FixtureSupplyCenter(TypedDict):
@@ -87,9 +88,42 @@ class RankedOptions(TypedDict):
 
 class Provenance(TypedDict):
     source: str
+    game_id: NotRequired[str]
+    phase_id: NotRequired[int]
+    phase_ordinal: NotRequired[int]
+    harvested_at: NotRequired[str]
+    press_type: NotRequired[str]
+    was_bot: NotRequired[bool]
+
+
+class OrderResolution(TypedDict):
+    nation: str
+    source: str
+    result: str
+
+
+class Outcome(TypedDict):
+    resolutions: list[OrderResolution]
+    units: list[FixtureUnit]
+    supply_centers: list[FixtureSupplyCenter]
+
+
+class OptionLabel(TypedDict):
+    options: list[str]
+    label: str
+    labeller: str
+    labelled_at: str
+    note: NotRequired[str]
+
+
+class Discarded(TypedDict):
+    by: str
+    at: str
+    reason: str
 
 
 class Fixture(TypedDict):
+    schema_version: int
     id: str
     provenance: Provenance
     notes: NotRequired[str]
@@ -98,6 +132,13 @@ class Fixture(TypedDict):
     phase: Phase
     units: NotRequired[list[FixtureUnit]]
     supply_centers: NotRequired[list[FixtureSupplyCenter]]
+    contested_provinces: NotRequired[list[str]]
     max_orders: NotRequired[int | None]
     order_options: NotRequired[list[FixtureOrderOption]]
+    decision_richness: NotRequired[int]
+    actual_orders: NotRequired[dict[str, list[FixtureOrderOption]]]
+    actual_outcome: NotRequired[Outcome]
     ranked_options: NotRequired[RankedOptions]
+    option_labels: NotRequired[list[OptionLabel]]
+    eval_sets: list[str]
+    discarded: NotRequired[Discarded]
