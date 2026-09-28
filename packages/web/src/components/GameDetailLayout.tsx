@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
-import { Map, Gavel, MessageCircle, Users, Info } from "lucide-react";
+import { Map, Gavel, MessageCircle, Users, Info, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -25,12 +25,21 @@ import {
   getGamePhasesListQueryKey,
   getGamePhaseStatesListQueryKey,
 } from "@/api/generated/endpoints";
+import { isFinishedGameStatus } from "@/util";
 
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
   { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
-  { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
-  { label: "Players", icon: Users, path: "/game/:gameId/phase/:phaseId/player-info" },
+  {
+    label: "Chat",
+    icon: MessageCircle,
+    path: "/game/:gameId/phase/:phaseId/chat",
+  },
+  {
+    label: "Players",
+    icon: Users,
+    path: "/game/:gameId/phase/:phaseId/player-info",
+  },
   { label: "Info", icon: Info, path: "/game/:gameId/phase/:phaseId/game-info" },
 ];
 
@@ -53,7 +62,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 
   const { data: game } = useGameRetrieve(gameId, {
     query: {
-      refetchInterval: (query) =>
+      refetchInterval: query =>
         query.state.data?.status === "active" ? 5000 : false,
     },
   });
@@ -107,6 +116,8 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
     const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");
     return items.map(item => {
+      const isResultsItem =
+        item.label === "Players" && isFinishedGameStatus(game?.status ?? "");
       const basePath = item.path
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
@@ -128,17 +139,30 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
       } else {
         path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
       }
-      const isActive = item.label === "Chat"
-        ? location.pathname === chatBasePath || location.pathname.startsWith(chatBasePath + "/")
-        : location.pathname === basePath;
+      const isActive =
+        item.label === "Chat"
+          ? location.pathname === chatBasePath ||
+            location.pathname.startsWith(chatBasePath + "/")
+          : location.pathname === basePath;
       return {
         ...item,
+        label: isResultsItem ? "Results" : item.label,
+        icon: isResultsItem ? Trophy : item.icon,
         path,
         isActive,
         badge,
       };
     });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
+  }, [
+    gameId,
+    phaseId,
+    searchParams,
+    location.pathname,
+    game?.totalUnreadMessageCount,
+    game?.sandbox,
+    game?.members,
+    game?.status,
+  ]);
 
   // Filter out Map for desktop sidebar since map is already visible in right
   // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
@@ -166,17 +190,21 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   return (
     <SidebarProvider>
       <SafeAreaView
-        className={cn(
-          "flex flex-col h-dvh w-full overflow-hidden",
-          className
-        )}
+        className={cn("flex flex-col h-dvh w-full overflow-hidden", className)}
       >
         <OfflineBanner />
         <div className="flex items-stretch flex-1 min-h-0 w-full">
           {/* Left Sidebar - Icons only */}
-          <Sidebar collapsible="none" className="hidden w-[72px] px-3 py-6 md:flex">
+          <Sidebar
+            collapsible="none"
+            className="hidden w-[72px] px-3 py-6 md:flex"
+          >
             <SidebarHeader className="p-0">
-              <Link to="/" aria-label="Home" className="flex w-full justify-center">
+              <Link
+                to="/"
+                aria-label="Home"
+                className="flex w-full justify-center"
+              >
                 <DiplicityLogo />
               </Link>
             </SidebarHeader>
