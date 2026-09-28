@@ -37,12 +37,18 @@ const makeActiveMembers = (): Member[] =>
     })
   );
 
-const makePendingMembers = (count: number, includeCurrentUser = true): Member[] => {
+const makePendingMembers = (
+  count: number,
+  includeCurrentUser = true
+): Member[] => {
   const seeds = includeCurrentUser ? players : players.slice(1);
   return seeds
     .slice(0, count)
     .map((player, index) =>
-      makeMember(player, null, { isGameCreator: index === 0, isAdmin: index === 0 })
+      makeMember(player, null, {
+        isGameCreator: index === 0,
+        isAdmin: index === 0,
+      })
     );
 };
 
@@ -59,11 +65,17 @@ export const pendingGameNoPlayers = makeFixture({
 export const pendingGameCommitted = makeFixture({
   description:
     "Pending public game that requires committed players. The current user has high commitment and can join.",
-  game: makeGame("pending-committed", "Veterans Only", makePendingMembers(2, false), [], {
-    status: "pending",
-    canJoin: true,
-    commitmentRequirement: "committed",
-  }),
+  game: makeGame(
+    "pending-committed",
+    "Veterans Only",
+    makePendingMembers(2, false),
+    [],
+    {
+      status: "pending",
+      canJoin: true,
+      commitmentRequirement: "committed",
+    }
+  ),
 });
 
 export const pendingGameCommittedLocked = makeFixture({
@@ -124,7 +136,9 @@ export const gameMasterGame = makeFixture({
     "Master of Ceremonies",
     players
       .slice(1, 4)
-      .map((player, index) => makeMember(player, index === 0 ? "England" : null)),
+      .map((player, index) =>
+        makeMember(player, index === 0 ? "England" : null)
+      ),
     [],
     {
       status: "pending",
@@ -157,11 +171,17 @@ const buildActiveGameMasterChat = () => {
   return makeFixture({
     description:
       "Active game run by a non-playing Game Master (the current user). The GM holds no seat but can read and post in Public Press, and their messages are attributed to the Game Master rather than a nation.",
-    game: makeGame("active-game-master-chat", "Master of Ceremonies", members, [phase], {
-      private: true,
-      canManage: true,
-      gameMaster: GAME_MASTER,
-    }),
+    game: makeGame(
+      "active-game-master-chat",
+      "Master of Ceremonies",
+      members,
+      [phase],
+      {
+        private: true,
+        canManage: true,
+        gameMaster: GAME_MASTER,
+      }
+    ),
     phases: [phase],
     channels,
   });
@@ -175,7 +195,11 @@ const buildActiveMovement = () => {
   const channels = [
     makeChannel("Public Press", members, [
       makeMessage(members[1], "Good luck everyone!", "2026-05-01T11:00:00Z"),
-      makeMessage(members[2], "May the best diplomat win.", "2026-05-01T11:05:00Z"),
+      makeMessage(
+        members[2],
+        "May the best diplomat win.",
+        "2026-05-01T11:05:00Z"
+      ),
     ]),
     makeChannel(
       "England, France",
@@ -223,9 +247,13 @@ const buildActiveMovement = () => {
     },
     phaseStates: [
       makePhaseState(members[0], ["lon", "edi", "lvp"]),
-      makePhaseState(members[1], ["vie", "bud", "tri"], { ordersConfirmed: true }),
+      makePhaseState(members[1], ["vie", "bud", "tri"], {
+        ordersConfirmed: true,
+      }),
       makePhaseState(members[2], ["par", "mar", "bre"]),
-      makePhaseState(members[3], ["ber", "mun", "kie"], { ordersConfirmed: true }),
+      makePhaseState(members[3], ["ber", "mun", "kie"], {
+        ordersConfirmed: true,
+      }),
       makePhaseState(members[4], ["rom", "ven", "nap"]),
       makePhaseState(members[5], ["mos", "stp", "war", "sev"]),
       makePhaseState(members[6], ["con", "ank", "smy"]),
@@ -349,14 +377,16 @@ const buildActiveRetreat = () => {
   return makeFixture({
     description:
       "Active game in a Fall 1901 retreat phase. The current user (England) has an army dislodged from Norway that must retreat or disband.",
-    game: makeGame("active-retreat", "Northern Standoff", members, [
-      spring,
-      fallMove,
-      retreat,
-    ], {
-      orderStatus: "orders_required",
-      memberStatus: [],
-    }),
+    game: makeGame(
+      "active-retreat",
+      "Northern Standoff",
+      members,
+      [spring, fallMove, retreat],
+      {
+        orderStatus: "orders_required",
+        memberStatus: [],
+      }
+    ),
     phases: [spring, fallMove, retreat],
     ordersByPhase: {
       202: [
@@ -442,14 +472,16 @@ const buildActiveBuild = () => {
   return makeFixture({
     description:
       "Active game in a Fall 1901 build (adjustment) phase. The current user (England) captured Norway and can build one unit in a vacant home supply center.",
-    game: makeGame("active-build", "Winter Council", members, [
-      spring,
-      fallMove,
-      adjustment,
-    ], {
-      orderStatus: "orders_required",
-      memberStatus: [],
-    }),
+    game: makeGame(
+      "active-build",
+      "Winter Council",
+      members,
+      [spring, fallMove, adjustment],
+      {
+        orderStatus: "orders_required",
+        memberStatus: [],
+      }
+    ),
     phases: [spring, fallMove, adjustment],
     ordersByPhase: {
       302: [
@@ -555,10 +587,16 @@ const buildActiveEliminated = () => {
   return makeFixture({
     description:
       "Active game in Fall 1902 where the current user (England) has been eliminated. The game continues for the remaining players.",
-    game: makeGame("active-eliminated", "The Fallen Kingdom", members, [phase], {
-      orderStatus: "no_orders_required",
-      memberStatus: [],
-    }),
+    game: makeGame(
+      "active-eliminated",
+      "The Fallen Kingdom",
+      members,
+      [phase],
+      {
+        orderStatus: "no_orders_required",
+        memberStatus: [],
+      }
+    ),
     phases: [phase],
     ordersByPhase: { 801: [] },
     phaseStates: members.map(m => makePhaseState(m, [])),
@@ -673,7 +711,9 @@ export const gameNotJoined = buildNotJoined();
 
 const buildActiveCivilDisorder = () => {
   const members = makeActiveMembers().map(m =>
-    m.nation === "England" ? { ...m, civilDisorder: true } : m
+    m.nation === "England"
+      ? { ...m, civilDisorder: true, replaceable: true }
+      : m
   );
   const phase = makePhase(1001, 5, {
     season: "Spring",
@@ -684,10 +724,16 @@ const buildActiveCivilDisorder = () => {
   return makeFixture({
     description:
       "Active game in Spring 1901 where the current user (England) is in civil disorder and cannot submit orders.",
-    game: makeGame("active-civil-disorder", "Lost Connection", members, [phase], {
-      orderStatus: "no_orders_required",
-      memberStatus: [],
-    }),
+    game: makeGame(
+      "active-civil-disorder",
+      "Lost Connection",
+      members,
+      [phase],
+      {
+        orderStatus: "no_orders_required",
+        memberStatus: [],
+      }
+    ),
     phases: [phase],
     ordersByPhase: { 1001: [] },
     phaseStates: members.map(m => makePhaseState(m, [])),
@@ -716,11 +762,17 @@ const buildActiveSeatOpen = () => {
   return makeFixture({
     description:
       "Active game where the game master has removed the Turkey player. The current user (England) manages the game and can remove players or share the takeover link.",
-    game: makeGame("active-seat-open", "The Ottoman Vacancy", members, [phase], {
-      canManage: true,
-      orderStatus: "orders_required",
-      memberStatus: [],
-    }),
+    game: makeGame(
+      "active-seat-open",
+      "The Ottoman Vacancy",
+      members,
+      [phase],
+      {
+        canManage: true,
+        orderStatus: "orders_required",
+        memberStatus: [],
+      }
+    ),
     phases: [phase],
     ordersByPhase: { 1101: [] },
     phaseStates: members.map(m => makePhaseState(m, [])),

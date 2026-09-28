@@ -10,17 +10,20 @@ import {
 } from "@/components/ui/tooltip";
 import { Panel } from "@/components/Panel";
 import { PlayerInfoContent } from "@/components/PlayerInfoContent";
+import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { useRequiredParams } from "@/hooks";
+import { isFinishedGameStatus } from "@/util";
 import { copyLink } from "@/utils/copyLink";
 
 const PlayerInfoScreen: React.FC = () => {
   const navigate = useNavigate();
   const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title="Players"
+        title={isFinishedGameStatus(game.status) ? "Results" : "Players"}
         onNavigateBack={() => navigate("/")}
         rightButton={
           <Tooltip>

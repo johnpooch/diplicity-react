@@ -1,5 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { formatDateTime, formatRemainingTime, getGameLandingPath } from "./util";
+import {
+  formatDateTime,
+  formatRemainingTime,
+  getGameLandingPath,
+  isFinishedGameStatus,
+} from "./util";
+
+describe("isFinishedGameStatus", () => {
+  it("treats completed and abandoned games as finished", () => {
+    expect(isFinishedGameStatus("completed")).toBe(true);
+    expect(isFinishedGameStatus("abandoned")).toBe(true);
+    expect(isFinishedGameStatus("active")).toBe(false);
+    expect(isFinishedGameStatus("pending")).toBe(false);
+  });
+});
 
 describe("formatRemainingTime", () => {
   it("returns 'Deadline passed' for 0 seconds", () => {
@@ -40,7 +54,9 @@ describe("formatRemainingTime", () => {
 describe("formatDateTime", () => {
   it("appends a timezone label to the formatted time", () => {
     const result = formatDateTime("2026-02-07T21:00:00Z");
-    expect(result).toMatch(/^(Today|Tomorrow|\d{2}\/\d{2}\/\d{2}) \d{2}:\d{2} .+$/);
+    expect(result).toMatch(
+      /^(Today|Tomorrow|\d{2}\/\d{2}\/\d{2}) \d{2}:\d{2} .+$/
+    );
   });
 });
 
