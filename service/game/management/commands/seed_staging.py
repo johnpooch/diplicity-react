@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from agent.orders import option_to_selected
 from channel.models import Channel, ChannelMessage
@@ -98,6 +99,9 @@ class Command(BaseCommand):
             self._seed_active_orders_not_confirmed,
             self._seed_active_orders_confirmed,
             self._seed_active_paused,
+            self._seed_mustering_not_confirmed,
+            self._seed_mustering_confirmed,
+            self._seed_mustering_last_seat,
             self._seed_pending_created,
             self._seed_pending_game_master,
             self._seed_pending_joined,
@@ -213,6 +217,12 @@ class Command(BaseCommand):
 
     def _confirm(self, game, users):
         game.current_phase.phase_states.filter(member__user__in=users).update(orders_confirmed=True)
+
+    def _muster(self, game, confirmed=()):
+        game.start_if_full()
+        game.members.players().filter(user__in=confirmed).update(mustered_at=timezone.now())
+        Game.objects.arm_muster(game)
+        return game
 
     def _message(self, channel, user, body):
         game = channel.game
@@ -429,6 +439,33 @@ class Command(BaseCommand):
         game.pause()
         emit("game_paused", game=game, actor=self.tester)
         return game
+
+    def _seed_mustering_not_confirmed(self):
+        game = self._game(
+            "Mustering: you have not confirmed",
+            creator=self.players[0],
+            players=[self.tester, *self.players[:6]],
+            muster_required=True,
+        )
+        return self._muster(game, confirmed=self.players[:3])
+
+    def _seed_mustering_confirmed(self):
+        game = self._game(
+            "Mustering: waiting for other players",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
+            muster_required=True,
+        )
+        return self._muster(game, confirmed=[self.tester, *self.players[:4]])
+
+    def _seed_mustering_last_seat(self):
+        game = self._game(
+            "Mustering: yours is the last seat to confirm",
+            creator=self.players[1],
+            players=[self.tester, *self.players[:6]],
+            muster_required=True,
+        )
+        return self._muster(game, confirmed=self.players[:6])
 
     def _seed_pending_created(self):
         game = self._game("Pending: waiting for players", creator=self.tester, players=[self.tester, *self.players[:3]])
