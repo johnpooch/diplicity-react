@@ -8,3 +8,7 @@ class FixtureError(Exception):
 
 class ContextError(Exception):
     pass
+
+
+class PromptError(Exception):
+    pass

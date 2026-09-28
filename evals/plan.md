@@ -1,6 +1,6 @@
 # AI player evals: the order side
 
-Implementation plan. Nothing here is built yet.
+Implementation plan. Phase 0 is built; everything after it is not.
 
 Source material: discussion [#1368 "AI player evals"](https://github.com/johnpooch/diplicity-react/discussions/1368),
 a call with John, a design session on 22-23 September 2026, and voice notes from
@@ -622,7 +622,7 @@ or `packages/`.
 
 ### Phase 0: the separate space
 
-- [ ] **0.1 Scaffold `evals/`.**
+- [x] **0.1 Scaffold `evals/`.**
   A new Django project with its own settings, `manage.py`, requirements and test
   setup, runnable locally with no Postgres. Import `service/adjudicator` and
   `service/dumbbot` read-only (D18). Commit a canonical export of the classical
@@ -633,7 +633,7 @@ or `packages/`.
   `service/` outside the allowed packages; and `git diff` shows nothing changed
   under `service/` or `packages/`.
 
-- [ ] **0.2 Document the separation in root `CLAUDE.md`.**
+- [x] **0.2 Document the separation in root `CLAUDE.md`.**
   Add an `evals/` boundary section alongside the design-playground one: this part
   of the repo is deliberately cut off from everything else for fast eval
   development, it is local only and not deployed, the D16 dependency rules, and
@@ -641,7 +641,7 @@ or `packages/`.
   *Done when*: a fresh session could infer where eval code belongs, and what it
   may import, without reading this plan.
 
-- [ ] **0.3 Copy the `select_orders` task into `evals/`.**
+- [x] **0.3 Copy the `select_orders` task into `evals/`.**
   Prompts, parser, options helpers, the seven scorers and the 10 hand-built
   fixtures, copied from `service/harness/tasks/select_orders/`, with the
   fixtures split one per file and marked `provenance.source: "handbuilt"`.
@@ -649,7 +649,7 @@ or `packages/`.
   *Done when*: the copied task, run with the zero-token dumbbot solver, produces
   the same scores over the 10 fixtures as `service/dumbbot/evals.py` does today.
 
-- [ ] **0.4 Address options by content-derived id** (D13).
+- [x] **0.4 Address options by content-derived id** (D13).
   Replace `option_index` with a stable id built from the option's content in the
   renderer, `FORMAT`, the output schema and the parser. The parser rejects an
   unknown id with an error instead of skipping it.
@@ -657,7 +657,7 @@ or `packages/`.
   which order a given id selects; an unknown id raises a parse error; and the
   dumbbot solver still scores as in 0.3.
 
-- [ ] **0.5 Assemble the prompt from named, editable parts** (D13, D19).
+- [x] **0.5 Assemble the prompt from named, editable parts** (D13, D19).
   System blocks and user prompt sections become named parts whose wording can be
   overridden per run. The data each section is given is prepared separately in
   code, so it can be reshaped (D19) without touching the wording.

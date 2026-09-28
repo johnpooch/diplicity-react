@@ -17,9 +17,8 @@ from select_orders.scorers import (
     quality_strong,
     support_coherence,
 )
-from select_orders.system_prompt import system_prompt
+from select_orders.prompt import system_prompt, user_prompt
 from select_orders.types import Fixture
-from select_orders.user_prompt import user_prompt
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 

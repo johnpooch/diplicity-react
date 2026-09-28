@@ -11,9 +11,10 @@ from inspect_ai.solver import generate
 
 from select_orders.context import fixture_to_context
 from select_orders.evals import dumbbot_select_orders, load_fixtures
-from select_orders.exceptions import FixtureError, ParsingError
+from select_orders.exceptions import FixtureError, ParsingError, PromptError
 from select_orders.options import option_id
 from select_orders.parser import parse_completion
+from select_orders.prompt import DEFAULT_PARTS, system_prompt, user_prompt
 from select_orders.scorers import (
     convoy_coherence,
     coverage,
@@ -378,3 +379,71 @@ class TestDumbbotSelectOrders:
         metrics = {score.name: score.metrics["accuracy"].value for score in log.results.scores}
         for name in ("legality", "deduplication", "coverage", "support_coherence", "convoy_coherence"):
             assert metrics[name] == 1.0
+
+
+def _fixture_context(fixture_id):
+    return fixture_to_context(next(fixture for fixture in load_fixtures() if fixture["id"] == fixture_id))
+
+
+def _sections_except(prompt, index):
+    sections = prompt.split("\n\n")
+    return sections[:index] + sections[index + 1 :]
+
+
+class TestPromptParts:
+
+    def test_overriding_principles_changes_only_that_block(self):
+        context = _fixture_context("support_hold_threatened_supply_center")
+        overridden = system_prompt(context, {"system.principles": "Be bold."})
+        assert overridden == system_prompt(context).replace(DEFAULT_PARTS["system.principles"], "Be bold.")
+
+    def test_overriding_a_line_rewords_every_line_of_its_section_only(self):
+        context = _fixture_context("support_hold_threatened_supply_center")
+        names = {province["id"]: province["name"] for province in context["provinces"]}
+        default = user_prompt(context)
+        overridden = user_prompt(context, {"user.units.line": "  {{ province }}"})
+        units_index = next(
+            index for index, section in enumerate(default.split("\n\n")) if section.startswith("Units on the board:")
+        )
+        assert overridden.split("\n\n")[units_index].splitlines() == [
+            "Units on the board:",
+            *(f"  {names[unit['province']]}" for unit in context["units"]),
+        ]
+        assert _sections_except(overridden, units_index) == _sections_except(default, units_index)
+
+    def test_board_description_can_be_reworded(self):
+        context = _fixture_context("take_neutral_supply_center")
+        overridden = user_prompt(
+            context,
+            {"user.board.header": "Map:", "user.board.adjacency": "{{ name }}"},
+        )
+        board = next(section for section in overridden.split("\n\n") if section.startswith("Map:"))
+        assert "London (lon, coastal) [supply centre] -> " in board
+        assert "(AF)" not in board and "(A)" not in board
+
+    def test_task_part_follows_the_phase(self):
+        retreat = _fixture_context("retreat_to_supply_center")
+        assert "Retreat now." in system_prompt(retreat, {"system.task.retreat": "Retreat now."})
+        assert system_prompt(retreat, {"system.task.movement": "Move now."}) == system_prompt(retreat)
+
+    def test_adjustment_task_receives_max_orders(self):
+        build = _fixture_context("build_toward_open_supply_center")
+        assert "Build 1." in system_prompt(build, {"system.task.adjustment": "Build {{ max_orders }}."})
+
+    def test_empty_option_list_uses_its_own_part(self):
+        context = {**_fixture_context("structure_single"), "order_options": []}
+        assert user_prompt(context, {"user.options.empty": "  nothing to order"}).endswith(
+            "Your available orders:\n  nothing to order"
+        )
+
+    def test_unknown_part_raises(self):
+        with pytest.raises(PromptError):
+            user_prompt(_fixture_context("structure_single"), {"user.nonexistent": "x"})
+
+    def test_malformed_template_raises(self):
+        with pytest.raises(PromptError):
+            system_prompt(_fixture_context("structure_single"), {"system.role": "{{ unclosed"})
+
+    def test_undefined_value_raises(self):
+        with pytest.raises(PromptError):
+            user_prompt(_fixture_context("structure_single"), {"user.intro": "{{ missing }}"})
