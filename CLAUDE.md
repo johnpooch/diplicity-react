@@ -79,6 +79,24 @@ npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render
 - **`packages/web` must never import from the playground.** The dependency direction is one-way; prototype code is rewritten into the app, not promoted out of it.
 - **Design gallery screens belong in the playground, not the app.** Do not add fixture-driven component galleries to `packages/web`.
 
+## Evals boundary
+
+`evals/` is where the AI player's order evals are developed. It is deliberately cut off from the rest of the repo so it can change fast: it runs locally only, is not deployed and has no CI. Its plan is `evals/plan.md`.
+
+- **Nothing outside `evals/` imports from it.** Production never depends on it. The live bot still runs on `service/harness`; `evals/` started from a copy of that code and diverges freely. Do not edit `service/harness` for eval work.
+- **From `service/`, `evals/` imports only `adjudicator` and `dumbbot`, read-only.** `service/` is on its import path, so an `evals/` package must never reuse a `service/` package name. `evals/config/tests.py` enforces both.
+- **Stubs sit on the `evals/` side.** Where it would need the running app, its database or the agent, it uses fixture files or hard-coded data instead. Never stub or edit production code to serve it.
+- **Its frontend never imports from `packages/`.** Copy what it needs.
+- The root rules in this file apply inside `evals/` as everywhere else.
+
+`evals/` has its own virtualenv and no database:
+
+```bash
+python3.12 -m venv evals/.venv
+evals/.venv/bin/pip install -r evals/requirements.txt -r evals/dev_requirements.txt
+cd evals && .venv/bin/python -m pytest
+```
+
 ## Always
 
 - **Follow existing patterns.** New code should be indistinguishable from existing code in style and structure. Raise deviations as a discussion; do not silently deviate.
