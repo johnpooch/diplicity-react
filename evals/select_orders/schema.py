@@ -7,10 +7,9 @@ OUTPUT_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "source_id": {"type": "string"},
-                    "option_index": {"type": "integer"},
+                    "option_id": {"type": "string"},
                 },
-                "required": ["source_id", "option_index"],
+                "required": ["option_id"],
                 "additionalProperties": False,
             },
         },

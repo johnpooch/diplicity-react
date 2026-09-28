@@ -12,6 +12,7 @@ from inspect_ai.solver import generate
 from select_orders.context import fixture_to_context
 from select_orders.evals import dumbbot_select_orders, load_fixtures
 from select_orders.exceptions import FixtureError, ParsingError
+from select_orders.options import option_id
 from select_orders.parser import parse_completion
 from select_orders.scorers import (
     convoy_coherence,
@@ -39,13 +40,8 @@ def _context(options, max_orders=None):
     return {"order_options": options, "max_orders": max_orders, "provinces": []}
 
 
-def _completion(choices):
-    return json.dumps(
-        {
-            "reasoning": "because",
-            "choices": [{"source_id": source, "option_index": index} for source, index in choices],
-        }
-    )
+def _completion(option_ids):
+    return json.dumps({"reasoning": "because", "choices": [{"option_id": chosen} for chosen in option_ids]})
 
 
 class _FakeOutput:
@@ -85,16 +81,16 @@ STRUCTURE_OPTIONS = [
 
 class TestParseCompletion:
 
-    def test_valid_choices_return_selected_options(self):
-        completion = _completion([("lon", 0), ("par", 1), ("ber", 0)])
+    def test_valid_choices_return_selected_options_in_answer_order(self):
+        completion = _completion(["par:Move:bur", "lon:Hold", "ber:Hold"])
         assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [
-            _option("lon", "Hold"),
             _option("par", "Move", target="bur"),
+            _option("lon", "Hold"),
             _option("ber", "Hold"),
         ]
 
     def test_fenced_completion_parses(self):
-        completion = f"```json\n{_completion([('lon', 0)])}\n```"
+        completion = f"```json\n{_completion(['lon:Hold'])}\n```"
         assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("lon", "Hold")]
 
     def test_invalid_json_raises(self):
@@ -109,35 +105,49 @@ class TestParseCompletion:
         with pytest.raises(ParsingError):
             parse_completion(json.dumps({"reasoning": "no choices"}), _context(STRUCTURE_OPTIONS))
 
-    def test_out_of_range_index_is_skipped(self):
-        completion = _completion([("lon", 99), ("par", 0)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("par", "Hold")]
+    def test_unknown_option_id_raises(self):
+        with pytest.raises(ParsingError):
+            parse_completion(_completion(["lon:Hold", "ber:Move:mun"]), _context(STRUCTURE_OPTIONS))
 
-    def test_negative_index_is_skipped(self):
-        completion = _completion([("lon", -1)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == []
+    def test_non_string_option_id_raises(self):
+        with pytest.raises(ParsingError):
+            parse_completion(_completion([0]), _context(STRUCTURE_OPTIONS))
 
-    def test_non_integer_index_is_skipped(self):
-        completion = _completion([("lon", "0")])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == []
+    def test_positional_choice_raises(self):
+        completion = json.dumps({"reasoning": "", "choices": [{"source_id": "lon", "option_index": 0}]})
+        with pytest.raises(ParsingError):
+            parse_completion(completion, _context(STRUCTURE_OPTIONS))
 
-    def test_boolean_index_is_skipped(self):
-        completion = _completion([("lon", True)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == []
+    def test_repeated_choices_for_one_province_are_all_returned(self):
+        completion = _completion(["lon:Hold", "lon:Move:eng"])
+        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [
+            _option("lon", "Hold"),
+            _option("lon", "Move", target="eng"),
+        ]
 
-    def test_unknown_source_is_ignored(self):
-        completion = _completion([("mos", 0), ("lon", 0)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("lon", "Hold")]
+    def test_option_id_selects_the_same_order_however_the_list_is_ordered_or_trimmed(self):
+        completion = _completion(["par:Move:bur"])
+        expected = [_option("par", "Move", target="bur")]
+        assert parse_completion(completion, _context(list(reversed(STRUCTURE_OPTIONS)))) == expected
+        assert parse_completion(completion, _context(STRUCTURE_OPTIONS[2:4])) == expected
 
-    def test_last_choice_per_source_wins(self):
-        completion = _completion([("lon", 0), ("lon", 1)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("lon", "Move", target="eng")]
+
+class TestOptionId:
+
+    def test_id_is_built_from_the_option_content(self):
+        assert option_id(_option("wal", "Support", target="lvp", aux="lon")) == "wal:Support:lvp:lon"
+        assert option_id(_option("stp", "Build", unit_type="Fleet", named_coast="stp/nc")) == "stp:Build:::Fleet:stp/nc"
+
+    def test_ids_are_unique_within_every_fixture(self):
+        for fixture in load_fixtures():
+            ids = [option_id(option) for option in fixture_to_context(fixture)["order_options"]]
+            assert len(ids) == len(set(ids)), fixture["id"]
 
 
 class TestLegality:
 
     def test_valid_selection_is_correct(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
         assert _run(legality, state).value == CORRECT
 
     def test_invalid_json_is_incorrect(self):
@@ -148,35 +158,35 @@ class TestLegality:
 class TestDeduplication:
 
     def test_distinct_provinces_are_correct(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
         assert _run(deduplication, state).value == CORRECT
 
-    def test_repeated_choices_for_one_province_collapse_to_one(self):
-        state = _state(_completion([("lon", 0), ("lon", 1), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
-        assert _run(deduplication, state).value == CORRECT
+    def test_repeated_choices_for_one_province_are_duplicates(self):
+        state = _state(_completion(["lon:Hold", "lon:Move:eng", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
+        assert _run(deduplication, state).value == INCORRECT
         assert _run(coverage, state).value == CORRECT
 
 
 class TestCoverage:
 
     def test_all_provinces_covered_is_correct(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
         assert _run(coverage, state).value == CORRECT
 
     def test_missing_province_is_incorrect(self):
-        state = _state(_completion([("lon", 0), ("par", 0)]), STRUCTURE_OPTIONS)
+        state = _state(_completion(["lon:Hold", "par:Hold"]), STRUCTURE_OPTIONS)
         assert _run(coverage, state).value == INCORRECT
 
-    def test_out_of_range_pick_does_not_count_as_coverage(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 99)]), STRUCTURE_OPTIONS)
+    def test_unknown_option_id_is_incorrect(self):
+        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Move:mun"]), STRUCTURE_OPTIONS)
         assert _run(coverage, state).value == INCORRECT
 
     def test_max_orders_exact_count_is_correct(self):
-        state = _state(_completion([("lon", 0)]), STRUCTURE_OPTIONS, max_orders=1)
+        state = _state(_completion(["lon:Hold"]), STRUCTURE_OPTIONS, max_orders=1)
         assert _run(coverage, state).value == CORRECT
 
     def test_max_orders_over_selection_is_incorrect(self):
-        state = _state(_completion([("lon", 0), ("par", 0)]), STRUCTURE_OPTIONS, max_orders=1)
+        state = _state(_completion(["lon:Hold", "par:Hold"]), STRUCTURE_OPTIONS, max_orders=1)
         assert _run(coverage, state).value == INCORRECT
 
     def test_max_orders_no_selection_is_incorrect(self):
@@ -196,27 +206,27 @@ SUPPORT_OPTIONS = [
 class TestSupportCoherence:
 
     def test_supported_move_present_is_coherent(self):
-        state = _state(_completion([("lon", 0), ("wal", 0)]), SUPPORT_OPTIONS)
+        state = _state(_completion(["lon:Move:lvp", "wal:Support:lvp:lon"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == CORRECT
 
     def test_supported_move_absent_dangles(self):
-        state = _state(_completion([("lon", 1), ("wal", 0)]), SUPPORT_OPTIONS)
+        state = _state(_completion(["lon:Hold", "wal:Support:lvp:lon"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == INCORRECT
 
     def test_supported_hold_present_is_coherent(self):
-        state = _state(_completion([("lon", 1), ("wal", 1)]), SUPPORT_OPTIONS)
+        state = _state(_completion(["lon:Hold", "wal:Support:lon:lon"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == CORRECT
 
     def test_supported_unit_moves_away_dangles_hold(self):
-        state = _state(_completion([("lon", 0), ("wal", 1)]), SUPPORT_OPTIONS)
+        state = _state(_completion(["lon:Move:lvp", "wal:Support:lon:lon"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == INCORRECT
 
     def test_support_with_aux_unselected_dangles(self):
-        state = _state(_completion([("wal", 1)]), SUPPORT_OPTIONS)
+        state = _state(_completion(["wal:Support:lon:lon"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == INCORRECT
 
     def test_no_support_selected_is_coherent(self):
-        state = _state(_completion([("lon", 1), ("wal", 2)]), SUPPORT_OPTIONS)
+        state = _state(_completion(["lon:Hold", "wal:Hold"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == CORRECT
 
 
@@ -231,19 +241,19 @@ CONVOY_OPTIONS = [
 class TestConvoyCoherence:
 
     def test_convoyed_move_present_is_coherent(self):
-        state = _state(_completion([("eng", 0), ("lon", 0)]), CONVOY_OPTIONS)
+        state = _state(_completion(["eng:Convoy:bre:lon", "lon:Move:bre"]), CONVOY_OPTIONS)
         assert _run(convoy_coherence, state).value == CORRECT
 
     def test_convoyed_army_holds_dangles(self):
-        state = _state(_completion([("eng", 0), ("lon", 1)]), CONVOY_OPTIONS)
+        state = _state(_completion(["eng:Convoy:bre:lon", "lon:Hold"]), CONVOY_OPTIONS)
         assert _run(convoy_coherence, state).value == INCORRECT
 
     def test_convoyed_army_absent_dangles(self):
-        state = _state(_completion([("eng", 0)]), CONVOY_OPTIONS)
+        state = _state(_completion(["eng:Convoy:bre:lon"]), CONVOY_OPTIONS)
         assert _run(convoy_coherence, state).value == INCORRECT
 
     def test_no_convoy_selected_is_coherent(self):
-        state = _state(_completion([("eng", 1), ("lon", 0)]), CONVOY_OPTIONS)
+        state = _state(_completion(["eng:Hold", "lon:Move:bre"]), CONVOY_OPTIONS)
         assert _run(convoy_coherence, state).value == CORRECT
 
 
@@ -277,19 +287,19 @@ class TestQualityScorers:
         return state
 
     def test_selecting_good_order_is_strong_correct(self):
-        assert _run(quality_strong, self._state(_quality_fixture(), [("lon", 0)])).value == CORRECT
+        assert _run(quality_strong, self._state(_quality_fixture(), ["lon:Hold:lon"])).value == CORRECT
 
     def test_missing_good_order_is_strong_incorrect(self):
-        assert _run(quality_strong, self._state(_quality_fixture(), [("lon", 1)])).value == INCORRECT
+        assert _run(quality_strong, self._state(_quality_fixture(), ["lon:Move:eng"])).value == INCORRECT
 
     def test_selecting_bad_order_is_avoidance_incorrect(self):
-        assert _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 1)])).value == INCORRECT
+        assert _run(quality_avoidance, self._state(_quality_fixture(), ["lon:Move:eng"])).value == INCORRECT
 
     def test_avoiding_bad_order_is_avoidance_correct(self):
-        assert _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 0)])).value == CORRECT
+        assert _run(quality_avoidance, self._state(_quality_fixture(), ["lon:Hold:lon"])).value == CORRECT
 
     def test_fixture_without_ranked_options_is_unscored(self):
-        state = self._state(_quality_fixture(ranked=False), [("lon", 0)])
+        state = self._state(_quality_fixture(ranked=False), ["lon:Hold:lon"])
         for scorer_factory in (quality_strong, quality_avoidance):
             value = _run(scorer_factory, state).value
             assert isinstance(value, float) and math.isnan(value)
@@ -305,7 +315,7 @@ class TestQualityMetricAggregation:
         )
 
     def test_accuracy_covers_ranked_samples_and_skips_the_rest(self, tmp_path):
-        good_pick = _completion([("lon", 0)])
+        good_pick = _completion(["lon:Hold:lon"])
         model = get_model(
             "mockllm/model",
             custom_outputs=lambda *args, **kwargs: ModelOutput.from_content("mockllm/model", good_pick),

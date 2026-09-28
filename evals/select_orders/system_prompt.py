@@ -39,10 +39,10 @@ the provinces you are entitled to adjust this phase, and leave the rest alone.""
 FORMAT = """Respond with JSON only. No markdown fences, no prose outside the JSON. Use this \
 shape:
 
-{"reasoning": "<brief explanation of your plan>", "choices": [{"source_id": "<province id>", "option_index": <number>}]}
+{"reasoning": "<brief explanation of your plan>", "choices": [{"option_id": "<option id>"}]}
 
-The option_index is the number shown beside the order in that province's own list. Indices \
-restart at 0 for every province. Give at most one entry per province."""
+The option_id is the id at the start of each line in your list of available orders. Copy \
+it exactly. Give at most one entry per province."""
 
 
 def task_instruction(context: Context) -> str:

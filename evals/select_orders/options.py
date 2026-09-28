@@ -27,6 +27,12 @@ def describe_option(option: OrderOption, context: Context) -> str:
     return label
 
 
+OPTION_KEYS = ("source", "order_type", "target", "aux", "unit_type", "named_coast")
+
+
 def same_option(left: OrderOption, right: OrderOption) -> bool:
-    keys = ("source", "order_type", "target", "aux", "unit_type", "named_coast")
-    return all(left.get(key) == right.get(key) for key in keys)
+    return all(left.get(key) == right.get(key) for key in OPTION_KEYS)
+
+
+def option_id(option: OrderOption) -> str:
+    return ":".join(option.get(key) or "" for key in OPTION_KEYS).rstrip(":")

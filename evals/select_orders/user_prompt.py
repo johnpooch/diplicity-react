@@ -1,5 +1,5 @@
 from select_orders.exceptions import ContextError
-from select_orders.options import describe_option, group_options_by_source
+from select_orders.options import describe_option, group_options_by_source, option_id
 from select_orders.types import Context
 from select_orders.utils import current_nation
 
@@ -73,7 +73,7 @@ def user_prompt(context: Context) -> str:
         lines.append("  (none)")
     for source_id, options in grouped.items():
         lines.append(f"  {names.get(source_id, source_id)} ({source_id}):")
-        for index, option in enumerate(options):
-            lines.append(f"    {index}. {describe_option(option, context)}")
+        for option in options:
+            lines.append(f"    {option_id(option)} ({describe_option(option, context)})")
 
     return "\n".join(lines)
