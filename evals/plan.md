@@ -57,8 +57,8 @@ own space, cut off from the app (D16).
 Do not build these as part of this plan. Each was considered and deferred.
 
 - **Any change to code under `service/` or `packages/`.** Production keeps
-  running on `service/harness` exactly as it is today (D17). The only file
-  outside `evals/` this plan edits is root `CLAUDE.md`.
+  running on `service/harness` exactly as it is today (D17). This plan edits no
+  file outside `evals/`, root `CLAUDE.md` included.
 - **Reconnecting `evals/` to production.** Porting a better prompt back into
   `service/harness` is a later, separate piece of work.
 - **Everything on the message side.** Message quality rubrics, the should-reply
@@ -116,8 +116,8 @@ Read these before changing anything.
   (`service/agent/management/commands/dump_phase.py:94`) and needs the app's
   Django models. `evals/` does not use it (task 1.4).
 - `packages/design-playground/` is a prototyping app. Not suitable for this
-  tool, see R1. Its boundary section in root `CLAUDE.md` is the model for the
-  `evals/` one.
+  tool, see R1. Like it, `evals/` states its own boundary in its own
+  `CLAUDE.md`.
 
 ---
 
@@ -522,7 +522,8 @@ own it at the following Adjustment.
   existing patterns, no code comments or docstrings (DRF view docstrings
   excepted, they feed OpenAPI), never suppress lint or type errors, write tests
   alongside features, cite file and line when asserting something about the
-  codebase. `evals/` gets no `CLAUDE.md` of its own for now.
+  codebase. `evals/CLAUDE.md` adds the boundary rules (D16, D17) and setup; it
+  does not relax any root rule.
 - `.claude/rules/backend/` and `.claude/rules/frontend.md` are scoped by path to
   `service/` and `packages/web`, so they do not load automatically in `evals/`.
   Follow them anyway where they apply, notably the single `tests.py` per Django
@@ -616,9 +617,8 @@ by D13 (task 0.4).
 
 ## 10. Tasks
 
-Each task states how to tell it is done. Every task happens inside `evals/`,
-except 0.2, which edits root `CLAUDE.md`. No task edits anything under `service/`
-or `packages/`.
+Each task states how to tell it is done. Every task happens inside `evals/`. No
+task edits anything outside it.
 
 ### Phase 0: the separate space
 
@@ -633,13 +633,13 @@ or `packages/`.
   `service/` outside the allowed packages; and `git diff` shows nothing changed
   under `service/` or `packages/`.
 
-- [x] **0.2 Document the separation in root `CLAUDE.md`.**
-  Add an `evals/` boundary section alongside the design-playground one: this part
+- [x] **0.2 Document the separation in `evals/CLAUDE.md`.**
+  Root `CLAUDE.md` stays untouched. `evals/CLAUDE.md` states that this part
   of the repo is deliberately cut off from everything else for fast eval
   development, it is local only and not deployed, the D16 dependency rules, and
   that the production bot still runs on `service/harness`.
-  *Done when*: a fresh session could infer where eval code belongs, and what it
-  may import, without reading this plan.
+  *Done when*: a session working in `evals/` could infer where eval code
+  belongs, and what it may import, without reading this plan.
 
 - [x] **0.3 Copy the `select_orders` task into `evals/`.**
   Prompts, parser, options helpers, the seven scorers and the 10 hand-built
