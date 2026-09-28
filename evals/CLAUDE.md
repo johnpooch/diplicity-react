@@ -20,3 +20,15 @@ python3.12 -m venv evals/.venv
 evals/.venv/bin/pip install -r evals/requirements.txt -r evals/dev_requirements.txt
 cd evals && .venv/bin/python -m pytest
 ```
+
+## Harvesting fixtures
+
+Two steps. The export is a read-only query against the app's Postgres; nothing else in `evals/` touches the app. Snapshots go in `evals/snapshots/`, which is gitignored; only the fixtures built from them are committed.
+
+```bash
+psql "<connection string>" -v ON_ERROR_STOP=1 -v games=<game id>,<game id> -At \
+  -f evals/harvest/export.sql > evals/snapshots/<name>.json
+cd evals && .venv/bin/python manage.py build_fixtures snapshots/<name>.json [--phase <id>] [--nation <name>]
+```
+
+Only completed phases in the classical variant are harvested. A phase whose replay disagrees with the stored game is skipped with the reason, and an existing fixture file is never overwritten, so its labels survive a re-harvest.

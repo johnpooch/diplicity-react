@@ -1,6 +1,6 @@
 # AI player evals: the order side
 
-Implementation plan. Phase 0 is built; everything after it is not.
+Implementation plan. Phase 0 and tasks 1.1 to 1.4 are built; everything after them is not.
 
 Source material: discussion [#1368 "AI player evals"](https://github.com/johnpooch/diplicity-react/discussions/1368),
 a call with John, a design session on 22-23 September 2026, and voice notes from
@@ -435,14 +435,17 @@ New fields:
 
 - `schema_version`: `2`.
 - `provenance`: `{ source: "harvested" | "handbuilt", game_id, phase_id,
-  phase_ordinal, harvested_at, press_type }`. The existing 10 fixtures are
+  phase_ordinal, harvested_at, press_type, was_bot }`. `was_bot` records whether
+  a bot held the eval nation in that phase (Q3). The existing 10 fixtures are
   `handbuilt` and behave nothing like harvested positions, so the distinction
   must be explicit rather than implied.
 - `actual_orders`: the real order set **for every nation** in the phase, not just
   the eval nation. Without the other six, counterfactual re-adjudication is
   impossible. This is the single most important addition.
 - `actual_outcome`: which orders succeeded or failed, and the resulting units and
-  supply centres. The human's side of the comparison (D10) comes from this and
+  supply centres: `{ resolutions: [{ nation, source, result }], units,
+  supply_centers }`, where `result` is the engine's resolution code and the board
+  is the one directly after this phase resolves (Q1). The human's side of the comparison (D10) comes from this and
   `actual_orders`.
 - `option_labels`: list of `{ options, label: "reasonable" | "unreasonable",
   labeller, labelled_at, note }`. `options` is a list of option ids (D13): one
@@ -457,6 +460,13 @@ New fields:
 - `decision_richness`: integer, the product of per-unit option counts for the
   eval nation. Free to compute while enumerating, and useful for sorting
   candidate positions by how much was actually at stake.
+
+Two fields are needed so a Retreat-phase fixture can be rebuilt exactly: a unit
+may carry `dislodged_from`, and the fixture may carry `contested_provinces`.
+Without them the engine would offer retreats the app did not.
+
+The schema is `FIXTURE_SCHEMA` in `evals/select_orders/schema.py`. Every object in
+it rejects unknown keys, which is what keeps user identifiers out (D7).
 
 There is deliberately no `split` field. A dev/test split is just two eval sets
 named for the purpose, so `eval_sets` already expresses it. See Q5.
@@ -581,11 +591,18 @@ own it at the following Adjustment.
     `decision_richness`. The snapshot is the only thing that knows
     the app's table layout, so an app schema change breaks one SQL file and
     nothing else.
-  - Caveat, **not verified**: phases in which nobody can act (for example an empty
-    Retreat) are skipped and never persisted (`service/adjudicator/service.py:145`),
-    so the next stored phase is not always the next engine phase. Compute
-    `actual_outcome` by adjudicating `actual_orders` with the engine, and use the
-    next stored phase only as a cross-check.
+  - Caveat, **verified** on a replayed game: phases in which nobody can act (for
+    example an empty Retreat) are skipped and never persisted
+    (`service/adjudicator/service.py:145`), so the next stored phase is not always
+    the next engine phase. `actual_outcome` is computed by adjudicating
+    `actual_orders` with the engine. The stored resolutions are a cross-check, and
+    so is the next stored phase: its units when the engine's next phase is an
+    empty Retreat or the same phase, its supply centres only when it is the same
+    phase.
+  - As built (task 1.4), the export also carries each unit's `dislodged_from` and
+    each phase's `contested_provinces` and `status`, reports `was_bot` per phase
+    rather than per game, and leaves out implicit orders, which are default holds
+    the app records for units nobody ordered.
 - **Q2.** Issue #1142 claimed `CLAUDE.md` explicitly forbids Django models in
   `harness`. That wording is not in the current `CLAUDE.md` or `.claude/rules/`.
   Moot for `evals/`, which needs no models (fixtures are files), but the rule
@@ -667,25 +684,30 @@ task edits anything outside it.
 
 ### Phase 1: data
 
-- [ ] **1.1 Fixture schema v2** (section 6).
+- [x] **1.1 Fixture schema v2** (section 6).
   *Done when*: a fixture round-trips through the schema with all new fields
   populated, a newly created fixture has `eval_sets` empty, and a test fails if a
   fixture contains a user identifier.
 
-- [ ] **1.2 Fix the dangling-support false positive**, in the `evals/` copy.
+- [x] **1.2 Fix the dangling-support false positive**, in the `evals/` copy.
   `dangling()` builds its destination map only from the eval nation's own orders
   (`service/harness/tasks/select_orders/scorers/coherence.py:20`), so supporting
   an *ally's* move always scores as incoherent, because the ally's unit never
   appears in the order set. Supporting an ally is normal full-press play.
   *Done when*: a test covering a support of a foreign nation's ordered move scores
   CORRECT, and the existing dangling-support tests still pass.
+  As built: the other nations' orders come from `actual_orders`. A support or
+  convoy for a foreign unit is left unjudged when those orders are unknown
+  (hand-built fixtures), since it cannot be proved wrong.
 
-- [ ] **1.3 Derive `ranked_options` from `option_labels`** (D12).
+- [x] **1.3 Derive `ranked_options` from `option_labels`** (D12).
   *Done when*: a fixture carrying only `option_labels` produces the same
   `quality_strong` and `quality_avoidance` scores as the equivalent
   `ranked_options` fixture.
+  As built: only single-option labels are derived. A tuple label (D2) has no
+  `ranked_options` equivalent, so these two scorers ignore it.
 
-- [ ] **1.4 Harvester.**
+- [x] **1.4 Harvester.**
   Two steps, per Q1: the export query that writes a raw snapshot, and a command
   that builds v2 fixtures from the snapshot without importing app code.
   Reconstruct each phase's state, list legal options with `get_options`, and
@@ -697,6 +719,9 @@ task edits anything outside it.
   phase; a test asserts the options for a reconstructed past phase match those
   for the same board as a current phase; and a test fails if the snapshot or a
   fixture contains a user identifier.
+  As built: `evals/harvest/export.sql` and `python manage.py build_fixtures`; how
+  to run them is in `evals/CLAUDE.md`. The builder refuses any phase whose replay
+  disagrees with the stored game, and never overwrites an existing fixture file.
 
 - [ ] **1.5 Harvest the first batch.**
   20 to 30 phases per Q3. Commit the fixture files.
