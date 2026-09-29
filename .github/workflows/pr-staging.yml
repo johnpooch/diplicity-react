@@ -462,6 +462,9 @@ jobs:
             rm dump.pgdata
           fi
 
+          echo "Deleting production push device tokens..."
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "TRUNCATE fcm_django_fcmdevice;"
+
           echo "Database restore complete."
 
       - name: Configure staging environment variables
@@ -480,7 +483,7 @@ jobs:
             --arg csrf "https://${STAGING_DOMAIN}" \
             '{
               query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging", SEED_STAGING_DATA: "True" }, skipDeploys: true } }
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging", SEED_STAGING_DATA: "True", FIREBASE_PROJECT_ID: "" }, skipDeploys: true } }
             }')
 
           RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
@@ -489,6 +492,31 @@ jobs:
             -d "$PAYLOAD")
 
           echo "API response: $RESULT"
+          if ! echo "$RESULT" | jq -e '.data.variableCollectionUpsert' > /dev/null; then
+            echo "ERROR: failed to configure diplicity-react variables."
+            exit 1
+          fi
+
+          WORKER_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$WORKER_SERVICE_ID" \
+            '{
+              query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { FIREBASE_PROJECT_ID: "" }, skipDeploys: true } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$WORKER_PAYLOAD")
+
+          echo "API response: $RESULT"
+          if ! echo "$RESULT" | jq -e '.data.variableCollectionUpsert' > /dev/null; then
+            echo "ERROR: failed to configure diplicity-worker variables."
+            exit 1
+          fi
+
           echo "Environment variables configured."
 
       - name: Deploy PR branch to staging

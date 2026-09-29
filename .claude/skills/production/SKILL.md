@@ -97,8 +97,8 @@ PRs can be deployed to an isolated staging environment with a copy of the produc
 
 Add the `deploy-to-staging` label to a PR. `.github/workflows/pr-staging.yml` will:
 1. Find or create a Railway environment (`staging-pr-<number>`)
-2. Clone the production database via `pg_dump`/`pg_restore`
-3. Configure CORS/ALLOWED_HOSTS for the staging domain
+2. Clone the production database via `pg_dump`/`pg_restore`, then delete every push device token (`fcm_django_fcmdevice`)
+3. Configure CORS/ALLOWED_HOSTS for the staging domain, and blank `FIREBASE_PROJECT_ID` on both the Django and worker services. Staging is forked from production and resolves real games' phases, so it must never be able to push to real players' phones
 4. Set `SEED_STAGING_DATA=True`, so the Django entrypoint runs `seed_staging --skip-if-seeded` before Gunicorn starts. This seeds `test-user@example.com` / `password` with games in a range of states. A container restart skips the seed; a redeploy re-clones the database and so seeds again.
 5. Deploy the PR branch
 6. Comment on the PR with the frontend preview and staging backend URLs
