@@ -711,6 +711,7 @@ export const mockVariants: Variant[] = [
       units: [],
       supplyCenters: [],
     },
+    mapOptions: { horizontalWrap: false },
   },
   {
     id: "Italy vs Germany",
@@ -737,6 +738,7 @@ export const mockVariants: Variant[] = [
       units: [],
       supplyCenters: [],
     },
+    mapOptions: { horizontalWrap: false },
   },
 ];
 

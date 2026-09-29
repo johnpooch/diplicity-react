@@ -21,7 +21,10 @@ const GameMapCanvas = lazy(() =>
 type MapPhase = PhaseRetrieve | VariantTemplatePhase | GameListCurrentPhase;
 
 interface MapViewProps {
-  variant: Pick<Variant, "id" | "nations" | "svgUrl" | "unitScaling">;
+  variant: Pick<
+    Variant,
+    "id" | "nations" | "svgUrl" | "mapOptions" | "unitScaling"
+  >;
   phase: MapPhase;
   orders?: Order[];
   selected?: string[];

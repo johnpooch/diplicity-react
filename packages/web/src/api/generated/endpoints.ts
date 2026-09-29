@@ -981,6 +981,10 @@ export interface VariantTemplatePhase {
   supplyCenters: VariantTemplateSupplyCenter[];
 }
 
+export interface VariantMapOptions {
+  horizontalWrap: boolean;
+}
+
 export interface Variant {
   id: string;
   name: string;
@@ -1001,6 +1005,7 @@ export interface Variant {
   nations: Nation[];
   provinces: VariantProvince[];
   templatePhase: VariantTemplatePhase;
+  mapOptions: VariantMapOptions;
 }
 
 export interface VariantWrite {

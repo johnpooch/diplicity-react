@@ -15,7 +15,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type VariantForPreview = Pick<Variant, "id" | "name" | "nations" | "svgUrl" | "unitScaling">;
+type VariantForPreview = Pick<
+  Variant,
+  "id" | "name" | "nations" | "svgUrl" | "mapOptions" | "unitScaling"
+>;
 
 type ExpandableMapPreviewProps = {
   variant: VariantForPreview;

@@ -9,6 +9,17 @@ export const toLatLng = (p: Point): LatLngExpression => [-p.y, p.x];
 // The image/overlay bounds span the dSVG viewBox: top-left at the origin,
 // bottom-right at (width, height) in pixel space → [-height, width] in LatLng.
 export const viewBoxBounds = (viewBox: ViewBox): LatLngBoundsLiteral => [
-  [0, 0],
-  [-viewBox.height, viewBox.width],
+  [-viewBox.minY, viewBox.minX],
+  [-(viewBox.minY + viewBox.height), viewBox.minX + viewBox.width],
+];
+
+export const shiftedViewBoxBounds = (
+  viewBox: ViewBox,
+  xOffset: number
+): LatLngBoundsLiteral => [
+  [-viewBox.minY, viewBox.minX + xOffset],
+  [
+    -(viewBox.minY + viewBox.height),
+    viewBox.minX + viewBox.width + xOffset,
+  ],
 ];

@@ -8,7 +8,8 @@ import { GameCard } from "@/components/GameCard";
 import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
-import { Inbox, Loader2 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Inbox } from "lucide-react";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import type { GameList } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
@@ -159,7 +160,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
       ))}
       {isFetchingNextPage && (
         <div className="flex justify-center py-4">
-          <Loader2 className="animate-spin" />
+          <LoadingSpinner label="Loading more games" />
         </div>
       )}
       <div ref={sentinelRef} />

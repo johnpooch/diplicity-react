@@ -117,6 +117,7 @@ class Variant(BaseModel):
     phase_progression = models.JSONField(default=default_phase_progression)
     rules = models.TextField(blank=True, default="")
     dominance_rules = models.JSONField(default=list, blank=True)
+    horizontal_wrap = models.BooleanField(default=False)
     unit_scaling = models.FloatField(default=1)
     status = models.CharField(
         max_length=20,

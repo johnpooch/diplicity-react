@@ -306,6 +306,18 @@ describe("DiplicityMap orders", () => {
     expect(svg).not.toContain(" Q ");
   });
 
+  test("draws a Move across the nearest horizontal seam", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nationColors: { England: "#1b4f9c" },
+      horizontalWrapWidth: 600,
+      orders: [
+        { type: "Move", nation: "England", source: "gamma", target: "alpha" },
+      ],
+    });
+    expect(svg).toContain("M 460 130 L 732 130");
+    expect(svg).not.toContain("M 440 130 L 168 130");
+  });
+
   test("curves both arrows of a head-to-head move pair", () => {
     const svg = new DiplicityMap(TOY_DSVG).render({
       nationColors: { England: "#1b4f9c", France: "#3b9c3b" },

@@ -3938,10 +3938,13 @@ components:
             $ref: '#/components/schemas/VariantProvince'
         templatePhase:
           $ref: '#/components/schemas/VariantTemplatePhase'
+        mapOptions:
+          $ref: '#/components/schemas/VariantMapOptions'
       required:
       - canEdit
       - description
       - id
+      - mapOptions
       - name
       - nations
       - official
@@ -3954,6 +3957,13 @@ components:
       - templatePhase
       - unitScaling
       - victoryConditions
+    VariantMapOptions:
+      type: object
+      properties:
+        horizontalWrap:
+          type: boolean
+      required:
+      - horizontalWrap
     VariantProvince:
       type: object
       properties:
