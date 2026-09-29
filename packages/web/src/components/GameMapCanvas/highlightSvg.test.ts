@@ -32,6 +32,28 @@ describe("buildHighlightSvg", () => {
     expect(svg).toContain(HOVER_FILL);
   });
 
+  it("removes seam-parallel closures while bridging genuine outlines", () => {
+    const seamPath = "M0 0 L10 0 L10 10 L0 10 Z M90 0 L100 0 L100 10 L90 10 Z";
+    const svg = buildHighlightSvg({
+      ...base,
+      paths: new Map([["seam", seamPath]]),
+      renderable: new Set(["seam"]),
+      hovered: "seam",
+      horizontalWrap: true,
+    });
+
+    expect(svg).toContain('id="wrappedHighlightStrokeClip"');
+    expect(svg).toContain('x="2"');
+    expect(svg).toContain('width="96"');
+    expect(svg).toContain(`d="${seamPath}" fill="${HOVER_FILL}" stroke="none"`);
+    expect(svg).toContain(
+      `d="${seamPath}" fill="none" stroke="#FFFFFF" stroke-width="3" clip-path="url(#wrappedHighlightStrokeClip)"`
+    );
+    expect(svg).toContain('d="M0 0L10 0M10 10L0 10M90 0L100 0M100 10L90 10"');
+    expect(svg).not.toContain('d="M0 10L0 0"');
+    expect(svg).not.toContain('d="M100 0L100 10"');
+  });
+
   it("does not highlight a hovered province that is not renderable", () => {
     const svg = buildHighlightSvg({
       ...base,

@@ -435,6 +435,40 @@ describe("DiplicityMap orders", () => {
     expect(svg).toContain(" Q ");
   });
 
+  test("derives a convoy route from Convoy orders even when the move is ordinary", () => {
+    const svg = new DiplicityMap(CONVOY_DSVG).render({
+      ...CONVOY_SCENE,
+      orders: CONVOY_SCENE.orders?.map((order) =>
+        order.type === "MoveViaConvoy" ? { ...order, type: "Move" as const } : order
+      ),
+    });
+    expect(svg).toContain(" Q ");
+  });
+
+  test("does not reroute an ordinary move for a foreign convoy alone", () => {
+    const svg = new DiplicityMap(CONVOY_DSVG).render({
+      ...CONVOY_SCENE,
+      nationColors: { ...CONVOY_SCENE.nationColors, France: "#3b9c3b" },
+      orders: CONVOY_SCENE.orders?.map((order) =>
+        order.type === "MoveViaConvoy"
+          ? { ...order, type: "Move" as const }
+          : { ...order, nation: "France" }
+      ),
+    });
+    expect(svg).toContain(" L ");
+    expect(svg).not.toContain(" Q ");
+  });
+
+  test("repeats order graphics inside a horizontally wrapped tile", () => {
+    const svg = new DiplicityMap(CONVOY_DSVG).render({
+      ...CONVOY_SCENE,
+      horizontalWrapWidth: 600,
+    });
+    expect(svg).toContain('<g transform="translate(-600 0)">');
+    expect(svg).toContain('<g transform="translate(600 0)">');
+    expect((svg.match(/ Q /g) ?? []).length).toBeGreaterThanOrEqual(3);
+  });
+
   test("matches the committed convoy artifact", async () => {
     const svg = new DiplicityMap(CONVOY_DSVG).render(CONVOY_SCENE);
     await expect(svg).toMatchFileSnapshot("./__artifacts__/toy-convoy.svg");

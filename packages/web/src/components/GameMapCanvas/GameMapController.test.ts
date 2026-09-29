@@ -105,4 +105,19 @@ describe("GameMapController horizontal wrapping", () => {
 
     controller.destroy();
   });
+
+  it("clips repeated order graphics to each overlay tile", () => {
+    const container = createContainer();
+    const controller = createController(container);
+
+    controller.setOverlay(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600"><g id="orders"/></svg>'
+    );
+
+    const overlays = container.querySelectorAll("svg.leaflet-image-layer");
+    expect(overlays).toHaveLength(3);
+    expect([...overlays].every((svg) => svg.getAttribute("overflow") === "hidden")).toBe(true);
+
+    controller.destroy();
+  });
 });

@@ -144,4 +144,30 @@ describe("buildConvoyRoute", () => {
       { x: 1100, y: 0 },
     ]);
   });
+
+  test("follows the Continental Drift convoy chain around the left seam", () => {
+    const route = buildConvoyRoute(
+      { x: 834.5, y: 722.6 },
+      { x: 2140.9, y: 775.3 },
+      [
+        { id: "mao", point: { x: 1105.9, y: 733.4 } },
+        { id: "sao", point: { x: 1171.4, y: 1079.9 } },
+        { id: "sco", point: { x: 758.6, y: 1295.6 } },
+        { id: "epo", point: { x: 616.6, y: 827.1 } },
+        { id: "mpo", point: { x: 2602.5, y: 755.2 } },
+        { id: "scs", point: { x: 2183.2, y: 669.7 } },
+      ],
+      2625.5
+    );
+
+    expect([...route.attachments.keys()]).toEqual([
+      "mao",
+      "sao",
+      "sco",
+      "epo",
+      "mpo",
+      "scs",
+    ]);
+    expect(route.waypoints.at(-1)?.x).toBeCloseTo(-484.6);
+  });
 });

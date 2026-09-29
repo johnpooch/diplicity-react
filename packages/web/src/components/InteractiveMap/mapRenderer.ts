@@ -438,20 +438,27 @@ const convoyRoutes = (
   horizontalWrapWidth?: number
 ): Map<string, ConvoyRoute> => {
   const routes = new Map<string, ConvoyRoute>();
-  const convoys = orders.filter((order) => order.type === "Convoy");
-  for (const move of orders) {
-    if (move.type !== "MoveViaConvoy" || !move.target) {
+  const convoyGroups = new Map<string, OrderState[]>();
+  for (const convoy of orders) {
+    if (convoy.type !== "Convoy" || !convoy.aux || !convoy.target) {
       continue;
     }
-    const source = unitPositions.get(move.source);
-    const destination = unitPositions.get(move.target);
+    const key = `${convoy.aux}->${convoy.target}`;
+    const group = convoyGroups.get(key);
+    if (group) {
+      group.push(convoy);
+    } else {
+      convoyGroups.set(key, [convoy]);
+    }
+  }
+  for (const [key, convoys] of convoyGroups) {
+    const [sourceId, destinationId] = key.split("->");
+    const source = unitPositions.get(sourceId);
+    const destination = unitPositions.get(destinationId);
     if (!source || !destination) {
       continue;
     }
     const fleets = convoys
-      .filter(
-        (convoy) => convoy.aux === move.source && convoy.target === move.target
-      )
       .map((convoy) => ({
         id: convoy.source,
         point: unitPositions.get(convoy.source),
@@ -464,7 +471,7 @@ const convoyRoutes = (
       continue;
     }
     routes.set(
-      `${move.source}->${move.target}`,
+      key,
       buildConvoyRoute(source, destination, fleets, horizontalWrapWidth)
     );
   }
@@ -601,24 +608,29 @@ const moveOrderParts = (
       state.horizontalWrapWidth
     );
 
-    if (order.type === "MoveViaConvoy") {
-      const route = routes.get(`${order.source}->${order.target}`);
-      if (route) {
-        parts.push(
-          moveViaConvoyArrow({
-            waypoints: route.waypoints,
-            lineWidth: ORDER_LINE_WIDTH * scale,
-            arrowWidth: ORDER_ARROW_WIDTH * scale,
-            arrowLength: ORDER_ARROW_LENGTH * scale,
-            strokeWidth: ORDER_STROKE_WIDTH * scale,
-            offset: UNIT_RADIUS * scale,
-            stroke: SUCCESS_COLOR,
-            fill: color,
-            renderCenter,
-          })
-        );
-        continue;
-      }
+    const route = routes.get(`${order.source}->${order.target}`);
+    const hasOwnConvoy = orders.some(
+      (candidate) =>
+        candidate.type === "Convoy" &&
+        candidate.nation === order.nation &&
+        candidate.aux === order.source &&
+        candidate.target === order.target
+    );
+    if (route && (order.type === "MoveViaConvoy" || hasOwnConvoy)) {
+      parts.push(
+        moveViaConvoyArrow({
+          waypoints: route.waypoints,
+          lineWidth: ORDER_LINE_WIDTH * scale,
+          arrowWidth: ORDER_ARROW_WIDTH * scale,
+          arrowLength: ORDER_ARROW_LENGTH * scale,
+          strokeWidth: ORDER_STROKE_WIDTH * scale,
+          offset: UNIT_RADIUS * scale,
+          stroke: SUCCESS_COLOR,
+          fill: color,
+          renderCenter,
+        })
+      );
+      continue;
     }
     parts.push(
       arrow({
@@ -737,7 +749,22 @@ const ordersLayer = (
       parts.push(disbandMarkup(position, scale));
     }
   }
-  return parts.join("\n");
+  const markup = parts.join("\n");
+  if (!markup || !state.horizontalWrapWidth) {
+    return markup;
+  }
+
+  // A seam-crossing arrow is deliberately unwrapped beyond the canonical
+  // viewBox. Repeat the lightweight order graphics one board-width either side
+  // so each map tile contains both halves of the route. This is especially
+  // important for convoys: fleets on the far side attach to the translated
+  // continuation, rather than to a path clipped outside their SVG tile.
+  const width = formatCoord(state.horizontalWrapWidth);
+  return [
+    markup,
+    `<g transform="translate(-${width} 0)">${markup}</g>`,
+    `<g transform="translate(${width} 0)">${markup}</g>`,
+  ].join("\n");
 };
 
 export class DiplicityMap {

@@ -575,7 +575,10 @@ export class GameMapController {
   setOverlay(svg: string): void {
     const source = new DOMParser().parseFromString(svg, "image/svg+xml")
       .documentElement as unknown as SVGElement;
-    source.setAttribute("overflow", "visible");
+    // Seam-crossing order graphics carry translated copies inside each tile.
+    // Keep the tile clipped so neighbouring Leaflet overlays do not paint the
+    // same continuation several times on top of one another.
+    source.setAttribute("overflow", "hidden");
     const next = this.copyBounds.map((bounds, index) =>
       L.svgOverlay(
         (index === 0 ? source : source.cloneNode(true)) as SVGElement,
@@ -654,6 +657,7 @@ export class GameMapController {
       highlighted: this.style.highlighted,
       renderable: this.style.renderable,
       hovered: this.hovered,
+      horizontalWrap: this.options.horizontalWrap,
     });
     const source = new DOMParser().parseFromString(svg, "image/svg+xml")
       .documentElement as unknown as SVGElement;
