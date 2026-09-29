@@ -105,6 +105,13 @@ export class GameMapController {
   private readonly wrapLoadingMarker: L.Marker | null;
 
   private baseLayers: L.ImageOverlay[] = [];
+  private readonly preparedBaseCopies = new Set<number>();
+  private baseCanvas: HTMLCanvasElement | null = null;
+  private baseGeneration = 0;
+  private firstPaintRaf: number | null = null;
+  private neighbourRaf: number | null = null;
+  private preferredNeighbour: -1 | 1 | null = null;
+  private lastWrapCenterLng: number | null = null;
   private highlightLayers: L.SVGOverlay[] = [];
   private overlayLayers: L.SVGOverlay[] = [];
   private readonly hitLayer: L.LayerGroup;
@@ -216,6 +223,9 @@ export class GameMapController {
     }
 
     this.refit();
+    if (options.horizontalWrap) {
+      this.lastWrapCenterLng = this.map.getCenter().lng;
+    }
     this.wireGestures();
   }
 
@@ -241,12 +251,24 @@ export class GameMapController {
     const marker = this.wrapLoadingMarker;
     if (!marker) return;
     const canonicalCenter = this.bounds.getCenter();
+    const centerLng = this.map.getCenter().lng;
     const copyIndex = nearestWorldCopyIndex(
-      this.map.getCenter().lng,
+      centerLng,
       canonicalCenter.lng,
       this.options.viewBox.width
     );
-    if (Math.abs(copyIndex) <= 1) {
+
+    if (
+      this.gestureType === "pan" &&
+      this.lastWrapCenterLng !== null &&
+      centerLng !== this.lastWrapCenterLng
+    ) {
+      const direction = centerLng < this.lastWrapCenterLng ? -1 : 1;
+      this.prioritiseNeighbour(direction);
+    }
+    this.lastWrapCenterLng = centerLng;
+
+    if (this.preparedBaseCopies.has(copyIndex)) {
       if (this.map.hasLayer(marker)) this.map.removeLayer(marker);
       return;
     }
@@ -418,15 +440,19 @@ export class GameMapController {
   }
 
   setBase(canvas: HTMLCanvasElement): void {
-    const next = this.copyBounds.map((bounds, index) => {
-      const copy = index === 0 ? canvas : this.copyCanvas(canvas);
-      return new CanvasOverlay(copy, bounds, {
-        interactive: false,
-        pane: "baseMap",
-      }).addTo(this.map);
-    });
+    this.cancelDeferredBaseCopies();
+    const generation = ++this.baseGeneration;
+    this.baseCanvas = canvas;
+    this.preparedBaseCopies.clear();
+
+    // Land the canonical board by itself. Waiting until a later frame to copy
+    // the neighbours gives the browser a genuine opportunity to paint this
+    // centre canvas instead of processing three full backing stores first.
+    const centre = this.createBaseLayer(canvas, 0);
     this.removeLayers(this.baseLayers);
-    this.baseLayers = next;
+    this.baseLayers = [centre];
+    this.preparedBaseCopies.add(0);
+    this.updateWrapLoadingMarker();
     if (!this.baseReady) {
       this.baseReady = true;
       this.map.getPane("overlayMap")!.style.visibility = "";
@@ -434,6 +460,84 @@ export class GameMapController {
         this.nudgeComposite();
       }
     }
+
+    if (this.options.horizontalWrap) {
+      this.scheduleNeighboursAfterPaint(generation);
+    }
+  }
+
+  private createBaseLayer(canvas: HTMLCanvasElement, copyIndex: number): L.ImageOverlay {
+    const bounds = this.copyBounds[WORLD_COPY_INDEXES.indexOf(copyIndex as -1 | 0 | 1)];
+    return new CanvasOverlay(canvas, bounds, {
+      interactive: false,
+      pane: "baseMap",
+    }).addTo(this.map);
+  }
+
+  // Two animation-frame boundaries are intentional: the first callback queues
+  // work for the next frame and then returns, allowing the centre canvas to be
+  // painted before either neighbour is allocated and copied.
+  private scheduleNeighboursAfterPaint(generation: number): void {
+    this.firstPaintRaf = requestAnimationFrame(() => {
+      this.firstPaintRaf = null;
+      this.neighbourRaf = requestAnimationFrame(() => {
+        this.neighbourRaf = null;
+        this.prepareNextNeighbour(generation);
+      });
+    });
+  }
+
+  private scheduleNextNeighbour(generation: number): void {
+    if (this.neighbourRaf !== null) return;
+    this.neighbourRaf = requestAnimationFrame(() => {
+      this.neighbourRaf = null;
+      this.prepareNextNeighbour(generation);
+    });
+  }
+
+  private prepareNextNeighbour(generation: number): void {
+    if (generation !== this.baseGeneration || !this.baseCanvas) return;
+    const copyIndex =
+      this.preferredNeighbour && !this.preparedBaseCopies.has(this.preferredNeighbour)
+        ? this.preferredNeighbour
+        : this.preparedBaseCopies.has(-1)
+          ? 1
+          : -1;
+    this.preferredNeighbour = null;
+    if (this.preparedBaseCopies.has(copyIndex)) return;
+
+    const copy = this.copyCanvas(this.baseCanvas);
+    this.baseLayers.push(this.createBaseLayer(copy, copyIndex));
+    this.preparedBaseCopies.add(copyIndex);
+    this.updateWrapLoadingMarker();
+
+    if (!this.preparedBaseCopies.has(-1) || !this.preparedBaseCopies.has(1)) {
+      this.scheduleNextNeighbour(generation);
+    }
+  }
+
+  private prioritiseNeighbour(direction: -1 | 1): void {
+    if (!this.baseCanvas || this.preparedBaseCopies.has(direction)) return;
+    this.preferredNeighbour = direction;
+
+    // A real gesture takes precedence over the default left-then-right queue.
+    // Keep the centre-first paint guarantee, but if that paint has already
+    // happened, move the approached side to the very next frame.
+    if (this.firstPaintRaf === null && this.neighbourRaf === null) {
+      this.scheduleNextNeighbour(this.baseGeneration);
+    }
+  }
+
+  private cancelDeferredBaseCopies(): void {
+    if (this.firstPaintRaf !== null) {
+      cancelAnimationFrame(this.firstPaintRaf);
+      this.firstPaintRaf = null;
+    }
+    if (this.neighbourRaf !== null) {
+      cancelAnimationFrame(this.neighbourRaf);
+      this.neighbourRaf = null;
+    }
+    this.preferredNeighbour = null;
   }
 
   private copyCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
@@ -593,6 +697,9 @@ export class GameMapController {
   }
 
   destroy(): void {
+    this.cancelDeferredBaseCopies();
+    this.baseGeneration += 1;
+    this.baseCanvas = null;
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
     }
