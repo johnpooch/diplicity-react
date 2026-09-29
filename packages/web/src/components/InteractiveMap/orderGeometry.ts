@@ -47,16 +47,122 @@ export const bSplineAttachmentPoint = (points: Point[], i: number): Point => {
   };
 };
 
-const permutations = <T>(items: T[]): T[][] => {
-  if (items.length <= 1) {
-    return [items];
+// Exact routing is cheap at the convoy sizes used by normal games. Above this
+// threshold, exponential work is unnecessary for a visual aid, so use a
+// deterministic insertion heuristic instead of risking a frozen browser.
+export const EXACT_WAYPOINT_LIMIT = 12;
+
+const exactWaypointOrder = <T>(
+  items: T[],
+  pointOf: (item: T) => Point,
+  source: Point,
+  destination: Point,
+  horizontalWrapWidth?: number
+): T[] => {
+  const count = items.length;
+  const stateCount = 1 << count;
+  const costs = new Float64Array(stateCount * count);
+  costs.fill(Number.POSITIVE_INFINITY);
+  const previous = new Int16Array(stateCount * count);
+  previous.fill(-1);
+  const indexOf = (mask: number, last: number): number => mask * count + last;
+
+  for (let i = 0; i < count; i++) {
+    costs[indexOf(1 << i, i)] = wrappedEuclidean(
+      source,
+      pointOf(items[i]),
+      horizontalWrapWidth
+    );
   }
-  return items.flatMap((item, i) =>
-    permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [
-      item,
-      ...rest,
-    ])
-  );
+
+  for (let mask = 1; mask < stateCount; mask++) {
+    for (let last = 0; last < count; last++) {
+      if ((mask & (1 << last)) === 0) continue;
+      const cost = costs[indexOf(mask, last)];
+      if (!Number.isFinite(cost)) continue;
+
+      for (let next = 0; next < count; next++) {
+        if ((mask & (1 << next)) !== 0) continue;
+        const nextMask = mask | (1 << next);
+        const nextIndex = indexOf(nextMask, next);
+        const nextCost =
+          cost +
+          wrappedEuclidean(
+            pointOf(items[last]),
+            pointOf(items[next]),
+            horizontalWrapWidth
+          );
+        if (nextCost < costs[nextIndex]) {
+          costs[nextIndex] = nextCost;
+          previous[nextIndex] = last;
+        }
+      }
+    }
+  }
+
+  const fullMask = stateCount - 1;
+  let bestLast = 0;
+  let bestCost = Number.POSITIVE_INFINITY;
+  for (let last = 0; last < count; last++) {
+    const total =
+      costs[indexOf(fullMask, last)] +
+      wrappedEuclidean(pointOf(items[last]), destination, horizontalWrapWidth);
+    if (total < bestCost) {
+      bestCost = total;
+      bestLast = last;
+    }
+  }
+
+  const result = new Array<T>(count);
+  let mask = fullMask;
+  let last = bestLast;
+  for (let position = count - 1; position >= 0; position--) {
+    result[position] = items[last];
+    const prior = previous[indexOf(mask, last)];
+    mask ^= 1 << last;
+    last = prior;
+  }
+  return result;
+};
+
+const approximateWaypointOrder = <T>(
+  items: T[],
+  pointOf: (item: T) => Point,
+  source: Point,
+  destination: Point,
+  horizontalWrapWidth?: number
+): T[] => {
+  const remaining = [...items];
+  const result: T[] = [];
+
+  while (remaining.length > 0) {
+    let bestItemIndex = 0;
+    let bestPosition = 0;
+    let bestIncrease = Number.POSITIVE_INFINITY;
+
+    for (let itemIndex = 0; itemIndex < remaining.length; itemIndex++) {
+      const point = pointOf(remaining[itemIndex]);
+      for (let position = 0; position <= result.length; position++) {
+        const before = position === 0 ? source : pointOf(result[position - 1]);
+        const after =
+          position === result.length ? destination : pointOf(result[position]);
+        const increase =
+          wrappedEuclidean(before, point, horizontalWrapWidth) +
+          wrappedEuclidean(point, after, horizontalWrapWidth) -
+          wrappedEuclidean(before, after, horizontalWrapWidth);
+        if (increase < bestIncrease) {
+          bestIncrease = increase;
+          bestItemIndex = itemIndex;
+          bestPosition = position;
+        }
+      }
+    }
+
+    const [item] = remaining.splice(bestItemIndex, 1);
+    result.splice(bestPosition, 0, item);
+  }
+
+  return result;
 };
 
 export const shortestWaypointOrder = <T>(
@@ -69,31 +175,21 @@ export const shortestWaypointOrder = <T>(
   if (items.length <= 1) {
     return items;
   }
-  const pathLength = (order: T[]): number => {
-    let total = wrappedEuclidean(
-      source,
-      pointOf(order[0]),
-      horizontalWrapWidth
-    );
-    for (let i = 0; i < order.length - 1; i++) {
-      total += wrappedEuclidean(
-        pointOf(order[i]),
-        pointOf(order[i + 1]),
-        horizontalWrapWidth
-      );
-    }
-    return (
-      total +
-      wrappedEuclidean(
-        pointOf(order[order.length - 1]),
+  return items.length <= EXACT_WAYPOINT_LIMIT
+    ? exactWaypointOrder(
+        items,
+        pointOf,
+        source,
         destination,
         horizontalWrapWidth
       )
-    );
-  };
-  return permutations(items).reduce((best, order) =>
-    pathLength(order) < pathLength(best) ? order : best
-  );
+    : approximateWaypointOrder(
+        items,
+        pointOf,
+        source,
+        destination,
+        horizontalWrapWidth
+      );
 };
 
 export const headToHeadControlPoint = (p1: Point, p2: Point): Point => {

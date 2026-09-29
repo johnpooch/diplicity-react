@@ -8,6 +8,7 @@ import {
   headToHeadControlPoint,
   staggeredSupportEnd,
   buildConvoyRoute,
+  EXACT_WAYPOINT_LIMIT,
   MOVE_CURVE_OFFSET,
 } from "./orderGeometry";
 
@@ -79,6 +80,43 @@ describe("shortestWaypointOrder", () => {
     expect(
       shortestWaypointOrder(items, (i) => i.point, { x: 0, y: 0 }, { x: 9, y: 9 })
     ).toBe(items);
+  });
+
+  test("finds the exact shortest route without enumerating every permutation", () => {
+    const items = [
+      { id: "c", point: { x: 30, y: 0 } },
+      { id: "a", point: { x: 10, y: 0 } },
+      { id: "d", point: { x: 40, y: 0 } },
+      { id: "b", point: { x: 20, y: 0 } },
+    ];
+    const ordered = shortestWaypointOrder(
+      items,
+      (item) => item.point,
+      { x: 0, y: 0 },
+      { x: 50, y: 0 }
+    );
+    expect(ordered.map((item) => item.id)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  test("keeps exceptionally large custom convoys bounded and deterministic", () => {
+    const items = Array.from(
+      { length: EXACT_WAYPOINT_LIMIT + 1 },
+      (_, index) => ({
+        id: String(index),
+        point: { x: (index + 1) * 10, y: 0 },
+      })
+    ).reverse();
+    const ordered = shortestWaypointOrder(
+      items,
+      (item) => item.point,
+      { x: 0, y: 0 },
+      { x: 150, y: 0 }
+    );
+    expect(ordered.map((item) => item.id)).toEqual(
+      Array.from({ length: EXACT_WAYPOINT_LIMIT + 1 }, (_, index) =>
+        String(index)
+      )
+    );
   });
 });
 
