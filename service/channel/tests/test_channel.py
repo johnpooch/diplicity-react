@@ -894,6 +894,171 @@ class TestChannelMarkReadView:
         assert response2.status_code == status.HTTP_204_NO_CONTENT
 
 
+class TestChannelMuteView:
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(("duration", "hours"), [("8_hours", 8), ("24_hours", 24)])
+    def test_mute_channel_for_duration(
+        self, authenticated_client, active_game_with_private_channel, duration, hours
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+        before = timezone.now() + timedelta(hours=hours)
+
+        response = authenticated_client.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {"mute_duration": duration},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["muted"] is True
+        channel_member = ChannelMember.objects.get(channel=channel, member__user=game.members.first().user)
+        assert channel_member.muted_until >= before
+        assert channel_member.muted_indefinitely is False
+
+    @pytest.mark.django_db
+    def test_mute_channel_indefinitely(self, authenticated_client, active_game_with_private_channel):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = authenticated_client.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {"mute_duration": "indefinite"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["muted"] is True
+        channel_member = ChannelMember.objects.get(channel=channel, member__user=game.members.first().user)
+        assert channel_member.muted_until is None
+        assert channel_member.muted_indefinitely is True
+
+    @pytest.mark.django_db
+    def test_indefinite_mute_persists_when_game_finishes(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = authenticated_client.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {"mute_duration": "indefinite"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        game.finish(GameStatus.COMPLETED)
+
+        channel_member = ChannelMember.objects.get(
+            channel=channel,
+            member__user=game.members.first().user,
+        )
+        assert channel_member.muted is True
+
+    @pytest.mark.django_db
+    def test_unmute_channel(self, authenticated_client, active_game_with_private_channel):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+        channel_member = ChannelMember.objects.get(channel=channel, member__user=game.members.first().user)
+        channel_member.muted_until = timezone.now() + timedelta(hours=8)
+        channel_member.muted_indefinitely = True
+        channel_member.save(update_fields=["muted_until", "muted_indefinitely"])
+
+        response = authenticated_client.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {"mute_duration": None},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["muted"] is False
+        channel_member.refresh_from_db()
+        assert channel_member.muted_until is None
+        assert channel_member.muted_indefinitely is False
+
+    @pytest.mark.django_db
+    def test_channel_list_reflects_current_users_mute_state(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        game_with_public_channel_and_messages,
+        primary_user,
+    ):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+        channel_member = ChannelMember.objects.get(channel=channel, member__user=primary_user)
+        channel_member.muted_indefinitely = True
+        channel_member.save(update_fields=["muted_indefinitely"])
+
+        primary_response = authenticated_client.get(reverse("channel-list", args=[game.id]))
+        secondary_response = authenticated_client_for_secondary_user.get(reverse("channel-list", args=[game.id]))
+
+        primary_channel = next(item for item in primary_response.data if item["id"] == channel.id)
+        secondary_channel = next(item for item in secondary_response.data if item["id"] == channel.id)
+        assert primary_channel["muted"] is True
+        assert secondary_channel["muted"] is False
+
+    @pytest.mark.django_db
+    def test_expired_mute_is_inactive(
+        self, authenticated_client, game_with_public_channel_and_messages, primary_user
+    ):
+        game = game_with_public_channel_and_messages
+        channel = Channel.objects.get(game=game, name="Public Press")
+        channel_member = ChannelMember.objects.get(channel=channel, member__user=primary_user)
+        channel_member.muted_until = timezone.now() - timedelta(minutes=1)
+        channel_member.save(update_fields=["muted_until"])
+
+        response = authenticated_client.get(reverse("channel-list", args=[game.id]))
+
+        response_channel = next(item for item in response.data if item["id"] == channel.id)
+        assert response_channel["muted"] is False
+
+    @pytest.mark.django_db
+    def test_mute_channel_requires_duration(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = authenticated_client.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["mute_duration"] == ["This field is required."]
+
+    @pytest.mark.django_db
+    def test_mute_channel_unauthenticated(self, unauthenticated_client, active_game_with_private_channel):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = unauthenticated_client.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {"mute_duration": "8_hours"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_mute_channel_as_non_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = authenticated_client_for_secondary_user.patch(
+            reverse("channel-mute", args=[game.id, channel.id]),
+            {"mute_duration": "8_hours"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
 class TestChannelPendingGameAccess:
 
     @pytest.mark.django_db

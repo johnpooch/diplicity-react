@@ -15,13 +15,16 @@ export const getMessageSenderLabel = (sender: ChannelMember): string => {
 // non-hex values (e.g. rgb()) so callers can safely concatenate an alpha byte.
 export const toHex6 = (color: string): string => {
   const short = /^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/.exec(color);
-  if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
+  if (short)
+    return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
   if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
   return "#808080";
 };
 
 export const brightnessByColor = (hex: string): number => {
-  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(toHex6(hex));
+  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(
+    toHex6(hex)
+  );
   if (!match) return 128;
   const r = parseInt(match[1], 16);
   const g = parseInt(match[2], 16);
@@ -38,6 +41,17 @@ const getOtherNationNames = (
     .split(",")
     .map(s => s.trim())
     .filter(n => n !== currentNationName);
+
+const getAllChannelNationNames = (
+  channel: Channel,
+  members: readonly Member[]
+): string[] =>
+  channel.private
+    ? channel.name.split(",").map(name => name.trim())
+    : members
+        .filter(member => !member.kicked)
+        .map(member => member.nation)
+        .filter((nation): nation is string => nation !== null);
 
 export const getChannelDisplayName = (
   channel: Channel,
@@ -82,14 +96,48 @@ export const getChannelFlagUrls = (
   channel: Channel,
   members: readonly Member[],
   currentNationName: string | undefined,
-  variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
+  variantNations: ReadonlyArray<{
+    name: string;
+    flagUrl: string | null;
+    color: string;
+  }>
 ): ChannelNation[] => {
-  const nationNames = getChannelNationNames(channel, members, currentNationName);
+  const nationNames = getChannelNationNames(
+    channel,
+    members,
+    currentNationName
+  );
   return nationNames.map(name => {
     const vn = variantNations.find(n => n.name === name);
     return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
   });
 };
+
+export const getChannelMemberFlagUrls = (
+  channel: Channel,
+  members: readonly Member[],
+  variantNations: ReadonlyArray<{
+    name: string;
+    flagUrl: string | null;
+    color: string;
+  }>
+): ChannelNation[] =>
+  getAllChannelNationNames(channel, members).map(name => {
+    const nation = variantNations.find(item => item.name === name);
+    return {
+      flagUrl: nation?.flagUrl ?? null,
+      color: nation?.color ?? "#808080",
+    };
+  });
+
+export const getChannelMemberLabels = (
+  channel: Channel,
+  members: readonly Member[]
+): string[] =>
+  getAllChannelNationNames(channel, members).map(nationName => {
+    const member = members.find(item => item.nation === nationName);
+    return member ? `${nationName} — ${member.name}` : nationName;
+  });
 
 // Public Press is never a direct 1:1 conversation, however few nations
 // currently have a seat in it, so it always shows sender labels; only a

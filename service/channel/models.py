@@ -1,5 +1,16 @@
 from django.db import models
-from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F
+from django.db.models import (
+    Q,
+    BooleanField,
+    Count,
+    Exists,
+    Subquery,
+    OuterRef,
+    IntegerField,
+    Value,
+    Max,
+    F,
+)
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from channel import registry as channel_registry
@@ -53,6 +64,15 @@ class ChannelQuerySet(models.QuerySet):
             )
         )
 
+    def with_mute_state(self, user):
+        if not user.is_authenticated:
+            return self.annotate(muted=Value(False, output_field=BooleanField()))
+        active_mute = ChannelMember.objects.filter(
+            channel=OuterRef("pk"),
+            member__user=user,
+        ).filter(Q(muted_indefinitely=True) | Q(muted_until__gt=timezone.now()))
+        return self.annotate(muted=Exists(active_mute))
+
 
 class ChannelManager(models.Manager):
     def get_queryset(self):
@@ -79,6 +99,9 @@ class ChannelManager(models.Manager):
     def with_unread_counts(self, user):
         return self.get_queryset().with_unread_counts(user)
 
+    def with_mute_state(self, user):
+        return self.get_queryset().with_mute_state(user)
+
     def order_for_list(self):
         return self.get_queryset().order_for_list()
 
@@ -101,6 +124,14 @@ class Channel(BaseModel):
         members = self.members if self.private else self.game.members
         return {m.user_id for m in members.all() if m.user_id is not None}
 
+    def notifiable_member_user_ids(self):
+        muted_user_ids = set(
+            self.member_channels.filter(
+                Q(muted_indefinitely=True) | Q(muted_until__gt=timezone.now())
+            ).values_list("member__user_id", flat=True)
+        )
+        return self.member_user_ids() - muted_user_ids
+
 
 class ChannelMemberQuerySet(models.QuerySet):
     def for_channel(self, channel):
@@ -111,11 +142,19 @@ class ChannelMember(BaseModel):
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="member_channels")
     channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="member_channels")
     last_read_at = models.DateTimeField(default=timezone.now)
+    muted_until = models.DateTimeField(null=True, blank=True)
+    muted_indefinitely = models.BooleanField(default=False)
 
     objects = ChannelMemberQuerySet.as_manager()
 
     class Meta:
         unique_together = ["member", "channel"]
+
+    @property
+    def muted(self):
+        return self.muted_indefinitely or (
+            self.muted_until is not None and self.muted_until > timezone.now()
+        )
 
 
 class ChannelMessageQuerySet(models.QuerySet):

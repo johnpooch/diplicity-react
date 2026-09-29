@@ -190,6 +190,9 @@ type MinReliabilityEnum = Literal['open', 'reliable_and_new', 'reliable_only']
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
+type MuteDurationEnum = Literal['8_hours', '24_hours', 'indefinite']
+
+
 class MyVote(TypedDict):
     included: bool
     accepted: bool | None
@@ -230,6 +233,11 @@ class PasswordResetConfirm(TypedDict):
     token: str
     new_password: str
     confirm_password: str
+
+
+class PatchedChannelMute(TypedDict):
+    muted: NotRequired[bool]
+    mute_duration: NotRequired[MuteDurationEnum | NullEnum | None]
 
 
 class PatchedChannelUpdate(TypedDict):
@@ -438,6 +446,11 @@ class ChannelMessage(TypedDict):
     created_at: str
 
 
+class ChannelMute(TypedDict):
+    muted: bool
+    mute_duration: MuteDurationEnum | NullEnum | None
+
+
 class DrawProposal(TypedDict):
     id: int
     created_by: DrawVoteMember
@@ -608,6 +621,7 @@ class Channel(TypedDict):
     messages: list[ChannelMessage]
     events: list[ChannelEvent]
     unread_message_count: int
+    muted: bool
     member_ids: list[int]
 
 

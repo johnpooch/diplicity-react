@@ -116,7 +116,31 @@ export interface Channel {
   readonly messages: readonly ChannelMessage[];
   readonly events: readonly ChannelEvent[];
   readonly unreadMessageCount: number;
+  readonly muted: boolean;
   memberIds: number[];
+}
+
+/**
+ * * `8_hours` - 8_hours
+ * `24_hours` - 24_hours
+ * `indefinite` - indefinite
+ */
+export type MuteDurationEnum =
+  (typeof MuteDurationEnum)[keyof typeof MuteDurationEnum];
+
+export const MuteDurationEnum = {
+  "8_hours": "8_hours",
+  "24_hours": "24_hours",
+  indefinite: "indefinite",
+} as const;
+
+export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
+
+export const NullEnum = {} as const;
+
+export interface ChannelMute {
+  readonly muted: boolean;
+  muteDuration: MuteDurationEnum | NullEnum | null;
 }
 
 export interface ChannelUpdate {
@@ -297,10 +321,6 @@ export interface FlatOrderOption {
 export interface GameCloneToSandbox {
   readonly id: string;
 }
-
-export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
-
-export const NullEnum = {} as const;
 
 /**
  * * `hourly` - Hourly
@@ -740,6 +760,11 @@ export interface PasswordResetConfirm {
   newPassword: string;
   /** @minLength 8 */
   confirmPassword: string;
+}
+
+export interface PatchedChannelMute {
+  readonly muted?: boolean;
+  muteDuration?: MuteDurationEnum | NullEnum | null;
 }
 
 export interface PatchedChannelUpdate {
@@ -7463,6 +7488,187 @@ export const useGamesChannelsMessagesCreateCreate = <
 > => {
   return useMutation(
     getGamesChannelsMessagesCreateCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Mute or unmute notifications for a channel.
+ */
+export const gamesChannelsMuteUpdate = (
+  gameId: string,
+  channelId: number,
+  channelMute: NonReadonly<ChannelMute>,
+  signal?: AbortSignal
+) => {
+  return customInstance<ChannelMute>({
+    url: `/games/${gameId}/channels/${channelId}/mute/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: channelMute,
+    signal,
+  });
+};
+
+export const getGamesChannelsMuteUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsMuteUpdate>>,
+    TError,
+    { gameId: string; channelId: number; data: NonReadonly<ChannelMute> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsMuteUpdate>>,
+  TError,
+  { gameId: string; channelId: number; data: NonReadonly<ChannelMute> },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsMuteUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsMuteUpdate>>,
+    { gameId: string; channelId: number; data: NonReadonly<ChannelMute> }
+  > = props => {
+    const { gameId, channelId, data } = props ?? {};
+
+    return gamesChannelsMuteUpdate(gameId, channelId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsMuteUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsMuteUpdate>>
+>;
+export type GamesChannelsMuteUpdateMutationBody = NonReadonly<ChannelMute>;
+export type GamesChannelsMuteUpdateMutationError = unknown;
+
+export const useGamesChannelsMuteUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsMuteUpdate>>,
+      TError,
+      { gameId: string; channelId: number; data: NonReadonly<ChannelMute> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsMuteUpdate>>,
+  TError,
+  { gameId: string; channelId: number; data: NonReadonly<ChannelMute> },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsMuteUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Mute or unmute notifications for a channel.
+ */
+export const gamesChannelsMutePartialUpdate = (
+  gameId: string,
+  channelId: number,
+  patchedChannelMute: NonReadonly<PatchedChannelMute>,
+  signal?: AbortSignal
+) => {
+  return customInstance<ChannelMute>({
+    url: `/games/${gameId}/channels/${channelId}/mute/`,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    data: patchedChannelMute,
+    signal,
+  });
+};
+
+export const getGamesChannelsMutePartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsMutePartialUpdate>>,
+    TError,
+    {
+      gameId: string;
+      channelId: number;
+      data: NonReadonly<PatchedChannelMute>;
+    },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsMutePartialUpdate>>,
+  TError,
+  { gameId: string; channelId: number; data: NonReadonly<PatchedChannelMute> },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsMutePartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsMutePartialUpdate>>,
+    { gameId: string; channelId: number; data: NonReadonly<PatchedChannelMute> }
+  > = props => {
+    const { gameId, channelId, data } = props ?? {};
+
+    return gamesChannelsMutePartialUpdate(gameId, channelId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsMutePartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsMutePartialUpdate>>
+>;
+export type GamesChannelsMutePartialUpdateMutationBody =
+  NonReadonly<PatchedChannelMute>;
+export type GamesChannelsMutePartialUpdateMutationError = unknown;
+
+export const useGamesChannelsMutePartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsMutePartialUpdate>>,
+      TError,
+      {
+        gameId: string;
+        channelId: number;
+        data: NonReadonly<PatchedChannelMute>;
+      },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsMutePartialUpdate>>,
+  TError,
+  { gameId: string; channelId: number; data: NonReadonly<PatchedChannelMute> },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsMutePartialUpdateMutationOptions(options),
     queryClient
   );
 };

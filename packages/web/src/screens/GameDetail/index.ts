@@ -16,7 +16,14 @@ export const GameDetail = {
     () => import("./ChannelRenameScreen"),
     "ChannelRenameScreen"
   ),
-  GameInfoScreen: lazyScreen(() => import("./GameInfoScreen"), "GameInfoScreen"),
+  ChannelOptionsScreen: lazyScreen(
+    () => import("./ChannelOptionsScreen"),
+    "ChannelOptionsScreen"
+  ),
+  GameInfoScreen: lazyScreen(
+    () => import("./GameInfoScreen"),
+    "GameInfoScreen"
+  ),
   VariantDetailsScreen: lazyScreen(
     () => import("./VariantDetailsScreen"),
     "VariantDetailsScreen"

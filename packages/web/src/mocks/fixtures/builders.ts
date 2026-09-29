@@ -303,6 +303,7 @@ export const makeChannel = (
   messages,
   events: [],
   unreadMessageCount: 0,
+  muted: false,
   memberIds: members.map(m => m.id),
   ...overrides,
 });

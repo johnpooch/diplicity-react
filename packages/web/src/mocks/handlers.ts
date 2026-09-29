@@ -267,7 +267,10 @@ export const handlers = [
       );
     }
     const member = makeBotMember(bot);
-    fixture.game = { ...fixture.game, members: [...fixture.game.members, member] };
+    fixture.game = {
+      ...fixture.game,
+      members: [...fixture.game.members, member],
+    };
     return HttpResponse.json(member, { status: 201 });
   }),
   http.delete("*/game/:gameId/kick/:memberId/", ({ params }) => {
@@ -351,8 +354,14 @@ export const handlers = [
     };
     return new HttpResponse(null, { status: 204 });
   }),
-  http.delete("*/game/:gameId/leave/", () => new HttpResponse(null, { status: 204 })),
-  http.delete("*/game/:gameId/delete/", () => new HttpResponse(null, { status: 204 })),
+  http.delete(
+    "*/game/:gameId/leave/",
+    () => new HttpResponse(null, { status: 204 })
+  ),
+  http.delete(
+    "*/game/:gameId/delete/",
+    () => new HttpResponse(null, { status: 204 })
+  ),
   http.patch("*/game/:gameId/confirm-phase/", () => HttpResponse.json({})),
   http.post("*/game/:gameId/resolve-phase/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/pause/", () => HttpResponse.json({})),
@@ -376,14 +385,23 @@ export const handlers = [
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(body, { status: 201 });
   }),
-  http.delete("*/game/:gameId/orders/delete/:sourceId", () =>
-    new HttpResponse(null, { status: 204 })
+  http.delete(
+    "*/game/:gameId/orders/delete/:sourceId",
+    () => new HttpResponse(null, { status: 204 })
   ),
 
   http.post("*/games/:gameId/channels/create/", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
-      { id: 999, name: "New Channel", private: true, messages: [], unreadMessageCount: 0, ...body },
+      {
+        id: 999,
+        name: "New Channel",
+        private: true,
+        messages: [],
+        unreadMessageCount: 0,
+        muted: false,
+        ...body,
+      },
       { status: 201 }
     );
   }),
@@ -397,6 +415,24 @@ export const handlers = [
   http.post("*/games/:gameId/channels/:channelId/mark-read/", () =>
     HttpResponse.json({})
   ),
+  http.patch(
+    "*/games/:gameId/channels/:channelId/mute/",
+    async ({ params, request }) => {
+      const fixture = gameOr404(params.gameId as string);
+      if (!fixture) return notFound();
+      const channelIndex = fixture.channels.findIndex(
+        item => item.id === Number(params.channelId)
+      );
+      if (channelIndex === -1) return notFound();
+      const body = (await request.json()) as { muteDuration: string | null };
+      const muted = body.muteDuration !== null;
+      fixture.channels[channelIndex] = {
+        ...fixture.channels[channelIndex],
+        muted,
+      };
+      return HttpResponse.json({ muted });
+    }
+  ),
 
   http.post("*/games/:gameId/draw-proposals/create/", () =>
     HttpResponse.json({}, { status: 201 })
@@ -404,8 +440,9 @@ export const handlers = [
   http.patch("*/games/:gameId/draw-proposals/:proposalId/vote/", () =>
     HttpResponse.json({})
   ),
-  http.delete("*/games/:gameId/draw-proposals/:proposalId/cancel/", () =>
-    new HttpResponse(null, { status: 204 })
+  http.delete(
+    "*/games/:gameId/draw-proposals/:proposalId/cancel/",
+    () => new HttpResponse(null, { status: 204 })
   ),
 
   http.patch("*/user/update/", () => HttpResponse.json(currentUserProfile)),

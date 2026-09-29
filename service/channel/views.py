@@ -2,8 +2,14 @@ from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame, IsPrivateChannel
 
-from .models import Channel
-from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelUpdateSerializer
+from .models import Channel, ChannelMember
+from .serializers import (
+    ChannelSerializer,
+    ChannelMessageSerializer,
+    ChannelMarkReadSerializer,
+    ChannelMuteSerializer,
+    ChannelUpdateSerializer,
+)
 from common.views import ConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
@@ -45,6 +51,19 @@ class ChannelMarkReadView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMe
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ChannelMuteView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+    """Mute or unmute notifications for a channel."""
+
+    permission_classes = [permissions.IsAuthenticated, IsGameParticipant, IsChannelMember]
+    serializer_class = ChannelMuteSerializer
+
+    def get_object(self):
+        return ChannelMember.objects.get(
+            member=self.get_current_game_member(),
+            channel=self.get_channel(),
+        )
+
+
 class ChannelListView(ConditionalGetMixin, SelectedGameMixin, generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ChannelSerializer
@@ -55,6 +74,7 @@ class ChannelListView(ConditionalGetMixin, SelectedGameMixin, generics.ListAPIVi
         return (
             Channel.objects.accessible_to_user(user, game)
             .with_unread_counts(user)
+            .with_mute_state(user)
             .with_related_data()
             .order_for_list()
         )

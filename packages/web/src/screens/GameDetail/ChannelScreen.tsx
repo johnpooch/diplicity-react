@@ -1,7 +1,12 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { SendHorizontal, MessageCircle, MessageSquareOff, Pencil } from "lucide-react";
+import {
+  ChevronRight,
+  SendHorizontal,
+  MessageCircle,
+  MessageSquareOff,
+} from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { toast } from "sonner";
@@ -15,7 +20,11 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
@@ -109,7 +118,10 @@ const TruncatedTooltipLabel: React.FC<{
       <TooltipTrigger asChild>
         <span
           ref={labelRef}
-          className={cn("inline-block max-w-full truncate align-bottom", className)}
+          className={cn(
+            "inline-block max-w-full truncate align-bottom",
+            className
+          )}
           tabIndex={isTruncated ? 0 : undefined}
           onClick={() => isTruncated && setIsOpen(true)}
         >
@@ -128,7 +140,10 @@ const formatMessageTime = (createdAt: string): string => {
     date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate();
-  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const time = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   if (isToday) return time;
   return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 };
@@ -187,7 +202,9 @@ const ThreadEventNotice: React.FC<{ text: string }> = ({ text }) => (
 const NewMessagesDivider: React.FC = () => (
   <div className="flex items-center gap-2 my-1">
     <div className="flex-1 h-px bg-border" />
-    <span className="text-xs text-muted-foreground font-medium">New messages</span>
+    <span className="text-xs text-muted-foreground font-medium">
+      New messages
+    </span>
     <div className="flex-1 h-px bg-border" />
   </div>
 );
@@ -219,11 +236,14 @@ const ChannelScreen: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      next.set("channelId", channelId);
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        next.set("channelId", channelId);
+        return next;
+      },
+      { replace: true }
+    );
   }, [channelId, setSearchParams]);
 
   const channel = channels.find(c => c.id === parseInt(channelId));
@@ -240,16 +260,30 @@ const ChannelScreen: React.FC = () => {
   const isGameMaster =
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
   const canPost = !!currentMember || (isGameMaster && !channel.private);
+  const canOpenOptions = !!currentMember || isGameMaster;
   const currentNationName = currentMember?.nation ?? undefined;
-  const showSenderLabels = isGroupChannel(channel, game.members, currentNationName);
+  const showSenderLabels = isGroupChannel(
+    channel,
+    game.members,
+    currentNationName
+  );
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
-  const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
-  const channelTitle = (
-    <div className="min-w-0 flex-1 text-left">
-      <TruncatedTooltipLabel
-        text={channelDisplayName}
-        className="text-xl font-semibold leading-9"
-      />
+  const channelSubtitle = getChannelSubtitle(
+    channel,
+    game.members,
+    currentNationName
+  );
+  const channelTitleContent = (
+    <>
+      <div className="flex min-w-0 items-center gap-1">
+        <TruncatedTooltipLabel
+          text={channelDisplayName}
+          className="min-w-0 text-xl font-semibold leading-9"
+        />
+        {canOpenOptions && (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        )}
+      </div>
       {channelSubtitle && (
         <div className="leading-none">
           <TruncatedTooltipLabel
@@ -258,41 +292,38 @@ const ChannelScreen: React.FC = () => {
           />
         </div>
       )}
-    </div>
-  );
-  const headerButtons = (
-    <>
-      {channel.private && currentMember && (
-        <Button
-          variant="outline"
-          size="icon-sm"
-          className="rounded-md"
-          aria-label="Rename channel"
-          asChild
-        >
-          <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/rename`}>
-            <Pencil />
-          </Link>
-        </Button>
-      )}
     </>
+  );
+  const channelTitle = canOpenOptions ? (
+    <Link
+      to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/options`}
+      className="block min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label={`Open chat options for ${channelDisplayName}`}
+    >
+      {channelTitleContent}
+    </Link>
+  ) : (
+    <div className="min-w-0 flex-1 text-left">{channelTitleContent}</div>
   );
 
   useEffect(() => {
     if (!canPost) return;
-    markReadMutation.mutateAsync({
-      gameId,
-      channelId: parseInt(channelId),
-    }).then(() => {
-      queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
+    markReadMutation
+      .mutateAsync({
+        gameId,
+        channelId: parseInt(channelId),
+      })
+      .then(() => {
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelsListQueryKey(gameId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGameRetrieveQueryKey(gameId),
+        });
+      })
+      .catch(() => {
+        // Fire-and-forget: silently ignore mark-read failures
       });
-      queryClient.invalidateQueries({
-        queryKey: getGameRetrieveQueryKey(gameId),
-      });
-    }).catch(() => {
-      // Fire-and-forget: silently ignore mark-read failures
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object excluded per project convention (not referentially stable); fire once on mount
   }, [gameId, channelId]);
 
@@ -348,7 +379,6 @@ const ChannelScreen: React.FC = () => {
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
           variant="secondary"
-          rightButton={headerButtons}
         />
         <div className="flex-1 overflow-hidden">
           <Panel>
@@ -371,7 +401,6 @@ const ChannelScreen: React.FC = () => {
         title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
-        rightButton={headerButtons}
       />
       <div className="flex-1 overflow-hidden">
         <Panel>
@@ -391,10 +420,15 @@ const ChannelScreen: React.FC = () => {
                 >
                   {threadItems.map(item =>
                     item.kind === "event" ? (
-                      <ThreadEventNotice key={`event-${item.id}`} text={item.text} />
+                      <ThreadEventNotice
+                        key={`event-${item.id}`}
+                        text={item.text}
+                      />
                     ) : (
                       <React.Fragment key={`message-${item.id}`}>
-                        {item.id === firstUnreadMessageId && <NewMessagesDivider />}
+                        {item.id === firstUnreadMessageId && (
+                          <NewMessagesDivider />
+                        )}
                         <Message
                           className={
                             item.isCurrentUser ? "flex-row-reverse" : undefined
@@ -410,7 +444,9 @@ const ChannelScreen: React.FC = () => {
                             >
                               {item.sender.isGameMaster ? (
                                 <Avatar className="size-8 rounded-none">
-                                  <AvatarImage src={item.sender.picture ?? undefined} />
+                                  <AvatarImage
+                                    src={item.sender.picture ?? undefined}
+                                  />
                                   <AvatarFallback className="rounded-none text-xs">
                                     {item.sender.name[0]?.toUpperCase() ?? "?"}
                                   </AvatarFallback>
@@ -419,10 +455,15 @@ const ChannelScreen: React.FC = () => {
                                 <NationFlag
                                   flagUrl={
                                     variant
-                                      ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                      ? findNationFlagUrl(
+                                          variant.nations,
+                                          item.sender.nationName
+                                        )
                                       : null
                                   }
-                                  alt={item.sender.nationName ?? item.sender.name}
+                                  alt={
+                                    item.sender.nationName ?? item.sender.name
+                                  }
                                   className="size-8"
                                   color={item.sender.nationColor}
                                 />
@@ -435,10 +476,14 @@ const ChannelScreen: React.FC = () => {
                             <MessageContent
                               className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
                               style={{
-                                backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                                border: brightnessByColor(item.sender.nationColor) > 128
-                                  ? `1px solid ${item.sender.nationColor}`
-                                  : undefined,
+                                backgroundColor:
+                                  toHex6(item.sender.nationColor) +
+                                  BUBBLE_ALPHA_HEX,
+                                border:
+                                  brightnessByColor(item.sender.nationColor) >
+                                  128
+                                    ? `1px solid ${item.sender.nationColor}`
+                                    : undefined,
                               }}
                             >
                               {item.showAvatar && showSenderLabels && (
@@ -446,7 +491,8 @@ const ChannelScreen: React.FC = () => {
                                   className="mb-0.5 text-xs font-semibold"
                                   style={{ color: item.sender.nationColor }}
                                 >
-                                  {item.isCurrentUser && !item.sender.isGameMaster
+                                  {item.isCurrentUser &&
+                                  !item.sender.isGameMaster
                                     ? "You"
                                     : item.sender.label}
                                 </p>
@@ -454,7 +500,10 @@ const ChannelScreen: React.FC = () => {
                               {item.body}
                             </MessageContent>
                             <MessageTimestamp
-                              className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
+                              className={cn(
+                                "mt-0.5",
+                                !item.isCurrentUser && "text-left"
+                              )}
                             >
                               {item.formattedTime}
                             </MessageTimestamp>

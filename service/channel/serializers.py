@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
@@ -65,6 +67,7 @@ class ChannelSerializer(serializers.Serializer):
     messages = ChannelMessageSerializer(many=True, read_only=True)
     events = ChannelEventSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
+    muted = serializers.BooleanField(read_only=True, default=False)
 
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
 
@@ -133,3 +136,31 @@ class ChannelMarkReadSerializer(serializers.Serializer):
         channel_member.last_read_at = timezone.now()
         channel_member.save(update_fields=["last_read_at"])
         return channel_member
+
+
+class ChannelMuteSerializer(serializers.Serializer):
+    muted = serializers.BooleanField(read_only=True)
+    mute_duration = serializers.ChoiceField(
+        choices=("8_hours", "24_hours", "indefinite"),
+        allow_null=True,
+        required=True,
+        write_only=True,
+    )
+
+    def validate(self, attrs):
+        if "mute_duration" not in attrs:
+            raise serializers.ValidationError(
+                {"mute_duration": "This field is required."}
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        duration = validated_data["mute_duration"]
+        instance.muted_until = None
+        instance.muted_indefinitely = duration == "indefinite"
+        if duration == "8_hours":
+            instance.muted_until = timezone.now() + timedelta(hours=8)
+        elif duration == "24_hours":
+            instance.muted_until = timezone.now() + timedelta(hours=24)
+        instance.save(update_fields=["muted_until", "muted_indefinitely"])
+        return instance

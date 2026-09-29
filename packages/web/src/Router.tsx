@@ -281,6 +281,14 @@ export const createAuthenticatedRoutes = (
                 ),
               },
               {
+                path: "chat/channel/:channelId/options",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ChannelOptionsScreen />
+                  </Suspense>
+                ),
+              },
+              {
                 path: "game-info",
                 element: (
                   <Suspense fallback={<RouteFallback />}>

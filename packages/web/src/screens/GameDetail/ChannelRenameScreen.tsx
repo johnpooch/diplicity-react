@@ -61,7 +61,9 @@ const ChannelRenameScreen: React.FC = () => {
   });
 
   const handleBack = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}`);
+    navigate(
+      `/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/options`
+    );
   };
 
   const handleRename = async (values: RenameFormValues) => {
@@ -74,6 +76,7 @@ const ChannelRenameScreen: React.FC = () => {
       queryClient.invalidateQueries({
         queryKey: getGamesChannelsListQueryKey(gameId),
       });
+      toast.success(`Successfully renamed channel to ${values.title}`);
       handleBack();
     } catch {
       toast.error("Failed to rename channel");
@@ -114,7 +117,7 @@ const ChannelRenameScreen: React.FC = () => {
                 />
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full cursor-pointer"
                   size="lg"
                   disabled={renameMutation.isPending}
                 >
