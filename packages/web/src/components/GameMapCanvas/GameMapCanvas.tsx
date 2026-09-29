@@ -51,6 +51,7 @@ type GameMapCanvasProps = {
 const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<GameMapController | null>(null);
+  const hasCreatedControllerRef = useRef(false);
   const initialRecordedRef = useRef(false);
 
   const mode = props.mode ?? "interactive";
@@ -165,6 +166,30 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       onGesture: handleGesture,
     });
     controllerRef.current = controller;
+
+    // A wrap-mode change replaces the Leaflet controller without changing the
+    // parsed dSVG-derived values below. Reapply them here as well as in their
+    // dedicated effects so the replacement is immediately fully interactive.
+    if (hasCreatedControllerRef.current) {
+      if (provincePaths) {
+        controller.setProvincePaths(provincePaths);
+      }
+      controller.setStyleState({
+        selected: new Set(props.selected),
+        highlighted: new Set(props.highlighted ?? []),
+        renderable: new Set(
+          props.renderableProvinces ?? rings?.map((ring) => ring.id) ?? []
+        ),
+      });
+      if (rings && mode === "interactive") {
+        controller.setHitTest(rings);
+      }
+      controller.setFill(fill);
+      if (provincePaths && props.focus && props.focus.length > 0) {
+        controller.focusProvinces(props.focus);
+      }
+    }
+    hasCreatedControllerRef.current = true;
 
     const resizeObserver = new ResizeObserver(() => controller.invalidateSize());
     resizeObserver.observe(containerRef.current);
