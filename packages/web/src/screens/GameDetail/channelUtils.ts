@@ -2,6 +2,8 @@ import { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 
 export type ChannelNation = { flagUrl: string | null; color: string };
 
+export type ChannelMemberNation = ChannelNation & { name: string };
+
 export const GAME_MASTER_LABEL = "Game Master";
 
 export const NEUTRAL_SENDER_COLOR = "#808080";
@@ -113,7 +115,7 @@ export const getChannelFlagUrls = (
   });
 };
 
-export const getChannelMemberFlagUrls = (
+export const getChannelMemberNations = (
   channel: Channel,
   members: readonly Member[],
   variantNations: ReadonlyArray<{
@@ -121,22 +123,14 @@ export const getChannelMemberFlagUrls = (
     flagUrl: string | null;
     color: string;
   }>
-): ChannelNation[] =>
+): ChannelMemberNation[] =>
   getAllChannelNationNames(channel, members).map(name => {
     const nation = variantNations.find(item => item.name === name);
     return {
+      name,
       flagUrl: nation?.flagUrl ?? null,
       color: nation?.color ?? "#808080",
     };
-  });
-
-export const getChannelMemberLabels = (
-  channel: Channel,
-  members: readonly Member[]
-): string[] =>
-  getAllChannelNationNames(channel, members).map(nationName => {
-    const member = members.find(item => item.nation === nationName);
-    return member ? `${nationName} — ${member.name}` : nationName;
   });
 
 // Public Press is never a direct 1:1 conversation, however few nations

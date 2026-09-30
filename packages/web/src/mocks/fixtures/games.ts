@@ -218,10 +218,27 @@ const buildActiveMovement = () => {
       ],
       { unreadMessageCount: 1 }
     ),
+    makeChannel(
+      "England, France, Germany, Italy",
+      [members[0], members[2], members[3], members[4]],
+      [
+        makeMessage(
+          members[3],
+          "Shall we coordinate our plans for the west?",
+          "2026-05-01T13:00:00Z"
+        ),
+        makeMessage(
+          members[4],
+          "Count Italy in.",
+          "2026-05-01T13:06:00Z"
+        ),
+      ],
+      { title: "Western Coalition" }
+    ),
   ];
   return makeFixture({
     description:
-      "Active game in the Spring 1901 movement phase. The current user (England) has entered 2 of 3 orders. Includes public and private chat channels.",
+      "Active game in the Spring 1901 movement phase. The current user (England) has entered 2 of 3 orders. Includes public, private, and four-nation group chat channels.",
     game: makeGame("active-movement", "Spring Awakening", members, [phase], {
       orderStatus: "orders_required",
       memberStatus: [],

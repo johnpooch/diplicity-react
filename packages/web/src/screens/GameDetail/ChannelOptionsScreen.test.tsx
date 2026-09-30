@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -101,23 +101,34 @@ beforeEach(() => {
 });
 
 describe("ChannelOptionsScreen", () => {
-  it("shows the channel profile, member tooltip, and options", async () => {
-    const user = userEvent.setup();
+  it("shows the channel profile, member roster, and options", () => {
     renderScreen();
 
     expect(
       screen.getByRole("heading", { name: "The Entente" })
     ).toBeInTheDocument();
-    const memberCountButton = screen.getByRole("button", {
-      name: "2 members",
-    });
-    expect(memberCountButton).toHaveClass("cursor-pointer");
-    await user.hover(memberCountButton);
+    expect(
+      screen.queryByRole("button", { name: "2 members" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "2 members" })
+    ).toBeInTheDocument();
 
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "England — Alice"
-    );
-    expect(screen.getByRole("tooltip")).toHaveTextContent("France — Bob");
+    const memberList = screen.getByRole("list", { name: "2 members" });
+    expect(within(memberList).getByText("England")).toBeInTheDocument();
+    expect(within(memberList).getByText("France")).toBeInTheDocument();
+    const englandFlag = within(memberList).getByRole("img", {
+      name: "England",
+    });
+    const franceFlag = within(memberList).getByRole("img", {
+      name: "France",
+    });
+    expect(englandFlag).toHaveAttribute("src", "england.svg");
+    expect(englandFlag).toHaveStyle("box-shadow: 0 0 0 2px #ff0000");
+    expect(franceFlag).toHaveAttribute("src", "france.svg");
+    expect(franceFlag).toHaveStyle("box-shadow: 0 0 0 2px #0000ff");
+    expect(within(memberList).queryByText("Alice")).not.toBeInTheDocument();
+    expect(within(memberList).queryByText("Bob")).not.toBeInTheDocument();
     const renameLink = screen.getByRole("link", { name: /Rename channel/ });
     expect(renameLink).toHaveAttribute(
       "href",

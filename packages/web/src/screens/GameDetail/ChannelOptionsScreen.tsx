@@ -3,14 +3,10 @@ import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, ChevronRight, Megaphone, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { NationFlag } from "@/components/NationFlag";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Panel } from "@/components/Panel";
 import { useRequiredParams } from "@/hooks";
 import { useGameVariant } from "@/hooks/useGameVariant";
@@ -25,8 +21,7 @@ import { GameDetailAppBar } from "./AppBar";
 import { ChannelAvatar } from "./ChannelAvatar";
 import {
   getChannelDisplayName,
-  getChannelMemberFlagUrls,
-  getChannelMemberLabels,
+  getChannelMemberNations,
 } from "./channelUtils";
 
 const ChannelOptionsScreen: React.FC = () => {
@@ -49,11 +44,12 @@ const ChannelOptionsScreen: React.FC = () => {
   const isGameMaster = game.gameMaster?.userId === userProfile.userId;
   const currentNationName = currentMember?.nation ?? undefined;
   const displayName = getChannelDisplayName(channel, currentNationName);
-  const memberLabels = getChannelMemberLabels(channel, game.members);
-  if (!channel.private && game.gameMaster) {
-    memberLabels.push(`Game Master — ${game.gameMaster.name}`);
-  }
-  const memberCount = memberLabels.length;
+  const channelMembers = getChannelMemberNations(
+    channel,
+    game.members,
+    variant?.nations ?? []
+  );
+  const memberCount = channelMembers.length;
   const noPressActive =
     game.pressType === "no_press" &&
     game.status !== "completed" &&
@@ -114,11 +110,7 @@ const ChannelOptionsScreen: React.FC = () => {
               {channel.private ? (
                 <ChannelAvatar
                   size={96}
-                  nations={getChannelMemberFlagUrls(
-                    channel,
-                    game.members,
-                    variant?.nations ?? []
-                  )}
+                  nations={channelMembers}
                 />
               ) : (
                 <div className="flex size-24 items-center justify-center rounded-full bg-muted ring-4 ring-border">
@@ -127,23 +119,6 @@ const ChannelOptionsScreen: React.FC = () => {
               )}
               <div>
                 <h2 className="text-2xl font-semibold">{displayName}</h2>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="cursor-pointer text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {memberCount} {memberCount === 1 ? "member" : "members"}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <ul className="space-y-1">
-                      {memberLabels.map((label, index) => (
-                        <li key={`${label}-${index}`}>{label}</li>
-                      ))}
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
               </div>
             </div>
             <Card className="w-full overflow-hidden py-0">
@@ -191,6 +166,43 @@ const ChannelOptionsScreen: React.FC = () => {
                   ))}
               </CardContent>
             </Card>
+            <section
+              className="w-full space-y-2"
+              aria-labelledby="channel-members-heading"
+            >
+              <h3
+                id="channel-members-heading"
+                className="px-1 text-sm font-medium text-muted-foreground"
+              >
+                {memberCount} {memberCount === 1 ? "member" : "members"}
+              </h3>
+              <Card className="w-full overflow-hidden py-0">
+                <CardContent
+                  className="flex flex-col divide-y p-0"
+                  role="list"
+                  aria-labelledby="channel-members-heading"
+                >
+                  {channelMembers.map(member => (
+                    <div
+                      key={member.name}
+                      className="flex items-center gap-3 px-4 py-3"
+                      role="listitem"
+                    >
+                      <NationFlag
+                        flagUrl={member.flagUrl}
+                        color={member.color}
+                        alt={member.name}
+                        size="lg"
+                        style={{
+                          boxShadow: `0 0 0 2px ${member.color}`,
+                        }}
+                      />
+                      <span className="font-medium">{member.name}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
           </div>
         </Panel.Content>
       </Panel>
