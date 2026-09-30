@@ -11,11 +11,13 @@ from nation.serializers import NationSerializer
 from common.constants import VariantStatus
 from .models import Variant, VariantSvg
 from .utils import (
+    apply_safe_replacement,
     create_variant_from_dvar,
     normalize_dsvg,
     update_variant_from_dvar,
     validate_dsvg,
     validate_dvar,
+    validate_safe_replacement,
     variant_id_for,
 )
 
@@ -114,6 +116,7 @@ class VariantSerializer(serializers.Serializer):
 class VariantWriteSerializer(serializers.Serializer):
     dvar = serializers.FileField(write_only=True)
     dsvg = serializers.FileField(write_only=True)
+    confirm = serializers.BooleanField(write_only=True, required=False, default=False)
 
     def _parse_dvar(self, upload):
         try:
@@ -189,7 +192,24 @@ class VariantWriteSerializer(serializers.Serializer):
                 {"dvar": f"DVAR id '{dvar['id']}' does not match variant id '{instance.slug}'."}
             )
         with transaction.atomic():
-            variant = update_variant_from_dvar(instance, dvar)
+            game_count = instance.games.count()
+            safe = game_count > 0 and not validate_safe_replacement(instance, dvar)
+            if game_count > 0 and not safe and not validated_data["confirm"]:
+                raise serializers.ValidationError(
+                    {
+                        "confirm": [
+                            {
+                                "code": "GAMES_WILL_BE_DELETED",
+                                "message": f"This update deletes {game_count} game(s) using this variant.",
+                                "count": game_count,
+                            }
+                        ]
+                    }
+                )
+            if safe:
+                variant = apply_safe_replacement(instance, dvar, dsvg_text)
+            else:
+                variant = update_variant_from_dvar(instance, dvar)
             self._save_dsvg(variant, dsvg_text)
         return Variant.objects.with_related_data().get(id=variant.id)
 
