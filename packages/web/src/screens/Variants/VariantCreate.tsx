@@ -330,11 +330,14 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
         submitLabel="Replace files"
         warning={
           <Alert>
-            <AlertTitle>This replaces the variant wholesale.</AlertTitle>
+            <AlertTitle>Games using this variant may be deleted.</AlertTitle>
             <AlertDescription>
-              Uploading new files for '{variant.name}' deletes every game using
-              it, including games in progress. Flags survive when the nation id is unchanged; flags for
-              removed or renamed nations are dropped.
+              Games using '{variant.name}' carry on with the new files if no
+              nations or provinces are added or removed, named coasts with units
+              keep their parent, and supply centres that are owned stay supply
+              centres. Otherwise every game using it is deleted, including games
+              in progress. Flags survive when the nation id is unchanged; flags
+              for removed or renamed nations are dropped.
             </AlertDescription>
           </Alert>
         }

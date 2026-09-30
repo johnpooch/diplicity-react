@@ -273,6 +273,79 @@ def test_delete_own_draft_cascades_sandbox_games(
 
 
 @pytest.mark.django_db
+def test_update_own_draft_keeps_games_when_replacement_is_safe(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
+    from game.models import Game
+    from unit.models import Unit
+
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "safe-update"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
+    variant = Variant.objects.get(id=variant_id)
+    game = Game.objects.create_sandbox(user=primary_user, name="Ongoing", variant=variant)
+    unit_ids = set(Unit.objects.filter(phase__game=game).values_list("id", flat=True))
+
+    dvar["name"] = "Renamed Draft"
+    update_response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": variant_id}),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.data
+    assert update_response.data["name"] == "Renamed Draft"
+    assert Game.objects.filter(id=game.id).exists()
+    assert set(Unit.objects.filter(phase__game=game).values_list("id", flat=True)) == unit_ids
+
+
+@pytest.mark.django_db
+def test_update_own_draft_deletes_games_when_replacement_is_unsafe(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
+    from game.models import Game
+
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "unsafe-update"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
+    variant = Variant.objects.get(id=variant_id)
+    game = Game.objects.create_sandbox(user=primary_user, name="Ongoing", variant=variant)
+
+    removed_id = dvar["nations"][0]["id"]
+    surviving_id = dvar["nations"][1]["id"]
+    dvar["nations"] = [nation for nation in dvar["nations"] if nation["id"] != removed_id]
+    for province in dvar["provinces"]:
+        if province.get("homeNation") == removed_id:
+            province.pop("homeNation", None)
+    for unit in dvar["initialState"]["units"]:
+        if unit["nation"] == removed_id:
+            unit["nation"] = surviving_id
+    for sc in dvar["initialState"]["supplyCenters"]:
+        if sc["nation"] == removed_id:
+            sc["nation"] = surviving_id
+
+    update_response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": variant_id}),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.data
+    assert not Game.objects.filter(id=game.id).exists()
+    assert len(update_response.data["nations"]) == len(dvar["nations"])
+
+
+@pytest.mark.django_db
 def test_delete_published_variant_forbidden(authenticated_client):
     response = authenticated_client.delete(
         reverse("variant-detail", kwargs={"pk": "classical"}),
