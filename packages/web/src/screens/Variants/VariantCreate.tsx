@@ -332,8 +332,8 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
           <Alert>
             <AlertTitle>This replaces the variant wholesale.</AlertTitle>
             <AlertDescription>
-              Uploading new files for '{variant.name}' deletes any sandbox games
-              using it. Flags survive when the nation id is unchanged; flags for
+              Uploading new files for '{variant.name}' deletes every game using
+              it, including games in progress. Flags survive when the nation id is unchanged; flags for
               removed or renamed nations are dropped.
             </AlertDescription>
           </Alert>
