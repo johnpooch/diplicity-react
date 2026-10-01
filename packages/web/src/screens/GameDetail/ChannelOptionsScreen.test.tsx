@@ -183,9 +183,7 @@ describe("ChannelOptionsScreen", () => {
         data: { muteDuration: "indefinite" },
       })
     );
-    expect(toast.success).toHaveBeenCalledWith(
-      "Successfully muted The Entente"
-    );
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("shows feedback when muting fails", async () => {
@@ -232,9 +230,7 @@ describe("ChannelOptionsScreen", () => {
         data: { muteDuration: null },
       })
     );
-    expect(toast.success).toHaveBeenCalledWith(
-      "Successfully unmuted The Entente"
-    );
+    expect(toast.success).not.toHaveBeenCalled();
     expect(
       screen.queryByRole("link", { name: /Unmute notifications/ })
     ).not.toBeInTheDocument();

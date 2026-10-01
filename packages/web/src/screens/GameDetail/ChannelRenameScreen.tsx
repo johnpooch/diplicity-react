@@ -71,10 +71,9 @@ const ChannelRenameScreen: React.FC = () => {
         channelId: channel.id,
         data: { title: values.title },
       });
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: getGamesChannelsListQueryKey(gameId),
       });
-      toast.success(`Successfully renamed channel to ${values.title}`);
       handleBack();
     } catch {
       toast.error("Failed to rename channel");

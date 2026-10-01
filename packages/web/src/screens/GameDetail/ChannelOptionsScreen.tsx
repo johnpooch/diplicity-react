@@ -59,7 +59,6 @@ const ChannelOptionsScreen: React.FC = () => {
       await queryClient.invalidateQueries({
         queryKey: getGamesChannelsListQueryKey(gameId),
       });
-      toast.success(`Successfully muted ${displayName}`);
     } catch {
       toast.error("There was an error muting this channel");
     }
@@ -75,7 +74,6 @@ const ChannelOptionsScreen: React.FC = () => {
       await queryClient.invalidateQueries({
         queryKey: getGamesChannelsListQueryKey(gameId),
       });
-      toast.success(`Successfully unmuted ${displayName}`);
     } catch {
       toast.error("There was an error unmuting this channel");
     }
