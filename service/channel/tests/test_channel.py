@@ -325,6 +325,13 @@ class TestChannelListView:
         assert "Public Channel" in channel_names
         assert "Private Non-Member" not in channel_names
 
+        private_channel = next(channel for channel in response.data if channel["name"] == "Private Member")
+        public_channel = next(channel for channel in response.data if channel["name"] == "Public Channel")
+        assert private_channel["can_rename"] is True
+        assert private_channel["can_mute"] is True
+        assert public_channel["can_rename"] is False
+        assert public_channel["can_mute"] is True
+
     @pytest.mark.django_db
     def test_list_channels_as_non_member(
         self, authenticated_client_for_tertiary_user, active_game_with_channels, classical_france_nation
@@ -336,6 +343,8 @@ class TestChannelListView:
         assert len(response.data) == 1
         channel = response.data[0]
         assert channel["name"] == "Public Channel"
+        assert channel["can_rename"] is False
+        assert channel["can_mute"] is False
 
     @pytest.mark.django_db
     def test_list_channels_omits_events_with_nothing_to_display(
@@ -357,6 +366,8 @@ class TestChannelListView:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Public Channel"
+        assert response.data[0]["can_rename"] is False
+        assert response.data[0]["can_mute"] is False
 
     @pytest.mark.django_db
     def test_list_channels_unauthenticated_is_current_user_false(self, unauthenticated_client, active_game_with_channels):

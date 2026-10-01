@@ -1,16 +1,5 @@
 from django.db import models
-from django.db.models import (
-    Q,
-    BooleanField,
-    Count,
-    Exists,
-    Subquery,
-    OuterRef,
-    IntegerField,
-    Value,
-    Max,
-    F,
-)
+from django.db.models import Q, BooleanField, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from channel import registry as channel_registry
@@ -22,13 +11,18 @@ CHANNEL_TITLE_MAX_LENGTH = 50
 
 
 class ChannelQuerySet(models.QuerySet):
-    def accessible_to_user(self, user, game):
+    def accessible_to_member(self, member, game):
         queryset = self.filter(game=game)
+        if member is None:
+            return queryset.filter(private=False)
+        return queryset.filter(Q(private=False) | Q(members=member)).distinct()
+
+    def accessible_to_user(self, user, game):
         try:
             member = game.members.get(user=user)
-            return queryset.filter(Q(private=False) | Q(members=member)).distinct()
         except:
-            return queryset.filter(private=False)
+            member = None
+        return self.accessible_to_member(member, game)
 
     def for_game(self, game):
         return self.filter(game=game)
@@ -89,6 +83,9 @@ class ChannelManager(models.Manager):
 
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)
+
+    def accessible_to_member(self, member, game):
+        return self.get_queryset().accessible_to_member(member, game)
 
     def for_game(self, game):
         return self.get_queryset().for_game(game)

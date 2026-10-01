@@ -622,6 +622,8 @@ class Channel(TypedDict):
     events: list[ChannelEvent]
     unread_message_count: int
     muted: bool
+    can_rename: bool
+    can_mute: bool
     member_ids: list[int]
 
 

@@ -117,6 +117,8 @@ export interface Channel {
   readonly events: readonly ChannelEvent[];
   readonly unreadMessageCount: number;
   readonly muted: boolean;
+  readonly canRename: boolean;
+  readonly canMute: boolean;
   memberIds: number[];
 }
 

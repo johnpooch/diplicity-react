@@ -32,9 +32,7 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: renameChannel,
     isPending: false,
   }),
-  getGamesChannelsListQueryKey: (gameId: string) => [
-    `/games/${gameId}/channels/`,
-  ],
+  getGamesChannelsListQueryKey: (gameId: string) => [`/games/${gameId}/channels/`],
 }));
 
 const channel = {
@@ -47,9 +45,7 @@ const channel = {
 const renderScreen = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter
-        initialEntries={["/game/game-1/phase/1/chat/channel/1/rename"]}
-      >
+      <MemoryRouter initialEntries={["/game/game-1/phase/1/chat/channel/1/rename"]}>
         <Routes>
           <Route
             path="/game/:gameId/phase/:phaseId/chat/channel/:channelId/rename"
@@ -95,9 +91,7 @@ describe("ChannelRenameScreen", () => {
     await user.clear(screen.getByLabelText("Channel name"));
     await user.click(screen.getByRole("button", { name: "Rename channel" }));
 
-    expect(
-      await screen.findByText("Channel name is required")
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Channel name is required")).toBeInTheDocument();
     expect(renameChannel).not.toHaveBeenCalled();
   });
 });

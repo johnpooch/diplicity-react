@@ -3,6 +3,7 @@ import type { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 import {
   getChannelDisplayName,
   getChannelFlagUrls,
+  getChannelMemberNations,
   getChannelSubtitle,
   getMessageSenderLabel,
   isGroupChannel,
@@ -107,6 +108,27 @@ describe("getChannelFlagUrls", () => {
     expect(
       getChannelFlagUrls(privateChannel, [], "England", variantNations)
     ).toEqual([{ flagUrl: "italy.svg", color: "#00ff00" }]);
+  });
+});
+
+describe("getChannelMemberNations", () => {
+  it("includes the player details used by the member avatar", () => {
+    const members = [
+      member(1, "England", { picture: "alice.png", name: "Alice" }),
+    ];
+
+    expect(
+      getChannelMemberNations(publicChannel, members, variantNations)
+    ).toEqual([
+      {
+        name: "England",
+        playerName: "Alice",
+        playerPicture: "alice.png",
+        playerUserId: 1,
+        flagUrl: "england.svg",
+        color: "#ff0000",
+      },
+    ]);
   });
 });
 

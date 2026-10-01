@@ -48,14 +48,18 @@ vi.mock("@/api/generated/endpoints", () => ({
       members: [
         {
           id: 1,
+          userId: 1,
           name: "Alice",
+          picture: "alice.png",
           nation: "England",
           isCurrentUser: true,
           kicked: false,
         },
         {
           id: 2,
+          userId: 2,
           name: "Bob",
+          picture: null,
           nation: "France",
           isCurrentUser: false,
           kicked: false,
@@ -96,6 +100,8 @@ beforeEach(() => {
     title: "The Entente",
     private: true,
     muted: false,
+    canRename: true,
+    canMute: true,
   });
   muteChannel.mockResolvedValue({ muted: false });
 });
@@ -124,11 +130,30 @@ describe("ChannelOptionsScreen", () => {
       name: "France",
     });
     expect(englandFlag).toHaveAttribute("src", "england.svg");
-    expect(englandFlag).toHaveStyle("box-shadow: 0 0 0 2px #ff0000");
+    expect(englandFlag).toHaveClass("size-12");
+    expect(englandFlag.parentElement).toHaveStyle(
+      "box-shadow: 0 0 0 3px #ff0000"
+    );
     expect(franceFlag).toHaveAttribute("src", "france.svg");
-    expect(franceFlag).toHaveStyle("box-shadow: 0 0 0 2px #0000ff");
-    expect(within(memberList).queryByText("Alice")).not.toBeInTheDocument();
-    expect(within(memberList).queryByText("Bob")).not.toBeInTheDocument();
+    expect(franceFlag).toHaveClass("size-12");
+    expect(franceFlag.parentElement).toHaveStyle(
+      "box-shadow: 0 0 0 3px #0000ff"
+    );
+    const personalAvatars = memberList.querySelectorAll('[data-slot="avatar"]');
+    expect(personalAvatars).toHaveLength(2);
+    expect(personalAvatars[0]).toHaveClass(
+      "size-5",
+      "ring-2",
+      "ring-background"
+    );
+    expect(within(memberList).getByText("Alice")).toHaveClass(
+      "text-sm",
+      "text-muted-foreground"
+    );
+    expect(within(memberList).getByText("Bob")).toHaveClass(
+      "text-sm",
+      "text-muted-foreground"
+    );
     const renameLink = screen.getByRole("link", { name: /Rename channel/ });
     expect(renameLink).toHaveAttribute(
       "href",
@@ -187,6 +212,8 @@ describe("ChannelOptionsScreen", () => {
       title: "The Entente",
       private: true,
       muted: true,
+      canRename: true,
+      canMute: true,
     });
     renderScreen();
 
@@ -210,6 +237,26 @@ describe("ChannelOptionsScreen", () => {
     );
     expect(
       screen.queryByRole("link", { name: /Unmute notifications/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides actions the backend does not allow", () => {
+    mockChannel.mockReturnValue({
+      id: 7,
+      name: "England, France",
+      title: "The Entente",
+      private: true,
+      muted: false,
+      canRename: false,
+      canMute: false,
+    });
+    renderScreen();
+
+    expect(
+      screen.queryByRole("link", { name: /Rename channel/ })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Mute notifications" })
     ).not.toBeInTheDocument();
   });
 });

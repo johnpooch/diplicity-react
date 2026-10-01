@@ -27,9 +27,7 @@ const mockMarkRead = vi.fn(() => Promise.resolve());
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
-  useUserRetrieveSuspense: () => ({
-    data: { userId: 1, canCreateBotGames: false },
-  }),
+  useUserRetrieveSuspense: () => ({ data: { userId: 1, canCreateBotGames: false } }),
   useGamesChannelsListSuspense: () => ({ data: mockChannelsData() }),
   useGamesChannelsMessagesCreateCreate: () => ({
     mutateAsync: vi.fn(() => Promise.resolve()),
@@ -90,9 +88,7 @@ const gameRunByGameMaster = (overrides = {}) => ({
 const renderChannel = (channelId: number | string = 7) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter
-        initialEntries={[`/game/game-1/phase/1/chat/channel/${channelId}`]}
-      >
+      <MemoryRouter initialEntries={[`/game/game-1/phase/1/chat/channel/${channelId}`]}>
         <Routes>
           <Route
             path="/game/:gameId/phase/:phaseId/chat/channel/:channelId"
@@ -135,9 +131,7 @@ describe("ChannelScreen", () => {
 
     renderChannel();
 
-    expect(
-      screen.queryByPlaceholderText("Type a message")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Type a message")).not.toBeInTheDocument();
   });
 
   it("hides the composer in a private channel for the game master", () => {
@@ -148,9 +142,7 @@ describe("ChannelScreen", () => {
 
     renderChannel();
 
-    expect(
-      screen.queryByPlaceholderText("Type a message")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Type a message")).not.toBeInTheDocument();
   });
 
   it("only shows the title tooltip when the label is truncated", async () => {
@@ -180,9 +172,7 @@ describe("ChannelScreen", () => {
     expect(title).toHaveAttribute("tabindex", "0");
     fireEvent.focus(title);
 
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "Public Press"
-    );
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Public Press");
   });
 
   it("links the channel heading to chat options", () => {
@@ -212,10 +202,7 @@ describe("ChannelScreen", () => {
 
     renderChannel();
 
-    expect(mockMarkRead).toHaveBeenCalledWith({
-      gameId: "game-1",
-      channelId: 7,
-    });
+    expect(mockMarkRead).toHaveBeenCalledWith({ gameId: "game-1", channelId: 7 });
   });
 
   it("does not mark read for a spectator", () => {
@@ -224,6 +211,9 @@ describe("ChannelScreen", () => {
     renderChannel();
 
     expect(mockMarkRead).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("link", { name: "Open chat options for Public Press" })
+    ).toHaveAttribute("href", "/game/game-1/phase/1/chat/channel/7/options");
   });
 
   it("attributes a game master message to the Game Master", () => {
@@ -295,12 +285,7 @@ describe("ChannelScreen", () => {
       gameRunByGameMaster({
         variantId: "standard",
         members: [
-          player({
-            id: 1,
-            name: "Player 1",
-            nation: "England",
-            isCurrentUser: true,
-          }),
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
           player({ id: 2, name: "Player 2", nation: "France" }),
         ],
         gameMaster: null,
@@ -329,12 +314,7 @@ describe("ChannelScreen", () => {
       gameRunByGameMaster({
         variantId: "standard",
         members: [
-          player({
-            id: 1,
-            name: "Player 1",
-            nation: "England",
-            isCurrentUser: true,
-          }),
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
           player({ id: 2, name: "Player 2", nation: "France" }),
         ],
         gameMaster: null,
@@ -377,12 +357,7 @@ describe("ChannelScreen", () => {
       gameRunByGameMaster({
         variantId: "standard",
         members: [
-          player({
-            id: 1,
-            name: "Player 1",
-            nation: "England",
-            isCurrentUser: true,
-          }),
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
           player({ id: 2, name: "Player 2", nation: "France" }),
           player({ id: 3, name: "Player 3", nation: "Germany" }),
         ],
@@ -426,12 +401,7 @@ describe("ChannelScreen", () => {
       gameRunByGameMaster({
         variantId: "standard",
         members: [
-          player({
-            id: 1,
-            name: "Player 1",
-            nation: "England",
-            isCurrentUser: true,
-          }),
+          player({ id: 1, name: "Player 1", nation: "England", isCurrentUser: true }),
           player({ id: 2, name: "Player 2", nation: "France" }),
         ],
         gameMaster: null,

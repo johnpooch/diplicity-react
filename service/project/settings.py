@@ -307,9 +307,6 @@ if _FIREBASE_PROJECT_ID:
 
 SPECTACULAR_SETTINGS = {
     "CAMELIZE_NAMES": True,
-    "ENUM_NAME_OVERRIDES": {
-        "DurationEnum": "common.constants.MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES",
-    },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
         "drf_spectacular.hooks.postprocess_schema_enums",

@@ -304,6 +304,8 @@ export const makeChannel = (
   events: [],
   unreadMessageCount: 0,
   muted: false,
+  canRename: name !== "Public Press",
+  canMute: true,
   memberIds: members.map(m => m.id),
   ...overrides,
 });

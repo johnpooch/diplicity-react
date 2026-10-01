@@ -2,7 +2,12 @@ import { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 
 export type ChannelNation = { flagUrl: string | null; color: string };
 
-export type ChannelMemberNation = ChannelNation & { name: string };
+export type ChannelMemberNation = ChannelNation & {
+  name: string;
+  playerName: string | null;
+  playerPicture: string | null;
+  playerUserId: number | null;
+};
 
 export const GAME_MASTER_LABEL = "Game Master";
 
@@ -17,16 +22,13 @@ export const getMessageSenderLabel = (sender: ChannelMember): string => {
 // non-hex values (e.g. rgb()) so callers can safely concatenate an alpha byte.
 export const toHex6 = (color: string): string => {
   const short = /^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/.exec(color);
-  if (short)
-    return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
+  if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
   if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
   return "#808080";
 };
 
 export const brightnessByColor = (hex: string): number => {
-  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(
-    toHex6(hex)
-  );
+  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(toHex6(hex));
   if (!match) return 128;
   const r = parseInt(match[1], 16);
   const g = parseInt(match[2], 16);
@@ -98,17 +100,9 @@ export const getChannelFlagUrls = (
   channel: Channel,
   members: readonly Member[],
   currentNationName: string | undefined,
-  variantNations: ReadonlyArray<{
-    name: string;
-    flagUrl: string | null;
-    color: string;
-  }>
+  variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
 ): ChannelNation[] => {
-  const nationNames = getChannelNationNames(
-    channel,
-    members,
-    currentNationName
-  );
+  const nationNames = getChannelNationNames(channel, members, currentNationName);
   return nationNames.map(name => {
     const vn = variantNations.find(n => n.name === name);
     return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
@@ -126,8 +120,12 @@ export const getChannelMemberNations = (
 ): ChannelMemberNation[] =>
   getAllChannelNationNames(channel, members).map(name => {
     const nation = variantNations.find(item => item.name === name);
+    const member = members.find(item => item.nation === name);
     return {
       name,
+      playerName: member?.name ?? null,
+      playerPicture: member?.picture ?? null,
+      playerUserId: member?.userId ?? null,
       flagUrl: nation?.flagUrl ?? null,
       color: nation?.color ?? "#808080",
     };

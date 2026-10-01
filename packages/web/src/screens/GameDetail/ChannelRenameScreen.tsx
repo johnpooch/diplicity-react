@@ -61,9 +61,7 @@ const ChannelRenameScreen: React.FC = () => {
   });
 
   const handleBack = () => {
-    navigate(
-      `/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/options`
-    );
+    navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/options`);
   };
 
   const handleRename = async (values: RenameFormValues) => {

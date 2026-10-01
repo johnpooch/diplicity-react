@@ -2090,12 +2090,20 @@ components:
           type: boolean
           readOnly: true
           default: false
+        can_rename:
+          type: boolean
+          readOnly: true
+        can_mute:
+          type: boolean
+          readOnly: true
         member_ids:
           type: array
           items:
             type: integer
           writeOnly: true
       required:
+      - can_mute
+      - can_rename
       - events
       - id
       - member_ids
