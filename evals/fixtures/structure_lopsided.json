@@ -1,0 +1,42 @@
+{
+  "id": "structure_lopsided",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "London has four attractive options listed first; Paris a single dull Hold listed last. Tempts over-investment in London and omission of Paris. Under the per-source contract duplication is impossible, so this fixture now measures coverage alone.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "order_options": [
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "eng"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "wal"
+    },
+    {
+      "source": "lon",
+      "order_type": "Support",
+      "target": "lvp",
+      "aux": "wal"
+    },
+    {
+      "source": "par",
+      "order_type": "Hold",
+      "target": "par"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "id": "support_coherence",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "Wales can support London to Liverpool (support-move) or support London to hold. Coherent iff the supported unit actually ends where the support says. The observed failure is London Hold plus Wales Support London->Liverpool: a support attached to a move never committed.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "wal"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "lvp"
+    },
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    },
+    {
+      "source": "wal",
+      "order_type": "Support",
+      "target": "lvp",
+      "aux": "lon"
+    },
+    {
+      "source": "wal",
+      "order_type": "Support",
+      "target": "lon",
+      "aux": "lon"
+    },
+    {
+      "source": "wal",
+      "order_type": "Hold",
+      "target": "wal"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "id": "structure_six",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "Six provinces, two options each. Pick-one-from-each is now real work and omission becomes a plausible slip. First fixture where green coverage carries weight.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "order_options": [
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    },
+    {
+      "source": "lon",
+      "order_type": "Move",
+      "target": "eng"
+    },
+    {
+      "source": "par",
+      "order_type": "Hold",
+      "target": "par"
+    },
+    {
+      "source": "par",
+      "order_type": "Move",
+      "target": "bur"
+    },
+    {
+      "source": "ber",
+      "order_type": "Hold",
+      "target": "ber"
+    },
+    {
+      "source": "ber",
+      "order_type": "Move",
+      "target": "kie"
+    },
+    {
+      "source": "rom",
+      "order_type": "Hold",
+      "target": "rom"
+    },
+    {
+      "source": "rom",
+      "order_type": "Move",
+      "target": "ven"
+    },
+    {
+      "source": "vie",
+      "order_type": "Hold",
+      "target": "vie"
+    },
+    {
+      "source": "vie",
+      "order_type": "Move",
+      "target": "bud"
+    },
+    {
+      "source": "mos",
+      "order_type": "Hold",
+      "target": "mos"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "ukr"
+    }
+  ]
+}
