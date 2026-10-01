@@ -16,8 +16,8 @@ export function initializeSentry() {
     dsn: sentryDsn,
     environment,
     sampleRate: 1.0,
-    tracesSampleRate: environment === "development" ? 1.0 : 0.5,
-    replaysSessionSampleRate: 0.1,
+    tracesSampleRate: environment === "development" ? 1.0 : 0.05,
+    replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
     sendDefaultPii: false,
 
@@ -28,6 +28,7 @@ export function initializeSentry() {
       "Importing a module script failed",
       "Failed to fetch dynamically imported module",
       "error loading dynamically imported module",
+      "SCDynimacBridge",
     ],
 
     denyUrls: [/chrome-extension:\/\//, /moz-extension:\/\//, /iabjs:\/\//],

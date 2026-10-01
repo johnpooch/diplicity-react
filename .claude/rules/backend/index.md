@@ -26,3 +26,11 @@ Each app contains `models.py`, `serializers.py`, `views.py`, `urls.py`, `conftes
 ## Notification copy
 
 **Notification copy follows a written style guide.** Read `notification-copy.md` before adding a spec to `service/notification/registry.py` or changing the copy in an existing one — title, tense, person, actor naming and links are settled there, not per spec.
+
+## Error reporting
+
+**`logger.error` is a Sentry error event.** The Sentry logging integration turns every ERROR record into an event against a small monthly quota, so reserve it for failures someone must act on. Log expected outcomes (a stale push token, a missing upload) at `warning` or below.
+
+**Log with `%`-style arguments, never f-strings.** Sentry groups log events by the unformatted message template; interpolating counts or names into the string splits one problem into many issues.
+
+**Trace sampling lives in `project/sentry.py`.** An endpoint the client polls on an interval belongs in its polled paths; a health or asset endpoint belongs in its untraced paths.

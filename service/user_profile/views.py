@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import permissions, generics
 from rest_framework.parsers import MultiPartParser
 from django.db import transaction
@@ -19,6 +21,8 @@ from .serializers import (
     UserProfilePictureSerializer,
     UserProfileSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class UserProfileRetrieveView(generics.RetrieveAPIView):
@@ -66,7 +70,13 @@ class UserProfilePictureImageView(View):
         except UserProfilePicture.DoesNotExist:
             return HttpResponseNotFound()
 
-        response = HttpResponse(picture.image.read(), content_type=picture.content_type)
+        try:
+            data = picture.image.read()
+        except FileNotFoundError:
+            logger.warning("Profile picture %s is missing from storage", picture.image.name)
+            return HttpResponseNotFound()
+
+        response = HttpResponse(data, content_type=picture.content_type)
         response["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 

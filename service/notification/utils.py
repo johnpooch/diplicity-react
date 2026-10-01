@@ -74,6 +74,15 @@ def push_results_by_user(user_ids, tokens_by_user, result):
     return results
 
 
+def unexpected_rejections(result):
+    deactivated = set(result.deactivated_registration_ids)
+    return [
+        exception
+        for registration_id, exception in zip(result.failed_registration_ids, result.failed_exceptions)
+        if registration_id not in deactivated
+    ]
+
+
 def send_notification_to_users(user_ids, title, body, notification_type, data=None, tag=None):
     if not user_ids:
         return {}
@@ -105,10 +114,14 @@ def send_notification_to_users(user_ids, title, body, notification_type, data=No
         f"{result.failure_count} rejected, "
         f"{len(result.deactivated_registration_ids)} token(s) deactivated"
     )
-    if result.has_failures:
+    rejections = unexpected_rejections(result)
+    if rejections:
         logger.error(
-            f"FCM rejected {result.failure_count} of {len(result.registration_ids_sent)} "
-            f"{notification_type} message(s): {result.failed_exceptions}"
+            "FCM rejected %d of %d %s message(s): %s",
+            len(rejections),
+            len(result.registration_ids_sent),
+            notification_type,
+            rejections,
         )
 
     return push_results_by_user(user_ids, tokens_by_user, result)
