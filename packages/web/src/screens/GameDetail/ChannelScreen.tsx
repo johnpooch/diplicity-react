@@ -38,6 +38,7 @@ import {
   useGamesChannelsMarkReadCreate,
   getGamesChannelsListQueryKey,
   getGameRetrieveQueryKey,
+  Channel as ChannelType,
   ChannelMessage as ChannelMessageType,
   ChannelEvent as ChannelEventType,
 } from "@/api/generated/endpoints";
@@ -174,6 +175,17 @@ const buildThreadItems = (
   });
 };
 
+const appendSentMessage = (
+  channels: ChannelType[] | undefined,
+  channelId: number,
+  sent: ChannelMessageType
+): ChannelType[] | undefined =>
+  channels?.map(c =>
+    c.id === channelId && !c.messages.some(m => m.id === sent.id)
+      ? { ...c, messages: [...c.messages, sent] }
+      : c
+  );
+
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
 
 const ThreadEventNotice: React.FC<{ text: string }> = ({ text }) => (
@@ -202,7 +214,7 @@ const ChannelScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isDesktopWeb = useIsDesktopWeb();
-  const [message, setMessage] = useDraft(gameId, channelId);
+  const [message, setMessage, draftId] = useDraft(gameId, channelId);
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
@@ -217,6 +229,7 @@ const ChannelScreen: React.FC = () => {
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isSendingRef = useRef(false);
 
   useEffect(() => {
     setSearchParams(prev => {
@@ -304,20 +317,36 @@ const ChannelScreen: React.FC = () => {
   }, [channel.messages, channel.events]);
 
   const handleSubmit = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isSendingRef.current) return;
+    isSendingRef.current = true;
 
+    const channelsQueryKey = getGamesChannelsListQueryKey(gameId);
     try {
-      await createMessageMutation.mutateAsync({
+      const sent = await createMessageMutation.mutateAsync({
         gameId,
-        channelId: parseInt(channelId),
-        data: { body: message },
+        channelId: channel.id,
+        data: { body: message, clientMessageId: draftId },
       });
+      queryClient.setQueryData<ChannelType[]>(channelsQueryKey, channels =>
+        appendSentMessage(channels, channel.id, sent)
+      );
       setMessage("");
-      queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
-      });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     } catch {
-      toast.error("Failed to send message");
+      await queryClient.refetchQueries({ queryKey: channelsQueryKey });
+      const delivered =
+        draftId !== null &&
+        !!queryClient
+          .getQueryData<ChannelType[]>(channelsQueryKey)
+          ?.find(c => c.id === channel.id)
+          ?.messages.some(m => m.clientMessageId === draftId);
+      if (delivered) {
+        setMessage("");
+      } else {
+        toast.error("Failed to send message");
+      }
+    } finally {
+      isSendingRef.current = false;
     }
   };
 
@@ -485,6 +514,7 @@ const ChannelScreen: React.FC = () => {
                   onClick={handleSubmit}
                   disabled={!message.trim() || createMessageMutation.isPending}
                   size="icon"
+                  aria-label="Send message"
                 >
                   <SendHorizontal />
                 </Button>

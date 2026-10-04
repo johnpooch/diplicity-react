@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -24,13 +24,19 @@ beforeAll(() => {
 const mockGameData = vi.fn();
 const mockChannelsData = vi.fn();
 const mockMarkRead = vi.fn(() => Promise.resolve());
+const mockCreateMessage = vi.fn();
+const mockToastError = vi.fn();
+
+vi.mock("sonner", () => ({
+  toast: { error: (...args: unknown[]) => mockToastError(...args) },
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useUserRetrieveSuspense: () => ({ data: { userId: 1, canCreateBotGames: false } }),
   useGamesChannelsListSuspense: () => ({ data: mockChannelsData() }),
   useGamesChannelsMessagesCreateCreate: () => ({
-    mutateAsync: vi.fn(() => Promise.resolve()),
+    mutateAsync: mockCreateMessage,
     isPending: false,
   }),
   useGamesChannelsMarkReadCreate: () => ({ mutateAsync: mockMarkRead }),
@@ -84,9 +90,12 @@ const gameRunByGameMaster = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderChannel = (channelId: number | string = 7) =>
+const renderChannel = (
+  channelId: number | string = 7,
+  queryClient = new QueryClient()
+) =>
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[`/game/game-1/phase/1/chat/channel/${channelId}`]}>
         <Routes>
           <Route
@@ -99,7 +108,10 @@ const renderChannel = (channelId: number | string = 7) =>
   );
 
 beforeEach(() => {
+  sessionStorage.clear();
   mockMarkRead.mockClear();
+  mockCreateMessage.mockReset();
+  mockToastError.mockClear();
   mockChannelsData.mockReturnValue([publicChannel([message()])]);
 });
 
@@ -462,5 +474,110 @@ describe("ChannelScreen", () => {
     expect(
       notice.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  describe("sending a message", () => {
+    const channelsQueryKey = ["channels", "game-1"];
+
+    const seatedPlayerGame = () =>
+      gameRunByGameMaster({
+        members: [player({ isCurrentUser: true })],
+        gameMaster: null,
+      });
+
+    const sentClientMessageId = (call = 0) =>
+      mockCreateMessage.mock.calls[call][0].data.clientMessageId;
+
+    const typeAndSend = (body: string) => {
+      fireEvent.change(screen.getByPlaceholderText("Type a message"), {
+        target: { value: body },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    };
+
+    beforeEach(() => {
+      mockGameData.mockReturnValue(seatedPlayerGame());
+    });
+
+    it("sends only once when Send is pressed twice quickly", () => {
+      mockCreateMessage.mockReturnValue(new Promise(() => {}));
+      renderChannel();
+
+      typeAndSend("Can u tap Sev");
+      fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+      expect(mockCreateMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends the same client message id when the same text is resent", async () => {
+      mockCreateMessage.mockRejectedValue(new Error("Network Error"));
+      renderChannel();
+
+      typeAndSend("Can u tap Sev");
+      await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
+      fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+      await waitFor(() => expect(mockCreateMessage).toHaveBeenCalledTimes(2));
+
+      expect(mockCreateMessage.mock.calls[0][0].data.body).toBe("Can u tap Sev");
+      expect(sentClientMessageId(0)).toEqual(expect.any(String));
+      expect(sentClientMessageId(1)).toBe(sentClientMessageId(0));
+    });
+
+    it("adds the sent message to the channel cache straight away", async () => {
+      const queryClient = new QueryClient();
+      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
+      mockCreateMessage.mockResolvedValue(message({ id: 2, body: "Can u tap Sev" }));
+      renderChannel(7, queryClient);
+
+      typeAndSend("Can u tap Sev");
+
+      await waitFor(() =>
+        expect(
+          queryClient
+            .getQueryData<ReturnType<typeof publicChannel>[]>(channelsQueryKey)?.[0]
+            .messages.map(m => (m as { id: number }).id)
+        ).toEqual([1, 2])
+      );
+      expect(screen.getByPlaceholderText("Type a message")).toHaveValue("");
+    });
+
+    it("clears the composer when a failed send turns out to have been saved", async () => {
+      const queryClient = new QueryClient();
+      queryClient.setQueryDefaults(channelsQueryKey, {
+        queryFn: () => [
+          publicChannel([
+            message(),
+            message({ id: 2, body: "Can u tap Sev", clientMessageId: sentClientMessageId() }),
+          ]),
+        ],
+      });
+      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
+      mockCreateMessage.mockRejectedValue(new Error("Network Error"));
+      renderChannel(7, queryClient);
+
+      typeAndSend("Can u tap Sev");
+
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText("Type a message")).toHaveValue("")
+      );
+      expect(mockToastError).not.toHaveBeenCalled();
+    });
+
+    it("keeps the text and shows an error when the message was not saved", async () => {
+      const queryClient = new QueryClient();
+      queryClient.setQueryDefaults(channelsQueryKey, {
+        queryFn: () => [publicChannel([message()])],
+      });
+      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
+      mockCreateMessage.mockRejectedValue(new Error("Network Error"));
+      renderChannel(7, queryClient);
+
+      typeAndSend("Can u tap Sev");
+
+      await waitFor(() =>
+        expect(mockToastError).toHaveBeenCalledWith("Failed to send message")
+      );
+      expect(screen.getByPlaceholderText("Type a message")).toHaveValue("Can u tap Sev");
+    });
   });
 });

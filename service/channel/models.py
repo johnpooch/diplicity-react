@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -137,6 +137,22 @@ class ChannelMessageQuerySet(models.QuerySet):
             created_at__gt=last_read_subquery,
         ).exclude(sender__user=user)
 
+    def create_idempotent(self, channel, sender, phase, body, client_message_id):
+        if client_message_id is None:
+            return self.create(channel=channel, sender=sender, phase=phase, body=body), True
+        try:
+            with transaction.atomic():
+                message = self.create(
+                    channel=channel,
+                    sender=sender,
+                    phase=phase,
+                    body=body,
+                    client_message_id=client_message_id,
+                )
+        except IntegrityError:
+            return self.get(sender=sender, client_message_id=client_message_id), False
+        return message, True
+
 
 class ChannelMessage(BaseModel):
     channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="messages")
@@ -145,11 +161,19 @@ class ChannelMessage(BaseModel):
         "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_messages"
     )
     body = models.TextField()
+    client_message_id = models.UUIDField(null=True, blank=True)
 
     objects = ChannelMessageQuerySet.as_manager()
 
     class Meta:
         ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sender", "client_message_id"],
+                condition=Q(client_message_id__isnull=False),
+                name="channel_message_unique_client_id_per_sender",
+            ),
+        ]
 
 
 class ChannelEventQuerySet(models.QuerySet):

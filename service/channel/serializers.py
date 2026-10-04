@@ -26,6 +26,7 @@ class ChannelMessageSerializer(serializers.Serializer):
             "max_length": f"Messages cannot be longer than {settings.CHAT_MESSAGE_MAX_CHARS} characters."
         },
     )
+    client_message_id = serializers.UUIDField(required=False, allow_null=True)
     sender = ChannelMemberSerializer(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
@@ -33,14 +34,16 @@ class ChannelMessageSerializer(serializers.Serializer):
         channel = self.context["channel"]
         member = self.context["current_game_member"]
 
-        message = ChannelMessage.objects.create(
+        message, created = ChannelMessage.objects.create_idempotent(
             channel=channel,
             sender=member,
             phase=channel.game.current_phase,
             body=validated_data["body"],
+            client_message_id=validated_data.get("client_message_id"),
         )
 
-        emit("channel_message", message=message)
+        if created:
+            emit("channel_message", message=message)
         return message
 
 

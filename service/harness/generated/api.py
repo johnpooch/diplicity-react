@@ -434,6 +434,7 @@ class ChannelMember(TypedDict):
 class ChannelMessage(TypedDict):
     id: int
     body: str
+    client_message_id: NotRequired[str | None]
     sender: ChannelMember
     created_at: str
 

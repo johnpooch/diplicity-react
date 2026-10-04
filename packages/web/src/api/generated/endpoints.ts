@@ -97,6 +97,8 @@ export interface ChannelMessage {
   readonly id: number;
   /** @maxLength 500 */
   body: string;
+  /** @nullable */
+  clientMessageId?: string | null;
   readonly sender: ChannelMember;
   readonly createdAt: string;
 }

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import type {
+  ChannelMessage,
   GameList,
   PaginatedGameListList,
   PhaseList,
@@ -13,6 +14,7 @@ import {
   fixtureByGameId,
   makeBotMember,
   makeMember,
+  makeMessage,
   publicProfiles,
 } from "./fixtures";
 import { nation as classicalNation } from "./fixtures/classical";
@@ -389,9 +391,18 @@ export const handlers = [
   }),
   http.post(
     "*/games/:gameId/channels/:channelId/messages/create/",
-    async ({ request }) => {
-      const body = (await request.json()) as Record<string, unknown>;
-      return HttpResponse.json(body, { status: 201 });
+    async ({ params, request }) => {
+      const fixture = gameOr404(params.gameId as string);
+      const sender = fixture?.game.members.find(m => m.isCurrentUser);
+      if (!sender) return notFound();
+      const body = (await request.json()) as ChannelMessage;
+      return HttpResponse.json(
+        {
+          ...makeMessage(sender, body.body, new Date().toISOString()),
+          clientMessageId: body.clientMessageId ?? null,
+        },
+        { status: 201 }
+      );
     }
   ),
   http.post("*/games/:gameId/channels/:channelId/mark-read/", () =>

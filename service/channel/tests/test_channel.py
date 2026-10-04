@@ -688,6 +688,93 @@ class TestChannelMessageCreateView:
         assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_member.user_id]
 
     @pytest.mark.django_db
+    def test_create_message_repeat_client_message_id_returns_existing_message(
+        self,
+        authenticated_client,
+        game_with_two_members,
+        in_memory_procrastinate,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        public_channel = Channel.objects.create(game=game_with_two_members, name="Public Press", private=False)
+        secondary_member = game_with_two_members.members.get(nation=classical_france_nation)
+
+        url = reverse("channel-message-create", args=[game_with_two_members.id, public_channel.id])
+        payload = {"body": "Can u tap Sev", "client_message_id": "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"}
+        first = authenticated_client.post(url, payload, format="json")
+        second = authenticated_client.post(url, payload, format="json")
+
+        assert first.status_code == status.HTTP_201_CREATED
+        assert second.status_code == status.HTTP_201_CREATED
+        assert second.data["id"] == first.data["id"]
+        assert second.data["client_message_id"] == "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"
+        assert ChannelMessage.objects.filter(channel=public_channel).count() == 1
+        assert list(_channel_message_notifications().values_list("recipient_id", flat=True)) == [
+            secondary_member.user_id
+        ]
+
+    @pytest.mark.django_db
+    def test_create_message_without_client_message_id_is_not_deduplicated(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+    ):
+        private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
+
+        first = authenticated_client.post(url, {"body": "Hello"}, format="json")
+        second = authenticated_client.post(url, {"body": "Hello"}, format="json")
+
+        assert first.status_code == status.HTTP_201_CREATED
+        assert second.status_code == status.HTTP_201_CREATED
+        assert first.data["client_message_id"] is None
+        assert ChannelMessage.objects.filter(channel=private_channel).count() == 2
+
+    @pytest.mark.django_db
+    def test_create_message_same_client_message_id_from_different_senders(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        game_with_two_members,
+        in_memory_procrastinate,
+    ):
+        public_channel = Channel.objects.create(game=game_with_two_members, name="Public Press", private=False)
+        url = reverse("channel-message-create", args=[game_with_two_members.id, public_channel.id])
+        payload = {"body": "Hello", "client_message_id": "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"}
+
+        first = authenticated_client.post(url, payload, format="json")
+        second = authenticated_client_for_secondary_user.post(url, payload, format="json")
+
+        assert first.status_code == status.HTTP_201_CREATED
+        assert second.status_code == status.HTTP_201_CREATED
+        assert second.data["id"] != first.data["id"]
+        assert ChannelMessage.objects.filter(channel=public_channel).count() == 2
+
+    @pytest.mark.django_db
+    def test_create_message_invalid_client_message_id(self, authenticated_client, active_game_with_private_channel):
+        private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
+
+        response = authenticated_client.post(url, {"body": "Hello", "client_message_id": "not-a-uuid"}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "client_message_id" in response.data
+        assert not ChannelMessage.objects.filter(channel=private_channel).exists()
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_client_message_id(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+    ):
+        private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        create_url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
+        authenticated_client.post(
+            create_url, {"body": "Hello", "client_message_id": "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"}, format="json"
+        )
+
+        response = authenticated_client.get(reverse("channel-list", args=[active_game_with_private_channel.id]))
+
+        channel = next(c for c in response.data if c["id"] == private_channel.id)
+        assert channel["messages"][0]["client_message_id"] == "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"
+
+    @pytest.mark.django_db
     def test_create_message_in_private_channel_as_non_member_fails(
         self, authenticated_client_for_secondary_user, active_game_with_private_channel
     ):
