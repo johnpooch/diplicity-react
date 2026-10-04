@@ -1366,6 +1366,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChannelMessage'
           description: ''
+  /games/{gameId}/channels/{channelId}/mute/:
+    put:
+      operationId: gamesChannelsMuteUpdate
+      description: Mute or unmute notifications for a channel.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelMute'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelMute'
+          description: ''
+    patch:
+      operationId: gamesChannelsMutePartialUpdate
+      description: Mute or unmute notifications for a channel.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChannelMute'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelMute'
+          description: ''
   /games/{gameId}/channels/create/:
     post:
       operationId: gamesChannelsCreateCreate
@@ -2024,16 +2086,29 @@ components:
           type: integer
           readOnly: true
           default: 0
+        muted:
+          type: boolean
+          readOnly: true
+          default: false
+        canRename:
+          type: boolean
+          readOnly: true
+        canMute:
+          type: boolean
+          readOnly: true
         memberIds:
           type: array
           items:
             type: integer
           writeOnly: true
       required:
+      - canMute
+      - canRename
       - events
       - id
       - memberIds
       - messages
+      - muted
       - name
       - private
       - unreadMessageCount
@@ -2120,6 +2195,21 @@ components:
       - createdAt
       - id
       - sender
+    ChannelMute:
+      type: object
+      properties:
+        muted:
+          type: boolean
+          readOnly: true
+        muteDuration:
+          writeOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/MuteDurationEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - muteDuration
+      - muted
     ChannelUpdate:
       type: object
       properties:
@@ -3149,6 +3239,16 @@ components:
         * `daily` - Daily
         * `every_2_days` - Every 2 days
         * `weekly` - Weekly
+    MuteDurationEnum:
+      enum:
+      - 8_hours
+      - 24_hours
+      - indefinite
+      type: string
+      description: |-
+        * `8_hours` - 8_hours
+        * `24_hours` - 24_hours
+        * `indefinite` - indefinite
     MyVote:
       type: object
       properties:
@@ -3395,6 +3495,18 @@ components:
       - newPassword
       - token
       - uid
+    PatchedChannelMute:
+      type: object
+      properties:
+        muted:
+          type: boolean
+          readOnly: true
+        muteDuration:
+          writeOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/MuteDurationEnum'
+          - $ref: '#/components/schemas/NullEnum'
     PatchedChannelUpdate:
       type: object
       properties:

@@ -11,7 +11,7 @@ from django.utils import timezone
 from fcm_django.types import FirebaseResponseDict
 
 from adjudicator import service as adjudication_service
-from channel.models import Channel, ChannelMessage
+from channel.models import Channel, ChannelMember, ChannelMessage
 from channel.serializers import ChannelMessageSerializer
 from common.constants import DeadlineMode, GameStatus, PhaseFrequency, PhaseStatus
 from draw_proposal.models import DrawProposal
@@ -655,6 +655,37 @@ class TestChannelMessageResolver:
         message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
+
+    def test_muted_channel_member_is_not_notified(self, emit_game):
+        state = emit_game()
+        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
+        sender = state["active_one"]
+        ChannelMember.objects.create(
+            channel=channel,
+            member=state["active_two"],
+            muted_indefinitely=True,
+        )
+        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+
+        result = resolve_recipients("channel_message", message=message)
+
+        assert state["active_two"].user_id not in result
+        assert state["eliminated"].user_id in result
+
+    def test_expired_channel_mute_does_not_suppress_notification(self, emit_game):
+        state = emit_game()
+        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
+        sender = state["active_one"]
+        ChannelMember.objects.create(
+            channel=channel,
+            member=state["active_two"],
+            muted_until=timezone.now() - timedelta(minutes=1),
+        )
+        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+
+        result = resolve_recipients("channel_message", message=message)
+
+        assert state["active_two"].user_id in result
 
 
 @pytest.mark.django_db
