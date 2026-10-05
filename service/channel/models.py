@@ -119,7 +119,7 @@ class Channel(BaseModel):
 
     def member_user_ids(self):
         members = self.members if self.private else self.game.members
-        return {m.user_id for m in members.all() if m.user_id is not None}
+        return {m.user_id for m in members.all() if m.user_id is not None and not m.kicked}
 
     def notifiable_member_user_ids(self):
         muted_user_ids = set(
