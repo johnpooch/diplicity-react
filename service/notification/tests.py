@@ -289,7 +289,9 @@ class TestRegistry:
         assert NOTIFICATION_REGISTRY[event_type](context).get_title() == active_game.name
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("event_type", sorted(set(NOTIFICATION_REGISTRY) - {"channel_message"}))
+    @pytest.mark.parametrize(
+        "event_type", sorted(set(NOTIFICATION_REGISTRY) - {"channel_message", "game_admin_reassigned"})
+    )
     def test_every_spec_outside_chat_is_tagged_per_game(self, active_game, event_type):
         channel = Channel.objects.create(game=active_game, name="Global", private=False)
         context = build_context(
@@ -299,6 +301,12 @@ class TestRegistry:
             channel=channel,
         )
         assert NOTIFICATION_REGISTRY[event_type](context).get_tag() == f"game-{active_game.id}"
+
+    @pytest.mark.django_db
+    def test_game_admin_reassigned_survives_the_resolution_push_it_is_emitted_with(self, active_game):
+        admin_tag = render_push("game_admin_reassigned", game=active_game)["tag"]
+        resolution_tag = render_push("phase_resolved", phase=active_game.current_phase)["tag"]
+        assert admin_tag != resolution_tag
 
     def test_game_deleted_is_the_only_declared_link_exception(self):
         declared = {
