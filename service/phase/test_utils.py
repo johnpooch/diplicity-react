@@ -435,6 +435,8 @@ class TestDeadlineWarningOffset:
         "duration_seconds, expected",
         [
             (None, timedelta(hours=1)),
+            (5 * 60, timedelta(minutes=2, seconds=30)),
+            (15 * 60, timedelta(minutes=7, seconds=30)),
             (30 * 60, timedelta(minutes=15)),
             (3600, timedelta(minutes=15)),
             (24 * 3600, timedelta(hours=1)),
@@ -445,3 +447,7 @@ class TestDeadlineWarningOffset:
     )
     def test_offset_scales_with_phase_duration(self, duration_seconds, expected):
         assert deadline_warning_offset(duration_seconds) == expected
+
+    @pytest.mark.parametrize("duration_seconds", [60, 5 * 60, 15 * 60, 30 * 60])
+    def test_short_phase_is_warned_after_it_opens(self, duration_seconds):
+        assert deadline_warning_offset(duration_seconds) < timedelta(seconds=duration_seconds)
