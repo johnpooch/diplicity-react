@@ -5712,6 +5712,37 @@ class TestNMRExtensionsFixedTime:
         assert phase.scheduled_resolution > now + timedelta(hours=24)
 
     @pytest.mark.django_db
+    def test_player_whose_extension_is_used_is_told_once(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
+        )
+        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects._apply_nmr_extensions(phase)
+
+        italy_events = set(Notification.objects.filter(recipient=italy.user).values_list("event_type", flat=True))
+        germany_events = set(Notification.objects.filter(recipient=germany.user).values_list("event_type", flat=True))
+        assert italy_events == {"nmr_extension_used"}
+        assert germany_events == {"nmr_extension_applied"}
+
+    @pytest.mark.django_db
     def test_fixed_time_orders_submitted_unconfirmed_skips_extension(
         self,
         deadline_warning_game_factory,

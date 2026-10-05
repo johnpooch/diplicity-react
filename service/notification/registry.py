@@ -359,7 +359,8 @@ class NmrExtensionUsedSpec(NotificationSpec):
 @register("nmr_extension_applied")
 class NmrExtensionAppliedSpec(NotificationSpec):
     def get_audience(self):
-        return self.context.game.seated_member_user_ids()
+        extended_user_ids = set(self.context.payload.get("extended_user_ids", []))
+        return self.context.game.seated_member_user_ids() - extended_user_ids
 
     def get_body(self):
         return f"An automatic extension has been used.{self.deadline_clause(self.context.phase)}"
