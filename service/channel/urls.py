@@ -4,6 +4,7 @@ from .views import (
     ChannelMessageCreateView,
     ChannelListView,
     ChannelMarkReadView,
+    ChannelMuteView,
     ChannelUpdateView,
 )
 
@@ -24,5 +25,10 @@ urlpatterns = [
         "games/<str:game_id>/channels/<int:channel_id>/mark-read/",
         ChannelMarkReadView.as_view(),
         name="channel-mark-read",
+    ),
+    path(
+        "games/<str:game_id>/channels/<int:channel_id>/mute/",
+        ChannelMuteView.as_view(),
+        name="channel-mute",
     ),
 ]

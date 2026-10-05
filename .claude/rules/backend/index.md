@@ -26,3 +26,13 @@ Each app contains `models.py`, `serializers.py`, `views.py`, `urls.py`, `conftes
 ## Notification copy
 
 **Notification copy follows a written style guide.** Read `notification-copy.md` before adding a spec to `service/notification/registry.py` or changing the copy in an existing one — title, tense, person, actor naming and links are settled there, not per spec.
+
+## Error reporting
+
+**`logger.error` is a Sentry error event.** The Sentry logging integration turns every ERROR record into an event against a small monthly quota, so reserve it for failures someone must act on. Log expected outcomes (a stale push token, a missing upload) at `warning` or below.
+
+**Log with `%`-style arguments, never f-strings.** Sentry groups log events by the unformatted message template; interpolating counts or names into the string splits one problem into many issues.
+
+**Trace sampling lives in `project/sentry.py`.** An endpoint the client polls on an interval belongs in its polled paths; a health or asset endpoint belongs in its untraced paths.
+
+**Honeycomb sampling is decided by trace ID, identically on both sides.** `DeterministicSampler` in `project/otel_config.py` and `deterministicSampler` in `packages/web/src/observability.ts` keep a trace when the low 64 bits of its ID are divisible by `TRACE_SAMPLE_RATE`, so the web client and API keep the same traces without trusting the client's sampled flag. Change the rate or rule in both files together, and keep the `SampleRate` attribute on every kept span — Honeycomb multiplies counts by it.

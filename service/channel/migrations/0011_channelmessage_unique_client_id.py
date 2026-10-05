@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("channel", "0009_channelmessage_client_message_id"),
+        ("channel", "0010_channelmessage_client_message_id"),
     ]
 
     operations = [

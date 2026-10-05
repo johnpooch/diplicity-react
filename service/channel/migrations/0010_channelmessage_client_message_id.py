@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("channel", "0008_channel_event_payload"),
+        ("channel", "0009_channelmember_mute_state"),
     ]
 
     operations = [

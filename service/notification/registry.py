@@ -113,7 +113,7 @@ class ChannelMessageSpec(NotificationSpec):
     exclude_actor = True
 
     def get_audience(self):
-        return self.context.channel.member_user_ids()
+        return self.context.channel.notifiable_member_user_ids()
 
     def get_link(self):
         return f"{self._game_url()}/phase/{self.context.phase.id}/chat/channel/{self.context.channel.id}"

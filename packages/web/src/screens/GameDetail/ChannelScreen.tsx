@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { SendHorizontal, MessageCircle, MessageSquareOff, Pencil } from "lucide-react";
+import { ChevronRight, SendHorizontal, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { toast } from "sonner";
@@ -257,12 +257,15 @@ const ChannelScreen: React.FC = () => {
   const showSenderLabels = isGroupChannel(channel, game.members, currentNationName);
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelSubtitle = getChannelSubtitle(channel, game.members, currentNationName);
-  const channelTitle = (
-    <div className="min-w-0 flex-1 text-left">
-      <TruncatedTooltipLabel
-        text={channelDisplayName}
-        className="text-xl font-semibold leading-9"
-      />
+  const channelTitleContent = (
+    <>
+      <div className="flex min-w-0 items-center gap-1">
+        <TruncatedTooltipLabel
+          text={channelDisplayName}
+          className="min-w-0 text-xl font-semibold leading-9"
+        />
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      </div>
       {channelSubtitle && (
         <div className="leading-none">
           <TruncatedTooltipLabel
@@ -271,24 +274,16 @@ const ChannelScreen: React.FC = () => {
           />
         </div>
       )}
-    </div>
-  );
-  const headerButtons = (
-    <>
-      {channel.private && currentMember && (
-        <Button
-          variant="outline"
-          size="icon-sm"
-          className="rounded-md"
-          aria-label="Rename channel"
-          asChild
-        >
-          <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/rename`}>
-            <Pencil />
-          </Link>
-        </Button>
-      )}
     </>
+  );
+  const channelTitle = (
+    <Link
+      to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/options`}
+      className="block min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label={`Open chat options for ${channelDisplayName}`}
+    >
+      {channelTitleContent}
+    </Link>
   );
 
   useEffect(() => {
@@ -377,7 +372,6 @@ const ChannelScreen: React.FC = () => {
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
           variant="secondary"
-          rightButton={headerButtons}
         />
         <div className="flex-1 overflow-hidden">
           <Panel>
@@ -400,7 +394,6 @@ const ChannelScreen: React.FC = () => {
         title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
-        rightButton={headerButtons}
       />
       <div className="flex-1 overflow-hidden">
         <Panel>

@@ -76,6 +76,7 @@ const publicChannel = (messages: unknown[] = [], events: unknown[] = []) => ({
   private: false,
   memberIds: [1],
   unreadMessageCount: 0,
+  muted: false,
   messages,
   events,
 });
@@ -186,7 +187,7 @@ describe("ChannelScreen", () => {
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Public Press");
   });
 
-  it("uses a rounded square rename button and no footer divider", () => {
+  it("links the channel heading to chat options", () => {
     mockGameData.mockReturnValue(
       gameRunByGameMaster({
         members: [player({ isCurrentUser: true })],
@@ -199,12 +200,12 @@ describe("ChannelScreen", () => {
 
     renderChannel();
 
-    expect(screen.getByRole("link", { name: "Rename channel" })).toHaveClass(
-      "rounded-md"
-    );
-    expect(screen.getByRole("link", { name: "Rename channel" })).not.toHaveClass(
-      "rounded-full"
-    );
+    expect(
+      screen.getByRole("link", { name: "Open chat options for France" })
+    ).toHaveAttribute("href", "/game/game-1/phase/1/chat/channel/7/options");
+    expect(
+      screen.queryByRole("link", { name: "Rename channel" })
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("separator")).not.toBeInTheDocument();
   });
 
@@ -222,6 +223,9 @@ describe("ChannelScreen", () => {
     renderChannel();
 
     expect(mockMarkRead).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("link", { name: "Open chat options for Public Press" })
+    ).toHaveAttribute("href", "/game/game-1/phase/1/chat/channel/7/options");
   });
 
   it("attributes a game master message to the Game Master", () => {

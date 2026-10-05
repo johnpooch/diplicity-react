@@ -1,9 +1,12 @@
+from datetime import timedelta
+
 from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
 
 from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
+from .policies import can_mute_channel, can_rename_channel
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
 from emit import emit
@@ -68,8 +71,32 @@ class ChannelSerializer(serializers.Serializer):
     messages = ChannelMessageSerializer(many=True, read_only=True)
     events = ChannelEventSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
+    muted = serializers.BooleanField(read_only=True, default=False)
+    can_rename = serializers.SerializerMethodField()
+    can_mute = serializers.SerializerMethodField()
 
     member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
+
+    def is_channel_member(self, channel, member):
+        if member is None:
+            return False
+        if not channel.private:
+            return True
+        return any(channel_member.id == member.id for channel_member in channel.members.all())
+
+    def get_can_rename(self, channel) -> bool:
+        game = self.context["game"]
+        member = self.context.get("current_game_member")
+        return can_rename_channel(
+            channel,
+            game,
+            member,
+            self.is_channel_member(channel, member),
+        )
+
+    def get_can_mute(self, channel) -> bool:
+        member = self.context.get("current_game_member")
+        return can_mute_channel(member, self.is_channel_member(channel, member))
 
     def validate_member_ids(self, value):
         game = self.context["game"]
@@ -136,3 +163,31 @@ class ChannelMarkReadSerializer(serializers.Serializer):
         channel_member.last_read_at = timezone.now()
         channel_member.save(update_fields=["last_read_at"])
         return channel_member
+
+
+class ChannelMuteSerializer(serializers.Serializer):
+    muted = serializers.BooleanField(read_only=True)
+    mute_duration = serializers.ChoiceField(
+        choices=("8_hours", "24_hours", "indefinite"),
+        allow_null=True,
+        required=True,
+        write_only=True,
+    )
+
+    def validate(self, attrs):
+        if "mute_duration" not in attrs:
+            raise serializers.ValidationError(
+                {"mute_duration": "This field is required."}
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        duration = validated_data["mute_duration"]
+        instance.muted_until = None
+        instance.muted_indefinitely = duration == "indefinite"
+        if duration == "8_hours":
+            instance.muted_until = timezone.now() + timedelta(hours=8)
+        elif duration == "24_hours":
+            instance.muted_until = timezone.now() + timedelta(hours=24)
+        instance.save(update_fields=["muted_until", "muted_indefinitely"])
+        return instance
