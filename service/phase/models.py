@@ -285,7 +285,6 @@ class PhaseManager(models.Manager):
             actionable_units = phase.actionable_units
             forced_nations = phase.nations_with_forced_orders
 
-            is_adjustment = phase.type == PhaseType.ADJUSTMENT
             warned_states = []
 
             for ps in phase.phase_states.all():
@@ -309,7 +308,7 @@ class PhaseManager(models.Manager):
                 body = build_notification_body(
                     ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units,
                     ps.member.nmr_extensions_remaining,
-                    is_adjustment=is_adjustment,
+                    phase_type=phase.type,
                     deadline_extended=deadline_extended,
                 )
                 if body is None:
@@ -878,6 +877,8 @@ class Phase(BaseModel):
 
     @property
     def members_that_require_nmr_extension(self):
+        if self.type != PhaseType.MOVEMENT:
+            return []
         phase_states = (
             self.phase_states.filter(
                 has_possible_orders=True,

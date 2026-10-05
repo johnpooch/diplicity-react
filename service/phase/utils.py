@@ -37,12 +37,14 @@ def deadline_warning_offset(duration_seconds):
 
 def build_notification_body(
     orders_confirmed, is_fixed_time, orders_given, total_units, extensions_remaining,
-    is_adjustment=False, deadline_extended=False,
+    phase_type=PhaseType.MOVEMENT, deadline_extended=False,
 ):
-    if extensions_remaining > 0:
-        nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
-    elif is_adjustment:
+    if phase_type == PhaseType.RETREAT:
+        nmr_suffix = "If no orders given, your dislodged units will be disbanded."
+    elif phase_type == PhaseType.ADJUSTMENT:
         nmr_suffix = "If no orders given, adjustments will be made automatically."
+    elif extensions_remaining > 0:
+        nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
     else:
         nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."
 

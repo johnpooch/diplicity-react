@@ -5604,7 +5604,7 @@ class TestSendDeadlineWarning:
         assert "adjustments will be made automatically" in call_kwargs["body"]
 
     @pytest.mark.django_db
-    def test_adjustment_phase_no_orders_with_extensions_shows_extension_message(
+    def test_adjustment_phase_no_orders_with_extensions_does_not_threaten_an_extension(
         self,
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
@@ -5644,9 +5644,37 @@ class TestSendDeadlineWarning:
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args.kwargs
-        assert "deadline will extend" in call_kwargs["body"]
-        assert "lose an extension" in call_kwargs["body"]
-        assert "adjustments will be made automatically" not in call_kwargs["body"]
+        assert "lose an extension" not in call_kwargs["body"]
+        assert "adjustments will be made automatically" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_retreat_phase_no_orders_with_extensions_says_dislodged_units_disband(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        phase.type = PhaseType.RETREAT
+        phase.save()
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+            dislodged=True,
+        )
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warning(phase.id)
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "lose an extension" not in call_kwargs["body"]
+        assert "your dislodged units will be disbanded" in call_kwargs["body"]
 
 
 class TestNMRExtensionsFixedTime:
@@ -5857,7 +5885,7 @@ class TestNMRExtensionsNothingToOrder:
         assert italy.nmr_extensions_remaining == 1
 
     @pytest.mark.django_db
-    def test_adjustment_phase_with_build_available_consumes_extension(
+    def test_adjustment_phase_with_build_available_does_not_consume_extension(
         self,
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
@@ -5880,11 +5908,11 @@ class TestNMRExtensionsNothingToOrder:
 
         result = Phase.objects._apply_nmr_extensions(phase)
 
-        assert result is not None
+        assert result is None
         italy.refresh_from_db()
-        assert italy.nmr_extensions_remaining == 0
+        assert italy.nmr_extensions_remaining == 1
         phase.refresh_from_db()
-        assert phase.scheduled_resolution > now
+        assert phase.scheduled_resolution < now
 
     @pytest.mark.django_db
     def test_retreat_phase_with_no_dislodged_units_does_not_consume_extension(
@@ -5917,7 +5945,7 @@ class TestNMRExtensionsNothingToOrder:
         assert italy.nmr_extensions_remaining == 1
 
     @pytest.mark.django_db
-    def test_retreat_phase_with_dislodged_unit_consumes_extension(
+    def test_retreat_phase_with_dislodged_unit_does_not_consume_extension(
         self,
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
@@ -5943,9 +5971,11 @@ class TestNMRExtensionsNothingToOrder:
 
         result = Phase.objects._apply_nmr_extensions(phase)
 
-        assert result is not None
+        assert result is None
         italy.refresh_from_db()
-        assert italy.nmr_extensions_remaining == 0
+        assert italy.nmr_extensions_remaining == 1
+        phase.refresh_from_db()
+        assert phase.scheduled_resolution < now
 
     @pytest.mark.django_db
     def test_only_members_with_something_to_order_consume_extensions(
@@ -5955,7 +5985,6 @@ class TestNMRExtensionsNothingToOrder:
         italy_vs_germany_germany_nation,
         italy_vs_germany_venice_province,
         italy_vs_germany_kiel_province,
-        italy_vs_germany_berlin_province,
     ):
         now = timezone.now()
         game, italy, germany, phase = deadline_warning_game_factory(
@@ -5963,25 +5992,17 @@ class TestNMRExtensionsNothingToOrder:
         )
         game.movement_phase_duration = "48 hours"
         game.save()
-        phase.type = PhaseType.ADJUSTMENT
-        phase.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
         germany.nmr_extensions_remaining = 1
         germany.save()
-        phase.units.create(
-            province=italy_vs_germany_venice_province,
-            type=UnitType.ARMY,
-            nation=italy_vs_germany_italy_nation,
-        )
         phase.supply_centers.create(
             province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation
         )
-        phase.supply_centers.create(
-            province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
-        )
-        phase.supply_centers.create(
-            province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation
+        phase.units.create(
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
         phase.phase_states.create(member=germany, has_possible_orders=True)
@@ -6031,45 +6052,6 @@ class TestNMRExtensionsNothingToOrder:
         assert italy.nmr_extensions_remaining == 1
         phase.refresh_from_db()
         assert phase.scheduled_resolution == now - timedelta(minutes=1)
-
-    @pytest.mark.django_db
-    def test_adjustment_partial_disband_consumes_extension(
-        self,
-        deadline_warning_game_factory,
-        italy_vs_germany_italy_nation,
-        italy_vs_germany_venice_province,
-        italy_vs_germany_rome_province,
-    ):
-        now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(
-            DeadlineMode.DURATION, now - timedelta(minutes=1)
-        )
-        game.movement_phase_duration = "48 hours"
-        game.save()
-        phase.type = PhaseType.ADJUSTMENT
-        phase.save()
-        italy.nmr_extensions_remaining = 1
-        italy.save()
-        phase.units.create(
-            province=italy_vs_germany_venice_province,
-            type=UnitType.ARMY,
-            nation=italy_vs_germany_italy_nation,
-        )
-        phase.units.create(
-            province=italy_vs_germany_rome_province,
-            type=UnitType.ARMY,
-            nation=italy_vs_germany_italy_nation,
-        )
-        phase.supply_centers.create(
-            province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
-        )
-        phase.phase_states.create(member=italy, has_possible_orders=True)
-
-        result = Phase.objects._apply_nmr_extensions(phase)
-
-        assert result is not None
-        italy.refresh_from_db()
-        assert italy.nmr_extensions_remaining == 0
 
 
 def _elimination_notifications():
