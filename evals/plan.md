@@ -1,6 +1,6 @@
 # AI player evals: the order side
 
-Implementation plan. Phase 0 and tasks 1.1 to 1.4 are built; everything after them is not.
+Implementation plan. Phases 0 and 1 are built; everything after them is not.
 
 Source material: discussion [#1368 "AI player evals"](https://github.com/johnpooch/diplicity-react/discussions/1368),
 a call with John, a design session on 22-23 September 2026, and voice notes from
@@ -595,8 +595,12 @@ own it at the following Adjustment.
     example an empty Retreat) are skipped and never persisted
     (`service/adjudicator/service.py:145`), so the next stored phase is not always
     the next engine phase. `actual_outcome` is computed by adjudicating
-    `actual_orders` with the engine. The stored resolutions are a cross-check, and
-    so is the next stored phase: its units when the engine's next phase is an
+    `actual_orders` with the engine. The stored resolutions are a cross-check on
+    whether each order succeeded, not on its exact failure code, because games
+    adjudicated by godip name some failures differently (`ErrIllegalMove` where
+    the engine says `ErrInvalidSupporteeOrder`). The next stored phase is a
+    cross-check too,
+    its units when the engine's next phase is an
     empty Retreat or the same phase, its supply centres only when it is the same
     phase.
   - As built (task 1.4), the export also carries each unit's `dislodged_from` and
@@ -607,7 +611,8 @@ own it at the following Adjustment.
   `harness`. That wording is not in the current `CLAUDE.md` or `.claude/rules/`.
   Moot for `evals/`, which needs no models (fixtures are files), but the rule
   should be written down or dropped for `service/harness`.
-- **Q3.** How fixtures get selected for harvesting. Deliberately unanswered: criteria
+- **Q3.** How fixtures get selected for harvesting. Answered for the first batch
+  in task 1.5; the reasoning below still holds for later ones. Deliberately unanswered: criteria
   designed before anything has been labelled will be wrong. For the first batch,
   take 20 to 30 phases across 3 to 5 completed games spread over early, middle and
   late game, and let labelling teach us what matters. Positions the bot itself
@@ -723,10 +728,31 @@ task edits anything outside it.
   to run them is in `evals/CLAUDE.md`. The builder refuses any phase whose replay
   disagrees with the stored game, and never overwrites an existing fixture file.
 
-- [ ] **1.5 Harvest the first batch.**
+- [x] **1.5 Harvest the first batch.**
   20 to 30 phases per Q3. Commit the fixture files.
   *Done when*: `evals/fixtures/` holds the batch, every file validates against
   schema v2, and each declares `provenance.source: "harvested"`.
+  As built: 32 phases from 10 completed classical games, 64 fixtures.
+  - **No-press only, for now.** A fixture records the press type but not the
+    negotiation, so in a full-press game the human may have played to a deal
+    the model cannot see (D10, D11). In no-press games the human had exactly
+    the information the model gets, which makes them the cleaner reference.
+  - **Games**: no more than 12% of player turns missed, played to 1906 or later,
+    and an auto-generated game id, because player-chosen ids can contain names
+    and the ids are committed (D7). Seven solos and three draws (3-, 4- and
+    5-way).
+  - **Positions**: an early, a middle and a late one per game, chosen at moments
+    that mattered: a nation turning on a former supporter, the biggest battles
+    and supply-centre swings, solo races and the lines that stopped them. Plus
+    one Adjustment with a forced choice and two Retreats with real options.
+    Spring 1901 is left out because it is the same board in every game.
+  - **Eval nations**: the one or two whose decision mattered, both sides where
+    two nations turned on each other. Each ordered at least 80% of its units,
+    since late games often leave most units holding by default, which says
+    little about the human's judgement.
+  - **No bot-played positions yet**: no completed classical game had a bot seat,
+    so `was_bot` is false throughout. That source (Q3) comes from games still
+    running.
 
 ### Phase 2: the metrics, headless
 

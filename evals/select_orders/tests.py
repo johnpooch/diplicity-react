@@ -565,7 +565,7 @@ class TestFixtures:
             assert fixture_to_context(fixture)["order_options"]
 
     def test_every_fixture_declares_its_provenance(self):
-        assert {fixture["provenance"]["source"] for fixture in load_fixtures()} == {"handbuilt"}
+        assert {fixture["provenance"]["source"] for fixture in load_fixtures()} == {"handbuilt", "harvested"}
 
 
 class TestDumbbotSelectOrders:
