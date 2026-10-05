@@ -567,6 +567,38 @@ describe("ChannelScreen", () => {
       expect(mockToastError).not.toHaveBeenCalled();
     });
 
+    it("keeps the composer disabled until a failed send has been checked", async () => {
+      let finishRefetch: (channels: unknown[]) => void = () => {};
+      const queryClient = new QueryClient();
+      queryClient.setQueryDefaults(channelsQueryKey, {
+        queryFn: () =>
+          new Promise<unknown[]>(resolve => {
+            finishRefetch = resolve;
+          }),
+      });
+      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
+      mockCreateMessage.mockRejectedValue(new Error("Network Error"));
+      renderChannel(7, queryClient);
+
+      typeAndSend("Can u tap Sev");
+
+      await waitFor(() => expect(mockCreateMessage).toHaveBeenCalledTimes(1));
+      expect(screen.getByPlaceholderText("Type a message")).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+
+      finishRefetch([
+        publicChannel([
+          message(),
+          message({ id: 2, body: "Can u tap Sev", clientMessageId: sentClientMessageId() }),
+        ]),
+      ]);
+
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText("Type a message")).not.toBeDisabled()
+      );
+      expect(screen.getByPlaceholderText("Type a message")).toHaveValue("");
+    });
+
     it("keeps the text and shows an error when the message was not saved", async () => {
       const queryClient = new QueryClient();
       queryClient.setQueryDefaults(channelsQueryKey, {

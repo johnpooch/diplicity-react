@@ -59,4 +59,16 @@ describe("useDraft", () => {
     expect(second.result.current[0]).toBe("Hello");
     expect(second.result.current[2]).toBe(draftId);
   });
+
+  it("keeps one draft id for a restored draft that was saved without one", () => {
+    sessionStorage.setItem("draft:game-1:7", "Hello");
+
+    const first = renderHook(() => useDraft("game-1", "7"));
+    const draftId = first.result.current[2];
+    first.unmount();
+    const second = renderHook(() => useDraft("game-1", "7"));
+
+    expect(draftId).toMatch(UUID_PATTERN);
+    expect(second.result.current[2]).toBe(draftId);
+  });
 });

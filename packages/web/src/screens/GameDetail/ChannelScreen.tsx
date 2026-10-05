@@ -230,6 +230,7 @@ const ChannelScreen: React.FC = () => {
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isSendingRef = useRef(false);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     setSearchParams(prev => {
@@ -314,6 +315,7 @@ const ChannelScreen: React.FC = () => {
   const handleSubmit = async () => {
     if (!message.trim() || isSendingRef.current) return;
     isSendingRef.current = true;
+    setIsSending(true);
 
     const channelsQueryKey = getGamesChannelsListQueryKey(gameId);
     try {
@@ -342,6 +344,7 @@ const ChannelScreen: React.FC = () => {
       }
     } finally {
       isSendingRef.current = false;
+      setIsSending(false);
     }
   };
 
@@ -500,12 +503,12 @@ const ChannelScreen: React.FC = () => {
                   enterKeyHint="enter"
                   onChange={e => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  disabled={createMessageMutation.isPending}
+                  disabled={isSending}
                   className="flex-1 min-h-0 max-h-32 resize-none py-2"
                 />
                 <Button
                   onClick={handleSubmit}
-                  disabled={!message.trim() || createMessageMutation.isPending}
+                  disabled={!message.trim() || isSending}
                   size="icon"
                   aria-label="Send message"
                 >

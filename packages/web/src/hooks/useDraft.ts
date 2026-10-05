@@ -18,9 +18,14 @@ const useDraft = (
   const [draft, setDraftState] = useState(
     () => sessionStorage.getItem(key) ?? ""
   );
-  const [draftId, setDraftId] = useState(() =>
-    draft ? (sessionStorage.getItem(idKey) ?? createDraftId()) : null
-  );
+  const [draftId, setDraftId] = useState(() => {
+    if (!draft) return null;
+    const storedId = sessionStorage.getItem(idKey);
+    if (storedId) return storedId;
+    const id = createDraftId();
+    sessionStorage.setItem(idKey, id);
+    return id;
+  });
 
   const setDraft = useCallback(
     (value: string) => {
