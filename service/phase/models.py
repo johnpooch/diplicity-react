@@ -256,7 +256,11 @@ class PhaseManager(models.Manager):
                     continue
                 emit("nmr_extension_used", phase=phase, actor=member.user)
 
-            emit("nmr_extension_applied", phase=phase)
+            emit(
+                "nmr_extension_applied",
+                phase=phase,
+                extended_user_ids=[member.user_id for member in members_with_extensions],
+            )
 
         return members_with_extensions
 

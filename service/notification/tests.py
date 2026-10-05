@@ -594,6 +594,16 @@ class TestNmrExtensionAppliedResolver:
             state["game_master"].id,
         }
 
+    def test_excludes_players_whose_own_extension_was_used(self, emit_game):
+        state = emit_game()
+        result = resolve_recipients(
+            "nmr_extension_applied",
+            game=state["game"],
+            extended_user_ids=[state["active_one"].user_id],
+        )
+        assert state["active_one"].user_id not in result
+        assert state["active_two"].user_id in result
+
 
 class TestActorResolver:
     def test_nmr_extension_used_targets_only_the_actor(self, emit_game):
