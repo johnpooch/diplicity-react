@@ -196,6 +196,12 @@ class TestHarvest:
         with pytest.raises(HarvestError):
             _harvest(snapshot).fixtures(SPRING)
 
+    def test_stored_failure_reported_under_another_code_is_accepted(self):
+        snapshot = _snapshot()
+        snapshot["orders"][1]["resolution"] = "ErrIllegalMove"
+        outcome = next(f for f in _harvest(snapshot).fixtures(SPRING) if f["nation"] == "France")["actual_outcome"]
+        assert {"nation": "France", "source": "par", "result": "ErrBounce"} in outcome["resolutions"]
+
     def test_next_stored_phase_that_disagrees_with_the_replay_is_rejected(self):
         snapshot = _snapshot()
         moved = next(unit for unit in snapshot["units"] if unit["phase"] == FALL and unit["province"] == "par")

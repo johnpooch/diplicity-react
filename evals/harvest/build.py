@@ -11,6 +11,7 @@ from select_orders.schema import FIXTURE_SCHEMA_VERSION
 from select_orders.types import Fixture
 
 COMPLETED = "completed"
+SUCCEEDED = "OK"
 OPTION_FIELDS = ("target", "aux", "unit_type", "named_coast")
 UNORDERED_TYPES = ("Hold", "Disband")
 
@@ -129,7 +130,7 @@ class Harvest:
         for order in self.orders.get(phase["id"], []):
             stored = order["resolution"]
             computed = results.get((order["nation"], order["source"]))
-            if stored is not None and stored != computed:
+            if stored is not None and (stored == SUCCEEDED) != (computed == SUCCEEDED):
                 raise HarvestError(
                     f"{_label(phase)}: {order['nation']} {order['source']} resolved {stored} in the game "
                     f"but {computed} on replay"
