@@ -2,11 +2,25 @@ import os
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, DEPLOYMENT_ENVIRONMENT
 from opentelemetry.instrumentation.django import DjangoInstrumentor
 from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+TRACE_SAMPLE_RATE = 10
+
+
+class DeterministicSampler(Sampler):
+    def should_sample(self, parent_context, trace_id, name, kind=None, attributes=None, links=None, trace_state=None):
+        parent_trace_state = trace.get_current_span(parent_context).get_span_context().trace_state
+        if (trace_id & 0xFFFFFFFFFFFFFFFF) % TRACE_SAMPLE_RATE != 0:
+            return SamplingResult(Decision.DROP, None, parent_trace_state)
+        return SamplingResult(Decision.RECORD_AND_SAMPLE, {"SampleRate": TRACE_SAMPLE_RATE}, parent_trace_state)
+
+    def get_description(self):
+        return f"DeterministicSampler{{1/{TRACE_SAMPLE_RATE}}}"
 
 
 def configure_opentelemetry():
@@ -27,7 +41,7 @@ def configure_opentelemetry():
         }
     )
 
-    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider = TracerProvider(resource=resource, sampler=DeterministicSampler())
 
     otlp_exporter = OTLPSpanExporter(
         endpoint="https://api.honeycomb.io:443",

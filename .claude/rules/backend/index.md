@@ -34,3 +34,5 @@ Each app contains `models.py`, `serializers.py`, `views.py`, `urls.py`, `conftes
 **Log with `%`-style arguments, never f-strings.** Sentry groups log events by the unformatted message template; interpolating counts or names into the string splits one problem into many issues.
 
 **Trace sampling lives in `project/sentry.py`.** An endpoint the client polls on an interval belongs in its polled paths; a health or asset endpoint belongs in its untraced paths.
+
+**Honeycomb sampling is decided by trace ID, identically on both sides.** `DeterministicSampler` in `project/otel_config.py` and `deterministicSampler` in `packages/web/src/observability.ts` keep a trace when the low 64 bits of its ID are divisible by `TRACE_SAMPLE_RATE`, so the web client and API keep the same traces without trusting the client's sampled flag. Change the rate or rule in both files together, and keep the `SampleRate` attribute on every kept span — Honeycomb multiplies counts by it.

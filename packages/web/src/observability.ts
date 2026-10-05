@@ -1,4 +1,9 @@
-import { WebTracerProvider, BatchSpanProcessor } from "@opentelemetry/sdk-trace-web";
+import {
+  WebTracerProvider,
+  BatchSpanProcessor,
+  SamplingDecision,
+  type Sampler,
+} from "@opentelemetry/sdk-trace-web";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions/incubating";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
@@ -7,6 +12,21 @@ import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
 import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xml-http-request";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
+
+export const TRACE_SAMPLE_RATE = 10;
+
+export const deterministicSampler: Sampler = {
+  shouldSample(_context, traceId) {
+    if (BigInt(`0x${traceId.slice(16)}`) % BigInt(TRACE_SAMPLE_RATE) !== 0n) {
+      return { decision: SamplingDecision.NOT_RECORD };
+    }
+    return {
+      decision: SamplingDecision.RECORD_AND_SAMPLED,
+      attributes: { SampleRate: TRACE_SAMPLE_RATE },
+    };
+  },
+  toString: () => `DeterministicSampler{1/${TRACE_SAMPLE_RATE}}`,
+};
 
 export function initializeObservability() {
   const honeycombApiKey = import.meta.env.VITE_HONEYCOMB_API_KEY;
@@ -38,6 +58,7 @@ export function initializeObservability() {
 
   const provider = new WebTracerProvider({
     resource,
+    sampler: deterministicSampler,
     spanProcessors: [spanProcessor],
   });
 
