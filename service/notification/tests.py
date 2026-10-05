@@ -657,6 +657,24 @@ class TestChannelMessageResolver:
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
 
+    def test_public_channel_does_not_notify_kicked_or_replaced_members(self, emit_game):
+        state = emit_game()
+        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
+        message = ChannelMessage.objects.create(channel=channel, sender=state["active_one"], body="hi")
+        result = resolve_recipients("channel_message", message=message)
+        assert state["kicked"].user_id not in result
+        assert state["replaced"].user_id not in result
+        assert state["replacement"].user_id in result
+
+    def test_private_channel_does_not_notify_a_replaced_member(self, emit_game):
+        state = emit_game()
+        channel = Channel.objects.create(game=state["game"], name="Private", private=True)
+        sender = state["active_one"]
+        channel.members.set([sender, state["replaced"], state["replacement"]])
+        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        result = resolve_recipients("channel_message", message=message)
+        assert result == {state["replacement"].user_id}
+
     def test_muted_channel_member_is_not_notified(self, emit_game):
         state = emit_game()
         channel = Channel.objects.create(game=state["game"], name="Global", private=False)
