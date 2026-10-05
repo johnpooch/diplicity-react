@@ -385,6 +385,11 @@ class TestRankedOptionsFromLabels:
         ranked = _quality_fixture(ranked=True)
         assert self._scores(labelled, choices) == self._scores(ranked, choices)
 
+    def test_labels_take_precedence_over_a_stored_ranking(self):
+        fixture = {**_quality_fixture(ranked=True), **_labelled_fixture([(["lon:Move:eng"], "reasonable")])}
+        fixture["ranked_options"] = _quality_fixture(ranked=True)["ranked_options"]
+        assert ranked_options(fixture)["good"] == [{"source": "lon", "order_type": "Move", "target": "eng"}]
+
     def test_tuple_labels_are_left_out_of_the_derived_ranking(self):
         fixture = _labelled_fixture([(["lon:Hold:lon", "lon:Move:eng"], "reasonable")])
         assert ranked_options(fixture) == {"good": [], "neutral": [], "bad": []}

@@ -39,11 +39,9 @@ def foreign_orders(fixture: Fixture) -> list[OrderOption] | None:
 
 
 def ranked_options(fixture: Fixture) -> RankedOptions | None:
-    if "ranked_options" in fixture:
-        return fixture["ranked_options"]
     labels = fixture.get("option_labels", [])
     if not labels:
-        return None
+        return fixture.get("ranked_options")
     options = {option_id(full_option(option)): option for option in fixture.get("order_options", [])}
     ranked: RankedOptions = {"good": [], "neutral": [], "bad": []}
     for entry in labels:
