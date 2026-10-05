@@ -37,6 +37,7 @@ from notification.utils import (
     build_push_message,
     push_results_by_user,
     send_notification_to_users,
+    unexpected_rejections,
 )
 from phase.models import Phase
 from victory.models import Victory
@@ -80,7 +81,7 @@ def _push_delivery(user, status=NotificationDelivery.Status.PENDING):
     )
 
 
-def _fcm_result(registration_ids, rejections=None):
+def _fcm_result(registration_ids, rejections=None, deactivated=None):
     rejections = rejections or {}
     responses = [SimpleNamespace(exception=rejections.get(registration_id)) for registration_id in registration_ids]
     return FirebaseResponseDict(
@@ -90,7 +91,7 @@ def _fcm_result(registration_ids, rejections=None):
             failure_count=len(rejections),
         ),
         registration_ids_sent=registration_ids,
-        deactivated_registration_ids=[],
+        deactivated_registration_ids=deactivated or [],
     )
 
 
@@ -1352,6 +1353,25 @@ class TestPushResultsByUser:
         results = push_results_by_user([1, 2], {1: ["token-1", "token-2"], 2: ["token-3"]}, result)
 
         assert results == {1: "Requested entity was not found", 2: None}
+
+
+class TestUnexpectedRejections:
+    def test_rejection_of_a_deactivated_token_is_expected(self):
+        result = _fcm_result(
+            ["token-1"], {"token-1": Exception("NotRegistered")}, deactivated=["token-1"]
+        )
+
+        assert unexpected_rejections(result) == []
+
+    def test_rejection_of_a_token_left_active_is_unexpected(self):
+        invalid_argument = Exception("Request contains an invalid argument.")
+        result = _fcm_result(
+            ["token-1", "token-2"],
+            {"token-1": Exception("NotRegistered"), "token-2": invalid_argument},
+            deactivated=["token-1"],
+        )
+
+        assert unexpected_rejections(result) == [invalid_argument]
 
 
 class TestNotificationPrune:

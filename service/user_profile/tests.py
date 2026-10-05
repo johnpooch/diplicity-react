@@ -658,6 +658,24 @@ class TestUserProfilePictureImageView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
+    def test_picture_missing_from_storage_returns_404(
+        self, unauthenticated_client, primary_user, stored_picture
+    ):
+        stored_picture.image.storage.delete(stored_picture.image.name)
+
+        response = unauthenticated_client.get(
+            reverse(
+                "user-picture-image",
+                kwargs={
+                    "user_id": primary_user.id,
+                    "content_hash": stored_picture.content_hash,
+                },
+            )
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
     def test_hash_of_another_user_returns_404(
         self, unauthenticated_client, secondary_user, stored_picture
     ):
