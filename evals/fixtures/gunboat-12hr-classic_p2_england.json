@@ -1085,5 +1085,528 @@
   "eval_sets": [
     "opening",
     "fall_1901"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:nwy",
+        "yor:Move:wal"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:01:26+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:01:47+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Support:nth:hol",
+        "nth:Move:hol",
+        "yor:Move:lvp"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:02:05+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nth",
+        "nth:Support:bel:ruh",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:03:08+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:Move:lon"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:04:01+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:Move:lon"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:05:14+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:Move:wal"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:05:51+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Move:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:06:01+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:06:18+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:MoveViaConvoy:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:06:29+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:06:33+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Support:nth:nth",
+        "nth:Move:den",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:07:01+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:07:08+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:Support:lon:nth"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:07:18+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Convoy:bel:yor",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:07:29+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Support:nwy:nth",
+        "nth:Move:nwy",
+        "yor:MoveViaConvoy:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:07:40+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Move:lvp"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:07:57+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:bel",
+        "yor:Support:lon:nth"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:01+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:Move:lvp"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:07+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:bel",
+        "yor:Move:edi"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:11+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:edi",
+        "yor:Move:lvp"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:14+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:Support:lon:nth"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:18+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:Move:edi"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:20+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Support:lon:nth"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:36+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Convoy:hol:yor",
+        "yor:MoveViaConvoy:hol"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:08:40+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:bar",
+        "nth:Move:nwy",
+        "yor:Move:edi"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:09:45+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Support:bel:hol",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:10:05+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:bel",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:21:31+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:Move:lvp"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:24:03+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:hol",
+        "yor:Move:lon"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:24:09+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Move:lon"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:25:41+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nat",
+        "nth:Move:hol",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:26:09+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:MoveViaConvoy:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:26:12+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:nwy",
+        "yor:Move:lon"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:26:20+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:Move:den"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:26:25+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:bar",
+        "nth:Move:den",
+        "yor:Move:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:27:10+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:bar",
+        "nth:Move:bel",
+        "yor:Move:lon"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:28:13+00:00",
+      "reason": "norway is the only SC that's it's guaranteed to get this turn and therefore it shoudl take it"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Support:nwy:nrg",
+        "yor:Move:lon"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:28:20+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:29:07+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Support:nth:hol",
+        "nth:Move:hol",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:31:22+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Move:edi"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:11+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:bel",
+        "yor:Move:lon"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:17+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:MoveViaConvoy:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:28+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:34+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:hol",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:37+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:den",
+        "yor:MoveViaConvoy:den"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:41+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:bel",
+        "yor:Move:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:32:45+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Support:bel:ruh",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:33:03+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Convoy:den:yor",
+        "yor:MoveViaConvoy:den"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:33:32+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:bel",
+        "yor:Move:wal"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:33:41+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:cly",
+        "nth:Move:hol",
+        "yor:Move:wal"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:33:43+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Move:hol",
+        "yor:MoveViaConvoy:den"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-07T19:33:48+00:00"
+    }
   ]
 }
