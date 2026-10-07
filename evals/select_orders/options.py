@@ -1,3 +1,4 @@
+from select_orders.exceptions import FixtureError
 from select_orders.types import Context, OrderOption
 
 
@@ -36,3 +37,11 @@ def same_option(left: OrderOption, right: OrderOption) -> bool:
 
 def option_id(option: OrderOption) -> str:
     return ":".join(option.get(key) or "" for key in OPTION_KEYS).rstrip(":")
+
+
+def option_from_id(value: str) -> OrderOption:
+    parts = value.split(":")
+    if len(parts) > len(OPTION_KEYS) or len(parts) < 2 or not parts[0] or not parts[1]:
+        raise FixtureError(f"malformed option id '{value}'")
+    padded = parts + [""] * (len(OPTION_KEYS) - len(parts))
+    return {key: part or None for key, part in zip(OPTION_KEYS, padded)}

@@ -366,6 +366,23 @@ disagrees with the labels, or passes an order set a human would reject, is then
 visible at a glance. Results live in memory for the session; nothing is persisted
 across sessions (see out of scope).
 
+**D21. Whole order sets carry their own labels, matched exactly.** Added when
+the tool was first built, and a departure from D2. A reviewer judges a complete
+set of arrows on the board far more easily than one order in isolation, so
+`order_set_labels` labels one complete order set as reasonable or unreasonable.
+A model's set matches a label only when it is the same set, order for order;
+anything else is uncategorized. The combinatorics that ruled this out in D2 are
+sidestepped by labelling only sets that actually turn up: the model's set from a
+run, the human's real set, or one built by hand. Uncategorized sets in a run are
+the labelling queue. A run's score is the share of its distinct order sets
+labelled reasonable, computed against the labels as they are when it is viewed,
+so labelling after a run changes its number and a set produced in several
+epochs counts once.
+`option_labels` and the scorers that read it (D12) are untouched; whether the two
+kinds of label both earn their keep is open. One known gap: `actual_orders`
+leaves out implicit holds, so a model that orders those holds explicitly does not
+match the human's set.
+
 ---
 
 ## 5. Rejected alternatives
@@ -451,6 +468,9 @@ New fields:
   labeller, labelled_at, note }`. `options` is a list of option ids (D13): one
   entry in the ordinary case, several when the judgement holds only for a
   combination (D2). Absence of an entry means unlabelled.
+- `order_set_labels`: list of `{ orders, label: "reasonable" | "unreasonable",
+  labeller, labelled_at, reason }`. `orders` is the sorted option ids of one
+  complete order set (D21). A set has at most one entry.
 - `eval_sets`: list of named eval sets this fixture belongs to. Empty by default.
   A harvested fixture starts in none: harvesting is cheap and deciding a position
   is worth evaluating against is a judgement, so they must be separate actions.
@@ -780,7 +800,18 @@ task edits anything outside it.
 
 ### Phase 3: the tool
 
-- [ ] **3.1 Frontend scaffold** inside `evals/`.
+A first cut was built ahead of phase 2 and to a narrower brief than the tasks
+below: three views, one for curating a fixture's labelled order sets (D21), one
+for a run's score and its prompts diffed against another run, and a review queue
+for labelling the order sets a run produced that have no label yet.
+It reads runs from the inspect logs in `evals/logs/` and does not start them.
+It starts from a single fixture, England in Spring 1901, in an eval set named
+`opening`; the tool and `run_evals` cover that set only, which is the part of
+task 4.1 that was needed. The harvested fixtures stay on disk outside the set.
+How to run it is in `evals/CLAUDE.md`. Tasks 3.2 to 3.8 are ticked only where
+their *done when* is met in full.
+
+- [x] **3.1 Frontend scaffold** inside `evals/`.
   Vite, React, TypeScript strict. No imports from `packages/web` or
   `packages/design-playground`, enforced by `no-restricted-imports` the way the
   playground does it.

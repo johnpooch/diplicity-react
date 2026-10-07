@@ -116,6 +116,14 @@ class OptionLabel(TypedDict):
     note: NotRequired[str]
 
 
+class OrderSetLabel(TypedDict):
+    orders: list[str]
+    label: str
+    labeller: str
+    labelled_at: str
+    reason: NotRequired[str]
+
+
 class Discarded(TypedDict):
     by: str
     at: str
@@ -140,5 +148,6 @@ class Fixture(TypedDict):
     actual_outcome: NotRequired[Outcome]
     ranked_options: NotRequired[RankedOptions]
     option_labels: NotRequired[list[OptionLabel]]
+    order_set_labels: NotRequired[list[OrderSetLabel]]
     eval_sets: list[str]
     discarded: NotRequired[Discarded]

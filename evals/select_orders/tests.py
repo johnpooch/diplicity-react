@@ -13,7 +13,9 @@ from select_orders.context import fixture_to_context
 from select_orders.evals import dumbbot_select_orders, fixture_to_sample, load_fixtures
 from select_orders.exceptions import FixtureError, ParsingError, PromptError
 from select_orders.fixtures import ranked_options, read_fixture, validate_fixture, write_fixture
-from select_orders.options import option_id
+from select_orders.notation import Notation
+from select_orders.options import option_from_id, option_id
+from select_orders.order_sets import label_order_set, order_set_label
 from select_orders.parser import parse_completion
 from select_orders.prompt import DEFAULT_PARTS, system_prompt, user_prompt
 from select_orders.scorers import (
@@ -139,6 +141,19 @@ class TestOptionId:
     def test_id_is_built_from_the_option_content(self):
         assert option_id(_option("wal", "Support", target="lvp", aux="lon")) == "wal:Support:lvp:lon"
         assert option_id(_option("stp", "Build", unit_type="Fleet", named_coast="stp/nc")) == "stp:Build:::Fleet:stp/nc"
+
+    def test_option_is_rebuilt_from_its_id(self):
+        for option in (
+            _option("wal", "Support", target="lvp", aux="lon"),
+            _option("stp", "Build", unit_type="Fleet", named_coast="stp/nc"),
+            _option("lon", "Hold"),
+        ):
+            assert option_from_id(option_id(option)) == option
+
+    def test_malformed_id_raises(self):
+        for malformed in ("", "lon", ":Hold", "a:b:c:d:e:f:g"):
+            with pytest.raises(FixtureError):
+                option_from_id(malformed)
 
     def test_ids_are_unique_within_every_fixture(self):
         for fixture in load_fixtures():
@@ -573,6 +588,18 @@ class TestFixtures:
         assert {fixture["provenance"]["source"] for fixture in load_fixtures()} == {"handbuilt", "harvested"}
 
 
+class TestEvalSets:
+
+    def test_eval_set_selects_only_its_members(self):
+        fixtures = load_fixtures("opening")
+        assert fixtures
+        assert all("opening" in fixture["eval_sets"] for fixture in fixtures)
+
+    def test_unknown_eval_set_raises(self):
+        with pytest.raises(FixtureError):
+            load_fixtures("nowhere")
+
+
 class TestDumbbotSelectOrders:
 
     def test_dumbbot_passes_every_structural_scorer(self, tmp_path):
@@ -648,3 +675,136 @@ class TestPromptParts:
     def test_undefined_value_raises(self):
         with pytest.raises(PromptError):
             user_prompt(_fixture_context("structure_single"), {"user.intro": "{{ missing }}"})
+
+
+class TestOrderSetLabels:
+
+    def _fixture(self):
+        return {
+            "schema_version": 2,
+            "id": "f",
+            "provenance": {"source": "handbuilt"},
+            "variant": "classical",
+            "nation": "France",
+            "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
+            "eval_sets": [],
+        }
+
+    def _label(self, fixture, orders, label):
+        return label_order_set(fixture, orders, label, labeller="tester", labelled_at="2026-01-01T00:00:00+00:00")
+
+    def test_label_matches_the_same_set_in_any_order(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur", "bre:Hold"], "reasonable")
+        assert order_set_label(fixture, ["bre:Hold", "par:Move:bur"])["label"] == "reasonable"
+
+    def test_label_does_not_match_a_subset_or_a_superset(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur", "bre:Hold"], "reasonable")
+        assert order_set_label(fixture, ["par:Move:bur"]) is None
+        assert order_set_label(fixture, ["par:Move:bur", "bre:Hold", "mar:Hold"]) is None
+
+    def test_relabelling_a_set_replaces_its_label(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
+        fixture = self._label(fixture, ["par:Move:bur"], "unreasonable")
+        assert [entry["label"] for entry in fixture["order_set_labels"]] == ["unreasonable"]
+
+    def test_relabelling_a_set_keeps_its_place(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
+        fixture = self._label(fixture, ["par:Hold"], "unreasonable")
+        fixture = self._label(fixture, ["par:Move:bur"], "unreasonable")
+        assert [entry["orders"] for entry in fixture["order_set_labels"]] == [["par:Move:bur"], ["par:Hold"]]
+
+    def test_duplicate_orders_do_not_change_the_set(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur", "par:Move:bur", "bre:Hold"], "reasonable")
+        assert fixture["order_set_labels"][0]["orders"] == ["bre:Hold", "par:Move:bur"]
+        assert order_set_label(fixture, ["bre:Hold", "par:Move:bur"]) is not None
+
+    def test_reason_is_stored_only_when_given(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
+        assert "reason" not in fixture["order_set_labels"][0]
+        fixture = label_order_set(fixture, ["par:Hold"], "unreasonable", "tester", "now", reason="does nothing")
+        assert fixture["order_set_labels"][1]["reason"] == "does nothing"
+        assert validate_fixture(fixture) == fixture
+
+    def test_labelled_fixture_is_valid(self):
+        fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
+        assert validate_fixture(fixture) == fixture
+
+    def test_unknown_label_is_rejected(self):
+        with pytest.raises(FixtureError):
+            validate_fixture(self._label(self._fixture(), ["par:Move:bur"], "fine"))
+
+
+class TestNotation:
+
+    def _notation(self, units, phase_type="Movement"):
+        context = fixture_to_context(
+            {
+                "schema_version": 2,
+                "id": "f",
+                "provenance": {"source": "handbuilt"},
+                "variant": "classical",
+                "nation": "England",
+                "phase": {"season": "Spring", "year": 1901, "type": phase_type},
+                "units": units,
+                "eval_sets": [],
+            }
+        )
+        return Notation(context)
+
+    def _unit(self, unit_type, province, **extra):
+        return {"type": unit_type, "nation": "England", "province": province, **extra}
+
+    def _opening(self):
+        return self._notation(
+            [self._unit("Fleet", "edi"), self._unit("Fleet", "lon"), self._unit("Army", "lvp")]
+        )
+
+    def test_order_set_is_one_line_sorted_by_province(self):
+        options = [
+            _option("lvp", "Move", target="yor"),
+            _option("lon", "Move", target="nth"),
+            _option("edi", "Move", target="nrg"),
+        ]
+        assert self._opening().order_set(options) == "F Edi–NRG · F Lon–NTH · A Lvp–Yor"
+        assert self._opening().order_set(list(reversed(options))) == "F Edi–NRG · F Lon–NTH · A Lvp–Yor"
+
+    def test_sea_provinces_are_upper_case_and_land_provinces_capitalised(self):
+        notation = self._opening()
+        assert notation.province("nth") == "NTH"
+        assert notation.province("yor") == "Yor"
+        assert notation.province("stp/nc") == "Stp/nc"
+
+    def test_hold(self):
+        assert self._opening().order(_option("lon", "Hold")) == "F Lon H"
+        assert self._opening().order(_option("lon", "Hold", target="lon")) == "F Lon H"
+
+    def test_support_of_a_move_names_the_supported_unit_and_its_move(self):
+        assert self._opening().order(_option("lon", "Support", target="yor", aux="lvp")) == "F Lon S A Lvp–Yor"
+
+    def test_support_of_a_hold_names_only_the_supported_unit(self):
+        assert self._opening().order(_option("lon", "Support", target="lvp", aux="lvp")) == "F Lon S A Lvp"
+
+    def test_convoy_and_the_convoyed_move(self):
+        notation = self._notation([self._unit("Fleet", "nth"), self._unit("Army", "lon")])
+        assert notation.order(_option("nth", "Convoy", target="bel", aux="lon")) == "F NTH C A Lon–Bel"
+        assert notation.order(_option("lon", "MoveViaConvoy", target="bel")) == "A Lon–Bel via convoy"
+
+    def test_move_to_a_named_coast_names_the_coast(self):
+        notation = self._notation([self._unit("Fleet", "nwy")])
+        assert notation.order(_option("nwy", "Move", target="stp", named_coast="stp/nc")) == "F Nwy–Stp/nc"
+
+    def test_build_and_disband(self):
+        notation = self._notation([self._unit("Army", "lvp")], phase_type="Adjustment")
+        assert notation.order(_option("lon", "Build", unit_type="Fleet")) == "Build F Lon"
+        assert notation.order(_option("stp", "Build", unit_type="Fleet", named_coast="stp/nc")) == "Build F Stp/nc"
+        assert notation.order(_option("lvp", "Disband")) == "Disband A Lvp"
+
+    def test_retreat_names_the_dislodged_unit(self):
+        notation = self._notation(
+            [self._unit("Army", "bur", nation="Germany"), self._unit("Fleet", "bur", dislodged=True)],
+            phase_type="Retreat",
+        )
+        assert notation.order(_option("bur", "Move", target="par")) == "F Bur–Par"
+
+    def test_order_from_a_province_with_no_unit_drops_the_unit_letter(self):
+        assert self._opening().order(_option("par", "Move", target="bur")) == "Par–Bur"

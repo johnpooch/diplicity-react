@@ -1,0 +1,616 @@
+{
+  "schema_version": 2,
+  "id": "france_spring_1901",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "The standard opening position, played as France.",
+  "variant": "classical",
+  "nation": "France",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "bre",
+      "order_type": "Hold"
+    },
+    {
+      "source": "bre",
+      "order_type": "Move",
+      "target": "eng"
+    },
+    {
+      "source": "bre",
+      "order_type": "Move",
+      "target": "gas"
+    },
+    {
+      "source": "bre",
+      "order_type": "Move",
+      "target": "mid"
+    },
+    {
+      "source": "bre",
+      "order_type": "Move",
+      "target": "pic"
+    },
+    {
+      "source": "bre",
+      "order_type": "Support",
+      "target": "eng",
+      "aux": "lon"
+    },
+    {
+      "source": "bre",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mar"
+    },
+    {
+      "source": "bre",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "par"
+    },
+    {
+      "source": "bre",
+      "order_type": "Support",
+      "target": "pic",
+      "aux": "par"
+    },
+    {
+      "source": "mar",
+      "order_type": "Hold"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "bur"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "gas"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "pie"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "spa"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bre"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "mun"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "par"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "par"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "ven"
+    },
+    {
+      "source": "par",
+      "order_type": "Hold"
+    },
+    {
+      "source": "par",
+      "order_type": "Move",
+      "target": "bre"
+    },
+    {
+      "source": "par",
+      "order_type": "Move",
+      "target": "bur"
+    },
+    {
+      "source": "par",
+      "order_type": "Move",
+      "target": "gas"
+    },
+    {
+      "source": "par",
+      "order_type": "Move",
+      "target": "pic"
+    },
+    {
+      "source": "par",
+      "order_type": "Support",
+      "target": "bre",
+      "aux": "bre"
+    },
+    {
+      "source": "par",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bre"
+    },
+    {
+      "source": "par",
+      "order_type": "Support",
+      "target": "pic",
+      "aux": "bre"
+    },
+    {
+      "source": "par",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mar"
+    },
+    {
+      "source": "par",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "mar"
+    },
+    {
+      "source": "par",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "mun"
+    }
+  ],
+  "decision_richness": 990,
+  "eval_sets": [
+    "opening"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "bre:Move:mid",
+        "mar:Move:spa",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:16:54+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:eng",
+        "mar:Move:spa",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:17:00+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:gas",
+        "mar:Move:spa",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:17:15+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:spa",
+        "par:Move:gas"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:17:21+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:pie",
+        "par:Move:gas"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:17:27+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:spa",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:17:34+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:gas",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:18:09+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:mid",
+        "mar:Move:spa",
+        "par:Move:gas"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:18:15+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:bur",
+        "par:Move:gas"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:18:20+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:eng",
+        "mar:Move:bur",
+        "par:Move:pic"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:19:09+00:00",
+      "reason": "France can capture Spain and Portugal uncontested in the first year of the game by moving Marseille to Burgundy, Brest to English Channel, and Paris to Picardy. France is abandoning the freely available supply centers."
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:spa",
+        "par:Support:gas:mar"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:19:40+00:00",
+      "reason": "Say to Gascony, even though Marseille moves to Spain, these orders are internally inconsistent. Even if Marseille did move to Gascony, Gascony is not threatened by any other unit, so there is no point in giving support. It's a wasted move by Paris."
+    },
+    {
+      "orders": [
+        "bre:Move:gas",
+        "mar:Move:spa",
+        "par:Move:pic"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:19:50+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:bur",
+        "par:Move:pic"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:20:27+00:00",
+      "reason": "Brest and Paris both move to Picardy, which guarantees that they will bounce back to their original positions. There is no strategic reason to do this. It is a wasted move by both units. Self-bouncing is only a good idea in very specific circumstances."
+    },
+    {
+      "orders": [
+        "bre:Move:mid",
+        "mar:Move:gas",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:21:37+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:gas",
+        "mar:Move:pie",
+        "par:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:40:29+00:00"
+    },
+    {
+      "orders": [
+        "bre:Move:gas",
+        "mar:Move:gas",
+        "par:Move:bur"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:41:09+00:00",
+      "reason": "Rouen and Brest are both moving to Gascony, which means that they will bounce and go back to their original positions. Self-bouncing only makes sense in very specific circumstances. Both units will bounce back to their original positions. This is a wasted order."
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:bur",
+        "par:Move:bur"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:41:56+00:00",
+      "reason": "Paris and Marseille are both moving to the same position and will bounce off each other and go back to their original positions. A south bounce only makes sense in certain circumstances. In this case, it's a wasted move."
+    },
+    {
+      "orders": [
+        "bre:Move:eng",
+        "mar:Move:gas",
+        "par:Support:gas:mar"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:42:20+00:00",
+      "reason": "Paris is supporting Marseille to Gascony, even though Gascony is not threatened by any other unit. This is a wasted move by Paris."
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:bur",
+        "par:Support:bur:mar"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:47:32+00:00"
+    },
+    {
+      "orders": [
+        "bre:Support:pic:par",
+        "mar:Move:spa",
+        "par:Move:bur"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:48:02+00:00",
+      "reason": "Brest is supporting Paris to Picardy, but Paris is moving to Burgundy. Even if Paris was moving to Picardy, Picardy is not threatened by any other unit, so the support would be wasted."
+    },
+    {
+      "orders": [
+        "bre:Move:gas",
+        "mar:Move:spa",
+        "par:Move:gas"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:48:38+00:00",
+      "reason": "Brest and Paris are both moving to Gascony. They will both bounce and be returned to their original positions. There is no reason to self-bounce here. This is a wasted move for both units."
+    },
+    {
+      "orders": [
+        "bre:Move:pic",
+        "mar:Move:gas",
+        "par:Support:gas:mar"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:48:58+00:00",
+      "reason": "Paris is supporting Marseille to Gascony, even though Gascony is not threatened by any other unit. The support is wasted."
+    }
+  ]
+}

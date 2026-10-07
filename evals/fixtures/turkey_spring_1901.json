@@ -1,0 +1,414 @@
+{
+  "schema_version": 2,
+  "id": "turkey_spring_1901",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "The standard opening position, played as Turkey.",
+  "variant": "classical",
+  "nation": "Turkey",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "ank",
+      "order_type": "Hold"
+    },
+    {
+      "source": "ank",
+      "order_type": "Move",
+      "target": "arm"
+    },
+    {
+      "source": "ank",
+      "order_type": "Move",
+      "target": "bla"
+    },
+    {
+      "source": "ank",
+      "order_type": "Move",
+      "target": "con"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "con"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "bla",
+      "aux": "sev"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "sev"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "smy"
+    },
+    {
+      "source": "ank",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "smy"
+    },
+    {
+      "source": "con",
+      "order_type": "Hold"
+    },
+    {
+      "source": "con",
+      "order_type": "Move",
+      "target": "ank"
+    },
+    {
+      "source": "con",
+      "order_type": "Move",
+      "target": "bul"
+    },
+    {
+      "source": "con",
+      "order_type": "Move",
+      "target": "smy"
+    },
+    {
+      "source": "con",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "ank"
+    },
+    {
+      "source": "con",
+      "order_type": "Support",
+      "target": "smy",
+      "aux": "smy"
+    },
+    {
+      "source": "con",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "smy"
+    },
+    {
+      "source": "smy",
+      "order_type": "Hold"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "arm"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "con"
+    },
+    {
+      "source": "smy",
+      "order_type": "Move",
+      "target": "syr"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "con"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "con",
+      "aux": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "ank"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "ank",
+      "aux": "con"
+    },
+    {
+      "source": "smy",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "sev"
+    }
+  ],
+  "decision_richness": 693,
+  "eval_sets": [
+    "opening"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "ank:Move:bla",
+        "con:Move:bul",
+        "smy:Move:syr"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:15:19+00:00",
+      "reason": "The army moving from Smyrna to Syria cannot contribute to any efforts to capture the supply center this year. It is a dead-end move."
+    },
+    {
+      "orders": [
+        "ank:Move:arm",
+        "con:Move:bul",
+        "smy:Move:syr"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:15:30+00:00",
+      "reason": "The army moving from Smyrna to Syria cannot contribute to any efforts to capture the supply center this year. It is a dead-end move."
+    },
+    {
+      "orders": [
+        "ank:Hold",
+        "con:Move:bul",
+        "smy:Move:syr"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:16:03+00:00",
+      "reason": "The army moving from Smyrna to Syria cannot contribute to any efforts to capture the supply center this year. It is a dead-end move. Anchorage holding is a questionable move too. It leaves Anchorage unable to contribute to any future efforts to capture a supply center."
+    },
+    {
+      "orders": [
+        "ank:Move:bla",
+        "con:Move:bul",
+        "smy:Move:arm"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:16:07+00:00"
+    }
+  ]
+}

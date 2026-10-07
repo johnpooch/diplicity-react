@@ -1,0 +1,745 @@
+import { parseDsvg, type ParsedDsvg, type Point } from "./dsvgParser";
+import {
+  formatCoord,
+  cross,
+  minus,
+  octagon,
+  arrow,
+  curvedArrow,
+  supportHoldArrow,
+  convoyArrow,
+  moveViaConvoyArrow,
+} from "./svgPrimitives";
+import {
+  headToHeadControlPoint,
+  staggeredSupportEnd,
+  buildConvoyRoute,
+  type ConvoyRoute,
+} from "./orderGeometry";
+
+export type UnitState = {
+  province: string;
+  nation: string;
+  type: "Army" | "Fleet";
+  dislodged?: boolean;
+  civilDisorder?: boolean;
+};
+
+export type OrderType =
+  | "Hold"
+  | "Move"
+  | "MoveViaConvoy"
+  | "Support"
+  | "Convoy"
+  | "Build"
+  | "Disband";
+
+export type OrderState = {
+  type: OrderType;
+  nation: string;
+  source: string;
+  target?: string;
+  aux?: string;
+  unitType?: "Army" | "Fleet";
+  failed?: boolean;
+  isImplicit?: boolean;
+};
+
+export type RenderState = {
+  nationColors?: Record<string, string>;
+  supplyCenters?: { province: string; nation: string }[];
+  nonScProvinceColors?: Record<string, string>;
+  units?: UnitState[];
+  orders?: OrderState[];
+  selected?: string[];
+  highlighted?: string[];
+};
+
+const DEFAULT_FILL = "transparent";
+const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
+const SELECTED_STROKE_COLOR = "white";
+const HIGHLIGHTED_STROKE_COLOR = "#FFFFFF";
+const SELECTED_STROKE_WIDTH = 5;
+const HIGHLIGHTED_STROKE_WIDTH = 5;
+const DEFAULT_STROKE_WIDTH = 1;
+const SUPPLY_CENTER_OPACITY_ACTIVE = 0.3;
+const SUPPLY_CENTER_OPACITY_DEFAULT = 0.4;
+const NON_SC_PROVINCE_OPACITY_ACTIVE = 0.3;
+const NON_SC_PROVINCE_OPACITY_DEFAULT = 0.4;
+
+const UNIT_RADIUS = 10;
+const UNIT_OFFSET_RADIUS = 5;
+const DISLODGED_OFFSET = 8;
+const SUPPLY_CENTER_OUTER_RADIUS = 7;
+const SUPPLY_CENTER_INNER_RADIUS = 4;
+const DIMMED_UNIT_OPACITY = 0.7;
+const GHOST_UNIT_OPACITY = 0.6;
+
+const ORDER_LINE_WIDTH = 3;
+const ORDER_ARROW_WIDTH = 6;
+const ORDER_ARROW_LENGTH = 8;
+const ORDER_STROKE_WIDTH = 2.5;
+const ORDER_DASH = { length: 4, spacing: 2 };
+const SUCCESS_COLOR = "rgba(0,0,0,1)";
+const HOLD_OCTAGON_SIZE = 24;
+const SUPPORT_HOLD_TIP_GAP = 1;
+const SUPPORT_HOLD_OCTAGON_SIZE = 8;
+const SUPPORT_HOLD_OCTAGON_STROKE_WIDTH = 3;
+const CONVOY_DOT_RADIUS = 5;
+const CONVOY_WAVE_AMPLITUDE = 5;
+const CONVOY_WAVE_LENGTH = 30;
+const FAILED_CROSS_WIDTH = 3;
+const FAILED_CROSS_LENGTH = 16;
+const FAILED_CROSS_ANGLE = 45;
+const ORDER_MARKER_WIDTH = 3;
+const ORDER_MARKER_LENGTH = 12;
+const ORDER_MARKER_ANGLE = 90;
+const BUILD_CROSS_OFFSET_X = 8;
+const BUILD_CROSS_OFFSET_Y = -8;
+const DISBAND_MARKER_OFFSET_X = 10;
+const DISBAND_MARKER_OFFSET_Y = -6;
+
+const HIGHLIGHTED_STRIPES_DEFS =
+  '<defs><pattern patternTransform="rotate(45)" height="8" width="8"' +
+  ' patternUnits="userSpaceOnUse" id="highlightedStripes">' +
+  '<line stroke-width="2" stroke-opacity="0.6" stroke="#FFFFFF"' +
+  ' y2="8" x2="0" y1="0" x1="0"/></pattern></defs>';
+
+const layer = (id: string, markup: string): string =>
+  `<g id="${id}">${markup}</g>`;
+
+const opacityAttr = (opacity: number): string =>
+  opacity === 1 ? "" : ` opacity="${opacity}"`;
+
+const nationColor = (state: RenderState, nation: string): string => {
+  const color = state.nationColors?.[nation];
+  if (!color) {
+    throw new Error(`No colour for nation "${nation}"`);
+  }
+  return color;
+};
+
+const toRgba = (color: string, opacity: number): string => {
+  const hex = color.match(/^#([0-9a-fA-F]{6})$/);
+  if (hex) {
+    const r = parseInt(hex[1].slice(0, 2), 16);
+    const g = parseInt(hex[1].slice(2, 4), 16);
+    const b = parseInt(hex[1].slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  return color.replace(
+    /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
+    `rgba($2, $3, $4, ${opacity})`
+  );
+};
+
+type ProvinceFill = {
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  selected: boolean;
+  highlighted: boolean;
+};
+
+const provinceFill = (provinceId: string, state: RenderState): ProvinceFill => {
+  const selected = state.selected?.includes(provinceId) ?? false;
+  const highlighted = state.highlighted?.includes(provinceId) ?? false;
+  const owner = state.supplyCenters?.find((sc) => sc.province === provinceId);
+
+  let fill = DEFAULT_FILL;
+  if (owner) {
+    const opacity =
+      selected || highlighted
+        ? SUPPLY_CENTER_OPACITY_ACTIVE
+        : SUPPLY_CENTER_OPACITY_DEFAULT;
+    fill = toRgba(nationColor(state, owner.nation), opacity);
+  } else if (state.nonScProvinceColors?.[provinceId]) {
+    const opacity =
+      selected || highlighted
+        ? NON_SC_PROVINCE_OPACITY_ACTIVE
+        : NON_SC_PROVINCE_OPACITY_DEFAULT;
+    fill = toRgba(state.nonScProvinceColors[provinceId], opacity);
+  } else if (selected) {
+    fill = SELECTED_FILL;
+  }
+
+  let stroke = "none";
+  if (selected) {
+    stroke = SELECTED_STROKE_COLOR;
+  } else if (highlighted) {
+    stroke = HIGHLIGHTED_STROKE_COLOR;
+  }
+
+  const strokeWidth = selected
+    ? SELECTED_STROKE_WIDTH
+    : highlighted
+      ? HIGHLIGHTED_STROKE_WIDTH
+      : DEFAULT_STROKE_WIDTH;
+
+  return { fill, stroke, strokeWidth, selected, highlighted };
+};
+
+const provinceFillsLayer = (
+  regionPaths: Map<string, string>,
+  state: RenderState
+): string => {
+  const parts: string[] = [];
+  for (const [id, d] of regionPaths) {
+    const style = provinceFill(id, state);
+    if (style.fill === DEFAULT_FILL && style.stroke === "none") {
+      continue;
+    }
+    const attributes = `d="${d}" fill="${style.fill}" stroke="${style.stroke}" stroke-width="${style.strokeWidth}"`;
+    if (style.highlighted && !style.selected) {
+      const values = `${HIGHLIGHTED_STROKE_WIDTH};${HIGHLIGHTED_STROKE_WIDTH + 2};${HIGHLIGHTED_STROKE_WIDTH}`;
+      parts.push(
+        `<path ${attributes}><animate attributeName="stroke-width" values="${values}" dur="2s" repeatCount="indefinite"/></path>`
+      );
+    } else {
+      parts.push(`<path ${attributes}/>`);
+    }
+    if (style.highlighted) {
+      parts.push(
+        `<path d="${d}" fill="url(#highlightedStripes)" stroke="none" pointer-events="none"/>`
+      );
+    }
+  }
+  return parts.join("\n");
+};
+
+const supplyCenterMarkersLayer = (supplyCenters: Map<string, Point>): string => {
+  const parts: string[] = [];
+  for (const [, position] of supplyCenters) {
+    const cx = formatCoord(position.x);
+    const cy = formatCoord(position.y);
+    parts.push(
+      `<g><circle cx="${cx}" cy="${cy}" r="${SUPPLY_CENTER_OUTER_RADIUS}" fill="white" stroke="black" stroke-width="2" opacity="0.8"/>` +
+        `<circle cx="${cx}" cy="${cy}" r="${SUPPLY_CENTER_INNER_RADIUS}" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g>`
+    );
+  }
+  return parts.join("\n");
+};
+
+const retreatFlag = (cx: number, cy: number, scale: number): string =>
+  `<g transform="translate(${formatCoord(cx + 6 * scale)}, ${formatCoord(cy - 16 * scale)}) scale(${1.5 * scale})">` +
+  `<line x1="0" y1="0" x2="0" y2="12" stroke="black" stroke-width="2"/>` +
+  `<path d="M 0 0 L 8 2 L 8 6 L 0 8 Z" fill="white" stroke="black" stroke-width="1"/></g>`;
+
+const civilDisorderBadge = (cx: number, cy: number, scale: number): string =>
+  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9 * scale)}, ${formatCoord(cy - 9 * scale)})">` +
+  `<circle cx="0" cy="0" r="${7 * scale}" fill="white" stroke="black" stroke-width="${1.5 * scale}"/>` +
+  `<g transform="translate(${-5 * scale}, ${-5 * scale}) scale(${0.417 * scale})" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">` +
+  `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>` +
+  `<circle cx="9" cy="7" r="4"/>` +
+  `<line x1="17" x2="22" y1="8" y2="13"/>` +
+  `<line x1="22" x2="17" y1="8" y2="13"/>` +
+  `</g></g>`;
+
+const unitToken = (
+  cx: number,
+  cy: number,
+  type: "Army" | "Fleet",
+  color: string,
+  circleOpacity: number,
+  textOpacity: number,
+  scale: number
+): string => {
+  const label = type === "Army" ? "A" : "F";
+  return (
+    `<circle cx="${formatCoord(cx)}" cy="${formatCoord(cy)}" r="${UNIT_RADIUS * scale}" fill="${color}" stroke="black" stroke-width="${2 * scale}"${opacityAttr(circleOpacity)}/>` +
+    `<text x="${formatCoord(cx)}" y="${formatCoord(cy + 5 * scale)}" font-size="${15 * scale}" font-weight="bold" fill="black" text-anchor="middle"${opacityAttr(textOpacity)}>${label}</text>`
+  );
+};
+
+const unitMarkup = (
+  unit: UnitState,
+  position: Point,
+  color: string,
+  dimmed: boolean,
+  scale: number
+): string => {
+  const offset = unit.dislodged ? DISLODGED_OFFSET * scale : 0;
+  const cx = position.x + offset;
+  const cy = position.y + offset;
+  const token = unitToken(
+    cx,
+    cy,
+    unit.type,
+    color,
+    dimmed ? DIMMED_UNIT_OPACITY : 1,
+    1,
+    scale
+  );
+  const flag = unit.dislodged && !dimmed ? retreatFlag(cx, cy, scale) : "";
+  const cdBadge = unit.civilDisorder && !dimmed ? civilDisorderBadge(cx, cy, scale) : "";
+  return `<g>${token}${flag}${cdBadge}</g>`;
+};
+
+const unitsLayer = (
+  unitPositions: Map<string, Point>,
+  state: RenderState,
+  scale: number
+): string => {
+  const ordered = [...(state.units ?? [])].sort(
+    (a, b) => Number(a.dislodged ?? false) - Number(b.dislodged ?? false)
+  );
+  const disbanding = new Set(
+    (state.orders ?? [])
+      .filter((order) => order.type === "Disband")
+      .map((order) => order.source)
+  );
+  const parts: string[] = [];
+  for (const unit of ordered) {
+    const position = unitPositions.get(unit.province);
+    if (!position) {
+      continue;
+    }
+    parts.push(
+      unitMarkup(
+        unit,
+        position,
+        nationColor(state, unit.nation),
+        disbanding.has(unit.province),
+        scale
+      )
+    );
+  }
+  return parts.join("\n");
+};
+
+const failureCross = (x: number, y: number, scale: number): string =>
+  cross({
+    x,
+    y,
+    width: FAILED_CROSS_WIDTH * scale,
+    length: FAILED_CROSS_LENGTH * scale,
+    angle: FAILED_CROSS_ANGLE,
+    fill: "red",
+    stroke: "black",
+    strokeWidth: 2 * scale,
+  });
+
+const holdMarkup = (order: OrderState, position: Point, scale: number): string =>
+  octagon({
+    x: position.x,
+    y: position.y,
+    size: HOLD_OCTAGON_SIZE * scale,
+    fill: "transparent",
+    stroke: SUCCESS_COLOR,
+    strokeWidth: ORDER_LINE_WIDTH * scale,
+    opacity: order.isImplicit ? 0.3 : undefined,
+    renderBottomCenter: order.failed
+      ? (x, y) => failureCross(x, y, scale)
+      : undefined,
+  });
+
+const buildMarkup = (
+  order: OrderState,
+  position: Point,
+  color: string,
+  scale: number
+): string => {
+  const token = unitToken(
+    position.x,
+    position.y,
+    order.unitType ?? "Army",
+    color,
+    GHOST_UNIT_OPACITY,
+    GHOST_UNIT_OPACITY,
+    scale
+  );
+  const marker = cross({
+    x: position.x + BUILD_CROSS_OFFSET_X * scale,
+    y: position.y + BUILD_CROSS_OFFSET_Y * scale,
+    width: ORDER_MARKER_WIDTH * scale,
+    length: ORDER_MARKER_LENGTH * scale,
+    angle: ORDER_MARKER_ANGLE,
+    fill: "green",
+    stroke: "white",
+    strokeWidth: scale,
+  });
+  return `<g>${token}${marker}</g>`;
+};
+
+const disbandMarkup = (position: Point, scale: number): string =>
+  minus({
+    x: position.x + DISLODGED_OFFSET * scale + DISBAND_MARKER_OFFSET_X * scale,
+    y: position.y + DISLODGED_OFFSET * scale + DISBAND_MARKER_OFFSET_Y * scale,
+    width: ORDER_MARKER_WIDTH * scale,
+    length: ORDER_MARKER_LENGTH * scale,
+    angle: ORDER_MARKER_ANGLE,
+    fill: "red",
+    stroke: "white",
+    strokeWidth: scale,
+  });
+
+const headToHeadControlPoints = (
+  orders: OrderState[],
+  unitPositions: Map<string, Point>
+): Map<string, Point> => {
+  const moves = orders.filter(
+    (order) => order.type === "Move" || order.type === "MoveViaConvoy"
+  );
+  const moveKeys = new Set(
+    moves
+      .filter((order) => order.target)
+      .map((order) => `${order.source}->${order.target}`)
+  );
+  const controlPoints = new Map<string, Point>();
+  for (const order of moves) {
+    if (!order.target) {
+      continue;
+    }
+    if (!moveKeys.has(`${order.target}->${order.source}`)) {
+      continue;
+    }
+    const source = unitPositions.get(order.source);
+    const target = unitPositions.get(order.target);
+    if (!source || !target) {
+      continue;
+    }
+    controlPoints.set(
+      `${order.source}->${order.target}`,
+      headToHeadControlPoint(source, target)
+    );
+  }
+  return controlPoints;
+};
+
+const supportMoveGroups = (orders: OrderState[]): Map<string, OrderState[]> => {
+  const groups = new Map<string, OrderState[]>();
+  for (const order of orders) {
+    if (order.type !== "Support" || !order.aux || !order.target) {
+      continue;
+    }
+    if (order.aux === order.target) {
+      continue;
+    }
+    const key = `${order.aux}->${order.target}`;
+    const group = groups.get(key);
+    if (group) {
+      group.push(order);
+    } else {
+      groups.set(key, [order]);
+    }
+  }
+  return groups;
+};
+
+const convoyRoutes = (
+  orders: OrderState[],
+  unitPositions: Map<string, Point>
+): Map<string, ConvoyRoute> => {
+  const routes = new Map<string, ConvoyRoute>();
+  const convoys = orders.filter((order) => order.type === "Convoy");
+  for (const move of orders) {
+    if (move.type !== "MoveViaConvoy" || !move.target) {
+      continue;
+    }
+    const source = unitPositions.get(move.source);
+    const destination = unitPositions.get(move.target);
+    if (!source || !destination) {
+      continue;
+    }
+    const fleets = convoys
+      .filter(
+        (convoy) => convoy.aux === move.source && convoy.target === move.target
+      )
+      .map((convoy) => ({
+        id: convoy.source,
+        point: unitPositions.get(convoy.source),
+      }))
+      .filter(
+        (fleet): fleet is { id: string; point: Point } =>
+          fleet.point !== undefined
+      );
+    if (fleets.length === 0) {
+      continue;
+    }
+    routes.set(
+      `${move.source}->${move.target}`,
+      buildConvoyRoute(source, destination, fleets)
+    );
+  }
+  return routes;
+};
+
+const supportOrderParts = (
+  orders: OrderState[],
+  unitPositions: Map<string, Point>,
+  state: RenderState,
+  groups: Map<string, OrderState[]>,
+  headToHead: Map<string, Point>,
+  scale: number
+): string[] => {
+  const parts: string[] = [];
+  for (const order of orders) {
+    if (order.type !== "Support" || !order.target || !order.aux) {
+      continue;
+    }
+    const source = unitPositions.get(order.source);
+    const target = unitPositions.get(order.target);
+    const aux = unitPositions.get(order.aux);
+    if (!source || !target || !aux) {
+      continue;
+    }
+    const color = nationColor(state, order.nation);
+    const renderCenter = order.failed
+      ? (x: number, y: number) => failureCross(x, y, scale)
+      : undefined;
+
+    if (order.aux === order.target) {
+      parts.push(
+        supportHoldArrow({
+          x1: source.x,
+          y1: source.y,
+          x2: target.x,
+          y2: target.y,
+          offset: UNIT_RADIUS * scale,
+          endOffset: (UNIT_RADIUS + UNIT_OFFSET_RADIUS) * scale,
+          lineWidth: ORDER_LINE_WIDTH * scale,
+          fill: color,
+          stroke: SUCCESS_COLOR,
+          strokeWidth: ORDER_STROKE_WIDTH * scale,
+          tipGap: SUPPORT_HOLD_TIP_GAP * scale,
+          octagonSize: SUPPORT_HOLD_OCTAGON_SIZE * scale,
+          octagonStrokeWidth: SUPPORT_HOLD_OCTAGON_STROKE_WIDTH * scale,
+          dash: { length: ORDER_DASH.length * scale, spacing: ORDER_DASH.spacing * scale },
+          renderCenter,
+        })
+      );
+      continue;
+    }
+
+    const moveControlPoint = headToHead.get(`${order.aux}->${order.target}`);
+    const group = groups.get(`${order.aux}->${order.target}`) ?? [];
+    const end = staggeredSupportEnd(
+      aux,
+      target,
+      group.indexOf(order),
+      moveControlPoint
+    );
+    parts.push(
+      curvedArrow({
+        x1: source.x,
+        y1: source.y,
+        x2: end.x,
+        y2: end.y,
+        x3: aux.x,
+        y3: aux.y,
+        offset: UNIT_RADIUS * scale,
+        lineWidth: ORDER_LINE_WIDTH * scale,
+        arrowWidth: ORDER_ARROW_WIDTH * scale,
+        arrowLength: ORDER_ARROW_LENGTH * scale,
+        strokeWidth: ORDER_STROKE_WIDTH * scale,
+        stroke: SUCCESS_COLOR,
+        fill: color,
+        dash: { length: ORDER_DASH.length * scale, spacing: ORDER_DASH.spacing * scale },
+        endControlPoint: moveControlPoint,
+        renderCenter,
+      })
+    );
+  }
+  return parts;
+};
+
+const moveOrderParts = (
+  orders: OrderState[],
+  unitPositions: Map<string, Point>,
+  state: RenderState,
+  headToHead: Map<string, Point>,
+  routes: Map<string, ConvoyRoute>,
+  scale: number
+): string[] => {
+  const parts: string[] = [];
+  for (const order of orders) {
+    if (order.type !== "Move" && order.type !== "MoveViaConvoy") {
+      continue;
+    }
+    if (!order.target) {
+      continue;
+    }
+    const source = unitPositions.get(order.source);
+    const target = unitPositions.get(order.target);
+    if (!source || !target) {
+      continue;
+    }
+    const color = nationColor(state, order.nation);
+    const renderCenter = order.failed
+      ? (x: number, y: number) => failureCross(x, y, scale)
+      : undefined;
+
+    if (order.type === "MoveViaConvoy") {
+      const route = routes.get(`${order.source}->${order.target}`);
+      if (route) {
+        parts.push(
+          moveViaConvoyArrow({
+            waypoints: route.waypoints,
+            lineWidth: ORDER_LINE_WIDTH * scale,
+            arrowWidth: ORDER_ARROW_WIDTH * scale,
+            arrowLength: ORDER_ARROW_LENGTH * scale,
+            strokeWidth: ORDER_STROKE_WIDTH * scale,
+            offset: UNIT_RADIUS * scale,
+            stroke: SUCCESS_COLOR,
+            fill: color,
+            renderCenter,
+          })
+        );
+        continue;
+      }
+    }
+    parts.push(
+      arrow({
+        x1: source.x,
+        y1: source.y,
+        x2: target.x,
+        y2: target.y,
+        lineWidth: ORDER_LINE_WIDTH * scale,
+        arrowWidth: ORDER_ARROW_WIDTH * scale,
+        arrowLength: ORDER_ARROW_LENGTH * scale,
+        strokeWidth: ORDER_STROKE_WIDTH * scale,
+        offset: UNIT_RADIUS * scale,
+        stroke: SUCCESS_COLOR,
+        fill: color,
+        controlPoint: headToHead.get(`${order.source}->${order.target}`),
+        renderCenter,
+      })
+    );
+  }
+  return parts;
+};
+
+const convoyOrderParts = (
+  orders: OrderState[],
+  unitPositions: Map<string, Point>,
+  state: RenderState,
+  routes: Map<string, ConvoyRoute>,
+  scale: number
+): string[] => {
+  const parts: string[] = [];
+  for (const order of orders) {
+    if (order.type !== "Convoy" || !order.target || !order.aux) {
+      continue;
+    }
+    const source = unitPositions.get(order.source);
+    const target = unitPositions.get(order.target);
+    const aux = unitPositions.get(order.aux);
+    if (!source || !target || !aux) {
+      continue;
+    }
+    const route = routes.get(`${order.aux}->${order.target}`);
+    parts.push(
+      convoyArrow({
+        x1: source.x,
+        y1: source.y,
+        x2: target.x,
+        y2: target.y,
+        x3: aux.x,
+        y3: aux.y,
+        lineWidth: ORDER_LINE_WIDTH * scale,
+        offset: UNIT_RADIUS * scale,
+        stroke: SUCCESS_COLOR,
+        strokeWidth: ORDER_STROKE_WIDTH * scale,
+        dotRadius: CONVOY_DOT_RADIUS * scale,
+        waveAmplitude: CONVOY_WAVE_AMPLITUDE * scale,
+        waveLength: CONVOY_WAVE_LENGTH * scale,
+        fill: nationColor(state, order.nation),
+        attachmentPoint: route?.attachments.get(order.source),
+        renderCenter: order.failed
+          ? (x: number, y: number) => failureCross(x, y, scale)
+          : undefined,
+      })
+    );
+  }
+  return parts;
+};
+
+const ordersLayer = (
+  unitPositions: Map<string, Point>,
+  state: RenderState,
+  scale: number
+): string => {
+  const orders = state.orders ?? [];
+  const ofType = (type: OrderType): OrderState[] =>
+    orders.filter((order) => order.type === type);
+  const headToHead = headToHeadControlPoints(orders, unitPositions);
+  const groups = supportMoveGroups(orders);
+  const routes = convoyRoutes(orders, unitPositions);
+  const parts: string[] = [];
+
+  for (const order of ofType("Hold")) {
+    const position = unitPositions.get(order.source);
+    if (position) {
+      parts.push(holdMarkup(order, position, scale));
+    }
+  }
+  parts.push(...supportOrderParts(orders, unitPositions, state, groups, headToHead, scale));
+  parts.push(...moveOrderParts(orders, unitPositions, state, headToHead, routes, scale));
+  parts.push(...convoyOrderParts(orders, unitPositions, state, routes, scale));
+  for (const order of ofType("Build")) {
+    const position = unitPositions.get(order.source);
+    if (position) {
+      parts.push(buildMarkup(order, position, nationColor(state, order.nation), scale));
+    }
+  }
+  for (const order of ofType("Disband")) {
+    const position = unitPositions.get(order.source);
+    if (position) {
+      parts.push(disbandMarkup(position, scale));
+    }
+  }
+  return parts.join("\n");
+};
+
+export class DiplicityMap {
+  private readonly parsed: ParsedDsvg;
+  private readonly unitScale: number;
+
+  constructor(svg: string, unitScale = 1) {
+    this.parsed = parseDsvg(svg);
+    this.unitScale = unitScale;
+  }
+
+  render(state: RenderState = {}): string {
+    const { viewBox, rootFill, defs, background, provinceNames, borders, foreground } =
+      this.parsed;
+    const viewBoxAttr = `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
+    const fillAttr = rootFill !== null ? ` fill="${rootFill}"` : "";
+    const fills = provinceFillsLayer(
+      new Map([
+        ...this.parsed.provincePaths,
+        ...this.parsed.namedCoastPaths,
+      ]),
+      state
+    );
+    const markers = supplyCenterMarkersLayer(this.parsed.supplyCenters);
+    const units = unitsLayer(this.parsed.unitPositions, state, this.unitScale);
+    const orders = ordersLayer(this.parsed.unitPositions, state, this.unitScale);
+
+    const parts = [
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxAttr}"${fillAttr}>`,
+      defs,
+    ];
+    if (fills.includes("highlightedStripes")) {
+      parts.push(HIGHLIGHTED_STRIPES_DEFS);
+    }
+    parts.push(layer("background", background));
+    if (fills) {
+      parts.push(layer("province-fills", fills));
+    }
+    if (markers) {
+      parts.push(layer("supply-center-markers", markers));
+    }
+    parts.push(layer("province-names", provinceNames));
+    parts.push(layer("borders", borders));
+    parts.push(layer("foreground", foreground));
+    if (units) {
+      parts.push(layer("units", units));
+    }
+    if (orders) {
+      parts.push(layer("orders", orders));
+    }
+    parts.push("</svg>");
+    return parts.join("\n");
+  }
+}

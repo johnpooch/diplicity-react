@@ -124,6 +124,19 @@ _OPTION_LABEL = {
     "additionalProperties": False,
 }
 
+_ORDER_SET_LABEL = {
+    "type": "object",
+    "properties": {
+        "orders": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
+        "label": {"enum": ["reasonable", "unreasonable"]},
+        "labeller": {"type": "string"},
+        "labelled_at": {"type": "string"},
+        "reason": {"type": "string"},
+    },
+    "required": ["orders", "label", "labeller", "labelled_at"],
+    "additionalProperties": False,
+}
+
 _DISCARDED = {
     "type": "object",
     "properties": {
@@ -160,6 +173,7 @@ FIXTURE_SCHEMA = {
             "additionalProperties": False,
         },
         "option_labels": {"type": "array", "items": _OPTION_LABEL},
+        "order_set_labels": {"type": "array", "items": _ORDER_SET_LABEL},
         "eval_sets": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
         "discarded": _DISCARDED,
     },
