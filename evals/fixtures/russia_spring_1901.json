@@ -1,0 +1,626 @@
+{
+  "schema_version": 2,
+  "id": "russia_spring_1901",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "The standard opening position, played as Russia.",
+  "variant": "classical",
+  "nation": "Russia",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "mos",
+      "order_type": "Hold"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "lvn"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "sev"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "stp"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "ukr"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "war"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "sev",
+      "aux": "sev"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "stp",
+      "aux": "stp"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "war",
+      "aux": "war"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "stp"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "ukr",
+      "aux": "war"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "war"
+    },
+    {
+      "source": "sev",
+      "order_type": "Hold"
+    },
+    {
+      "source": "sev",
+      "order_type": "Move",
+      "target": "arm"
+    },
+    {
+      "source": "sev",
+      "order_type": "Move",
+      "target": "bla"
+    },
+    {
+      "source": "sev",
+      "order_type": "Move",
+      "target": "rum"
+    },
+    {
+      "source": "sev",
+      "order_type": "Support",
+      "target": "bla",
+      "aux": "ank"
+    },
+    {
+      "source": "sev",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "ank"
+    },
+    {
+      "source": "sev",
+      "order_type": "Support",
+      "target": "rum",
+      "aux": "bud"
+    },
+    {
+      "source": "sev",
+      "order_type": "Support",
+      "target": "arm",
+      "aux": "smy"
+    },
+    {
+      "source": "stp",
+      "order_type": "Hold"
+    },
+    {
+      "source": "stp",
+      "order_type": "Move",
+      "target": "fin"
+    },
+    {
+      "source": "stp",
+      "order_type": "Move",
+      "target": "bot"
+    },
+    {
+      "source": "stp",
+      "order_type": "Move",
+      "target": "lvn"
+    },
+    {
+      "source": "stp",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "mos"
+    },
+    {
+      "source": "stp",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "war"
+    },
+    {
+      "source": "war",
+      "order_type": "Hold"
+    },
+    {
+      "source": "war",
+      "order_type": "Move",
+      "target": "gal"
+    },
+    {
+      "source": "war",
+      "order_type": "Move",
+      "target": "lvn"
+    },
+    {
+      "source": "war",
+      "order_type": "Move",
+      "target": "mos"
+    },
+    {
+      "source": "war",
+      "order_type": "Move",
+      "target": "pru"
+    },
+    {
+      "source": "war",
+      "order_type": "Move",
+      "target": "sil"
+    },
+    {
+      "source": "war",
+      "order_type": "Move",
+      "target": "ukr"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "mos",
+      "aux": "mos"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "pru",
+      "aux": "ber"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "sil",
+      "aux": "ber"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "gal",
+      "aux": "bud"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "ukr",
+      "aux": "mos"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "mos"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "sil",
+      "aux": "mun"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "stp"
+    },
+    {
+      "source": "war",
+      "order_type": "Support",
+      "target": "gal",
+      "aux": "vie"
+    }
+  ],
+  "decision_richness": 9216,
+  "eval_sets": [
+    "opening"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "mos:Move:lvn",
+        "sev:Move:rum",
+        "stp:Support:lvn:mos",
+        "war:Move:gal"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:10:22+00:00",
+      "reason": "St. Petersburg supports Moscow into Livonia, even though Livonia is not threatened by any other unit.  Order."
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:10:28+00:00"
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Move:sil"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:10:30+00:00"
+    },
+    {
+      "orders": [
+        "mos:Move:lvn",
+        "sev:Move:rum",
+        "stp:Move:fin",
+        "war:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:10:36+00:00"
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Support:lvn:stp"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:10:52+00:00",
+      "reason": "Warsaw supports St. Petersburg into Livonia, even though Livonia is not threatened by any other unit."
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:fin",
+        "war:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:10:57+00:00"
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:fin",
+        "war:Move:lvn"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:11:41+00:00",
+      "reason": "The army which moves from Warsaw to Livonia cannot contribute to capturing any supply centers this year. It is a bit of a dead-end move."
+    },
+    {
+      "orders": [
+        "mos:Move:lvn",
+        "sev:Move:rum",
+        "stp:Move:fin",
+        "war:Support:lvn:mos"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:11:58+00:00",
+      "reason": "Warsaw supports Moscow to Livonia, even though Livonia is not threatened by any other unit. This is a wasted move."
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:bla",
+        "stp:Move:lvn",
+        "war:Move:gal"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:12:33+00:00",
+      "reason": "The fleet in St. Petersburg moves to Livonia. This means that it cannot be used to help capture any supply centers this year."
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Move:pru"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:12:43+00:00",
+      "reason": "The fleet in St. Petersburg moves to Livonia. This means that it cannot be used to help capture any supply centers this year."
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Support:ukr:mos"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:13:13+00:00",
+      "reason": "Army Warsaw supports Moscow to Ukraine, even though Ukraine is not threatened by any other unit. This is a wasted move."
+    },
+    {
+      "orders": [
+        "mos:Support:ukr:war",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Move:ukr"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:13:33+00:00",
+      "reason": "Army Moscow supports Warsaw to Ukraine, even though Ukraine is not threatened by any other unit. This is a wasted move."
+    },
+    {
+      "orders": [
+        "mos:Move:lvn",
+        "sev:Move:rum",
+        "stp:Move:fin",
+        "war:Move:ukr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:14:17+00:00"
+    },
+    {
+      "orders": [
+        "mos:Move:ukr",
+        "sev:Move:rum",
+        "stp:Move:bot",
+        "war:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:14:20+00:00"
+    },
+    {
+      "orders": [
+        "mos:Move:lvn",
+        "sev:Move:rum",
+        "stp:Move:lvn",
+        "war:Move:gal"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T12:14:46+00:00",
+      "reason": "Moscow and St. Petersburg are both moving to Livonia. They will bounce off each other and return to their original provinces. This is a wasted move."
+    }
+  ]
+}

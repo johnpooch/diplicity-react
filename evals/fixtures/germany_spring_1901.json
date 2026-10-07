@@ -1,0 +1,553 @@
+{
+  "schema_version": 2,
+  "id": "germany_spring_1901",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "The standard opening position, played as Germany.",
+  "variant": "classical",
+  "nation": "Germany",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "ber",
+      "order_type": "Hold"
+    },
+    {
+      "source": "ber",
+      "order_type": "Move",
+      "target": "kie"
+    },
+    {
+      "source": "ber",
+      "order_type": "Move",
+      "target": "mun"
+    },
+    {
+      "source": "ber",
+      "order_type": "Move",
+      "target": "pru"
+    },
+    {
+      "source": "ber",
+      "order_type": "Move",
+      "target": "sil"
+    },
+    {
+      "source": "ber",
+      "order_type": "Support",
+      "target": "kie",
+      "aux": "kie"
+    },
+    {
+      "source": "ber",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "mun"
+    },
+    {
+      "source": "ber",
+      "order_type": "Support",
+      "target": "sil",
+      "aux": "mun"
+    },
+    {
+      "source": "ber",
+      "order_type": "Support",
+      "target": "kie",
+      "aux": "mun"
+    },
+    {
+      "source": "ber",
+      "order_type": "Support",
+      "target": "sil",
+      "aux": "war"
+    },
+    {
+      "source": "ber",
+      "order_type": "Support",
+      "target": "pru",
+      "aux": "war"
+    },
+    {
+      "source": "kie",
+      "order_type": "Hold"
+    },
+    {
+      "source": "kie",
+      "order_type": "Move",
+      "target": "bal"
+    },
+    {
+      "source": "kie",
+      "order_type": "Move",
+      "target": "ber"
+    },
+    {
+      "source": "kie",
+      "order_type": "Move",
+      "target": "den"
+    },
+    {
+      "source": "kie",
+      "order_type": "Move",
+      "target": "hel"
+    },
+    {
+      "source": "kie",
+      "order_type": "Move",
+      "target": "hol"
+    },
+    {
+      "source": "kie",
+      "order_type": "Support",
+      "target": "ber",
+      "aux": "ber"
+    },
+    {
+      "source": "kie",
+      "order_type": "Support",
+      "target": "ber",
+      "aux": "mun"
+    },
+    {
+      "source": "mun",
+      "order_type": "Hold"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "ber"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "boh"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "bur"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "kie"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "ruh"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "sil"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "tyr"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "ber",
+      "aux": "ber"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "kie",
+      "aux": "kie"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "sil",
+      "aux": "ber"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "kie",
+      "aux": "ber"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "ber",
+      "aux": "kie"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "mar"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "par"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "tyr",
+      "aux": "ven"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "boh",
+      "aux": "vie"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "tyr",
+      "aux": "vie"
+    },
+    {
+      "source": "mun",
+      "order_type": "Support",
+      "target": "sil",
+      "aux": "war"
+    }
+  ],
+  "decision_richness": 1672,
+  "eval_sets": [
+    "opening"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:den",
+        "mun:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:08+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:sil",
+        "kie:Move:hol",
+        "mun:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:11+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:sil",
+        "kie:Move:hol",
+        "mun:Move:ruh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:12+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:hol",
+        "mun:Move:ruh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:14+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:hol",
+        "mun:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:15+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:sil",
+        "kie:Move:den",
+        "mun:Move:bur"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:18+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:sil",
+        "kie:Move:den",
+        "mun:Move:ruh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:19+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:den",
+        "mun:Move:ruh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:20+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:den",
+        "mun:Support:sil:ber"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:42+00:00",
+      "reason": "Munich is supporting Berlin to Silesia, but Berlin is moving to Prussia. The support is wasted."
+    },
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:hol",
+        "mun:Support:sil:ber"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:53+00:00",
+      "reason": "Munich is supporting Berlin to Silesia, but Berlin is moving to Prussia. The support is wasted."
+    },
+    {
+      "orders": [
+        "ber:Move:kie",
+        "kie:Move:den",
+        "mun:Move:ruh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:49:58+00:00"
+    },
+    {
+      "orders": [
+        "ber:Move:pru",
+        "kie:Move:den",
+        "mun:Move:boh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:00+00:00"
+    }
+  ]
+}

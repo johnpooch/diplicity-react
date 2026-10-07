@@ -1,0 +1,964 @@
+# AI player evals: the order side
+
+Implementation plan. Phases 0 and 1 are built; everything after them is not.
+
+Source material: discussion [#1368 "AI player evals"](https://github.com/johnpooch/diplicity-react/discussions/1368),
+a call with John, a design session on 22-23 September 2026, and voice notes from
+23 September 2026 that moved the work into its own space in the repo. Where this
+plan contradicts #1368, this plan is later and wins.
+
+---
+
+## 1. Goal
+
+Build the data and the tooling needed to tell whether the AI player's order
+selection is any good, and to make prompt iteration produce a trustworthy
+signal rather than vibes.
+
+The binding constraint is human labels. Everything downstream (scorers, answer
+keys, judges) needs positions that a human has judged, and only a human can
+produce those. So the first deliverable is not a metric, it is a tool that makes
+labelling fast, plus the fixtures to label.
+
+The second constraint is **iteration speed**. For at least the next few weeks the
+loop is: change something, run the evals locally, look, repeat. Everything in this
+plan is judged by how short it makes that loop. That is why the work lives in its
+own space, cut off from the app (D16).
+
+### In scope
+
+- A new top-level **`evals/`** folder: a self-contained Django service plus its own
+  frontend, deliberately decoupled from `service/` and `packages/` (D16).
+- A **local tool** for order fixtures: board view, legal option list, run the
+  model, see consequences, label options.
+- **Prompt iteration inside that tool**: every part of the prompt is editable,
+  the system prompt and the user prompt alike, including how the board is
+  described (D13). Re-run against the loaded fixture and see straight away what
+  the orders became and what they cost.
+- **Running the whole eval suite from the tool**, with per-fixture, per-scorer
+  results beside the human labels, so the evals themselves can be judged, not
+  just the model (D20).
+- **Eval-set curation**: mark a fixture as belonging to a named eval set, or
+  discard it as unsuitable, from inside the tool.
+- A **harvester** that turns real Diplicity phases into self-contained fixtures,
+  without importing app code.
+- **Fixture schema v2**, including what the real players actually ordered.
+- **Tactical-soundness checks** on the model's order set, with no adjudication
+  and no judge: provably wrong combinations, and diagnostic rates compared
+  against the human on the same position (section 7).
+- A **one-phase counterfactual** (order efficacy): swap the model's order set in
+  against the other nations' archived orders, measure what changes, and compare
+  with the same measures for what the human actually ordered (D10).
+- **Per-option human labels** written back into the fixture, as the answer key
+  future scorers will use.
+
+### Explicitly out of scope
+
+Do not build these as part of this plan. Each was considered and deferred.
+
+- **Any change to code under `service/` or `packages/`.** Production keeps
+  running on `service/harness` exactly as it is today (D17). This plan edits no
+  file outside `evals/`, root `CLAUDE.md` included.
+- **Reconnecting `evals/` to production.** Porting a better prompt back into
+  `service/harness` is a later, separate piece of work.
+- **Everything on the message side.** Message quality rubrics, the should-reply
+  decision, prompt-injection and jailbreak fixtures, LLM-judge calibration.
+  Parked by decision, see D11.
+- **Order consistency with respect to reasoning** as an LLM judge. Deferred.
+- **Persisting eval runs across sessions, and any long-lived dashboard.** Issue
+  [#1142](https://github.com/johnpooch/diplicity-react/issues/1142) posed this
+  and was closed as not planned. Suite results live in memory for the session
+  (D20).
+- **Deploying the tool.** Local only, see D5.
+- **Dumbbot rollouts** (playing a game-year or more forward with dumbbot in every
+  seat). Deferred until the one-phase comparison with the human has been tried
+  and found not to be enough. The design work already done is kept in section 11.
+- **The dumbbot match protocol.** Settled in
+  [#1126](https://github.com/johnpooch/diplicity-react/issues/1126). Do not
+  redefine it.
+- **Changing dumbbot or the adjudicator.** Both are used as they are (D18).
+- **Label-based scorers beyond the two that exist.** This plan produces the
+  labelled data such a scorer would need; writing one before labels exist leaves
+  it idle. The Tier 1 tactical-soundness scorers (section 7) are the exception:
+  they check the order set against the rules of the board and need no labels.
+- **Chat history in the `select_orders` context.** Moves and messages stay
+  separate for now, see D11.
+
+---
+
+## 2. What exists today
+
+Read these before changing anything.
+
+- `service/harness/tasks/select_orders/evals.py` is the only inspect `Task` in
+  the repo. Seven scorers over `dataset.json`.
+- `service/harness/tasks/select_orders/dataset.json` holds 10 fixtures. They are
+  hand-built toy positions, not harvested. One has a single legal option. Only 4
+  carry `ranked_options`, which is why `quality_strong` and `quality_avoidance`
+  report stderr of 0.14 and 0.24 in `EVAL_RESULTS.md`.
+- **Production depends on `service/harness`.** `service/agent/orchestration.py:5-7`
+  imports `harness.adapter`, `harness.tasks` and `dumbbot.policy` to build the live
+  bot's prompts and orders, and `agent/tasks.py`, `agent/fallback.py`,
+  `agent/context.py` and `agent/orders.py` import harness types. This is why the
+  eval work cannot iterate inside `service/harness` without every change touching
+  the live bot.
+- `service/dumbbot/` holds a heuristic policy that plays legal Diplomacy for
+  zero tokens (`service/dumbbot/EVAL_RESULTS.md`). It currently beats the LLM on
+  every scorer, five of them trivially because it picks from the engine's own
+  option enumeration and so cannot emit an illegal order.
+- `service/adjudicator/` is the Diplomacy rules engine. It is pure and Django-free.
+  Its public facade is `adjudicate(variant, game_state)`
+  (`service/adjudicator/__init__.py:16`), which resolves a phase, and
+  `service/adjudicator/options.py:47` exposes `get_options(state)`, which lists
+  every legal order.
+- `service/agent/management/commands/dump_phase.py` is the existing harvester. It
+  only emits fixtures for a game's *current* phase
+  (`service/agent/management/commands/dump_phase.py:94`) and needs the app's
+  Django models. `evals/` does not use it (task 1.4).
+- `packages/design-playground/` is a prototyping app. Not suitable for this
+  tool, see R1. Like it, `evals/` states its own boundary in its own
+  `CLAUDE.md`.
+
+---
+
+## 3. Measured facts
+
+Measured on 2026-09-23 against the classical variant in a local dev container.
+Reproduce with `DJANGO_DEBUG=True service/.venv/bin/python manage.py shell`.
+
+| Quantity | Value |
+|---|---|
+| `get_options` on a full board | 35 ms |
+| `Engine().adjudicate` on a full board | 0.66 ms |
+| Legal order sets, Spring 1901, Turkey (3 units) | 693 |
+| Legal order sets, Spring 1901, Russia (4 units) | 9,216 |
+| Legal options, constructed 6-unit midgame position | 133 |
+| Legal order sets, that same position | 105,257,880 |
+
+Consequences that shaped the design:
+
+- Option enumeration costs about fifty times adjudication. A one-phase
+  counterfactual only adjudicates, so it costs about a millisecond; enumeration is
+  paid once per fixture at harvest. (It would dominate the cost of the deferred
+  rollouts, at roughly 40 ms per rolled-out phase, see section 11.)
+- The space of order sets is far too large for exact-set matching against a
+  handful of hand-authored "reasonable" sets. Labelling is **per option**.
+- Option enumeration is **per unit and unconditional**. Legality depends on where
+  units physically stand, not on what other units are ordered. Convoy
+  enumeration falls back to `convoy_path_exists` over physical fleet positions
+  and deliberately does not depend on submitted convoys
+  (`service/adjudicator/options.py:8`). This is why per-unit counts multiply
+  cleanly, and why `support_coherence` and `convoy_coherence` exist at all: the
+  option list cannot rule out legal-but-incoherent combinations.
+
+### Legal by construction
+
+The game API returns every legal order for the phase and the player picks from
+that list, so an illegal order cannot be submitted. The bot works the same way:
+the model is shown the list and answers with a reference into it
+(`service/harness/tasks/select_orders/parser.py:20`). So the `legality` scorer
+(0.993 today) does not measure Diplomacy knowledge. It measures whether the
+model's answer mapped cleanly back onto the list. Read it as a format check, and
+do not spend prompt effort chasing it.
+
+### The supply-centre timing constraint
+
+**Supply-centre ownership cannot change within a single phase.** Ownership is
+recomputed only when the *next* phase is an Adjustment phase; otherwise current
+ownership is carried through unchanged
+(`service/adjudicator/engine.py:1143`). In the classical progression, Adjustment
+follows Fall **Retreat**, not Fall Movement.
+
+So a one-phase counterfactual always reports a supply-centre delta of zero,
+whether the phase is Spring or Fall. Ownership moves once per game-year. This is
+why the counterfactual measures occupancy of supply-centre provinces rather than
+ownership. #1368 lists "supply center changes during fall phases" under order
+efficacy; by this constraint that number is always zero, so it is replaced by
+occupancy (R4).
+
+---
+
+## 4. Key decisions
+
+**D1. The UI has three jobs: labelling, prompt iteration, and judging the evals.**
+Human labels are important to many downstream metrics, so labelling throughput
+is one thing to optimise. The second is the loop someone actually runs when
+improving the bot: edit the prompt, run it against a known position, see what
+the orders became and what they cost on the board. Today that loop means editing
+Python, running an inspect eval and reading aggregate scores, which is far too
+slow to iterate against. The third is seeing whether the scorers themselves are
+right (D20). A read-only inspection view serves none of these.
+
+**D2. Label per option, three-way: reasonable / unreasonable / unlabelled.**
+Forced by the combinatorics in section 3. Three-way rather than binary because
+"unlabelled" is the honest state for most of a 30-option list, and forcing a
+call on every option produces worse labels. The labeller must be able to label
+options the model did *not* pick, which falls out of labelling over the full
+legal list.
+
+A label may cover a **tuple** of options, not only a single one. Some orders are
+reasonable only in combination: a support is worth nothing unless the supported
+move is also ordered. A tuple label is satisfied only when every option in it is
+present in the order set. Singletons are the common case and tuples the
+exception, which keeps labelling cheap while capturing the coupling that pure
+per-option labelling would otherwise lose. This is the narrow, affordable part of
+what full order-set labelling would have given us (R2).
+
+**D3. Select from the option list, render on the board.** Authoring orders by
+clicking provinces needs the interactive map (pan, zoom, hit-testing), which is
+roughly 3,500 lines nobody wants a second copy of. Selecting from the list and
+drawing the result on a board is cheap and is how judgement actually happens:
+nobody can evaluate `Support Munich -> Silesia` as a string. Render the board
+once and overlay arrows as SVG in the browser; do not round-trip to a PNG
+renderer per click.
+
+**D4. Order-set level machine measurement, order level human attribution.**
+The machine resolves a whole order set and reports what changed. The human then
+attributes that outcome to individual orders. Machines are bad at attribution
+here and humans are bad at simulation, so each does what it is good at.
+
+**D5. Local only.** `evals/` runs on a laptop and writes fixture JSON straight to
+disk. This removes staff authentication, deployment, and the "how does a deployed
+app write to git" problem in one move, and keeps the privacy question away from
+the order work entirely. Deploy later only if it earns it.
+
+**D6. Fixtures are self-contained JSON files committed to the repo.** They carry
+their own variant id, phase, units, supply centres and full legal option list,
+so the eval does not need a database at rest. This also delivers what John asked
+for, a Diplomacy eval rather than a Diplicity-specific one: the portable
+contract is the fixture schema plus `adjudicate()`, and only the harvester
+touches Diplicity data.
+
+**D7. Fixtures carry no user identifiers.** The current builder records nation
+names only (`service/harness/adapter.py:214`). Preserve that deliberately: this
+repository is public and fixtures will be committed to it. A source game id as
+provenance is fine, user ids are not.
+
+**D8, D9.** Deferred with the rollouts; see section 11.
+
+**D10. The consequence signal is one phase deep, compared against the human.**
+Two families of measure, both from #1368 (section 7): tactical soundness, which
+inspects the order set against the board without adjudicating, and order
+efficacy, which adjudicates the model's order set once against the other
+nations' real orders. Both are computed for the order set the human actually
+played on the same position, and shown side by side. The human's side costs
+nothing: the orders are `actual_orders` and the outcome is `actual_outcome`,
+both already in the fixture. Looking further ahead with dumbbot rollouts is
+deferred (section 11) until this simpler comparison has been tried on real
+fixtures and found wanting (Q9).
+
+The human is a reference point, not an oracle. They may have been playing a
+diplomatic line the metrics cannot see, and they chose their orders knowing
+things (agreements, bluffs) the fixture does not record. #1368 makes the same
+point about the Tier 2 diagnostics: each has legitimate strategic uses, and
+becomes meaningful only against the human rate on identical positions.
+
+**D11. Moves and messages stay separate.** Consequence: the `select_orders`
+prompt keeps no chat history for now, and the full-press move-quality eval stays
+parked. Side benefit: the privacy policy gap (section 8) only binds on player
+messages, so it gates nothing in this plan.
+
+**D12. `option_labels` is the source of truth; `ranked_options` is derived.**
+The existing `quality_strong` and `quality_avoidance` scorers read
+`ranked_options` good/bad lists
+(`service/harness/tasks/select_orders/scorers/quality.py:7`). In the `evals/`
+copy of those scorers, derive that shape from `option_labels` at load time so
+they keep working unchanged instead of being rewritten before there is data to
+justify it.
+
+**D13. Every part of the prompt is editable, so options are addressed by id.**
+This reverses the earlier decision to keep the user prompt read-only. The board
+description is very likely one of the more important parts of the prompt, and
+nobody knows whether the current one is any good, so it must be as easy to change
+as the strategy guidance. Reshaping it is encouraged: for example, dropping
+provinces no unit can reach this phase, or grouping the board around the eval
+nation's units, if that works better and can be built from data the fixture
+already carries (D19).
+
+What blocked this before is that the model answers with an `option_index`, a
+position in the rendered per-province list
+(`service/harness/tasks/select_orders/parser.py:20`). Any edit that reorders or
+trims the list silently changes what an index means, and an out-of-range index is
+skipped rather than raised (`service/harness/tasks/select_orders/parser.py:24`),
+so a desync shows up as a missing order rather than an error.
+
+So in `evals/`, options get a **stable id derived from their own content**
+(source, order type, target, aux, unit type, named coast). An unknown id is
+rejected exactly as an out-of-range index is today, so illegal orders stay
+unrepresentable and the "legal by construction" property (section 3) holds,
+while the rendered list can be reordered, trimmed or reformatted freely. The
+parser rejects an unknown id loudly instead of skipping it. The cost is that
+`evals/` numbers are not comparable with the `option_index` numbers in the
+existing `EVAL_RESULTS.md`; that is accepted, since `evals/` re-baselines anyway
+(task 4.2).
+
+The prompt is therefore assembled from named parts, each editable in the tool:
+the system blocks (`ROLE`, `PRINCIPLES`, the phase task instruction, `FORMAT`)
+and the user prompt sections (players, board, units, supply centres, options).
+`FORMAT` stays editable but is marked as parser-coupled, because it specifies the
+JSON shape the parser expects.
+
+Two kinds of change are distinguished. **Wording** (how a section phrases what it
+is given) is edited in the tool and re-run on the spot. **What data is fed into
+the prompt** (for example, only the provinces a unit can reach) is decided in
+`evals/` code and changed there directly (D19). It is not a menu of alternatives
+to switch between in the UI.
+
+**D14, D15.** Deferred with the rollouts; see section 11.
+
+**D16. `evals/` is a separate space, deliberately cut off from the app.**
+A new top-level folder holding its own Django project and its own frontend. It
+shares the repository only so that it can read real data and borrow from the
+existing UI. The dependency rules:
+
+- Nothing outside `evals/` imports from `evals/`. Production never learns it
+  exists.
+- `evals/` may import **read-only** from `service/adjudicator/` and
+  `service/dumbbot/`, which are pure, Django-free Python (D18). It imports nothing
+  else from `service/`: no Django apps, no models, no settings, no `agent`.
+- The `evals/` frontend never imports from `packages/web` or
+  `packages/design-playground`. It copies what it needs (the board SVG, arrow
+  drawing).
+- `evals/` starts from a **copy** of the `select_orders` code in
+  `service/harness` (prompts, parser, scorers, options helpers, dataset) and then
+  diverges freely.
+
+The reason is speed. Iterating inside `service/harness` means every prompt or
+scorer change is also a change to what the live bot does (section 2), so each PR
+has to reason about production. Cutting the connection removes that, and makes
+reconnecting later a deliberate port rather than a constant tax.
+
+Python packages inside `evals/` must not reuse the names of packages it imports
+from `service/` (`adjudicator`, `dumbbot`, `harness`, `common`), or imports will
+resolve to the wrong one.
+
+**D17. Stubs sit on the `evals/` side; production is untouched.** Wherever
+`evals/` would otherwise need a live connection to the app (a running game, the
+app's database, the agent), it uses fixture files or hard-coded data instead.
+Nothing under `service/` or `packages/` is edited, stubbed or disabled, and the
+production bot keeps running on `service/harness` exactly as it does today.
+
+**D18. The adjudicator and dumbbot are imported, not copied.** `evals/` needs the
+adjudicator to list legal options for harvested phases and to adjudicate the
+counterfactual, and needs dumbbot as the zero-token solver that checks the copied
+eval task still scores as the original (task 0.3). Neither will be changed as part of this work, and both are Django-free:
+their imports are the standard library, `yaml`, `jsonschema`, and
+`common/constants.py`, which itself only imports `adjudicator.types`. Dumbbot also
+imports types and helpers from `service/harness` (`harness.types`,
+`harness.utils`, `harness.exceptions`), which are plain Python. Importing them
+read-only keeps a single engine and avoids a roughly 6,000-line copy drifting from the
+one production uses. If one of them does need changing for eval purposes later,
+copy it into `evals/` at that point.
+
+**D19. Reshape the data however works best.** The fixture is raw material, not a
+prompt. Any structure that helps the model or the labeller and can be built from
+data the fixture already carries, or from the variant, is fair game: pruning
+unreachable provinces, per-unit neighbourhoods, a different board encoding. This
+is what gets fed into the prompt, so it lives in `evals/` code and is changed
+there as the design evolves; the tool shows the result in the rendered prompt
+(task 3.5). The fixture itself stays complete, so reshaping never needs a
+re-harvest.
+
+**D20. The tool shows whether the evals are right, not only the model.**
+Running the full suite from the tool shows, per fixture, every scorer's verdict
+and explanation next to the human labels and the model's orders. A scorer that
+disagrees with the labels, or passes an order set a human would reject, is then
+visible at a glance. Results live in memory for the session; nothing is persisted
+across sessions (see out of scope).
+
+**D21. Whole order sets carry their own labels, matched exactly.** Added when
+the tool was first built, and a departure from D2. A reviewer judges a complete
+set of arrows on the board far more easily than one order in isolation, so
+`order_set_labels` labels one complete order set as reasonable or unreasonable.
+A model's set matches a label only when it is the same set, order for order;
+anything else is uncategorized. The combinatorics that ruled this out in D2 are
+sidestepped by labelling only sets that actually turn up: the model's set from a
+run, the human's real set, or one built by hand. Uncategorized sets in a run are
+the labelling queue. A run's score is the share of its distinct order sets
+labelled reasonable, computed against the labels as they are when it is viewed,
+so labelling after a run changes its number and a set produced in several
+epochs counts once.
+`option_labels` and the scorers that read it (D12) are untouched; whether the two
+kinds of label both earn their keep is open. One known gap: `actual_orders`
+leaves out implicit holds, so a model that orders those holds explicitly does not
+match the human's set.
+
+---
+
+## 5. Rejected alternatives
+
+**R1. Build the UI in `packages/design-playground`.** Proposed in #1368, rejected.
+That package's own `CLAUDE.md` overrides the root one and forbids nearly
+everything this tool needs: "no backend, no API client, no authentication and no
+real data", "no MSW, no react-query, no generated OpenAPI types, and no network
+layer. Do not add them", "Never rebuild the interactive map", "No tests. This
+code is disposable", and prototypes get deleted once a decision lands. This tool
+is durable, has a backend, and reads real data. It does not belong there.
+
+**R2. Exact order-set matching against hand-authored "reasonable" sets.**
+Rejected on the numbers in section 3. Against roughly 10^8 legal sets, exact
+matching reads zero almost always and teaches nothing.
+
+**R3. Per-order marginal rollouts.** The idea was to fix one order, let dumbbot
+fill the remaining units, and read off that order's marginal value. Rejected
+because order quality is tightly coupled within a set: a support only has value
+if the supported move is also ordered, so fixing a support while something else
+fills the rest makes good orders look worthless. Signal to noise is too poor.
+Replaced by D4.
+
+**R4. Supply-centre delta from a one-phase counterfactual.** Impossible, see the
+timing constraint in section 3. It is always zero.
+
+**R5, R6.** Rollout-specific; kept in section 11.
+
+**R7. Relying on the existing dumbbot match for per-move signal.** The match
+(`service/integration/test_dumbbot_match.py`, results in
+`service/integration/MATCH_RESULTS.md`) measures a whole policy over a whole
+game and cannot attribute the outcome to any single decision. Archive replay
+gives only one phase of consequence, because the moment the model's orders are
+substituted the real game diverges and every later archived order was
+conditioned on a board that no longer exists. One phase of consequence is what
+this plan accepts for now (D10); looking further ahead is what the deferred
+rollouts are for (section 11).
+
+**R8. Build the tool inside `service/`.** The first version of this plan added a
+DEBUG-gated Django app to `service/`, extended `service/harness` in place and
+taught `dump_phase` to read historical phases. Rejected because
+`service/harness` is what the production bot runs on (section 2), so every
+experiment would also be a production change. Replaced by D16.
+
+**R9. Stub the production agent's side.** Considered as a way to cut the
+connection: replace the agent's calls into `service/harness` with stubs that
+return hard-coded data. Rejected because it would edit production code and make
+the live bot play hard-coded orders. The stubs go on the `evals/` side instead
+(D17).
+
+**R10. Copy the adjudicator into `evals/`.** Rejected for now: roughly 6,000 lines
+of engine that nobody intends to change, which would silently drift from the
+engine production uses. See D18 for when this flips.
+
+---
+
+## 6. Fixture schema v2
+
+One JSON file per fixture, at `evals/fixtures/<id>.json`, one file per fixture
+rather than a single `dataset.json`, so label changes produce readable diffs.
+
+Existing fields, keep as they are: `id`, `variant`, `nation`, `phase`
+(`season`, `year`, `type`), `units`, `supply_centers`, `order_options`,
+`max_orders` (optional), `notes`.
+
+New fields:
+
+- `schema_version`: `2`.
+- `provenance`: `{ source: "harvested" | "handbuilt", game_id, phase_id,
+  phase_ordinal, harvested_at, press_type, was_bot }`. `was_bot` records whether
+  a bot held the eval nation in that phase (Q3). The existing 10 fixtures are
+  `handbuilt` and behave nothing like harvested positions, so the distinction
+  must be explicit rather than implied.
+- `actual_orders`: the real order set **for every nation** in the phase, not just
+  the eval nation. Without the other six, counterfactual re-adjudication is
+  impossible. This is the single most important addition.
+- `actual_outcome`: which orders succeeded or failed, and the resulting units and
+  supply centres: `{ resolutions: [{ nation, source, result }], units,
+  supply_centers }`, where `result` is the engine's resolution code and the board
+  is the one directly after this phase resolves (Q1). The human's side of the comparison (D10) comes from this and
+  `actual_orders`.
+- `option_labels`: list of `{ options, label: "reasonable" | "unreasonable",
+  labeller, labelled_at, note }`. `options` is a list of option ids (D13): one
+  entry in the ordinary case, several when the judgement holds only for a
+  combination (D2). Absence of an entry means unlabelled.
+- `order_set_labels`: list of `{ orders, label: "reasonable" | "unreasonable",
+  labeller, labelled_at, reason }`. `orders` is the sorted option ids of one
+  complete order set (D21). A set has at most one entry.
+- `eval_sets`: list of named eval sets this fixture belongs to. Empty by default.
+  A harvested fixture starts in none: harvesting is cheap and deciding a position
+  is worth evaluating against is a judgement, so they must be separate actions.
+- `discarded`: `{ by, at, reason }`, or absent. A fixture judged unsuitable is
+  marked rather than deleted, so the same position is not re-harvested and
+  re-judged later.
+- `decision_richness`: integer, the product of per-unit option counts for the
+  eval nation. Free to compute while enumerating, and useful for sorting
+  candidate positions by how much was actually at stake.
+
+Two fields are needed so a Retreat-phase fixture can be rebuilt exactly: a unit
+may carry `dislodged_from`, and the fixture may carry `contested_provinces`.
+Without them the engine would offer retreats the app did not.
+
+The schema is `FIXTURE_SCHEMA` in `evals/select_orders/schema.py`. Every object in
+it rejects unknown keys, which is what keeps user identifiers out (D7).
+
+There is deliberately no `split` field. A dev/test split is just two eval sets
+named for the purpose, so `eval_sets` already expresses it. See Q5.
+
+---
+
+## 7. Metrics
+
+Both families come from #1368 ("Tactical soundness" and "Order efficacy"). Every
+measure is computed for the model's order set and for the human's real order set
+on the same position, and reported as model, human, and the difference (D10).
+There is no randomness anywhere in this section, so every number is exact.
+
+### Tactical soundness
+
+Code-based, no judge, no adjudication: each check reads the order set against
+the board.
+
+**Tier 1: provably wrong.** Binary scorers; any hit is a mistake.
+
+- Two of your own units ordered to the same province (guaranteed self-bounce).
+- Support for a move nobody is making. Exists today as `support_coherence`,
+  with the false positive fixed in task 1.2.
+- Convoy for a move nobody is making. Exists today as `convoy_coherence`.
+- Support for an enemy unit moving into a province you hold.
+
+**Tier 2: diagnostics.** Reported as rates, never as pass or fail. Each has
+legitimate strategic uses, so a rate means something only beside the human's
+rate on the same positions.
+
+- Idle hold: holding where no enemy unit can enter this phase.
+- Undefended home centre: moving the only defender out of a home centre an
+  adjacent enemy can enter.
+- Wasted support: supporting a province no enemy could contest.
+- Certain bounce: moving into a province where an enemy has a supported move and
+  you have no support.
+
+"Certain bounce" depends on what the enemy actually ordered, so it reads the
+other nations' `actual_orders`. The rest need only the board and the order set.
+
+### Order efficacy: the one-phase counterfactual
+
+Swap the eval nation's candidate order set in, hold the other nations'
+`actual_orders` fixed, adjudicate once. Report:
+
+- units lost outright (dislodged with no legal retreat), and units dislodged,
+  own and enemy
+- moves succeeded over moves attempted
+- provinces contested and held, taken, given up
+- progress: moves into contested or capturable provinces
+- **occupancy** delta on supply-centre provinces
+
+#1368 also lists supply-centre changes in Fall phases. Do **not** report that:
+it is always zero after one phase (section 3, R4). Occupancy of supply-centre
+provinces is the leading indicator: occupying Munich in Fall is what makes you
+own it at the following Adjustment.
+
+---
+
+## 8. Constraints and conventions
+
+- Root `CLAUDE.md` applies inside `evals/` as it does everywhere else: follow
+  existing patterns, no code comments or docstrings (DRF view docstrings
+  excepted, they feed OpenAPI), never suppress lint or type errors, write tests
+  alongside features, cite file and line when asserting something about the
+  codebase. `evals/CLAUDE.md` adds the boundary rules (D16, D17) and setup; it
+  does not relax any root rule.
+- `.claude/rules/backend/` and `.claude/rules/frontend.md` are scoped by path to
+  `service/` and `packages/web`, so they do not load automatically in `evals/`.
+  Follow them anyway where they apply, notably the single `tests.py` per Django
+  app and asserting behaviour through HTTP endpoints
+  (`.claude/rules/backend/tests.md`). Pure functions (prompt rendering, the
+  parser, the tactical checks, the counterfactual) are tested directly, the way
+  `service/adjudicator/tests.py` does.
+- The dependency rules in D16 are hard rules, not preferences.
+- The adjudicator has its own architectural rubric in
+  `service/adjudicator/CLAUDE.md`. `evals/` calls the engine from outside through
+  `adjudicate()` and `get_options()`; it does not reach into it.
+- `evals/` has no Postgres dependency. Fixtures are files, and it carries none of
+  the Postgres-only migrations that rule out SQLite for `service/`.
+- The adjudicator needs the variant in its canonical form, which `service/`
+  builds from the database (`service/variant/utils.py:204`). `evals/` keeps a
+  committed JSON export of the classical variant instead (task 0.1), the same way
+  `service/harness/data/variants/classical.json` keeps the prompt-side variant.
+- Running the model needs an Anthropic API key in the `evals/` environment.
+  `service/` reads it from `BOT_ANTHROPIC_API_KEY`
+  (`service/harness/management/commands/run_evals.py:18`); `evals/` reads its own.
+- **Privacy**: `PRIVACY.md:67` lists four third parties and Anthropic is not among
+  them, while `PRIVACY.md:76` states no data is shared with other third parties
+  and `PRIVACY.md:38` confirms chat messages are collected. Production already
+  sends player messages to Anthropic through the reply task, so the policy is
+  inaccurate today. This blocks the message work, not this plan (D11), but it
+  needs fixing before any message eval touches real data.
+
+---
+
+## 9. Open questions
+
+- **Q1.** Where the harvester reads from. It must not import app code (D16), so
+  the candidates are the app's HTTP API or a one-off export. Whether the HTTP API
+  exposes past phases with every nation's orders and resolutions is **not
+  verified**. Recommended: the export, because it needs no API work and keeps the
+  whole fixture format inside `evals/`. How it would work:
+  - A read-only SQL query, committed in `evals/`, run against the app's Postgres
+    (production via the existing read-only access, or a local database for
+    testing). It writes a raw snapshot file. No app code runs.
+  - The snapshot holds, for the chosen games, one row per: game (`id`, variant,
+    `press_type`, `status`); phase (`id`, game, `ordinal`, `season`, `year`,
+    `type`); unit (phase, province, type, nation name, `dislodged`); supply
+    centre (phase, province, nation name); order (phase, nation name,
+    `order_type`, source, target, aux, `unit_type`, named coast, resolution
+    status); and per game and nation a bare `was_bot` flag. Tables and fields
+    are from `service/phase/models.py:748`, `service/unit/models.py:7`,
+    `service/supply_center/models.py:4`, `service/order/models.py:126` and
+    `:391`, `service/game/models.py:402`; the bot flag comes from the user's
+    profile (`service/member/models.py:160`).
+  - Deliberately not exported: users, member and user ids, names, emails, chat
+    channels and messages (D7, D11). The raw snapshot is gitignored; only the
+    fixtures built from it are committed.
+  - Everything after the snapshot happens in `evals/`: the v2 schema, legal
+    options via `get_options`, `actual_orders`, `actual_outcome`,
+    `decision_richness`. The snapshot is the only thing that knows
+    the app's table layout, so an app schema change breaks one SQL file and
+    nothing else.
+  - Caveat, **verified** on a replayed game: phases in which nobody can act (for
+    example an empty Retreat) are skipped and never persisted
+    (`service/adjudicator/service.py:145`), so the next stored phase is not always
+    the next engine phase. `actual_outcome` is computed by adjudicating
+    `actual_orders` with the engine. The stored resolutions are a cross-check on
+    whether each order succeeded, not on its exact failure code, because games
+    adjudicated by godip name some failures differently (`ErrIllegalMove` where
+    the engine says `ErrInvalidSupporteeOrder`). The next stored phase is a
+    cross-check too,
+    its units when the engine's next phase is an
+    empty Retreat or the same phase, its supply centres only when it is the same
+    phase.
+  - As built (task 1.4), the export also carries each unit's `dislodged_from` and
+    each phase's `contested_provinces` and `status`, reports `was_bot` per phase
+    rather than per game, and leaves out implicit orders, which are default holds
+    the app records for units nobody ordered.
+- **Q2.** Issue #1142 claimed `CLAUDE.md` explicitly forbids Django models in
+  `harness`. That wording is not in the current `CLAUDE.md` or `.claude/rules/`.
+  Moot for `evals/`, which needs no models (fixtures are files), but the rule
+  should be written down or dropped for `service/harness`.
+- **Q3.** How fixtures get selected for harvesting. Answered for the first batch
+  in task 1.5; the reasoning below still holds for later ones. Deliberately unanswered: criteria
+  designed before anything has been labelled will be wrong. For the first batch,
+  take 20 to 30 phases across 3 to 5 completed games spread over early, middle and
+  late game, and let labelling teach us what matters. Positions the bot itself
+  played are the highest-value source, since the bot's real orders, the resulting
+  board and eventually whether it got kicked all come for free.
+- **Q4.** Whether `decision_richness` is stored in the fixture or computed on load.
+  Default: stored, since the harvester enumerates the options anyway.
+- **Q5.** The dev/test split. Deferred by agreement, and it needs no schema work:
+  two eval sets named for the purpose express it. The reason it matters is sharper
+  now that prompt iteration happens inside the tool (D1), because iterating
+  against a fixture is exactly what stops it being a fair test of the prompt.
+  Decide before the first eval set is used to judge a prompt change.
+- **Q7.** What "good enough" means for any of these metrics. Unanswered in #1368
+  and still unanswered.
+- **Q9.** Whether the one-phase comparison with the human is enough, or the
+  deferred rollouts (section 11) are needed after all. Decide after labelling
+  the first batch with these metrics beside it.
+
+Q6 (fix `support_coherence` now) is resolved: yes, in the `evals/` copy (task
+1.2). Q8 (address options by content-derived id) is resolved: yes, it is required
+by D13 (task 0.4).
+
+---
+
+## 10. Tasks
+
+Each task states how to tell it is done. Every task happens inside `evals/`. No
+task edits anything outside it.
+
+### Phase 0: the separate space
+
+- [x] **0.1 Scaffold `evals/`.**
+  A new Django project with its own settings, `manage.py`, requirements and test
+  setup, runnable locally with no Postgres. Import `service/adjudicator` and
+  `service/dumbbot` read-only (D18). Commit a canonical export of the classical
+  variant for the adjudicator (section 8).
+  *Done when*: `python manage.py check` and the test suite pass inside `evals/`;
+  a test adjudicates a Spring 1901 position and lists its legal options through
+  the imported engine; a test fails if any `evals/` module imports from
+  `service/` outside the allowed packages; and `git diff` shows nothing changed
+  under `service/` or `packages/`.
+
+- [x] **0.2 Document the separation in `evals/CLAUDE.md`.**
+  Root `CLAUDE.md` stays untouched. `evals/CLAUDE.md` states that this part
+  of the repo is deliberately cut off from everything else for fast eval
+  development, it is local only and not deployed, the D16 dependency rules, and
+  that the production bot still runs on `service/harness`.
+  *Done when*: a session working in `evals/` could infer where eval code
+  belongs, and what it may import, without reading this plan.
+
+- [x] **0.3 Copy the `select_orders` task into `evals/`.**
+  Prompts, parser, options helpers, the seven scorers and the 10 hand-built
+  fixtures, copied from `service/harness/tasks/select_orders/`, with the
+  fixtures split one per file and marked `provenance.source: "handbuilt"`.
+  `service/harness` is left untouched.
+  *Done when*: the copied task, run with the zero-token dumbbot solver, produces
+  the same scores over the 10 fixtures as `service/dumbbot/evals.py` does today.
+
+- [x] **0.4 Address options by content-derived id** (D13).
+  Replace `option_index` with a stable id built from the option's content in the
+  renderer, `FORMAT`, the output schema and the parser. The parser rejects an
+  unknown id with an error instead of skipping it.
+  *Done when*: reordering or trimming the rendered option list does not change
+  which order a given id selects; an unknown id raises a parse error; and the
+  dumbbot solver still scores as in 0.3.
+
+- [x] **0.5 Assemble the prompt from named, editable parts** (D13, D19).
+  System blocks and user prompt sections become named parts whose wording can be
+  overridden per run. The data each section is given is prepared separately in
+  code, so it can be reshaped (D19) without touching the wording.
+  *Done when*: with no overrides, the rendered prompt matches what the copied
+  code produced in 0.3; and an override of any single part changes only that
+  part.
+
+### Phase 1: data
+
+- [x] **1.1 Fixture schema v2** (section 6).
+  *Done when*: a fixture round-trips through the schema with all new fields
+  populated, a newly created fixture has `eval_sets` empty, and a test fails if a
+  fixture contains a user identifier.
+
+- [x] **1.2 Fix the dangling-support false positive**, in the `evals/` copy.
+  `dangling()` builds its destination map only from the eval nation's own orders
+  (`service/harness/tasks/select_orders/scorers/coherence.py:20`), so supporting
+  an *ally's* move always scores as incoherent, because the ally's unit never
+  appears in the order set. Supporting an ally is normal full-press play.
+  *Done when*: a test covering a support of a foreign nation's ordered move scores
+  CORRECT, and the existing dangling-support tests still pass.
+  As built: the other nations' orders come from `actual_orders`. A support or
+  convoy for a foreign unit is left unjudged when those orders are unknown
+  (hand-built fixtures), since it cannot be proved wrong.
+
+- [x] **1.3 Derive `ranked_options` from `option_labels`** (D12).
+  *Done when*: a fixture carrying only `option_labels` produces the same
+  `quality_strong` and `quality_avoidance` scores as the equivalent
+  `ranked_options` fixture.
+  As built: only single-option labels are derived. A tuple label (D2) has no
+  `ranked_options` equivalent, so these two scorers ignore it.
+
+- [x] **1.4 Harvester.**
+  Two steps, per Q1: the export query that writes a raw snapshot, and a command
+  that builds v2 fixtures from the snapshot without importing app code.
+  Reconstruct each phase's state, list legal options with `get_options`, and
+  record every nation's `actual_orders` and the real `actual_outcome`. Works for
+  any phase, not only a game's current one.
+  *Done when*: the export query runs against a local app database with a played
+  game in it; building from that snapshot writes a fixture for a past phase with
+  a non-empty option list; `actual_orders` covers every nation with units in the
+  phase; a test asserts the options for a reconstructed past phase match those
+  for the same board as a current phase; and a test fails if the snapshot or a
+  fixture contains a user identifier.
+  As built: `evals/harvest/export.sql` and `python manage.py build_fixtures`; how
+  to run them is in `evals/CLAUDE.md`. The builder refuses any phase whose replay
+  disagrees with the stored game, and never overwrites an existing fixture file.
+
+- [x] **1.5 Harvest the first batch.**
+  20 to 30 phases per Q3. Commit the fixture files.
+  *Done when*: `evals/fixtures/` holds the batch, every file validates against
+  schema v2, and each declares `provenance.source: "harvested"`.
+  As built: 32 phases from 10 completed classical games, 64 fixtures.
+  - **No-press only, for now.** A fixture records the press type but not the
+    negotiation, so in a full-press game the human may have played to a deal
+    the model cannot see (D10, D11). In no-press games the human had exactly
+    the information the model gets, which makes them the cleaner reference.
+  - **Games**: no more than 12% of player turns missed, played to 1906 or later,
+    and an auto-generated game id, because player-chosen ids can contain names
+    and the ids are committed (D7). Seven solos and three draws (3-, 4- and
+    5-way).
+  - **Positions**: an early, a middle and a late one per game, chosen at moments
+    that mattered: a nation turning on a former supporter, the biggest battles
+    and supply-centre swings, solo races and the lines that stopped them. Plus
+    one Adjustment with a forced choice and two Retreats with real options.
+    Spring 1901 is left out because it is the same board in every game.
+  - **Eval nations**: the one or two whose decision mattered, both sides where
+    two nations turned on each other. Each ordered at least 80% of its units,
+    since late games often leave most units holding by default, which says
+    little about the human's judgement.
+  - **No bot-played positions yet**: no completed classical game had a bot seat,
+    so `was_bot` is false throughout. That source (Q3) comes from games still
+    running.
+
+### Phase 2: the metrics, headless
+
+- [ ] **2.1 Tactical-soundness checks** (section 7).
+  Tier 1 as inspect scorers alongside the copied ones; Tier 2 as pure functions
+  returning rates.
+  *Done when*: each Tier 1 check has a test that catches it and a test that
+  passes a clean order set; each Tier 2 diagnostic has a test for a position
+  where it fires and one where it does not; and supporting an enemy into your own
+  province is caught.
+
+- [ ] **2.2 One-phase counterfactual** (order efficacy).
+  Pure function: fixture plus a candidate order set in, the section 7 efficacy
+  measures out.
+  *Done when*: replaying a fixture's own `actual_orders` reproduces its
+  `actual_outcome` exactly, which proves the counterfactual is wired up
+  correctly.
+
+- [ ] **2.3 Human comparison and management command.**
+  Compute both families for the human's real order set and for a candidate, and
+  print them side by side with the difference.
+  *Done when*: the command runs end to end on a harvested fixture, and the
+  human's efficacy measures computed by replay equal those computed from
+  `actual_outcome`.
+
+### Phase 3: the tool
+
+A first cut was built ahead of phase 2 and to a narrower brief than the tasks
+below: three views, one for curating a fixture's labelled order sets (D21), one
+for a run's score and its prompts diffed against another run, and a review queue
+for labelling the order sets a run produced that have no label yet.
+It reads runs from the inspect logs in `evals/logs/` and does not start them.
+It starts from a single fixture, England in Spring 1901, in an eval set named
+`opening`; the tool and `run_evals` cover that set only, which is the part of
+task 4.1 that was needed. The harvested fixtures stay on disk outside the set.
+How to run it is in `evals/CLAUDE.md`. Tasks 3.2 to 3.8 are ticked only where
+their *done when* is met in full.
+
+- [x] **3.1 Frontend scaffold** inside `evals/`.
+  Vite, React, TypeScript strict. No imports from `packages/web` or
+  `packages/design-playground`, enforced by `no-restricted-imports` the way the
+  playground does it.
+  *Done when*: `npm run build` and `npm run lint` pass, and a deliberate import
+  from `packages/web` fails lint.
+
+- [ ] **3.2 Local backend API.**
+  Endpoints: list fixtures, read a fixture, render the prompt for a set of part
+  overrides, run the model against it, compute the section 7 metrics, run
+  the eval suite, and write `option_labels`, `eval_sets` and `discarded` back to
+  the fixture file.
+  *Done when*: every endpoint has a test, and the label-write endpoint round-trips
+  a label into the JSON file on disk.
+
+- [ ] **3.3 Fixture list and board view.**
+  Board rendered from the fixture, arrows overlaid as SVG (D3). Copy the board
+  SVG and drawing code from `packages/web`; do not import it.
+  *Done when*: a harvested fixture renders with units, supply centres and the real
+  orders drawn, with failed orders visibly distinguished.
+
+- [ ] **3.4 Option list and labelling.**
+  Full legal option list, filterable, grouped by unit. Click an option to see it
+  drawn on the board. Mark reasonable, unreasonable, or leave unlabelled. Select
+  several options together to label them as a tuple (D2).
+  *Done when*: labelling an option writes it to the fixture file and the label
+  survives a reload; options the model did not pick are labellable; a support and
+  its supported move can be labelled as one tuple and both are drawn on the board
+  together.
+
+- [ ] **3.5 Prompt workbench.**
+  Every prompt part editable (D13), run against the loaded fixture, and show the model's chosen orders and its `reasoning`
+  beside the option list and on the board. `FORMAT` is marked as parser-coupled.
+  Show the fully rendered prompt exactly as sent. Keep the previous run visible so
+  a prompt change can be compared against what it replaced.
+  *Done when*: an edited `PRINCIPLES` block produces a different order set on the
+  same fixture; an edited board section is visible in the rendered prompt and
+  the run uses it; the runs before and after an edit can be seen side
+  by side; and an unparseable completion surfaces the parse error rather than
+  failing silently.
+
+- [ ] **3.6 Suite runner and eval-quality view** (D20).
+  Run the current prompt over a chosen eval set from the tool. Show aggregate
+  scores, and per fixture every scorer's verdict and explanation beside the human
+  labels and the model's orders. Highlight disagreements between a scorer and the
+  labels.
+  *Done when*: a suite run over the 10 hand-built fixtures completes from the UI;
+  each fixture's per-scorer results are inspectable; a fixture where a scorer
+  passes an order labelled unreasonable is flagged; and two suite runs with
+  different prompts can be compared.
+
+- [ ] **3.7 Metrics panel.**
+  Both section 7 families for the model's order set and the human's, side by
+  side, with the difference. Tier 1 hits are shown as errors; Tier 2 as rates.
+  *Done when*: the human's metrics show as soon as a fixture loads; the model's
+  appear after a run; the suite view (3.6) shows Tier 2 rates for model and human
+  across the eval set; and each metric can be traced to the orders that caused it
+  (which unit bounced, which support was wasted), drawn on the board.
+
+- [ ] **3.8 Eval-set curation.**
+  Add the loaded fixture to a named eval set, remove it, or discard it with a
+  reason, writing `eval_sets` and `discarded` back to the file.
+  *Done when*: set membership and discarding both survive a reload; a discarded
+  fixture is visibly excluded from the working list but still present on disk; and
+  the fixture list can be filtered by eval set.
+
+### Phase 4: close the loop
+
+- [ ] **4.1 Load the inspect task from the fixture directory by eval set.**
+  `evals/`'s `select_orders(eval_set=...)` loads `evals/fixtures/`, filtered by
+  eval-set membership, so what an eval run covers is decided by curation rather
+  than by which file someone edited.
+  *Done when*: `select_orders(eval_set=...)` runs over exactly the fixtures in that
+  set, discarded fixtures are never included, and an empty or unknown set name
+  fails loudly rather than silently running zero samples.
+
+- [ ] **4.2 Baseline the evals** against the harvested fixtures, for both the
+  model and dumbbot, and record the results in an `EVAL_RESULTS.md` inside
+  `evals/`. Note that the dataset and the answer format both changed, so the
+  numbers are not comparable with `service/harness/tasks/select_orders/EVAL_RESULTS.md`,
+  which stays as it is.
+  *Done when*: the file records a run against the new dataset with its fixture
+  count and the incomparability noted.
+
+- [ ] **4.3 Reply to discussion #1368** summarising what was decided and what was
+  dropped, so the thread does not stay at the original proposal.
+  *Done when*: the comment is posted and links to this plan.
+
+### Not now
+
+Dumbbot rollouts, see section 11.
+
+Reconnecting `evals/` to production: porting a better prompt, the option-id
+format or the reshaped board back into `service/harness`. Do this deliberately,
+once there is a measured improvement worth shipping.
+
+Message-side work, listed here only so it is not lost: the privacy policy
+correction (section 8), message fixtures, the negatives-first rubric with
+code-checkable board-grounding claims separated from judge-only ones, the
+should-reply classifier (cheapest item on the list, its answer key needs no human
+labelling since "did a human reply, and how fast" comes straight from the
+archive), and prompt-injection fixtures.
+
+---
+
+## 11. Deferred: dumbbot rollouts
+
+Kept so the design work is not lost. Not part of the current plan (D10, Q9).
+Revisit only if the one-phase comparison with the human turns out not to be
+enough.
+
+**The idea.** Start from the one-phase counterfactual (phase 0: the candidate
+order set against the other nations' real orders), then play forward with
+dumbbot in every seat, and measure supply-centre count delta and units remaining
+at the horizon, for the model's order set, the human's, and dumbbot's own pick.
+This is what would answer "what did this order set cost me a game-year later",
+which one phase cannot (R7).
+
+**Decisions already made, should it come back:**
+
+- **D8. Horizon in game-years, not phases.** Default 1 game-year, meaning roll
+  forward until the next Adjustment has resolved, with 2 offered. A fixed 3-phase
+  horizon stops one short of Adjustment from a Spring position and overshoots
+  from a Fall one (section 3).
+- **D9. Paired seeds across all candidates.** Rollouts are high variance and the
+  position dominates the outcome, so every candidate is rolled out over the same
+  seed list; common random numbers cancel the shared randomness.
+- **Rollouts are an aid, never a metric.** They measure value against a weak
+  continuation, so tuning a prompt against them means tuning against dumbbot's
+  blind spots.
+- **D14. Baselines precomputed at harvest**, keyed by horizon and seed list, with
+  per-seed results kept in a `baselines` fixture field. Seeds are a canonical
+  nested list `0..N-1` precomputed to 100, so a live run at `m <= 100` seeds
+  compares against the first `m` with no recomputation.
+- **D15. Seed count measured, not guessed.** Plot the standard error of the
+  paired difference against seed count on real fixtures and read the default off
+  the curve; 30 is only a placeholder. Show the interval, never a bare mean.
+- **R5.** Win rate rejected as the statistic: undefined at one game-year, almost
+  pure variance over a full game.
+- **R6.** A rollout is never reported without its baselines. A UI toggle may hide
+  them, never skip computing them.
+
+**Expected cost**, from the roughly 40 ms per rolled-out phase in section 3: about
+2.5 s per candidate for 1 game-year from Fall at 30 seeds, 5 s from Spring, 10 s
+for 2 game-years from Spring. Baselines at two horizons and 100 seeds are roughly
+96 s per Spring fixture, paid once at harvest.
+
+**Tasks it would add:** an N-game-year rollout (the same seed gives
+byte-identical results; a zero-game-year rollout equals the one-phase
+counterfactual), stored baselines, the seed-count measurement, and rollout
+results with their uncertainty in the metrics panel.

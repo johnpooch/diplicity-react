@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "id": "take_neutral_supply_center",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "English F North Sea can take Norway (neutral SC, unoccupied, uncontested) or drift to Skagerakk. Unambiguous: North Sea is not itself an SC and is not threatened, so the fleet defends nothing by staying, and Skagerakk leads nowhere better. Hold is weak but not forbidden; only Skagerakk is strictly wasted.",
+  "variant": "classical",
+  "nation": "England",
+  "phase": {
+    "season": "Fall",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "nth"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "yor"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "nth",
+      "order_type": "Move",
+      "target": "nwy"
+    },
+    {
+      "source": "nth",
+      "order_type": "Move",
+      "target": "ska"
+    },
+    {
+      "source": "nth",
+      "order_type": "Hold",
+      "target": "nth"
+    },
+    {
+      "source": "lon",
+      "order_type": "Hold",
+      "target": "lon"
+    },
+    {
+      "source": "yor",
+      "order_type": "Hold",
+      "target": "yor"
+    }
+  ],
+  "ranked_options": {
+    "good": [
+      {
+        "source": "nth",
+        "order_type": "Move",
+        "target": "nwy"
+      }
+    ],
+    "neutral": [
+      {
+        "source": "nth",
+        "order_type": "Hold",
+        "target": "nth"
+      }
+    ],
+    "bad": [
+      {
+        "source": "nth",
+        "order_type": "Move",
+        "target": "ska"
+      }
+    ]
+  },
+  "eval_sets": []
+}

@@ -1,0 +1,637 @@
+{
+  "schema_version": 2,
+  "id": "italy_spring_1901",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "The standard opening position, played as Italy.",
+  "variant": "classical",
+  "nation": "Italy",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "nap",
+      "order_type": "Hold"
+    },
+    {
+      "source": "nap",
+      "order_type": "Move",
+      "target": "apu"
+    },
+    {
+      "source": "nap",
+      "order_type": "Move",
+      "target": "ion"
+    },
+    {
+      "source": "nap",
+      "order_type": "Move",
+      "target": "rom"
+    },
+    {
+      "source": "nap",
+      "order_type": "Move",
+      "target": "tys"
+    },
+    {
+      "source": "nap",
+      "order_type": "Support",
+      "target": "rom",
+      "aux": "rom"
+    },
+    {
+      "source": "nap",
+      "order_type": "Support",
+      "target": "apu",
+      "aux": "rom"
+    },
+    {
+      "source": "nap",
+      "order_type": "Support",
+      "target": "rom",
+      "aux": "ven"
+    },
+    {
+      "source": "nap",
+      "order_type": "Support",
+      "target": "apu",
+      "aux": "ven"
+    },
+    {
+      "source": "rom",
+      "order_type": "Hold"
+    },
+    {
+      "source": "rom",
+      "order_type": "Move",
+      "target": "apu"
+    },
+    {
+      "source": "rom",
+      "order_type": "Move",
+      "target": "nap"
+    },
+    {
+      "source": "rom",
+      "order_type": "Move",
+      "target": "tus"
+    },
+    {
+      "source": "rom",
+      "order_type": "Move",
+      "target": "ven"
+    },
+    {
+      "source": "rom",
+      "order_type": "Support",
+      "target": "nap",
+      "aux": "nap"
+    },
+    {
+      "source": "rom",
+      "order_type": "Support",
+      "target": "ven",
+      "aux": "ven"
+    },
+    {
+      "source": "rom",
+      "order_type": "Support",
+      "target": "apu",
+      "aux": "nap"
+    },
+    {
+      "source": "rom",
+      "order_type": "Support",
+      "target": "ven",
+      "aux": "tri"
+    },
+    {
+      "source": "rom",
+      "order_type": "Support",
+      "target": "tus",
+      "aux": "ven"
+    },
+    {
+      "source": "rom",
+      "order_type": "Support",
+      "target": "apu",
+      "aux": "ven"
+    },
+    {
+      "source": "ven",
+      "order_type": "Hold"
+    },
+    {
+      "source": "ven",
+      "order_type": "Move",
+      "target": "apu"
+    },
+    {
+      "source": "ven",
+      "order_type": "Move",
+      "target": "pie"
+    },
+    {
+      "source": "ven",
+      "order_type": "Move",
+      "target": "rom"
+    },
+    {
+      "source": "ven",
+      "order_type": "Move",
+      "target": "tri"
+    },
+    {
+      "source": "ven",
+      "order_type": "Move",
+      "target": "tus"
+    },
+    {
+      "source": "ven",
+      "order_type": "Move",
+      "target": "tyr"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "rom",
+      "aux": "rom"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "tri"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "bud"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "mar"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "tyr",
+      "aux": "mun"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "rom",
+      "aux": "nap"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "apu",
+      "aux": "nap"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "tus",
+      "aux": "rom"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "apu",
+      "aux": "rom"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "tyr",
+      "aux": "vie"
+    },
+    {
+      "source": "ven",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "vie"
+    }
+  ],
+  "decision_richness": 1782,
+  "eval_sets": [
+    "opening"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:apu",
+        "ven:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:05+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:tus",
+        "ven:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:08+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:apu",
+        "ven:Move:pie"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:11+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:tys",
+        "rom:Move:apu",
+        "ven:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:13+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:tus",
+        "ven:Move:pie"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:16+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:apu",
+        "ven:Move:tus"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:18+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:tus",
+        "ven:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:20+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:tys",
+        "rom:Move:apu",
+        "ven:Move:tus"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:23+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:apu",
+        "ven:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:25+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:tys",
+        "rom:Move:tus",
+        "ven:Move:pie"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:27+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Support:tus:ven",
+        "ven:Move:tyr"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:52+00:00",
+      "reason": "Is supporting Venice to Tuscany, but Venice is moving to Tyrolia. Even if Venice was moving to Tuscany, Tuscany is not threatened by any other unit, so the support would be wasted."
+    },
+    {
+      "orders": [
+        "nap:Move:apu",
+        "rom:Move:tus",
+        "ven:Move:pie"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:50:55+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:apu",
+        "rom:Move:ven",
+        "ven:Move:tus"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:51:57+00:00",
+      "reason": "This is a bit of a pointless order set. Moving Venice to Tuscany doesn't bring it any closer to supply centers. Moving Naples to Apulia also doesn't bring it closer to supply centers. There is an unthreatened supply center in Tunis that Italy can capture in the first year uncontested."
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:ven",
+        "ven:Move:tus"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:52:03+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Support:tus:ven",
+        "ven:Move:tus"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:52:24+00:00",
+      "reason": "Rome is supporting Venice to Tuscany, even though there is no unit threatening Tuscany. This is wasted support."
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:ven",
+        "ven:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:52:27+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:tys",
+        "rom:Move:tus",
+        "ven:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:52:30+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:ion",
+        "rom:Move:ven",
+        "ven:Move:pie"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:52:33+00:00"
+    },
+    {
+      "orders": [
+        "nap:Move:tys",
+        "rom:Move:apu",
+        "ven:Move:pie"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:52:58+00:00"
+    },
+    {
+      "orders": [
+        "nap:Support:apu:rom",
+        "rom:Move:apu",
+        "ven:Move:tus"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:53:14+00:00",
+      "reason": "Naples is supporting Rome to Apulia, even though Apulia is not threatened by any unit. This is wasted support."
+    }
+  ]
+}
