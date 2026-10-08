@@ -1809,6 +1809,13 @@ def game_with_three_phases(
 
 
 @pytest.fixture
+def sandbox_game_with_three_phases(game_with_three_phases):
+    game_with_three_phases.sandbox = True
+    game_with_three_phases.save()
+    return game_with_three_phases
+
+
+@pytest.fixture
 def deadline_warning_game_factory(
     db,
     italy_vs_germany_variant,

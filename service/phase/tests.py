@@ -1515,6 +1515,104 @@ class TestPhaseReversion:
         assert phase1.status == PhaseStatus.ACTIVE
 
 
+class TestPhaseRevertView:
+
+    @pytest.mark.django_db
+    def test_sandbox_player_can_revert_to_previous_phase(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase1.id
+        assert response.data["status"] == PhaseStatus.ACTIVE
+
+        phases_response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+        assert [p["id"] for p in phases_response.data] == [phase1.id]
+
+    @pytest.mark.django_db
+    def test_revert_clears_orders_of_reverted_phase(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        orders_response = authenticated_client.get(reverse("order-list", args=[game.id, phase1.id]))
+        assert orders_response.status_code == status.HTTP_200_OK
+        assert orders_response.data == []
+
+    @pytest.mark.django_db
+    def test_revert_to_middle_phase_keeps_earlier_phases(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        phase2 = game.phases.get(ordinal=2)
+
+        authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase2.id]))
+
+        phases_response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+        assert [(p["id"], p["status"]) for p in phases_response.data] == [
+            (phase1.id, PhaseStatus.COMPLETED),
+            (phase2.id, PhaseStatus.ACTIVE),
+        ]
+
+    @pytest.mark.django_db
+    def test_cannot_revert_non_sandbox_game(self, authenticated_client, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_cannot_revert_completed_sandbox_game(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        game.status = GameStatus.COMPLETED
+        game.save()
+        phase1 = game.phases.get(ordinal=1)
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_non_member_cannot_revert(
+        self, authenticated_client_factory, tertiary_user, sandbox_game_with_three_phases
+    ):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        client = authenticated_client_factory(tertiary_user)
+
+        response = client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_revert_unauthenticated(self, unauthenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        response = unauthenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_cannot_revert_to_phase_of_another_game(
+        self, authenticated_client, sandbox_game_with_three_phases, sandbox_game_factory
+    ):
+        game = sandbox_game_with_three_phases
+        other_phase = sandbox_game_factory().phases.first()
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, other_phase.id]))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert game.phases.count() == 3
+
+
 class TestPhaseRetrieveView:
 
     @pytest.mark.django_db

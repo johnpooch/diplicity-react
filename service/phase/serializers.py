@@ -52,6 +52,15 @@ class PhaseListSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
 
 
+class PhaseRevertSerializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        instance.revert_to_this_phase()
+        return instance
+
+    def to_representation(self, instance):
+        return PhaseListSerializer(instance, context=self.context).data
+
+
 class PhaseRetrieveSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     ordinal = serializers.IntegerField()

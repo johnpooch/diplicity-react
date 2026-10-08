@@ -6031,6 +6031,169 @@ export function useGamePhaseRetrieveSuspense<
 }
 
 /**
+ * Revert a sandbox game to this phase, deleting every later phase and this phase's orders.
+ */
+export const gamePhaseRevertUpdate = (
+  gameId: string,
+  phaseId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<PhaseList>({
+    url: `/game/${gameId}/phase/${phaseId}/revert/`,
+    method: "PUT",
+    signal,
+  });
+};
+
+export const getGamePhaseRevertUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamePhaseRevertUpdate>>,
+    TError,
+    { gameId: string; phaseId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamePhaseRevertUpdate>>,
+  TError,
+  { gameId: string; phaseId: number },
+  TContext
+> => {
+  const mutationKey = ["gamePhaseRevertUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamePhaseRevertUpdate>>,
+    { gameId: string; phaseId: number }
+  > = props => {
+    const { gameId, phaseId } = props ?? {};
+
+    return gamePhaseRevertUpdate(gameId, phaseId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamePhaseRevertUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamePhaseRevertUpdate>>
+>;
+
+export type GamePhaseRevertUpdateMutationError = unknown;
+
+export const useGamePhaseRevertUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamePhaseRevertUpdate>>,
+      TError,
+      { gameId: string; phaseId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamePhaseRevertUpdate>>,
+  TError,
+  { gameId: string; phaseId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamePhaseRevertUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Revert a sandbox game to this phase, deleting every later phase and this phase's orders.
+ */
+export const gamePhaseRevertPartialUpdate = (
+  gameId: string,
+  phaseId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<PhaseList>({
+    url: `/game/${gameId}/phase/${phaseId}/revert/`,
+    method: "PATCH",
+    signal,
+  });
+};
+
+export const getGamePhaseRevertPartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamePhaseRevertPartialUpdate>>,
+    TError,
+    { gameId: string; phaseId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamePhaseRevertPartialUpdate>>,
+  TError,
+  { gameId: string; phaseId: number },
+  TContext
+> => {
+  const mutationKey = ["gamePhaseRevertPartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamePhaseRevertPartialUpdate>>,
+    { gameId: string; phaseId: number }
+  > = props => {
+    const { gameId, phaseId } = props ?? {};
+
+    return gamePhaseRevertPartialUpdate(gameId, phaseId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamePhaseRevertPartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamePhaseRevertPartialUpdate>>
+>;
+
+export type GamePhaseRevertPartialUpdateMutationError = unknown;
+
+export const useGamePhaseRevertPartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamePhaseRevertPartialUpdate>>,
+      TError,
+      { gameId: string; phaseId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamePhaseRevertPartialUpdate>>,
+  TError,
+  { gameId: string; phaseId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamePhaseRevertPartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
