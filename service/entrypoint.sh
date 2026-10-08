@@ -21,8 +21,11 @@ if [ "$PROCESS_ROLE" = "worker" ]; then
     exec python manage.py procrastinate worker
 fi
 
-echo "Running database migrations..."
+echo "Running database migrations and ensuring superuser exists..."
 if python manage.py shell << 'EOF'
+import os
+
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db import connection
 
@@ -35,27 +38,18 @@ try:
 finally:
     with connection.cursor() as cursor:
         cursor.execute("SELECT pg_advisory_unlock(%s)", [MIGRATION_LOCK_ID])
+
+User = get_user_model()
+if not User.objects.filter(username="superuser").exists():
+    User.objects.create_superuser("superuser", "superuser@example.com", os.environ.get("DJANGO_SUPERUSER_PASSWORD"))
+    print("Superuser created")
 EOF
 then
     echo "Migrations completed successfully."
 else
-    echo "Migration failed!" >&2
+    echo "Migration or superuser creation failed!" >&2
     exit 1
 fi
-
-echo "Collecting static files..."
-python manage.py collectstatic --noinput
-
-echo "Creating superuser (deleting existing if present)..."
-python manage.py shell << EOF
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if User.objects.filter(username='superuser').exists():
-    User.objects.filter(username='superuser').delete()
-    print("Existing superuser deleted")
-User.objects.create_superuser('superuser', 'superuser@example.com', '$DJANGO_SUPERUSER_PASSWORD')
-print("Superuser created successfully")
-EOF
 
 if [ "$SEED_STAGING_DATA" = "True" ]; then
     echo "Seeding staging test data..."

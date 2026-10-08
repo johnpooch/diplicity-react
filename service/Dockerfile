@@ -42,8 +42,8 @@ RUN pip install gunicorn
 # Create a non-root user
 RUN useradd -ms /bin/bash appuser
 
-# Create staticfiles directory and set permissions
-RUN mkdir -p /app/staticfiles && chown -R appuser:appuser /app
+# Collect static files and set permissions
+RUN python manage.py collectstatic --noinput && chown -R appuser:appuser /app
 
 # Copy and set up entrypoint script
 COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
