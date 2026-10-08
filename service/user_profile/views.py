@@ -1,5 +1,3 @@
-import logging
-
 from rest_framework import permissions, generics
 from rest_framework.parsers import MultiPartParser
 from django.db import transaction
@@ -14,15 +12,13 @@ from phase.models import PhaseState
 from common.constants import GameStatus, PhaseStatus
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame
 from common.views import SelectedGameMixin
-from .models import UserProfile, UserProfilePicture
+from .models import UserProfile, UserProfilePicture, UserProfilePictureContent
 from .serializers import (
     AddableUserSerializer,
     PublicUserProfileSerializer,
     UserProfilePictureSerializer,
     UserProfileSerializer,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class UserProfileRetrieveView(generics.RetrieveAPIView):
@@ -64,19 +60,13 @@ class UserProfilePictureView(generics.UpdateAPIView, generics.DestroyAPIView):
 class UserProfilePictureImageView(View):
     def get(self, request, user_id, content_hash):
         try:
-            picture = UserProfilePicture.objects.get(
-                profile__user_id=user_id, content_hash=content_hash
+            content = UserProfilePictureContent.objects.select_related("picture").get(
+                picture__profile__user_id=user_id, picture__content_hash=content_hash
             )
-        except UserProfilePicture.DoesNotExist:
+        except UserProfilePictureContent.DoesNotExist:
             return HttpResponseNotFound()
 
-        try:
-            data = picture.image.read()
-        except FileNotFoundError:
-            logger.warning("Profile picture %s is missing from storage", picture.image.name)
-            return HttpResponseNotFound()
-
-        response = HttpResponse(data, content_type=picture.content_type)
+        response = HttpResponse(content.data, content_type=content.picture.content_type)
         response["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 

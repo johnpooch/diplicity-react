@@ -1,3 +1,5 @@
+import io
+
 import pytest
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
@@ -423,7 +425,7 @@ class TestUserProfilePictureView:
         )
 
         picture = UserProfilePicture.objects.get(profile=primary_user.profile)
-        stored = Image.open(picture.image)
+        stored = Image.open(io.BytesIO(picture.content.data))
         assert stored.size == (PICTURE_SIZE, PICTURE_SIZE)
 
     @pytest.mark.django_db
@@ -433,7 +435,7 @@ class TestUserProfilePictureView:
         )
 
         picture = UserProfilePicture.objects.get(profile=primary_user.profile)
-        stored = Image.open(picture.image).convert("RGB")
+        stored = Image.open(io.BytesIO(picture.content.data)).convert("RGB")
         assert stored.getpixel((PICTURE_SIZE // 4, PICTURE_SIZE // 2)) == (255, 0, 0)
         assert stored.getpixel((3 * PICTURE_SIZE // 4, PICTURE_SIZE // 2)) == (0, 0, 255)
 
@@ -452,7 +454,7 @@ class TestUserProfilePictureView:
         )
 
         picture = UserProfilePicture.objects.get(profile=primary_user.profile)
-        stored = Image.open(picture.image).convert("RGB")
+        stored = Image.open(io.BytesIO(picture.content.data)).convert("RGB")
         left = stored.getpixel((PICTURE_SIZE // 4, PICTURE_SIZE // 2))
         right = stored.getpixel((3 * PICTURE_SIZE // 4, PICTURE_SIZE // 2))
         assert left[0] > 200 and left[2] < 60
@@ -473,7 +475,7 @@ class TestUserProfilePictureView:
         )
 
         picture = UserProfilePicture.objects.get(profile=primary_user.profile)
-        stored = Image.open(picture.image)
+        stored = Image.open(io.BytesIO(picture.content.data))
         assert stored.getexif() == {}
 
     @pytest.mark.django_db
@@ -494,6 +496,22 @@ class TestUserProfilePictureView:
         assert UserProfilePicture.objects.filter(profile=primary_user.profile).count() == 1
 
     @pytest.mark.django_db
+    def test_upload_picture_stops_serving_replaced_image(
+        self, authenticated_client, make_image, make_upload
+    ):
+        first = authenticated_client.put(
+            reverse("user-picture"), make_upload(), format="multipart"
+        )
+        second = authenticated_client.put(
+            reverse("user-picture"),
+            make_upload(image=make_image(left="#00ff00", right="#00ff00")),
+            format="multipart",
+        )
+
+        assert authenticated_client.get(first.data["picture"]).status_code == status.HTTP_404_NOT_FOUND
+        assert authenticated_client.get(second.data["picture"]).status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
     def test_upload_picture_preserves_png_transparency(
         self, authenticated_client, primary_user, make_upload
     ):
@@ -507,7 +525,7 @@ class TestUserProfilePictureView:
 
         picture = UserProfilePicture.objects.get(profile=primary_user.profile)
         assert picture.content_type == "image/png"
-        assert Image.open(picture.image).mode == "RGBA"
+        assert Image.open(io.BytesIO(picture.content.data)).mode == "RGBA"
 
     @pytest.mark.django_db
     def test_upload_webp_picture(self, authenticated_client, primary_user, make_upload):
@@ -626,8 +644,7 @@ class TestUserProfilePictureImageView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "image/png"
-        stored_picture.image.open()
-        assert response.content == stored_picture.image.read()
+        assert response.content == bytes(stored_picture.content.data)
 
     @pytest.mark.django_db
     def test_sets_immutable_cache_control(
@@ -652,24 +669,6 @@ class TestUserProfilePictureImageView:
             reverse(
                 "user-picture-image",
                 kwargs={"user_id": primary_user.id, "content_hash": "x" * 64},
-            )
-        )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    @pytest.mark.django_db
-    def test_picture_missing_from_storage_returns_404(
-        self, unauthenticated_client, primary_user, stored_picture
-    ):
-        stored_picture.image.storage.delete(stored_picture.image.name)
-
-        response = unauthenticated_client.get(
-            reverse(
-                "user-picture-image",
-                kwargs={
-                    "user_id": primary_user.id,
-                    "content_hash": stored_picture.content_hash,
-                },
             )
         )
 
@@ -720,16 +719,18 @@ class TestUserProfileAdmin:
         assert primary_user.profile.picture_url() == "http://example.com/google.jpg"
 
     @pytest.mark.django_db
-    def test_clear_uploaded_picture_deletes_stored_file(
+    def test_clear_uploaded_picture_stops_serving_image(
         self, admin_client, primary_user, stored_picture
     ):
-        storage = stored_picture.image.storage
-        name = stored_picture.image.name
-        assert storage.exists(name)
+        url = reverse(
+            "user-picture-image",
+            kwargs={"user_id": primary_user.id, "content_hash": stored_picture.content_hash},
+        )
+        assert admin_client.get(url).status_code == status.HTTP_200_OK
 
         _clear_uploaded_picture(admin_client, primary_user.profile)
 
-        assert not storage.exists(name)
+        assert admin_client.get(url).status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
     def test_clear_uploaded_picture_leaves_other_profiles_untouched(
