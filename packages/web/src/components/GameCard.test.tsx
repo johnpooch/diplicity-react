@@ -15,6 +15,7 @@ import {
 } from "@/mocks/legacy";
 
 const mockNavigate = vi.fn();
+const mockJoinMutateAsync = vi.fn();
 const mockUseIsMobile = vi.fn();
 
 vi.mock("react-router", async () => {
@@ -34,7 +35,7 @@ vi.mock("@/api/generated/endpoints", async () => {
   return {
     ...actual,
     useGameMemberJoinCreate: () => ({
-      mutateAsync: vi.fn(),
+      mutateAsync: mockJoinMutateAsync,
       isPending: false,
     }),
     getGamesListQueryKey: () => ["games"],
@@ -62,6 +63,7 @@ const defaultProps = {
 describe("GameCard", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    mockJoinMutateAsync.mockReset();
     mockUseIsMobile.mockReset();
     mockUseIsMobile.mockReturnValue(false);
   });
@@ -330,6 +332,48 @@ describe("GameCard", () => {
       expect(screen.queryByText(/joined/)).toBeInTheDocument();
       expect(screen.queryByText("Orders required")).not.toBeInTheDocument();
       expect(screen.queryByText(/won/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("join game", () => {
+    const joinableGame = mockPendingGames.find(g => g.canJoin)!;
+    const shortJoinableGame = { ...joinableGame, showShortGameJoinWarning: true };
+
+    it("joins immediately when the game does not need a short-game warning", async () => {
+      const user = userEvent.setup();
+      renderGameCard({ game: joinableGame, ...defaultProps });
+
+      await user.click(screen.getByRole("button", { name: "Join game" }));
+
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: joinableGame.id });
+    });
+
+    it("warns before joining a short game and joins on confirm", async () => {
+      const user = userEvent.setup();
+      renderGameCard({ game: shortJoinableGame, ...defaultProps });
+
+      await user.click(screen.getByRole("button", { name: "Join game" }));
+
+      expect(screen.getByRole("alertdialog")).toHaveTextContent(
+        /short phases/
+      );
+      expect(mockJoinMutateAsync).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("button", { name: "Join" }));
+
+      expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: shortJoinableGame.id });
+    });
+
+    it("does not join a short game when the warning is cancelled", async () => {
+      const user = userEvent.setup();
+      renderGameCard({ game: shortJoinableGame, ...defaultProps });
+
+      await user.click(screen.getByRole("button", { name: "Join game" }));
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(mockJoinMutateAsync).not.toHaveBeenCalled();
     });
   });
 

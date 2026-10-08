@@ -62,6 +62,23 @@ export const pendingGameNoPlayers = makeFixture({
   }),
 });
 
+export const pendingGameShortPhases = makeFixture({
+  description:
+    "Pending public game with 1-hour phases. The current user can join it and is warned before joining.",
+  game: makeGame(
+    "pending-short-phases",
+    "Lightning Round",
+    makePendingMembers(2, false),
+    [],
+    {
+      status: "pending",
+      canJoin: true,
+      movementPhaseDuration: "1 hour",
+      showShortGameJoinWarning: true,
+    }
+  ),
+});
+
 export const pendingGameCommitted = makeFixture({
   description:
     "Pending public game that requires committed players. The current user has high commitment and can join.",

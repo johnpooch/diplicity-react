@@ -2757,6 +2757,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        showShortGameJoinWarning:
+          type: boolean
+          readOnly: true
         members:
           type: array
           items:
@@ -2853,6 +2856,7 @@ components:
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
+      - showShortGameJoinWarning
       - status
       - totalUnreadMessageCount
       - variantId
@@ -3061,6 +3065,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        showShortGameJoinWarning:
+          type: boolean
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -3148,6 +3155,7 @@ components:
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
+      - showShortGameJoinWarning
       - status
       - totalUnreadMessageCount
       - variantId

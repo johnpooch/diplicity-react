@@ -532,6 +532,7 @@ class GameRetrieve(TypedDict):
     member_status: list[MemberStatusEnum] | None
     movement_phase_duration: str | None
     retreat_phase_duration: str | None
+    show_short_game_join_warning: bool
     private: bool
     anonymous: bool
     is_paused: bool
@@ -649,6 +650,7 @@ class GameList(TypedDict):
     anonymous: bool
     movement_phase_duration: str | None
     retreat_phase_duration: str | None
+    show_short_game_join_warning: bool
     members: list[Member]
     victory: Victory | None
     sandbox: bool
