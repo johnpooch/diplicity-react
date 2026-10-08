@@ -36,6 +36,7 @@ import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameMemberJoinCreate,
+  getGamesFastestRetrieveQueryKey,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
@@ -119,6 +120,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       await joinGameMutation.mutateAsync({ gameId: game.id });
       toast.success("Successfully joined game");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getGamesFastestRetrieveQueryKey(),
+      });
       if (!game.sandbox) {
         checkNotificationPermission();
       }

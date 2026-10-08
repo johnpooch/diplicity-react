@@ -1621,6 +1621,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/DrawProposal'
           description: ''
+  /games/fastest/:
+    get:
+      operationId: games_fastest_retrieve
+      description: Return the joinable game closest to starting whose movement phases
+        last 24 hours or longer.
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameFastest'
+          description: ''
   /games/find-similar/:
     get:
       operationId: games_find_similar_retrieve
@@ -2616,6 +2632,15 @@ components:
           $ref: '#/components/schemas/DurationEnum'
       required:
       - duration
+    GameFastest:
+      type: object
+      properties:
+        game:
+          allOf:
+          - $ref: '#/components/schemas/GameList'
+          nullable: true
+      required:
+      - game
     GameFindSimilar:
       type: object
       properties:

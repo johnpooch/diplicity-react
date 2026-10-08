@@ -95,6 +95,21 @@ export const pendingGameCommittedLocked = makeFixture({
   ),
 });
 
+export const pendingGameFastestStart = makeFixture({
+  description:
+    "Pending public game with 4 of 7 players and 24-hour movement phases. The current user can join it, and it is the Fastest Start recommendation.",
+  game: makeGame(
+    "pending-fastest-start",
+    "Nearly There",
+    makePendingMembers(4, false),
+    [],
+    {
+      status: "pending",
+      canJoin: true,
+    }
+  ),
+});
+
 export const pendingGameSomePlayers = makeFixture({
   description:
     "Pending game with 3 of 7 players plus an AI player, including the current user (who created it and can manage it). Nations are not assigned yet.",

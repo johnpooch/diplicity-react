@@ -331,6 +331,21 @@ describe("GameCard", () => {
       expect(screen.queryByText("Orders required")).not.toBeInTheDocument();
       expect(screen.queryByText(/won/)).not.toBeInTheDocument();
     });
+
+    it("refreshes the Fastest Start recommendation after joining", async () => {
+      const invalidateQueries = vi.spyOn(
+        QueryClient.prototype,
+        "invalidateQueries"
+      );
+      renderGameCard({ game: mockGames.find(g => g.canJoin)!, ...defaultProps });
+
+      await userEvent.click(screen.getByRole("button", { name: "Join game" }));
+
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["/games/fastest/"],
+      });
+      invalidateQueries.mockRestore();
+    });
   });
 
   describe("nation seat pill", () => {
