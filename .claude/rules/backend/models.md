@@ -61,6 +61,8 @@ A QuerySet method must earn its place by encapsulating something a caller would 
 
 Add an index to a live table with `AddIndexConcurrently` in a migration that sets `atomic = False`, so the deploy does not block writes while it builds.
 
+**Deploys overlap, so a migration must not break the release it replaces.** The previous release keeps serving until the new container passes Railway's `/health/` check, and the new container migrates before it starts serving. Add schema before code reads it, and drop or rename a column only in a deploy after the one that stops reading it.
+
 A queryset feeding a serializer must cover every relation that serializer touches, including the ones reached inside a `SerializerMethodField`. `BaseMemberSerializer` reads `user.profile`, and a nested `NationSerializer` reads `nation.flag` — miss either and every member costs extra queries. Assert the count in a test.
 
 A user upload lives in its own model alongside a sha256 `content_hash` of the stored bytes, and is served by a hash-keyed view with `Cache-Control: immutable` rather than from a storage URL — the hash in the path is what makes the response cacheable forever. `NationFlag` and `UserProfilePicture` are the two examples. Store payloads in Postgres, never on the filesystem: the container filesystem is ephemeral, and a mounted volume stops Railway from overlapping deploys. A text payload stays in a column on the upload model. A binary payload goes in a separate one-to-one model (`UserProfilePictureContent`), because querysets `select_related` the upload model for its hash and would otherwise load the bytes on every row.
