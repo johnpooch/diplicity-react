@@ -224,6 +224,9 @@ class GameAdminReassignedSpec(NotificationSpec):
         admin_id = self.context.game.admin_id
         return {admin_id} if admin_id is not None else set()
 
+    def get_tag(self):
+        return f"game-{self.context.game.id}-admin"
+
     def get_body(self):
         return "The previous manager is no longer available, so you are now managing this game."
 
