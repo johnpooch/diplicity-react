@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 import type { RunCounts } from "@/api";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RunStatsProps {
   counts: RunCounts;
@@ -26,9 +27,12 @@ export const RunStats: React.FC<RunStatsProps> = ({ counts, epochs }) => {
           <dt className="flex items-center gap-1 text-xs text-muted-foreground">
             {stat.name}
             {stat.hint && (
-              <span title={stat.hint} aria-label={stat.hint} className="cursor-help">
-                <Info className="size-3" />
-              </span>
+              <Tooltip>
+                <TooltipTrigger aria-label={stat.hint} className="cursor-help">
+                  <Info className="size-3" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-60">{stat.hint}</TooltipContent>
+              </Tooltip>
             )}
           </dt>
           <dd className="font-medium tabular-nums">{stat.value}</dd>
