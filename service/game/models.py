@@ -55,7 +55,6 @@ from game.utils import assign_nations
 tracer = trace.get_tracer(__name__)
 
 FASTEST_START_MIN_PLAYERS = 3
-FASTEST_START_MIN_MOVEMENT_PHASE_SECONDS = 24 * 60 * 60
 
 
 class GameQuerySet(models.QuerySet):
@@ -313,12 +312,7 @@ class GameManager(models.Manager):
             .order_by(F("seat_count") - F("player_count"), "-created_at")
         )
         fastest = next(
-            (
-                game
-                for game in candidates.iterator()
-                if (game.get_effective_phase_duration_seconds(PhaseType.MOVEMENT) or 0)
-                >= FASTEST_START_MIN_MOVEMENT_PHASE_SECONDS
-            ),
+            (game for game in candidates.iterator() if not game.show_short_game_join_warning),
             None,
         )
         if fastest is None:
