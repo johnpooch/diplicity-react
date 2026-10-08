@@ -2182,6 +2182,10 @@ components:
         body:
           type: string
           maxLength: 500
+        clientMessageId:
+          type: string
+          format: uuid
+          nullable: true
         sender:
           allOf:
           - $ref: '#/components/schemas/ChannelMember'

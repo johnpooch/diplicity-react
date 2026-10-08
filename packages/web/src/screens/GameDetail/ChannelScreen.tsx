@@ -202,7 +202,7 @@ const ChannelScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isDesktopWeb = useIsDesktopWeb();
-  const [message, setMessage] = useDraft(gameId, channelId);
+  const [message, setMessage, getOrCreateDraftId] = useDraft(gameId, channelId);
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
@@ -213,10 +213,13 @@ const ChannelScreen: React.FC = () => {
     },
   });
   const variant = useGameVariant(game);
-  const createMessageMutation = useGamesChannelsMessagesCreateCreate();
+  const createMessageMutation = useGamesChannelsMessagesCreateCreate({
+    mutation: { retry: 2 },
+  });
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isSendingRef = useRef(false);
 
   useEffect(() => {
     setSearchParams(prev => {
@@ -299,13 +302,14 @@ const ChannelScreen: React.FC = () => {
   }, [channel.messages, channel.events]);
 
   const handleSubmit = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isSendingRef.current) return;
+    isSendingRef.current = true;
 
     try {
       await createMessageMutation.mutateAsync({
         gameId,
         channelId: parseInt(channelId),
-        data: { body: message },
+        data: { body: message, clientMessageId: getOrCreateDraftId() },
       });
       setMessage("");
       queryClient.invalidateQueries({
@@ -313,6 +317,8 @@ const ChannelScreen: React.FC = () => {
       });
     } catch {
       toast.error("Failed to send message");
+    } finally {
+      isSendingRef.current = false;
     }
   };
 
@@ -478,6 +484,7 @@ const ChannelScreen: React.FC = () => {
                   onClick={handleSubmit}
                   disabled={!message.trim() || createMessageMutation.isPending}
                   size="icon"
+                  aria-label="Send message"
                 >
                   <SendHorizontal />
                 </Button>

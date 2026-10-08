@@ -3,6 +3,7 @@ from datetime import timedelta
 from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
+from django.core import exceptions
 from django.utils import timezone
 
 from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
@@ -29,6 +30,7 @@ class ChannelMessageSerializer(serializers.Serializer):
             "max_length": f"Messages cannot be longer than {settings.CHAT_MESSAGE_MAX_CHARS} characters."
         },
     )
+    client_message_id = serializers.UUIDField(required=False, allow_null=True)
     sender = ChannelMemberSerializer(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
@@ -36,14 +38,19 @@ class ChannelMessageSerializer(serializers.Serializer):
         channel = self.context["channel"]
         member = self.context["current_game_member"]
 
-        message = ChannelMessage.objects.create(
-            channel=channel,
-            sender=member,
-            phase=channel.game.current_phase,
-            body=validated_data["body"],
-        )
+        try:
+            message, created = ChannelMessage.objects.create_idempotent(
+                channel=channel,
+                sender=member,
+                phase=channel.game.current_phase,
+                body=validated_data["body"],
+                client_message_id=validated_data.get("client_message_id"),
+            )
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError({"client_message_id": e.messages})
 
-        emit("channel_message", message=message)
+        if created:
+            emit("channel_message", message=message)
         return message
 
 
