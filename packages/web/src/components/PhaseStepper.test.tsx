@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
+import { toast } from "sonner";
 import { PhaseStepperTitle, PhaseStepperActions } from "./PhaseStepper";
 
 class ResizeObserverMock {
@@ -14,6 +15,8 @@ beforeAll(() => vi.stubGlobal("ResizeObserver", ResizeObserverMock));
 afterAll(() => vi.unstubAllGlobals());
 
 const mockNavigate = vi.fn();
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -161,5 +164,70 @@ describe("PhaseStepperTitle", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Fall 1900/ }));
     expect(mockNavigate).toHaveBeenCalledWith("/game/1/phase/4");
+  });
+
+  it("announces a new phase in a regular game", () => {
+    mockGameData.mockReturnValue({
+      isPaused: false,
+      currentPhaseId: 6,
+      sandbox: false,
+    });
+    const { rerender } = renderAtRoute(
+      <PhaseStepperTitle />,
+      "/game/1/phase/5"
+    );
+    vi.mocked(toast.success).mockClear();
+
+    mockGameData.mockReturnValue({
+      isPaused: false,
+      currentPhaseId: 7,
+      sandbox: false,
+    });
+    rerender(
+      <MemoryRouter initialEntries={["/game/1/phase/5"]}>
+        <Routes>
+          <Route
+            path="/game/:gameId/phase/:phaseId"
+            element={<PhaseStepperTitle />}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "A new phase has started",
+      expect.anything()
+    );
+  });
+
+  it("does not announce a new phase in a sandbox game", () => {
+    mockGameData.mockReturnValue({
+      isPaused: false,
+      currentPhaseId: 6,
+      sandbox: true,
+    });
+    const { rerender } = renderAtRoute(
+      <PhaseStepperTitle />,
+      "/game/1/phase/5"
+    );
+    vi.mocked(toast.success).mockClear();
+
+    mockGameData.mockReturnValue({
+      isPaused: false,
+      currentPhaseId: 7,
+      sandbox: true,
+    });
+    rerender(
+      <MemoryRouter initialEntries={["/game/1/phase/5"]}>
+        <Routes>
+          <Route
+            path="/game/:gameId/phase/:phaseId"
+            element={<PhaseStepperTitle />}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });
