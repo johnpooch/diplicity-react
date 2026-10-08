@@ -29,4 +29,6 @@ Context keys from mixins: `self.context["request"]`, `self.context["game"]` (`Se
 
 Do not use `SerializerMethodField` for a bare attribute pass-through — declare the field with `read_only=True` instead. Reserve `SerializerMethodField` for logic that genuinely depends on serializer context (e.g. `can_join`) or composes model properties (e.g. absolute URL from a model's path property plus `request.build_absolute_uri`).
 
-**Review check:** `serializers.Serializer` base? all fields explicit, with `read_only=True` on computed fields? every `SerializerMethodField` annotated with `@extend_schema_field`? `to_representation` delegates to another serializer when returning a different shape?
+When two serializers expose the same computed field (the list and retrieve serializers for one model), duplicate the field and its getter in each. Do not extract a mixin or a shared base serializer to remove the duplication: each serializer stays readable top to bottom as the full contract for its operation, and DRF orders inherited fields ahead of declared ones, which silently reorders the response and the schema.
+
+**Review check:** `serializers.Serializer` base? all fields explicit, with `read_only=True` on computed fields? every `SerializerMethodField` annotated with `@extend_schema_field`? `to_representation` delegates to another serializer when returning a different shape? shared getters duplicated rather than pulled into a mixin or base serializer?

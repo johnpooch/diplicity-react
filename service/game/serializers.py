@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberKind, MinReliability, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameStatus, MemberKind, MinReliability, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -110,6 +110,9 @@ class GameListSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
+    muster_required = serializers.BooleanField(read_only=True)
+    muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     @extend_schema_field(serializers.BooleanField)
@@ -152,6 +155,25 @@ class GameListSerializer(serializers.Serializer):
     ))
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["confirmation_required", "confirmed"],
+        allow_null=True,
+    ))
+    def get_muster_status(self, obj):
+        if obj.status != GameStatus.MUSTERING:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return None
+        if current_member.is_bot or current_member.mustered_at is not None:
+            return "confirmed"
+        return "confirmation_required"
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -270,6 +292,9 @@ class GameRetrieveSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
+    muster_required = serializers.BooleanField(read_only=True)
+    muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(
@@ -282,6 +307,25 @@ class GameRetrieveSerializer(serializers.Serializer):
     ))
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["confirmation_required", "confirmed"],
+        allow_null=True,
+    ))
+    def get_muster_status(self, obj):
+        if obj.status != GameStatus.MUSTERING:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return None
+        if current_member.is_bot or current_member.mustered_at is not None:
+            return "confirmed"
+        return "confirmation_required"
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):

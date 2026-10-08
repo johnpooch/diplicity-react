@@ -2816,6 +2816,20 @@ components:
           oneOf:
           - $ref: '#/components/schemas/CommitmentEligibilityEnum'
           - $ref: '#/components/schemas/NullEnum'
+        muster_required:
+          type: boolean
+          readOnly: true
+        muster_deadline:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        muster_status:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/MusterStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
         total_unread_message_count:
           type: integer
           readOnly: true
@@ -2842,6 +2856,9 @@ components:
       - min_reliability
       - movement_frequency
       - movement_phase_duration
+      - muster_deadline
+      - muster_required
+      - muster_status
       - name
       - nmr_extensions_allowed
       - order_status
@@ -3113,6 +3130,20 @@ components:
           oneOf:
           - $ref: '#/components/schemas/CommitmentEligibilityEnum'
           - $ref: '#/components/schemas/NullEnum'
+        muster_required:
+          type: boolean
+          readOnly: true
+        muster_deadline:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        muster_status:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/MusterStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
         total_unread_message_count:
           type: integer
           readOnly: true
@@ -3137,6 +3168,9 @@ components:
       - min_reliability
       - movement_frequency
       - movement_phase_duration
+      - muster_deadline
+      - muster_required
+      - muster_status
       - name
       - nmr_extensions_allowed
       - order_status
@@ -3317,6 +3351,14 @@ components:
         * `daily` - Daily
         * `every_2_days` - Every 2 days
         * `weekly` - Weekly
+    MusterStatusEnum:
+      enum:
+      - confirmation_required
+      - confirmed
+      type: string
+      description: |-
+        * `confirmation_required` - confirmation_required
+        * `confirmed` - confirmed
     MuteDurationEnum:
       enum:
       - 8_hours

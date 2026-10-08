@@ -896,3 +896,76 @@ class TestGameCreateMusterRequired:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert Game.objects.get(id=response.data["id"]).muster_required is True
+
+
+class TestMusterSerializerFields:
+
+    @pytest.mark.django_db
+    def test_muster_status_for_unconfirmed_member(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client
+    ):
+        game = muster_game_factory()
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        assert response.data["muster_status"] == "confirmation_required"
+        assert response.data["muster_required"] is True
+        assert response.data["muster_deadline"] is not None
+
+    @pytest.mark.django_db
+    def test_muster_status_for_confirmed_member(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client
+    ):
+        game = muster_game_factory()
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        assert response.data["muster_status"] == "confirmed"
+
+    @pytest.mark.django_db
+    def test_muster_status_is_null_outside_mustering(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client
+    ):
+        game = muster_game_factory(fill=False)
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        assert response.data["muster_status"] is None
+
+    @pytest.mark.django_db
+    def test_muster_status_is_null_for_non_members(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client_for_tertiary_user
+    ):
+        game = muster_game_factory()
+
+        response = authenticated_client_for_tertiary_user.get(
+            reverse("game-retrieve", args=[game.id])
+        )
+
+        assert response.data["muster_status"] is None
+
+    @pytest.mark.django_db
+    def test_muster_status_is_confirmed_for_bots(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client_factory, bot_user
+    ):
+        game = muster_game_factory(second_user=bot_user)
+
+        response = authenticated_client_factory(bot_user).get(
+            reverse("game-retrieve", args=[game.id])
+        )
+
+        assert response.data["muster_status"] == "confirmed"
+
+    @pytest.mark.django_db
+    def test_muster_fields_on_game_list(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client
+    ):
+        game = muster_game_factory()
+
+        response = authenticated_client.get(reverse("game-list") + "?mine=true")
+
+        listed = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert listed["muster_status"] == "confirmation_required"
+        assert listed["muster_required"] is True
+        assert listed["muster_deadline"] is not None
