@@ -2124,6 +2124,28 @@ class TestGameEndingFinalisesPhases:
         assert stale_phase.scheduled_resolution is None
 
     @pytest.mark.django_db
+    def test_abandonment_ends_game_without_adjudicating(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+
+        for member in game.members.all():
+            member.civil_disorder = True
+            member.save()
+
+        with patch("phase.models.resolve") as mock_resolve:
+            result = Phase.objects.resolve(phase)
+
+        mock_resolve.assert_not_called()
+        game.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+        assert result.id == phase.id
+        assert result.status == PhaseStatus.COMPLETED
+        assert game.phases.count() == 1
+
+    @pytest.mark.django_db
     def test_finish_cancels_armed_resolution_job(
         self, phase_factory, in_memory_procrastinate, classical_england_nation
     ):
@@ -3173,6 +3195,52 @@ class TestCivilDisorderDetection:
 
         assert italy in result
         assert germany in result
+
+    @pytest.mark.django_db
+    def test_game_abandoned_before_adjudication_when_last_players_enter_cd(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = self._setup_game_with_two_members(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1.phase_states.create(member=germany, has_possible_orders=True)
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2.phase_states.create(member=germany, has_possible_orders=True)
+
+        with patch("phase.models.resolve") as mock_resolve:
+            Phase.objects.resolve(phase2)
+
+        mock_resolve.assert_not_called()
+        game.refresh_from_db()
+        italy.refresh_from_db()
+        germany.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+        assert italy.civil_disorder
+        assert germany.civil_disorder
+        assert game.phases.count() == 2
 
     @pytest.mark.django_db
     def test_cd_ignores_phase_states_with_has_possible_orders_false(
