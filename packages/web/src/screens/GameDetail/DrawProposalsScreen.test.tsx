@@ -23,6 +23,7 @@ beforeAll(() => {
 
 const mockGameData = vi.fn();
 const mockProposalsData = vi.fn();
+
 const mockVariantsData = vi.fn();
 const mockVoteMutation = vi.fn();
 const mockCancelMutation = vi.fn();
@@ -71,6 +72,7 @@ const baseProposal = (overrides = {}) => ({
   includedMemberIds: [1, 2],
   myVote: { included: true, accepted: null },
   phaseId: 1,
+  phaseName: "Spring 1901, Movement",
   createdAt: "2025-01-01T00:00:00Z",
   ...overrides,
 });
@@ -196,5 +198,54 @@ describe("DrawProposalsScreen (secret voting)", () => {
     const description = screen.getByText("England, France");
     expect(description).toHaveClass("line-clamp-none");
     expect(description).not.toHaveClass("line-clamp-2");
+  });
+
+  it("tells voters that a pending proposal expires with the phase", () => {
+    mockProposalsData.mockReturnValue([baseProposal()]);
+
+    renderScreen();
+
+    expect(screen.getByText("Expires when phase resolves")).toBeInTheDocument();
+  });
+
+  it("hides expired proposals until the expired section is opened", () => {
+    mockProposalsData.mockReturnValue([
+      baseProposal({
+        id: 2,
+        status: "expired" as const,
+        phaseId: 0,
+        phaseName: "Fall 1900, Movement",
+        createdBy: { id: 1, name: "Alice", picture: null, isCurrentUser: false, nation: "Germany" },
+      }),
+    ]);
+
+    renderScreen();
+
+    expect(screen.getByText("No active proposals")).toBeInTheDocument();
+    expect(screen.queryByText(/proposed by germany/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /expired \(1\)/i }));
+
+    expect(screen.getByText(/proposed by germany/i)).toBeInTheDocument();
+    expect(screen.getByText("Fall 1900, Movement")).toBeInTheDocument();
+  });
+
+  it("does not offer voting on an expired proposal", () => {
+    mockProposalsData.mockReturnValue([
+      baseProposal({ status: "expired" as const }),
+    ]);
+
+    renderScreen();
+    fireEvent.click(screen.getByRole("button", { name: /expired \(1\)/i }));
+
+    expect(screen.queryByRole("button", { name: /^accept$/i })).not.toBeInTheDocument();
+  });
+
+  it("omits the expired section when no proposal has expired", () => {
+    mockProposalsData.mockReturnValue([baseProposal()]);
+
+    renderScreen();
+
+    expect(screen.queryByRole("button", { name: /expired/i })).not.toBeInTheDocument();
   });
 });

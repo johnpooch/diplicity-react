@@ -1,7 +1,16 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { Check, X, Handshake, Plus, MoreVertical, Ban } from "lucide-react";
+import {
+  Check,
+  X,
+  Handshake,
+  Plus,
+  MoreVertical,
+  Ban,
+  ChevronDown,
+  Clock,
+} from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -23,6 +32,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
 import { Notice } from "@/components/Notice";
@@ -103,6 +114,12 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
                 Rejected
               </Badge>
             )}
+            {proposal.status === "expired" && (
+              <Badge variant="secondary">
+                <Clock className="mr-1 h-3 w-3" />
+                Expired
+              </Badge>
+            )}
           </div>
           {isProposer && proposal.status === "pending" && (
             <DropdownMenu>
@@ -128,6 +145,15 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
         <div className="text-sm text-muted-foreground">
           {proposal.acceptedCount} of {proposal.totalVotes} accepted
         </div>
+        {proposal.status === "pending" ? (
+          <div className="text-sm text-muted-foreground">
+            Expires when phase resolves
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            {proposal.phaseName}
+          </div>
+        )}
         {proposal.myVote && proposal.myVote.accepted !== null && (
           <div className="text-sm">
             Your vote:{" "}
@@ -173,6 +199,7 @@ const DrawProposalsScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [expiredOpen, setExpiredOpen] = useState(false);
 
   const tab = (searchParams.get("tab") as TabValue) || "active";
   const setTab = (value: TabValue) => {
@@ -232,6 +259,7 @@ const DrawProposalsScreen: React.FC = () => {
   const activeProposals = proposals.filter(
     p => p.status === "pending" || p.status === "accepted"
   );
+  const expiredProposals = proposals.filter(p => p.status === "expired");
   const rejectedProposals = proposals.filter(p => p.status === "rejected");
 
   const hasActiveProposalByCurrentUser = activeProposals.some(
@@ -240,6 +268,20 @@ const DrawProposalsScreen: React.FC = () => {
   const isGameCompleted = game.status === "completed";
   const canProposeDraw =
     !!currentMember && !game.sandbox && !hasActiveProposalByCurrentUser && !isGameCompleted;
+
+  const renderProposal = (proposal: DrawProposal) => (
+    <ProposalItem
+      key={proposal.id}
+      proposal={proposal}
+      game={game}
+      currentMember={currentMember}
+      variant={variant}
+      onVote={handleVote}
+      onCancel={handleCancel}
+      isVoting={voteMutation.isPending}
+      isCancelling={cancelMutation.isPending}
+    />
+  );
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -276,21 +318,28 @@ const DrawProposalsScreen: React.FC = () => {
                     message="There are no pending draw proposals for this phase."
                   />
                 ) : (
-                  <ItemGroup>
-                    {activeProposals.map(proposal => (
-                      <ProposalItem
-                        key={proposal.id}
-                        proposal={proposal}
-                        game={game}
-                        currentMember={currentMember}
-                        variant={variant}
-                        onVote={handleVote}
-                        onCancel={handleCancel}
-                        isVoting={voteMutation.isPending}
-                        isCancelling={cancelMutation.isPending}
+                  <ItemGroup>{activeProposals.map(renderProposal)}</ItemGroup>
+                )}
+                {expiredProposals.length > 0 && (
+                  <section className="flex flex-col gap-2 pt-4">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
+                      aria-expanded={expiredOpen}
+                      onClick={() => setExpiredOpen(open => !open)}
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "size-4 transition-transform",
+                          !expiredOpen && "-rotate-90"
+                        )}
                       />
-                    ))}
-                  </ItemGroup>
+                      Expired ({expiredProposals.length})
+                    </button>
+                    {expiredOpen && (
+                      <ItemGroup>{expiredProposals.map(renderProposal)}</ItemGroup>
+                    )}
+                  </section>
                 )}
               </TabsContent>
               <TabsContent value="rejected">
@@ -298,24 +347,10 @@ const DrawProposalsScreen: React.FC = () => {
                   <Notice
                     icon={Ban}
                     title="No rejected proposals"
-                    message="There are no rejected draw proposals for this phase."
+                    message="There are no rejected draw proposals in this game."
                   />
                 ) : (
-                  <ItemGroup>
-                    {rejectedProposals.map(proposal => (
-                      <ProposalItem
-                        key={proposal.id}
-                        proposal={proposal}
-                        game={game}
-                        currentMember={currentMember}
-                        variant={variant}
-                        onVote={handleVote}
-                        onCancel={handleCancel}
-                        isVoting={voteMutation.isPending}
-                        isCancelling={cancelMutation.isPending}
-                      />
-                    ))}
-                  </ItemGroup>
+                  <ItemGroup>{rejectedProposals.map(renderProposal)}</ItemGroup>
                 )}
               </TabsContent>
             </Tabs>
@@ -326,9 +361,31 @@ const DrawProposalsScreen: React.FC = () => {
   );
 };
 
+const DrawProposalsScreenSkeleton: React.FC = () => (
+  <div className="flex flex-col flex-1 min-h-0">
+    <GameDetailAppBar title="Draw Proposals" variant="secondary" />
+    <div className="flex-1 overflow-y-auto">
+      <Panel>
+        <Panel.Content>
+          <Skeleton className="h-9 w-full" />
+          <div className="flex gap-4 p-4">
+            <Skeleton className="size-8 rounded-full" />
+            <div className="flex flex-1 flex-col gap-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+        </Panel.Content>
+      </Panel>
+    </div>
+  </div>
+);
+
 const DrawProposalsScreenSuspense: React.FC = () => (
   <QueryErrorBoundary>
-    <Suspense fallback={<div></div>}>
+    <Suspense fallback={<DrawProposalsScreenSkeleton />}>
       <DrawProposalsScreen />
     </Suspense>
   </QueryErrorBoundary>

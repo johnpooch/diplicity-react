@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
+from emit import emit
 from .models import DrawProposal
 from .constants import DrawProposalStatus
 from member.serializers import BaseMemberSerializer
@@ -25,10 +26,11 @@ class DrawProposalSerializer(serializers.Serializer):
     included_member_ids = serializers.SerializerMethodField()
     my_vote = serializers.SerializerMethodField()
     phase_id = serializers.IntegerField(source="phase.id", read_only=True)
+    phase_name = serializers.CharField(source="phase.name", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
     def get_accepted_count(self, obj) -> int:
-        return sum(1 for v in obj.votes.all() if v.accepted is True)
+        return sum(1 for v in obj.votes.all() if v.included and v.accepted is True)
 
     def get_rejected_count(self, obj) -> int:
         return sum(1 for v in obj.votes.all() if v.accepted is False)
@@ -37,7 +39,7 @@ class DrawProposalSerializer(serializers.Serializer):
         return sum(1 for v in obj.votes.all() if v.accepted is None)
 
     def get_total_votes(self, obj) -> int:
-        return len(list(obj.votes.all()))
+        return sum(1 for v in obj.votes.all() if v.included)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_included_member_ids(self, obj):
@@ -124,5 +126,14 @@ class DrawVoteUpdateSerializer(serializers.Serializer):
 
         if instance.status == DrawProposalStatus.ACCEPTED:
             instance.process_acceptance()
+        elif instance.status == DrawProposalStatus.REJECTED:
+            emit(
+                "draw_proposal_rejected",
+                game=instance.game,
+                phase=instance.phase,
+                actor=current_member.user,
+                nation_name=instance.created_by.nation.name,
+                recipients=[v.member.user_id for v in instance.votes.all() if v.included],
+            )
 
         return instance

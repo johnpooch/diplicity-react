@@ -223,6 +223,7 @@ export interface DrawProposal {
   readonly includedMemberIds: readonly number[];
   readonly myVote: MyVote | null;
   readonly phaseId: number;
+  readonly phaseName: string;
   readonly createdAt: string;
 }
 

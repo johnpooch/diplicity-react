@@ -463,6 +463,7 @@ class DrawProposal(TypedDict):
     included_member_ids: list[int]
     my_vote: MyVote | None
     phase_id: int
+    phase_name: str
     created_at: str
 
 

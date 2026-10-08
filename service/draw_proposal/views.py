@@ -18,12 +18,12 @@ class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.L
     serializer_class = DrawProposalSerializer
 
     def get_queryset(self):
-        game = self.get_game()
-        current_phase = game.current_phase
-        return DrawProposal.objects.active().filter(
-            game=game,
-            phase=current_phase,
-        ).with_related_data()
+        return (
+            DrawProposal.objects.active()
+            .for_game(self.get_game())
+            .order_by("-created_at")
+            .with_related_data()
+        )
 
 
 class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):

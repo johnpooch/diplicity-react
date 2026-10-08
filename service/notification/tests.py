@@ -238,6 +238,7 @@ class TestRegistry:
         expected = {
             "channel_message",
             "draw_proposal",
+            "draw_proposal_rejected",
             "game_start",
             "game_draw",
             "game_solo_win",
@@ -891,6 +892,108 @@ class TestDrawProposalNotification:
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
         assert not Notification.objects.filter(recipient=tertiary_user, event_type="draw_proposal").exists()
+
+
+    @pytest.mark.django_db
+    def test_rejection_names_the_proposer_nation_and_links_to_proposals(
+        self,
+        draw_notification_game_factory,
+        tertiary_user,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        game.anonymous = True
+        game.save()
+
+        rendered = render_push(
+            "draw_proposal_rejected",
+            game=game,
+            phase=game.current_phase,
+            actor=tertiary_user,
+            nation_name=italy.nation.name,
+        )
+
+        assert rendered["body"] == f"The draw proposal from {italy.nation.name} has been rejected."
+        assert rendered["link"].endswith(f"/phase/{game.current_phase.id}/draw-proposals")
+
+    @pytest.mark.django_db
+    def test_rejection_excludes_the_voter(
+        self,
+        draw_notification_game_factory,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+
+        result = resolve_recipients(
+            "draw_proposal_rejected",
+            game=game,
+            phase=game.current_phase,
+            actor=secondary_user,
+            recipients=[primary_user.id, secondary_user.id],
+        )
+
+        assert result == {primary_user.id}
+
+    @pytest.mark.django_db
+    def test_phase_resolution_reports_proposals_left_without_an_outcome(
+        self,
+        draw_notification_game_factory,
+        primary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        phase = game.current_phase
+        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+
+        Phase.objects._emit_phase_resolved(phase)
+
+        assert_notification(
+            primary_user,
+            "phase_resolved",
+            body=f"{phase.name} has been resolved. The draw proposal from {italy.nation.name} has expired.",
+        )
+
+    @pytest.mark.django_db
+    def test_phase_resolution_lists_every_expired_proposal(
+        self,
+        draw_notification_game_factory,
+        primary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        phase = game.current_phase
+        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.create_proposal(game=game, created_by=germany)
+
+        Phase.objects._emit_phase_resolved(phase)
+
+        assert_notification(
+            primary_user,
+            "phase_resolved",
+            body=(
+                f"{phase.name} has been resolved. "
+                f"The draw proposals from {italy.nation.name} and {germany.nation.name} have expired."
+            ),
+        )
+
+    @pytest.mark.django_db
+    def test_phase_resolution_omits_rejected_and_cancelled_proposals(
+        self,
+        draw_notification_game_factory,
+        primary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        phase = game.current_phase
+        rejected = DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        rejected.votes.filter(member=germany).update(accepted=False)
+        cancelled = DrawProposal.objects.create_proposal(game=game, created_by=germany)
+        cancelled.cancelled = True
+        cancelled.save()
+
+        Phase.objects._emit_phase_resolved(phase)
+
+        assert_notification(primary_user, "phase_resolved", body=f"{phase.name} has been resolved.")
 
 
 class TestGameEndNotifications:

@@ -1,4 +1,5 @@
 from django.db import models, transaction
+from django.db.models import Prefetch
 from common.models import BaseModel
 from common.constants import GameStatus
 from draw_proposal.constants import DrawProposalStatus
@@ -15,7 +16,12 @@ class DrawProposalQuerySet(models.QuerySet):
         return self.filter(game=game)
 
     def pending_for_phase(self, phase):
-        return self.active().filter(phase=phase)
+        return (
+            self.active()
+            .filter(phase=phase, votes__accepted__isnull=True)
+            .exclude(votes__accepted=False)
+            .distinct()
+        )
 
     def with_related_data(self):
         return self.select_related(
@@ -24,6 +30,7 @@ class DrawProposalQuerySet(models.QuerySet):
             "created_by__nation",
             "phase",
         ).prefetch_related(
+            Prefetch("game__phases", queryset=Phase.objects.only("id", "game_id", "ordinal")),
             "votes__member__user__profile__uploaded_picture",
             "votes__member__nation",
         )
@@ -110,11 +117,11 @@ class DrawProposal(BaseModel):
     def status(self):
         if self.cancelled:
             return DrawProposalStatus.REJECTED
-        if self.phase != self.game.current_phase:
-            return DrawProposalStatus.EXPIRED
         votes = list(self.votes.all())
         if any(v.accepted is False for v in votes):
             return DrawProposalStatus.REJECTED
+        if self.phase != self.game.current_phase:
+            return DrawProposalStatus.EXPIRED
         if all(v.accepted is True for v in votes):
             return DrawProposalStatus.ACCEPTED
         return DrawProposalStatus.PENDING
