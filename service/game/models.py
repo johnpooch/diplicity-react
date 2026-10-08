@@ -10,9 +10,11 @@ from django.utils import timezone
 from django.db.models import (
     Count,
     Exists,
+    F,
     IntegerField,
     OuterRef,
     Prefetch,
+    Q,
     Subquery,
     Value,
     prefetch_related_objects,
@@ -51,6 +53,8 @@ from adjudicator import service as adjudication_service
 from game.utils import assign_nations
 
 tracer = trace.get_tracer(__name__)
+
+FASTEST_START_MIN_PLAYERS = 3
 
 
 class GameQuerySet(models.QuerySet):
@@ -293,6 +297,29 @@ class GameManager(models.Manager):
 
     def filter_musterable(self):
         return self.get_queryset().filter_musterable()
+
+    def fastest_start(self, user):
+        candidates = (
+            self.filter(status=GameStatus.PENDING, private=False, sandbox=False)
+            .exclude(members__user=user)
+            .annotate(
+                player_count=Count("members", filter=Q(members__kind=MemberKind.PLAYER), distinct=True),
+                seat_count=Count(
+                    "variant__nations", filter=Q(variant__nations__non_playable=False), distinct=True
+                ),
+            )
+            .filter(player_count__gte=FASTEST_START_MIN_PLAYERS)
+            .order_by(F("seat_count") - F("player_count"), "-created_at")
+        )
+        fastest = next(
+            (game for game in candidates.iterator() if not game.show_short_game_join_warning),
+            None,
+        )
+        if fastest is None:
+            return None
+        game = self.with_list_data().get(pk=fastest.pk)
+        self.hydrate_list_phases([game])
+        return game
 
     def arm_muster(self, game):
         state = list(
@@ -656,6 +683,11 @@ class Game(BaseModel):
     def retreat_phase_duration_seconds(self):
         duration = self.retreat_phase_duration or self.movement_phase_duration
         return duration_to_seconds(duration)
+
+    @property
+    def show_short_game_join_warning(self):
+        seconds = self.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+        return seconds is not None and seconds < duration_to_seconds(MovementPhaseDuration.TWENTY_FOUR_HOURS)
 
     @property
     def effective_retreat_frequency(self):

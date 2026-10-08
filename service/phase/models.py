@@ -861,10 +861,16 @@ class Phase(BaseModel):
 
         if self.type == PhaseType.ADJUSTMENT:
             sc_counts = {}
+            nation_names = {unit.nation_id: unit.nation.name for unit in self.units.all()}
             for supply_center in self.supply_centers.all():
                 sc_counts[supply_center.nation_id] = sc_counts.get(supply_center.nation_id, 0) + 1
+                nation_names[supply_center.nation_id] = supply_center.nation.name
+            options = self.transformed_options
             return {
-                nation_id: abs(sc_counts.get(nation_id, 0) - unit_counts.get(nation_id, 0))
+                nation_id: min(
+                    abs(sc_counts.get(nation_id, 0) - unit_counts.get(nation_id, 0)),
+                    len(options.get(nation_names[nation_id], {})),
+                )
                 for nation_id in set(sc_counts) | set(unit_counts)
             }
 

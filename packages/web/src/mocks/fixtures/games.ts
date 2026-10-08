@@ -62,6 +62,23 @@ export const pendingGameNoPlayers = makeFixture({
   }),
 });
 
+export const pendingGameShortPhases = makeFixture({
+  description:
+    "Pending public game with 1-hour phases. The current user can join it and is warned before joining.",
+  game: makeGame(
+    "pending-short-phases",
+    "Lightning Round",
+    makePendingMembers(2, false),
+    [],
+    {
+      status: "pending",
+      canJoin: true,
+      movementPhaseDuration: "1 hour",
+      showShortGameJoinWarning: true,
+    }
+  ),
+});
+
 export const pendingGameCommitted = makeFixture({
   description:
     "Pending public game that requires committed players. The current user has high commitment and can join.",
@@ -91,6 +108,21 @@ export const pendingGameCommittedLocked = makeFixture({
       canJoin: true,
       commitmentRequirement: "committed",
       commitmentEligibility: "committed_locked",
+    }
+  ),
+});
+
+export const pendingGameFastestStart = makeFixture({
+  description:
+    "Pending public game with 4 of 7 players and 24-hour movement phases. The current user can join it, and it is the Fastest Start recommendation.",
+  game: makeGame(
+    "pending-fastest-start",
+    "Nearly There",
+    makePendingMembers(4, false),
+    [],
+    {
+      status: "pending",
+      canJoin: true,
     }
   ),
 });

@@ -114,6 +114,7 @@ export const makeGame = (
     anonymous: false,
     movementPhaseDuration: "24 hours",
     retreatPhaseDuration: null,
+    showShortGameJoinWarning: false,
     members,
     victory: null,
     sandbox: false,

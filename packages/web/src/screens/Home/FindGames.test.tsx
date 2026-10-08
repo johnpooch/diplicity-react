@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { FindGames } from "./FindGames";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
+import { useGamesFastestRetrieveSuspense } from "@/api/generated/endpoints";
 
 const mockFetchNextPage = vi.fn();
 const mockSentinelRef = { current: null };
@@ -15,12 +16,24 @@ const defaultGamesListResult = {
   isFetchingNextPage: false,
 } as unknown as ReturnType<typeof useGamesListInfinite>;
 
+const defaultFastestResult = {
+  data: { game: null },
+} as unknown as ReturnType<typeof useGamesFastestRetrieveSuspense>;
+
+const buildGame = (id: string, variantId = "classical") => ({
+  id,
+  variantId,
+  phases: [1],
+  members: [],
+});
+
 vi.mock("@/api/generated/endpoints", async importOriginal => {
   const actual = await importOriginal<
     typeof import("@/api/generated/endpoints")
   >();
   return {
     ...actual,
+    useGamesFastestRetrieveSuspense: vi.fn(),
     useVariantsListSuspense: () => ({
       data: [
         { id: "classical", name: "Classical" },
@@ -49,6 +62,20 @@ vi.mock("@/components/UserAvatar", () => ({
 }));
 
 const mockUseGamesListInfinite = vi.mocked(useGamesListInfinite);
+const mockUseGamesFastestRetrieveSuspense = vi.mocked(
+  useGamesFastestRetrieveSuspense
+);
+
+const mockGamesList = (games: ReturnType<typeof buildGame>[]) =>
+  mockUseGamesListInfinite.mockReturnValue({
+    ...defaultGamesListResult,
+    data: { pages: [{ results: games }] },
+  } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+const mockFastestGame = (game: ReturnType<typeof buildGame>) =>
+  mockUseGamesFastestRetrieveSuspense.mockReturnValue({
+    data: { game },
+  } as unknown as ReturnType<typeof useGamesFastestRetrieveSuspense>);
 
 const renderFindGames = (initialEntries = ["/"]) =>
   render(
@@ -61,6 +88,7 @@ describe("FindGames", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseGamesListInfinite.mockReturnValue(defaultGamesListResult);
+    mockUseGamesFastestRetrieveSuspense.mockReturnValue(defaultFastestResult);
   });
 
   it("shows the filter toggle button in the header", () => {
@@ -142,54 +170,58 @@ describe("FindGames", () => {
     );
   });
 
-  it("renders the Fastest Start and More games headers when the top game has at least 3 members", () => {
-    const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
-    const buildGame = (id: string, memberCount: number) => ({
-      id,
-      variantId: "classical",
-      phases: [1],
-      members: Array.from({ length: memberCount }, (_, i) => buildMember(i + 1)),
-    });
-
-    mockUseGamesListInfinite.mockReturnValue({
-      ...defaultGamesListResult,
-      data: {
-        pages: [
-          { results: [buildGame("g1", 4), buildGame("g2", 2), buildGame("g3", 1)] },
-        ],
-      },
-    } as unknown as ReturnType<typeof useGamesListInfinite>);
+  it("renders the recommended game in the Fastest Start slot above all games", () => {
+    mockGamesList([buildGame("g1"), buildGame("g2"), buildGame("g3")]);
+    mockFastestGame(buildGame("g2"));
 
     renderFindGames();
 
-    expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/join to start playing quickly/i)
+      screen.getByText(/fastest start — join to start playing quickly/i)
     ).toBeInTheDocument();
     expect(screen.getByText(/more games/i)).toBeInTheDocument();
-    expect(screen.getAllByTestId("game-card")).toHaveLength(3);
+    expect(
+      screen.getAllByTestId("game-card").map(card => card.dataset.gameId)
+    ).toEqual(["g2", "g1", "g2", "g3"]);
   });
 
-  it("omits the More games header when there is only the Fastest Start game", () => {
-    const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
-    const buildGame = (id: string, memberCount: number) => ({
-      id,
-      variantId: "classical",
-      phases: [1],
-      members: Array.from({ length: memberCount }, (_, i) => buildMember(i + 1)),
-    });
-
-    mockUseGamesListInfinite.mockReturnValue({
-      ...defaultGamesListResult,
-      data: {
-        pages: [{ results: [buildGame("g1", 4)] }],
-      },
-    } as unknown as ReturnType<typeof useGamesListInfinite>);
+  it("omits the Fastest Start slot when no game is recommended", () => {
+    mockGamesList([buildGame("g1"), buildGame("g2")]);
 
     renderFindGames();
 
-    expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
+    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(2);
+  });
+
+  it("hides the Fastest Start slot when a variant filter is active", () => {
+    mockGamesList([buildGame("g1")]);
+    mockFastestGame(buildGame("g1"));
+
+    renderFindGames(["/?variant=classical"]);
+
+    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
+  });
+
+  it("hides the Fastest Start slot when a duration filter is active", () => {
+    mockGamesList([buildGame("g1")]);
+    mockFastestGame(buildGame("g1"));
+
+    renderFindGames(["/?movement_phase_duration=24+hours"]);
+
+    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
+  });
+
+  it("omits the Fastest Start slot when the recommended game's variant is unknown", () => {
+    mockGamesList([buildGame("g1")]);
+    mockFastestGame(buildGame("g2", "unknown"));
+
+    renderFindGames();
+
+    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
     expect(screen.getAllByTestId("game-card")).toHaveLength(1);
   });
 
@@ -213,47 +245,5 @@ describe("FindGames", () => {
     renderFindGames();
 
     expect(screen.getByText(/no games found/i)).toBeInTheDocument();
-  });
-
-  it("does not crash when a game's members is not an array", () => {
-    const game = {
-      id: "g1",
-      variantId: "classical",
-      phases: [1],
-      members: undefined,
-    };
-    mockUseGamesListInfinite.mockReturnValue({
-      ...defaultGamesListResult,
-      data: { pages: [{ results: [game] }] },
-    } as unknown as ReturnType<typeof useGamesListInfinite>);
-
-    renderFindGames();
-
-    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
-  });
-
-  it("does not render the Fastest Start or More games headers when the top game has fewer than 3 members", () => {
-    const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
-    const buildGame = (id: string, memberCount: number) => ({
-      id,
-      variantId: "classical",
-      phases: [1],
-      members: Array.from({ length: memberCount }, (_, i) => buildMember(i + 1)),
-    });
-
-    mockUseGamesListInfinite.mockReturnValue({
-      ...defaultGamesListResult,
-      data: {
-        pages: [
-          { results: [buildGame("g1", 2), buildGame("g2", 1), buildGame("g3", 0)] },
-        ],
-      },
-    } as unknown as ReturnType<typeof useGamesListInfinite>);
-
-    renderFindGames();
-
-    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("game-card")).toHaveLength(3);
   });
 });

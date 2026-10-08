@@ -1674,6 +1674,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/DrawProposal'
           description: ''
+  /games/fastest/:
+    get:
+      operationId: games_fastest_retrieve
+      description: Return the joinable game closest to starting whose movement phases
+        last 24 hours or longer.
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameFastest'
+          description: ''
   /games/find-similar/:
     get:
       operationId: games_find_similar_retrieve
@@ -2669,6 +2685,15 @@ components:
           $ref: '#/components/schemas/DurationEnum'
       required:
       - duration
+    GameFastest:
+      type: object
+      properties:
+        game:
+          allOf:
+          - $ref: '#/components/schemas/GameList'
+          nullable: true
+      required:
+      - game
     GameFindSimilar:
       type: object
       properties:
@@ -2757,6 +2782,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        show_short_game_join_warning:
+          type: boolean
+          readOnly: true
         members:
           type: array
           items:
@@ -2870,6 +2898,7 @@ components:
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
+      - show_short_game_join_warning
       - status
       - total_unread_message_count
       - variant_id
@@ -3078,6 +3107,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        show_short_game_join_warning:
+          type: boolean
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -3182,6 +3214,7 @@ components:
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
+      - show_short_game_join_warning
       - status
       - total_unread_message_count
       - variant_id

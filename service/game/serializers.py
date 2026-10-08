@@ -95,6 +95,7 @@ class GameListSerializer(serializers.Serializer):
     anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
+    show_short_game_join_warning = serializers.BooleanField(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
     sandbox = serializers.BooleanField(read_only=True)
@@ -257,6 +258,10 @@ class GameFindSimilarSerializer(serializers.Serializer):
     game = GameListSerializer(allow_null=True)
 
 
+class GameFastestSerializer(serializers.Serializer):
+    game = GameListSerializer(allow_null=True)
+
+
 class GameRetrieveSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
@@ -278,6 +283,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     member_status = serializers.SerializerMethodField()
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
+    show_short_game_join_warning = serializers.BooleanField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
     is_paused = serializers.BooleanField(read_only=True)

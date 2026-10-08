@@ -16,8 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Inbox, Loader2, SlidersHorizontal, Zap } from "lucide-react";
-import { useVariantsListSuspense } from "@/api/generated/endpoints";
-import type { GamesListMovementPhaseDuration } from "@/api/generated/endpoints";
+import {
+  useGamesFastestRetrieveSuspense,
+  useVariantsListSuspense,
+} from "@/api/generated/endpoints";
+import type {
+  GameList,
+  GamesListMovementPhaseDuration,
+} from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { DURATION_OPTIONS } from "@/constants";
@@ -26,7 +32,6 @@ const VARIANT_PARAM = "variant";
 const DURATION_PARAM = "movement_phase_duration";
 const ALL_VARIANTS_VALUE = "__all__";
 const ANY_DURATION_VALUE = "__any__";
-const EXPRESS_MIN_MEMBERS = 3;
 
 interface FindGamesProps {
   isFilterOpen: boolean;
@@ -48,6 +53,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
       ordering: "slots_remaining",
     });
   const { data: variants } = useVariantsListSuspense();
+  const { data: fastest } = useGamesFastestRetrieveSuspense();
 
   const games = (Array.isArray(data.pages) ? data.pages : []).flatMap(page =>
     Array.isArray(page.results) ? page.results : []
@@ -62,6 +68,29 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
   const safeVariants = Array.isArray(variants) ? variants : [];
   const variantMap = new Map(safeVariants.map(v => [v.id, v]));
   const knownGames = games.filter(game => variantMap.has(game.variantId));
+
+  const isFiltered = variantParam !== undefined || durationParam !== undefined;
+  const fastestGame =
+    !isFiltered && fastest.game && variantMap.has(fastest.game.variantId)
+      ? fastest.game
+      : undefined;
+
+  const renderGameCard = (game: GameList) => (
+    <GameCard
+      key={game.id}
+      game={game}
+      variant={variantMap.get(game.variantId)!}
+      map={
+        <MapView
+          mode="static"
+          variant={variantMap.get(game.variantId)!}
+          phase={variantMap.get(game.variantId)!.templatePhase}
+          cover
+          className="w-full h-full"
+        />
+      }
+    />
+  );
 
   const handleVariantChange = (value: string) => {
     setSearchParams(prev => {
@@ -129,8 +158,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
 
       {knownGames.length > 0 ? (
         <>
-          {(Array.isArray(knownGames[0].members) ? knownGames[0].members.length : 0) >=
-          EXPRESS_MIN_MEMBERS ? (
+          {fastestGame && (
             <>
               <div className="flex items-center gap-2 pt-2">
                 <Zap className="size-4" />
@@ -138,60 +166,11 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                   Fastest Start — Join to start playing quickly
                 </h3>
               </div>
-              <GameCard
-                key={knownGames[0].id}
-                game={knownGames[0]}
-                variant={variantMap.get(knownGames[0].variantId)!}
-                map={
-                  <MapView
-                    mode="static"
-                    variant={variantMap.get(knownGames[0].variantId)!}
-                    phase={variantMap.get(knownGames[0].variantId)!.templatePhase}
-                    cover
-                    className="w-full h-full"
-                  />
-                }
-              />
-              {knownGames.length > 1 && (
-                <>
-                  <h3 className="text-sm font-semibold pt-2">More games</h3>
-                  {knownGames.slice(1).map(game => (
-                    <GameCard
-                      key={game.id}
-                      game={game}
-                      variant={variantMap.get(game.variantId)!}
-                      map={
-                        <MapView
-                          mode="static"
-                          variant={variantMap.get(game.variantId)!}
-                          phase={variantMap.get(game.variantId)!.templatePhase}
-                          cover
-                          className="w-full h-full"
-                        />
-                      }
-                    />
-                  ))}
-                </>
-              )}
+              {renderGameCard(fastestGame)}
+              <h3 className="text-sm font-semibold pt-2">More games</h3>
             </>
-          ) : (
-            knownGames.map(game => (
-              <GameCard
-                key={game.id}
-                game={game}
-                variant={variantMap.get(game.variantId)!}
-                map={
-                  <MapView
-                    mode="static"
-                    variant={variantMap.get(game.variantId)!}
-                    phase={variantMap.get(game.variantId)!.templatePhase}
-                    cover
-                    className="w-full h-full"
-                  />
-                }
-              />
-            ))
           )}
+          {knownGames.map(renderGameCard)}
           {isFetchingNextPage && (
             <div className="flex justify-center py-4">
               <Loader2 className="animate-spin" />

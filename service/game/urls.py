@@ -41,4 +41,9 @@ urlpatterns = [
         views.GameFindSimilarView.as_view(),
         name="game-find-similar",
     ),
+    path(
+        "games/fastest/",
+        views.GameFastestView.as_view(),
+        name="game-fastest",
+    ),
 ]

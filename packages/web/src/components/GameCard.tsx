@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,6 +36,7 @@ import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameMemberJoinCreate,
+  getGamesFastestRetrieveQueryKey,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
@@ -43,6 +44,7 @@ import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ShortGameJoinWarningDialog } from "./ShortGameJoinWarningDialog";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 export interface GameCardProps {
@@ -91,6 +93,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const playerNation = members.find(m => m.isCurrentUser)?.nation ?? null;
   const joinGameMutation = useGameMemberJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
+  const [showJoinWarning, setShowJoinWarning] = useState(false);
 
   const isActive = game.status === "active";
   const isPending = game.status === "pending";
@@ -119,11 +122,22 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       await joinGameMutation.mutateAsync({ gameId: game.id });
       toast.success("Successfully joined game");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getGamesFastestRetrieveQueryKey(),
+      });
       if (!game.sandbox) {
         checkNotificationPermission();
       }
     } catch {
       toast.error("Failed to join game");
+    }
+  };
+
+  const handleClickJoinGame = () => {
+    if (game.showShortGameJoinWarning) {
+      setShowJoinWarning(true);
+    } else {
+      handleJoinGame();
     }
   };
 
@@ -145,7 +159,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     ) : (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button onClick={handleJoinGame} variant="outline" aria-label="Join game">
+          <Button onClick={handleClickJoinGame} variant="outline" aria-label="Join game">
             <UserPlus className="size-4" />
           </Button>
         </TooltipTrigger>
@@ -502,6 +516,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           </CardFooter>
         )}
       </div>
+      <ShortGameJoinWarningDialog
+        open={showJoinWarning}
+        onOpenChange={setShowJoinWarning}
+        onConfirm={handleJoinGame}
+      />
     </Card>
   );
 };

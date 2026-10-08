@@ -7,13 +7,13 @@ from unittest.mock import patch
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
-from django.test.utils import override_settings
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.db import connection
 from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType, MemberKind
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
@@ -30,6 +30,7 @@ list_viewname = "game-list"
 create_viewname = "game-create"
 sandbox_create_viewname = "sandbox-game-create"
 find_similar_viewname = "game-find-similar"
+fastest_viewname = "game-fastest"
 
 
 def queried_phase_ids(table):
@@ -159,6 +160,45 @@ class TestGameRetrieveView:
         assert isinstance(response.data["phases"], list)
         assert isinstance(response.data["members"], list)
         assert isinstance(response.data["variant_id"], str)
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        ("game_kwargs", "expected"),
+        [
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.ONE_HOUR}, True),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.TWELVE_HOURS}, True),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS}, False),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.ONE_WEEK}, False),
+            ({"deadline_mode": DeadlineMode.FIXED_TIME, "movement_frequency": PhaseFrequency.HOURLY}, True),
+            ({"deadline_mode": DeadlineMode.FIXED_TIME, "movement_frequency": PhaseFrequency.DAILY}, False),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": None}, False),
+        ],
+    )
+    def test_retrieve_game_shows_short_game_join_warning_for_phases_under_24_hours(
+        self, authenticated_client, game_factory, game_kwargs, expected
+    ):
+        game = game_factory(status=GameStatus.PENDING, **game_kwargs)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["show_short_game_join_warning"] is expected
+
+    @pytest.mark.django_db
+    def test_retrieve_game_shows_short_game_join_warning_from_movement_duration_only(
+        self, authenticated_client, game_factory
+    ):
+        game = game_factory(
+            status=GameStatus.PENDING,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.FORTY_EIGHT_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.ONE_HOUR,
+        )
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["show_short_game_join_warning"] is False
 
     @pytest.mark.django_db
     def test_can_join_true_pending_game_non_member(
@@ -607,6 +647,26 @@ class TestGameListView:
 
         listed = next(g for g in response.data["results"] if g["id"] == game.id)
         assert [member["id"] for member in listed["members"]] == [replacement.id]
+
+    @pytest.mark.django_db
+    def test_list_games_reports_short_game_join_warning(self, authenticated_client, game_factory):
+        short_game = game_factory(
+            status=GameStatus.PENDING,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.FOUR_HOURS,
+        )
+        long_game = game_factory(
+            status=GameStatus.PENDING,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        warnings = {g["id"]: g["show_short_game_join_warning"] for g in response.data["results"]}
+        assert warnings[short_game.id] is True
+        assert warnings[long_game.id] is False
 
     @pytest.mark.django_db
     def test_list_games_reports_order_status_from_current_phase(
@@ -4597,6 +4657,171 @@ class TestGameFindSimilarView:
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
+
+
+def fixed_time_fields(frequency):
+    return {
+        "deadline_mode": DeadlineMode.FIXED_TIME,
+        "movement_frequency": frequency,
+        "fixed_deadline_time": time(12, 0),
+        "fixed_deadline_timezone": "UTC",
+    }
+
+
+class TestGameFastestView:
+
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client):
+        response = unauthenticated_client.get(reverse(fastest_viewname))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_no_games_returns_null(self, authenticated_client):
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_returns_daily_duration_game(self, authenticated_client, pending_game_with_players):
+        game = pending_game_with_players()
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["game"]["id"] == game.id
+
+    @pytest.mark.django_db
+    def test_returns_longer_duration_game(self, authenticated_client, pending_game_with_players):
+        game = pending_game_with_players(movement_phase_duration=MovementPhaseDuration.ONE_WEEK)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == game.id
+
+    @pytest.mark.django_db
+    def test_excludes_short_duration_game(self, authenticated_client, pending_game_with_players):
+        pending_game_with_players(movement_phase_duration=MovementPhaseDuration.TWELVE_HOURS)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "frequency",
+        [PhaseFrequency.DAILY, PhaseFrequency.EVERY_2_DAYS, PhaseFrequency.WEEKLY],
+    )
+    def test_returns_daily_or_slower_fixed_time_game(
+        self, authenticated_client, pending_game_with_players, frequency
+    ):
+        game = pending_game_with_players(**fixed_time_fields(frequency))
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == game.id
+
+    @pytest.mark.django_db
+    def test_excludes_hourly_fixed_time_game(self, authenticated_client, pending_game_with_players):
+        pending_game_with_players(
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            **fixed_time_fields(PhaseFrequency.HOURLY),
+        )
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_ignores_short_retreat_phase(self, authenticated_client, pending_game_with_players):
+        game = pending_game_with_players(retreat_phase_duration=MovementPhaseDuration.ONE_HOUR)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == game.id
+
+    @pytest.mark.django_db
+    def test_excludes_game_with_fewer_than_three_players(
+        self, authenticated_client, pending_game_with_players
+    ):
+        pending_game_with_players(player_count=2)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_game_master_does_not_count_as_player(
+        self, authenticated_client, pending_game_with_players, tertiary_user
+    ):
+        game = pending_game_with_players(player_count=2, game_master=tertiary_user)
+        game.members.create(user=tertiary_user, kind=MemberKind.GAME_MASTER)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_game_user_is_in(
+        self, authenticated_client, pending_game_with_players, primary_user
+    ):
+        game = pending_game_with_players()
+        game.members.create(user=primary_user)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_private_game(self, authenticated_client, pending_game_with_players):
+        pending_game_with_players(private=True)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_sandbox_game(self, authenticated_client, pending_game_with_players):
+        pending_game_with_players(sandbox=True)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_non_pending_game(self, authenticated_client, pending_game_with_players):
+        pending_game_with_players(status=GameStatus.ACTIVE)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_returns_game_user_lacks_commitment_for(
+        self, authenticated_client, pending_game_with_players
+    ):
+        game = pending_game_with_players(commitment_requirement=CommitmentRequirement.COMMITTED)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == game.id
+
+    @pytest.mark.django_db
+    def test_picks_fewest_slots_remaining(self, authenticated_client, pending_game_with_players):
+        pending_game_with_players(player_count=3)
+        most_ready = pending_game_with_players(player_count=5)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == most_ready.id
+
+    @pytest.mark.django_db
+    def test_skips_short_game_closer_to_starting(
+        self, authenticated_client, pending_game_with_players
+    ):
+        pending_game_with_players(
+            player_count=6, movement_phase_duration=MovementPhaseDuration.ONE_HOUR
+        )
+        long_game = pending_game_with_players(player_count=3)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == long_game.id
+
+    @pytest.mark.django_db
+    def test_tie_break_by_created_at_desc(self, authenticated_client, pending_game_with_players):
+        older = pending_game_with_players()
+        Game.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(days=2))
+        newer = pending_game_with_players()
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == newer.id
+
+    @pytest.mark.django_db
+    def test_query_count_does_not_scale_with_skipped_games(
+        self, authenticated_client, pending_game_with_players
+    ):
+        def query_count():
+            with CaptureQueriesContext(connection) as context:
+                authenticated_client.get(reverse(fastest_viewname))
+            return len(context.captured_queries)
+
+        pending_game_with_players()
+        pending_game_with_players(player_count=5, movement_phase_duration=MovementPhaseDuration.ONE_HOUR)
+        baseline = query_count()
+
+        for _ in range(3):
+            pending_game_with_players(player_count=5, movement_phase_duration=MovementPhaseDuration.ONE_HOUR)
+
+        assert query_count() == baseline
 
 
 @pytest.mark.django_db
