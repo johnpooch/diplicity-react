@@ -1515,6 +1515,104 @@ class TestPhaseReversion:
         assert phase1.status == PhaseStatus.ACTIVE
 
 
+class TestPhaseRevertView:
+
+    @pytest.mark.django_db
+    def test_sandbox_player_can_revert_to_previous_phase(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase1.id
+        assert response.data["status"] == PhaseStatus.ACTIVE
+
+        phases_response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+        assert [p["id"] for p in phases_response.data] == [phase1.id]
+
+    @pytest.mark.django_db
+    def test_revert_clears_orders_of_reverted_phase(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        orders_response = authenticated_client.get(reverse("order-list", args=[game.id, phase1.id]))
+        assert orders_response.status_code == status.HTTP_200_OK
+        assert orders_response.data == []
+
+    @pytest.mark.django_db
+    def test_revert_to_middle_phase_keeps_earlier_phases(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        phase2 = game.phases.get(ordinal=2)
+
+        authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase2.id]))
+
+        phases_response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+        assert [(p["id"], p["status"]) for p in phases_response.data] == [
+            (phase1.id, PhaseStatus.COMPLETED),
+            (phase2.id, PhaseStatus.ACTIVE),
+        ]
+
+    @pytest.mark.django_db
+    def test_cannot_revert_non_sandbox_game(self, authenticated_client, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_cannot_revert_completed_sandbox_game(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        game.status = GameStatus.COMPLETED
+        game.save()
+        phase1 = game.phases.get(ordinal=1)
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_non_member_cannot_revert(
+        self, authenticated_client_factory, tertiary_user, sandbox_game_with_three_phases
+    ):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        client = authenticated_client_factory(tertiary_user)
+
+        response = client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_revert_unauthenticated(self, unauthenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        response = unauthenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_cannot_revert_to_phase_of_another_game(
+        self, authenticated_client, sandbox_game_with_three_phases, sandbox_game_factory
+    ):
+        game = sandbox_game_with_three_phases
+        other_phase = sandbox_game_factory().phases.first()
+
+        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, other_phase.id]))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert game.phases.count() == 3
+
+
 class TestPhaseRetrieveView:
 
     @pytest.mark.django_db
@@ -2122,6 +2220,28 @@ class TestGameEndingFinalisesPhases:
         stale_phase.refresh_from_db()
         assert stale_phase.status == PhaseStatus.COMPLETED
         assert stale_phase.scheduled_resolution is None
+
+    @pytest.mark.django_db
+    def test_abandonment_ends_game_without_adjudicating(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+
+        for member in game.members.all():
+            member.civil_disorder = True
+            member.save()
+
+        with patch("phase.models.resolve") as mock_resolve:
+            result = Phase.objects.resolve(phase)
+
+        mock_resolve.assert_not_called()
+        game.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+        assert result.id == phase.id
+        assert result.status == PhaseStatus.COMPLETED
+        assert game.phases.count() == 1
 
     @pytest.mark.django_db
     def test_finish_cancels_armed_resolution_job(
@@ -3173,6 +3293,52 @@ class TestCivilDisorderDetection:
 
         assert italy in result
         assert germany in result
+
+    @pytest.mark.django_db
+    def test_game_abandoned_before_adjudication_when_last_players_enter_cd(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = self._setup_game_with_two_members(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1.phase_states.create(member=germany, has_possible_orders=True)
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2.phase_states.create(member=germany, has_possible_orders=True)
+
+        with patch("phase.models.resolve") as mock_resolve:
+            Phase.objects.resolve(phase2)
+
+        mock_resolve.assert_not_called()
+        game.refresh_from_db()
+        italy.refresh_from_db()
+        germany.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+        assert italy.civil_disorder
+        assert germany.civil_disorder
+        assert game.phases.count() == 2
 
     @pytest.mark.django_db
     def test_cd_ignores_phase_states_with_has_possible_orders_false(
@@ -5067,7 +5233,7 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users.assert_not_called()
 
     @pytest.mark.django_db
-    def test_fixed_time_all_orders_not_confirmed_sends_confirm_prompt(
+    def test_fixed_time_all_orders_not_confirmed_no_notification(
         self,
         deadline_warning_game_factory,
         add_italy_germany_units,
@@ -5085,9 +5251,7 @@ class TestSendDeadlineWarning:
 
         Phase.objects.send_deadline_warning(phase.id)
 
-        assert mock_send_notification_to_users.call_count == 2
-        body = mock_send_notification_to_users.call_args_list[0].kwargs["body"]
-        assert "Confirm to advance the game early" in body
+        mock_send_notification_to_users.assert_not_called()
 
     @pytest.mark.django_db
     def test_fixed_time_all_orders_confirmed_no_notification(
@@ -5190,8 +5354,16 @@ class TestSendDeadlineWarning:
         assert "stop waiting for you" in call_kwargs["body"]
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("deadline_mode", [DeadlineMode.FIXED_TIME, DeadlineMode.DURATION])
-    @pytest.mark.parametrize("orders_to_give", [0, 1, 2])
+    @pytest.mark.parametrize(
+        "deadline_mode, orders_to_give",
+        [
+            (DeadlineMode.FIXED_TIME, 0),
+            (DeadlineMode.FIXED_TIME, 1),
+            (DeadlineMode.DURATION, 0),
+            (DeadlineMode.DURATION, 1),
+            (DeadlineMode.DURATION, 2),
+        ],
+    )
     def test_warning_body_states_no_time_figure(
         self,
         deadline_mode,
@@ -5561,6 +5733,102 @@ class TestSendDeadlineWarning:
         assert "1/2" not in call_kwargs["body"]
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "deadline_mode, orders_to_give, expected_fragment",
+        [
+            (DeadlineMode.FIXED_TIME, 1, "1/2 units have an order"),
+            (DeadlineMode.DURATION, 1, "1/2 units have an order"),
+            (DeadlineMode.DURATION, 2, "orders ready"),
+        ],
+    )
+    def test_adjustment_phase_denominator_is_capped_by_buildable_provinces(
+        self,
+        deadline_mode,
+        orders_to_give,
+        expected_fragment,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        italy_vs_germany_naples_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Adjustment Build Cap Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=deadline_mode,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+            options={"Italy": {"rom": {}, "nap": {}}},
+        )
+        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        for province in [italy_vs_germany_rome_province, italy_vs_germany_naples_province][:orders_to_give]:
+            italy_ps.orders.create(source=province, order_type=OrderType.BUILD)
+
+        Phase.objects.send_deadline_warning(phase.id)
+
+        mock_send_notification_to_users.assert_called_once()
+        body = mock_send_notification_to_users.call_args.kwargs["body"]
+        assert expected_fragment in body
+        assert "/3" not in body
+
+    @pytest.mark.django_db
+    def test_adjustment_phase_with_every_buildable_province_ordered_gets_no_fixed_time_warning(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        italy_vs_germany_naples_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Adjustment Build Cap Fixed Time Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+            options={"Italy": {"rom": {}, "nap": {}}},
+        )
+        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        italy_ps.orders.create(source=italy_vs_germany_rome_province, order_type=OrderType.BUILD)
+        italy_ps.orders.create(source=italy_vs_germany_naples_province, order_type=OrderType.BUILD)
+
+        Phase.objects.send_deadline_warning(phase.id)
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
     def test_adjustment_phase_no_orders_omits_stop_waiting_framing(
         self,
         italy_vs_germany_variant,
@@ -5584,6 +5852,7 @@ class TestSendDeadlineWarning:
             season="Fall",
             year=1901,
             type=PhaseType.ADJUSTMENT,
+            options={"Italy": {"rom": {}}},
             ordinal=1,
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=now + timedelta(minutes=10),
@@ -5629,6 +5898,7 @@ class TestSendDeadlineWarning:
             season="Fall",
             year=1901,
             type=PhaseType.ADJUSTMENT,
+            options={"Italy": {"rom": {}}},
             ordinal=1,
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=now + timedelta(minutes=10),
@@ -5901,6 +6171,7 @@ class TestNMRExtensionsNothingToOrder:
         game.movement_phase_duration = "48 hours"
         game.save()
         phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"Italy": {"rom": {}}}
         phase.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
@@ -5995,6 +6266,7 @@ class TestNMRExtensionsNothingToOrder:
         game.movement_phase_duration = "48 hours"
         game.save()
         phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"Italy": {"ven": {}}, "Germany": {"kie": {}, "ber": {}}}
         phase.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
@@ -6078,6 +6350,7 @@ class TestNMRExtensionsNothingToOrder:
         game.movement_phase_duration = "48 hours"
         game.save()
         phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"Italy": {"ven": {}, "rom": {}}}
         phase.save()
         italy.nmr_extensions_remaining = 1
         italy.save()

@@ -550,6 +550,14 @@ class PhaseManager(models.Manager):
         with transaction.atomic():
             self._set_orders_outcome(phase)
             newly_cd_members = self._check_civil_disorder(phase)
+
+            if self._check_abandonment(phase.game):
+                self._notify_civil_disorder(phase, newly_cd_members)
+                self._recompute_commitment(phase)
+                phase.game.finish(GameStatus.ABANDONED)
+                phase.refresh_from_db()
+                return phase
+
             adjudication_data = resolve(phase)
 
             surviving_cd_members = self._reconcile_civil_disorder_eliminations(
@@ -853,10 +861,16 @@ class Phase(BaseModel):
 
         if self.type == PhaseType.ADJUSTMENT:
             sc_counts = {}
+            nation_names = {unit.nation_id: unit.nation.name for unit in self.units.all()}
             for supply_center in self.supply_centers.all():
                 sc_counts[supply_center.nation_id] = sc_counts.get(supply_center.nation_id, 0) + 1
+                nation_names[supply_center.nation_id] = supply_center.nation.name
+            options = self.transformed_options
             return {
-                nation_id: abs(sc_counts.get(nation_id, 0) - unit_counts.get(nation_id, 0))
+                nation_id: min(
+                    abs(sc_counts.get(nation_id, 0) - unit_counts.get(nation_id, 0)),
+                    len(options.get(nation_names[nation_id], {})),
+                )
                 for nation_id in set(sc_counts) | set(unit_counts)
             }
 

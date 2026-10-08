@@ -255,6 +255,19 @@ class TestRunScore:
         summary = self._fixture_summary(client, name)
         assert (summary["input_tokens"], summary["output_tokens"]) == (200, 20)
 
+    def test_input_tokens_include_cached_prompt(self, client, run, settings):
+        name = run(_completion(ATTACK), _completion(SIT))
+        path = settings.EVALS_LOGS_DIR / f"{name}.eval"
+        log = read_eval_log(str(path))
+        log.samples[0].model_usage = {
+            "m": ModelUsage(input_tokens=3, output_tokens=10, total_tokens=1013, input_tokens_cache_write=1000)
+        }
+        log.samples[1].model_usage = {
+            "m": ModelUsage(input_tokens=3, output_tokens=10, total_tokens=1013, input_tokens_cache_read=1000)
+        }
+        write_eval_log(log, str(path))
+        assert self._fixture_summary(client, name)["input_tokens"] == 2006
+
     def test_run_with_no_usable_answer_has_no_score(self, client, run):
         assert self._fixture_summary(client, run("not json"))["score"] is None
 

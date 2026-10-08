@@ -32,6 +32,7 @@ from common.constants import (
     MinReliability,
     MovementPhaseDuration,
     MusterJob,
+    MusterReminderJob,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
@@ -42,7 +43,7 @@ from common.constants import (
 from common.models import BaseModel
 from emit import emit
 from phase.models import Phase, PhaseState
-from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
+from phase.utils import calculate_next_fixed_deadline, deadline_warning_offset, FREQUENCY_INTERVALS
 from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -332,34 +333,62 @@ class GameManager(models.Manager):
             .annotate(
                 musterable=Exists(self.filter_musterable().filter(pk=OuterRef("pk")))
             )
-            .values_list("muster_job_id", "muster_deadline", "musterable")[:1]
+            .values_list("muster_job_id", "muster_reminder_job_id", "muster_deadline", "musterable")[:1]
         )
         if not state:
             return None
-        current_job_id, muster_deadline, musterable = state[0]
+        current_job_id, current_reminder_job_id, muster_deadline, musterable = state[0]
 
-        should_arm, schedule_at = False, None
+        should_arm, schedule_at, reminder_at = False, None, None
         if musterable:
             should_arm = True
-            schedule_at = None if game.is_mustered() else muster_deadline
+            if not game.is_mustered():
+                schedule_at = muster_deadline
+                reminder_at = self._muster_reminder_at(game, muster_deadline)
 
         new_job_id = self._arm_muster_job(
-            game, current_job_id, should_arm, schedule_at, MusterJob.TASK_NAME
+            game,
+            current_job_id,
+            should_arm,
+            schedule_at,
+            MusterJob.TASK_NAME,
+            MusterJob.LIVE_STATUSES,
+            lock=MusterJob.lock_for_game(game.pk),
+        )
+        new_reminder_job_id = self._arm_muster_job(
+            game,
+            current_reminder_job_id,
+            reminder_at is not None,
+            reminder_at,
+            MusterReminderJob.TASK_NAME,
+            MusterReminderJob.LIVE_STATUSES,
         )
 
+        updates = {}
         if new_job_id != current_job_id:
-            self.filter(pk=game.pk).update(muster_job_id=new_job_id)
-            game.muster_job_id = new_job_id
+            updates["muster_job_id"] = new_job_id
+        if new_reminder_job_id != current_reminder_job_id:
+            updates["muster_reminder_job_id"] = new_reminder_job_id
+        if updates:
+            self.filter(pk=game.pk).update(**updates)
+            for field, value in updates.items():
+                setattr(game, field, value)
 
         return new_job_id
 
-    def _arm_muster_job(self, game, current_job_id, should_arm, schedule_at, task_name):
+    def _muster_reminder_at(self, game, muster_deadline):
+        window_seconds = game.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+        return muster_deadline - deadline_warning_offset(window_seconds)
+
+    def _arm_muster_job(
+        self, game, current_job_id, should_arm, schedule_at, task_name, live_statuses, lock=None
+    ):
         if current_job_id is not None:
             armed = procrastinate_app.job_manager.list_jobs(id=current_job_id)
             if (
                 should_arm
                 and armed
-                and armed[0].status in MusterJob.LIVE_STATUSES
+                and armed[0].status in live_statuses
                 and armed[0].scheduled_at == schedule_at
             ):
                 return current_job_id
@@ -371,8 +400,18 @@ class GameManager(models.Manager):
         return procrastinate_app.configure_task(
             task_name,
             schedule_at=schedule_at,
-            lock=MusterJob.lock_for_game(game.pk),
+            lock=lock,
         ).defer(game_id=game.pk)
+
+    def send_muster_reminder(self, game_id):
+        now = timezone.now()
+        game = self.filter_musterable().filter(pk=game_id, muster_deadline__gt=now).first()
+        if game is None or self._muster_reminder_at(game, game.muster_deadline) > now:
+            return
+
+        recipients = list(game.unmustered_members().values_list("user_id", flat=True))
+        if recipients:
+            emit("muster_reminder", game=game, recipients=recipients)
 
     def start_if_mustered(self, game_id):
         with transaction.atomic():
@@ -650,6 +689,11 @@ class Game(BaseModel):
     def retreat_phase_duration_seconds(self):
         duration = self.retreat_phase_duration or self.movement_phase_duration
         return duration_to_seconds(duration)
+
+    @property
+    def show_short_game_join_warning(self):
+        seconds = self.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+        return seconds is not None and seconds < duration_to_seconds(MovementPhaseDuration.TWENTY_FOUR_HOURS)
 
     @property
     def effective_retreat_frequency(self):

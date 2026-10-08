@@ -25,6 +25,7 @@ import { AddBotSheet } from "@/components/AddBotSheet";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
 import { copyLink } from "@/utils/copyLink";
 
 const GameInfo: React.FC = () => {
@@ -38,6 +39,7 @@ const GameInfo: React.FC = () => {
   const joinGameMutation = useGameMemberJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
+  const [showJoinWarning, setShowJoinWarning] = useState(false);
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -58,6 +60,14 @@ const GameInfo: React.FC = () => {
       }
     } catch {
       toast.error("Failed to join game");
+    }
+  };
+
+  const handleClickJoinGame = () => {
+    if (game.showShortGameJoinWarning) {
+      setShowJoinWarning(true);
+    } else {
+      handleJoinGame();
     }
   };
 
@@ -94,7 +104,7 @@ const GameInfo: React.FC = () => {
   const pendingAction = game.status === "pending" ? (
     game.canJoin ? (
       <Button
-        onClick={handleJoinGame}
+        onClick={handleClickJoinGame}
         disabled={joinGameMutation.isPending}
         className="w-full sm:w-auto"
       >
@@ -169,6 +179,11 @@ const GameInfo: React.FC = () => {
           onOpenChange={setAddBotOpen}
         />
       )}
+      <ShortGameJoinWarningDialog
+        open={showJoinWarning}
+        onOpenChange={setShowJoinWarning}
+        onConfirm={handleJoinGame}
+      />
     </ScreenContainer>
   );
 };

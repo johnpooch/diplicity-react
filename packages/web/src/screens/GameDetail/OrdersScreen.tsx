@@ -12,6 +12,7 @@ import {
   Handshake,
   Eye,
   ChevronRight,
+  History,
   Hexagon,
   Merge,
   MoveUp,
@@ -25,6 +26,16 @@ import { toast } from "sonner";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ListItem, ListSection } from "@/components/ui/list";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
@@ -47,8 +58,11 @@ import {
   useGameRetrieveSuspense,
   useGamesDrawProposalsListSuspense,
   useGameRecoverFromCivilDisorderCreate,
+  useGamePhaseRevertUpdate,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
+  getGamePhaseRetrieveQueryKey,
+  getGamePhasesListQueryKey,
   getGamePhaseStatesListQueryKey,
   getGameOptionsRetrieveQueryKey,
   Order,
@@ -414,6 +428,63 @@ const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }>
   );
 };
 
+interface RevertPhaseButtonProps {
+  gameId: string;
+  phase: PhaseRetrieve;
+}
+
+const RevertPhaseButton: React.FC<RevertPhaseButtonProps> = ({ gameId, phase }) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const queryClient = useQueryClient();
+  const revertPhaseMutation = useGamePhaseRevertUpdate();
+
+  const handleRevert = async () => {
+    setShowConfirmation(false);
+    try {
+      await revertPhaseMutation.mutateAsync({ gameId, phaseId: phase.id });
+      [
+        getGameRetrieveQueryKey(gameId),
+        getGamePhasesListQueryKey(gameId),
+        getGamePhaseRetrieveQueryKey(gameId, phase.id),
+        getGameOrdersListQueryKey(gameId, phase.id),
+        getGamePhaseStatesListQueryKey(gameId),
+        getGameOptionsRetrieveQueryKey(gameId),
+      ].forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
+    } catch {
+      toast.error("Failed to revert phase");
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        disabled={revertPhaseMutation.isPending}
+        onClick={() => setShowConfirmation(true)}
+      >
+        <History className="size-4" />
+        Revert to this phase
+      </Button>
+
+      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revert to {phase.name}</AlertDialogTitle>
+            <AlertDialogDescription>
+              All later phases will be permanently deleted and this phase's orders
+              will be cleared.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRevert}>Revert</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
 const OrdersScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -520,7 +591,11 @@ const OrdersScreen: React.FC = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
   };
 
+  const canRevertToPhase =
+    game.sandbox && game.status === "active" && !isSpectator && !isActivePhase;
+
   const rightFooterButton = (() => {
+    if (canRevertToPhase) return <RevertPhaseButton gameId={gameId} phase={phase} />;
     if (!canModifyOrders) return null;
     if (game.sandbox)
       return (

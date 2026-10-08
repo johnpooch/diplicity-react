@@ -253,6 +253,7 @@ class TestRegistry:
             "removed_from_game",
             "removed_from_staging",
             "mustering_started",
+            "muster_reminder",
             "removed_from_muster",
             "seat_filled",
             "entered_civil_disorder",

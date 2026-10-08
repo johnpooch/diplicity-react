@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from procrastinate.contrib.django import app
 
-from common.constants import MusterJob
+from common.constants import MusterJob, MusterReminderJob
 from game.models import Game
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,11 @@ SANDBOX_RETENTION_DAYS = 7
 def start_if_mustered(game_id: str):
     logger.info(f"Running start_if_mustered task for game {game_id}")
     Game.objects.start_if_mustered(game_id)
+
+
+@app.task(name=MusterReminderJob.TASK_NAME, retry=3)
+def send_muster_reminder(game_id: str):
+    Game.objects.send_muster_reminder(game_id)
 
 
 @app.periodic(cron="45 3 * * *")

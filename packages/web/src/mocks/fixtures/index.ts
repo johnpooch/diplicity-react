@@ -19,6 +19,7 @@ import {
   pendingGameCommittedLocked,
   pendingGameFastestStart,
   pendingGameNoPlayers,
+  pendingGameShortPhases,
   pendingGameSomePlayers,
 } from "./games";
 
@@ -34,6 +35,7 @@ export const gameFixtures = {
   pendingGameCommitted,
   pendingGameCommittedLocked,
   pendingGameFastestStart,
+  pendingGameShortPhases,
   activeGameMovement,
   activeGameNamedCoast,
   activeGameRetreat,

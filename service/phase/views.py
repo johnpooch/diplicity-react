@@ -10,10 +10,15 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
-from common.views import SelectedGameMixin, CurrentGameMemberMixin
+from common.views import SelectedGameMixin, SelectedPhaseMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
-from .serializers import PhaseStateSerializer, PhaseRetrieveSerializer, PhaseListSerializer
+from .serializers import (
+    PhaseStateSerializer,
+    PhaseRetrieveSerializer,
+    PhaseListSerializer,
+    PhaseRevertSerializer,
+)
 
 tracer = trace.get_tracer(__name__)
 
@@ -92,3 +97,19 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
             new_phase = Phase.objects.resolve(current_phase)
         serializer = PhaseListSerializer(new_phase)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(request=None, responses={200: PhaseListSerializer})
+class PhaseRevertView(SelectedGameMixin, SelectedPhaseMixin, generics.UpdateAPIView):
+    """Revert a sandbox game to this phase, deleting every later phase and this phase's orders."""
+
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsActiveGame,
+        IsActiveGamePlayer,
+        IsSandboxGame,
+    ]
+    serializer_class = PhaseRevertSerializer
+
+    def get_object(self):
+        return self.get_phase()

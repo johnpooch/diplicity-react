@@ -162,6 +162,45 @@ class TestGameRetrieveView:
         assert isinstance(response.data["variant_id"], str)
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        ("game_kwargs", "expected"),
+        [
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.ONE_HOUR}, True),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.TWELVE_HOURS}, True),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS}, False),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.ONE_WEEK}, False),
+            ({"deadline_mode": DeadlineMode.FIXED_TIME, "movement_frequency": PhaseFrequency.HOURLY}, True),
+            ({"deadline_mode": DeadlineMode.FIXED_TIME, "movement_frequency": PhaseFrequency.DAILY}, False),
+            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": None}, False),
+        ],
+    )
+    def test_retrieve_game_shows_short_game_join_warning_for_phases_under_24_hours(
+        self, authenticated_client, game_factory, game_kwargs, expected
+    ):
+        game = game_factory(status=GameStatus.PENDING, **game_kwargs)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["show_short_game_join_warning"] is expected
+
+    @pytest.mark.django_db
+    def test_retrieve_game_shows_short_game_join_warning_from_movement_duration_only(
+        self, authenticated_client, game_factory
+    ):
+        game = game_factory(
+            status=GameStatus.PENDING,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.FORTY_EIGHT_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.ONE_HOUR,
+        )
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["show_short_game_join_warning"] is False
+
+    @pytest.mark.django_db
     def test_can_join_true_pending_game_non_member(
         self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
     ):
@@ -608,6 +647,26 @@ class TestGameListView:
 
         listed = next(g for g in response.data["results"] if g["id"] == game.id)
         assert [member["id"] for member in listed["members"]] == [replacement.id]
+
+    @pytest.mark.django_db
+    def test_list_games_reports_short_game_join_warning(self, authenticated_client, game_factory):
+        short_game = game_factory(
+            status=GameStatus.PENDING,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.FOUR_HOURS,
+        )
+        long_game = game_factory(
+            status=GameStatus.PENDING,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        warnings = {g["id"]: g["show_short_game_join_warning"] for g in response.data["results"]}
+        assert warnings[short_game.id] is True
+        assert warnings[long_game.id] is False
 
     @pytest.mark.django_db
     def test_list_games_reports_order_status_from_current_phase(

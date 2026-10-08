@@ -14,15 +14,15 @@ Keep the Suspense wrapper — it is good practice. Only the fallback changes: re
 
 ### When to use a toast
 
-- Transient mutations: join game, leave lobby, send message, copy link
+- Errors from any mutation
 - Network errors mid-session (with a Retry action)
-- Success confirmation for game orders (see special rule below)
 - Undo opportunity after a reversible destructive action
+- Success confirmation, only when explicitly asked for — game orders always are (see [./interaction-patterns.md](./interaction-patterns.md))
 
 ### When NOT to use a toast
 
 - Form submission errors → use inline error banner instead
-- State changes the UI already makes obvious (toggling a checkbox, inline edit save)
+- Success confirmation nobody asked for — the UI change is the confirmation
 
 ### Toast duration
 
