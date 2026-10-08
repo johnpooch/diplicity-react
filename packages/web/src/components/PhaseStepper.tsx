@@ -47,7 +47,7 @@ const PhaseStepperTitle: React.FC = () => {
 
   useEffect(() => {
     const prevId = prevCurrentPhaseIdRef.current;
-    if (game.currentPhaseId !== prevId && prevId !== null) {
+    if (!game.sandbox && game.currentPhaseId !== prevId && prevId !== null) {
       const newPhaseId = game.currentPhaseId;
       if (newPhaseId) {
         toast.success("A new phase has started", {
