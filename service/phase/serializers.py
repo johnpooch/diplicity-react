@@ -54,7 +54,8 @@ class PhaseListSerializer(serializers.Serializer):
 
 class PhaseRevertSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
-        instance.revert_to_this_phase()
+        with transaction.atomic():
+            instance.revert_to_this_phase()
         return instance
 
     def to_representation(self, instance):

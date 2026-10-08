@@ -1,4 +1,3 @@
-from django.db import transaction
 from rest_framework import permissions, generics, views, status
 from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
@@ -11,7 +10,7 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
-from common.views import SelectedGameMixin, SelectedPhaseMixin, CurrentGameMemberMixin, resolve_game
+from common.views import SelectedGameMixin, SelectedPhaseMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
 from .serializers import (
@@ -114,9 +113,3 @@ class PhaseRevertView(SelectedGameMixin, SelectedPhaseMixin, generics.UpdateAPIV
 
     def get_object(self):
         return self.get_phase()
-
-    def perform_update(self, serializer):
-        with transaction.atomic():
-            resolve_game(self.request, self.kwargs.get("game_id"), lock=True)
-            self.check_permissions(self.request)
-            serializer.save()
