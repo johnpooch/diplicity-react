@@ -356,7 +356,7 @@ describe("GameCard", () => {
       await user.click(screen.getByRole("button", { name: "Join game" }));
 
       expect(screen.getByRole("alertdialog")).toHaveTextContent(
-        /less than 24 hours/
+        /short phases/
       );
       expect(mockJoinMutateAsync).not.toHaveBeenCalled();
 

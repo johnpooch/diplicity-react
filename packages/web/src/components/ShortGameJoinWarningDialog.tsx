@@ -21,10 +21,9 @@ export const ShortGameJoinWarningDialog: React.FC<
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Join short-phase game</AlertDialogTitle>
+        <AlertDialogTitle>Confirm join game</AlertDialogTitle>
         <AlertDialogDescription>
-          Phases in this game last less than 24 hours. The game may start and
-          resolve its first phase while you are away.
+          This game has short phases. The game may resolve when you're away.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

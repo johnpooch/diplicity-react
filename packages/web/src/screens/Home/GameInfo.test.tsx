@@ -195,7 +195,7 @@ describe("GameInfoScreen", () => {
       await userEvent.click(screen.getByRole("button", { name: /join game/i }));
 
       expect(screen.getByRole("alertdialog")).toHaveTextContent(
-        /less than 24 hours/
+        /short phases/
       );
       expect(mockJoinMutateAsync).not.toHaveBeenCalled();
 
