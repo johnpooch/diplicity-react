@@ -3592,6 +3592,10 @@ components:
           type: string
           format: uri
           writeOnly: true
+        confirm:
+          type: boolean
+          writeOnly: true
+          default: false
     PhaseList:
       type: object
       properties:
@@ -4170,6 +4174,10 @@ components:
           type: string
           format: uri
           writeOnly: true
+        confirm:
+          type: boolean
+          writeOnly: true
+          default: false
       required:
       - dsvg
       - dvar
