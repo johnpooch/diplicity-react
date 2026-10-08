@@ -46,6 +46,10 @@ If any `railway` command fails with an auth or "not logged in" error, **stop imm
 
 If the user asks to modify production data, refuse — production changes must go through a migration or controlled admin process.
 
+## Admin superuser
+
+`service/entrypoint.sh` creates the `superuser` account from `DJANGO_SUPERUSER_PASSWORD` only when it does not exist, and never rewrites it. Changing the variable does not change the password: the user rotates it in the Django admin or with `manage.py changepassword superuser`.
+
 ## Common Commands
 
 ```bash
