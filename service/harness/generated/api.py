@@ -714,5 +714,9 @@ class Variant(TypedDict):
     template_phase: VariantTemplatePhase
 
 
+class GameFastest(TypedDict):
+    game: GameList | None
+
+
 class GameFindSimilar(TypedDict):
     game: GameList | None

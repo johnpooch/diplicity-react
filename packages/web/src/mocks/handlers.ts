@@ -11,6 +11,7 @@ import {
   currentUserProfile,
   draftVariant,
   fixtureByGameId,
+  gameFixtures,
   makeBotMember,
   makeMember,
   publicProfiles,
@@ -130,6 +131,10 @@ export const handlers = [
   }),
 
   http.get("*/games/find-similar/", () => HttpResponse.json({ game: null })),
+
+  http.get("*/games/fastest/", () =>
+    HttpResponse.json({ game: gameFixtures.pendingGameFastestStart.game })
+  ),
 
   http.get("*/games/", ({ request }) => {
     const url = new URL(request.url);

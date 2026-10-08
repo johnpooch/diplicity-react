@@ -1127,6 +1127,26 @@ def base_pending_phase(db, classical_england_nation, classical_edinburgh_provinc
 
 
 @pytest.fixture
+def pending_game_with_players(db, classical_variant, base_pending_phase, user_factory):
+    def _create(player_count=3, **kwargs):
+        fields = {
+            "name": "Pending",
+            "variant": classical_variant,
+            "status": GameStatus.PENDING,
+            "deadline_mode": DeadlineMode.DURATION,
+            "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        }
+        fields.update(kwargs)
+        game = Game.objects.create(**fields)
+        base_pending_phase(game)
+        for _ in range(player_count):
+            game.members.create(user=user_factory())
+        return game
+
+    return _create
+
+
+@pytest.fixture
 def base_pending_game_for_primary_user(db, classical_variant):
     return models.Game.objects.create(
         name="Primary User's Pending Game",

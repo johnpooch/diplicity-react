@@ -236,6 +236,10 @@ class GameFindSimilarSerializer(serializers.Serializer):
     game = GameListSerializer(allow_null=True)
 
 
+class GameFastestSerializer(serializers.Serializer):
+    game = GameListSerializer(allow_null=True)
+
+
 class GameRetrieveSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)

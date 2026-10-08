@@ -12,6 +12,7 @@ from .serializers import (
     GameCreateSerializer,
     GameCreateSandboxSerializer,
     GameCloneToSandboxSerializer,
+    GameFastestSerializer,
     GameFindSimilarSerializer,
     GameListSerializer,
     GameRetrieveSerializer,
@@ -119,6 +120,18 @@ class GameFindSimilarView(generics.GenericAPIView):
         Game.objects.hydrate_list_phases(candidates[:1])
         match_data = GameListSerializer(candidates[0], context={"request": request}).data
         return Response({"game": match_data})
+
+
+class GameFastestView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = GameFastestSerializer
+
+    @extend_schema(responses=GameFastestSerializer)
+    def get(self, request):
+        """Return the joinable game closest to starting whose movement phases last 24 hours or longer."""
+        game = Game.objects.fastest_start(request.user)
+        game_data = GameListSerializer(game, context={"request": request}).data if game else None
+        return Response({"game": game_data})
 
 
 class CreateSandboxGameView(generics.CreateAPIView):

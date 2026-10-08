@@ -574,6 +574,10 @@ export interface GameList {
   readonly totalUnreadMessageCount: number;
 }
 
+export interface GameFastest {
+  game: GameList | null;
+}
+
 export interface GameFindSimilar {
   game: GameList | null;
 }
@@ -8629,6 +8633,261 @@ export const useGamesDrawProposalsCreateCreate = <
     queryClient
   );
 };
+
+/**
+ * Return the joinable game closest to starting whose movement phases last 24 hours or longer.
+ */
+export const gamesFastestRetrieve = (signal?: AbortSignal) => {
+  return customInstance<GameFastest>({
+    url: `/games/fastest/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGamesFastestRetrieveQueryKey = () => {
+  return [`/games/fastest/`] as const;
+};
+
+export const getGamesFastestRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGamesFastestRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesFastestRetrieve>>
+  > = ({ signal }) => gamesFastestRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesFastestRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesFastestRetrieve>>
+>;
+export type GamesFastestRetrieveQueryError = unknown;
+
+export function useGamesFastestRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesFastestRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFastestRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesFastestRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFastestRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesFastestRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesFastestRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesFastestRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGamesFastestRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesFastestRetrieve>>
+  > = ({ signal }) => gamesFastestRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesFastestRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesFastestRetrieve>>
+>;
+export type GamesFastestRetrieveSuspenseQueryError = unknown;
+
+export function useGamesFastestRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFastestRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFastestRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesFastestRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFastestRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesFastestRetrieveSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const gamesFindSimilarRetrieve = (
   params: GamesFindSimilarRetrieveParams,
