@@ -1,6 +1,7 @@
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q, BooleanField, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F
 from django.contrib.auth import get_user_model
+from django.core import exceptions
 from django.utils import timezone
 from channel import registry as channel_registry
 from common.models import BaseModel
@@ -186,7 +187,12 @@ class ChannelMessageQuerySet(models.QuerySet):
                     client_message_id=client_message_id,
                 )
         except IntegrityError:
-            return self.get(sender=sender, client_message_id=client_message_id), False
+            message = self.filter(
+                channel=channel, sender=sender, client_message_id=client_message_id, body=body
+            ).first()
+            if message is None:
+                raise exceptions.ValidationError("This client message id has already been used for another message.")
+            return message, False
         return message, True
 
 

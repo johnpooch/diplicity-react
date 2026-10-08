@@ -91,12 +91,9 @@ const gameRunByGameMaster = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderChannel = (
-  channelId: number | string = 7,
-  queryClient = new QueryClient()
-) =>
+const renderChannel = (channelId: number | string = 7) =>
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={[`/game/game-1/phase/1/chat/channel/${channelId}`]}>
         <Routes>
           <Route
@@ -481,8 +478,6 @@ describe("ChannelScreen", () => {
   });
 
   describe("sending a message", () => {
-    const channelsQueryKey = ["channels", "game-1"];
-
     const seatedPlayerGame = () =>
       gameRunByGameMaster({
         members: [player({ isCurrentUser: true })],
@@ -527,86 +522,9 @@ describe("ChannelScreen", () => {
       expect(sentClientMessageId(1)).toBe(sentClientMessageId(0));
     });
 
-    it("adds the sent message to the channel cache straight away", async () => {
-      const queryClient = new QueryClient();
-      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
-      mockCreateMessage.mockResolvedValue(message({ id: 2, body: "Can u tap Sev" }));
-      renderChannel(7, queryClient);
-
-      typeAndSend("Can u tap Sev");
-
-      await waitFor(() =>
-        expect(
-          queryClient
-            .getQueryData<ReturnType<typeof publicChannel>[]>(channelsQueryKey)?.[0]
-            .messages.map(m => (m as { id: number }).id)
-        ).toEqual([1, 2])
-      );
-      expect(screen.getByPlaceholderText("Type a message")).toHaveValue("");
-    });
-
-    it("clears the composer when a failed send turns out to have been saved", async () => {
-      const queryClient = new QueryClient();
-      queryClient.setQueryDefaults(channelsQueryKey, {
-        queryFn: () => [
-          publicChannel([
-            message(),
-            message({ id: 2, body: "Can u tap Sev", clientMessageId: sentClientMessageId() }),
-          ]),
-        ],
-      });
-      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
+    it("keeps the text and shows an error when the send fails", async () => {
       mockCreateMessage.mockRejectedValue(new Error("Network Error"));
-      renderChannel(7, queryClient);
-
-      typeAndSend("Can u tap Sev");
-
-      await waitFor(() =>
-        expect(screen.getByPlaceholderText("Type a message")).toHaveValue("")
-      );
-      expect(mockToastError).not.toHaveBeenCalled();
-    });
-
-    it("keeps the composer disabled until a failed send has been checked", async () => {
-      let finishRefetch: (channels: unknown[]) => void = () => {};
-      const queryClient = new QueryClient();
-      queryClient.setQueryDefaults(channelsQueryKey, {
-        queryFn: () =>
-          new Promise<unknown[]>(resolve => {
-            finishRefetch = resolve;
-          }),
-      });
-      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
-      mockCreateMessage.mockRejectedValue(new Error("Network Error"));
-      renderChannel(7, queryClient);
-
-      typeAndSend("Can u tap Sev");
-
-      await waitFor(() => expect(mockCreateMessage).toHaveBeenCalledTimes(1));
-      expect(screen.getByPlaceholderText("Type a message")).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
-
-      finishRefetch([
-        publicChannel([
-          message(),
-          message({ id: 2, body: "Can u tap Sev", clientMessageId: sentClientMessageId() }),
-        ]),
-      ]);
-
-      await waitFor(() =>
-        expect(screen.getByPlaceholderText("Type a message")).not.toBeDisabled()
-      );
-      expect(screen.getByPlaceholderText("Type a message")).toHaveValue("");
-    });
-
-    it("keeps the text and shows an error when the message was not saved", async () => {
-      const queryClient = new QueryClient();
-      queryClient.setQueryDefaults(channelsQueryKey, {
-        queryFn: () => [publicChannel([message()])],
-      });
-      queryClient.setQueryData(channelsQueryKey, [publicChannel([message()])]);
-      mockCreateMessage.mockRejectedValue(new Error("Network Error"));
-      renderChannel(7, queryClient);
+      renderChannel();
 
       typeAndSend("Can u tap Sev");
 

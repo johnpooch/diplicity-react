@@ -25,7 +25,6 @@ export type { GameFixture } from "./types";
 export { classicalVariant, classicalProvinces, nation, province } from "./classical";
 export { allVariants, extraVariants, draftVariant } from "./variants";
 export { botRoster, currentUserProfile, makeBotMember, makeMember, publicProfiles } from "./users";
-export { makeMessage } from "./builders";
 
 export const gameFixtures = {
   pendingGameNoPlayers,

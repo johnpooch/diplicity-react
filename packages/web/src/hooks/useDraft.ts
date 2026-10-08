@@ -11,40 +11,36 @@ const createDraftId = () => {
 const useDraft = (
   gameId: string,
   channelId: string
-): [string, (value: string) => void, string | null] => {
+): [string, (value: string) => void, () => string] => {
   const key = `draft:${gameId}:${channelId}`;
   const idKey = `draft-id:${gameId}:${channelId}`;
 
   const [draft, setDraftState] = useState(
     () => sessionStorage.getItem(key) ?? ""
   );
-  const [draftId, setDraftId] = useState(() => {
-    if (!draft) return null;
-    const storedId = sessionStorage.getItem(idKey);
-    if (storedId) return storedId;
-    const id = createDraftId();
-    sessionStorage.setItem(idKey, id);
-    return id;
-  });
 
   const setDraft = useCallback(
     (value: string) => {
       setDraftState(value);
+      sessionStorage.removeItem(idKey);
       if (value) {
-        const id = createDraftId();
-        setDraftId(id);
         sessionStorage.setItem(key, value);
-        sessionStorage.setItem(idKey, id);
       } else {
-        setDraftId(null);
         sessionStorage.removeItem(key);
-        sessionStorage.removeItem(idKey);
       }
     },
     [key, idKey]
   );
 
-  return [draft, setDraft, draftId];
+  const getOrCreateDraftId = useCallback(() => {
+    const storedId = sessionStorage.getItem(idKey);
+    if (storedId) return storedId;
+    const id = createDraftId();
+    sessionStorage.setItem(idKey, id);
+    return id;
+  }, [idKey]);
+
+  return [draft, setDraft, getOrCreateDraftId];
 };
 
 export { useDraft };

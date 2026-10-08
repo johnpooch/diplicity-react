@@ -760,6 +760,42 @@ class TestChannelMessageCreateView:
         assert ChannelMessage.objects.filter(channel=public_channel).count() == 2
 
     @pytest.mark.django_db
+    def test_create_message_reused_client_message_id_in_another_channel_fails(
+        self, authenticated_client, game_with_two_members, in_memory_procrastinate
+    ):
+        first_channel = Channel.objects.create(game=game_with_two_members, name="Public Press", private=False)
+        second_channel = Channel.objects.create(game=game_with_two_members, name="Other Press", private=False)
+        payload = {"body": "Hello", "client_message_id": "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"}
+
+        authenticated_client.post(
+            reverse("channel-message-create", args=[game_with_two_members.id, first_channel.id]), payload, format="json"
+        )
+        response = authenticated_client.post(
+            reverse("channel-message-create", args=[game_with_two_members.id, second_channel.id]), payload, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "client_message_id" in response.data
+        assert not ChannelMessage.objects.filter(channel=second_channel).exists()
+
+    @pytest.mark.django_db
+    def test_create_message_reused_client_message_id_with_different_body_fails(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+    ):
+        private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
+        client_message_id = "5f0c3a52-8a3e-4c4e-9f43-3d1f1b8f2a10"
+
+        authenticated_client.post(url, {"body": "Hello", "client_message_id": client_message_id}, format="json")
+        response = authenticated_client.post(
+            url, {"body": "Goodbye", "client_message_id": client_message_id}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "client_message_id" in response.data
+        assert list(ChannelMessage.objects.filter(channel=private_channel).values_list("body", flat=True)) == ["Hello"]
+
+    @pytest.mark.django_db
     def test_create_message_invalid_client_message_id(self, authenticated_client, active_game_with_private_channel):
         private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
         url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
