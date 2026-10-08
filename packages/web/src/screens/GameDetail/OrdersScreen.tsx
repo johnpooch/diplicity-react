@@ -450,7 +450,6 @@ const RevertPhaseButton: React.FC<RevertPhaseButtonProps> = ({ gameId, phase }) 
         getGamePhaseStatesListQueryKey(gameId),
         getGameOptionsRetrieveQueryKey(gameId),
       ].forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
-      toast.success(`Reverted to ${phase.name}`);
     } catch {
       toast.error("Failed to revert phase");
     }
