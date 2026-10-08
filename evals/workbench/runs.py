@@ -28,6 +28,7 @@ def _paths(logs_dir: Path) -> list[Path]:
 def _header(path: Path, log: EvalLog) -> dict:
     return {
         "name": path.stem,
+        "id": log.eval.eval_id,
         "task": log.eval.task,
         "model": log.eval.model,
         "created": log.eval.created,
@@ -48,13 +49,20 @@ def read_run(logs_dir: Path, name: str) -> tuple[dict, list[EvalSample]]:
     return _header(path, log), log.samples or []
 
 
-def sample_orders(sample: EvalSample) -> list[str] | None:
+def sample_problem(sample: EvalSample) -> str | None:
     if sample.error is not None:
-        return None
+        return sample.error.message
     try:
-        orders = parse_completion(sample.output.completion, sample.metadata["context"])
-    except ParsingError:
+        parse_completion(sample.output.completion, sample.metadata["context"])
+    except ParsingError as e:
+        return str(e)
+    return None
+
+
+def sample_orders(sample: EvalSample) -> list[str] | None:
+    if sample_problem(sample) is not None:
         return None
+    orders = parse_completion(sample.output.completion, sample.metadata["context"])
     return order_set_key([option_id(order) for order in orders])
 
 
@@ -76,11 +84,20 @@ def distinct_order_sets(samples: list[EvalSample]) -> list[dict]:
         orders = sample_orders(sample)
         if orders is None:
             continue
-        entry = produced.setdefault(tuple(orders), {"orders": orders, "reasonings": []})
+        entry = produced.setdefault(tuple(orders), {"orders": orders, "epochs": [], "reasonings": []})
+        entry["epochs"].append(sample.epoch)
         reasoning = sample_reasoning(sample)
         if reasoning:
             entry["reasonings"].append({"epoch": sample.epoch, "reasoning": reasoning})
     return list(produced.values())
+
+
+def unusable_answers(samples: list[EvalSample]) -> list[dict]:
+    return [
+        {"epoch": sample.epoch, "problem": problem, "completion": sample.output.completion}
+        for sample in sorted(samples, key=lambda sample: sample.epoch)
+        if (problem := sample_problem(sample)) is not None
+    ]
 
 
 def unlabelled_order_sets(fixture: Fixture, order_sets: list[dict]) -> list[dict]:
@@ -97,8 +114,10 @@ def summarise(fixture: Fixture, samples: list[EvalSample]) -> dict:
     reasonable = sum(1 for label in labels if label is not None and label["label"] == REASONABLE)
     new = len(unlabelled_order_sets(fixture, order_sets))
     return {
+        "answers": len(samples),
         "order_sets": len(order_sets),
         "reasonable": reasonable,
+        "unreasonable": len(order_sets) - new - reasonable,
         "new": new,
         "matched": len(order_sets) - new,
         "unanswered": sum(1 for sample in samples if sample_orders(sample) is None),

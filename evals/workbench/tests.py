@@ -235,7 +235,19 @@ class TestRunScore:
     def test_unusable_answers_are_counted_apart_from_order_sets(self, client, run):
         name = run(_completion(ATTACK), "not json")
         summary = self._fixture_summary(client, name)
-        assert (summary["order_sets"], summary["unanswered"]) == (1, 1)
+        assert (summary["answers"], summary["order_sets"], summary["unanswered"]) == (2, 1, 1)
+
+    def test_order_sets_split_into_reasonable_unreasonable_and_new(self, client, run):
+        name = run(_completion(ATTACK), _completion(SIT), _completion(MIXED))
+        _label(client, ATTACK, "reasonable")
+        _label(client, SIT, "unreasonable")
+        summary = self._fixture_summary(client, name)
+        assert (summary["reasonable"], summary["unreasonable"], summary["new"]) == (1, 1, 1)
+
+    def test_run_carries_its_id(self, client, run, settings):
+        name = run(_completion(ATTACK))
+        log = read_eval_log(str(settings.EVALS_LOGS_DIR / f"{name}.eval"), header_only=True)
+        assert client.get(f"/api/runs/{name}/").json()["id"] == log.eval.eval_id
 
     def test_run_with_no_usable_answer_has_no_score(self, client, run):
         assert self._fixture_summary(client, run("not json"))["score"] is None
@@ -294,6 +306,51 @@ class TestRunQueue:
         name = run(_completion(ATTACK), fixtures=(FIXTURE, other))
         _label(client, ATTACK, "reasonable")
         assert [item["fixture"]["id"] for item in self._queue(client, name)["items"]] == ["second_opening"]
+
+
+class TestRunFixture:
+
+    def _detail(self, client, name, fixture="paris_opening"):
+        return client.get(f"/api/runs/{name}/fixtures/{fixture}/")
+
+    def test_unknown_run_or_fixture_is_not_found(self, client, run):
+        name = run(_completion(ATTACK))
+        assert self._detail(client, "nowhere").status_code == 404
+        assert self._detail(client, name, "second_opening").status_code == 404
+
+    def test_lists_every_order_set_the_run_produced_with_its_label(self, client, run):
+        name = run(_completion(SIT, "wait"), _completion(ATTACK, "attack"), _completion(ATTACK, "again"))
+        _label(client, ATTACK, "reasonable", reason="takes ground")
+        attack, sit = self._detail(client, name).json()["order_sets"]
+        assert (attack["orders"], attack["label"], attack["reason"], attack["epochs"]) == (
+            ATTACK,
+            "reasonable",
+            "takes ground",
+            [2, 3],
+        )
+        assert [entry["reasoning"] for entry in attack["reasonings"]] == ["attack", "again"]
+        assert (sit["label"], sit["reason"], sit["epochs"]) == (None, "", [1])
+
+    def test_order_set_carries_its_name_and_its_orders(self, client, run):
+        (entry,) = self._detail(client, run(_completion(ATTACK))).json()["order_sets"]
+        assert entry["name"] == "F Bre–MID · A Par–Bur"
+        assert entry["details"]["par:Move:bur"]["description"] == "Move -> Burgundy"
+
+    def test_carries_the_board_and_the_summary(self, client, run):
+        detail = self._detail(client, run(_completion(ATTACK), "not json")).json()
+        assert detail["fixture"]["id"] == "paris_opening"
+        assert (detail["summary"]["answers"], detail["summary"]["order_sets"], detail["summary"]["unanswered"]) == (
+            2,
+            1,
+            1,
+        )
+
+    def test_unusable_answers_carry_their_problem_and_completion(self, client, run):
+        name = run(_completion(ATTACK), _completion(["par:Move:mar"]))
+        (unusable,) = self._detail(client, name).json()["unusable"]
+        assert unusable["epoch"] == 2
+        assert unusable["problem"] == "unknown option id 'par:Move:mar'"
+        assert "par:Move:mar" in unusable["completion"]
 
 
 class TestRunPrompts:

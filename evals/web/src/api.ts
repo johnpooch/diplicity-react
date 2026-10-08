@@ -52,11 +52,13 @@ export type FixtureDetail = BoardState & {
   order_sets: OrderSet[];
 };
 
-export type RunHeader = { name: string; model: string; created: string };
+export type RunHeader = { name: string; id: string; model: string; created: string };
 
 export type RunCounts = {
+  answers: number;
   order_sets: number;
   reasonable: number;
+  unreasonable: number;
   new: number;
   matched: number;
   unanswered: number;
@@ -68,12 +70,33 @@ export type RunDetail = RunHeader &
     fixtures: (RunCounts & { id: string; nation: string; phase: Phase })[];
   };
 
+export type Reasoning = { epoch: number; reasoning: string };
+
 export type QueueItem = {
   fixture: BoardState;
   orders: string[];
   name: string;
   details: Record<string, OrderDetail>;
-  reasonings: { epoch: number; reasoning: string }[];
+  reasonings: Reasoning[];
+};
+
+export type RunOrderSet = {
+  orders: string[];
+  name: string;
+  details: Record<string, OrderDetail>;
+  label: Label | null;
+  reason: string;
+  epochs: number[];
+  reasonings: Reasoning[];
+};
+
+export type UnusableAnswer = { epoch: number; problem: string; completion: string };
+
+export type RunFixture = {
+  fixture: BoardState;
+  summary: RunCounts;
+  order_sets: RunOrderSet[];
+  unusable: UnusableAnswer[];
 };
 
 export type RunQueue = { matched: number; items: QueueItem[] };
@@ -126,6 +149,12 @@ export const useRunQueue = (name: string) =>
   useSuspenseQuery({
     queryKey: ["runs", name, "queue"],
     queryFn: () => request<RunQueue>(`${runUrl(name)}queue/`),
+  });
+
+export const useRunFixture = (name: string, fixtureId: string) =>
+  useSuspenseQuery({
+    queryKey: ["runs", name, "fixtures", fixtureId],
+    queryFn: () => request<RunFixture>(`${runUrl(name)}fixtures/${fixtureId}/`),
   });
 
 export const useRunPrompts = (name: string) =>

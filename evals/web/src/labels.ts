@@ -22,3 +22,7 @@ export const formatScore = (score: number | null): string =>
 
 export const formatRun = (created: string): string =>
   new Date(created).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+export const UNMARKED = { name: "Unmarked", dot: "bg-muted-foreground/40" };
+
+export const plural = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? "" : "s"}`;
