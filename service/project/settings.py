@@ -18,6 +18,8 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
+from project.sentry import traces_sampler
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,7 +30,7 @@ if SENTRY_DSN:
         integrations=[
             DjangoIntegration(),
         ],
-        traces_sample_rate=1.0,
+        traces_sampler=traces_sampler,
         send_default_pii=False,
         environment="development" if os.getenv("DJANGO_DEBUG", "False") == "True" else "production",
     )

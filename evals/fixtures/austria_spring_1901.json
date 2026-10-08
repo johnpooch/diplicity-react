@@ -1,0 +1,594 @@
+{
+  "schema_version": 2,
+  "id": "austria_spring_1901",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "The standard opening position, played as Austria.",
+  "variant": "classical",
+  "nation": "Austria",
+  "phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "France",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "bud",
+      "order_type": "Hold"
+    },
+    {
+      "source": "bud",
+      "order_type": "Move",
+      "target": "gal"
+    },
+    {
+      "source": "bud",
+      "order_type": "Move",
+      "target": "rum"
+    },
+    {
+      "source": "bud",
+      "order_type": "Move",
+      "target": "ser"
+    },
+    {
+      "source": "bud",
+      "order_type": "Move",
+      "target": "tri"
+    },
+    {
+      "source": "bud",
+      "order_type": "Move",
+      "target": "vie"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "tri"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "vie",
+      "aux": "vie"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "rum",
+      "aux": "sev"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "ven"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "vie"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "gal",
+      "aux": "vie"
+    },
+    {
+      "source": "bud",
+      "order_type": "Support",
+      "target": "gal",
+      "aux": "war"
+    },
+    {
+      "source": "tri",
+      "order_type": "Hold"
+    },
+    {
+      "source": "tri",
+      "order_type": "Move",
+      "target": "adr"
+    },
+    {
+      "source": "tri",
+      "order_type": "Move",
+      "target": "alb"
+    },
+    {
+      "source": "tri",
+      "order_type": "Move",
+      "target": "ven"
+    },
+    {
+      "source": "tri",
+      "order_type": "Support",
+      "target": "ven",
+      "aux": "ven"
+    },
+    {
+      "source": "tri",
+      "order_type": "Support",
+      "target": "ven",
+      "aux": "rom"
+    },
+    {
+      "source": "vie",
+      "order_type": "Hold"
+    },
+    {
+      "source": "vie",
+      "order_type": "Move",
+      "target": "boh"
+    },
+    {
+      "source": "vie",
+      "order_type": "Move",
+      "target": "bud"
+    },
+    {
+      "source": "vie",
+      "order_type": "Move",
+      "target": "gal"
+    },
+    {
+      "source": "vie",
+      "order_type": "Move",
+      "target": "tri"
+    },
+    {
+      "source": "vie",
+      "order_type": "Move",
+      "target": "tyr"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "bud",
+      "aux": "bud"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "tri"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "bud"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "gal",
+      "aux": "bud"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "tyr",
+      "aux": "mun"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "boh",
+      "aux": "mun"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "tyr",
+      "aux": "ven"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "tri",
+      "aux": "ven"
+    },
+    {
+      "source": "vie",
+      "order_type": "Support",
+      "target": "gal",
+      "aux": "war"
+    }
+  ],
+  "decision_richness": 1170,
+  "eval_sets": [
+    "opening"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:ven",
+        "vie:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:16+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:ven",
+        "vie:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:22+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:alb",
+        "vie:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:28+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:gal",
+        "tri:Move:ven",
+        "vie:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:32+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:adr",
+        "vie:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:39+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:ven",
+        "vie:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:44+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:rum",
+        "tri:Move:ven",
+        "vie:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:49+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:rum",
+        "tri:Move:alb",
+        "vie:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:35:51+00:00"
+    },
+    {
+      "orders": [
+        "bud:Support:gal:vie",
+        "tri:Move:ven",
+        "vie:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:36:02+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Hold",
+        "vie:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:36:36+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:ven",
+        "vie:Support:tri:ven"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:37:21+00:00",
+      "reason": "Vienna is supporting Venice, which is an Italian army, into Trieste, while Trieste is attacking Venice. This doesn't make sense and is a wasted move by Vienna."
+    },
+    {
+      "orders": [
+        "bud:Move:rum",
+        "tri:Move:ven",
+        "vie:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:37:26+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:rum",
+        "tri:Move:ven",
+        "vie:Move:tri"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:37:30+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Support:ven:ven",
+        "vie:Move:gal"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:37:57+00:00",
+      "reason": "There is no reason that Trieste should support Venice to hold on this phase because Venice is not threatened by any other unit, so it does not need support."
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:alb",
+        "vie:Move:tyr"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:38:02+00:00"
+    },
+    {
+      "orders": [
+        "bud:Move:gal",
+        "tri:Move:ven",
+        "vie:Move:boh"
+      ],
+      "label": "reasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:38:14+00:00"
+    },
+    {
+      "orders": [
+        "bud:Support:tri:ven",
+        "tri:Move:ven",
+        "vie:Move:gal"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:38:58+00:00",
+      "reason": "Budapest is supporting Venice, which is an Italian army, into Trieste, while the fleet in Trieste moves into Venice. This doesn't make sense and is a wasted move by Budapest."
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Move:ven",
+        "vie:Support:bud:bud"
+      ],
+      "label": "unreasonable",
+      "labeller": "johnmcdowell",
+      "labelled_at": "2026-10-07T11:39:30+00:00",
+      "reason": "Supporting Budapest to hold while Budapest is moving to Serbia. This is an internally inconsistent order set, but also Budapest is not threatened by any other units, so supporting it to hold would make no sense anyway."
+    }
+  ]
+}

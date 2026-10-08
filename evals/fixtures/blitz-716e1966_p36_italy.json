@@ -1,0 +1,2474 @@
+{
+  "schema_version": 2,
+  "id": "blitz-716e1966_p36_italy",
+  "provenance": {
+    "source": "harvested",
+    "game_id": "blitz-716e1966",
+    "phase_id": 162776,
+    "phase_ordinal": 36,
+    "harvested_at": "2026-10-05T15:58:13+00:00",
+    "press_type": "no_press",
+    "was_bot": false
+  },
+  "variant": "classical",
+  "nation": "Italy",
+  "phase": {
+    "season": "Fall",
+    "year": 1909,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Austria",
+      "province": "aeg"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "bel"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "ber"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "boh"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bul"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "bur"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "den"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "gal"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "gol"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "hol"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "ion"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "iri"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "kie"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "lvn"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "mar"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "mid"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "naf"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "nth"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "nwy"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "por"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "ruh"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "sil"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "spa"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "stp"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "tyr"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "wes"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Austria",
+      "province": "ank"
+    },
+    {
+      "nation": "England",
+      "province": "bel"
+    },
+    {
+      "nation": "England",
+      "province": "ber"
+    },
+    {
+      "nation": "England",
+      "province": "bre"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "Austria",
+      "province": "bul"
+    },
+    {
+      "nation": "Austria",
+      "province": "con"
+    },
+    {
+      "nation": "England",
+      "province": "den"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Austria",
+      "province": "gre"
+    },
+    {
+      "nation": "England",
+      "province": "hol"
+    },
+    {
+      "nation": "England",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "Italy",
+      "province": "mar"
+    },
+    {
+      "nation": "Italy",
+      "province": "mos"
+    },
+    {
+      "nation": "Austria",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "England",
+      "province": "nwy"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "England",
+      "province": "por"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Austria",
+      "province": "rum"
+    },
+    {
+      "nation": "Austria",
+      "province": "ser"
+    },
+    {
+      "nation": "Austria",
+      "province": "sev"
+    },
+    {
+      "nation": "Italy",
+      "province": "smy"
+    },
+    {
+      "nation": "Italy",
+      "province": "spa"
+    },
+    {
+      "nation": "England",
+      "province": "stp"
+    },
+    {
+      "nation": "England",
+      "province": "swe"
+    },
+    {
+      "nation": "Austria",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "tun"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Austria",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "bur",
+      "order_type": "Hold"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "bel"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "gas"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "mar"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "mun"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "par"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "pic"
+    },
+    {
+      "source": "bur",
+      "order_type": "Move",
+      "target": "ruh"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "bel",
+      "aux": "bel"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "mar"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "mun"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "par",
+      "aux": "par"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "ruh",
+      "aux": "ruh"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "pic",
+      "aux": "bel"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "ruh",
+      "aux": "bel"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "boh"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "pic",
+      "aux": "bre"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bre"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "gol"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "bel",
+      "aux": "hol"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "ruh",
+      "aux": "hol"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mar"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mid"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "ruh",
+      "aux": "mun"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "bel",
+      "aux": "nth"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "bel",
+      "aux": "nwy"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "pic",
+      "aux": "par"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "par"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "bel",
+      "aux": "ruh"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "ruh"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "sil"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "spa"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "spa"
+    },
+    {
+      "source": "bur",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "tyr"
+    },
+    {
+      "source": "gol",
+      "order_type": "Hold"
+    },
+    {
+      "source": "gol",
+      "order_type": "Move",
+      "target": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Move",
+      "target": "pie"
+    },
+    {
+      "source": "gol",
+      "order_type": "Move",
+      "target": "tus"
+    },
+    {
+      "source": "gol",
+      "order_type": "Move",
+      "target": "tys"
+    },
+    {
+      "source": "gol",
+      "order_type": "Move",
+      "target": "wes"
+    },
+    {
+      "source": "gol",
+      "order_type": "Move",
+      "target": "spa",
+      "named_coast": "spa/sc"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "wes",
+      "aux": "wes"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "bur"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "tys",
+      "aux": "ion"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "wes",
+      "aux": "mid"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "mid"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "wes",
+      "aux": "naf"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "por"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "tyr"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "wes"
+    },
+    {
+      "source": "gol",
+      "order_type": "Support",
+      "target": "tys",
+      "aux": "wes"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "bre",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "gas",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "lvp",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "naf",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "pie",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "por",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "spa",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "tun",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "tus",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "wal",
+      "aux": "mar"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "bre",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "gas",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "lvp",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "mar",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "naf",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "pie",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "por",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "tun",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "tus",
+      "aux": "spa"
+    },
+    {
+      "source": "gol",
+      "order_type": "Convoy",
+      "target": "wal",
+      "aux": "spa"
+    },
+    {
+      "source": "ion",
+      "order_type": "Hold"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "adr"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "aeg"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "alb"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "apu"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "eas"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "gre"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "nap"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "tun"
+    },
+    {
+      "source": "ion",
+      "order_type": "Move",
+      "target": "tys"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "aeg",
+      "aux": "aeg"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "gre",
+      "aux": "aeg"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "eas",
+      "aux": "aeg"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "gre",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "gre",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "tys",
+      "aux": "gol"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "mar"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "naf"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "spa"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "wes"
+    },
+    {
+      "source": "ion",
+      "order_type": "Support",
+      "target": "tys",
+      "aux": "wes"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "alb",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "apu",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "con",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "gre",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "nap",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "smy",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "tun",
+      "aux": "bul"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "alb",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "apu",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "bul",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "gre",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "nap",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "smy",
+      "aux": "con"
+    },
+    {
+      "source": "ion",
+      "order_type": "Convoy",
+      "target": "tun",
+      "aux": "con"
+    },
+    {
+      "source": "mar",
+      "order_type": "Hold"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "bre"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "bre"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "bur"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "gas"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "gas"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "lvp"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "lvp"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "naf"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "naf"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "pie"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "pie"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "por"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "por"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "spa"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "spa"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "tun"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "tun"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "tus"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "tus"
+    },
+    {
+      "source": "mar",
+      "order_type": "Move",
+      "target": "wal"
+    },
+    {
+      "source": "mar",
+      "order_type": "MoveViaConvoy",
+      "target": "wal"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "bur"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "spa"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "bel"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bre"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bur"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "gol"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "gol"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mid"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "mid"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "mun"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "par"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "par"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "por"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "bur",
+      "aux": "ruh"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "spa"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "spa"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "pie",
+      "aux": "tyr"
+    },
+    {
+      "source": "mar",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "wes"
+    },
+    {
+      "source": "mos",
+      "order_type": "Hold"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "lvn"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "sev"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "stp"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "ukr"
+    },
+    {
+      "source": "mos",
+      "order_type": "Move",
+      "target": "war"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "lvn"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "sev",
+      "aux": "sev"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "stp",
+      "aux": "stp"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "war",
+      "aux": "gal"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "ukr",
+      "aux": "gal"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "war",
+      "aux": "lvn"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "stp",
+      "aux": "lvn"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "stp",
+      "aux": "nwy"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "ukr",
+      "aux": "sev"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "war",
+      "aux": "sil"
+    },
+    {
+      "source": "mos",
+      "order_type": "Support",
+      "target": "lvn",
+      "aux": "stp"
+    },
+    {
+      "source": "naf",
+      "order_type": "Hold"
+    },
+    {
+      "source": "naf",
+      "order_type": "Move",
+      "target": "mid"
+    },
+    {
+      "source": "naf",
+      "order_type": "Move",
+      "target": "tun"
+    },
+    {
+      "source": "naf",
+      "order_type": "Move",
+      "target": "wes"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "mid"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "wes",
+      "aux": "wes"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "bre"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "bul"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "con"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "wes",
+      "aux": "gol"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "ion"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "iri"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "mar"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "wes",
+      "aux": "mid"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "por"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "spa"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "wes"
+    },
+    {
+      "source": "naf",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "wes"
+    },
+    {
+      "source": "spa",
+      "order_type": "Hold"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "bre"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "bre"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "gas"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "gas"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "lvp"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "lvp"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "mar"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "mar"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "naf"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "naf"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "pie"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "pie"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "por"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "por"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "tun"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "tun"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "tus"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "tus"
+    },
+    {
+      "source": "spa",
+      "order_type": "Move",
+      "target": "wal"
+    },
+    {
+      "source": "spa",
+      "order_type": "MoveViaConvoy",
+      "target": "wal"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "mar"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "por",
+      "aux": "por"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bre"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "bur"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "bur"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "mar",
+      "aux": "gol"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mar"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "por",
+      "aux": "mar"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "mid"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "por",
+      "aux": "mid"
+    },
+    {
+      "source": "spa",
+      "order_type": "Support",
+      "target": "gas",
+      "aux": "par"
+    },
+    {
+      "source": "wes",
+      "order_type": "Hold"
+    },
+    {
+      "source": "wes",
+      "order_type": "Move",
+      "target": "gol"
+    },
+    {
+      "source": "wes",
+      "order_type": "Move",
+      "target": "mid"
+    },
+    {
+      "source": "wes",
+      "order_type": "Move",
+      "target": "naf"
+    },
+    {
+      "source": "wes",
+      "order_type": "Move",
+      "target": "tun"
+    },
+    {
+      "source": "wes",
+      "order_type": "Move",
+      "target": "tys"
+    },
+    {
+      "source": "wes",
+      "order_type": "Move",
+      "target": "spa",
+      "named_coast": "spa/sc"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "gol",
+      "aux": "gol"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "mid"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "naf",
+      "aux": "naf"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "bre"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "bul"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "con"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "gol"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "tys",
+      "aux": "gol"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "ion"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "tys",
+      "aux": "ion"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "iri"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "naf",
+      "aux": "mid"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "mid"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "naf"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "tun",
+      "aux": "naf"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "mid",
+      "aux": "por"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "spa",
+      "aux": "por"
+    },
+    {
+      "source": "wes",
+      "order_type": "Support",
+      "target": "naf",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "bre",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "gas",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "lvp",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "naf",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "pie",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "por",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "spa",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "tun",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "tus",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "wal",
+      "aux": "mar"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "bre",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "gas",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "lvp",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "mar",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "naf",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "pie",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "por",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "tun",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "tus",
+      "aux": "spa"
+    },
+    {
+      "source": "wes",
+      "order_type": "Convoy",
+      "target": "wal",
+      "aux": "spa"
+    }
+  ],
+  "decision_richness": 920079820800,
+  "actual_orders": {
+    "Austria": [
+      {
+        "source": "aeg",
+        "order_type": "Convoy",
+        "target": "gre",
+        "aux": "con"
+      },
+      {
+        "source": "boh",
+        "order_type": "Move",
+        "target": "mun"
+      },
+      {
+        "source": "bud",
+        "order_type": "Move",
+        "target": "vie"
+      },
+      {
+        "source": "bul",
+        "order_type": "Move",
+        "target": "gre"
+      },
+      {
+        "source": "con",
+        "order_type": "MoveViaConvoy",
+        "target": "gre"
+      },
+      {
+        "source": "gal",
+        "order_type": "Move",
+        "target": "sil"
+      },
+      {
+        "source": "lvn",
+        "order_type": "Support",
+        "target": "pru",
+        "aux": "sil"
+      },
+      {
+        "source": "mun",
+        "order_type": "Move",
+        "target": "ruh"
+      },
+      {
+        "source": "sev",
+        "order_type": "Hold"
+      },
+      {
+        "source": "sil",
+        "order_type": "Move",
+        "target": "pru"
+      },
+      {
+        "source": "tyr",
+        "order_type": "Support",
+        "target": "mun",
+        "aux": "boh"
+      }
+    ],
+    "England": [
+      {
+        "source": "bel",
+        "order_type": "Move",
+        "target": "bur"
+      },
+      {
+        "source": "ber",
+        "order_type": "Hold"
+      },
+      {
+        "source": "bre",
+        "order_type": "Support",
+        "target": "mid",
+        "aux": "iri"
+      },
+      {
+        "source": "den",
+        "order_type": "Move",
+        "target": "bal"
+      },
+      {
+        "source": "hol",
+        "order_type": "Move",
+        "target": "bel"
+      },
+      {
+        "source": "iri",
+        "order_type": "Move",
+        "target": "mid"
+      },
+      {
+        "source": "kie",
+        "order_type": "Support",
+        "target": "ber",
+        "aux": "ber"
+      },
+      {
+        "source": "mid",
+        "order_type": "Move",
+        "target": "spa",
+        "named_coast": "spa/sc"
+      },
+      {
+        "source": "nth",
+        "order_type": "Move",
+        "target": "eng"
+      },
+      {
+        "source": "nwy",
+        "order_type": "Support",
+        "target": "stp",
+        "aux": "stp"
+      },
+      {
+        "source": "por",
+        "order_type": "Support",
+        "target": "spa",
+        "aux": "mid"
+      },
+      {
+        "source": "ruh",
+        "order_type": "Support",
+        "target": "bur",
+        "aux": "bel"
+      },
+      {
+        "source": "stp",
+        "order_type": "Hold"
+      }
+    ],
+    "France": [
+      {
+        "source": "par",
+        "order_type": "Hold"
+      }
+    ],
+    "Italy": [
+      {
+        "source": "bur",
+        "order_type": "Support",
+        "target": "gas",
+        "aux": "mar"
+      },
+      {
+        "source": "gol",
+        "order_type": "Support",
+        "target": "spa",
+        "aux": "spa"
+      },
+      {
+        "source": "mar",
+        "order_type": "Move",
+        "target": "gas"
+      },
+      {
+        "source": "mos",
+        "order_type": "Move",
+        "target": "stp"
+      },
+      {
+        "source": "naf",
+        "order_type": "Support",
+        "target": "mid",
+        "aux": "wes"
+      },
+      {
+        "source": "spa",
+        "order_type": "Hold"
+      },
+      {
+        "source": "wes",
+        "order_type": "Move",
+        "target": "mid"
+      }
+    ]
+  },
+  "actual_outcome": {
+    "resolutions": [
+      {
+        "nation": "Austria",
+        "source": "aeg",
+        "result": "OK"
+      },
+      {
+        "nation": "Austria",
+        "source": "boh",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "Austria",
+        "source": "bud",
+        "result": "OK"
+      },
+      {
+        "nation": "Austria",
+        "source": "bul",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "Austria",
+        "source": "con",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "Austria",
+        "source": "gal",
+        "result": "OK"
+      },
+      {
+        "nation": "Austria",
+        "source": "lvn",
+        "result": "OK"
+      },
+      {
+        "nation": "Austria",
+        "source": "mun",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "Austria",
+        "source": "sev",
+        "result": "OK"
+      },
+      {
+        "nation": "Austria",
+        "source": "sil",
+        "result": "OK"
+      },
+      {
+        "nation": "Austria",
+        "source": "tyr",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "bel",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "England",
+        "source": "ber",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "bre",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "den",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "hol",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "England",
+        "source": "iri",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "England",
+        "source": "kie",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "mid",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "England",
+        "source": "nth",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "nwy",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "por",
+        "result": "OK"
+      },
+      {
+        "nation": "England",
+        "source": "ruh",
+        "result": "ErrSupportBroken"
+      },
+      {
+        "nation": "England",
+        "source": "stp",
+        "result": "OK"
+      },
+      {
+        "nation": "France",
+        "source": "par",
+        "result": "OK"
+      },
+      {
+        "nation": "Italy",
+        "source": "bur",
+        "result": "ErrSupportBroken"
+      },
+      {
+        "nation": "Italy",
+        "source": "gol",
+        "result": "OK"
+      },
+      {
+        "nation": "Italy",
+        "source": "mar",
+        "result": "OK"
+      },
+      {
+        "nation": "Italy",
+        "source": "mos",
+        "result": "ErrBounce"
+      },
+      {
+        "nation": "Italy",
+        "source": "naf",
+        "result": "OK"
+      },
+      {
+        "nation": "Italy",
+        "source": "spa",
+        "result": "OK"
+      },
+      {
+        "nation": "Italy",
+        "source": "wes",
+        "result": "ErrBounce"
+      }
+    ],
+    "units": [
+      {
+        "type": "Fleet",
+        "nation": "Austria",
+        "province": "aeg"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "bal"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "bel"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "ber"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "boh"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "bre"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "bul"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "bur"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "con"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "eng"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "gas"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "gol"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "hol"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "ion"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "iri"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "kie"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "lvn"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "mid"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "mos"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "mun"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "naf"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "nwy"
+      },
+      {
+        "type": "Army",
+        "nation": "France",
+        "province": "par"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "por"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "pru"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "ruh"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "sev"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "sil"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "spa"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "stp"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "tyr"
+      },
+      {
+        "type": "Army",
+        "nation": "Austria",
+        "province": "vie"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "wes"
+      }
+    ],
+    "supply_centers": [
+      {
+        "nation": "Austria",
+        "province": "ank"
+      },
+      {
+        "nation": "England",
+        "province": "bel"
+      },
+      {
+        "nation": "England",
+        "province": "ber"
+      },
+      {
+        "nation": "England",
+        "province": "bre"
+      },
+      {
+        "nation": "Austria",
+        "province": "bud"
+      },
+      {
+        "nation": "Austria",
+        "province": "bul"
+      },
+      {
+        "nation": "Austria",
+        "province": "con"
+      },
+      {
+        "nation": "England",
+        "province": "den"
+      },
+      {
+        "nation": "England",
+        "province": "edi"
+      },
+      {
+        "nation": "Austria",
+        "province": "gre"
+      },
+      {
+        "nation": "England",
+        "province": "hol"
+      },
+      {
+        "nation": "England",
+        "province": "kie"
+      },
+      {
+        "nation": "England",
+        "province": "lon"
+      },
+      {
+        "nation": "England",
+        "province": "lvp"
+      },
+      {
+        "nation": "Italy",
+        "province": "mar"
+      },
+      {
+        "nation": "Italy",
+        "province": "mos"
+      },
+      {
+        "nation": "Austria",
+        "province": "mun"
+      },
+      {
+        "nation": "Italy",
+        "province": "nap"
+      },
+      {
+        "nation": "England",
+        "province": "nwy"
+      },
+      {
+        "nation": "France",
+        "province": "par"
+      },
+      {
+        "nation": "England",
+        "province": "por"
+      },
+      {
+        "nation": "Italy",
+        "province": "rom"
+      },
+      {
+        "nation": "Austria",
+        "province": "rum"
+      },
+      {
+        "nation": "Austria",
+        "province": "ser"
+      },
+      {
+        "nation": "Austria",
+        "province": "sev"
+      },
+      {
+        "nation": "Italy",
+        "province": "smy"
+      },
+      {
+        "nation": "Italy",
+        "province": "spa"
+      },
+      {
+        "nation": "England",
+        "province": "stp"
+      },
+      {
+        "nation": "England",
+        "province": "swe"
+      },
+      {
+        "nation": "Austria",
+        "province": "tri"
+      },
+      {
+        "nation": "Italy",
+        "province": "tun"
+      },
+      {
+        "nation": "Italy",
+        "province": "ven"
+      },
+      {
+        "nation": "Austria",
+        "province": "vie"
+      },
+      {
+        "nation": "Austria",
+        "province": "war"
+      }
+    ]
+  },
+  "eval_sets": []
+}

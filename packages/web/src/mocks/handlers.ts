@@ -383,7 +383,7 @@ export const handlers = [
   http.post("*/games/:gameId/channels/create/", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
-      { id: 999, name: "New Channel", private: true, messages: [], unreadMessageCount: 0, ...body },
+      { id: 999, name: "New Channel", private: true, messages: [], unreadMessageCount: 0, muted: false, canRename: true, canMute: true, ...body },
       { status: 201 }
     );
   }),
@@ -396,6 +396,24 @@ export const handlers = [
   ),
   http.post("*/games/:gameId/channels/:channelId/mark-read/", () =>
     HttpResponse.json({})
+  ),
+  http.patch(
+    "*/games/:gameId/channels/:channelId/mute/",
+    async ({ params, request }) => {
+      const fixture = gameOr404(params.gameId as string);
+      if (!fixture) return notFound();
+      const channelIndex = fixture.channels.findIndex(
+        item => item.id === Number(params.channelId)
+      );
+      if (channelIndex === -1) return notFound();
+      const body = (await request.json()) as { muteDuration: string | null };
+      const muted = body.muteDuration !== null;
+      fixture.channels[channelIndex] = {
+        ...fixture.channels[channelIndex],
+        muted,
+      };
+      return HttpResponse.json({ muted });
+    }
   ),
 
   http.post("*/games/:gameId/draw-proposals/create/", () =>

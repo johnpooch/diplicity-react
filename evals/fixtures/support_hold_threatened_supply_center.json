@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "id": "support_hold_threatened_supply_center",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "German A Munich is attacked by two French units (Burgundy and Tyrolia). A Kiel can support Munich to hold. Unsupported Munich falls two-against-one; supported it survives. Unambiguous: Kiel is not itself threatened and has no better use, and vacating Munich hands over a home centre. The only fixture testing coordination rather than single-unit greed.",
+  "variant": "classical",
+  "nation": "Germany",
+  "phase": {
+    "season": "Fall",
+    "year": 1903,
+    "type": "Movement"
+  },
+  "units": [
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "bur"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "tyr"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "kie",
+      "order_type": "Support",
+      "target": "mun",
+      "aux": "mun"
+    },
+    {
+      "source": "kie",
+      "order_type": "Hold",
+      "target": "kie"
+    },
+    {
+      "source": "kie",
+      "order_type": "Move",
+      "target": "hol"
+    },
+    {
+      "source": "mun",
+      "order_type": "Hold",
+      "target": "mun"
+    },
+    {
+      "source": "mun",
+      "order_type": "Move",
+      "target": "ruh"
+    }
+  ],
+  "ranked_options": {
+    "good": [
+      {
+        "source": "kie",
+        "order_type": "Support",
+        "target": "mun",
+        "aux": "mun"
+      }
+    ],
+    "neutral": [
+      {
+        "source": "mun",
+        "order_type": "Hold",
+        "target": "mun"
+      }
+    ],
+    "bad": [
+      {
+        "source": "mun",
+        "order_type": "Move",
+        "target": "ruh"
+      }
+    ]
+  },
+  "eval_sets": []
+}

@@ -2,6 +2,13 @@ import { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 
 export type ChannelNation = { flagUrl: string | null; color: string };
 
+export type ChannelMemberNation = ChannelNation & {
+  name: string;
+  playerName: string | null;
+  playerPicture: string | null;
+  playerUserId: number | null;
+};
+
 export const GAME_MASTER_LABEL = "Game Master";
 
 export const NEUTRAL_SENDER_COLOR = "#808080";
@@ -38,6 +45,17 @@ const getOtherNationNames = (
     .split(",")
     .map(s => s.trim())
     .filter(n => n !== currentNationName);
+
+const getAllChannelNationNames = (
+  channel: Channel,
+  members: readonly Member[]
+): string[] =>
+  channel.private
+    ? channel.name.split(",").map(name => name.trim())
+    : members
+        .filter(member => !member.kicked)
+        .map(member => member.nation)
+        .filter((nation): nation is string => nation !== null);
 
 export const getChannelDisplayName = (
   channel: Channel,
@@ -90,6 +108,28 @@ export const getChannelFlagUrls = (
     return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
   });
 };
+
+export const getChannelMemberNations = (
+  channel: Channel,
+  members: readonly Member[],
+  variantNations: ReadonlyArray<{
+    name: string;
+    flagUrl: string | null;
+    color: string;
+  }>
+): ChannelMemberNation[] =>
+  getAllChannelNationNames(channel, members).map(name => {
+    const nation = variantNations.find(item => item.name === name);
+    const member = members.find(item => item.nation === name);
+    return {
+      name,
+      playerName: member?.name ?? null,
+      playerPicture: member?.picture ?? null,
+      playerUserId: member?.userId ?? null,
+      flagUrl: nation?.flagUrl ?? null,
+      color: nation?.color ?? "#808080",
+    };
+  });
 
 // Public Press is never a direct 1:1 conversation, however few nations
 // currently have a seat in it, so it always shows sender labels; only a

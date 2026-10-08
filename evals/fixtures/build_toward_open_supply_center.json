@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "id": "build_toward_open_supply_center",
+  "provenance": {
+    "source": "handbuilt"
+  },
+  "notes": "Russia has one build. Sevastopol is adjacent to Rumania, a neutral SC; Warsaw has no adjacent uncontrolled centre and no threat to defend against. Both builds are armies so unit type is not a confound. Weakest of the tactical fixtures: build-site value is genuinely contested in real play.",
+  "variant": "classical",
+  "nation": "Russia",
+  "phase": {
+    "season": "Winter",
+    "year": 1901,
+    "type": "Adjustment"
+  },
+  "max_orders": 1,
+  "units": [
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "ukr"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "sev",
+      "order_type": "Build",
+      "unit_type": "Army"
+    },
+    {
+      "source": "war",
+      "order_type": "Build",
+      "unit_type": "Army"
+    }
+  ],
+  "ranked_options": {
+    "good": [
+      {
+        "source": "sev",
+        "order_type": "Build",
+        "unit_type": "Army"
+      }
+    ],
+    "neutral": [],
+    "bad": [
+      {
+        "source": "war",
+        "order_type": "Build",
+        "unit_type": "Army"
+      }
+    ]
+  },
+  "eval_sets": []
+}
