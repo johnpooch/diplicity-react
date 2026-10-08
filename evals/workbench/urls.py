@@ -10,4 +10,5 @@ urlpatterns = [
     path("runs/<str:name>/", views.run_detail),
     path("runs/<str:name>/queue/", views.run_queue),
     path("runs/<str:name>/prompts/", views.run_prompts),
+    path("runs/<str:name>/fixtures/<slug:fixture_id>/", views.run_fixture),
 ]

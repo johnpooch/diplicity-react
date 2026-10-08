@@ -5,7 +5,7 @@ from inspect_ai import Task
 from inspect_ai import eval as inspect_eval
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.log import read_eval_log, write_eval_log
-from inspect_ai.model import ModelOutput
+from inspect_ai.model import ModelOutput, ModelUsage
 from inspect_ai.solver import solver
 
 from select_orders.evals import fixture_to_sample
@@ -209,22 +209,23 @@ class TestRunScore:
     def test_unknown_run_is_not_found(self, client, fixtures_dir):
         assert client.get("/api/runs/nowhere/").status_code == 404
 
-    def test_score_is_the_share_of_distinct_order_sets_labelled_reasonable(self, client, run):
+    def test_score_is_the_share_of_answers_whose_order_set_is_labelled_reasonable(self, client, run):
         name = run(_completion(ATTACK), _completion(ATTACK), _completion(ATTACK), _completion(SIT))
         _label(client, ATTACK, "reasonable")
         _label(client, SIT, "unreasonable")
         summary = self._fixture_summary(client, name)
-        assert (summary["order_sets"], summary["reasonable"], summary["score"]) == (2, 1, 0.5)
+        assert (summary["reasonable"], summary["unreasonable"], summary["score"]) == (3, 1, 0.75)
+        assert summary["order_sets"] == 2
 
     def test_the_same_orders_in_another_sequence_are_one_order_set(self, client, run):
         name = run(_completion(ATTACK), _completion(list(reversed(ATTACK))))
         assert self._fixture_summary(client, name)["order_sets"] == 1
 
-    def test_unlabelled_order_sets_count_against_the_score_as_new(self, client, run):
-        name = run(_completion(ATTACK), _completion(SIT))
+    def test_unmarked_answers_count_against_the_score(self, client, run):
+        name = run(_completion(ATTACK), _completion(SIT), _completion(SIT))
         _label(client, ATTACK, "reasonable")
         summary = self._fixture_summary(client, name)
-        assert (summary["score"], summary["new"], summary["matched"]) == (0.5, 1, 1)
+        assert (summary["score"], summary["unmarked"], summary["new"]) == (1 / 3, 2, 1)
 
     def test_labelling_after_the_run_changes_its_score(self, client, run):
         name = run(_completion(ATTACK))
@@ -232,10 +233,27 @@ class TestRunScore:
         _label(client, ATTACK, "reasonable")
         assert self._fixture_summary(client, name)["score"] == 1
 
-    def test_unusable_answers_are_counted_apart_from_order_sets(self, client, run):
+    def test_failed_answers_are_left_out_of_the_score(self, client, run):
         name = run(_completion(ATTACK), "not json")
+        _label(client, ATTACK, "reasonable")
         summary = self._fixture_summary(client, name)
-        assert (summary["order_sets"], summary["unanswered"]) == (1, 1)
+        assert (summary["answers"], summary["failed"], summary["score"]) == (2, 1, 1)
+
+    def test_run_carries_its_id_and_epochs(self, client, run, settings):
+        name = run(_completion(ATTACK), _completion(SIT))
+        log = read_eval_log(str(settings.EVALS_LOGS_DIR / f"{name}.eval"), header_only=True)
+        detail = client.get(f"/api/runs/{name}/").json()
+        assert (detail["id"], detail["epochs"]) == (log.eval.eval_id, 2)
+
+    def test_tokens_are_summed_over_answers(self, client, run, settings):
+        name = run(_completion(ATTACK), _completion(SIT))
+        path = settings.EVALS_LOGS_DIR / f"{name}.eval"
+        log = read_eval_log(str(path))
+        for sample in log.samples:
+            sample.model_usage = {"m": ModelUsage(input_tokens=100, output_tokens=10, total_tokens=110)}
+        write_eval_log(log, str(path))
+        summary = self._fixture_summary(client, name)
+        assert (summary["input_tokens"], summary["output_tokens"]) == (200, 20)
 
     def test_run_with_no_usable_answer_has_no_score(self, client, run):
         assert self._fixture_summary(client, run("not json"))["score"] is None
@@ -247,7 +265,7 @@ class TestRunScore:
         _label(client, ATTACK, "reasonable")
         detail = client.get(f"/api/runs/{name}/").json()
         assert [fixture["id"] for fixture in detail["fixtures"]] == ["paris_opening", "second_opening"]
-        assert (detail["order_sets"], detail["reasonable"], detail["new"], detail["score"]) == (4, 1, 3, 0.25)
+        assert (detail["answers"], detail["reasonable"], detail["new"], detail["score"]) == (4, 1, 3, 0.25)
 
 
 class TestRunQueue:
@@ -294,6 +312,47 @@ class TestRunQueue:
         name = run(_completion(ATTACK), fixtures=(FIXTURE, other))
         _label(client, ATTACK, "reasonable")
         assert [item["fixture"]["id"] for item in self._queue(client, name)["items"]] == ["second_opening"]
+
+
+class TestRunFixture:
+
+    def _detail(self, client, name, fixture="paris_opening"):
+        return client.get(f"/api/runs/{name}/fixtures/{fixture}/")
+
+    def test_unknown_run_or_fixture_is_not_found(self, client, run):
+        name = run(_completion(ATTACK))
+        assert self._detail(client, "nowhere").status_code == 404
+        assert self._detail(client, name, "second_opening").status_code == 404
+
+    def test_lists_every_order_set_the_run_produced_with_its_label(self, client, run):
+        name = run(_completion(SIT, "wait"), _completion(ATTACK, "attack"), _completion(ATTACK, "again"))
+        _label(client, ATTACK, "reasonable", reason="takes ground")
+        attack, sit = self._detail(client, name).json()["order_sets"]
+        assert (attack["orders"], attack["label"], attack["reason"], attack["epochs"]) == (
+            ATTACK,
+            "reasonable",
+            "takes ground",
+            [2, 3],
+        )
+        assert [entry["reasoning"] for entry in attack["reasonings"]] == ["attack", "again"]
+        assert (sit["label"], sit["reason"], sit["epochs"]) == (None, "", [1])
+
+    def test_order_set_carries_its_name_and_its_orders(self, client, run):
+        (entry,) = self._detail(client, run(_completion(ATTACK))).json()["order_sets"]
+        assert entry["name"] == "F Bre–MID · A Par–Bur"
+        assert entry["details"]["par:Move:bur"]["description"] == "Move -> Burgundy"
+
+    def test_carries_the_board_and_the_summary(self, client, run):
+        detail = self._detail(client, run(_completion(ATTACK), "not json")).json()
+        assert detail["fixture"]["id"] == "paris_opening"
+        assert (detail["summary"]["answers"], detail["summary"]["failed"]) == (2, 1)
+
+    def test_unusable_answers_carry_their_problem_and_completion(self, client, run):
+        name = run(_completion(ATTACK), _completion(["par:Move:mar"]))
+        (unusable,) = self._detail(client, name).json()["unusable"]
+        assert unusable["epoch"] == 2
+        assert unusable["problem"] == "unknown option id 'par:Move:mar'"
+        assert "par:Move:mar" in unusable["completion"]
 
 
 class TestRunPrompts:

@@ -33,7 +33,9 @@ export const RunsScreen: React.FC = () => {
                 className="flex items-baseline justify-between gap-4 py-3 text-sm hover:underline"
               >
                 <span className="font-medium">{formatRun(run.created)}</span>
-                <span className="text-muted-foreground">{run.model}</span>
+                <span className="text-muted-foreground">
+                  {run.model} · <span className="font-mono">{run.id}</span>
+                </span>
               </Link>
             </li>
           ))}

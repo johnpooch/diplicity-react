@@ -5,6 +5,7 @@ import { FixtureScreen } from "@/screens/FixtureScreen";
 import { FixturesLayout } from "@/screens/FixturesLayout";
 import { Layout } from "@/screens/Layout";
 import { ReviewScreen } from "@/screens/ReviewScreen";
+import { RunFixtureScreen } from "@/screens/RunFixtureScreen";
 import { RunScreen } from "@/screens/RunScreen";
 import { RunsScreen } from "@/screens/RunsScreen";
 
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       },
       { path: "runs", element: <RunsScreen /> },
       { path: "runs/:runName", element: <RunScreen /> },
+      { path: "runs/:runName/fixtures/:fixtureId", element: <RunFixtureScreen /> },
       { path: "runs/:runName/review", element: <ReviewScreen /> },
     ],
   },

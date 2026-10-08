@@ -13,7 +13,7 @@ from select_orders.exceptions import FixtureError
 from select_orders.fixtures import read_fixture, write_fixture
 from select_orders.notation import Notation
 from select_orders.options import describe_option, option_from_id, option_id
-from select_orders.order_sets import label_order_set, order_set_key
+from select_orders.order_sets import label_order_set, order_set_key, order_set_label
 from select_orders.types import Context, Fixture
 from workbench.exceptions import RunError
 from workbench.runs import (
@@ -24,10 +24,21 @@ from workbench.runs import (
     score,
     summarise,
     unlabelled_order_sets,
+    unusable_answers,
 )
 
 LABELS = ("reasonable", "unreasonable")
-SUMMED = ("order_sets", "reasonable", "new", "matched", "unanswered")
+SUMMED = (
+    "answers",
+    "failed",
+    "reasonable",
+    "unreasonable",
+    "unmarked",
+    "order_sets",
+    "new",
+    "input_tokens",
+    "output_tokens",
+)
 
 
 def _error(message: str, status: int) -> JsonResponse:
@@ -180,7 +191,7 @@ def run_detail(request, name):
         {
             **header,
             **totals,
-            "score": score(totals["reasonable"], totals["order_sets"]),
+            "score": score(totals["reasonable"], totals["answers"] - totals["failed"]),
             "fixtures": fixtures,
         }
     )
@@ -214,6 +225,42 @@ def run_queue(request, name):
 
 
 @require_GET
+def run_fixture(request, name, fixture_id):
+    try:
+        _, samples = read_run(settings.EVALS_LOGS_DIR, name)
+    except RunError as e:
+        return _error(str(e), 404)
+    found = [(fixture, own) for fixture, own in _by_fixture(samples) if fixture["id"] == fixture_id]
+    if not found:
+        return _error(f"run '{name}' has no fixture '{fixture_id}'", 404)
+    ((fixture, own),) = found
+
+    context = fixture_to_context(fixture)
+    order_sets = []
+    for entry in distinct_order_sets(own):
+        label = order_set_label(fixture, entry["orders"])
+        order_sets.append(
+            {
+                "orders": entry["orders"],
+                "name": _name(entry["orders"], context),
+                "details": _describe(set(entry["orders"]), context),
+                "label": label["label"] if label else None,
+                "reason": label.get("reason", "") if label else "",
+                "epochs": entry["epochs"],
+                "reasonings": entry["reasonings"],
+            }
+        )
+    return JsonResponse(
+        {
+            "fixture": _board(fixture, context),
+            "summary": summarise(fixture, own),
+            "order_sets": sorted(order_sets, key=lambda entry: -len(entry["epochs"])),
+            "unusable": unusable_answers(own),
+        }
+    )
+
+
+@require_GET
 def run_prompts(request, name):
     try:
         _, samples = read_run(settings.EVALS_LOGS_DIR, name)
@@ -224,9 +271,5 @@ def run_prompts(request, name):
     for sample in sorted(samples, key=lambda sample: sample.epoch):
         first.setdefault(sample.id, sample)
     return JsonResponse(
-        {
-            "prompts": [
-                {"fixture": fixture_id, **sample_prompts(first[fixture_id])} for fixture_id in sorted(first)
-            ]
-        }
+        {"prompts": [{"fixture": fixture_id, **sample_prompts(first[fixture_id])} for fixture_id in sorted(first)]}
     )
