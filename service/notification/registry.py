@@ -320,6 +320,15 @@ class MusteringStartedSpec(NotificationSpec):
         )
 
 
+@register("muster_reminder")
+class MusterReminderSpec(NotificationSpec):
+    def get_body(self):
+        return (
+            "Mustering ends soon and your seat has not been confirmed. Seats that "
+            "are not confirmed by the deadline will be opened to other players."
+        )
+
+
 @register("removed_from_muster")
 class RemovedFromMusterSpec(NotificationSpec):
     def get_body(self):

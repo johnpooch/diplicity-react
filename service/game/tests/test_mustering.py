@@ -12,6 +12,7 @@ from common.constants import (
     MemberKind,
     MovementPhaseDuration,
     MusterJob,
+    MusterReminderJob,
     PhaseFrequency,
     PhaseStatus,
 )
@@ -35,6 +36,32 @@ def _expiry_job(game):
 
 def _expiry_jobs(connector):
     return [j for j in connector.jobs.values() if j["task_name"] == MusterJob.TASK_NAME]
+
+
+def _reminder_job(game):
+    game.refresh_from_db()
+    return _job(game.muster_reminder_job_id)
+
+
+def _reminder_jobs(connector):
+    return [
+        j for j in connector.jobs.values() if j["task_name"] == MusterReminderJob.TASK_NAME
+    ]
+
+
+def _reach_reminder_time(game):
+    Game.objects.filter(pk=game.pk).update(
+        muster_deadline=timezone.now() + timedelta(minutes=30)
+    )
+    game.refresh_from_db()
+
+
+def _reminder_recipients():
+    return set(
+        Notification.objects.filter(event_type="muster_reminder").values_list(
+            "recipient_id", flat=True
+        )
+    )
 
 
 def _expire_deadline(game):
@@ -239,6 +266,124 @@ class TestArming:
         new_job = in_memory_procrastinate.jobs[game.muster_job_id]
         assert new_job["status"] == MusterJob.TODO
         assert new_job["scheduled_at"] == game.muster_deadline
+
+
+    @pytest.mark.django_db
+    def test_entering_mustering_arms_reminder_before_deadline(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+
+        job = _reminder_job(game)
+        assert job is not None
+        assert job.status == MusterReminderJob.TODO
+        assert job.scheduled_at == game.muster_deadline - timedelta(hours=1)
+
+    @pytest.mark.django_db
+    def test_reminder_does_not_take_the_expiry_lock(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+
+        assert _expiry_job(game).lock == MusterJob.lock_for_game(game.pk)
+        assert _reminder_job(game).lock is None
+
+    @pytest.mark.django_db
+    def test_reminder_is_not_rearmed_after_it_has_run(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+        job_id = game.muster_reminder_job_id
+        in_memory_procrastinate.jobs[job_id]["status"] = MusterReminderJob.SUCCEEDED
+
+        game.save()
+
+        game.refresh_from_db()
+        assert game.muster_reminder_job_id == job_id
+        assert len(_reminder_jobs(in_memory_procrastinate)) == 1
+
+    @pytest.mark.django_db
+    def test_final_confirmation_cancels_reminder(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+    ):
+        game = muster_game_factory()
+        job_id = game.muster_reminder_job_id
+
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        authenticated_client_for_secondary_user.post(reverse("game-muster", args=[game.id]))
+
+        game.refresh_from_db()
+        assert game.muster_reminder_job_id is None
+        assert in_memory_procrastinate.jobs[job_id]["status"] == MusterReminderJob.CANCELLED
+
+    @pytest.mark.django_db
+    def test_returning_to_pending_cancels_reminder(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+        job_id = game.muster_reminder_job_id
+
+        game.return_to_pending()
+
+        game.refresh_from_db()
+        assert game.muster_reminder_job_id is None
+        assert in_memory_procrastinate.jobs[job_id]["status"] == MusterReminderJob.CANCELLED
+
+
+class TestSendMusterReminder:
+
+    @pytest.mark.django_db
+    def test_reminder_notifies_unconfirmed_players_only(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        secondary_user,
+    ):
+        game = muster_game_factory()
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        _reach_reminder_time(game)
+
+        tasks.send_muster_reminder(game.id)
+
+        assert _reminder_recipients() == {secondary_user.id}
+
+    @pytest.mark.django_db
+    def test_reminder_skips_unconfirmed_bots(
+        self, muster_game_factory, in_memory_procrastinate, primary_user, bot_user
+    ):
+        game = muster_game_factory(second_user=bot_user)
+        _reach_reminder_time(game)
+
+        tasks.send_muster_reminder(game.id)
+
+        assert _reminder_recipients() == {primary_user.id}
+
+    @pytest.mark.django_db
+    def test_reminder_before_its_time_sends_nothing(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+
+        tasks.send_muster_reminder(game.id)
+
+        assert _reminder_recipients() == set()
+
+    @pytest.mark.django_db
+    def test_reminder_for_a_game_no_longer_mustering_sends_nothing(
+        self, muster_game_factory, in_memory_procrastinate
+    ):
+        game = muster_game_factory()
+        _reach_reminder_time(game)
+        game.return_to_pending()
+
+        tasks.send_muster_reminder(game.id)
+
+        assert _reminder_recipients() == set()
 
 
 class TestStartIfMustered:

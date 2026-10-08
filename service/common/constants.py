@@ -45,7 +45,6 @@ class DeadlineWarningJob:
 
 class MusterJob:
     TASK_NAME = "game.start_if_mustered"
-    REMINDER_TASK_NAME = "game.send_muster_reminder"
 
     TODO = "todo"
     DOING = "doing"
@@ -54,6 +53,17 @@ class MusterJob:
     LIVE_STATUSES = (TODO, DOING)
 
     lock_for_game = ResolutionJob.lock_for_game
+
+
+class MusterReminderJob:
+    TASK_NAME = "game.send_muster_reminder"
+
+    TODO = "todo"
+    DOING = "doing"
+    SUCCEEDED = "succeeded"
+    CANCELLED = "cancelled"
+
+    LIVE_STATUSES = (TODO, DOING, SUCCEEDED)
 
 
 class MovementPhaseDuration:
