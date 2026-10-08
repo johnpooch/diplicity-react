@@ -7,7 +7,7 @@ interface RunStatsProps {
   epochs: number;
 }
 
-const FAILED_HINT = "Answers that were not a legal order set. They do not count towards any other metric.";
+const FAILED_HINT = "Failed moves don't count towards any other metric";
 
 const average = (total: number, answers: number): string =>
   answers ? Math.round(total / answers).toLocaleString() : "–";
