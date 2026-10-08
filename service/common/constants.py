@@ -224,6 +224,11 @@ class CommitmentEligibility:
     LOW_LOCKED = "low_locked"
 
 
+class MusterStatus:
+    CONFIRMATION_REQUIRED = "confirmation_required"
+    CONFIRMED = "confirmed"
+
+
 class VariantStatus:
     DRAFT = "draft"
     PUBLISHED = "published"

@@ -190,6 +190,9 @@ type MinReliabilityEnum = Literal['open', 'reliable_and_new', 'reliable_only']
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
+type MusterStatusEnum = Literal['confirmation_required', 'confirmed']
+
+
 type MuteDurationEnum = Literal['8_hours', '24_hours', 'indefinite']
 
 
@@ -548,6 +551,9 @@ class GameRetrieve(TypedDict):
     min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    muster_required: bool
+    muster_deadline: str | None
+    muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
 
 
@@ -667,6 +673,9 @@ class GameList(TypedDict):
     min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    muster_required: bool
+    muster_deadline: str | None
+    muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
 
 

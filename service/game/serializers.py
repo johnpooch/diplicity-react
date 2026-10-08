@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberKind, MinReliability, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -111,6 +111,9 @@ class GameListSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
+    muster_required = serializers.BooleanField(read_only=True)
+    muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     @extend_schema_field(serializers.BooleanField)
@@ -153,6 +156,13 @@ class GameListSerializer(serializers.Serializer):
     ))
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=[MusterStatus.CONFIRMATION_REQUIRED, MusterStatus.CONFIRMED],
+        allow_null=True,
+    ))
+    def get_muster_status(self, obj):
+        return obj.muster_status(self.context["request"].user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -276,6 +286,9 @@ class GameRetrieveSerializer(serializers.Serializer):
     min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
+    muster_required = serializers.BooleanField(read_only=True)
+    muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(
@@ -288,6 +301,13 @@ class GameRetrieveSerializer(serializers.Serializer):
     ))
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=[MusterStatus.CONFIRMATION_REQUIRED, MusterStatus.CONFIRMED],
+        allow_null=True,
+    ))
+    def get_muster_status(self, obj):
+        return obj.muster_status(self.context["request"].user)
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):

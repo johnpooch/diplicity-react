@@ -33,6 +33,7 @@ from common.constants import (
     MovementPhaseDuration,
     MusterJob,
     MusterReminderJob,
+    MusterStatus,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
@@ -986,6 +987,23 @@ class Game(BaseModel):
 
     def is_mustered(self):
         return not self.unmustered_members().exists()
+
+    def muster_status(self, user):
+        if self.status != GameStatus.MUSTERING or not user.is_authenticated:
+            return None
+        current_member = next(
+            (
+                member
+                for member in self.members.all()
+                if member.user_id == user.id and not member.is_game_master
+            ),
+            None,
+        )
+        if current_member is None:
+            return None
+        if current_member.is_bot or current_member.mustered_at is not None:
+            return MusterStatus.CONFIRMED
+        return MusterStatus.CONFIRMATION_REQUIRED
 
     def enter_mustering(self, window_seconds):
         self.status = GameStatus.MUSTERING

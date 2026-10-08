@@ -526,6 +526,18 @@ export interface Victory {
   readonly members: readonly Member[];
 }
 
+/**
+ * * `confirmation_required` - confirmation_required
+ * `confirmed` - confirmed
+ */
+export type MusterStatusEnum =
+  (typeof MusterStatusEnum)[keyof typeof MusterStatusEnum];
+
+export const MusterStatusEnum = {
+  confirmation_required: "confirmation_required",
+  confirmed: "confirmed",
+} as const;
+
 export interface GameList {
   readonly id: string;
   readonly name: string;
@@ -572,6 +584,10 @@ export interface GameList {
   readonly minReliability: string;
   readonly commitmentRequirement: string;
   readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
+  readonly musterRequired: boolean;
+  /** @nullable */
+  readonly musterDeadline: string | null;
+  readonly musterStatus: MusterStatusEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -628,6 +644,10 @@ export interface GameRetrieve {
   readonly minReliability: string;
   readonly commitmentRequirement: string;
   readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
+  readonly musterRequired: boolean;
+  /** @nullable */
+  readonly musterDeadline: string | null;
+  readonly musterStatus: MusterStatusEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
 }
 
