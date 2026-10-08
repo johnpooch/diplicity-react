@@ -31,7 +31,7 @@ def deadline_warning_offset(duration_seconds):
         return timedelta(seconds=3600)
     for phase_duration, warning in thresholds:
         if duration_seconds <= phase_duration:
-            return timedelta(seconds=warning)
+            return timedelta(seconds=min(warning, duration_seconds / 2))
     return timedelta(seconds=14400)
 
 
