@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Panel } from "@/components/Panel";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useRequiredParams } from "@/hooks";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
 import { copyLink } from "@/utils/copyLink";
 import {
   useGameRetrieveSuspense,
@@ -26,6 +27,7 @@ const GameInfoScreen: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameMemberJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
+  const [showJoinWarning, setShowJoinWarning] = useState(false);
 
   const handleJoinGame = async () => {
     try {
@@ -42,6 +44,14 @@ const GameInfoScreen: React.FC = () => {
     }
   };
 
+  const handleClickJoinGame = () => {
+    if (game.showShortGameJoinWarning) {
+      setShowJoinWarning(true);
+    } else {
+      handleJoinGame();
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
@@ -53,7 +63,7 @@ const GameInfoScreen: React.FC = () => {
               variant="outline"
               size="icon"
               aria-label="Join game"
-              onClick={handleJoinGame}
+              onClick={handleClickJoinGame}
               disabled={joinGameMutation.isPending}
             >
               <UserPlus />
@@ -74,6 +84,11 @@ const GameInfoScreen: React.FC = () => {
           </Panel.Content>
         </Panel>
       </div>
+      <ShortGameJoinWarningDialog
+        open={showJoinWarning}
+        onOpenChange={setShowJoinWarning}
+        onConfirm={handleJoinGame}
+      />
     </div>
   );
 };

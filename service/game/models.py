@@ -619,6 +619,11 @@ class Game(BaseModel):
         return duration_to_seconds(duration)
 
     @property
+    def show_short_game_join_warning(self):
+        seconds = self.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+        return seconds is not None and seconds < duration_to_seconds(MovementPhaseDuration.TWENTY_FOUR_HOURS)
+
+    @property
     def effective_retreat_frequency(self):
         return self.retreat_frequency or self.movement_frequency
 

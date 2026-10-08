@@ -550,6 +550,7 @@ export interface GameList {
   readonly movementPhaseDuration: string | null;
   /** @nullable */
   readonly retreatPhaseDuration: string | null;
+  readonly showShortGameJoinWarning: boolean;
   readonly members: readonly Member[];
   readonly victory: Victory | null;
   readonly sandbox: boolean;
@@ -602,6 +603,7 @@ export interface GameRetrieve {
   readonly movementPhaseDuration: string | null;
   /** @nullable */
   readonly retreatPhaseDuration: string | null;
+  readonly showShortGameJoinWarning: boolean;
   readonly private: boolean;
   readonly anonymous: boolean;
   readonly isPaused: boolean;

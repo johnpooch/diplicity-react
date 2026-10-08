@@ -2704,6 +2704,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        show_short_game_join_warning:
+          type: boolean
+          readOnly: true
         members:
           type: array
           items:
@@ -2800,6 +2803,7 @@ components:
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
+      - show_short_game_join_warning
       - status
       - total_unread_message_count
       - variant_id
@@ -3008,6 +3012,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        show_short_game_join_warning:
+          type: boolean
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -3095,6 +3102,7 @@ components:
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
+      - show_short_game_join_warning
       - status
       - total_unread_message_count
       - variant_id

@@ -187,6 +187,34 @@ describe("GameInfoScreen", () => {
       });
     });
 
+    it("warns before joining a short game and joins on confirm", async () => {
+      const shortGame = { ...pendingGameCanJoin, showShortGameJoinWarning: true };
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: shortGame });
+      renderGameInfo(shortGame.id);
+
+      await userEvent.click(screen.getByRole("button", { name: /join game/i }));
+
+      expect(screen.getByRole("alertdialog")).toHaveTextContent(
+        /less than 24 hours/
+      );
+      expect(mockJoinMutateAsync).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole("button", { name: /^join$/i }));
+
+      expect(mockJoinMutateAsync).toHaveBeenCalledWith({ gameId: shortGame.id });
+    });
+
+    it("does not join a short game when the warning is cancelled", async () => {
+      const shortGame = { ...pendingGameCanJoin, showShortGameJoinWarning: true };
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: shortGame });
+      renderGameInfo(shortGame.id);
+
+      await userEvent.click(screen.getByRole("button", { name: /join game/i }));
+      await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+      expect(mockJoinMutateAsync).not.toHaveBeenCalled();
+    });
+
     it("invalidates the game query after joining so the button updates immediately", async () => {
       mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
       const { queryClient } = renderGameInfo(pendingGameCanJoin.id);
