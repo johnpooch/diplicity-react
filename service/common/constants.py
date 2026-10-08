@@ -48,7 +48,10 @@ class MusterJob:
     REMINDER_TASK_NAME = "game.send_muster_reminder"
 
     TODO = "todo"
+    DOING = "doing"
     CANCELLED = "cancelled"
+
+    LIVE_STATUSES = (TODO, DOING)
 
     lock_for_game = ResolutionJob.lock_for_game
 

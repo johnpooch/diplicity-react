@@ -70,7 +70,9 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
     def remove(self, member):
         if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
-            member.delete()
+            with transaction.atomic():
+                member.delete()
+                member.game.return_to_pending()
             return
 
         with transaction.atomic():
