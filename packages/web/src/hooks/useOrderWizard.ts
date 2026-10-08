@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { deriveWizardStep, OrderOption } from "../utils/deriveWizardStep";
 
 function useOrderWizard(
@@ -12,12 +12,15 @@ function useOrderWizard(
     [orders, fieldOrder, selections]
   );
 
-  const select = (value: string) => {
-    if (!step.nextField) return;
-    setSelections((prev) => ({ ...prev, [step.nextField!]: value }));
-  };
+  const select = useCallback(
+    (value: string) => {
+      if (!step.nextField) return;
+      setSelections((prev) => ({ ...prev, [step.nextField!]: value }));
+    },
+    [step.nextField]
+  );
 
-  const reset = () => setSelections({});
+  const reset = useCallback(() => setSelections({}), []);
 
   return { ...step, selections, select, reset };
 }
