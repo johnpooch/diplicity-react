@@ -2380,6 +2380,9 @@ components:
         phaseId:
           type: integer
           readOnly: true
+        phaseName:
+          type: string
+          readOnly: true
         createdAt:
           type: string
           format: date-time
@@ -2393,6 +2396,7 @@ components:
       - myVote
       - pendingCount
       - phaseId
+      - phaseName
       - rejectedCount
       - status
       - totalVotes

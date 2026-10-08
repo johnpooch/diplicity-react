@@ -579,18 +579,19 @@ const buildActiveDrawProposal = () => {
     year: 1902,
     remainingTime: 30 * 60 * 60,
   });
+  const proposedBy = (member: Member): DrawProposal["createdBy"] => ({
+    id: member.id,
+    userId: member.userId,
+    name: member.name,
+    picture: null,
+    isCurrentUser: false,
+    isBot: false,
+    commitment: "high",
+    nation: member.nation,
+  });
   const proposal: DrawProposal = {
-    id: 1,
-    createdBy: {
-      id: members[1].id,
-      userId: members[1].userId,
-      name: members[1].name,
-      picture: null,
-      isCurrentUser: false,
-      isBot: false,
-      commitment: "high",
-      nation: "Austria",
-    },
+    id: 2,
+    createdBy: proposedBy(members[1]),
     status: "pending",
     acceptedCount: 2,
     rejectedCount: 0,
@@ -599,11 +600,26 @@ const buildActiveDrawProposal = () => {
     includedMemberIds: members.map(m => m.id),
     myVote: { included: true, accepted: null },
     phaseId: 401,
+    phaseName: phase.name,
     createdAt: futureIso(-2 * 60 * 60),
+  };
+  const expiredProposal: DrawProposal = {
+    id: 1,
+    createdBy: proposedBy(members[2]),
+    status: "expired",
+    acceptedCount: 3,
+    rejectedCount: 0,
+    pendingCount: 4,
+    totalVotes: 7,
+    includedMemberIds: members.map(m => m.id),
+    myVote: { included: true, accepted: true },
+    phaseId: 301,
+    phaseName: "Fall 1901, Movement",
+    createdAt: futureIso(-3 * 24 * 60 * 60),
   };
   return makeFixture({
     description:
-      "Active game (Spring 1902 movement) with an open draw proposal created by Austria. The current user has not voted yet.",
+      "Active game (Spring 1902 movement) with an open draw proposal created by Austria and an expired one from Fall 1901. The current user has not voted on the open proposal yet.",
     game: makeGame("active-draw-proposal", "Talk of Peace", members, [phase]),
     phases: [phase],
     ordersByPhase: { 401: [] },
@@ -617,7 +633,7 @@ const buildActiveDrawProposal = () => {
       makePhaseState(members[6], ["con", "ank", "smy"]),
     ],
     channels: [makeChannel("Public Press", members, [])],
-    drawProposals: [proposal],
+    drawProposals: [proposal, expiredProposal],
   });
 };
 

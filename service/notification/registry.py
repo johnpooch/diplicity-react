@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from draw_proposal.models import DrawProposal
 from notification.models import NotificationDelivery
 
 Channel = NotificationDelivery.Channel
@@ -97,6 +98,17 @@ class NotificationSpec:
         deadline = phase.formatted_deadline if phase else None
         return f" The new deadline is {deadline}." if deadline else ""
 
+    def expired_draw_proposals_clause(self, phase):
+        proposals = (
+            DrawProposal.objects.pending_for_phase(phase).select_related("created_by__nation").order_by("created_at")
+        )
+        names = [self.player_name(nation=proposal.created_by.nation.name) for proposal in proposals]
+        if not names:
+            return ""
+        if len(names) == 1:
+            return f" The draw proposal from {names[0]} has expired."
+        return f" The draw proposals from {join_names(names)} have expired."
+
     def player_name(self, name=None, nation=None, anonymous=ANONYMOUS_NAME):
         if nation:
             return nation
@@ -149,6 +161,17 @@ class DrawProposalSpec(NotificationSpec):
         return f"{self.player_name()} has proposed a draw."
 
 
+@register("draw_proposal_rejected")
+class DrawProposalRejectedSpec(NotificationSpec):
+    exclude_actor = True
+
+    def get_link(self):
+        return self._phase_url("draw-proposals")
+
+    def get_body(self):
+        return f"The draw proposal from {self.player_name(nation=self.context.payload['nation_name'])} has been rejected."
+
+
 @register("game_start")
 class GameStartSpec(NotificationSpec):
     def get_audience(self):
@@ -197,7 +220,8 @@ class PhaseResolvedSpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        return f"{self.context.phase.name} has been resolved."
+        clause = self.expired_draw_proposals_clause(self.context.phase)
+        return f"{self.context.phase.name} has been resolved.{clause}"
 
 
 @register("phase_resolved_early")
@@ -206,7 +230,8 @@ class PhaseResolvedEarlySpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        return f"{self.context.phase.name} has been resolved early — all players have confirmed their orders."
+        clause = self.expired_draw_proposals_clause(self.context.phase)
+        return f"{self.context.phase.name} has been resolved early — all players have confirmed their orders.{clause}"
 
 
 @register("game_deleted")
