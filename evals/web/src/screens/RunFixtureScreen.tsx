@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useRunFixture, type Reasoning, type RunOrderSet, type UnusableAnswer } from "@/api";
 import { Board } from "@/components/Board";
+import { RunStats } from "@/components/RunStats";
 import { ScoreBreakdown } from "@/components/ScoreBreakdown";
 import { Button } from "@/components/ui/button";
 import { formatScore, LABELS, plural, UNMARKED } from "@/labels";
@@ -136,6 +137,7 @@ const RunFixture: React.FC<RunFixtureProps> = ({ name, fixtureId }) => {
             <span className="ml-2 text-base font-normal text-muted-foreground">reasonable</span>
           </p>
           <ScoreBreakdown counts={summary} />
+          <RunStats counts={summary} epochs={summary.answers} />
           <div className="flex gap-2">
             {summary.new > 0 && (
               <Button asChild size="sm">
@@ -162,7 +164,7 @@ const RunFixture: React.FC<RunFixtureProps> = ({ name, fixtureId }) => {
             </Group>
           ))}
         {run.unusable.length > 0 && (
-          <Group name="Unusable answers" dot="bg-amber-500" count={run.unusable.length}>
+          <Group name="Failed" dot="bg-amber-500" count={run.unusable.length}>
             {run.unusable.map(answer => (
               <UnusableItem
                 key={answer.epoch}

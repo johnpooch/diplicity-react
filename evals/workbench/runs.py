@@ -1,3 +1,4 @@
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from workbench.exceptions import RunError
 MODEL_TASK = "select_orders"
 SUCCESS = "success"
 REASONABLE = "reasonable"
+UNREASONABLE = "unreasonable"
 
 
 @lru_cache(maxsize=64)
@@ -29,6 +31,7 @@ def _header(path: Path, log: EvalLog) -> dict:
     return {
         "name": path.stem,
         "id": log.eval.eval_id,
+        "epochs": log.eval.config.epochs or 1,
         "task": log.eval.task,
         "model": log.eval.model,
         "created": log.eval.created,
@@ -104,22 +107,30 @@ def unlabelled_order_sets(fixture: Fixture, order_sets: list[dict]) -> list[dict
     return [entry for entry in order_sets if order_set_label(fixture, entry["orders"]) is None]
 
 
-def score(reasonable: int, order_sets: int) -> float | None:
-    return reasonable / order_sets if order_sets else None
+def score(reasonable: int, answers: int) -> float | None:
+    return reasonable / answers if answers else None
+
+
+def _tokens(samples: list[EvalSample], field: str) -> int:
+    return sum(getattr(usage, field) for sample in samples for usage in sample.model_usage.values())
 
 
 def summarise(fixture: Fixture, samples: list[EvalSample]) -> dict:
     order_sets = distinct_order_sets(samples)
-    labels = [order_set_label(fixture, entry["orders"]) for entry in order_sets]
-    reasonable = sum(1 for label in labels if label is not None and label["label"] == REASONABLE)
-    new = len(unlabelled_order_sets(fixture, order_sets))
+    answered = Counter()
+    for entry in order_sets:
+        label = order_set_label(fixture, entry["orders"])
+        answered[label["label"] if label else None] += len(entry["epochs"])
+    usable = sum(answered.values())
     return {
         "answers": len(samples),
+        "failed": len(samples) - usable,
+        "reasonable": answered[REASONABLE],
+        "unreasonable": answered[UNREASONABLE],
+        "unmarked": answered[None],
         "order_sets": len(order_sets),
-        "reasonable": reasonable,
-        "unreasonable": len(order_sets) - new - reasonable,
-        "new": new,
-        "matched": len(order_sets) - new,
-        "unanswered": sum(1 for sample in samples if sample_orders(sample) is None),
-        "score": score(reasonable, len(order_sets)),
+        "new": len(unlabelled_order_sets(fixture, order_sets)),
+        "input_tokens": _tokens(samples, "input_tokens"),
+        "output_tokens": _tokens(samples, "output_tokens"),
+        "score": score(answered[REASONABLE], usable),
     }

@@ -10,7 +10,7 @@ interface ScoreBreakdownProps {
 export const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({ counts, compact }) => {
   const parts = [
     ...LABELS.map(option => ({ ...option, count: counts[option.label] })),
-    { ...UNMARKED, count: counts.new },
+    { ...UNMARKED, count: counts.unmarked },
   ];
 
   return (
@@ -29,12 +29,9 @@ export const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({ counts, compact 
               {part.name.toLowerCase()}
             </span>
           ))}
-          <span>of {plural(counts.order_sets, "distinct order set")}</span>
-        </p>
-      )}
-      {!compact && counts.unanswered > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {counts.unanswered} of {plural(counts.answers, "answer")} unusable: not a legal order set, so not scored
+          <span>
+            of {plural(counts.answers - counts.failed, "answer")} · {plural(counts.order_sets, "distinct order set")}
+          </span>
         </p>
       )}
     </div>

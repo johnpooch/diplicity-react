@@ -52,16 +52,18 @@ export type FixtureDetail = BoardState & {
   order_sets: OrderSet[];
 };
 
-export type RunHeader = { name: string; id: string; model: string; created: string };
+export type RunHeader = { name: string; id: string; epochs: number; model: string; created: string };
 
 export type RunCounts = {
   answers: number;
-  order_sets: number;
+  failed: number;
   reasonable: number;
   unreasonable: number;
+  unmarked: number;
+  order_sets: number;
   new: number;
-  matched: number;
-  unanswered: number;
+  input_tokens: number;
+  output_tokens: number;
   score: number | null;
 };
 

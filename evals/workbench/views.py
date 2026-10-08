@@ -28,7 +28,17 @@ from workbench.runs import (
 )
 
 LABELS = ("reasonable", "unreasonable")
-SUMMED = ("answers", "order_sets", "reasonable", "unreasonable", "new", "matched", "unanswered")
+SUMMED = (
+    "answers",
+    "failed",
+    "reasonable",
+    "unreasonable",
+    "unmarked",
+    "order_sets",
+    "new",
+    "input_tokens",
+    "output_tokens",
+)
 
 
 def _error(message: str, status: int) -> JsonResponse:
@@ -181,7 +191,7 @@ def run_detail(request, name):
         {
             **header,
             **totals,
-            "score": score(totals["reasonable"], totals["order_sets"]),
+            "score": score(totals["reasonable"], totals["answers"] - totals["failed"]),
             "fixtures": fixtures,
         }
     )

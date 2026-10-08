@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useRun, useRuns } from "@/api";
 import { RunPrompts } from "@/components/RunPrompts";
+import { RunStats } from "@/components/RunStats";
 import { ScoreBreakdown } from "@/components/ScoreBreakdown";
 import { Button } from "@/components/ui/button";
 import { formatRun, formatScore } from "@/labels";
@@ -41,6 +42,7 @@ const Run: React.FC<RunProps> = ({ name }) => {
             )}
           </div>
           <ScoreBreakdown counts={run} />
+          <RunStats counts={run} epochs={run.epochs} />
         </header>
         <section className="flex flex-col gap-2">
           <h2 className="font-semibold">Fixtures</h2>
@@ -53,6 +55,7 @@ const Run: React.FC<RunProps> = ({ name }) => {
                 >
                   <span className="min-w-0 flex-1 truncate">{fixture.id}</span>
                   {fixture.new > 0 && <span className="text-muted-foreground">{fixture.new} unmarked</span>}
+                  {fixture.failed > 0 && <span className="text-muted-foreground">{fixture.failed} failed</span>}
                   <span className="w-24">
                     <ScoreBreakdown counts={fixture} compact />
                   </span>
