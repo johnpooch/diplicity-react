@@ -45,7 +45,12 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(",")
+RAILWAY_HEALTHCHECK_HOST = "healthcheck.railway.app"
+
+ALLOWED_HOSTS = [
+    *os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(","),
+    RAILWAY_HEALTHCHECK_HOST,
+]
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = os.getenv(
