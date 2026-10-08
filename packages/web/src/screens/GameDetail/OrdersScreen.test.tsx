@@ -28,6 +28,7 @@ const mockOrdersData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockPhaseStatesData = vi.fn();
 const mockDeleteOrderMutation = vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false }));
+const mockRevertPhase = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -40,9 +41,12 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGamePhaseRevertUpdate: () => ({ mutateAsync: mockRevertPhase, isPending: false }),
   useGamesDrawProposalsListSuspense: () => ({ data: [] }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameOrdersListQueryKey: () => ["orders"],
+  getGamePhaseRetrieveQueryKey: () => ["phase"],
+  getGamePhasesListQueryKey: () => ["phases"],
   getGameOptionsRetrieveQueryKey: () => ["options"],
   getGamePhaseStatesListQueryKey: () => ["phase-states"],
 }));
@@ -687,5 +691,88 @@ describe("OrdersScreen historical phase with unordered units", () => {
     expect(screen.getByText(/Army Rome/)).toBeInTheDocument();
     expect(screen.getByText(/Army Venice/)).toBeInTheDocument();
     expect(screen.getAllByText("Order not provided")).toHaveLength(3);
+  });
+});
+
+describe("OrdersScreen sandbox revert to phase", () => {
+  const sandboxGame = (overrides = {}) => ({
+    variantId: "classical",
+    status: "active",
+    currentPhaseId: 2,
+    sandbox: true,
+    deadlineMode: "duration",
+    phaseConfirmed: false,
+    members: [baseMember()],
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    mockRevertPhase.mockReset();
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, name: "Spring 1901, Movement", status: "completed", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue([]);
+  });
+
+  it("shows the revert button on a previous phase of a sandbox game", () => {
+    mockGameData.mockReturnValue(sandboxGame());
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /revert to this phase/i })).toBeInTheDocument();
+  });
+
+  it("shows the resolve button instead of revert on the active phase of a sandbox game", () => {
+    mockGameData.mockReturnValue(sandboxGame({ currentPhaseId: 1 }));
+    mockPhaseData.mockReturnValue({
+      id: 1, name: "Spring 1901, Movement", status: "active", supplyCenters: [], units: [],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /resolve phase/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /revert to this phase/i })).not.toBeInTheDocument();
+  });
+
+  it("does not show the revert button on a previous phase of a non-sandbox game", () => {
+    mockGameData.mockReturnValue(sandboxGame({ sandbox: false }));
+
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /revert to this phase/i })).not.toBeInTheDocument();
+  });
+
+  it("does not show the revert button once the sandbox game has ended", () => {
+    mockGameData.mockReturnValue(sandboxGame({ status: "completed" }));
+
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /revert to this phase/i })).not.toBeInTheDocument();
+  });
+
+  it("reverts to the phase after the user confirms", async () => {
+    mockGameData.mockReturnValue(sandboxGame());
+
+    renderOrdersScreen();
+    await userEvent.click(screen.getByRole("button", { name: /revert to this phase/i }));
+    const dialog = screen.getByRole("alertdialog");
+
+    expect(within(dialog).getByText("Revert to Spring 1901, Movement")).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Revert" }));
+
+    expect(mockRevertPhase).toHaveBeenCalledWith({ gameId: "game-1", phaseId: 1 });
+  });
+
+  it("does not revert when the user cancels", async () => {
+    mockGameData.mockReturnValue(sandboxGame());
+
+    renderOrdersScreen();
+    await userEvent.click(screen.getByRole("button", { name: /revert to this phase/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(mockRevertPhase).not.toHaveBeenCalled();
   });
 });

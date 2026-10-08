@@ -1042,6 +1042,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseRetrieve'
           description: ''
+  /game/{game_id}/phase/{phase_id}/revert/:
+    put:
+      operationId: game_phase_revert_update
+      description: Revert a sandbox game to this phase, deleting every later phase
+        and this phase's orders.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: phase_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhaseList'
+          description: ''
+    patch:
+      operationId: game_phase_revert_partial_update
+      description: Revert a sandbox game to this phase, deleting every later phase
+        and this phase's orders.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: phase_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhaseList'
+          description: ''
   /game/{game_id}/phases/:
     get:
       operationId: game_phases_list

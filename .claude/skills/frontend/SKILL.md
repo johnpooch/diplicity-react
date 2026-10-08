@@ -238,7 +238,6 @@ const MyForm: React.FC = () => {
 const handleCreate = async (data: FormValues) => {
   try {
     await createMutation.mutateAsync({ data });
-    toast.success("Created successfully");
     navigate("/");
   } catch {
     toast.error("Failed to create");
@@ -246,9 +245,9 @@ const handleCreate = async (data: FormValues) => {
 };
 ```
 
-Skip toasts when the UI change itself is the confirmation (checkbox toggle, inline edit). Always use `mutateAsync` (not `mutate`) so errors propagate to the `catch` block.
+Do not add a success toast unless one is explicitly asked for — by the user, the issue, or a written rule such as the game-orders confirmation in the `ux-patterns` skill. Always use `mutateAsync` (not `mutate`) so errors propagate to the `catch` block.
 
-**Review check:** every mutation has try/catch? success toast for non-obvious outcomes? error toast in all catch paths?
+**Review check:** every mutation has try/catch? success toast only where explicitly asked for? error toast in all catch paths?
 
 ## Mock Data (MSW + Fixture Registry)
 

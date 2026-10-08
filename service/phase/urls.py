@@ -27,4 +27,9 @@ urlpatterns = [
         views.PhaseResolveView.as_view(),
         name="game-resolve-phase",
     ),
+    path(
+        "game/<str:game_id>/phase/<int:phase_id>/revert/",
+        views.PhaseRevertView.as_view(),
+        name="game-revert-phase",
+    ),
 ]

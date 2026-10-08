@@ -355,6 +355,7 @@ export const handlers = [
   http.delete("*/game/:gameId/delete/", () => new HttpResponse(null, { status: 204 })),
   http.patch("*/game/:gameId/confirm-phase/", () => HttpResponse.json({})),
   http.post("*/game/:gameId/resolve-phase/", () => HttpResponse.json({})),
+  http.put("*/game/:gameId/phase/:phaseId/revert/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/pause/", () => HttpResponse.json({})),
   http.patch("*/game/:gameId/unpause/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/extend-deadline/", () => HttpResponse.json({})),
