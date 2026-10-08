@@ -111,8 +111,10 @@ def score(reasonable: int, answers: int) -> float | None:
     return reasonable / answers if answers else None
 
 
-def _tokens(samples: list[EvalSample], field: str) -> int:
-    return sum(getattr(usage, field) for sample in samples for usage in sample.model_usage.values())
+def _tokens(samples: list[EvalSample], *fields: str) -> int:
+    return sum(
+        getattr(usage, field) or 0 for sample in samples for usage in sample.model_usage.values() for field in fields
+    )
 
 
 def summarise(fixture: Fixture, samples: list[EvalSample]) -> dict:
@@ -130,7 +132,7 @@ def summarise(fixture: Fixture, samples: list[EvalSample]) -> dict:
         "unmarked": answered[None],
         "order_sets": len(order_sets),
         "new": len(unlabelled_order_sets(fixture, order_sets)),
-        "input_tokens": _tokens(samples, "input_tokens"),
+        "input_tokens": _tokens(samples, "input_tokens", "input_tokens_cache_write", "input_tokens_cache_read"),
         "output_tokens": _tokens(samples, "output_tokens"),
         "score": score(answered[REASONABLE], usable),
     }
