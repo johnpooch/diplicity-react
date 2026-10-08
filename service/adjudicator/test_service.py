@@ -1107,6 +1107,32 @@ class TestAdjudicationService:
         germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
         assert germany_units == []
 
+    @pytest.mark.django_db
+    def test_movement_phase_not_skipped_when_every_nation_in_civil_disorder(
+        self,
+        phase_fall_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        member_italy.civil_disorder = True
+        member_italy.save()
+        member_germany.civil_disorder = True
+        member_germany.save()
+
+        phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_italy, "ven")
+        create_unit(phase_state_italy, "ven", "Army")
+        create_supply_center(phase_state_germany, "kie")
+        create_unit(phase_state_germany, "kie", "Fleet")
+
+        data = adjudication_service.resolve(phase_fall_1901_movement)
+
+        assert data["year"] == 1902
+        assert data["season"] == "Spring"
+        assert data["type"] == "Movement"
+
 
 class TestUserUploadedVariant:
     """Regression: prior to dropping the godip HTTP adjudicator, creating a

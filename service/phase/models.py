@@ -550,6 +550,14 @@ class PhaseManager(models.Manager):
         with transaction.atomic():
             self._set_orders_outcome(phase)
             newly_cd_members = self._check_civil_disorder(phase)
+
+            if self._check_abandonment(phase.game):
+                self._notify_civil_disorder(phase, newly_cd_members)
+                self._recompute_commitment(phase)
+                phase.game.finish(GameStatus.ABANDONED)
+                phase.refresh_from_db()
+                return phase
+
             adjudication_data = resolve(phase)
 
             surviving_cd_members = self._reconcile_civil_disorder_eliminations(

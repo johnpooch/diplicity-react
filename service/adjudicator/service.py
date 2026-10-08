@@ -24,7 +24,7 @@ from opentelemetry import trace
 from phase.utils import phase_to_canonical_game_state
 from variant.utils import variant_to_canonical_dict
 
-from .domain import State, Variant
+from .domain import Phase, State, Variant
 from .engine import Engine
 from .options import get_options
 from .options_adapter import python_options_to_godip_dict
@@ -63,7 +63,9 @@ def start(phase) -> Dict[str, Any]:
         }
 
 
-def _should_skip(options, units, supply_centers, skip_nations, nation_name_by_id, variant):
+def _should_skip(phase_type, options, units, supply_centers, skip_nations, nation_name_by_id, variant):
+    if phase_type == Phase.MOVEMENT:
+        return False
     if not options:
         return True
     if not skip_nations:
@@ -118,8 +120,9 @@ def resolve(phase) -> Dict[str, Any]:
         next_state = states[1] if len(states) > 1 else resolved
 
         # Advance through phases nobody can act in (empty retreat / empty
-        # adjustment, or retreat where every retreating nation is in Civil
-        # Disorder) so we land on the next phase that needs player input.
+        # adjustment, or retreat / adjustment where every nation with orders
+        # is in Civil Disorder) so we land on the next phase that needs player
+        # input. Movement phases are never skipped.
         # Engine.adjudicate advances one phase per call and keeps phase
         # skipping out of scope by contract, so skipping is orchestrated
         # here. Skipped phases are never persisted -- only the final
@@ -127,12 +130,13 @@ def resolve(phase) -> Dict[str, Any]:
         next_options = get_options(next_state) if len(states) > 1 else []
         _skip_count = 0
         _MAX_SKIP = 10
-        while len(states) > 1 and _should_skip(next_options, next_state.units, next_state.supply_centers, skip_nations, nation_name_by_id, next_state.variant):
+        while len(states) > 1 and _should_skip(next_state.phase.type, next_options, next_state.units, next_state.supply_centers, skip_nations, nation_name_by_id, next_state.variant):
             _skip_count += 1
             if _skip_count >= _MAX_SKIP:
-                logger.warning(
-                    f"Phase skip limit reached for phase {phase.id} "
-                    f"(game {phase.game.id}) — all nations likely in civil disorder"
+                logger.error(
+                    "Phase skip limit reached for phase %s (game %s)",
+                    phase.id,
+                    phase.game.id,
                 )
                 break
             states = Engine().adjudicate(next_state)
