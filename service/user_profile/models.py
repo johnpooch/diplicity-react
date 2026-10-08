@@ -1,8 +1,7 @@
 import hashlib
 
 from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 
 from common.constants import Commitment, UserKind
@@ -71,11 +70,14 @@ class UserProfile(BaseModel):
 
 class UserProfilePictureManager(models.Manager):
     def store(self, profile, data, content_type):
-        self.filter(profile=profile).delete()
-        content_hash = hashlib.sha256(data).hexdigest()
-        extension = content_type.rsplit("/", 1)[-1]
-        picture = self.model(profile=profile, content_type=content_type, content_hash=content_hash)
-        picture.image.save(f"{content_hash}.{extension}", ContentFile(data), save=True)
+        with transaction.atomic():
+            self.filter(profile=profile).delete()
+            picture = self.create(
+                profile=profile,
+                content_type=content_type,
+                content_hash=hashlib.sha256(data).hexdigest(),
+            )
+            UserProfilePictureContent.objects.create(picture=picture, data=data)
         return picture
 
 
@@ -84,9 +86,18 @@ class UserProfilePicture(BaseModel):
     profile = models.OneToOneField(
         UserProfile, on_delete=models.CASCADE, related_name="uploaded_picture"
     )
-    image = models.ImageField(upload_to="profile_pictures/")
     content_type = models.CharField(max_length=20)
     content_hash = models.CharField(max_length=64, editable=False)
 
     def __str__(self):
         return f"{self.profile.name} picture"
+
+
+class UserProfilePictureContent(BaseModel):
+    picture = models.OneToOneField(
+        UserProfilePicture, on_delete=models.CASCADE, related_name="content"
+    )
+    data = models.BinaryField()
+
+    def __str__(self):
+        return f"{self.picture} content"
