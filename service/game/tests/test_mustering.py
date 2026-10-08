@@ -1,6 +1,8 @@
 from datetime import time, timedelta
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
@@ -969,3 +971,20 @@ class TestMusterSerializerFields:
         assert listed["muster_status"] == "confirmation_required"
         assert listed["muster_required"] is True
         assert listed["muster_deadline"] is not None
+
+    @pytest.mark.django_db
+    def test_game_list_query_count_does_not_scale_with_mustering_games(
+        self, muster_game_factory, in_memory_procrastinate, authenticated_client
+    ):
+        def query_count():
+            with CaptureQueriesContext(connection) as context:
+                authenticated_client.get(reverse("game-list") + "?mine=true")
+            return len(context.captured_queries)
+
+        muster_game_factory()
+        baseline = query_count()
+
+        for _ in range(3):
+            muster_game_factory()
+
+        assert query_count() == baseline
