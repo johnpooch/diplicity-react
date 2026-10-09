@@ -27,10 +27,7 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-python.python", "ms-python.black-formatter", "dbaeumer.vscode-eslint"],
-      "settings": {
-        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/evals/.venv/bin/python"
-      }
+      "extensions": ["ms-python.python", "ms-python.black-formatter", "dbaeumer.vscode-eslint"]
     }
   }
 }
