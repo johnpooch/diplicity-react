@@ -13,8 +13,9 @@ export default defineConfig({
   server: {
     strictPort: true,
     port: 5176,
+    allowedHosts: [".app.github.dev"],
     proxy: {
-      "/api": "http://127.0.0.1:8001",
+      "/api": { target: "http://127.0.0.1:8001", changeOrigin: true },
     },
   },
 });

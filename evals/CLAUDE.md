@@ -31,6 +31,7 @@ cd evals && .venv/bin/python manage.py runserver 8001
 cd evals/web && npm install && npm run dev   # http://localhost:5176
 ```
 
+- **To run it without a local Python, create a Codespace with the `evals` devcontainer** (`.devcontainer/evals/`). It installs both halves, starts them on attach and opens the UI. It runs no Docker and no database; keep it that way.
 - **Labelling writes straight to the fixture file.** Review the diff and commit it like any other change.
 - **The tool and `run_evals` cover one eval set**, named by `EVALS_EVAL_SET`. A fixture joins it through its `eval_sets` field; fixtures outside the set stay on disk for the tests and are not shown or run.
 - **Runs are read from `evals/logs/`, never started from the UI.** Produce one with `python manage.py run_evals`; `--epochs N` calls the model N times per fixture in one run, so do not pass it unless the user asks for repeated runs. `evals/logs/` is committed, overriding the root `logs` ignore, so a run everyone should see is committed like a fixture change. Only successful runs of the model task are listed: an errored run has nothing to judge, and a dumbbot run is the same every time.
