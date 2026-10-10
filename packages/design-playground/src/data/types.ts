@@ -52,6 +52,40 @@ export interface Player {
   gameMaster?: boolean;
 }
 
+export type ParticipationStatus =
+  | "Playing"
+  | "Seeking replacement"
+  | "Civil disorder"
+  | "Replaced"
+  | "Removed"
+  | "Eliminated";
+
+export interface MemberDetails {
+  player: Player;
+  gameStatus: GameStatus;
+  participationStatus: ParticipationStatus;
+  nation?: string;
+  supplyCenterCount?: number;
+  unitCount?: number;
+  result?: "Solo winner" | "Draw" | "Eliminated";
+  deadlineExtensionsAllowed: number;
+  deadlineExtensionsRemaining: number;
+  nationPreferences?: string[];
+  profilePath?: string;
+  canEditPreferences?: boolean;
+  canAssignNation?: boolean;
+  canLeave?: boolean;
+  canRequestReplacement?: boolean;
+  canCancelReplacement?: boolean;
+  canRecover?: boolean;
+  canInviteReplacement?: boolean;
+  canTakeOver?: boolean;
+  removeControl?: {
+    enabled: boolean;
+    reason?: string;
+  };
+}
+
 export interface Phase {
   season: string;
   year: number;
@@ -67,10 +101,7 @@ export interface Variant {
 }
 
 export type GameInfoSettingIcon =
-  | "calendar"
-  | "lock"
-  | "shield-plus"
-  | "message-circle-off";
+  "calendar" | "lock" | "shield-plus" | "message-circle-off";
 
 export interface GameInfoSetting {
   label: string;
@@ -169,13 +200,7 @@ export interface ChatThread {
 export type UnitType = "Army" | "Fleet";
 
 export type OrderKind =
-  | "move"
-  | "hold"
-  | "support"
-  | "convoy"
-  | "retreat"
-  | "disband"
-  | "build";
+  "move" | "hold" | "support" | "convoy" | "retreat" | "disband" | "build";
 
 export interface OrderSlot {
   id: string;
@@ -220,4 +245,65 @@ export interface Profile {
     outcome: "Won" | "Drew" | "Eliminated" | "Resigned";
     finishedAt: string;
   }>;
+}
+
+export type MyGamesSectionKey =
+  | "needs_attention"
+  | "managing"
+  | "mustering"
+  | "active"
+  | "pending"
+  | "recently_finished"
+  | "sandbox";
+
+export type MyGameDeparture = "eliminated" | "civil_disorder";
+
+export type MyGameResult = "solo_victory" | "won_by" | "draw" | "abandoned" | "ongoing";
+
+export type MyGameState =
+  | {
+      kind:
+        | "confirm_seat"
+        | "submit_orders"
+        | "vote_on_draw"
+        | "seat_confirmed"
+        | "orders_confirmed"
+        | "mustering"
+        | "resolving";
+      timeRemaining: string;
+    }
+  | { kind: "orders_unconfirmed" }
+  | { kind: "paused" }
+  | { kind: "waiting_for_players"; joined: number; total: number }
+  | { kind: "sandbox" }
+  | {
+      kind: "finished";
+      result: MyGameResult;
+      winner?: string;
+      departure?: MyGameDeparture;
+    };
+
+export interface MyGameEntry {
+  id: string;
+  name: string;
+  status: GameStatus;
+  phase?: { season: string; year: number; type: PhaseType };
+  nation?: string;
+  seatsConfirmed?: { confirmed: number; total: number };
+  unreadCount: number;
+  state: MyGameState;
+}
+
+export interface MyGamesSection {
+  key: MyGamesSectionKey;
+  games: MyGameEntry[];
+}
+
+export interface MyGamesCurrentResponse {
+  sections: MyGamesSection[];
+}
+
+export interface MyGamesFinishedResponse {
+  results: MyGameEntry[];
+  next: string | null;
 }

@@ -13,6 +13,7 @@ import { SectionedFilterMenu } from "@/prototypes/my-games/SectionedFilterMenu";
 import { SectionedHeaderFilter } from "@/prototypes/my-games/SectionedHeaderFilter";
 import { SectionedEssentialContext } from "@/prototypes/my-games/SectionedEssentialContext";
 import { SectionedLeanDrawer } from "@/prototypes/my-games/SectionedLeanDrawer";
+import { ServerSections } from "@/prototypes/my-games/ServerSections";
 import { SectionedTwoColumn } from "@/prototypes/my-games/SectionedTwoColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
@@ -32,6 +33,10 @@ import { BareGlyphs } from "@/prototypes/current-phase-orders/BareGlyphs";
 import { NoOrdersRequired } from "@/prototypes/current-phase-orders/NoOrdersRequired";
 import { AllConfirmed } from "@/prototypes/current-phase-orders/AllConfirmed";
 import { PhaseStepper } from "@/prototypes/current-phase-orders/PhaseStepper";
+import { GroupedSections as MemberGroupedSections } from "@/prototypes/member-details/GroupedSections";
+import { SnapshotPanel as MemberSnapshotPanel } from "@/prototypes/member-details/SnapshotPanel";
+import { GameInfoRows as MemberGameInfoRows } from "@/prototypes/member-details/GameInfoRows";
+import { SingleMember as SingleMemberNationAssignment } from "@/prototypes/nation-assignment/SingleMember";
 
 export interface PrototypeState {
   slug: string;
@@ -71,7 +76,7 @@ export const prototypes: Prototype[] = [
           { slug: "empty", title: "No games" },
           { slug: "many", title: "Many games" },
         ],
-        render: state => <SingleList state={state} />,
+        render: (state) => <SingleList state={state} />,
       },
       {
         slug: "grouped-by-phase",
@@ -83,7 +88,7 @@ export const prototypes: Prototype[] = [
           { slug: "empty", title: "No games" },
           { slug: "many", title: "Many games" },
         ],
-        render: state => <GroupedByPhase state={state} />,
+        render: (state) => <GroupedByPhase state={state} />,
       },
       {
         slug: "action-queue",
@@ -307,6 +312,25 @@ export const prototypes: Prototype[] = [
         ],
         render: state => <SectionedTwoColumn state={state} />,
       },
+      {
+        slug: "server-sections",
+        title: "Server-decided sections",
+        description:
+          "The server decides each game's section, order and single state, so the screen only renders what the player must act on, with finished, eliminated and civil-disorder games moved out of Current.",
+        states: [
+          defaultState,
+          { slug: "needs-attention", title: "Needs attention ordering" },
+          { slug: "active-ordering", title: "Active ordering" },
+          { slug: "all-caught-up", title: "All caught up" },
+          { slug: "managing", title: "Game master" },
+          { slug: "recently-finished", title: "Recently finished" },
+          { slug: "finished", title: "Finished view" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "no-games", title: "No games" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <ServerSections state={state} />,
+      },
     ],
   },
   {
@@ -323,7 +347,7 @@ export const prototypes: Prototype[] = [
           defaultState,
           { slug: "with-bots", title: "Three bots selected" },
         ],
-        render: state => <CreateGame state={state} />,
+        render: (state) => <CreateGame state={state} />,
       },
     ],
   },
@@ -353,7 +377,7 @@ export const prototypes: Prototype[] = [
         description:
           "Messages as bubbles with nation avatars; your own messages right-aligned.",
         states: [defaultState, { slug: "empty", title: "No messages" }],
-        render: state => <Channel state={state} />,
+        render: (state) => <Channel state={state} />,
       },
     ],
   },
@@ -402,7 +426,7 @@ export const prototypes: Prototype[] = [
           { slug: "classical", title: "Classical" },
           { slug: "unconstitutional", title: "Unconstitutional" },
         ],
-        render: state => <VariantDetail state={state} />,
+        render: (state) => <VariantDetail state={state} />,
       },
     ],
   },
@@ -423,10 +447,111 @@ export const prototypes: Prototype[] = [
       {
         slug: "member-destination",
         title: "On the member screen",
-        description:
-          "The same card, now as a link to the player profile.",
+        description: "The same card, now as a link to the player profile.",
         states: [defaultState],
         render: () => <PlayerCardMember />,
+      },
+    ],
+  },
+  {
+    slug: "member-details",
+    title: "Player Details",
+    description:
+      "A game-scoped member record reached from every seated player on the players list.",
+    variants: [
+      {
+        slug: "game-info-rows",
+        title: "Game info rows",
+        description:
+          "The grouped direction refined to use the Game Info screen's deadline-row typography, padding and info treatment.",
+        states: [
+          { slug: "self-pending", title: "Self, pending" },
+          { slug: "self-active", title: "Self, active" },
+          {
+            slug: "self-seeking-replacement",
+            title: "Self, seeking replacement",
+          },
+          {
+            slug: "self-civil-disorder",
+            title: "Self, civil disorder",
+          },
+          { slug: "manager-pending", title: "Manager, pending" },
+          { slug: "manager-active", title: "Manager, removal blocked" },
+          { slug: "civil-disorder", title: "Replaceable seat" },
+          { slug: "anonymous", title: "Anonymous player" },
+          { slug: "former", title: "Former player" },
+          { slug: "completed", title: "Completed game" },
+        ],
+        render: (state) => <MemberGameInfoRows state={state} />,
+      },
+      {
+        slug: "grouped-sections",
+        title: "Grouped sections",
+        description:
+          "One fact per row in familiar grouped lists. Contextual actions become separate cards and destructive controls stay at the bottom.",
+        states: [
+          { slug: "self-pending", title: "Self, pending" },
+          { slug: "self-active", title: "Self, active" },
+          {
+            slug: "self-seeking-replacement",
+            title: "Self, seeking replacement",
+          },
+          {
+            slug: "self-civil-disorder",
+            title: "Self, civil disorder",
+          },
+          { slug: "manager-pending", title: "Manager, pending" },
+          { slug: "manager-active", title: "Manager, removal blocked" },
+          { slug: "civil-disorder", title: "Replaceable seat" },
+          { slug: "anonymous", title: "Anonymous player" },
+          { slug: "former", title: "Former player" },
+          { slug: "completed", title: "Completed game" },
+        ],
+        render: (state) => <MemberGroupedSections state={state} />,
+      },
+      {
+        slug: "snapshot-panel",
+        title: "Snapshot panel",
+        description:
+          "Nation, strength and extensions form a compact visual snapshot. Settings and participation actions become larger task-focused blocks.",
+        states: [
+          { slug: "self-pending", title: "Self, pending" },
+          { slug: "self-active", title: "Self, active" },
+          {
+            slug: "self-seeking-replacement",
+            title: "Self, seeking replacement",
+          },
+          {
+            slug: "self-civil-disorder",
+            title: "Self, civil disorder",
+          },
+          { slug: "manager-pending", title: "Manager, pending" },
+          { slug: "manager-active", title: "Manager, removal blocked" },
+          { slug: "civil-disorder", title: "Replaceable seat" },
+          { slug: "anonymous", title: "Anonymous player" },
+          { slug: "former", title: "Former player" },
+          { slug: "completed", title: "Completed game" },
+        ],
+        render: (state) => <MemberSnapshotPanel state={state} />,
+      },
+    ],
+  },
+  {
+    slug: "nation-assignment",
+    title: "Nation Assignment",
+    description:
+      "A focused game-master flow for assigning one nation to one member.",
+    variants: [
+      {
+        slug: "single-member",
+        title: "Single member",
+        description:
+          "Available nations are selected for one member without revealing their private preference ranking.",
+        states: [
+          { slug: "assigned", title: "Currently assigned" },
+          { slug: "unassigned", title: "Currently unassigned" },
+        ],
+        render: (state) => <SingleMemberNationAssignment state={state} />,
       },
     ],
   },
@@ -449,7 +574,7 @@ export const prototypes: Prototype[] = [
           { slug: "private-gunboat", title: "Private gunboat" },
           { slug: "joined", title: "Joined" },
         ],
-        render: state => <GameInfo state={state} />,
+        render: (state) => <GameInfo state={state} />,
       },
     ],
   },
@@ -479,7 +604,7 @@ export const prototypes: Prototype[] = [
           { slug: "solo-victory-gm", title: "Solo victory (GM)" },
           { slug: "draw", title: "Draw" },
         ],
-        render: state => <PlayersList state={state} />,
+        render: (state) => <PlayersList state={state} />,
       },
     ],
   },
@@ -498,7 +623,7 @@ export const prototypes: Prototype[] = [
           { slug: "active-no-flags", title: "Active (no flags)" },
           { slug: "pending", title: "Pending" },
         ],
-        render: state => <ChatChannelList state={state} />,
+        render: (state) => <ChatChannelList state={state} />,
       },
     ],
   },
@@ -538,7 +663,7 @@ export const prototypes: Prototype[] = [
           { slug: "group", title: "Group, many messages" },
           { slug: "group-no-flags", title: "Group, no flags" },
         ],
-        render: state => <ChatChannel state={state} />,
+        render: (state) => <ChatChannel state={state} />,
       },
     ],
   },
@@ -565,7 +690,7 @@ export const prototypes: Prototype[] = [
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <CurrentPhaseOrdersList state={state} />,
+        render: (state) => <CurrentPhaseOrdersList state={state} />,
       },
       {
         slug: "bare-glyphs",
@@ -583,7 +708,7 @@ export const prototypes: Prototype[] = [
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <BareGlyphs state={state} />,
+        render: (state) => <BareGlyphs state={state} />,
       },
       {
         slug: "no-orders-required",
@@ -595,7 +720,7 @@ export const prototypes: Prototype[] = [
           { slug: "adjustment", title: "Adjustment" },
           { slug: "movement", title: "Movement" },
         ],
-        render: state => <NoOrdersRequired state={state} />,
+        render: (state) => <NoOrdersRequired state={state} />,
       },
       {
         slug: "all-confirmed",
@@ -607,7 +732,7 @@ export const prototypes: Prototype[] = [
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <AllConfirmed state={state} />,
+        render: (state) => <AllConfirmed state={state} />,
       },
       {
         slug: "phase-stepper",
@@ -619,7 +744,7 @@ export const prototypes: Prototype[] = [
           { slug: "previous", title: "Previous phase" },
           { slug: "first", title: "First phase" },
         ],
-        render: state => <PhaseStepper state={state} />,
+        render: (state) => <PhaseStepper state={state} />,
       },
     ],
   },
@@ -627,9 +752,9 @@ export const prototypes: Prototype[] = [
 
 export const findVariant = (
   prototypeSlug?: string,
-  variantSlug?: string
+  variantSlug?: string,
 ): { prototype: Prototype; variant: PrototypeVariant } | undefined => {
-  const prototype = prototypes.find(item => item.slug === prototypeSlug);
-  const variant = prototype?.variants.find(item => item.slug === variantSlug);
+  const prototype = prototypes.find((item) => item.slug === prototypeSlug);
+  const variant = prototype?.variants.find((item) => item.slug === variantSlug);
   return prototype && variant ? { prototype, variant } : undefined;
 };

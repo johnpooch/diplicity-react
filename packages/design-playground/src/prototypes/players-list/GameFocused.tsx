@@ -51,7 +51,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-const memberPath = "/player-card/member-destination";
+const memberPath = "/member-details/game-info-rows/self-active";
 const profilePath = "/player-profile/stat-grid";
 
 const seated = (player: Player): Player =>
@@ -69,8 +69,7 @@ const activeBoard: Player[] = [
 
 const rankByStrength = (players: Player[]) =>
   [...players].sort((a, b) => {
-    const centres =
-      (b.supplyCenterCount ?? 0) - (a.supplyCenterCount ?? 0);
+    const centres = (b.supplyCenterCount ?? 0) - (a.supplyCenterCount ?? 0);
     if (centres !== 0) return centres;
     return (a.assignedNation ?? a.name).localeCompare(
       b.assignedNation ?? b.name,
@@ -110,12 +109,7 @@ const screens: Record<string, ScreenConfig> = {
   "pending-member-gm": {
     title: "Players",
     gameMaster: zaraGameMaster,
-    players: [
-      seated(johnDoeNoPreferences),
-      wilhelmina,
-      janeDoe,
-      theChancellor,
-    ],
+    players: [seated(johnDoeNoPreferences), wilhelmina, janeDoe, theChancellor],
     presentation: "identity",
     extraAction: "add",
     listAction: { label: "Add player", icon: Send },
@@ -173,7 +167,7 @@ const screens: Record<string, ScreenConfig> = {
   },
   "active-eliminated": {
     title: "Players",
-    players: activeBoard.filter(player => player.id !== "the-chancellor"),
+    players: activeBoard.filter((player) => player.id !== "the-chancellor"),
     eliminated: [theChancellorEliminated],
     presentation: "nation",
   },
@@ -186,7 +180,11 @@ const screens: Record<string, ScreenConfig> = {
     title: "Results",
     outcomeHeading: "Solo Victory",
     players: [johnDoeSolo],
-    eliminated: [janeDoeEliminated, theChancellorEliminated, wilhelminaEliminated],
+    eliminated: [
+      janeDoeEliminated,
+      theChancellorEliminated,
+      wilhelminaEliminated,
+    ],
     presentation: "nation",
     finished: true,
   },
@@ -195,7 +193,11 @@ const screens: Record<string, ScreenConfig> = {
     gameMaster: zaraGameMaster,
     outcomeHeading: "Solo Victory",
     players: [seated(johnDoeSolo)],
-    eliminated: [janeDoeEliminated, theChancellorEliminated, wilhelminaEliminated],
+    eliminated: [
+      janeDoeEliminated,
+      theChancellorEliminated,
+      wilhelminaEliminated,
+    ],
     presentation: "nation",
     finished: true,
   },
@@ -209,10 +211,7 @@ const screens: Record<string, ScreenConfig> = {
   },
 };
 
-const extraButtons: Record<
-  HeaderExtra,
-  { label: string; icon: LucideIcon }
-> = {
+const extraButtons: Record<HeaderExtra, { label: string; icon: LucideIcon }> = {
   add: { label: "Add player", icon: Send },
   join: { label: "Join game", icon: UserPlus },
   confirm: { label: "Confirm participation", icon: Check },
@@ -278,7 +277,10 @@ const roleLabel = (player: Player) => {
   return undefined;
 };
 
-const playerSubtitle = (player: Player, presentation: PlayerCardPresentation) => {
+const playerSubtitle = (
+  player: Player,
+  presentation: PlayerCardPresentation,
+) => {
   const name = displayName(player);
   const role = roleLabel(player);
   const named = role ? `${name} (${role})` : name;
@@ -339,8 +341,7 @@ const PlayerRow: React.FC<{
   to: string;
   dimmed?: boolean;
 }> = ({ player, presentation, to, dimmed = false }) => {
-  const showStats =
-    presentation === "nation" && Boolean(player.assignedNation);
+  const showStats = presentation === "nation" && Boolean(player.assignedNation);
 
   return (
     <ListItem
@@ -368,7 +369,7 @@ const PlayerSection: React.FC<{
 }> = ({ heading, players, presentation, to = memberPath, dimmed = false }) => {
   return (
     <ListSection header={heading}>
-      {players.map(player => (
+      {players.map((player) => (
         <PlayerRow
           key={player.id}
           player={player}
@@ -397,16 +398,14 @@ const FormerPlayerSection: React.FC<{
         type="button"
         className="flex min-h-12 w-full items-center gap-1 text-left text-sm font-medium text-muted-foreground"
         aria-expanded={open}
-        onClick={() => setOpen(current => !current)}
+        onClick={() => setOpen((current) => !current)}
       >
         <ChevronDown
           className={cn("size-4 transition-transform", !open && "-rotate-90")}
         />
         Former players ({players.length})
       </button>
-      {open && (
-        <PlayerSection players={players} presentation={presentation} />
-      )}
+      {open && <PlayerSection players={players} presentation={presentation} />}
     </section>
   );
 };
@@ -414,9 +413,7 @@ const FormerPlayerSection: React.FC<{
 const PlayersList: React.FC<{ state: string }> = ({ state }) => {
   const screen = screens[state] ?? screens["pending-member"];
   const nationFirst = screen.presentation === "nation";
-  const players = nationFirst
-    ? rankByStrength(screen.players)
-    : screen.players;
+  const players = nationFirst ? rankByStrength(screen.players) : screen.players;
   const eliminated = nationFirst
     ? rankByStrength(screen.eliminated ?? [])
     : (screen.eliminated ?? []);
@@ -425,72 +422,72 @@ const PlayersList: React.FC<{ state: string }> = ({ state }) => {
 
   return (
     <NationFlagsProvider enabled={!screen.hideFlags}>
-    <GameDetailShell
-      title={screen.title}
-      activeNavItem="Players"
-      finished={screen.finished}
-      headerAction={
-        <HeaderActions
-          extraAction={screen.extraAction}
-          size="icon-sm"
-          withTooltips={false}
-        />
-      }
-    >
-      <ScreenContainer>
-        <div className="hidden h-9 items-center justify-between gap-2 md:flex">
-          <h1 className="min-w-0 truncate text-xl font-semibold leading-9">
-            {screen.title}
-          </h1>
+      <GameDetailShell
+        title={screen.title}
+        activeNavItem="Players"
+        finished={screen.finished}
+        headerAction={
           <HeaderActions
             extraAction={screen.extraAction}
-            size="icon"
-            withTooltips
+            size="icon-sm"
+            withTooltips={false}
           />
-        </div>
-        {screen.gameMaster && (
+        }
+      >
+        <ScreenContainer>
+          <div className="hidden h-9 items-center justify-between gap-2 md:flex">
+            <h1 className="min-w-0 truncate text-xl font-semibold leading-9">
+              {screen.title}
+            </h1>
+            <HeaderActions
+              extraAction={screen.extraAction}
+              size="icon"
+              withTooltips
+            />
+          </div>
+          {screen.gameMaster && (
+            <PlayerSection
+              heading="Game master"
+              players={[screen.gameMaster]}
+              presentation="identity"
+              to={profilePath}
+            />
+          )}
           <PlayerSection
-            heading="Game master"
-            players={[screen.gameMaster]}
-            presentation="identity"
-            to={profilePath}
-          />
-        )}
-        <PlayerSection
-          heading={
-            screen.outcomeHeading ??
-            (screen.gameMaster ? "Players" : undefined)
-          }
-          players={players}
-          presentation={screen.presentation}
-        />
-        {eliminated.length > 0 && (
-          <PlayerSection
-            heading="Eliminated"
-            players={eliminated}
+            heading={
+              screen.outcomeHeading ??
+              (screen.gameMaster ? "Players" : undefined)
+            }
+            players={players}
             presentation={screen.presentation}
-            dimmed
           />
-        )}
-        <FormerPlayerSection
-          players={former}
-          presentation={screen.presentation}
-        />
-        {screen.listAction && ListActionIcon && (
-          <Button className="w-full" size="lg" asChild>
-            <Link to={memberPath}>
-              <ListActionIcon />
-              {screen.listAction.label}
-            </Link>
-          </Button>
-        )}
-        {screen.footerAction && (
-          <Button className="w-full" size="lg">
-            {screen.footerAction}
-          </Button>
-        )}
-      </ScreenContainer>
-    </GameDetailShell>
+          {eliminated.length > 0 && (
+            <PlayerSection
+              heading="Eliminated"
+              players={eliminated}
+              presentation={screen.presentation}
+              dimmed
+            />
+          )}
+          <FormerPlayerSection
+            players={former}
+            presentation={screen.presentation}
+          />
+          {screen.listAction && ListActionIcon && (
+            <Button className="w-full" size="lg" asChild>
+              <Link to={memberPath}>
+                <ListActionIcon />
+                {screen.listAction.label}
+              </Link>
+            </Button>
+          )}
+          {screen.footerAction && (
+            <Button className="w-full" size="lg">
+              {screen.footerAction}
+            </Button>
+          )}
+        </ScreenContainer>
+      </GameDetailShell>
     </NationFlagsProvider>
   );
 };
