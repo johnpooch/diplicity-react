@@ -8,6 +8,10 @@ import type {
   PhaseHistoryEntry,
   GameInfo,
   Member,
+  MemberDetails,
+  MyGameEntry,
+  MyGamesCurrentResponse,
+  MyGamesFinishedResponse,
   Player,
   Profile,
   Variant,
@@ -61,7 +65,7 @@ export const brushOfFramePending: GameInfo = {
 export const brushOfFramePendingNoExtensions: GameInfo = {
   ...brushOfFramePending,
   phaseDeadlines: brushOfFramePending.phaseDeadlines.filter(
-    row => row.label !== "Deadline extensions"
+    (row) => row.label !== "Deadline extensions",
   ),
 };
 
@@ -119,7 +123,7 @@ export const nations = [
 const member = (
   nation: string,
   username: string,
-  overrides: Partial<Member> = {}
+  overrides: Partial<Member> = {},
 ): Member => ({
   nation,
   username,
@@ -249,6 +253,261 @@ export const manyGames: Game[] = [
     unreadCount: index % 3 === 0 ? index : 0,
   })),
 ];
+
+const withGameState = (overrides: Partial<Game>): Game => ({
+  ...activeGame,
+  unreadCount: 0,
+  attention: "none",
+  nation: "Germany",
+  urgencyRank: 1000,
+  ...overrides,
+});
+
+export const myGamesAllStates: Game[] = [
+  withGameState({
+    id: "my-muster-unconfirmed",
+    name: "The Brush of the Frame",
+    status: "mustering",
+    attention: "confirm_seat",
+    musteringStatus: "unconfirmed",
+    preferredNations: ["Germany", "France"],
+    confirmedPlayers: 5,
+    phase: { ...activeGame.phase, deadline: "28 min left" },
+    orderStatus: "no_orders_required",
+    urgencyRank: 0,
+    deadlineMinutes: 28,
+  }),
+  withGameState({
+    id: "my-muster-confirmed",
+    name: "The Winter Palace",
+    status: "mustering",
+    musteringStatus: "confirmed",
+    preferredNations: ["England", "Turkey"],
+    confirmedPlayers: 4,
+    phase: { ...activeGame.phase, deadline: "starts in 9 hours" },
+    orderStatus: "no_orders_required",
+    urgencyRank: 100,
+    deadlineMinutes: 540,
+  }),
+  withGameState({
+    id: "my-orders-required",
+    name: "Active: orders required",
+    attention: "orders_required",
+    orderStatus: "orders_required",
+    phase: { ...activeGame.phase, deadline: "12 hours left" },
+    urgencyRank: 30,
+    deadlineMinutes: 720,
+  }),
+  withGameState({
+    id: "my-orders-unconfirmed",
+    name: "Active: orders not confirmed",
+    attention: "orders_unconfirmed",
+    orderStatus: "orders_submitted",
+    nation: "England",
+    phase: { ...activeGame.phase, deadline: "1 day left" },
+    urgencyRank: 40,
+    deadlineMinutes: 1440,
+  }),
+  withGameState({
+    id: "my-orders-confirmed",
+    name: "Active: orders confirmed",
+    orderStatus: "orders_confirmed",
+    nation: "Russia",
+    phase: { ...activeGame.phase, deadline: "2 days left" },
+    deadlineMinutes: 2880,
+  }),
+  withGameState({
+    id: "my-civil-disorder",
+    name: "Active: you are in civil disorder",
+    userInCivilDisorder: true,
+    orderStatus: "orders_required",
+    phase: { ...activeGame.phase, deadline: "6 hours left" },
+    urgencyRank: 5,
+    deadlineMinutes: 360,
+  }),
+  withGameState({
+    id: "my-other-civil-disorder",
+    name: "Active: another player is in civil disorder",
+    otherPlayerInCivilDisorder: true,
+    orderStatus: "orders_confirmed",
+    phase: { ...activeGame.phase, deadline: "1 day left" },
+    deadlineMinutes: 1440,
+  }),
+  withGameState({
+    id: "my-missed-deadline",
+    name: "Active: you missed the last deadline",
+    attention: "missed_deadline",
+    orderStatus: "orders_required",
+    phase: { ...activeGame.phase, deadline: "10 hours left" },
+    urgencyRank: 6,
+    deadlineMinutes: 600,
+  }),
+  withGameState({
+    id: "my-eliminated",
+    name: "Active: you were eliminated",
+    userEliminated: true,
+    nation: "Italy",
+    orderStatus: "no_orders_required",
+    phase: { ...activeGame.phase, deadline: "3 days left" },
+    deadlineMinutes: 4320,
+  }),
+  withGameState({
+    id: "my-replaceable",
+    name: "Active: a seat is replaceable",
+    replaceableSeat: true,
+    orderStatus: "orders_confirmed",
+    phase: { ...activeGame.phase, deadline: "18 hours left" },
+    deadlineMinutes: 1080,
+  }),
+  withGameState({
+    id: "my-paused",
+    name: "Active: paused",
+    isPaused: true,
+    orderStatus: "orders_confirmed",
+    phase: { ...activeGame.phase, deadline: "Deadline paused" },
+  }),
+  withGameState({
+    id: "my-active-gm",
+    name: "Active: you are the game master",
+    nation: undefined,
+    members: fullTable.map(player => ({ ...player, isCurrentUser: false })),
+    isGameMaster: true,
+    orderStatus: "no_orders_required",
+    phase: { ...activeGame.phase, deadline: "1 day left" },
+    deadlineMinutes: 1440,
+  }),
+  withGameState({
+    id: "my-retreat",
+    name: "Active: retreat phase",
+    attention: "orders_required",
+    orderStatus: "orders_required",
+    phase: { season: "Fall", year: 1905, type: "Retreat", deadline: "40 min left" },
+    urgencyRank: 10,
+    deadlineMinutes: 40,
+  }),
+  withGameState({
+    id: "my-adjustment",
+    name: "Active: adjustment phase",
+    attention: "orders_required",
+    orderStatus: "orders_required",
+    phase: { season: "Winter", year: 1904, type: "Adjustment", deadline: "6 hours left" },
+    urgencyRank: 20,
+    deadlineMinutes: 360,
+  }),
+  withGameState({
+    id: "my-unread",
+    name: "Active: mid-game with messages",
+    attention: "unread_messages",
+    unreadCount: 8,
+    orderStatus: "orders_confirmed",
+    phase: { season: "Fall", year: 1902, type: "Movement", deadline: "1 day left" },
+    urgencyRank: 60,
+    deadlineMinutes: 1440,
+  }),
+  withGameState({
+    id: "my-pending-owner",
+    name: "Pending: waiting for players",
+    status: "pending",
+    nation: undefined,
+    preferredNations: ["France", "England", "Germany"],
+    members: fullTable.slice(0, 4),
+    isGameMaster: false,
+    orderStatus: "no_orders_required",
+    phase: { ...activeGame.phase, deadline: "No deadline" },
+  }),
+  withGameState({
+    id: "my-pending-gm",
+    name: "Pending: you are the game master",
+    status: "pending",
+    nation: undefined,
+    preferredNations: [],
+    members: fullTable.slice(0, 3),
+    isGameMaster: true,
+    orderStatus: "no_orders_required",
+    phase: { ...activeGame.phase, deadline: "No deadline" },
+  }),
+  withGameState({
+    id: "my-pending-joined",
+    name: "Pending: joined another player's game",
+    status: "pending",
+    nation: undefined,
+    preferredNations: ["Austria"],
+    members: fullTable.slice(0, 3),
+    orderStatus: "no_orders_required",
+    phase: { ...activeGame.phase, deadline: "No deadline" },
+  }),
+  withGameState({
+    id: "my-finished-win",
+    name: "Finished: you won solo",
+    status: "completed",
+    result: "solo_win",
+    winner: "You",
+    orderStatus: "no_orders_required",
+    phase: { season: "Fall", year: 1910, type: "Adjustment", deadline: "Finished" },
+  }),
+  withGameState({
+    id: "my-finished-loss",
+    name: "Finished: another player won solo",
+    status: "completed",
+    result: "solo_loss",
+    winner: "Turkey",
+    orderStatus: "no_orders_required",
+    phase: { season: "Fall", year: 1912, type: "Movement", deadline: "Finished" },
+  }),
+  withGameState({
+    id: "my-finished-draw",
+    name: "Finished: five-way draw",
+    status: "completed",
+    result: "draw",
+    orderStatus: "no_orders_required",
+    phase: { season: "Spring", year: 1914, type: "Movement", deadline: "Finished" },
+  }),
+  withGameState({
+    id: "my-finished-abandoned",
+    name: "Finished: abandoned",
+    status: "abandoned",
+    result: "abandoned",
+    orderStatus: "no_orders_required",
+    phase: { season: "Spring", year: 1902, type: "Movement", deadline: "Finished" },
+  }),
+  withGameState({
+    id: "my-sandbox",
+    name: "Classical Sandbox",
+    sandbox: true,
+    nation: "France",
+    orderStatus: "no_orders_required",
+    phase: { season: "Spring", year: 1901, type: "Movement", deadline: "No deadline" },
+  }),
+];
+
+const myGamesDefaultIds = new Set([
+  "my-muster-unconfirmed",
+  "my-orders-required",
+  "my-orders-unconfirmed",
+  "my-orders-confirmed",
+  "my-eliminated",
+  "my-paused",
+  "my-pending-owner",
+  "my-sandbox",
+]);
+
+export const myGamesDefault: Game[] = myGamesAllStates.filter(game =>
+  myGamesDefaultIds.has(game.id)
+);
+
+export const myGamesMustering: Game[] = myGamesAllStates.filter(
+  game => game.status === "mustering"
+);
+
+export const myGamesMany: Game[] = Array.from({ length: 40 }, (_, index) => {
+  const game = myGamesAllStates[index % myGamesAllStates.length];
+  const edition = Math.floor(index / myGamesAllStates.length) + 1;
+  return {
+    ...game,
+    id: `${game.id}-${edition}`,
+    name: edition === 1 ? game.name : `${game.name} · ${edition}`,
+  };
+});
 
 export const channel: Channel = {
   id: "1",
@@ -513,6 +772,136 @@ export const janeDoeDraw: Player = {
   unitCount: 8,
 };
 
+export const memberDetailsStates: Record<string, MemberDetails> = {
+  "self-pending": {
+    player: johnDoe,
+    gameStatus: "pending",
+    participationStatus: "Playing",
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 3,
+    nationPreferences: ["Austria", "Germany", "Italy"],
+    profilePath: "/player-profile/stat-grid",
+    canEditPreferences: true,
+    canLeave: true,
+  },
+  "self-active": {
+    player: johnDoeActive,
+    gameStatus: "active",
+    participationStatus: "Playing",
+    nation: "France",
+    supplyCenterCount: 6,
+    unitCount: 6,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 2,
+    profilePath: "/player-profile/stat-grid",
+    canRequestReplacement: true,
+  },
+  "self-seeking-replacement": {
+    player: johnDoeActive,
+    gameStatus: "active",
+    participationStatus: "Seeking replacement",
+    nation: "France",
+    supplyCenterCount: 6,
+    unitCount: 6,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 1,
+    profilePath: "/player-profile/stat-grid",
+    canCancelReplacement: true,
+    canInviteReplacement: true,
+  },
+  "self-civil-disorder": {
+    player: johnDoeActive,
+    gameStatus: "active",
+    participationStatus: "Civil disorder",
+    nation: "France",
+    supplyCenterCount: 6,
+    unitCount: 6,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 0,
+    profilePath: "/player-profile/stat-grid",
+    canRecover: true,
+    canInviteReplacement: true,
+  },
+  "manager-pending": {
+    player: janeDoe,
+    gameStatus: "pending",
+    participationStatus: "Playing",
+    nation: "France",
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 3,
+    profilePath: "/player-profile/stat-grid",
+    canAssignNation: true,
+    removeControl: { enabled: true },
+  },
+  "manager-active": {
+    player: giuseppeActive,
+    gameStatus: "active",
+    participationStatus: "Playing",
+    nation: "Italy",
+    supplyCenterCount: 3,
+    unitCount: 3,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 3,
+    profilePath: "/player-profile/stat-grid",
+    removeControl: {
+      enabled: false,
+      reason:
+        "Players can only be removed from active games if they have missed orders on the previous phase.",
+    },
+  },
+  "civil-disorder": {
+    player: {
+      ...wilhelmina,
+      assignedNation: "England",
+      supplyCenterCount: 5,
+      unitCount: 4,
+    },
+    gameStatus: "active",
+    participationStatus: "Civil disorder",
+    nation: "England",
+    supplyCenterCount: 5,
+    unitCount: 4,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 0,
+    profilePath: "/player-profile/stat-grid",
+    canInviteReplacement: true,
+    canTakeOver: true,
+  },
+  anonymous: {
+    player: johnDoeAnon,
+    gameStatus: "active",
+    participationStatus: "Playing",
+    nation: "France",
+    supplyCenterCount: 6,
+    unitCount: 6,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 2,
+  },
+  former: {
+    player: wilhelminaFormer,
+    gameStatus: "active",
+    participationStatus: "Removed",
+    nation: "France",
+    supplyCenterCount: 4,
+    unitCount: 3,
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 0,
+    profilePath: "/player-profile/stat-grid",
+  },
+  completed: {
+    player: janeDoeDraw,
+    gameStatus: "completed",
+    participationStatus: "Playing",
+    nation: "Germany",
+    supplyCenterCount: 8,
+    unitCount: 8,
+    result: "Draw",
+    deadlineExtensionsAllowed: 3,
+    deadlineExtensionsRemaining: 1,
+    profilePath: "/player-profile/stat-grid",
+  },
+};
+
 export const austriaMovementIncomplete: CurrentPhaseOrders = {
   phaseName: "Spring 1902, Movement",
   timeRemaining: "6 hours remaining",
@@ -658,14 +1047,14 @@ export const austriaPhaseHistory: PhaseHistoryEntry[] = [
 
 export const austriaMovementConfirmed: CurrentPhaseOrders = {
   ...austriaMovementIncomplete,
-  slots: austriaMovementIncomplete.slots.map(slot =>
+  slots: austriaMovementIncomplete.slots.map((slot) =>
     slot.id === "bud"
       ? {
           ...slot,
           kind: "support",
           summary: "Support Army Vienna to Galicia",
         }
-      : slot
+      : slot,
   ),
   confirmed: true,
 };
@@ -897,7 +1286,7 @@ const say = (
   nation: string,
   body: string,
   sentAt: string,
-  isCurrentUser = false
+  isCurrentUser = false,
 ): ChatMessage => ({
   id,
   type: "message",
@@ -945,14 +1334,14 @@ export const franceDirectMany: ChatThread = {
       "Austria",
       "Hi. I want Belgium. I'll stay out of Burgundy if you stay out of Munich.",
       "09:05",
-      true
+      true,
     ),
     say("3", "France", "Ok.", "09:06"),
     say(
       "4",
       "France",
       "Belgium is yours if you support me into the Channel in the autumn. England is lining up a convoy through the North Sea and I cannot hold Brest and Picardy if that fleet arrives on the coast.",
-      "09:11"
+      "09:11",
     ),
     say("5", "Austria", "That's a long way from Vienna.", "09:13", true),
     say("6", "France", "I know.", "09:14"),
@@ -961,7 +1350,7 @@ export const franceDirectMany: ChatThread = {
       "Austria",
       "Agreed, I'll attack Belgium. You take the Channel. If England still goes south I can offer Munich the year after, not this one.",
       "09:22",
-      true
+      true,
     ),
     say("8", "France", "Deal.", "09:23"),
     { id: "phase-2", type: "phase", label: "Autumn 1901, Movement" },
@@ -971,7 +1360,7 @@ export const franceDirectMany: ChatThread = {
       "11",
       "France",
       "Then we have to bounce him in the Channel this turn or I lose Brest. Army Picardy holds, fleet Brest to the Channel, you move to Belgium. If I misorder this we both look like fools.",
-      "11:44"
+      "11:44",
     ),
     say("12", "Austria", "I'm in :)", "11:46", true),
     say("13", "France", "Thanks.", "11:47"),
@@ -997,7 +1386,7 @@ export const greatAllianceMany: ChatThread = {
       "3",
       "France",
       "Let's work together against Germany. He opened to Ruhr and the North Sea. If we leave him alone he is in Belgium and Holland before winter.",
-      "08:21"
+      "08:21",
     ),
     say("4", "England", "Agreed.", "08:22"),
     say(
@@ -1005,7 +1394,7 @@ export const greatAllianceMany: ChatThread = {
       "Austria",
       "I can pressure Munich from Tyrolia if you two take Belgium and Holland. I will not bounce you in the Channel.",
       "08:30",
-      true
+      true,
     ),
     say("6", "France", "Sounds good!", "08:31"),
     say("7", "England", "Ok.", "08:32"),
@@ -1017,7 +1406,7 @@ export const greatAllianceMany: ChatThread = {
       "11",
       "England",
       "I can convoy to Belgium in the autumn if France covers Burgundy and Austria still walks to Munich. If either of you flinch I am landing on an empty coast with no support.",
-      "10:11"
+      "10:11",
     ),
     say("12", "France", "I'll cover Burgundy.", "10:12"),
     say("13", "Austria", "Munich.", "10:13", true),
@@ -1027,7 +1416,7 @@ export const greatAllianceMany: ChatThread = {
       "15",
       "France",
       "Germany supported himself to Belgium. Holland is open. We should talk about who takes it before we all bounce.",
-      "14:08"
+      "14:08",
     ),
     say("16", "England", "Holland is mine.", "14:09"),
     say("17", "France", "Fine.", "14:10"),
@@ -1036,9 +1425,356 @@ export const greatAllianceMany: ChatThread = {
       "Austria",
       "Munich held. I can try again in the spring but I need someone to cut support from Ruhr or this is a waste of an army.",
       "14:18",
-      true
+      true,
     ),
     say("19", "France", "I'll cut Ruhr.", "14:19"),
     say("20", "England", "Deal.", "14:20"),
+  ],
+};
+
+const spring1903 = { season: "Spring", year: 1903, type: "Movement" as const };
+const fall1904Retreat = { season: "Fall", year: 1904, type: "Retreat" as const };
+
+const myGame = (entry: Omit<MyGameEntry, "unreadCount"> & { unreadCount?: number }): MyGameEntry => ({
+  unreadCount: 0,
+  ...entry,
+});
+
+const attentionMissedDeadline = myGame({
+  id: "mg-missed-deadline",
+  name: "Missed last deadline, no orders",
+  status: "active",
+  phase: spring1903,
+  nation: "Germany",
+  state: { kind: "submit_orders", timeRemaining: "10 hours" },
+});
+
+const attentionConfirmSeat = myGame({
+  id: "mg-confirm-seat",
+  name: "Mustering, seat not confirmed",
+  status: "mustering",
+  seatsConfirmed: { confirmed: 5, total: 7 },
+  state: { kind: "confirm_seat", timeRemaining: "28 min" },
+});
+
+const attentionRetreat = myGame({
+  id: "mg-retreat",
+  name: "Retreat needed",
+  status: "active",
+  phase: fall1904Retreat,
+  nation: "Austria",
+  state: { kind: "submit_orders", timeRemaining: "2 hours" },
+});
+
+const attentionSubmitOrders = myGame({
+  id: "mg-submit-orders",
+  name: "No orders yet",
+  status: "active",
+  phase: spring1903,
+  nation: "England",
+  unreadCount: 6,
+  state: { kind: "submit_orders", timeRemaining: "12 hours" },
+});
+
+const attentionOrdersAndDraw = myGame({
+  id: "mg-orders-and-draw",
+  name: "No orders yet, draw proposed",
+  status: "active",
+  phase: spring1903,
+  nation: "France",
+  state: { kind: "submit_orders", timeRemaining: "14 hours" },
+});
+
+const attentionDrawVote = myGame({
+  id: "mg-draw-vote",
+  name: "Orders confirmed, draw proposed",
+  status: "active",
+  phase: spring1903,
+  nation: "Italy",
+  state: { kind: "vote_on_draw", timeRemaining: "1 day" },
+});
+
+const managingMustering = myGame({
+  id: "mg-managing-mustering",
+  name: "Managing, mustering",
+  status: "mustering",
+  seatsConfirmed: { confirmed: 4, total: 7 },
+  state: { kind: "mustering", timeRemaining: "3 hours" },
+});
+
+const managingActive = myGame({
+  id: "mg-managing-active",
+  name: "Managing, in progress",
+  status: "active",
+  phase: spring1903,
+  unreadCount: 2,
+  state: { kind: "resolving", timeRemaining: "2 days" },
+});
+
+const managingPending = myGame({
+  id: "mg-managing-pending",
+  name: "Managing, waiting for players",
+  status: "pending",
+  state: { kind: "waiting_for_players", joined: 5, total: 7 },
+});
+
+const musteringSeatConfirmed = myGame({
+  id: "mg-seat-confirmed",
+  name: "Mustering, seat confirmed",
+  status: "mustering",
+  seatsConfirmed: { confirmed: 6, total: 7 },
+  state: { kind: "seat_confirmed", timeRemaining: "28 min" },
+});
+
+const activeUnconfirmedSoon = myGame({
+  id: "mg-unconfirmed-soon",
+  name: "Orders in, not confirmed",
+  status: "active",
+  phase: spring1903,
+  nation: "Turkey",
+  state: { kind: "orders_unconfirmed" },
+});
+
+const activeUnconfirmedLater = myGame({
+  id: "mg-unconfirmed-later",
+  name: "Orders in, not confirmed, later deadline",
+  status: "active",
+  phase: spring1903,
+  nation: "Russia",
+  state: { kind: "orders_unconfirmed" },
+});
+
+const activeConfirmedSoon = myGame({
+  id: "mg-confirmed-soon",
+  name: "Orders confirmed",
+  status: "active",
+  phase: spring1903,
+  nation: "Germany",
+  state: { kind: "orders_confirmed", timeRemaining: "1 day" },
+});
+
+const activeConfirmedUnread = myGame({
+  id: "mg-confirmed-unread",
+  name: "Orders confirmed, unread messages",
+  status: "active",
+  phase: spring1903,
+  nation: "England",
+  unreadCount: 9,
+  state: { kind: "orders_confirmed", timeRemaining: "2 days" },
+});
+
+const activePaused = myGame({
+  id: "mg-paused",
+  name: "Paused",
+  status: "active",
+  phase: spring1903,
+  nation: "France",
+  unreadCount: 1,
+  state: { kind: "paused" },
+});
+
+const pendingJoined = myGame({
+  id: "mg-pending",
+  name: "Pending, joined",
+  status: "pending",
+  state: { kind: "waiting_for_players", joined: 3, total: 7 },
+});
+
+const finishedYesterday = myGame({
+  id: "mg-finished-won-by",
+  name: "Finished yesterday, Russia won",
+  status: "completed",
+  phase: { season: "Fall", year: 1910, type: "Adjustment" },
+  nation: "Germany",
+  state: { kind: "finished", result: "won_by", winner: "Russia" },
+});
+
+const finishedEliminatedEnded = myGame({
+  id: "mg-eliminated-ended",
+  name: "Eliminated, game since ended",
+  status: "completed",
+  phase: { season: "Spring", year: 1912, type: "Movement" },
+  nation: "Austria",
+  unreadCount: 3,
+  state: { kind: "finished", result: "won_by", winner: "France", departure: "eliminated" },
+});
+
+const finishedEliminatedOngoing = myGame({
+  id: "mg-eliminated-ongoing",
+  name: "Eliminated, game ongoing",
+  status: "active",
+  phase: { season: "Spring", year: 1907, type: "Movement" },
+  nation: "Italy",
+  state: { kind: "finished", result: "ongoing", departure: "eliminated" },
+});
+
+const finishedCivilDisorderOngoing = myGame({
+  id: "mg-civil-disorder-ongoing",
+  name: "Civil disorder, game ongoing",
+  status: "active",
+  phase: { season: "Fall", year: 1905, type: "Movement" },
+  nation: "England",
+  state: { kind: "finished", result: "ongoing", departure: "civil_disorder" },
+});
+
+const finishedSolo = myGame({
+  id: "mg-solo-victory",
+  name: "Solo victory",
+  status: "completed",
+  phase: { season: "Fall", year: 1909, type: "Movement" },
+  nation: "Turkey",
+  state: { kind: "finished", result: "solo_victory" },
+});
+
+const finishedDraw = myGame({
+  id: "mg-draw",
+  name: "Draw",
+  status: "completed",
+  phase: { season: "Spring", year: 1911, type: "Movement" },
+  nation: "Germany",
+  state: { kind: "finished", result: "draw" },
+});
+
+const finishedCivilDisorderEnded = myGame({
+  id: "mg-civil-disorder-ended",
+  name: "Civil disorder, game since ended",
+  status: "completed",
+  phase: { season: "Fall", year: 1908, type: "Adjustment" },
+  nation: "France",
+  state: { kind: "finished", result: "draw", departure: "civil_disorder" },
+});
+
+const finishedAbandoned = myGame({
+  id: "mg-abandoned",
+  name: "Abandoned",
+  status: "abandoned",
+  phase: { season: "Spring", year: 1902, type: "Movement" },
+  nation: "Austria",
+  state: { kind: "finished", result: "abandoned" },
+});
+
+const sandboxGame = myGame({
+  id: "mg-sandbox",
+  name: "Sandbox, testing a Lepanto opening",
+  status: "active",
+  phase: { season: "Spring", year: 1901, type: "Movement" },
+  state: { kind: "sandbox" },
+});
+
+export const myGamesCurrentDefault: MyGamesCurrentResponse = {
+  sections: [
+    { key: "needs_attention", games: [attentionConfirmSeat, attentionSubmitOrders, attentionDrawVote] },
+    { key: "managing", games: [managingActive] },
+    { key: "mustering", games: [musteringSeatConfirmed] },
+    { key: "active", games: [activeUnconfirmedSoon, activeConfirmedSoon, activePaused] },
+    { key: "pending", games: [pendingJoined] },
+    { key: "recently_finished", games: [finishedYesterday] },
+    { key: "sandbox", games: [sandboxGame] },
+  ],
+};
+
+export const myGamesCurrentAttentionOrdering: MyGamesCurrentResponse = {
+  sections: [
+    {
+      key: "needs_attention",
+      games: [
+        attentionMissedDeadline,
+        attentionConfirmSeat,
+        attentionRetreat,
+        attentionSubmitOrders,
+        attentionOrdersAndDraw,
+        attentionDrawVote,
+      ],
+    },
+    { key: "active", games: [activeConfirmedSoon] },
+  ],
+};
+
+export const myGamesCurrentActiveOrdering: MyGamesCurrentResponse = {
+  sections: [
+    {
+      key: "active",
+      games: [
+        activeUnconfirmedSoon,
+        activeUnconfirmedLater,
+        activeConfirmedSoon,
+        activeConfirmedUnread,
+        activePaused,
+      ],
+    },
+  ],
+};
+
+export const myGamesCurrentAllCaughtUp: MyGamesCurrentResponse = {
+  sections: [
+    { key: "mustering", games: [musteringSeatConfirmed] },
+    { key: "active", games: [activeConfirmedSoon, activeConfirmedUnread, activePaused] },
+    { key: "pending", games: [pendingJoined] },
+    { key: "sandbox", games: [sandboxGame] },
+  ],
+};
+
+export const myGamesCurrentManaging: MyGamesCurrentResponse = {
+  sections: [
+    { key: "needs_attention", games: [attentionSubmitOrders] },
+    { key: "managing", games: [managingMustering, managingActive, managingPending] },
+    { key: "active", games: [activeConfirmedSoon] },
+  ],
+};
+
+export const myGamesCurrentRecentlyFinished: MyGamesCurrentResponse = {
+  sections: [
+    { key: "active", games: [activeConfirmedSoon] },
+    { key: "recently_finished", games: [finishedYesterday, finishedEliminatedEnded] },
+    { key: "sandbox", games: [sandboxGame] },
+  ],
+};
+
+export const myGamesCurrentEmpty: MyGamesCurrentResponse = { sections: [] };
+
+export const myGamesFinished: MyGamesFinishedResponse = {
+  results: [
+    finishedYesterday,
+    finishedEliminatedEnded,
+    finishedEliminatedOngoing,
+    finishedCivilDisorderOngoing,
+    finishedSolo,
+    finishedDraw,
+    finishedCivilDisorderEnded,
+    finishedAbandoned,
+  ],
+  next: null,
+};
+
+export const myGamesFinishedEmpty: MyGamesFinishedResponse = { results: [], next: null };
+
+const repeatGames = (games: MyGameEntry[], times: number) =>
+  Array.from({ length: times }, (_, edition) =>
+    games.map(game => ({
+      ...game,
+      id: `${game.id}-${edition + 1}`,
+      name: edition === 0 ? game.name : `${game.name} · ${edition + 1}`,
+    })),
+  ).flat();
+
+export const myGamesCurrentMany: MyGamesCurrentResponse = {
+  sections: [
+    {
+      key: "needs_attention",
+      games: repeatGames([attentionRetreat, attentionSubmitOrders, attentionDrawVote], 2),
+    },
+    { key: "managing", games: [managingActive] },
+    { key: "mustering", games: repeatGames([musteringSeatConfirmed], 2) },
+    {
+      key: "active",
+      games: [
+        ...repeatGames([activeUnconfirmedSoon], 3),
+        ...repeatGames([activeConfirmedSoon, activeConfirmedUnread], 5),
+        activePaused,
+      ],
+    },
+    { key: "pending", games: repeatGames([pendingJoined], 2) },
+    { key: "recently_finished", games: [finishedYesterday] },
+    { key: "sandbox", games: repeatGames([sandboxGame], 4) },
   ],
 };

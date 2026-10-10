@@ -1,6 +1,20 @@
 import type { ReactNode } from "react";
 import { SingleList } from "@/prototypes/my-games/SingleList";
 import { GroupedByPhase } from "@/prototypes/my-games/GroupedByPhase";
+import { ActionQueue } from "@/prototypes/my-games/ActionQueue";
+import { FilterChips } from "@/prototypes/my-games/FilterChips";
+import { QueryView } from "@/prototypes/my-games/QueryView";
+import { SectionedViews } from "@/prototypes/my-games/SectionedViews";
+import { SectionedSingleColumn } from "@/prototypes/my-games/SectionedSingleColumn";
+import { SectionedHorizontalCards } from "@/prototypes/my-games/SectionedHorizontalCards";
+import { SectionedCompactHorizontal } from "@/prototypes/my-games/SectionedCompactHorizontal";
+import { SectionedProductionCard } from "@/prototypes/my-games/SectionedProductionCard";
+import { SectionedFilterMenu } from "@/prototypes/my-games/SectionedFilterMenu";
+import { SectionedHeaderFilter } from "@/prototypes/my-games/SectionedHeaderFilter";
+import { SectionedEssentialContext } from "@/prototypes/my-games/SectionedEssentialContext";
+import { SectionedLeanDrawer } from "@/prototypes/my-games/SectionedLeanDrawer";
+import { ServerSections } from "@/prototypes/my-games/ServerSections";
+import { SectionedTwoColumn } from "@/prototypes/my-games/SectionedTwoColumn";
 import { CreateGame } from "@/prototypes/create-game/Default";
 import { PlayerProfile } from "@/prototypes/player-profile/Default";
 import { Channel } from "@/prototypes/channel/Default";
@@ -19,6 +33,10 @@ import { BareGlyphs } from "@/prototypes/current-phase-orders/BareGlyphs";
 import { NoOrdersRequired } from "@/prototypes/current-phase-orders/NoOrdersRequired";
 import { AllConfirmed } from "@/prototypes/current-phase-orders/AllConfirmed";
 import { PhaseStepper } from "@/prototypes/current-phase-orders/PhaseStepper";
+import { GroupedSections as MemberGroupedSections } from "@/prototypes/member-details/GroupedSections";
+import { SnapshotPanel as MemberSnapshotPanel } from "@/prototypes/member-details/SnapshotPanel";
+import { GameInfoRows as MemberGameInfoRows } from "@/prototypes/member-details/GameInfoRows";
+import { SingleMember as SingleMemberNationAssignment } from "@/prototypes/nation-assignment/SingleMember";
 
 export interface PrototypeState {
   slug: string;
@@ -58,7 +76,7 @@ export const prototypes: Prototype[] = [
           { slug: "empty", title: "No games" },
           { slug: "many", title: "Many games" },
         ],
-        render: state => <SingleList state={state} />,
+        render: (state) => <SingleList state={state} />,
       },
       {
         slug: "grouped-by-phase",
@@ -70,7 +88,248 @@ export const prototypes: Prototype[] = [
           { slug: "empty", title: "No games" },
           { slug: "many", title: "Many games" },
         ],
-        render: state => <GroupedByPhase state={state} />,
+        render: (state) => <GroupedByPhase state={state} />,
+      },
+      {
+        slug: "action-queue",
+        title: "Action queue",
+        description:
+          "Treat My Games as a next-action queue: one game earns the spotlight and the rest become a compact backlog.",
+        states: [
+          defaultState,
+          { slug: "empty", title: "No games" },
+          { slug: "many", title: "Many games" },
+          { slug: "mustering", title: "Mustering" },
+        ],
+        render: state => <ActionQueue state={state} />,
+      },
+      {
+        slug: "filter-chips",
+        title: "Filter chips",
+        description:
+          "Keep one flat collection and let lightweight, counted filters do all of the organizing; finished games stay out of the default view.",
+        states: [
+          defaultState,
+          { slug: "empty", title: "No games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+          { slug: "mustering", title: "Mustering" },
+        ],
+        render: state => <FilterChips state={state} />,
+      },
+      {
+        slug: "query-view",
+        title: "Query view",
+        description:
+          "Make filtering explicit and composable with a GitHub-style expression, testing whether power-user control is worth the mobile learning cost.",
+        states: [
+          defaultState,
+          { slug: "empty", title: "No games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+          { slug: "mustering", title: "Mustering" },
+        ],
+        render: state => <QueryView state={state} />,
+      },
+      {
+        slug: "sectioned-views",
+        title: "Sectioned views",
+        description:
+          "Treat filters as named views and organize each view into exclusive inbox-like sections, with action-required games ordered first but styled quietly.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "empty", title: "No games" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedViews state={state} />,
+      },
+      {
+        slug: "sectioned-single-column",
+        title: "Sectioned single column",
+        description:
+          "Keep the inbox-like views in one reading column on every screen, trading desktop density for stable ordering and no incomplete rows.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedSingleColumn state={state} />,
+      },
+      {
+        slug: "sectioned-horizontal-cards",
+        title: "Sectioned horizontal cards",
+        description:
+          "Keep one ordered column while cards turn horizontal on desktop, pairing mobile simplicity with the current app's more expansive desktop rhythm.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedHorizontalCards state={state} />,
+      },
+      {
+        slug: "sectioned-compact-horizontal",
+        title: "Sectioned compact horizontal",
+        description:
+          "Use a shorter horizontal desktop card with the title anchored at the top and both identity and action state kept over the map.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedCompactHorizontal state={state} />,
+      },
+      {
+        slug: "sectioned-production-card",
+        title: "Sectioned production card",
+        description:
+          "Match the production map footprint while moving action state into the desktop content hierarchy and preserving the mobile map overlay.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedProductionCard state={state} />,
+      },
+      {
+        slug: "sectioned-filter-menu",
+        title: "Sectioned filter menu",
+        description:
+          "Keep only the selected view visible and place every alternative behind a compact filter menu, avoiding wrapping controls on desktop and card-like choices on mobile.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedFilterMenu state={state} />,
+      },
+      {
+        slug: "sectioned-header-filter",
+        title: "Sectioned header filter",
+        description:
+          "Treat view selection as a page-level action beside the title, keeping the game list focused entirely on sections and results.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedHeaderFilter state={state} />,
+      },
+      {
+        slug: "sectioned-essential-context",
+        title: "Sectioned essential context",
+        description:
+          "Strip away inventory counts and variant labels so each card and section carries only information that can change what the player does next.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedEssentialContext state={state} />,
+      },
+      {
+        slug: "sectioned-lean-drawer",
+        title: "Sectioned lean drawer",
+        description:
+          "Make mobile view selection feel like a lightweight action menu, removing the drawer heading, outlined controls, and generous side inset.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedLeanDrawer state={state} />,
+      },
+      {
+        slug: "sectioned-two-column",
+        title: "Sectioned two column",
+        description:
+          "Refine the denser two-column layout with one compact desktop filter row and a separate lifecycle-aware home for games you manage but do not play.",
+        states: [
+          defaultState,
+          { slug: "ordering", title: "Action ordering" },
+          { slug: "quiet", title: "Nothing needs attention" },
+          { slug: "mustering", title: "Mustering" },
+          { slug: "game-master", title: "Non-playing game master" },
+          { slug: "history", title: "Finished history" },
+          { slug: "civil-disorder-hidden", title: "Civil disorder excluded" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "filtered-empty", title: "No matches" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <SectionedTwoColumn state={state} />,
+      },
+      {
+        slug: "server-sections",
+        title: "Server-decided sections",
+        description:
+          "The server decides each game's section, order and single state, so the screen only renders what the player must act on, with finished, eliminated and civil-disorder games moved out of Current.",
+        states: [
+          defaultState,
+          { slug: "needs-attention", title: "Needs attention ordering" },
+          { slug: "active-ordering", title: "Active ordering" },
+          { slug: "all-caught-up", title: "All caught up" },
+          { slug: "managing", title: "Game master" },
+          { slug: "recently-finished", title: "Recently finished" },
+          { slug: "finished", title: "Finished view" },
+          { slug: "current-empty", title: "No current games" },
+          { slug: "no-games", title: "No games" },
+          { slug: "many", title: "Many games" },
+        ],
+        render: state => <ServerSections state={state} />,
       },
     ],
   },
@@ -88,7 +347,7 @@ export const prototypes: Prototype[] = [
           defaultState,
           { slug: "with-bots", title: "Three bots selected" },
         ],
-        render: state => <CreateGame state={state} />,
+        render: (state) => <CreateGame state={state} />,
       },
     ],
   },
@@ -118,7 +377,7 @@ export const prototypes: Prototype[] = [
         description:
           "Messages as bubbles with nation avatars; your own messages right-aligned.",
         states: [defaultState, { slug: "empty", title: "No messages" }],
-        render: state => <Channel state={state} />,
+        render: (state) => <Channel state={state} />,
       },
     ],
   },
@@ -167,7 +426,7 @@ export const prototypes: Prototype[] = [
           { slug: "classical", title: "Classical" },
           { slug: "unconstitutional", title: "Unconstitutional" },
         ],
-        render: state => <VariantDetail state={state} />,
+        render: (state) => <VariantDetail state={state} />,
       },
     ],
   },
@@ -188,10 +447,111 @@ export const prototypes: Prototype[] = [
       {
         slug: "member-destination",
         title: "On the member screen",
-        description:
-          "The same card, now as a link to the player profile.",
+        description: "The same card, now as a link to the player profile.",
         states: [defaultState],
         render: () => <PlayerCardMember />,
+      },
+    ],
+  },
+  {
+    slug: "member-details",
+    title: "Player Details",
+    description:
+      "A game-scoped member record reached from every seated player on the players list.",
+    variants: [
+      {
+        slug: "game-info-rows",
+        title: "Game info rows",
+        description:
+          "The grouped direction refined to use the Game Info screen's deadline-row typography, padding and info treatment.",
+        states: [
+          { slug: "self-pending", title: "Self, pending" },
+          { slug: "self-active", title: "Self, active" },
+          {
+            slug: "self-seeking-replacement",
+            title: "Self, seeking replacement",
+          },
+          {
+            slug: "self-civil-disorder",
+            title: "Self, civil disorder",
+          },
+          { slug: "manager-pending", title: "Manager, pending" },
+          { slug: "manager-active", title: "Manager, removal blocked" },
+          { slug: "civil-disorder", title: "Replaceable seat" },
+          { slug: "anonymous", title: "Anonymous player" },
+          { slug: "former", title: "Former player" },
+          { slug: "completed", title: "Completed game" },
+        ],
+        render: (state) => <MemberGameInfoRows state={state} />,
+      },
+      {
+        slug: "grouped-sections",
+        title: "Grouped sections",
+        description:
+          "One fact per row in familiar grouped lists. Contextual actions become separate cards and destructive controls stay at the bottom.",
+        states: [
+          { slug: "self-pending", title: "Self, pending" },
+          { slug: "self-active", title: "Self, active" },
+          {
+            slug: "self-seeking-replacement",
+            title: "Self, seeking replacement",
+          },
+          {
+            slug: "self-civil-disorder",
+            title: "Self, civil disorder",
+          },
+          { slug: "manager-pending", title: "Manager, pending" },
+          { slug: "manager-active", title: "Manager, removal blocked" },
+          { slug: "civil-disorder", title: "Replaceable seat" },
+          { slug: "anonymous", title: "Anonymous player" },
+          { slug: "former", title: "Former player" },
+          { slug: "completed", title: "Completed game" },
+        ],
+        render: (state) => <MemberGroupedSections state={state} />,
+      },
+      {
+        slug: "snapshot-panel",
+        title: "Snapshot panel",
+        description:
+          "Nation, strength and extensions form a compact visual snapshot. Settings and participation actions become larger task-focused blocks.",
+        states: [
+          { slug: "self-pending", title: "Self, pending" },
+          { slug: "self-active", title: "Self, active" },
+          {
+            slug: "self-seeking-replacement",
+            title: "Self, seeking replacement",
+          },
+          {
+            slug: "self-civil-disorder",
+            title: "Self, civil disorder",
+          },
+          { slug: "manager-pending", title: "Manager, pending" },
+          { slug: "manager-active", title: "Manager, removal blocked" },
+          { slug: "civil-disorder", title: "Replaceable seat" },
+          { slug: "anonymous", title: "Anonymous player" },
+          { slug: "former", title: "Former player" },
+          { slug: "completed", title: "Completed game" },
+        ],
+        render: (state) => <MemberSnapshotPanel state={state} />,
+      },
+    ],
+  },
+  {
+    slug: "nation-assignment",
+    title: "Nation Assignment",
+    description:
+      "A focused game-master flow for assigning one nation to one member.",
+    variants: [
+      {
+        slug: "single-member",
+        title: "Single member",
+        description:
+          "Available nations are selected for one member without revealing their private preference ranking.",
+        states: [
+          { slug: "assigned", title: "Currently assigned" },
+          { slug: "unassigned", title: "Currently unassigned" },
+        ],
+        render: (state) => <SingleMemberNationAssignment state={state} />,
       },
     ],
   },
@@ -214,7 +574,7 @@ export const prototypes: Prototype[] = [
           { slug: "private-gunboat", title: "Private gunboat" },
           { slug: "joined", title: "Joined" },
         ],
-        render: state => <GameInfo state={state} />,
+        render: (state) => <GameInfo state={state} />,
       },
     ],
   },
@@ -244,7 +604,7 @@ export const prototypes: Prototype[] = [
           { slug: "solo-victory-gm", title: "Solo victory (GM)" },
           { slug: "draw", title: "Draw" },
         ],
-        render: state => <PlayersList state={state} />,
+        render: (state) => <PlayersList state={state} />,
       },
     ],
   },
@@ -263,7 +623,7 @@ export const prototypes: Prototype[] = [
           { slug: "active-no-flags", title: "Active (no flags)" },
           { slug: "pending", title: "Pending" },
         ],
-        render: state => <ChatChannelList state={state} />,
+        render: (state) => <ChatChannelList state={state} />,
       },
     ],
   },
@@ -303,7 +663,7 @@ export const prototypes: Prototype[] = [
           { slug: "group", title: "Group, many messages" },
           { slug: "group-no-flags", title: "Group, no flags" },
         ],
-        render: state => <ChatChannel state={state} />,
+        render: (state) => <ChatChannel state={state} />,
       },
     ],
   },
@@ -330,7 +690,7 @@ export const prototypes: Prototype[] = [
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <CurrentPhaseOrdersList state={state} />,
+        render: (state) => <CurrentPhaseOrdersList state={state} />,
       },
       {
         slug: "bare-glyphs",
@@ -348,7 +708,7 @@ export const prototypes: Prototype[] = [
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <BareGlyphs state={state} />,
+        render: (state) => <BareGlyphs state={state} />,
       },
       {
         slug: "no-orders-required",
@@ -360,7 +720,7 @@ export const prototypes: Prototype[] = [
           { slug: "adjustment", title: "Adjustment" },
           { slug: "movement", title: "Movement" },
         ],
-        render: state => <NoOrdersRequired state={state} />,
+        render: (state) => <NoOrdersRequired state={state} />,
       },
       {
         slug: "all-confirmed",
@@ -372,7 +732,7 @@ export const prototypes: Prototype[] = [
           { slug: "retreat", title: "Retreat" },
           { slug: "adjustment", title: "Adjustment" },
         ],
-        render: state => <AllConfirmed state={state} />,
+        render: (state) => <AllConfirmed state={state} />,
       },
       {
         slug: "phase-stepper",
@@ -384,7 +744,7 @@ export const prototypes: Prototype[] = [
           { slug: "previous", title: "Previous phase" },
           { slug: "first", title: "First phase" },
         ],
-        render: state => <PhaseStepper state={state} />,
+        render: (state) => <PhaseStepper state={state} />,
       },
     ],
   },
@@ -392,9 +752,9 @@ export const prototypes: Prototype[] = [
 
 export const findVariant = (
   prototypeSlug?: string,
-  variantSlug?: string
+  variantSlug?: string,
 ): { prototype: Prototype; variant: PrototypeVariant } | undefined => {
-  const prototype = prototypes.find(item => item.slug === prototypeSlug);
-  const variant = prototype?.variants.find(item => item.slug === variantSlug);
+  const prototype = prototypes.find((item) => item.slug === prototypeSlug);
+  const variant = prototype?.variants.find((item) => item.slug === variantSlug);
   return prototype && variant ? { prototype, variant } : undefined;
 };

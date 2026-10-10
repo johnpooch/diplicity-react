@@ -3,13 +3,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { NationFlag } from "@/components/NationFlag";
 import { cn } from "@/lib/utils";
-import { Plus, Star, Swords, UserPlus, type LucideIcon } from "lucide-react";
+import {
+  ChevronRight,
+  Plus,
+  Star,
+  Swords,
+  UserPlus,
+  type LucideIcon,
+} from "lucide-react";
 import type { Player, PlayerCardPresentation } from "@/data/types";
 
 interface PlayerCardProps {
   player: Player;
   presentation: PlayerCardPresentation;
-  to: string;
+  to?: string;
+  trailing?: React.ReactNode;
   className?: string;
 }
 
@@ -22,7 +30,8 @@ const roleLabel = (player: Player) => {
   return undefined;
 };
 
-const initials = (player: Player) => displayName(player).charAt(0).toUpperCase();
+const initials = (player: Player) =>
+  displayName(player).charAt(0).toUpperCase();
 
 const FlagOverlay: React.FC<{ nation: string; preferred?: boolean }> = ({
   nation,
@@ -92,20 +101,23 @@ const PlayerMedia: React.FC<{
   );
 };
 
-const NationStats: React.FC<{ player: Player }> = ({ player }) => {
+const NationStats: React.FC<{ player: Player; showMetrics?: boolean }> = ({
+  player,
+  showMetrics = true,
+}) => {
   return (
     <div className="flex min-w-0 items-center justify-between gap-3">
       <p className="truncate font-semibold leading-tight">
         {player.assignedNation}
       </p>
       <p className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
-        {player.supplyCenterCount !== undefined && (
+        {showMetrics && player.supplyCenterCount !== undefined && (
           <span className="flex items-center gap-1">
             <Star className="size-3.5" />
             {player.supplyCenterCount}
           </span>
         )}
-        {player.unitCount !== undefined && (
+        {showMetrics && player.unitCount !== undefined && (
           <span className="flex items-center gap-1">
             <Swords className="size-3.5" />
             {player.unitCount}
@@ -120,6 +132,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   player,
   presentation,
   to,
+  trailing,
   className,
 }) => {
   const name = displayName(player);
@@ -127,38 +140,53 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const showNationStats =
     presentation === "nation" && Boolean(player.assignedNation);
 
+  const card = (
+    <Card
+      className={cn(
+        "overflow-hidden py-0",
+        to && "transition-colors hover:bg-accent/50",
+      )}
+    >
+      <CardContent className="flex items-center gap-3 p-3">
+        <PlayerMedia player={player} presentation={presentation} />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          {showNationStats ? (
+            <>
+              <NationStats player={player} showMetrics={!trailing} />
+              <p className="truncate text-sm text-muted-foreground">
+                {name}
+                {role && ` (${role})`}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="truncate leading-tight">
+                <span className="font-semibold">{name}</span>
+                {role && (
+                  <span className="text-muted-foreground"> ({role})</span>
+                )}
+              </p>
+              {player.status && (
+                <p className="truncate text-sm text-muted-foreground">
+                  {player.status}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+        {trailing && <div className="shrink-0">{trailing}</div>}
+        {to && (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  if (!to) return <div className={className}>{card}</div>;
+
   return (
     <Link to={to} className={cn("block", className)}>
-      <Card className="overflow-hidden py-0 transition-colors hover:bg-accent/50">
-        <CardContent className="flex items-center gap-3 p-3">
-          <PlayerMedia player={player} presentation={presentation} />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            {showNationStats ? (
-              <>
-                <NationStats player={player} />
-                <p className="truncate text-sm text-muted-foreground">
-                  {name}
-                  {role && ` (${role})`}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="truncate leading-tight">
-                  <span className="font-semibold">{name}</span>
-                  {role && (
-                    <span className="text-muted-foreground"> ({role})</span>
-                  )}
-                </p>
-                {player.status && (
-                  <p className="truncate text-sm text-muted-foreground">
-                    {player.status}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {card}
     </Link>
   );
 };
