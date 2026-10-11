@@ -648,7 +648,7 @@ class TestChannelListView:
         game = active_game_with_private_channel
         url = reverse("channel-list", args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        game.members.filter(user__username="primaryuser").update(kicked=True)
+        game.members.filter(user__username="primaryuser").update(removed_at=timezone.now())
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
