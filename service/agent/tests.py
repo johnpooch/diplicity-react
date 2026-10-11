@@ -11,7 +11,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from agent import registry, tasks
-from agent.api_client import bot_request_host
+from agent.api_client import ApiClient, bot_request_host
+from agent.context import fetch_context
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
@@ -20,6 +21,8 @@ from channel.models import ChannelMessage
 from common.constants import OrderType, PhaseStatus, PhaseType, UserKind
 from emit.context import build_context
 from emit.dispatch import emit
+from harness.adapter import data_to_context
+from harness.tasks import reply
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
@@ -200,7 +203,7 @@ class TestAdjustmentOrderLimit:
         def fake_get(url, *args, **kwargs):
             if "phase-states" in url:
                 return Mock(status_code=200, data=phase_states)
-            if "channels" in url:
+            if "channel-previews" in url:
                 return Mock(status_code=200, data=[])
             if url.endswith("/options/"):
                 return Mock(status_code=200, data=options)
@@ -414,6 +417,34 @@ class TestBotRequestHost:
     def test_falls_back_to_testserver_for_wildcard(self, settings):
         settings.ALLOWED_HOSTS = ["*"]
         assert bot_request_host() == "testserver"
+
+
+class TestGetChannels:
+
+    @pytest.mark.django_db
+    def test_matches_the_legacy_channel_list(self, bot_game_with_channel_history, bot_user):
+        game, legacy_channels = bot_game_with_channel_history
+
+        channels = ApiClient(bot_user).get_channels(game.id)
+
+        assert channels == legacy_channels
+        assert [(channel["name"], len(channel["messages"])) for channel in channels] == [
+            ("Public Press", 230),
+            ("Empty", 0),
+            ("Private", 150),
+        ]
+
+    @pytest.mark.django_db
+    def test_context_and_reply_prompt_match_the_legacy_channel_list(self, bot_game_with_channel_history, bot_user):
+        game, legacy_channels = bot_game_with_channel_history
+
+        data = fetch_context(ApiClient(bot_user), game.id)
+        context = data_to_context(data)
+        legacy_context = data_to_context({**data, "channels": legacy_channels})
+
+        assert context == legacy_context
+        for channel in legacy_channels:
+            assert reply.user_prompt(context, channel["id"]) == reply.user_prompt(legacy_context, channel["id"])
 
 
 class TestBotIdentificationByProfile:
