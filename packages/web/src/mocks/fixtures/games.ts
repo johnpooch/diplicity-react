@@ -946,3 +946,148 @@ const buildActiveSeatOpenSpectator = () => {
 };
 
 export const activeGameSeatOpenSpectator = buildActiveSeatOpenSpectator();
+
+const buildSandbox = () => {
+  const members = makeActiveMembers().map(m => ({
+    ...m,
+    userId: players[0].userId,
+    name: players[0].name,
+    isCurrentUser: true,
+  }));
+  const phase = makePhase(1501, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+  });
+  return makeFixture({
+    description:
+      "Sandbox game where the current user plays every nation and resolves phases when ready.",
+    game: makeGame("sandbox-game", "Practice Board", members, [phase], {
+      sandbox: true,
+    }),
+    phases: [phase],
+    ordersByPhase: { 1501: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+  });
+};
+
+export const sandboxGame = buildSandbox();
+
+const buildActivePaused = () => {
+  const members = makeActiveMembers();
+  const phase = makePhase(1502, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+  });
+  return makeFixture({
+    description:
+      "Active game in Fall 1901 that the game master has paused. Deadlines are suspended until it resumes.",
+    game: makeGame("active-paused", "Holding Pattern", members, [phase], {
+      isPaused: true,
+      pausedAt: "2026-05-01T12:00:00Z",
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1502: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGamePaused = buildActivePaused();
+
+export const musteringGameConfirmed = makeFixture({
+  description:
+    "Full public game in mustering where the current user has already confirmed their seat and is waiting for the other players.",
+  game: makeGame(
+    "mustering-confirmed",
+    "Ready and Waiting",
+    makePendingMembers(7),
+    [],
+    {
+      status: "mustering",
+      canLeave: true,
+      musterRequired: true,
+      musterDeadline: futureIso(9 * 60 * 60),
+      musterStatus: "confirmed",
+    }
+  ),
+});
+
+export const gameMasterMustering = makeFixture({
+  description:
+    "Private game in mustering run by a non-playing Game Master (the current user), waiting for the players to confirm their seats.",
+  game: makeGame(
+    "game-master-mustering",
+    "The Gathering",
+    makePendingMembers(7, false),
+    [],
+    {
+      status: "mustering",
+      private: true,
+      canManage: true,
+      musterRequired: true,
+      musterDeadline: futureIso(30 * 60 * 60),
+      gameMaster: GAME_MASTER,
+    }
+  ),
+});
+
+const buildFinishedRemoved = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "England" ? { ...m, kicked: true } : m
+  );
+  const finalPhase = makePhase(1503, 15, {
+    season: "Fall",
+    year: 1907,
+    status: "completed",
+    remainingTime: 0,
+  });
+  const game = makeGame("finished-removed", "Shown the Door", members, [
+    finalPhase,
+  ]);
+  return makeFixture({
+    description:
+      "Finished game won by France with a solo victory, after the game master removed the current user (England).",
+    game: {
+      ...game,
+      status: "completed",
+      victory: {
+        id: 3,
+        type: "solo",
+        winningPhaseId: 1503,
+        members: [members[2]],
+      },
+    },
+    phases: [finalPhase],
+    ordersByPhase: { 1503: [] },
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const finishedGameRemoved = buildFinishedRemoved();
+
+const buildFinishedAbandoned = () => {
+  const members = makeActiveMembers();
+  const finalPhase = makePhase(1504, 4, {
+    season: "Spring",
+    year: 1902,
+    status: "completed",
+    remainingTime: 0,
+  });
+  const game = makeGame("finished-abandoned", "Quiet Collapse", members, [
+    finalPhase,
+  ]);
+  return makeFixture({
+    description:
+      "Game abandoned in Spring 1902 after every player stopped submitting orders. The current user played England.",
+    game: { ...game, status: "abandoned" },
+    phases: [finalPhase],
+    ordersByPhase: { 1504: [] },
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const finishedGameAbandoned = buildFinishedAbandoned();

@@ -23,6 +23,7 @@ const loggedOutScreens = [
 
 const homeScreens = [
   { name: "my-games", path: "/" },
+  { name: "my-games-finished", path: "/?view=finished" },
   { name: "find-games", path: "/find-games" },
   { name: "create-game", path: "/create-game" },
   { name: "account", path: "/account" },

@@ -1,33 +1,33 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { MyGames } from "./MyGames";
-import { mockActiveGames, mockPhaseMovement, mockVariants } from "@/mocks/legacy";
+import { classicalVariant } from "@/mocks/fixtures";
+import type {
+  KeyEnum,
+  MyGame,
+  MyGameState,
+  MyGamesCurrent,
+  PaginatedMyGameList,
+} from "@/api/generated/endpoints";
 
-const mockUseGamesListInfinite = vi.fn();
-const mockUseGamePhaseRetrieve = vi.fn();
-const mockUseVariantsListSuspense = vi.fn();
-const mockUseVariantsRetrieve = vi.fn();
+const mockUseGamesMineCurrentRetrieveSuspense = vi.fn();
+const mockGamesMineFinishedList = vi.fn();
 
-vi.mock("@/hooks/useGamesListInfinite", () => ({
-  useGamesListInfinite: (...args: unknown[]) => mockUseGamesListInfinite(...args),
-}));
-
-vi.mock("@/api/generated/endpoints", async (importOriginal) => {
+vi.mock("@/api/generated/endpoints", async importOriginal => {
   const actual = await importOriginal();
   return {
     ...(actual as Record<string, unknown>),
-    useVariantsListSuspense: () => mockUseVariantsListSuspense(),
-    useVariantsRetrieve: (...args: unknown[]) => mockUseVariantsRetrieve(...args),
+    useGamesMineCurrentRetrieveSuspense: (...args: unknown[]) =>
+      mockUseGamesMineCurrentRetrieveSuspense(...args),
+    gamesMineFinishedList: (...args: unknown[]) => mockGamesMineFinishedList(...args),
+    useVariantsListSuspense: () => ({ data: [classicalVariant] }),
+    useVariantsRetrieve: () => ({ data: undefined }),
     useUserRetrieveSuspense: () => ({
       data: { id: 1, email: "test@example.com", name: "Test", picture: null },
     }),
-    useGamePhaseRetrieve: (...args: unknown[]) => mockUseGamePhaseRetrieve(...args),
-    useGameMemberJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
-    useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
-    getDevicesListQueryKey: () => ["devices"],
   };
 });
 
@@ -43,224 +43,341 @@ vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => false,
 }));
 
-const renderMyGames = () => {
+const now = new Date("2026-05-01T12:00:00Z");
+const inHours = (hours: number) =>
+  new Date(now.getTime() + hours * 60 * 60 * 1000).toISOString();
+
+let gameCounter = 0;
+
+const makeGame = (
+  state: Partial<MyGameState> & Pick<MyGameState, "kind">,
+  overrides: Partial<MyGame> = {}
+): MyGame => ({
+  id: `game-${++gameCounter}`,
+  name: `Game ${gameCounter}`,
+  status: "active",
+  variantId: classicalVariant.id,
+  sandbox: false,
+  currentPhaseId: 1,
+  currentPhase: null,
+  nation: "England",
+  seats: null,
+  unreadCount: 0,
+  state: { deadline: null, result: null, winner: null, departure: null, ...state },
+  ...overrides,
+});
+
+const current = (...sections: [KeyEnum, MyGame[]][]): MyGamesCurrent => ({
+  sections: sections.map(([key, games]) => ({ key, games })),
+});
+
+const finished = (games: MyGame[]): PaginatedMyGameList => ({
+  count: games.length,
+  next: null,
+  previous: null,
+  results: games,
+});
+
+const LocationDisplay = () => {
+  const location = useLocation();
+  return <div data-testid="location">{location.search}</div>;
+};
+
+const renderMyGames = (path = "/") => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <MyGames />
+        <LocationDisplay />
       </MemoryRouter>
     </QueryClientProvider>
   );
 };
 
+const setCurrent = (data: MyGamesCurrent) =>
+  mockUseGamesMineCurrentRetrieveSuspense.mockReturnValue({ data });
+
+const renderCurrentGame = (game: MyGame) => {
+  setCurrent(current(["active", [game]]));
+  renderMyGames();
+};
+
 beforeEach(() => {
-  mockUseGamesListInfinite.mockReset();
-  mockUseGamesListInfinite.mockReturnValue({
-    data: { pages: [{ results: [], next: null }] },
-    fetchNextPage: vi.fn(),
-    hasNextPage: false,
-    isFetchingNextPage: false,
-  });
-  mockUseGamePhaseRetrieve.mockReset();
-  mockUseGamePhaseRetrieve.mockReturnValue({ data: mockPhaseMovement });
-  mockUseVariantsListSuspense.mockReset();
-  mockUseVariantsListSuspense.mockReturnValue({ data: [] });
-  mockUseVariantsRetrieve.mockReset();
-  mockUseVariantsRetrieve.mockReturnValue({ data: undefined });
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(now);
+  mockUseGamesMineCurrentRetrieveSuspense.mockReset();
+  setCurrent(current());
+  mockGamesMineFinishedList.mockReset();
+  mockGamesMineFinishedList.mockResolvedValue(finished([]));
 });
 
-describe("MyGames empty states", () => {
-  it("shows welcoming message with action buttons on the active tab", async () => {
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("MyGames Current sections", () => {
+  it("renders sections in the order received with their titles", () => {
+    setCurrent(
+      current(
+        ["sandbox", [makeGame({ kind: "sandbox" }, { sandbox: true })]],
+        ["needs_attention", [makeGame({ kind: "submit_orders" })]],
+        ["managing", [makeGame({ kind: "resolving" })]],
+        ["active", [makeGame({ kind: "paused" })]],
+        ["mustering", [makeGame({ kind: "seat_confirmed" })]],
+        ["pending", [makeGame({ kind: "waiting_for_players" })]],
+        ["recently_finished", [makeGame({ kind: "finished", result: "draw" })]]
+      )
+    );
     renderMyGames();
+
     expect(
-      await screen.findByText(/create a new game/i)
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /create a game/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /find a game/i })).toBeInTheDocument();
+      screen.getAllByRole("heading", { level: 2 }).map(h => h.textContent)
+    ).toEqual([
+      "Sandbox",
+      "Needs attention",
+      "Managing",
+      "Active",
+      "Mustering",
+      "Pending",
+      "Recently finished",
+    ]);
   });
 
-  it("shows welcoming message with action buttons on the staging tab", async () => {
-    const user = userEvent.setup();
+  it("renders each game's name under its section", () => {
+    const game = makeGame({ kind: "submit_orders" }, { name: "Spring Awakening" });
+    setCurrent(current(["needs_attention", [game]]));
     renderMyGames();
-    const stagingTab = await screen.findByRole("tab", { name: /staging/i });
-    await user.click(stagingTab);
-    expect(
-      await screen.findByText(/waiting for more players/i)
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /create a game/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /find a game/i })).toBeInTheDocument();
+
+    const section = screen.getByRole("heading", { name: "Needs attention" })
+      .parentElement as HTMLElement;
+    expect(within(section).getByText("Spring Awakening")).toBeInTheDocument();
   });
 
-  it("shows welcoming message with create button on the finished tab", async () => {
-    const user = userEvent.setup();
+  it("shows the all caught up line when there is no needs attention section", () => {
+    setCurrent(current(["active", [makeGame({ kind: "resolving" })]]));
     renderMyGames();
-    const finishedTab = await screen.findByRole("tab", { name: /finished/i });
-    await user.click(finishedTab);
-    expect(
-      await screen.findByText(/completed games will appear here/i)
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /create a game/i })).toBeInTheDocument();
+
+    expect(screen.getByText("You're all caught up")).toBeInTheDocument();
   });
 
-  it("action links point to the correct routes", async () => {
+  it("does not show the all caught up line when there is a needs attention section", () => {
+    setCurrent(current(["needs_attention", [makeGame({ kind: "submit_orders" })]]));
     renderMyGames();
-    const createLink = await screen.findByRole("link", { name: /create a game/i });
-    const findLink = screen.getByRole("link", { name: /find a game/i });
-    expect(createLink).toHaveAttribute("href", "/create-game");
-    expect(findLink).toHaveAttribute("href", "/find-games");
-  });
 
-  it("active tab message mentions sandbox as an option", async () => {
-    renderMyGames();
-    expect(
-      await screen.findByText(/sandbox/i)
-    ).toBeInTheDocument();
+    expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
   });
 });
 
-describe("MyGames ordering", () => {
-  it("requests the finished tab ordered by most recently finished", async () => {
-    const user = userEvent.setup();
-    renderMyGames();
-    const finishedTab = await screen.findByRole("tab", { name: /finished/i });
-    await user.click(finishedTab);
+describe("MyGames state badges", () => {
+  it.each([
+    [{ kind: "confirm_seat", deadline: inHours(5) }, "Confirm seat · 5 hours left"],
+    [{ kind: "submit_orders", deadline: inHours(30) }, "Submit orders · 1 day left"],
+    [{ kind: "submit_orders" }, "Submit orders"],
+    [{ kind: "vote_on_draw", deadline: inHours(0.5) }, "Vote on draw · 30 min left"],
+    [{ kind: "vote_on_draw" }, "Vote on draw"],
+    [{ kind: "seat_confirmed", deadline: inHours(1) }, "Seat confirmed · 1 hour left"],
+    [{ kind: "seat_confirmed" }, "Seat confirmed"],
+    [{ kind: "orders_unconfirmed" }, "Orders in · confirm to resolve early"],
+    [{ kind: "orders_confirmed", deadline: inHours(49) }, "Confirmed · Resolves in 2 days"],
+    [{ kind: "orders_confirmed" }, "Confirmed"],
+    [{ kind: "resolving", deadline: inHours(3) }, "Resolves in 3 hours"],
+    [{ kind: "mustering", deadline: inHours(2) }, "Mustering · 2 hours left"],
+    [{ kind: "mustering" }, "Mustering"],
+    [{ kind: "paused" }, "Paused"],
+    [{ kind: "finished", result: "solo_victory" }, "Solo victory"],
+    [{ kind: "finished", result: "won_by", winner: "France" }, "Won by France"],
+    [{ kind: "finished", result: "draw" }, "Draw"],
+    [{ kind: "finished", result: "abandoned" }, "Abandoned"],
+    [
+      { kind: "finished", result: "ongoing", departure: "eliminated" },
+      "Eliminated · game ongoing",
+    ],
+    [
+      { kind: "finished", result: "ongoing", departure: "civil_disorder" },
+      "Civil disorder · game ongoing",
+    ],
+    [{ kind: "finished", result: "draw", departure: "withdrawn" }, "Withdrew · Draw"],
+    [
+      { kind: "finished", result: "won_by", winner: "Turkey", departure: "removed" },
+      "Removed · Won by Turkey",
+    ],
+  ] as [Partial<MyGameState> & Pick<MyGameState, "kind">, string][])(
+    "renders %o as %s",
+    (state, label) => {
+      renderCurrentGame(makeGame(state));
 
-    expect(mockUseGamesListInfinite).toHaveBeenLastCalledWith(
-      expect.objectContaining({ ordering: "finished" })
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  );
+
+  it("renders the player count for games waiting for players", () => {
+    renderCurrentGame(
+      makeGame(
+        { kind: "waiting_for_players" },
+        { status: "pending", nation: null, seats: { filled: 3, total: 7 } }
+      )
+    );
+
+    expect(screen.getByText("3/7 players")).toBeInTheDocument();
+  });
+
+  it("renders no state badge for resolving games without a deadline", () => {
+    renderCurrentGame(makeGame({ kind: "resolving" }));
+
+    expect(screen.queryByText(/Resolves in/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["confirm_seat", "Confirm seat"],
+    ["submit_orders", "Submit orders"],
+    ["vote_on_draw", "Vote on draw"],
+  ] as const)("highlights %s in amber", (kind, label) => {
+    renderCurrentGame(makeGame({ kind }));
+
+    expect(screen.getByText(label).closest("[data-slot=badge]")).toHaveClass(
+      "bg-amber-50"
+    );
+  });
+
+  it.each([
+    [{ kind: "seat_confirmed" }, "Seat confirmed"],
+    [{ kind: "orders_unconfirmed" }, "Orders in · confirm to resolve early"],
+    [{ kind: "orders_confirmed" }, "Confirmed"],
+    [{ kind: "paused" }, "Paused"],
+    [{ kind: "finished", result: "draw" }, "Draw"],
+  ] as [Pick<MyGameState, "kind" | "result">, string][])(
+    "does not highlight %o",
+    (state, label) => {
+      renderCurrentGame(makeGame(state));
+
+      expect(screen.getByText(label).closest("[data-slot=badge]")).not.toHaveClass(
+        "bg-amber-50"
+      );
+    }
+  );
+});
+
+describe("MyGames card badges", () => {
+  it("shows the nation badge for games with a seat", () => {
+    renderCurrentGame(makeGame({ kind: "resolving" }, { nation: "England" }));
+
+    expect(screen.getByText("England")).toBeInTheDocument();
+  });
+
+  it("shows the sandbox badge and no state badge for sandbox games", () => {
+    renderCurrentGame(
+      makeGame({ kind: "sandbox" }, { sandbox: true, nation: null, name: "Practice" })
+    );
+
+    const card = screen.getByRole("link", { name: /Practice/ });
+    expect(within(card).getByText("Sandbox")).toBeInTheDocument();
+    expect(card.querySelectorAll("[data-slot=badge]")).toHaveLength(1);
+  });
+
+  it("shows no nation badge for pending and mustering games", () => {
+    setCurrent(
+      current(
+        [
+          "mustering",
+          [
+            makeGame(
+              { kind: "seat_confirmed" },
+              { status: "mustering", nation: null, seats: { filled: 4, total: 7 } }
+            ),
+          ],
+        ],
+        [
+          "pending",
+          [
+            makeGame(
+              { kind: "waiting_for_players" },
+              { status: "pending", nation: null, seats: { filled: 2, total: 7 } }
+            ),
+          ],
+        ]
+      )
+    );
+    renderMyGames();
+
+    expect(screen.queryByText("England")).not.toBeInTheDocument();
+    expect(screen.getByText("4/7 seats confirmed")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for players")).toBeInTheDocument();
+  });
+
+  it("shows the unread count when above zero", () => {
+    renderCurrentGame(makeGame({ kind: "resolving" }, { unreadCount: 4 }));
+
+    expect(screen.getByText("4")).toBeInTheDocument();
+  });
+
+  it("links the card to the game", () => {
+    renderCurrentGame(
+      makeGame({ kind: "resolving" }, { id: "abc", name: "Linked", currentPhaseId: 7 })
+    );
+
+    expect(screen.getByRole("link", { name: /Linked/ })).toHaveAttribute(
+      "href",
+      "/game/abc/phase/7/orders"
     );
   });
 });
 
-describe("MyGames eliminated games", () => {
-  it("shows 'Eliminated' section header before eliminated games in the active tab", async () => {
-    const activeGame = mockActiveGames[0];
-    const eliminatedGame = {
-      ...activeGame,
-      id: "eliminated-game",
-      name: "Eliminated Game",
-      members: activeGame.members.map((m: (typeof activeGame.members)[0]) =>
-        m.isCurrentUser ? { ...m, eliminated: true } : m
-      ),
-    };
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: [{ results: [activeGame, eliminatedGame], next: null }] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
-
+describe("MyGames view selector", () => {
+  it("sets the finished view in the URL and renders the finished list", async () => {
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    mockGamesMineFinishedList.mockResolvedValue(
+      finished([makeGame({ kind: "finished", result: "draw" }, { name: "Stalemate" })])
+    );
     renderMyGames();
 
-    await screen.findByText(activeGame.name);
-    expect(screen.getByRole("heading", { name: "Eliminated", level: 3 })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Current selected/ }));
+    await user.click(screen.getByRole("button", { name: "Finished" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("?view=finished");
+    expect(await screen.findByText("Stalemate")).toBeInTheDocument();
   });
 
-  it("does not show 'Eliminated' section header when no games have eliminated current user", async () => {
-    const game = mockActiveGames[0];
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: [{ results: [game], next: null }] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+  it("opens the finished view when loaded with the view parameter", async () => {
+    mockGamesMineFinishedList.mockResolvedValue(
+      finished([makeGame({ kind: "finished", result: "abandoned" }, { name: "Collapse" })])
+    );
+    renderMyGames("/?view=finished");
 
-    renderMyGames();
-
-    await screen.findByText(game.name);
-    expect(screen.queryByRole("heading", { name: "Eliminated", level: 3 })).not.toBeInTheDocument();
+    expect(await screen.findByText("Collapse")).toBeInTheDocument();
+    expect(mockGamesMineFinishedList).toHaveBeenCalledWith({ page: 1 });
+    expect(mockUseGamesMineCurrentRetrieveSuspense).not.toHaveBeenCalled();
   });
 });
 
-describe("MyGames draft variant fallback", () => {
-  it("renders a game whose variant is a draft not in the published catalogue", async () => {
-    const draftVariant = { ...mockVariants[0], id: "own-draft", status: "draft" };
-    const game = { ...mockActiveGames[0], variantId: draftVariant.id };
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: [{ results: [game], next: null }] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
-    mockUseVariantsRetrieve.mockReturnValue({ data: draftVariant });
-
+describe("MyGames empty states", () => {
+  it("shows the empty Current state with actions and a link to Finished", () => {
     renderMyGames();
 
-    expect(await screen.findByText(game.name)).toBeInTheDocument();
+    expect(screen.getByText("No current games")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Find games" })).toHaveAttribute(
+      "href",
+      "/find-games"
+    );
+    expect(screen.getByRole("link", { name: "Create a game" })).toHaveAttribute(
+      "href",
+      "/create-game"
+    );
+    expect(screen.getByRole("link", { name: "Show finished games" })).toHaveAttribute(
+      "href",
+      "/?view=finished"
+    );
   });
-});
 
-describe("MyGames resilience to malformed list data", () => {
-  it("renders the empty state instead of crashing when pages is not an array", async () => {
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: undefined },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+  it("shows the empty Finished state", async () => {
+    renderMyGames("/?view=finished");
 
-    renderMyGames();
-
+    expect(await screen.findByText("No finished games yet")).toBeInTheDocument();
     expect(
-      await screen.findByText(/your active games will appear here/i)
+      screen.getByText("Games you finish, leave or are eliminated from will appear here.")
     ).toBeInTheDocument();
-  });
-
-  it("renders the empty state instead of crashing when page.results is not an array", async () => {
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: [{ results: undefined, next: null }] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
-
-    renderMyGames();
-
-    expect(
-      await screen.findByText(/your active games will appear here/i)
-    ).toBeInTheDocument();
-  });
-
-  it("does not crash computing the eliminated section when a game's members is not an array", async () => {
-    const game = { ...mockActiveGames[0], members: undefined };
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: [{ results: [game], next: null }] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
-
-    renderMyGames();
-
-    expect(await screen.findByText(game.name)).toBeInTheDocument();
-  });
-});
-
-describe("MyGames phase fetching", () => {
-  it("renders without fanning out per-game phase fetches", async () => {
-    const game = mockActiveGames[0];
-    mockUseGamesListInfinite.mockReturnValue({
-      data: { pages: [{ results: [game], next: null }] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-    });
-    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
-
-    renderMyGames();
-    await screen.findByText(game.name);
-
-    // GameListSerializer now embeds the slim current_phase, so GameCard
-    // reads game.currentPhase directly instead of issuing a per-game
-    // phase fetch. Regression guard against the fan-out coming back.
-    expect(mockUseGamePhaseRetrieve).not.toHaveBeenCalled();
   });
 });

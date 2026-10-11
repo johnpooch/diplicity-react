@@ -17,6 +17,7 @@ import {
   publicProfiles,
 } from "./fixtures";
 import { nation as classicalNation } from "./fixtures/classical";
+import { myGamesCurrent, myGamesFinished } from "./myGames";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
 import cantonMapSvg from "./fixtures/data/canton.d.svg?raw";
 import hundredMapSvg from "./fixtures/data/hundred.d.svg?raw";
@@ -133,6 +134,10 @@ export const handlers = [
   http.get("*/games/fastest/", () =>
     HttpResponse.json({ game: gameFixtures.pendingGameFastestStart.game })
   ),
+
+  http.get("*/games/mine/current/", () => HttpResponse.json(myGamesCurrent)),
+
+  http.get("*/games/mine/finished/", () => HttpResponse.json(myGamesFinished)),
 
   http.get("*/games/", ({ request }) => {
     const url = new URL(request.url);
