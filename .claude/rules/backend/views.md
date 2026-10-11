@@ -47,6 +47,14 @@ Every view needs a docstring. drf-spectacular extracts it, and without one it pi
 
 Any GET the client polls mixes in `ConditionalGetMixin` from `common.views`. It hashes the rendered body into an ETag, sets `Cache-Control: private, no-cache`, and returns an empty 304 when `If-None-Match` matches (weak comparison, so Railway's gzip-downgraded `W/` ETags still match). Because the ETag is the body, it cannot go stale — but a polled response must not contain values that change on their own between polls (a countdown in seconds, a server `now`), or every poll becomes a 200 again. The 304 test for the endpoint guards this.
 
+`ConditionalGetMixin` saves bandwidth, not server work: the body is still built on every poll. When building it is expensive, a polled endpoint may mix in `PrecomputedConditionalGetMixin` instead and implement `get_fingerprint()`. The mixin answers a matching `If-None-Match` with an empty 304 after authentication and permissions have run, without calling the list or retrieve handler. Use it only when tests cover every response input:
+
+- The fingerprint hashes a narrow projection of every value that can change the response. Include the computed value where the response computes one, such as an unread count or a mute that expires, rather than the stored field it is derived from. Do not rely on `updated_at` alone: `QuerySet.update()` and bulk writes do not advance it.
+- Bump the fingerprint's representation-version salt whenever serialization changes without a database change.
+- For each input, the endpoint's tests take an ETag, perform the mutation, and assert a 200 with a different ETag. Another test asserts that an unchanged poll is a 304 that skips the serializer, with a query count that does not grow with history.
+
+`channel/utils.py` holds the reference implementation for the channel list.
+
 **Review check:** using a DRF generic, not a raw `APIView`? permission classes declared rather than checked in the body? view is thin? mixins used for shared context? queryset uses a QuerySet method (`with_list_data()`, etc.)? generic matches the mutation, with no body override just to change the status code? docstring present?
 
 - When two endpoints differ only in a small input (who is seated) or authz, share one create path. Thin wrappers are fine when the public API wants distinct operations.

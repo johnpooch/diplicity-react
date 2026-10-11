@@ -4,6 +4,10 @@ from django.apps import apps
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import conditional_page
+from rest_framework import status
+from rest_framework.response import Response
+
+from common.etag import if_none_match
 
 Phase = apps.get_model("phase", "Phase")
 Game = apps.get_model("game", "Game")
@@ -142,3 +146,19 @@ class ConditionalGetMixin:
     @method_decorator(cache_control(private=True, no_cache=True))
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
+
+
+class PrecomputedConditionalGetMixin:
+
+    def get_fingerprint(self):
+        raise NotImplementedError
+
+    def get(self, request, *args, **kwargs):
+        etag = f'"{self.get_fingerprint()}"'
+        if if_none_match(request, etag):
+            response = Response(status=status.HTTP_304_NOT_MODIFIED)
+        else:
+            response = super().get(request, *args, **kwargs)
+        response["ETag"] = etag
+        response["Cache-Control"] = "private, no-cache"
+        return response
