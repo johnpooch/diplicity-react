@@ -24,7 +24,7 @@ def seated_game_factory(
             sandbox=seat == "sandbox",
             eliminated_at=timezone.now() if seat == "eliminated" else None,
             civil_disorder_at=timezone.now() if seat == "civil_disorder" else None,
-            removed_at=timezone.now() if seat == "removed" else None,
+            removed_at=timezone.now() if seat in ("removed", "replaced") else None,
             withdrawn_at=timezone.now() if seat == "withdrawn" else None,
         )
         if seat == "replaced":
