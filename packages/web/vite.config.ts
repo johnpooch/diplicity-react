@@ -1,14 +1,21 @@
 import { defineConfig as defineTestConfig } from "vitest/config";
 import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import { copyFileSync } from "fs";
+import { copyFileSync, readFileSync } from "fs";
 import { resolve } from "path";
 import tailwindcss from "@tailwindcss/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 
+const { version } = JSON.parse(
+  readFileSync(resolve(__dirname, "package.json"), "utf8")
+);
+
 // https://vite.dev/config/
 const config = defineConfig({
   envDir: resolve(__dirname, "../.."),
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     react(),
     tailwindcss(),
