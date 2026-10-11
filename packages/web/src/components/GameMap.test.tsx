@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
@@ -40,7 +40,7 @@ type WizardState = {
   resolvedSelections: Record<string, string>;
   resolvedLabels: Record<string, string>;
   nextField: string | null;
-  choices: never[];
+  choices: { id: string; label: string }[];
   selections: Record<string, string>;
   select: ReturnType<typeof vi.fn>;
   reset: ReturnType<typeof vi.fn>;
@@ -70,6 +70,8 @@ vi.mock("@/hooks/useOrderWizard", () => ({
 }));
 
 let mockMutateAsync = vi.fn();
+let mockDeleteMutateAsync = vi.fn();
+let mockOrderOptions: { source: { id: string; label: string }; orderType?: { id: string; label: string } }[] = [];
 let mockExistingOrders: Order[] = [];
 let mockPublishedVariants: (typeof mockVariant)[] = [];
 let mockRetrievedVariant: typeof mockVariant | undefined = undefined;
@@ -82,9 +84,10 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersList: () => ({ data: mockExistingOrders }),
   useGameOptionsRetrieve: (...args: unknown[]) => {
     mockUseGameOptionsRetrieve(...args);
-    return { data: { orders: [mockOrderOption], fieldOrder: {} } };
+    return { data: { orders: mockOrderOptions, fieldOrder: {} } };
   },
   useGameOrdersCreate: () => ({ mutateAsync: mockMutateAsync }),
+  useGameOrdersDeleteDestroy: () => ({ mutateAsync: mockDeleteMutateAsync }),
   getGameOrdersListQueryKey: (gameId: string, phaseId: number) => [
     `/game/${gameId}/orders/${phaseId}`,
   ],
@@ -99,6 +102,9 @@ vi.mock("@/utils/provinces", () => ({
 
 // --- Fixture data ---
 const mockOrderOption = { source: { id: "lon", label: "London" } };
+
+const holdOption = { ...mockOrderOption, orderType: { id: "Hold", label: "Hold" } };
+const moveOption = { ...mockOrderOption, orderType: { id: "Move", label: "Move" } };
 
 const england = { name: "England", color: "rgb(255,0,0)" };
 
@@ -210,6 +216,14 @@ function getLastOrdersProp(): Order[] {
   return props.orders ?? [];
 }
 
+function clickProvince(province: string) {
+  const last = mockMapView.mock.calls.at(-1);
+  const props = (last![0] as unknown) as {
+    onClickProvince: (province: string, position: { x: number; y: number }) => void;
+  };
+  act(() => props.onClickProvince(province, { x: 10, y: 10 }));
+}
+
 function getLastCivilDisorderNationsProp(): string[] {
   const last = mockMapView.mock.calls.at(-1);
   if (!last) return [];
@@ -238,6 +252,8 @@ describe("GameMap", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockMutateAsync = vi.fn();
+    mockDeleteMutateAsync = vi.fn();
+    mockOrderOptions = [mockOrderOption];
     mockExistingOrders = [];
     mockWizardState = buildIdleWizard();
     mockPublishedVariants = [mockVariant];
@@ -318,6 +334,124 @@ describe("GameMap", () => {
         query: { enabled: false },
       });
       expect(mockUseOrderWizard.mock.calls.at(-1)?.[0]).toEqual([]);
+    });
+  });
+
+  describe("clearing an order", () => {
+    const existingDisbandOrder = {
+      source: lon,
+      target: null,
+      aux: null,
+      namedCoast: null,
+      sourceCoast: null,
+      orderType: "Disband",
+      unitType: "Army",
+      nation: england,
+      resolution: null,
+      complete: null,
+      step: null,
+      title: "Army London disband",
+      summary: null,
+    } as unknown as Order;
+
+    function openOrderMenu() {
+      mockWizardState = {
+        ...mockWizardState,
+        nextField: "orderType",
+        resolvedSelections: { source: "lon" },
+        choices: [
+          { id: "Hold", label: "Hold" },
+          { id: "Move", label: "Move" },
+        ],
+      };
+    }
+
+    it("clears the order when its unit has only one possible order", async () => {
+      mockExistingOrders = [existingDisbandOrder];
+      mockWizardState.choices = [{ id: "lon", label: "London" }];
+      mockDeleteMutateAsync.mockResolvedValue(undefined);
+
+      const queryClient = makeQueryClient();
+      queryClient.setQueryData(["/game/game-1/orders/1"], mockExistingOrders);
+
+      render(gameMapJsx(queryClient));
+      clickProvince("lon");
+
+      await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith("Order cleared"));
+      expect(mockDeleteMutateAsync).toHaveBeenCalledWith({ gameId: "game-1", sourceId: "lon" });
+      expect(mockWizardState.select).not.toHaveBeenCalled();
+      expect(queryClient.getQueryData(["/game/game-1/orders/1"])).toEqual([]);
+    });
+
+    it("hides the order while it is being cleared", async () => {
+      mockExistingOrders = [existingDisbandOrder];
+      mockWizardState.choices = [{ id: "lon", label: "London" }];
+      mockDeleteMutateAsync.mockReturnValue(new Promise(() => {}));
+
+      render(gameMapJsx());
+      clickProvince("lon");
+
+      await waitFor(() => expect(getLastOrdersProp()).toEqual([]));
+    });
+
+    it("restores the order and shows an error toast when clearing fails", async () => {
+      mockExistingOrders = [existingDisbandOrder];
+      mockWizardState.choices = [{ id: "lon", label: "London" }];
+      mockDeleteMutateAsync.mockRejectedValue(new Error("Network error"));
+
+      render(gameMapJsx());
+      clickProvince("lon");
+
+      await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("Failed to clear order"));
+      expect(getLastOrdersProp()).toEqual([existingDisbandOrder]);
+    });
+
+    it("starts a new order when the unit has more than one possible order", async () => {
+      mockExistingOrders = [existingDisbandOrder];
+      mockOrderOptions = [holdOption, moveOption];
+      mockWizardState.choices = [{ id: "lon", label: "London" }];
+
+      render(gameMapJsx());
+      clickProvince("lon");
+
+      expect(mockWizardState.select).toHaveBeenCalledWith("lon");
+      expect(mockDeleteMutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("starts a new order when the unit's only possible order has not been entered", async () => {
+      mockWizardState.choices = [{ id: "lon", label: "London" }];
+
+      render(gameMapJsx());
+      clickProvince("lon");
+
+      expect(mockWizardState.select).toHaveBeenCalledWith("lon");
+      expect(mockDeleteMutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("offers to clear the order from the order menu", async () => {
+      mockExistingOrders = [existingDisbandOrder];
+      mockOrderOptions = [holdOption, moveOption];
+      mockDeleteMutateAsync.mockResolvedValue(undefined);
+      openOrderMenu();
+
+      render(gameMapJsx());
+      clickProvince("lon");
+      fireEvent.click(await screen.findByText("Clear Order"));
+
+      await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith("Order cleared"));
+      expect(mockDeleteMutateAsync).toHaveBeenCalledWith({ gameId: "game-1", sourceId: "lon" });
+      expect(mockWizardReset).toHaveBeenCalled();
+    });
+
+    it("does not offer to clear from the order menu when the unit has no order", async () => {
+      mockOrderOptions = [holdOption, moveOption];
+      openOrderMenu();
+
+      render(gameMapJsx());
+      clickProvince("lon");
+
+      expect(await screen.findByText("Move")).toBeInTheDocument();
+      expect(screen.queryByText("Clear Order")).not.toBeInTheDocument();
     });
   });
 

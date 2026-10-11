@@ -10,7 +10,11 @@ import {
   unitAbbrev,
 } from "../utils/buildOrderProgressText";
 import { MapView } from "./MapView";
-import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
+import {
+  FloatingMenu,
+  FloatingMenuItem,
+  FloatingMenuSeparator,
+} from "./FloatingMenu";
 import {
   useGameRetrieve,
   useVariantsList,
@@ -18,6 +22,7 @@ import {
   useGamePhaseRetrieve,
   useGameOrdersList,
   useGameOrdersCreate,
+  useGameOrdersDeleteDestroy,
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
   useGameOptionsRetrieve,
@@ -95,13 +100,13 @@ const GameMap: React.FC = () => {
     y: number;
   } | null>(null);
   const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [clearingSource, setClearingSource] = useState<string | null>(null);
   const banner = useBanner();
   const createOrderMutation = useGameOrdersCreate();
+  const deleteOrderMutation = useGameOrdersDeleteDestroy();
 
-  const wizard = useOrderWizard(
-    canEnterOrders ? (optionsData?.orders ?? []) : [],
-    optionsData?.fieldOrder ?? {}
-  );
+  const orderOptions = canEnterOrders ? (optionsData?.orders ?? []) : [];
+  const wizard = useOrderWizard(orderOptions, optionsData?.fieldOrder ?? {});
 
   const variant = publishedVariant ?? fetchedVariant;
 
@@ -184,11 +189,35 @@ const GameMap: React.FC = () => {
     }
   };
 
+  const hasOrder = (province: string) =>
+    (orders ?? []).some((o) => o.source.id === province);
+
+  const handleClearOrder = async (source: string) => {
+    wizard.reset();
+    setMenuPosition(null);
+    setClearingSource(source);
+    try {
+      await deleteOrderMutation.mutateAsync({ gameId, sourceId: source });
+      queryClient.setQueryData<Order[]>(
+        getGameOrdersListQueryKey(gameId, selectedPhase),
+        (old) => (old ?? []).filter((o) => o.source.id !== source)
+      );
+      queryClient.invalidateQueries({
+        queryKey: getGamePhaseStatesListQueryKey(gameId),
+      });
+      toast.success("Order cleared");
+    } catch {
+      toast.error("Failed to clear order");
+    } finally {
+      setClearingSource(null);
+    }
+  };
+
   const handleProvinceClick = (
     province: string,
     position: { x: number; y: number }
   ) => {
-    if (!renderableProvinces.includes(province)) {
+    if (!renderableProvinces.includes(province) || province === clearingSource) {
       return;
     }
 
@@ -203,6 +232,13 @@ const GameMap: React.FC = () => {
         } else if (!unit) {
           banner.show(provinceNameMap[province] ?? province);
         }
+        return;
+      }
+      const sourceOptionCount = orderOptions.filter(
+        (o) => o.source?.id === province
+      ).length;
+      if (sourceOptionCount === 1 && hasOrder(province)) {
+        handleClearOrder(province);
         return;
       }
       captureMenuPosition(position);
@@ -239,6 +275,9 @@ const GameMap: React.FC = () => {
       wizard.nextField === "namedCoast") &&
     menuPosition !== null;
 
+  const menuSource = wizard.resolvedSelections["source"];
+  const canClearMenuSource = showMenu && !!menuSource && hasOrder(menuSource);
+
   useEffect(() => {
     if (!showMenu || !isDesktopWeb) return;
 
@@ -259,14 +298,18 @@ const GameMap: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showMenu, isDesktopWeb, wizard]);
 
+  const visibleOrders = clearingSource
+    ? (orders ?? []).filter((o) => o.source.id !== clearingSource)
+    : orders;
+
   const displayOrders = pendingOrder
     ? [
-        ...(orders ?? []).filter(
+        ...(visibleOrders ?? []).filter(
           (o) => o.source.id !== pendingOrder.source.id
         ),
         pendingOrder,
       ]
-    : orders;
+    : visibleOrders;
 
   const progressText =
     phase && isWizardActive
@@ -316,6 +359,17 @@ const GameMap: React.FC = () => {
                 {c.label}
               </FloatingMenuItem>
             ))}
+            {canClearMenuSource && (
+              <>
+                <FloatingMenuSeparator />
+                <FloatingMenuItem
+                  variant="destructive"
+                  onClick={() => handleClearOrder(menuSource)}
+                >
+                  Clear Order
+                </FloatingMenuItem>
+              </>
+            )}
           </FloatingMenu>
         </>
       )}
