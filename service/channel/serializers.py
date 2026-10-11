@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core import exceptions
 from django.utils import timezone
 
+from common.constants import ChannelMessagePagination
 from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
 from .policies import can_mute_channel, can_rename_channel
 from nation.serializers import NationSerializer
@@ -52,6 +53,26 @@ class ChannelMessageSerializer(serializers.Serializer):
         if created:
             emit("channel_message", message=message)
         return message
+
+
+class ChannelMessagePageQuerySerializer(serializers.Serializer):
+    before = serializers.IntegerField(required=False, min_value=1)
+    after = serializers.IntegerField(required=False, min_value=1)
+    page_size = serializers.IntegerField(min_value=1, default=ChannelMessagePagination.DEFAULT_PAGE_SIZE)
+
+    def validate_page_size(self, value):
+        return min(value, ChannelMessagePagination.MAX_PAGE_SIZE)
+
+    def validate(self, attrs):
+        if "before" in attrs and "after" in attrs:
+            raise serializers.ValidationError("Provide either before or after, not both.")
+        return attrs
+
+
+class ChannelMessagePageSerializer(serializers.Serializer):
+    results = ChannelMessageSerializer(many=True, read_only=True)
+    has_older = serializers.BooleanField(read_only=True)
+    has_newer = serializers.BooleanField(read_only=True)
 
 
 class ChannelEventSerializer(serializers.Serializer):

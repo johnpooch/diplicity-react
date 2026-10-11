@@ -51,3 +51,9 @@ class LegacyMemberJoinView(MemberJoinView):
 ```
 
 Register it in the owning app's `urls.py` with a `-legacy` suffix on the URL name, and cover it with a test asserting the literal path — that string is the contract, so `reverse()` alone does not protect it. Aliases are removed once the store metrics show the old builds are gone, not as part of the rename.
+
+## Page by ID, present by time
+
+An endpoint that pages a growing, append-only history selects each window by primary key and presents it by time. Channel message history is the example. With no boundary it returns the highest IDs. `before=<id>` returns the nearest lower IDs, and `after=<id>` returns the lowest IDs above the boundary. Never take the newest rows after the boundary, which skips messages during a burst. Derive overflow and `has_older` / `has_newer` from the ID window, then sort only the selected rows by `(created_at, id)`. Never order by `created_at` before slicing: an insertion boundary is an ID, and a timestamp-ordered slice can skip or repeat rows around it.
+
+Because presentation is by time, the first and last rows of a page are not its ID bounds. Clients page backward with `before=` the page's minimum `id` and forward with `after=` its maximum `id`, never the first or last row. Test traversal with `created_at` deliberately out of ID order, including ties.

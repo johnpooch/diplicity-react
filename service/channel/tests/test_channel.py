@@ -877,6 +877,380 @@ class TestChannelPreviewListView:
         assert len(long_history.captured_queries) == len(short_history.captured_queries)
 
 
+def _create_messages(channel, sender, count):
+    messages = ChannelMessage.objects.bulk_create(
+        [ChannelMessage(channel=channel, sender=sender, body=f"Message {index}") for index in range(count)]
+    )
+    return [message.id for message in messages]
+
+
+def _result_ids(response):
+    return [message["id"] for message in response.data["results"]]
+
+
+def _set_created_at(message_ids, offsets):
+    base = timezone.now()
+    created_at = {}
+    for message_id, offset in zip(message_ids, offsets):
+        created_at[message_id] = base + timedelta(seconds=offset)
+        ChannelMessage.objects.filter(id=message_id).update(created_at=created_at[message_id])
+    return created_at
+
+
+def _chronological(message_ids, created_at):
+    return sorted(message_ids, key=lambda message_id: (created_at[message_id], message_id))
+
+
+class TestChannelMessageListView:
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_empty_history(self, authenticated_client, active_game_with_private_channel):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+
+        response = authenticated_client.get(reverse("channel-message-list", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"results": [], "has_older": False, "has_newer": False}
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_response_fields(self, authenticated_client, active_game_with_channels):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+
+        response = authenticated_client.get(reverse("channel-message-list", args=[game.id, channel.id]))
+
+        [message] = response.data["results"]
+        assert set(message) == {"id", "body", "client_message_id", "sender", "created_at"}
+        assert message["body"] == "Test message"
+        assert message["sender"]["nation"]["name"] == "England"
+        assert message["sender"]["is_current_user"] is True
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_defaults_to_the_newest_page_oldest_first(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 60)
+
+        response = authenticated_client.get(reverse("channel-message-list", args=[game.id, channel.id]))
+
+        assert _result_ids(response) == message_ids[10:]
+        assert response.data["has_older"] is True
+        assert response.data["has_newer"] is False
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_exact_page_has_no_older(self, authenticated_client, active_game_with_private_channel):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 5)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"page_size": 5}
+        )
+
+        assert _result_ids(response) == message_ids
+        assert response.data["has_older"] is False
+        assert response.data["has_newer"] is False
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_before_returns_the_nearest_older_page(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 10)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"before": message_ids[6], "page_size": 3}
+        )
+
+        assert _result_ids(response) == message_ids[3:6]
+        assert response.data["has_older"] is True
+        assert response.data["has_newer"] is True
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_before_reaching_the_oldest_message(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 5)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"before": message_ids[3], "page_size": 3}
+        )
+
+        assert _result_ids(response) == message_ids[:3]
+        assert response.data["has_older"] is False
+        assert response.data["has_newer"] is True
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_after_returns_the_earliest_newer_page(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 10)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"after": message_ids[2], "page_size": 3}
+        )
+
+        assert _result_ids(response) == message_ids[3:6]
+        assert response.data["has_older"] is True
+        assert response.data["has_newer"] is True
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_after_the_newest_message(self, authenticated_client, active_game_with_private_channel):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 5)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"after": message_ids[-1]}
+        )
+
+        assert response.data == {"results": [], "has_older": True, "has_newer": False}
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_after_a_burst_of_more_than_100_messages(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        [seen_id] = _create_messages(channel, game.members.first(), 1)
+        burst_ids = _create_messages(channel, game.members.first(), 150)
+
+        first = authenticated_client.get(url, {"after": seen_id, "page_size": 100})
+        second = authenticated_client.get(url, {"after": max(_result_ids(first)), "page_size": 100})
+
+        assert _result_ids(first) == burst_ids[:100]
+        assert first.data["has_newer"] is True
+        assert _result_ids(second) == burst_ids[100:]
+        assert second.data["has_newer"] is False
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_walking_back_has_no_duplicates_or_gaps(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        message_ids = _create_messages(channel, game.members.first(), 23)
+
+        pages = [authenticated_client.get(url, {"page_size": 5})]
+        while pages[-1].data["has_older"]:
+            pages.append(authenticated_client.get(url, {"before": min(_result_ids(pages[-1])), "page_size": 5}))
+
+        assert [message_id for page in reversed(pages) for message_id in _result_ids(page)] == message_ids
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_walking_forward_has_no_duplicates_or_gaps(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        [seen_id] = _create_messages(channel, game.members.first(), 1)
+        message_ids = _create_messages(channel, game.members.first(), 23)
+
+        pages = [authenticated_client.get(url, {"after": seen_id, "page_size": 5})]
+        while pages[-1].data["has_newer"]:
+            pages.append(authenticated_client.get(url, {"after": max(_result_ids(pages[-1])), "page_size": 5}))
+
+        assert [message_id for page in pages for message_id in _result_ids(page)] == message_ids
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_selects_pages_by_id_and_presents_them_by_creation_time(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        ids = _create_messages(channel, game.members.first(), 6)
+        _set_created_at(ids, [40, 10, 30, 20, 20, 0])
+
+        newest = authenticated_client.get(url, {"page_size": 4})
+        before = authenticated_client.get(url, {"before": ids[2], "page_size": 4})
+        after = authenticated_client.get(url, {"after": ids[0], "page_size": 3})
+
+        assert _result_ids(newest) == [ids[5], ids[3], ids[4], ids[2]]
+        assert newest.data["has_older"] is True
+        assert newest.data["has_newer"] is False
+        assert _result_ids(before) == [ids[1], ids[0]]
+        assert before.data["has_older"] is False
+        assert before.data["has_newer"] is True
+        assert _result_ids(after) == [ids[1], ids[3], ids[2]]
+        assert after.data["has_older"] is True
+        assert after.data["has_newer"] is True
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_walking_back_out_of_creation_order_has_no_duplicates_or_gaps(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        message_ids = _create_messages(channel, game.members.first(), 23)
+        created_at = _set_created_at(message_ids, [(index * 7) % 5 for index in range(23)])
+
+        pages = [authenticated_client.get(url, {"page_size": 5})]
+        while pages[-1].data["has_older"]:
+            pages.append(authenticated_client.get(url, {"before": min(_result_ids(pages[-1])), "page_size": 5}))
+
+        assert all(_result_ids(page) == _chronological(_result_ids(page), created_at) for page in pages)
+        assert sorted(message_id for page in pages for message_id in _result_ids(page)) == message_ids
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_walking_forward_out_of_creation_order_has_no_duplicates_or_gaps(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        [seen_id] = _create_messages(channel, game.members.first(), 1)
+        message_ids = _create_messages(channel, game.members.first(), 23)
+        created_at = _set_created_at(message_ids, [(index * 7) % 5 for index in range(23)])
+
+        pages = [authenticated_client.get(url, {"after": seen_id, "page_size": 5})]
+        while pages[-1].data["has_newer"]:
+            pages.append(authenticated_client.get(url, {"after": max(_result_ids(pages[-1])), "page_size": 5}))
+
+        assert all(_result_ids(page) == _chronological(_result_ids(page), created_at) for page in pages)
+        assert sorted(message_id for page in pages for message_id in _result_ids(page)) == message_ids
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_page_size_is_capped_at_100(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        message_ids = _create_messages(channel, game.members.first(), 101)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"page_size": 500}
+        )
+
+        assert _result_ids(response) == message_ids[1:]
+        assert response.data["has_older"] is True
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_rejects_before_and_after_together(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[game.id, channel.id]), {"before": 10, "after": 1}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"before": 0},
+            {"before": -1},
+            {"before": "abc"},
+            {"after": 0},
+            {"after": "1.5"},
+            {"page_size": 0},
+            {"page_size": "many"},
+        ],
+    )
+    def test_list_channel_messages_rejects_invalid_parameters(
+        self, authenticated_client, active_game_with_private_channel, params
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+
+        response = authenticated_client.get(reverse("channel-message-list", args=[game.id, channel.id]), params)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert set(response.data) == set(params)
+
+    @pytest.mark.django_db
+    def test_list_public_channel_messages_unauthenticated(self, unauthenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        channel = game.channels.get()
+
+        response = unauthenticated_client.get(reverse("channel-message-list", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [message["body"] for message in response.data["results"]] == ["Message 1", "Message 2"]
+
+    @pytest.mark.django_db
+    def test_list_private_channel_messages_as_non_member_not_found(
+        self, authenticated_client_for_secondary_user, active_game_with_channels
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+
+        response = authenticated_client_for_secondary_user.get(
+            reverse("channel-message-list", args=[game.id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_list_private_channel_messages_unauthenticated_not_found(
+        self, unauthenticated_client, active_game_with_channels
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+
+        response = unauthenticated_client.get(reverse("channel-message-list", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_from_another_game_not_found(
+        self, authenticated_client, active_game_with_channels, classical_variant
+    ):
+        other_game = Game.objects.create(name="Other Game", variant=classical_variant, status=GameStatus.ACTIVE)
+        other_channel = Channel.objects.create(game=other_game, name="Other Game Channel", private=False)
+
+        response = authenticated_client.get(
+            reverse("channel-message-list", args=[active_game_with_channels.id, other_channel.id])
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_list_channel_messages_query_count_does_not_grow_with_history_or_senders(
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        user_factory,
+        classical_germany_nation,
+        classical_italy_nation,
+    ):
+        game = game_with_public_channel_and_messages
+        channel = game.channels.get()
+        url = reverse("channel-message-list", args=[game.id, channel.id])
+        with CaptureQueriesContext(connection) as short_history:
+            authenticated_client.get(url)
+        for nation in [classical_germany_nation, classical_italy_nation]:
+            user = user_factory()
+            UserProfilePicture.objects.store(user.profile, b"picture", "image/png")
+            _create_messages(channel, game.members.create(user=user, nation=nation), 20)
+        older_id = _result_ids(authenticated_client.get(url))[0]
+
+        with CaptureQueriesContext(connection) as long_history:
+            response = authenticated_client.get(url)
+        with CaptureQueriesContext(connection) as older_page:
+            authenticated_client.get(url, {"before": older_id})
+
+        assert len(response.data["results"]) == 42
+        assert len(long_history.captured_queries) == len(short_history.captured_queries)
+        assert len(older_page.captured_queries) == len(short_history.captured_queries) + 1
+
+
 class TestChannelListView:
 
     @pytest.mark.django_db

@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     ChannelCreateView,
     ChannelMessageCreateView,
+    ChannelMessageListView,
     ChannelListView,
     ChannelMarkReadView,
     ChannelMuteView,
@@ -21,6 +22,11 @@ urlpatterns = [
         "games/<str:game_id>/channels/<int:channel_id>/",
         ChannelRetrieveUpdateView.as_view(),
         name="channel-update",
+    ),
+    path(
+        "games/<str:game_id>/channels/<int:channel_id>/messages/",
+        ChannelMessageListView.as_view(),
+        name="channel-message-list",
     ),
     path(
         "games/<str:game_id>/channels/<int:channel_id>/messages/create/",

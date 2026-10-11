@@ -143,7 +143,6 @@ class ChannelManager(models.Manager):
     def hydrate_latest_messages(self, channels):
         messages = (
             ChannelMessage.objects.with_sender_data()
-            .select_related("sender__nation__flag")
             .in_bulk([channel.latest_message_id for channel in channels if channel.latest_message_id is not None])
         )
         for channel in channels:
@@ -206,7 +205,25 @@ class ChannelMessageQuerySet(models.QuerySet):
         return self.filter(channel=channel)
 
     def with_sender_data(self):
-        return self.select_related("sender", "sender__user", "sender__user__profile__uploaded_picture")
+        return self.select_related(
+            "sender", "sender__user", "sender__user__profile__uploaded_picture", "sender__nation__flag"
+        )
+
+    def page(self, *, page_size, before=None, after=None):
+        if after is not None:
+            window = list(self.filter(id__gt=after).order_by("id")[: page_size + 1])
+            has_older = self.filter(id__lte=after).exists()
+            has_newer = len(window) > page_size
+        else:
+            older = self if before is None else self.filter(id__lt=before)
+            window = list(older.order_by("-id")[: page_size + 1])
+            has_older = len(window) > page_size
+            has_newer = before is not None and self.filter(id__gte=before).exists()
+        return {
+            "results": sorted(window[:page_size], key=lambda message: (message.created_at, message.id)),
+            "has_older": has_older,
+            "has_newer": has_newer,
+        }
 
     def unread_by(self, user):
         last_read_subquery = Subquery(
