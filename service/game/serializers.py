@@ -269,35 +269,14 @@ class MyGameSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
-    variant_id = serializers.CharField(source="variant.id", read_only=True)
+    variant_id = serializers.CharField(read_only=True)
     sandbox = serializers.BooleanField(read_only=True)
-    current_phase_id = serializers.SerializerMethodField()
-    current_phase = serializers.SerializerMethodField()
-    nation = serializers.SerializerMethodField()
-    seats = MyGameSeatsSerializer(source="seat_counts", read_only=True, allow_null=True)
-    unread_count = serializers.IntegerField(source="total_unread_message_count", read_only=True)
-    state = serializers.SerializerMethodField()
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_current_phase_id(self, obj):
-        current = obj.current_phase
-        return current.id if current else None
-
-    @extend_schema_field(GameListCurrentPhaseSerializer(allow_null=True))
-    def get_current_phase(self, obj):
-        current = obj.current_phase
-        return GameListCurrentPhaseSerializer(current).data if current else None
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_nation(self, obj):
-        seat = obj.my_seat(self.context["request"].user)
-        if seat is None or seat.nation is None:
-            return None
-        return seat.nation.name
-
-    @extend_schema_field(MyGameStateSerializer)
-    def get_state(self, obj):
-        return MyGameStateSerializer(obj.my_game_state(self.context["request"].user)).data
+    current_phase_id = serializers.IntegerField(read_only=True, allow_null=True)
+    current_phase = GameListCurrentPhaseSerializer(read_only=True, allow_null=True)
+    nation = serializers.CharField(read_only=True, allow_null=True)
+    seats = MyGameSeatsSerializer(read_only=True, allow_null=True)
+    unread_count = serializers.IntegerField(read_only=True)
+    state = MyGameStateSerializer(read_only=True)
 
 
 class MyGamesSectionSerializer(serializers.Serializer):

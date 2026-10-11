@@ -8,6 +8,7 @@ from opentelemetry import trace
 
 from common.constants import GameStatus
 from .models import Game
+from .service import MyGamesService
 from .serializers import (
     GameCreateSerializer,
     GameCreateSandboxSerializer,
@@ -82,7 +83,7 @@ class MyGamesCurrentView(generics.RetrieveAPIView):
     serializer_class = MyGamesCurrentSerializer
 
     def get_object(self):
-        return {"sections": Game.objects.my_games_current(self.request.user)}
+        return MyGamesService(self.request.user).current()
 
 
 class GameCreateView(generics.CreateAPIView):

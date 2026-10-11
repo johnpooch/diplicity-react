@@ -3532,17 +3532,17 @@ components:
           readOnly: true
         currentPhaseId:
           type: integer
-          nullable: true
           readOnly: true
+          nullable: true
         currentPhase:
           allOf:
           - $ref: '#/components/schemas/GameListCurrentPhase'
-          nullable: true
           readOnly: true
+          nullable: true
         nation:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         seats:
           allOf:
           - $ref: '#/components/schemas/MyGameSeats'
