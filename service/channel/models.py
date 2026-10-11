@@ -34,6 +34,42 @@ class ChannelQuerySet(models.QuerySet):
             models.Prefetch("events", queryset=ChannelEvent.objects.for_display()),
         )
 
+    def with_latest_message_id(self):
+        latest_message = (
+            ChannelMessage.objects.filter(channel=OuterRef("pk")).order_by("-created_at", "-id").values("id")[:1]
+        )
+        return self.annotate(latest_message_id=Subquery(latest_message))
+
+    def with_first_unread_message_id(self, user):
+        if not user.is_authenticated:
+            return self.annotate(first_unread_message_id=Value(None, output_field=IntegerField()))
+        first_unread_message = (
+            ChannelMessage.objects.filter(channel=OuterRef("pk"))
+            .unread_by(user)
+            .order_by("created_at", "id")
+            .values("id")[:1]
+        )
+        return self.annotate(first_unread_message_id=Subquery(first_unread_message))
+
+    def with_preview_data(self):
+        return self.prefetch_related(
+            models.Prefetch(
+                "messages",
+                queryset=ChannelMessage.objects.with_sender_data()
+                .select_related("sender__nation__flag")
+                .order_by("-created_at", "-id")[:1],
+                to_attr="latest_messages",
+            )
+        )
+
+    def with_detail_data(self):
+        latest_event = (
+            ChannelEvent.objects.for_display().filter(channel=OuterRef("pk")).order_by("-created_at", "-id").values("id")[:1]
+        )
+        return self.annotate(latest_event_id=Subquery(latest_event)).prefetch_related(
+            models.Prefetch("events", queryset=ChannelEvent.objects.for_display().select_related("phase"))
+        )
+
     def order_for_list(self):
         return self.annotate(last_activity=Max("messages__created_at")).order_by(
             "private",

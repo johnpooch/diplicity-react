@@ -131,8 +131,12 @@ class CurrentGameMemberMixin:
     """
 
     def get_current_game_member(self):
-        game = self.get_game()
-        return game.members.filter(user=self.request.user).first()
+        if not hasattr(self, "_current_game_member"):
+            user = self.request.user
+            self._current_game_member = (
+                self.get_game().members.filter(user=user).first() if user.is_authenticated else None
+            )
+        return self._current_game_member
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

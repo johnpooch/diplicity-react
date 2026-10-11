@@ -124,6 +124,24 @@ export interface Channel {
   memberIds: number[];
 }
 
+export interface ChannelDetail {
+  readonly id: number;
+  readonly name: string;
+  readonly title: string;
+  readonly private: boolean;
+  readonly muted: boolean;
+  readonly canMute: boolean;
+  readonly canRename: boolean;
+  readonly unreadMessageCount: number;
+  /** @nullable */
+  readonly firstUnreadMessageId: number | null;
+  /** @nullable */
+  readonly latestMessageId: number | null;
+  /** @nullable */
+  readonly latestEventId: number | null;
+  readonly events: readonly ChannelEvent[];
+}
+
 /**
  * * `8_hours` - 8_hours
  * `24_hours` - 24_hours
@@ -145,6 +163,16 @@ export const NullEnum = {} as const;
 export interface ChannelMute {
   readonly muted: boolean;
   muteDuration: MuteDurationEnum | NullEnum | null;
+}
+
+export interface ChannelPreview {
+  readonly id: number;
+  readonly name: string;
+  readonly title: string;
+  readonly private: boolean;
+  readonly muted: boolean;
+  readonly unreadMessageCount: number;
+  readonly latestMessage: ChannelMessage | null;
 }
 
 export interface ChannelUpdate {
@@ -7202,6 +7230,288 @@ export function useGamesListSuspense<
 }
 
 /**
+ * List the channels the requester can read, each with only its latest message.
+ */
+export const gamesChannelPreviewsList = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<ChannelPreview[]>({
+    url: `/games/${gameId}/channel-previews/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGamesChannelPreviewsListQueryKey = (gameId: string) => {
+  return [`/games/${gameId}/channel-previews/`] as const;
+};
+
+export const getGamesChannelPreviewsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesChannelPreviewsListQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesChannelPreviewsList>>
+  > = ({ signal }) => gamesChannelPreviewsList(gameId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!gameId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesChannelPreviewsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelPreviewsList>>
+>;
+export type GamesChannelPreviewsListQueryError = unknown;
+
+export function useGamesChannelPreviewsList<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+          TError,
+          Awaited<ReturnType<typeof gamesChannelPreviewsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelPreviewsList<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+          TError,
+          Awaited<ReturnType<typeof gamesChannelPreviewsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelPreviewsList<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesChannelPreviewsList<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesChannelPreviewsListQueryOptions(gameId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesChannelPreviewsListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesChannelPreviewsListQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesChannelPreviewsList>>
+  > = ({ signal }) => gamesChannelPreviewsList(gameId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesChannelPreviewsListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelPreviewsList>>
+>;
+export type GamesChannelPreviewsListSuspenseQueryError = unknown;
+
+export function useGamesChannelPreviewsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelPreviewsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelPreviewsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesChannelPreviewsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelPreviewsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesChannelPreviewsListSuspenseQueryOptions(
+    gameId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
@@ -7482,7 +7792,310 @@ export function useGamesChannelsListSuspense<
 }
 
 /**
- * Rename a private channel.
+ * Retrieve a channel without its message history, or rename a private channel.
+ */
+export const gamesChannelsRetrieve = (
+  gameId: string,
+  channelId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<ChannelDetail>({
+    url: `/games/${gameId}/channels/${channelId}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGamesChannelsRetrieveQueryKey = (
+  gameId: string,
+  channelId: number
+) => {
+  return [`/games/${gameId}/channels/${channelId}/`] as const;
+};
+
+export const getGamesChannelsRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGamesChannelsRetrieveQueryKey(gameId, channelId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+  > = ({ signal }) => gamesChannelsRetrieve(gameId, channelId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(gameId && channelId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesChannelsRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+>;
+export type GamesChannelsRetrieveQueryError = unknown;
+
+export function useGamesChannelsRetrieve<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelsRetrieve<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelsRetrieve<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesChannelsRetrieve<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesChannelsRetrieveQueryOptions(
+    gameId,
+    channelId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesChannelsRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGamesChannelsRetrieveQueryKey(gameId, channelId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+  > = ({ signal }) => gamesChannelsRetrieve(gameId, channelId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesChannelsRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsRetrieve>>
+>;
+export type GamesChannelsRetrieveSuspenseQueryError = unknown;
+
+export function useGamesChannelsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesChannelsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesChannelsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  channelId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesChannelsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesChannelsRetrieveSuspenseQueryOptions(
+    gameId,
+    channelId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Retrieve a channel without its message history, or rename a private channel.
  */
 export const gamesChannelsUpdate = (
   gameId: string,
@@ -7565,7 +8178,7 @@ export const useGamesChannelsUpdate = <TError = unknown, TContext = unknown>(
 };
 
 /**
- * Rename a private channel.
+ * Retrieve a channel without its message history, or rename a private channel.
  */
 export const gamesChannelsPartialUpdate = (
   gameId: string,

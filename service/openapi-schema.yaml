@@ -1314,6 +1314,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedGameListList'
           description: ''
+  /games/{gameId}/channel-previews/:
+    get:
+      operationId: gamesChannelPreviewsList
+      description: List the channels the requester can read, each with only its latest
+        message.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChannelPreview'
+          description: ''
   /games/{gameId}/channels/:
     get:
       operationId: gamesChannelsList
@@ -1341,9 +1366,37 @@ paths:
                   $ref: '#/components/schemas/Channel'
           description: ''
   /games/{gameId}/channels/{channelId}/:
+    get:
+      operationId: gamesChannelsRetrieve
+      description: Retrieve a channel without its message history, or rename a private
+        channel.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelDetail'
+          description: ''
     put:
       operationId: gamesChannelsUpdate
-      description: Rename a private channel.
+      description: Retrieve a channel without its message history, or rename a private
+        channel.
       parameters:
       - in: path
         name: channelId
@@ -1374,7 +1427,8 @@ paths:
           description: ''
     patch:
       operationId: gamesChannelsPartialUpdate
-      description: Rename a private channel.
+      description: Retrieve a channel without its message history, or rename a private
+        channel.
       parameters:
       - in: path
         name: channelId
@@ -2222,6 +2276,63 @@ components:
       - name
       - private
       - unreadMessageCount
+    ChannelDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        private:
+          type: boolean
+          readOnly: true
+        muted:
+          type: boolean
+          readOnly: true
+        canMute:
+          type: boolean
+          readOnly: true
+        canRename:
+          type: boolean
+          readOnly: true
+        unreadMessageCount:
+          type: integer
+          readOnly: true
+        firstUnreadMessageId:
+          type: integer
+          readOnly: true
+          nullable: true
+        latestMessageId:
+          type: integer
+          readOnly: true
+          nullable: true
+        latestEventId:
+          type: integer
+          readOnly: true
+          nullable: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelEvent'
+          readOnly: true
+      required:
+      - canMute
+      - canRename
+      - events
+      - firstUnreadMessageId
+      - id
+      - latestEventId
+      - latestMessageId
+      - muted
+      - name
+      - private
+      - title
+      - unreadMessageCount
     ChannelEvent:
       type: object
       properties:
@@ -2324,6 +2435,40 @@ components:
       required:
       - muteDuration
       - muted
+    ChannelPreview:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        private:
+          type: boolean
+          readOnly: true
+        muted:
+          type: boolean
+          readOnly: true
+        unreadMessageCount:
+          type: integer
+          readOnly: true
+        latestMessage:
+          allOf:
+          - $ref: '#/components/schemas/ChannelMessage'
+          nullable: true
+          readOnly: true
+      required:
+      - id
+      - latestMessage
+      - muted
+      - name
+      - private
+      - title
+      - unreadMessageCount
     ChannelUpdate:
       type: object
       properties:

@@ -431,6 +431,21 @@ class VictoryConditions(TypedDict):
     draw_after_year: int | None
 
 
+class ChannelDetail(TypedDict):
+    id: int
+    name: str
+    title: str
+    private: bool
+    muted: bool
+    can_mute: bool
+    can_rename: bool
+    unread_message_count: int
+    first_unread_message_id: int | None
+    latest_message_id: int | None
+    latest_event_id: int | None
+    events: list[ChannelEvent]
+
+
 class ChannelMember(TypedDict):
     id: int
     user_id: int | None
@@ -454,6 +469,16 @@ class ChannelMessage(TypedDict):
 class ChannelMute(TypedDict):
     muted: bool
     mute_duration: MuteDurationEnum | NullEnum | None
+
+
+class ChannelPreview(TypedDict):
+    id: int
+    name: str
+    title: str
+    private: bool
+    muted: bool
+    unread_message_count: int
+    latest_message: ChannelMessage | None
 
 
 class DrawProposal(TypedDict):

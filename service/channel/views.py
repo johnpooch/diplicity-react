@@ -1,11 +1,12 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
 
 from .models import Channel, ChannelMember
 from .permissions import CanMuteChannel, CanRenameChannel
-from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelMuteSerializer, ChannelUpdateSerializer
-from .utils import channel_list_fingerprint
+from .serializers import ChannelSerializer, ChannelDetailSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelMuteSerializer, ChannelPreviewSerializer, ChannelUpdateSerializer
+from .utils import channel_detail_fingerprint, channel_list_fingerprint, channel_preview_fingerprint
 from common.views import PrecomputedConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
@@ -14,17 +15,43 @@ class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.Crea
     serializer_class = ChannelSerializer
 
 
-class ChannelUpdateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
-    """Rename a private channel."""
+class ChannelRetrieveUpdateView(
+    PrecomputedConditionalGetMixin,
+    SelectedGameMixin,
+    SelectedChannelMixin,
+    CurrentGameMemberMixin,
+    generics.RetrieveUpdateAPIView,
+):
+    """Retrieve a channel without its message history, or rename a private channel."""
 
-    permission_classes = [
-        permissions.IsAuthenticated,
-        CanRenameChannel,
-    ]
-    serializer_class = ChannelUpdateSerializer
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), CanRenameChannel()]
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return ChannelDetailSerializer
+        return ChannelUpdateSerializer
+
+    def get_fingerprint(self):
+        return channel_detail_fingerprint(self.get_object(), self.get_game(), self.get_current_game_member())
 
     def get_object(self):
-        return self.get_channel()
+        if self.request.method != "GET":
+            return self.get_channel()
+        if not hasattr(self, "_channel_detail"):
+            user = self.request.user
+            self._channel_detail = get_object_or_404(
+                Channel.objects.accessible_to_member(self.get_current_game_member(), self.get_game())
+                .with_unread_counts(user)
+                .with_mute_state(user)
+                .with_first_unread_message_id(user)
+                .with_latest_message_id()
+                .with_detail_data(),
+                id=self.kwargs["channel_id"],
+            )
+        return self._channel_detail
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
@@ -56,24 +83,9 @@ class ChannelMuteView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMember
         )
 
 
-class ChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, generics.ListAPIView):
+class ChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ChannelSerializer
-
-    def get_current_game_member(self):
-        if not hasattr(self, "_current_game_member"):
-            user = self.request.user
-            self._current_game_member = (
-                self.get_game().members.filter(user=user).first()
-                if user.is_authenticated
-                else None
-            )
-        return self._current_game_member
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["current_game_member"] = self.get_current_game_member()
-        return context
 
     def get_fingerprint(self):
         return channel_list_fingerprint(self.request, self.get_game(), self.get_current_game_member())
@@ -86,5 +98,25 @@ class ChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, generic
             .with_unread_counts(user)
             .with_mute_state(user)
             .with_related_data()
+            .order_for_list()
+        )
+
+
+class ChannelPreviewListView(PrecomputedConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
+    """List the channels the requester can read, each with only its latest message."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ChannelPreviewSerializer
+
+    def get_fingerprint(self):
+        return channel_preview_fingerprint(self.request, self.get_game(), self.get_current_game_member())
+
+    def get_queryset(self):
+        user = self.request.user
+        return (
+            Channel.objects.accessible_to_member(self.get_current_game_member(), self.get_game())
+            .with_unread_counts(user)
+            .with_mute_state(user)
+            .with_preview_data()
             .order_for_list()
         )
