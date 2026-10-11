@@ -54,6 +54,7 @@ type ControllerOptions = {
   initialFill?: boolean;
   forceCompositeOnBase?: boolean;
   onClickProvince?: (province: string, position: Point) => void;
+  onClickBackground?: () => void;
   onGesture: (record: GestureRecord) => void;
 };
 
@@ -164,6 +165,7 @@ export class GameMapController {
 
     this.refit();
     this.wireGestures();
+    this.map.on("click", () => this.handleBackgroundClick());
   }
 
   // Recomputes the zoom limits for the current container size and applies the
@@ -386,12 +388,18 @@ export class GameMapController {
   }
 
   private handleClick(province: string, event: L.LeafletMouseEvent): void {
+    L.DomEvent.stopPropagation(event);
     if (this.options.mode !== "interactive") return;
     const original = event.originalEvent;
     this.options.onClickProvince?.(province, {
       x: original.clientX,
       y: original.clientY,
     });
+  }
+
+  private handleBackgroundClick(): void {
+    if (this.options.mode !== "interactive") return;
+    this.options.onClickBackground?.();
   }
 
   private handleHover(province: string | null): void {

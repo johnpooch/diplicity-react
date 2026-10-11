@@ -224,6 +224,12 @@ function clickProvince(province: string) {
   act(() => props.onClickProvince(province, { x: 10, y: 10 }));
 }
 
+function clickMapBackground() {
+  const last = mockMapView.mock.calls.at(-1);
+  const props = (last![0] as unknown) as { onClickBackground: () => void };
+  act(() => props.onClickBackground());
+}
+
 function getLastCivilDisorderNationsProp(): string[] {
   const last = mockMapView.mock.calls.at(-1);
   if (!last) return [];
@@ -452,6 +458,107 @@ describe("GameMap", () => {
 
       expect(await screen.findByText("Move")).toBeInTheDocument();
       expect(screen.queryByText("Clear Order")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("cancelling a part-entered order", () => {
+    function awaitTarget() {
+      mockWizardState = {
+        ...mockWizardState,
+        nextField: "target",
+        resolvedSelections: { source: "lon", orderType: "Move" },
+        choices: [{ id: "nth", label: "North Sea" }],
+      };
+    }
+
+    it("selects a province that is a valid choice", async () => {
+      awaitTarget();
+
+      render(gameMapJsx());
+      clickProvince("nth");
+
+      expect(mockWizardState.select).toHaveBeenCalledWith("nth");
+      expect(mockWizardReset).not.toHaveBeenCalled();
+    });
+
+    it("cancels when a province that is not a valid choice is clicked", async () => {
+      awaitTarget();
+
+      render(gameMapJsx());
+      clickProvince("lon");
+
+      expect(mockWizardReset).toHaveBeenCalled();
+      expect(mockWizardState.select).not.toHaveBeenCalled();
+    });
+
+    it("cancels when the map is clicked away from every province", async () => {
+      awaitTarget();
+
+      render(gameMapJsx());
+      clickMapBackground();
+
+      expect(mockWizardReset).toHaveBeenCalled();
+    });
+
+    it("cancels when the screen is pressed outside the map", async () => {
+      awaitTarget();
+
+      render(gameMapJsx());
+      fireEvent.pointerDown(document.body);
+
+      expect(mockWizardReset).toHaveBeenCalled();
+    });
+
+    it("does not cancel when the map itself is pressed", async () => {
+      awaitTarget();
+
+      render(gameMapJsx());
+      fireEvent.pointerDown(await screen.findByTestId("map"));
+
+      expect(mockWizardReset).not.toHaveBeenCalled();
+    });
+
+    it("cancels when Escape is pressed", async () => {
+      awaitTarget();
+
+      render(gameMapJsx());
+      fireEvent.keyDown(window, { key: "Escape" });
+
+      expect(mockWizardReset).toHaveBeenCalled();
+    });
+
+    it("cancels when another province is clicked while waiting for an order type", async () => {
+      mockWizardState = {
+        ...mockWizardState,
+        nextField: "orderType",
+        resolvedSelections: { source: "lon" },
+        choices: [{ id: "Hold", label: "Hold" }],
+      };
+
+      render(gameMapJsx());
+      clickProvince("nth");
+
+      expect(mockWizardReset).toHaveBeenCalled();
+    });
+
+    it("does nothing when no order is being entered", async () => {
+      render(gameMapJsx());
+      clickMapBackground();
+      fireEvent.pointerDown(document.body);
+
+      expect(mockWizardReset).not.toHaveBeenCalled();
+    });
+
+    it("does not cancel an order that is being submitted", async () => {
+      mockMutateAsync.mockReturnValue(new Promise(() => {}));
+      completeWizard();
+
+      render(gameMapJsx());
+      await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+      clickMapBackground();
+      fireEvent.pointerDown(document.body);
+
+      expect(mockWizardReset).not.toHaveBeenCalled();
     });
   });
 

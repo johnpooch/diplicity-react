@@ -218,11 +218,12 @@ const GameMap: React.FC = () => {
     province: string,
     position: { x: number; y: number }
   ) => {
-    if (!renderableProvinces.includes(province) || province === clearingSource) {
+    if (province === clearingSource) {
       return;
     }
 
     if (wizard.nextField === "source") {
+      if (!renderableProvinces.includes(province)) return;
       if (!wizard.choices.some((c) => c.id === province)) {
         if (!phase) return;
         const unit = phase.units.find((u) => u.province.id === province);
@@ -250,14 +251,19 @@ const GameMap: React.FC = () => {
     ) {
       if (wizard.choices.some((c) => c.id === province)) {
         wizard.select(province);
+      } else {
+        handleCancelOrder();
       }
     } else if (
-      (wizard.nextField === "orderType" ||
-        wizard.nextField === "unitType" ||
-        wizard.nextField === "namedCoast") &&
-      province === wizard.resolvedSelections["source"]
+      wizard.nextField === "orderType" ||
+      wizard.nextField === "unitType" ||
+      wizard.nextField === "namedCoast"
     ) {
-      captureMenuPosition(position);
+      if (province === wizard.resolvedSelections["source"]) {
+        captureMenuPosition(position);
+      } else {
+        handleCancelOrder();
+      }
     }
   };
 
@@ -265,9 +271,15 @@ const GameMap: React.FC = () => {
     wizard.select(option);
   };
 
-  const handleCloseMenu = () => {
+  const handleCancelOrder = () => {
     wizard.reset();
     setMenuPosition(null);
+  };
+
+  const handleMapBackgroundClick = () => {
+    if (isWizardActive && !wizard.isComplete) {
+      handleCancelOrder();
+    }
   };
 
   const showMenu =
@@ -275,6 +287,30 @@ const GameMap: React.FC = () => {
       wizard.nextField === "unitType" ||
       wizard.nextField === "namedCoast") &&
     menuPosition !== null;
+
+  const isAwaitingMapClick = isWizardActive && !wizard.isComplete && !showMenu;
+
+  useEffect(() => {
+    if (!isAwaitingMapClick) return;
+
+    const cancel = () => {
+      wizard.reset();
+      setMenuPosition(null);
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) cancel();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") cancel();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAwaitingMapClick, wizard]);
 
   const menuSource = wizard.resolvedSelections["source"];
   const canClearMenuSource = showMenu && !!menuSource && hasOrder(menuSource);
@@ -336,6 +372,7 @@ const GameMap: React.FC = () => {
             orders={displayOrders}
             selected={wizard.selectedArray}
             onClickProvince={handleProvinceClick}
+            onClickBackground={handleMapBackgroundClick}
             renderableProvinces={renderableProvinces}
             highlighted={highlightedIds}
             civilDisorderNations={civilDisorderNations}
@@ -345,7 +382,7 @@ const GameMap: React.FC = () => {
             x={menuPosition?.x ?? 0}
             y={menuPosition?.y ?? 0}
             container={containerRef.current}
-            onClose={handleCloseMenu}
+            onClose={handleCancelOrder}
           >
             {wizard.choices.map((c) => (
               <FloatingMenuItem
