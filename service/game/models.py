@@ -147,6 +147,12 @@ class GameQuerySet(models.QuerySet):
             muster_deadline__isnull=False,
         )
 
+    def filter_mine(self, user):
+        return self.filter(id__in=Member.objects.filter(user=user).values("game_id"))
+
+    def with_my_games_data(self):
+        return self.with_list_data().prefetch_related("variant__nations")
+
     def with_related_data(self):
 
         units_prefetch = Prefetch(
@@ -298,6 +304,9 @@ class GameManager(models.Manager):
 
     def filter_musterable(self):
         return self.get_queryset().filter_musterable()
+
+    def filter_mine(self, user):
+        return self.get_queryset().filter_mine(user)
 
     def fastest_start(self, user):
         candidates = (

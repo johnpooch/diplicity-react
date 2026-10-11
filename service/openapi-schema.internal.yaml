@@ -1833,6 +1833,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameFindSimilar'
           description: ''
+  /games/mine/current/:
+    get:
+      operationId: games_mine_current_retrieve
+      description: Return the authenticated user's current games, grouped into ordered
+        sections, each game with a single state.
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyGamesCurrent'
+          description: ''
   /sandbox-game/:
     post:
       operationId: sandbox_game_create
@@ -2569,6 +2585,18 @@ components:
       description: |-
         * `duration` - Duration
         * `fixed_time` - Fixed Time
+    DepartureEnum:
+      enum:
+      - eliminated
+      - civil_disorder
+      - withdrawn
+      - removed
+      type: string
+      description: |-
+        * `eliminated` - Eliminated
+        * `civil_disorder` - Civil disorder
+        * `withdrawn` - Withdrawn
+        * `removed` - Removed
     DrawProposal:
       type: object
       properties:
@@ -3486,6 +3514,52 @@ components:
       - id_token
       - name
       - refresh_token
+    KeyEnum:
+      enum:
+      - needs_attention
+      - managing
+      - active
+      - mustering
+      - pending
+      - recently_finished
+      - sandbox
+      type: string
+      description: |-
+        * `needs_attention` - Needs attention
+        * `managing` - Managing
+        * `active` - Active
+        * `mustering` - Mustering
+        * `pending` - Pending
+        * `recently_finished` - Recently finished
+        * `sandbox` - Sandbox
+    KindEnum:
+      enum:
+      - confirm_seat
+      - submit_orders
+      - vote_on_draw
+      - seat_confirmed
+      - orders_unconfirmed
+      - orders_confirmed
+      - resolving
+      - mustering
+      - waiting_for_players
+      - paused
+      - sandbox
+      - finished
+      type: string
+      description: |-
+        * `confirm_seat` - Confirm seat
+        * `submit_orders` - Submit orders
+        * `vote_on_draw` - Vote on draw
+        * `seat_confirmed` - Seat confirmed
+        * `orders_unconfirmed` - Orders unconfirmed
+        * `orders_confirmed` - Orders confirmed
+        * `resolving` - Resolving
+        * `mustering` - Mustering
+        * `waiting_for_players` - Waiting for players
+        * `paused` - Paused
+        * `sandbox` - Sandbox
+        * `finished` - Finished
     Member:
       type: object
       properties:
@@ -3645,6 +3719,132 @@ components:
         * `8_hours` - 8_hours
         * `24_hours` - 24_hours
         * `indefinite` - indefinite
+    MyGame:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        variant_id:
+          type: string
+          readOnly: true
+        sandbox:
+          type: boolean
+          readOnly: true
+        current_phase_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        current_phase:
+          allOf:
+          - $ref: '#/components/schemas/GameListCurrentPhase'
+          readOnly: true
+          nullable: true
+        nation:
+          type: string
+          readOnly: true
+          nullable: true
+        seats:
+          allOf:
+          - $ref: '#/components/schemas/MyGameSeats'
+          readOnly: true
+          nullable: true
+        unread_count:
+          type: integer
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/MyGameState'
+          readOnly: true
+      required:
+      - current_phase
+      - current_phase_id
+      - id
+      - name
+      - nation
+      - sandbox
+      - seats
+      - state
+      - status
+      - unread_count
+      - variant_id
+    MyGameSeats:
+      type: object
+      properties:
+        filled:
+          type: integer
+          readOnly: true
+        total:
+          type: integer
+          readOnly: true
+      required:
+      - filled
+      - total
+    MyGameState:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        deadline:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        result:
+          readOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ResultEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        winner:
+          type: string
+          readOnly: true
+          nullable: true
+        departure:
+          readOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/DepartureEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - deadline
+      - departure
+      - kind
+      - result
+      - winner
+    MyGamesCurrent:
+      type: object
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyGamesSection'
+          readOnly: true
+      required:
+      - sections
+    MyGamesSection:
+      type: object
+      properties:
+        key:
+          allOf:
+          - $ref: '#/components/schemas/KeyEnum'
+          readOnly: true
+        games:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyGame'
+          readOnly: true
+      required:
+      - games
+      - key
     MyVote:
       type: object
       properties:
@@ -4216,6 +4416,20 @@ components:
       - display_name
       - email
       - password
+    ResultEnum:
+      enum:
+      - solo_victory
+      - won_by
+      - draw
+      - abandoned
+      - ongoing
+      type: string
+      description: |-
+        * `solo_victory` - Solo victory
+        * `won_by` - Won by
+        * `draw` - Draw
+        * `abandoned` - Abandoned
+        * `ongoing` - Ongoing
     RetreatFrequencyEnum:
       enum:
       - hourly

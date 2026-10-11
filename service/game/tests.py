@@ -13,7 +13,7 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType, MemberKind
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType, MemberKind, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
@@ -5036,3 +5036,600 @@ class TestSeedStagingCommand:
         assert len(joinable["Open: one seat left"]["members"]) == 6
         assert joinable["Open: committed players only"]["commitment_requirement"] == CommitmentRequirement.COMMITTED
         assert joinable["Open: gunboat Italy vs Germany"]["variant_id"] == "italy-vs-germany"
+
+
+my_games_current_viewname = "my-games-current"
+
+
+def my_games_sections(response):
+    return [(section["key"], [game["id"] for game in section["games"]]) for section in response.data["sections"]]
+
+
+def my_game(response, game_id):
+    return next(
+        game for section in response.data["sections"] for game in section["games"] if game["id"] == game_id
+    )
+
+
+def my_game_section(response, game_id):
+    return next(
+        section["key"]
+        for section in response.data["sections"]
+        if any(game["id"] == game_id for game in section["games"])
+    )
+
+
+@pytest.mark.usefixtures("primary_user_without_sandbox_games")
+class TestMyGamesCurrentView:
+
+    @pytest.mark.django_db
+    def test_my_games_current_requires_authentication(self, unauthenticated_client):
+        response = unauthenticated_client.get(reverse(my_games_current_viewname))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_my_games_current_returns_empty_sections_without_games(self, authenticated_client):
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"sections": []}
+
+    @pytest.mark.django_db
+    def test_my_games_current_only_includes_games_with_a_member_row(
+        self, authenticated_client, my_game_factory, primary_user, secondary_user
+    ):
+        mine = my_game_factory()
+        my_game_factory(user=secondary_user)
+        game_master_without_member_row = my_game_factory(user=secondary_user)
+        game_master_without_member_row.game_master = primary_user
+        game_master_without_member_row.save(update_fields=["game_master"])
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [mine.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_places_sandbox_game_in_sandbox(self, authenticated_client, sandbox_game_factory):
+        game = sandbox_game_factory()
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.SANDBOX
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SANDBOX
+        assert my_game(response, game.id)["nation"] is None
+
+    @pytest.mark.django_db
+    def test_my_games_current_lists_sandbox_game_once_despite_several_member_rows(
+        self, authenticated_client, sandbox_game_factory, primary_user
+    ):
+        game = sandbox_game_factory()
+        game.members.create(user=primary_user, sandbox=True)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.SANDBOX, [game.id])]
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "status,paused,kind",
+        [
+            (GameStatus.PENDING, False, MyGameStateKind.WAITING_FOR_PLAYERS),
+            (GameStatus.MUSTERING, False, MyGameStateKind.MUSTERING),
+            (GameStatus.ACTIVE, True, MyGameStateKind.PAUSED),
+            (GameStatus.ACTIVE, False, MyGameStateKind.RESOLVING),
+        ],
+    )
+    def test_my_games_current_places_game_master_game_in_managing(
+        self, authenticated_client, my_game_factory, status, paused, kind
+    ):
+        game = my_game_factory(
+            status=status,
+            seat={"kind": MemberKind.GAME_MASTER},
+            paused_at=timezone.now() if paused else None,
+        )
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.MANAGING
+        assert my_game(response, game.id)["state"]["kind"] == kind
+
+    @pytest.mark.django_db
+    def test_my_games_current_places_pending_game_in_pending(
+        self, authenticated_client, my_game_factory, member_factory
+    ):
+        game = my_game_factory(status=GameStatus.PENDING)
+        member_factory(game=game, nation=None)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.PENDING
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.WAITING_FOR_PLAYERS
+        assert my_game(response, game.id)["seats"] == {"filled": 2, "total": 7}
+
+    @pytest.mark.django_db
+    def test_my_games_current_asks_unmustered_player_to_confirm_seat(
+        self, authenticated_client, my_game_factory, member_factory
+    ):
+        game = my_game_factory(status=GameStatus.MUSTERING, muster_deadline=timezone.now() + timedelta(hours=4))
+        member_factory(game=game, nation=None, mustered_at=timezone.now())
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.NEEDS_ATTENTION
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.CONFIRM_SEAT
+        assert my_game(response, game.id)["seats"] == {"filled": 1, "total": 7}
+
+    @pytest.mark.django_db
+    def test_my_games_current_places_mustered_player_in_mustering(self, authenticated_client, my_game_factory):
+        game = my_game_factory(status=GameStatus.MUSTERING, seat={"mustered_at": timezone.now()})
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.MUSTERING
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SEAT_CONFIRMED
+
+    @pytest.mark.django_db
+    def test_my_games_current_treats_bot_seat_as_confirmed(
+        self, authenticated_client_factory, my_game_factory, bot_user
+    ):
+        game = my_game_factory(status=GameStatus.MUSTERING, user=bot_user)
+
+        response = authenticated_client_factory(bot_user).get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.MUSTERING
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SEAT_CONFIRMED
+
+    @pytest.mark.django_db
+    def test_my_games_current_places_paused_game_in_active(self, authenticated_client, my_game_factory):
+        game = my_game_factory(paused_at=timezone.now())
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.ACTIVE
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.PAUSED
+
+    @pytest.mark.django_db
+    def test_my_games_current_asks_player_without_orders_to_submit_orders(
+        self, authenticated_client, my_game_factory, classical_england_nation
+    ):
+        game = my_game_factory()
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.NEEDS_ATTENTION
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SUBMIT_ORDERS
+        assert my_game(response, game.id)["nation"] == classical_england_nation.name
+
+    @pytest.mark.django_db
+    def test_my_games_current_asks_player_with_pending_draw_vote_to_vote(
+        self, authenticated_client, my_game_factory, member_factory, draw_proposal_factory
+    ):
+        game = my_game_factory(has_possible_orders=False)
+        draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.NEEDS_ATTENTION
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.VOTE_ON_DRAW
+
+    @pytest.mark.django_db
+    def test_my_games_current_ignores_rejected_and_cancelled_draw_proposals(
+        self, authenticated_client, my_game_factory, member_factory, draw_proposal_factory
+    ):
+        game = my_game_factory(has_possible_orders=False)
+        draw_proposal_factory(
+            game=game, created_by=member_factory(game=game), phase=game.current_phase, cancelled=True
+        )
+        rejected = draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
+        rejected.votes.exclude(member__user=game.members.first().user).update(accepted=False)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.RESOLVING
+
+    @pytest.mark.django_db
+    def test_my_games_current_shows_submit_orders_before_draw_vote(
+        self, authenticated_client, my_game_factory, member_factory, draw_proposal_factory
+    ):
+        game = my_game_factory()
+        draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SUBMIT_ORDERS
+
+        game.current_phase.phase_states.get(member__user=game.members.first().user).orders.create()
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.VOTE_ON_DRAW
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("deadline_mode", [DeadlineMode.DURATION, DeadlineMode.FIXED_TIME])
+    def test_my_games_current_places_unconfirmed_orders_in_active(
+        self, authenticated_client, my_game_factory, deadline_mode
+    ):
+        game = my_game_factory(orders=1, deadline_mode=deadline_mode)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.ACTIVE
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.ORDERS_UNCONFIRMED
+
+    @pytest.mark.django_db
+    def test_my_games_current_places_confirmed_orders_in_active(self, authenticated_client, my_game_factory):
+        game = my_game_factory(orders=1, orders_confirmed=True)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.ACTIVE
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.ORDERS_CONFIRMED
+
+    @pytest.mark.django_db
+    def test_my_games_current_shows_resolving_when_no_orders_are_possible(
+        self, authenticated_client, my_game_factory
+    ):
+        game = my_game_factory(has_possible_orders=False)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.ACTIVE
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.RESOLVING
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("departure", ["eliminated_at", "civil_disorder_at", "withdrawn_at", "removed_at"])
+    def test_my_games_current_excludes_active_games_the_user_departed(
+        self, authenticated_client, my_game_factory, departure
+    ):
+        my_game_factory(seat={departure: timezone.now()})
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert response.data == {"sections": []}
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("status", [GameStatus.COMPLETED, GameStatus.ABANDONED])
+    def test_my_games_current_includes_game_finished_within_three_days(
+        self, authenticated_client, my_game_factory, status
+    ):
+        game = my_game_factory(status=status, finished_at=timezone.now() - timedelta(days=2))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.RECENTLY_FINISHED
+        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.FINISHED
+
+    @pytest.mark.django_db
+    def test_my_games_current_excludes_game_finished_more_than_three_days_ago(
+        self, authenticated_client, my_game_factory
+    ):
+        my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now() - timedelta(days=3, minutes=1))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert response.data == {"sections": []}
+
+    @pytest.mark.django_db
+    def test_my_games_current_includes_recently_finished_game_for_eliminated_user(
+        self, authenticated_client, my_game_factory
+    ):
+        game = my_game_factory(
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+            seat={"eliminated_at": timezone.now(), "civil_disorder_at": timezone.now()},
+        )
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game_section(response, game.id) == MyGamesSection.RECENTLY_FINISHED
+        assert my_game(response, game.id)["state"]["departure"] == MemberDeparture.ELIMINATED
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("departure", ["civil_disorder_at", "withdrawn_at", "removed_at"])
+    def test_my_games_current_excludes_recently_finished_game_the_user_left(
+        self, authenticated_client, my_game_factory, departure
+    ):
+        my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now(), seat={departure: timezone.now()})
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert response.data == {"sections": []}
+
+    @pytest.mark.django_db
+    def test_my_games_current_reports_solo_victory_for_the_winner(
+        self, authenticated_client, my_game_factory, victory_factory
+    ):
+        game = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
+        victory_factory(game=game, winning_phase=game.current_phase).members.add(game.members.first())
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game(response, game.id)["state"] == {
+            "kind": MyGameStateKind.FINISHED,
+            "deadline": None,
+            "result": MyGameResult.SOLO_VICTORY,
+            "winner": None,
+            "departure": None,
+        }
+
+    @pytest.mark.django_db
+    def test_my_games_current_reports_winner_nation_for_other_players(
+        self, authenticated_client, my_game_factory, victory_factory, member_factory, classical_france_nation
+    ):
+        game = my_game_factory(
+            status=GameStatus.COMPLETED, finished_at=timezone.now(), seat={"eliminated_at": timezone.now()}
+        )
+        winner = member_factory(game=game, nation=classical_france_nation)
+        victory_factory(game=game, winning_phase=game.current_phase).members.add(winner)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game(response, game.id)["state"] == {
+            "kind": MyGameStateKind.FINISHED,
+            "deadline": None,
+            "result": MyGameResult.WON_BY,
+            "winner": classical_france_nation.name,
+            "departure": MemberDeparture.ELIMINATED,
+        }
+
+    @pytest.mark.django_db
+    def test_my_games_current_reports_draw(
+        self, authenticated_client, my_game_factory, victory_factory, member_factory
+    ):
+        game = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
+        victory = victory_factory(game=game, winning_phase=game.current_phase)
+        victory.members.add(game.members.first(), member_factory(game=game))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game(response, game.id)["state"]["result"] == MyGameResult.DRAW
+
+    @pytest.mark.django_db
+    def test_my_games_current_reports_abandoned(self, authenticated_client, my_game_factory):
+        game = my_game_factory(status=GameStatus.ABANDONED, finished_at=timezone.now())
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game(response, game.id)["state"]["result"] == MyGameResult.ABANDONED
+
+    @pytest.mark.django_db
+    def test_my_games_current_omits_empty_sections(self, authenticated_client, my_game_factory):
+        my_game_factory(status=GameStatus.PENDING)
+        my_game_factory(orders=1)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert [key for key, _ in my_games_sections(response)] == [MyGamesSection.ACTIVE, MyGamesSection.PENDING]
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "kind,game_kwargs,deadline_source",
+        [
+            (MyGameStateKind.CONFIRM_SEAT, {"status": GameStatus.MUSTERING}, "muster"),
+            (
+                MyGameStateKind.SEAT_CONFIRMED,
+                {"status": GameStatus.MUSTERING, "seat": {"mustered_at": timezone.now()}},
+                "muster",
+            ),
+            (
+                MyGameStateKind.MUSTERING,
+                {"status": GameStatus.MUSTERING, "seat": {"kind": MemberKind.GAME_MASTER}},
+                "muster",
+            ),
+            (MyGameStateKind.SUBMIT_ORDERS, {}, "phase"),
+            (MyGameStateKind.ORDERS_CONFIRMED, {"orders": 1, "orders_confirmed": True}, "phase"),
+            (MyGameStateKind.RESOLVING, {"has_possible_orders": False}, "phase"),
+            (MyGameStateKind.ORDERS_UNCONFIRMED, {"orders": 1}, None),
+            (MyGameStateKind.PAUSED, {"paused_at": timezone.now()}, None),
+            (MyGameStateKind.WAITING_FOR_PLAYERS, {"status": GameStatus.PENDING}, None),
+        ],
+    )
+    def test_my_games_current_takes_deadline_from_the_state(
+        self, authenticated_client, my_game_factory, kind, game_kwargs, deadline_source
+    ):
+        muster_deadline = timezone.now() + timedelta(hours=6)
+        scheduled_resolution = timezone.now() + timedelta(hours=12)
+        game = my_game_factory(
+            muster_deadline=muster_deadline, scheduled_resolution=scheduled_resolution, **game_kwargs
+        )
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        state = my_game(response, game.id)["state"]
+        expected = {"muster": muster_deadline, "phase": scheduled_resolution, None: None}[deadline_source]
+        assert state["kind"] == kind
+        assert state["deadline"] == (expected.isoformat().replace("+00:00", "Z") if expected else None)
+
+    @pytest.mark.django_db
+    def test_my_games_current_reports_unread_message_count(
+        self, authenticated_client, my_game_factory, member_factory, channel_with_messages_factory
+    ):
+        game = my_game_factory()
+        channel_with_messages_factory(
+            game.members.first(), member_factory(game=game), timezone.now() - timedelta(hours=1), unread=3
+        )
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_game(response, game.id)["unread_count"] == 3
+
+
+@pytest.mark.usefixtures("primary_user_without_sandbox_games")
+class TestMyGamesCurrentViewOrdering:
+
+    @pytest.mark.django_db
+    def test_my_games_current_returns_sections_in_order(
+        self, authenticated_client, my_game_factory, sandbox_game_factory
+    ):
+        sandbox_game_factory()
+        my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
+        my_game_factory(status=GameStatus.PENDING)
+        my_game_factory(status=GameStatus.MUSTERING, seat={"mustered_at": timezone.now()})
+        my_game_factory(orders=1)
+        my_game_factory(seat={"kind": MemberKind.GAME_MASTER})
+        my_game_factory()
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert [key for key, _ in my_games_sections(response)] == [
+            MyGamesSection.NEEDS_ATTENTION,
+            MyGamesSection.MANAGING,
+            MyGamesSection.ACTIVE,
+            MyGamesSection.MUSTERING,
+            MyGamesSection.PENDING,
+            MyGamesSection.RECENTLY_FINISHED,
+            MyGamesSection.SANDBOX,
+        ]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_needs_attention_by_missed_deadline_then_deadline(
+        self, authenticated_client, my_game_factory
+    ):
+        now = timezone.now()
+        later = my_game_factory(scheduled_resolution=now + timedelta(hours=8))
+        no_deadline = my_game_factory()
+        sooner = my_game_factory(status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2))
+        missed = my_game_factory(scheduled_resolution=now + timedelta(hours=20), missed_deadline=True)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [
+            (MyGamesSection.NEEDS_ATTENTION, [missed.id, sooner.id, later.id, no_deadline.id])
+        ]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_managing_by_deadline_then_pending(self, authenticated_client, my_game_factory):
+        now = timezone.now()
+        game_master = {"kind": MemberKind.GAME_MASTER}
+        pending = my_game_factory(status=GameStatus.PENDING, seat=game_master)
+        later = my_game_factory(seat=game_master, scheduled_resolution=now + timedelta(hours=8))
+        sooner = my_game_factory(
+            status=GameStatus.MUSTERING, seat=game_master, muster_deadline=now + timedelta(hours=2)
+        )
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.MANAGING, [sooner.id, later.id, pending.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_active_unconfirmed_first_and_paused_last(
+        self, authenticated_client, my_game_factory
+    ):
+        now = timezone.now()
+        paused = my_game_factory(paused_at=now)
+        later = my_game_factory(has_possible_orders=False, scheduled_resolution=now + timedelta(hours=8))
+        unconfirmed = my_game_factory(orders=1, scheduled_resolution=now + timedelta(hours=20))
+        sooner = my_game_factory(orders=1, orders_confirmed=True, scheduled_resolution=now + timedelta(hours=2))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [
+            (MyGamesSection.ACTIVE, [unconfirmed.id, sooner.id, later.id, paused.id])
+        ]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_mustering_by_deadline(self, authenticated_client, my_game_factory):
+        now = timezone.now()
+        mustered = {"mustered_at": now}
+        later = my_game_factory(status=GameStatus.MUSTERING, seat=mustered, muster_deadline=now + timedelta(hours=8))
+        sooner = my_game_factory(status=GameStatus.MUSTERING, seat=mustered, muster_deadline=now + timedelta(hours=2))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.MUSTERING, [sooner.id, later.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_pending_by_players_joined(
+        self, authenticated_client, my_game_factory, member_factory
+    ):
+        fewer = my_game_factory(status=GameStatus.PENDING)
+        more = my_game_factory(status=GameStatus.PENDING)
+        member_factory(game=more, nation=None)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.PENDING, [more.id, fewer.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_recently_finished_by_finished_at(self, authenticated_client, my_game_factory):
+        now = timezone.now()
+        earlier = my_game_factory(status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1))
+        latest = my_game_factory(status=GameStatus.ABANDONED, finished_at=now - timedelta(hours=1))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.RECENTLY_FINISHED, [latest.id, earlier.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_sandbox_by_newest(self, authenticated_client, sandbox_game_factory):
+        older = sandbox_game_factory()
+        newer = sandbox_game_factory()
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.SANDBOX, [newer.id, older.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_breaks_ties_by_newest(self, authenticated_client, my_game_factory):
+        now = timezone.now()
+        older = my_game_factory(created_at=now - timedelta(days=2))
+        newer = my_game_factory(created_at=now - timedelta(days=1))
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [newer.id, older.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_ignores_unread_counts_when_ordering(
+        self, authenticated_client, my_game_factory, member_factory, channel_with_messages_factory
+    ):
+        now = timezone.now()
+        sooner = my_game_factory(scheduled_resolution=now + timedelta(hours=2))
+        later = my_game_factory(scheduled_resolution=now + timedelta(hours=8))
+        channel_with_messages_factory(later.members.first(), member_factory(game=later), now, unread=5)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [sooner.id, later.id])]
+
+
+@pytest.mark.usefixtures("primary_user_without_sandbox_games")
+class TestMyGamesCurrentViewQueryPerformance:
+
+    def _create_games(
+        self, my_game_factory, sandbox_game_factory, member_factory, draw_proposal_factory, victory_factory
+    ):
+        now = timezone.now()
+        active = my_game_factory(scheduled_resolution=now + timedelta(hours=4))
+        for _ in range(2):
+            other = member_factory(game=active)
+            active.current_phase.phase_states.create(member=other, has_possible_orders=True)
+        my_game_factory(status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2))
+        my_game_factory(seat={"kind": MemberKind.GAME_MASTER})
+        sandbox_game_factory()
+        finished = my_game_factory(status=GameStatus.COMPLETED, finished_at=now)
+        victory_factory(game=finished, winning_phase=finished.current_phase).members.add(finished.members.first())
+        drawing = my_game_factory(has_possible_orders=False)
+        draw_proposal_factory(game=drawing, created_by=member_factory(game=drawing), phase=drawing.current_phase)
+        my_game_factory(missed_deadline=True)
+
+    def _count_queries(self, client):
+        with CaptureQueriesContext(connection) as context:
+            response = client.get(reverse(my_games_current_viewname))
+        assert response.status_code == status.HTTP_200_OK
+        return len(context.captured_queries)
+
+    @pytest.mark.django_db
+    def test_my_games_current_query_count_is_constant(
+        self,
+        authenticated_client,
+        my_game_factory,
+        sandbox_game_factory,
+        member_factory,
+        draw_proposal_factory,
+        victory_factory,
+    ):
+        factories = (my_game_factory, sandbox_game_factory, member_factory, draw_proposal_factory, victory_factory)
+        self._create_games(*factories)
+        assert self._count_queries(authenticated_client) == 12
+
+        self._create_games(*factories)
+        self._create_games(*factories)
+        assert self._count_queries(authenticated_client) == 12

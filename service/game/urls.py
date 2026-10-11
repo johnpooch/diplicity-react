@@ -37,6 +37,11 @@ urlpatterns = [
     ),
     path("games/", views.GameListView.as_view(), name="game-list"),
     path(
+        "games/mine/current/",
+        views.MyGamesCurrentView.as_view(),
+        name="my-games-current",
+    ),
+    path(
         "games/find-similar/",
         views.GameFindSimilarView.as_view(),
         name="game-find-similar",
