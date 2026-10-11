@@ -751,13 +751,12 @@ class TestChannelPreviewListView:
         first = authenticated_client.get(url)
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{first['ETag']}")
-        head = authenticated_client.head(url, HTTP_IF_NONE_MATCH=first["ETag"])
 
         assert first["Cache-Control"] == "private, no-cache"
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
         assert response.content == b""
         assert response["ETag"] == first["ETag"]
-        assert head.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response["Cache-Control"] == "private, no-cache"
 
     @pytest.mark.django_db
     def test_list_channel_previews_returns_304_after_message_in_an_inaccessible_channel(

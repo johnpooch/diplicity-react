@@ -6,7 +6,7 @@ from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsCha
 from .models import Channel, ChannelMember
 from .permissions import CanMuteChannel, CanRenameChannel
 from .serializers import ChannelSerializer, ChannelDetailSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelMuteSerializer, ChannelPreviewSerializer, ChannelUpdateSerializer
-from .utils import channel_list_fingerprint, channel_preview_fingerprint
+from .utils import channel_list_fingerprint
 from common.views import ConditionalGetMixin, PrecomputedConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
@@ -101,24 +101,20 @@ class ChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, Current
         )
 
 
-class ChannelPreviewListView(PrecomputedConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
+class ChannelPreviewListView(ConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
     """List the channels the requester can read, each with only its latest message."""
 
     permission_classes = [permissions.AllowAny]
     serializer_class = ChannelPreviewSerializer
 
-    def get_fingerprint(self):
-        return channel_preview_fingerprint(self.get_queryset(), self.get_serializer_context())
-
     def get_queryset(self):
-        if not hasattr(self, "_previews"):
-            user = self.request.user
-            self._previews = list(
-                Channel.objects.accessible_to_member(self.get_current_game_member(), self.get_game())
-                .with_unread_counts(user)
-                .with_mute_state(user)
-                .with_latest_message_id()
-                .order_for_list()
-            )
-            Channel.objects.hydrate_latest_messages(self._previews)
-        return self._previews
+        user = self.request.user
+        channels = list(
+            Channel.objects.accessible_to_member(self.get_current_game_member(), self.get_game())
+            .with_unread_counts(user)
+            .with_mute_state(user)
+            .with_latest_message_id()
+            .order_for_list()
+        )
+        Channel.objects.hydrate_latest_messages(channels)
+        return channels
