@@ -22,9 +22,9 @@ def seated_game_factory(
             user=secondary_user if seat == "spectator" else primary_user,
             nation=classical_england_nation,
             sandbox=seat == "sandbox",
-            eliminated=seat == "eliminated",
-            civil_disorder=seat == "civil_disorder",
-            kicked=seat in ("removed", "replaced"),
+            eliminated_at=timezone.now() if seat == "eliminated" else None,
+            civil_disorder_at=timezone.now() if seat == "civil_disorder" else None,
+            removed_at=timezone.now() if seat in ("removed", "replaced") else None,
             withdrawn_at=timezone.now() if seat == "withdrawn" else None,
         )
         if seat == "replaced":
