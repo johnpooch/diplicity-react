@@ -30,6 +30,15 @@ default is how that failure happens quietly.
 client. It is `--bundle-version`, not `--version`, because Django's `BaseCommand` already owns
 `--version`.
 
+## A bundle is only served to binaries older than it
+
+`Bundle.objects.latest_for` serves a bundle only when its version is greater than the installed
+native version. A store build ships with its own web bundle, and the plugin reports that bundle as
+the native version, so without this rule a fresh store install is handed the previous release's
+newest OTA bundle and downgrades to it. Number bundles on top of the native version they are built
+for (`1.5.13.1` for a `1.5.13` binary), and `release_bundle` refuses a bundle version that is not
+newer than its `--minimum-native-version`, since no binary able to run it would ever be served it.
+
 ## The workflow publishes from `main` only
 
 `bundle-release.yml` is `workflow_dispatch`, and a dispatch can name any ref that carries the
