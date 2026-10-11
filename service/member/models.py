@@ -160,6 +160,10 @@ class Member(BaseModel):
         return self.replaced_by_id is None and (self.civil_disorder or self.kicked)
 
     @property
+    def played(self):
+        return self.replaced_by_id is None and not self.unplayed
+
+    @property
     def replaceable(self):
         return (self.unplayed or self.seeking_replacement) and not (
             self.eliminated or self.replaced_by_id is not None

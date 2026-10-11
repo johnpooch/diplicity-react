@@ -364,7 +364,7 @@ class PhaseManager(models.Manager):
             if phase_state.orders_outcome != PhaseState.OrdersOutcome.NMR:
                 continue
             member = phase_state.member
-            if member.unplayed or member.eliminated or member.replaced_by_id is not None:
+            if not member.played or member.eliminated:
                 continue
             current_nmr_members.append(member)
 
