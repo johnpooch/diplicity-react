@@ -45,13 +45,13 @@ def get_rated_outcomes(user):
     states = (
         PhaseState.objects.filter(
             member__user=user,
-            member__kicked=False,
             has_possible_orders=True,
             orders_outcome__isnull=False,
             phase__status=PhaseStatus.COMPLETED,
             phase__game__sandbox=False,
             phase__game__private=False,
         )
+        .exclude(member__kicked=True, member__withdrawn_at__isnull=True)
         .select_related("phase")
         .order_by("member_id", "phase__ordinal")
     )

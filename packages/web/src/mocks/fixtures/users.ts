@@ -52,6 +52,7 @@ export const makeMember = (
   isAdmin: false,
   nmrExtensionsRemaining: 2,
   civilDisorder: false,
+  withdrawn: false,
   seekingReplacement: false,
   replaceable: false,
   removable: false,

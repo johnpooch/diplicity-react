@@ -6,10 +6,10 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
+from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer, MemberWithdrawSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGamePlayer, IsGameManager, IsMusteringGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsActiveGamePlayer, IsGameMaster, IsGamePlayer, IsGameManager, IsMusteringGame, IsNotSandboxGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
@@ -132,6 +132,22 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
 
         serializer = MemberSerializer(member, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(request=None, responses={200: MemberSerializer})
+class MemberWithdrawView(SelectedGameMixin, generics.UpdateAPIView):
+    """Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim."""
+
+    serializer_class = MemberWithdrawSerializer
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsActiveGame,
+        IsNotSandboxGame,
+        IsActiveGamePlayer,
+    ]
+
+    def get_object(self):
+        return get_object_or_404(Member, game=self.get_game(), user=self.request.user)
 
 
 class MemberNationPreferenceView(SelectedGameMixin, generics.GenericAPIView):

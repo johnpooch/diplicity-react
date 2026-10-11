@@ -95,6 +95,7 @@ class MemberSerializer(BaseMemberSerializer):
     is_admin = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
+    withdrawn = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
     removable = serializers.SerializerMethodField()
@@ -128,6 +129,14 @@ class MemberSerializer(BaseMemberSerializer):
 class MemberJoinSerializer(MemberSerializer):
     def create(self, validated_data):
         return self.context["game"].seat(self.context["request"].user)
+
+
+class MemberWithdrawSerializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        return Member.objects.withdraw(instance)
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data
 
 
 class MemberCreateSerializer(serializers.Serializer):

@@ -3,6 +3,7 @@ import io
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from common.constants import GameStatus
@@ -72,10 +73,10 @@ def normalise_picture(upload):
 def get_player_stats(user):
     completed_members = (
         Member.objects.filter(
+            Q(kicked=False) | Q(withdrawn_at__isnull=False),
             user=user,
             game__status=GameStatus.COMPLETED,
             game__sandbox=False,
-            kicked=False,
         )
         .select_related("game")
         .order_by("-game__finished_at")
@@ -97,7 +98,7 @@ def get_player_stats(user):
         member_id__in=last_n_member_ids,
         has_possible_orders=True,
         phase__status="completed",
-    )
+    ).exclude(member__withdrawn_at__isnull=False, orders_outcome__isnull=True)
     total_phases = phase_states_with_orders.count()
     nmr_phases = phase_states_with_orders.filter(
         orders_outcome=PhaseState.OrdersOutcome.NMR

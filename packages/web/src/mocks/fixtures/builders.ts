@@ -102,6 +102,7 @@ export const makeGame = (
     createdAt: "2026-05-01T10:00:00Z",
     canJoin: false,
     canLeave: false,
+    canWithdraw: false,
     canDelete: false,
     canManage: false,
     gameMaster: null,

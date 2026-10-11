@@ -85,6 +85,7 @@ def _member(index: int, nation: str, is_current_user: bool) -> ApiMember:
         "is_game_creator": False,
         "nmr_extensions_remaining": 0,
         "civil_disorder": False,
+        "withdrawn": False,
         "seeking_replacement": False,
         "replaceable": False,
         "removable": False,

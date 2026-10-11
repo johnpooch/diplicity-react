@@ -338,6 +338,8 @@ class PhaseManager(models.Manager):
             member__nation_id__in=phase.nations_with_forced_orders
         ).exclude(
             member__kicked=True
+        ).exclude(
+            member__withdrawn_at__isnull=False
         ).annotate(order_count=Count("orders"))
 
         received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder=False)

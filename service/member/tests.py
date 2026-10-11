@@ -6,8 +6,10 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
+from django.utils import timezone
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
+from draw_proposal.models import DrawProposal
 from game.models import Game
 from member.models import Member
 from member.views import MemberCreateView, MemberJoinView
@@ -15,6 +17,7 @@ from notification.models import Notification
 from order.models import Order
 from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile
+from victory.models import Victory
 from common.constants import Commitment, CommitmentRequirement, GameStatus, OrderType, PhaseStatus, UserKind
 
 User = get_user_model()
@@ -1978,3 +1981,406 @@ class TestMemberNationAssignView:
         url = reverse(assign_viewname, args=[game.id, 999999])
         response = authenticated_client.put(url, {"nation_id": "france"}, format="json")
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+withdraw_viewname = "game-member-withdraw"
+
+
+def _client_for(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+
+def _withdraw(game, member):
+    return _client_for(member.user).patch(reverse(withdraw_viewname, args=[game.id]))
+
+
+def _non_admin_player(game):
+    return game.members.players().exclude(user=game.admin).first()
+
+
+class TestMemberWithdrawView:
+
+    @pytest.mark.django_db
+    def test_withdraw_marks_the_member_withdrawn(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["withdrawn"] is True
+        member.refresh_from_db()
+        assert member.withdrawn_at is not None
+
+    @pytest.mark.django_db
+    def test_withdraw_discards_orders_and_confirms_the_phase_state(
+        self, active_game_factory, classical_london_province
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        phase_state = game.current_phase.phase_states.get(member=member)
+        Order.objects.create(
+            phase_state=phase_state, source=classical_london_province, order_type=OrderType.HOLD
+        )
+
+        _withdraw(game, member)
+
+        phase_state.refresh_from_db()
+        assert phase_state.orders_confirmed is True
+        assert not Order.objects.filter(phase_state__member=member).exists()
+
+    @pytest.mark.django_db
+    def test_withdraw_resolves_the_phase_when_every_other_player_has_confirmed(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        phase = game.current_phase
+        phase.phase_states.exclude(member=member).update(orders_confirmed=True)
+
+        assert phase.id not in [p.id for p in Phase.objects.filter_due_phases()]
+
+        _withdraw(game, member)
+
+        assert phase.id in [p.id for p in Phase.objects.filter_due_phases()]
+
+    @pytest.mark.django_db
+    def test_withdrawn_seat_gets_no_orders_outcome(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        phase = game.current_phase
+
+        _withdraw(game, member)
+        Phase.objects.resolve(phase)
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+        assert phase.phase_states.get(member=member).orders_outcome is None
+        assert phase.phase_states.exclude(member=member).filter(orders_outcome__isnull=False).exists()
+
+    @pytest.mark.django_db
+    def test_withdraw_is_allowed_in_a_paused_game(self, active_game_factory):
+        game = active_game_factory()
+        Game.objects.filter(id=game.id).update(paused_at=timezone.now())
+
+        response = _withdraw(game, _non_admin_player(game))
+
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_withdraw_unauthenticated(self, unauthenticated_client, active_game_factory):
+        game = active_game_factory()
+
+        response = unauthenticated_client.patch(reverse(withdraw_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_withdraw_rejected_for_a_non_player(self, authenticated_client_for_tertiary_user, active_game_factory):
+        game = active_game_factory()
+
+        response = authenticated_client_for_tertiary_user.patch(reverse(withdraw_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdraw_rejected_for_a_game_master_without_a_seat(
+        self, authenticated_client, active_game_with_game_master_factory
+    ):
+        game = active_game_with_game_master_factory()
+
+        response = authenticated_client.patch(reverse(withdraw_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "departure",
+        [
+            {"eliminated": True},
+            {"civil_disorder": True},
+            {"kicked": True},
+            {"withdrawn_at": timezone.now()},
+        ],
+    )
+    def test_withdraw_rejected_for_a_member_who_cannot_act(self, active_game_factory, departure):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        game.members.filter(id=member.id).update(**departure)
+
+        response = _withdraw(game, member)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdraw_rejected_for_a_replaced_member(self, active_game_factory, tertiary_user):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        Member.objects.remove(member)
+        Member.objects.hand_over_seat(member, tertiary_user)
+
+        response = _withdraw(game, member)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdraw_rejected_in_a_sandbox_game(self, authenticated_client, sandbox_game_with_phase_options):
+        game = sandbox_game_with_phase_options
+
+        response = authenticated_client.patch(reverse(withdraw_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "game_status",
+        [GameStatus.PENDING, GameStatus.MUSTERING, GameStatus.COMPLETED, GameStatus.ABANDONED],
+    )
+    def test_withdraw_rejected_unless_the_game_is_active(self, active_game_factory, game_status):
+        game = active_game_factory()
+        Game.objects.filter(id=game.id).update(status=game_status)
+
+        response = _withdraw(game, _non_admin_player(game))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdrawn_player_cannot_submit_orders(self, active_game_factory, classical_london_province):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = _client_for(member.user).post(
+            reverse("order-create", args=[game.id]),
+            {"selected": [classical_london_province.province_id]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdrawn_player_cannot_confirm_the_phase(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = _client_for(member.user).post(reverse("game-confirm-phase", args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdrawn_player_cannot_propose_a_draw(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = _client_for(member.user).post(reverse("draw-proposal-create", args=[game.id]), {}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not DrawProposal.objects.filter(game=game).exists()
+
+    @pytest.mark.django_db
+    def test_withdrawn_player_cannot_vote_on_a_draw(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        proposer = game.members.get(user=game.admin)
+        _withdraw(game, member)
+        proposal = DrawProposal.objects.create_proposal(game=game, created_by=proposer)
+
+        response = _client_for(member.user).patch(
+            reverse("draw-proposal-vote", args=[game.id, proposal.id]), {"accepted": False}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert proposal.votes.get(member=member).accepted is True
+
+    @pytest.mark.django_db
+    def test_withdrawn_player_cannot_retake_their_seat(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = _client_for(member.user).post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdrawn_player_cannot_rejoin(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = _client_for(member.user).post(reverse(join_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_withdrawn_seat_can_be_taken_over(
+        self, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        assert response.status_code == status.HTTP_201_CREATED
+        member.refresh_from_db()
+        assert member.replaced_by == game.members.get(user=tertiary_user)
+
+    @pytest.mark.django_db
+    def test_withdraw_cancels_the_players_own_draw_proposal(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        proposal = DrawProposal.objects.create_proposal(game=game, created_by=member)
+
+        _withdraw(game, member)
+
+        proposal.refresh_from_db()
+        assert proposal.cancelled is True
+
+    @pytest.mark.django_db
+    def test_withdraw_accepts_other_draw_proposals_without_inclusion(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        proposal = DrawProposal.objects.create_proposal(game=game, created_by=game.members.get(user=game.admin))
+
+        _withdraw(game, member)
+
+        vote = proposal.votes.get(member=member)
+        assert vote.accepted is True
+        assert vote.included is False
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_withdraw_completes_a_draw_only_the_player_was_holding_up(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        proposal = DrawProposal.objects.create_proposal(game=game, created_by=game.members.get(user=game.admin))
+        proposal.votes.exclude(member=member).update(accepted=True)
+
+        _withdraw(game, member)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.COMPLETED
+        victory = Victory.objects.get(game=game)
+        assert member not in victory.members.all()
+        assert victory.members.count() == game.members.players().count() - 1
+
+    @pytest.mark.django_db
+    def test_last_player_can_end_the_game_with_a_solo_draw(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        admin_member = game.members.get(user=game.admin)
+        member = _non_admin_player(game)
+        game.members.players().exclude(id__in=[admin_member.id, member.id]).update(civil_disorder=True)
+
+        _withdraw(game, member)
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+        response = authenticated_client.post(reverse("draw-proposal-create", args=[game.id]), {}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        game.refresh_from_db()
+        assert game.status == GameStatus.COMPLETED
+        victory = Victory.objects.get(game=game)
+        assert list(victory.members.all()) == [admin_member]
+
+    @pytest.mark.django_db
+    def test_withdrawal_by_the_last_playing_member_abandons_the_game(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        game.members.players().exclude(id=member.id).update(civil_disorder=True)
+
+        _withdraw(game, member)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+
+    @pytest.mark.django_db
+    def test_withdrawal_reassigns_the_admin(self, active_game_factory, primary_user):
+        game = active_game_factory()
+        admin_member = game.members.get(user=primary_user)
+
+        _withdraw(game, admin_member)
+
+        game.refresh_from_db()
+        assert game.admin_id is not None
+        assert game.admin_id != primary_user.id
+
+    @pytest.mark.django_db
+    def test_withdrawal_notifies_the_other_players(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        _withdraw(game, member)
+
+        recipients = set(
+            Notification.objects.filter(event_type="withdrawal").values_list("recipient_id", flat=True)
+        )
+        others = set(game.members.players().exclude(id=member.id).values_list("user_id", flat=True))
+        assert recipients == others
+
+    @pytest.mark.django_db
+    def test_withdrawn_member_is_serialized_as_withdrawn_and_not_removable(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        serialized = next(m for m in response.data["members"] if m["id"] == member.id)
+        assert serialized["withdrawn"] is True
+        assert serialized["removable"] is False
+        assert serialized["replaceable"] is True
+
+
+class TestCanWithdrawSerialization:
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("viewname", [retrieve_viewname, list_viewname])
+    def test_player_in_an_active_game_can_withdraw(self, authenticated_client, active_game_factory, viewname):
+        game = active_game_factory()
+
+        data = _game_data(authenticated_client, viewname, game)
+
+        assert data["can_withdraw"] is True
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("viewname", [retrieve_viewname, list_viewname])
+    def test_withdrawn_player_cannot_withdraw_again(self, active_game_factory, viewname):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        data = _game_data(_client_for(member.user), viewname, game)
+
+        assert data["can_withdraw"] is False
+
+    @pytest.mark.django_db
+    def test_player_in_a_pending_game_cannot_withdraw(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        game = pending_game_created_by_primary_user
+
+        data = _game_data(authenticated_client, retrieve_viewname, game)
+
+        assert data["can_withdraw"] is False
+
+    @pytest.mark.django_db
+    def test_non_player_cannot_withdraw(self, authenticated_client_for_tertiary_user, active_game_factory):
+        game = active_game_factory()
+
+        data = _game_data(authenticated_client_for_tertiary_user, retrieve_viewname, game)
+
+        assert data["can_withdraw"] is False
+
+
+def _game_data(client, viewname, game):
+    if viewname == retrieve_viewname:
+        return client.get(reverse(retrieve_viewname, args=[game.id])).data
+    response = client.get(reverse(list_viewname))
+    return next(g for g in response.data["results"] if g["id"] == game.id)
