@@ -4530,34 +4530,34 @@ export const useGameMemberNationPreferenceUpdate = <
 /**
  * Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim.
  */
-export const gameMemberWithdrawCreate = (
+export const gameMemberWithdrawUpdate = (
   gameId: string,
   signal?: AbortSignal
 ) => {
   return customInstance<Member>({
     url: `/game/${gameId}/member/withdraw/`,
-    method: "POST",
+    method: "PUT",
     signal,
   });
 };
 
-export const getGameMemberWithdrawCreateMutationOptions = <
+export const getGameMemberWithdrawUpdateMutationOptions = <
   TError = unknown,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof gameMemberWithdrawCreate>>,
+    Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
     TError,
     { gameId: string },
     TContext
   >;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof gameMemberWithdrawCreate>>,
+  Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
   TError,
   { gameId: string },
   TContext
 > => {
-  const mutationKey = ["gameMemberWithdrawCreate"];
+  const mutationKey = ["gameMemberWithdrawUpdate"];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -4567,30 +4567,30 @@ export const getGameMemberWithdrawCreateMutationOptions = <
     : { mutation: { mutationKey } };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof gameMemberWithdrawCreate>>,
+    Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
     { gameId: string }
   > = props => {
     const { gameId } = props ?? {};
 
-    return gameMemberWithdrawCreate(gameId);
+    return gameMemberWithdrawUpdate(gameId);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type GameMemberWithdrawCreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof gameMemberWithdrawCreate>>
+export type GameMemberWithdrawUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>
 >;
 
-export type GameMemberWithdrawCreateMutationError = unknown;
+export type GameMemberWithdrawUpdateMutationError = unknown;
 
-export const useGameMemberWithdrawCreate = <
+export const useGameMemberWithdrawUpdate = <
   TError = unknown,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof gameMemberWithdrawCreate>>,
+      Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
       TError,
       { gameId: string },
       TContext
@@ -4598,13 +4598,95 @@ export const useGameMemberWithdrawCreate = <
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof gameMemberWithdrawCreate>>,
+  Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
   TError,
   { gameId: string },
   TContext
 > => {
   return useMutation(
-    getGameMemberWithdrawCreateMutationOptions(options),
+    getGameMemberWithdrawUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim.
+ */
+export const gameMemberWithdrawPartialUpdate = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/member/withdraw/`,
+    method: "PATCH",
+    signal,
+  });
+};
+
+export const getGameMemberWithdrawPartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameMemberWithdrawPartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameMemberWithdrawPartialUpdate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberWithdrawPartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>
+>;
+
+export type GameMemberWithdrawPartialUpdateMutationError = unknown;
+
+export const useGameMemberWithdrawPartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(
+    getGameMemberWithdrawPartialUpdateMutationOptions(options),
     queryClient
   );
 };

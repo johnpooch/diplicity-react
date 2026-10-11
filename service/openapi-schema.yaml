@@ -801,8 +801,29 @@ paths:
                 $ref: '#/components/schemas/MemberNationPreference'
           description: ''
   /game/{gameId}/member/withdraw/:
-    post:
-      operationId: gameMemberWithdrawCreate
+    put:
+      operationId: gameMemberWithdrawUpdate
+      description: Withdraw the requesting user from an active game, leaving their
+        seat vacant for another player to claim.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+    patch:
+      operationId: gameMemberWithdrawPartialUpdate
       description: Withdraw the requesting user from an active game, leaving their
         seat vacant for another player to claim.
       parameters:

@@ -131,6 +131,14 @@ class MemberJoinSerializer(MemberSerializer):
         return self.context["game"].seat(self.context["request"].user)
 
 
+class MemberWithdrawSerializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        return Member.objects.withdraw(instance)
+
+    def to_representation(self, instance):
+        return MemberSerializer(instance, context=self.context).data
+
+
 class MemberCreateSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(write_only=True)
 

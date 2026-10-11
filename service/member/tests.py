@@ -2115,7 +2115,7 @@ def _client_for(user):
 
 
 def _withdraw(game, member):
-    return _client_for(member.user).post(reverse(withdraw_viewname, args=[game.id]))
+    return _client_for(member.user).patch(reverse(withdraw_viewname, args=[game.id]))
 
 
 def _non_admin_player(game):
@@ -2193,7 +2193,7 @@ class TestMemberWithdrawView:
     def test_withdraw_unauthenticated(self, unauthenticated_client, active_game_factory):
         game = active_game_factory()
 
-        response = unauthenticated_client.post(reverse(withdraw_viewname, args=[game.id]))
+        response = unauthenticated_client.patch(reverse(withdraw_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -2201,7 +2201,7 @@ class TestMemberWithdrawView:
     def test_withdraw_rejected_for_a_non_player(self, authenticated_client_for_tertiary_user, active_game_factory):
         game = active_game_factory()
 
-        response = authenticated_client_for_tertiary_user.post(reverse(withdraw_viewname, args=[game.id]))
+        response = authenticated_client_for_tertiary_user.patch(reverse(withdraw_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -2211,7 +2211,7 @@ class TestMemberWithdrawView:
     ):
         game = active_game_with_game_master_factory()
 
-        response = authenticated_client.post(reverse(withdraw_viewname, args=[game.id]))
+        response = authenticated_client.patch(reverse(withdraw_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -2249,7 +2249,7 @@ class TestMemberWithdrawView:
     def test_withdraw_rejected_in_a_sandbox_game(self, authenticated_client, sandbox_game_with_phase_options):
         game = sandbox_game_with_phase_options
 
-        response = authenticated_client.post(reverse(withdraw_viewname, args=[game.id]))
+        response = authenticated_client.patch(reverse(withdraw_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

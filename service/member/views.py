@@ -6,7 +6,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
+from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer, MemberWithdrawSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
 from common.permissions import CanUseBotOpponent, IsActiveGame, IsActiveGamePlayer, IsGameMaster, IsGamePlayer, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGamePlayer, IsNotSandboxGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
@@ -135,8 +135,11 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MemberWithdrawView(SelectedGameMixin, generics.GenericAPIView):
-    serializer_class = EmptySerializer
+@extend_schema(request=None, responses={200: MemberSerializer})
+class MemberWithdrawView(SelectedGameMixin, generics.UpdateAPIView):
+    """Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim."""
+
+    serializer_class = MemberWithdrawSerializer
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
@@ -144,16 +147,8 @@ class MemberWithdrawView(SelectedGameMixin, generics.GenericAPIView):
         IsActiveGamePlayer,
     ]
 
-    @extend_schema(request=EmptySerializer, responses={200: MemberSerializer})
-    def post(self, request, *args, **kwargs):
-        """Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim."""
-        game = self.get_game()
-        member = get_object_or_404(Member, game=game, user=request.user)
-
-        Member.objects.withdraw(member)
-
-        serializer = MemberSerializer(member, context=self.get_serializer_context())
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_object(self):
+        return get_object_or_404(Member, game=self.get_game(), user=self.request.user)
 
 
 class MemberNationPreferenceView(SelectedGameMixin, generics.GenericAPIView):
