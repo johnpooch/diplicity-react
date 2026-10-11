@@ -487,7 +487,7 @@ class TestChannelRetrieveUpdateView:
         channel = game.channels.get()
         url = reverse("channel-update", args=[game.id, channel.id])
         etag = authenticated_client.get(url)["ETag"]
-        game.members.filter(user__username="primaryuser").update(kicked=True)
+        game.members.filter(user__username="primaryuser").update(removed_at=timezone.now())
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
