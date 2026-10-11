@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from common.constants import ChannelMessagePagination
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,10 +64,43 @@ class ApiClient:
         return response.data
 
     def get_channels(self, game_id):
-        response = self._client.get(reverse("channel-list", args=[game_id]))
+        response = self._client.get(reverse("channel-preview-list", args=[game_id]))
         if response.status_code != 200:
-            raise ApiClientError(f"channel list request failed: {response.status_code}")
-        return list(response.data)
+            raise ApiClientError(f"channel preview request failed: {response.status_code}")
+        return [self.get_channel(game_id, preview["id"]) for preview in response.data]
+
+    def get_channel(self, game_id, channel_id):
+        response = self._client.get(reverse("channel-update", args=[game_id, channel_id]))
+        if response.status_code != 200:
+            raise ApiClientError(f"channel retrieve failed: {response.status_code}")
+        channel = response.data
+        return {
+            "id": channel["id"],
+            "name": channel["name"],
+            "title": channel["title"],
+            "private": channel["private"],
+            "messages": self.get_channel_messages(game_id, channel_id),
+            "events": channel["events"],
+            "unread_message_count": channel["unread_message_count"],
+            "muted": channel["muted"],
+            "can_rename": channel["can_rename"],
+            "can_mute": channel["can_mute"],
+        }
+
+    def get_channel_messages(self, game_id, channel_id):
+        url = reverse("channel-message-list", args=[game_id, channel_id])
+        params = {"page_size": ChannelMessagePagination.MAX_PAGE_SIZE}
+        pages = []
+        while True:
+            response = self._client.get(url, params)
+            if response.status_code != 200:
+                raise ApiClientError(f"channel message request failed: {response.status_code}")
+            results = response.data["results"]
+            pages.append(results)
+            if not response.data["has_older"]:
+                break
+            params = {**params, "before": min(message["id"] for message in results)}
+        return [message for page in reversed(pages) for message in page]
 
     def submit_orders(self, game_id, selections):
         create_url = reverse("order-create", args=[game_id])

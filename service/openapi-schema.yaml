@@ -1368,32 +1368,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/ChannelPreview'
           description: ''
-  /games/{gameId}/channels/:
-    get:
-      operationId: gamesChannelsList
-      description: |-
-        Used by views that have a game parameter in the URL. Provides a get_game
-        method that returns the game object. Also adds game to the serializer context.
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      tags:
-      - games
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Channel'
-          description: ''
   /games/{gameId}/channels/{channelId}/:
     get:
       operationId: gamesChannelsRetrieve

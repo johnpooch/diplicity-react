@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import {
   formatDateTime,
   formatRemainingTime,
+  formatTimeLeft,
   getGameLandingPath,
   isFinishedGameStatus,
 } from "./util";
@@ -57,6 +58,43 @@ describe("formatDateTime", () => {
     expect(result).toMatch(
       /^(Today|Tomorrow|\d{2}\/\d{2}\/\d{2}) \d{2}:\d{2} .+$/
     );
+  });
+});
+
+describe("formatTimeLeft", () => {
+  const now = new Date("2026-05-01T12:00:00Z");
+  const inMinutes = (minutes: number) =>
+    new Date(now.getTime() + minutes * 60 * 1000).toISOString();
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows minutes under an hour", () => {
+    expect(formatTimeLeft(inMinutes(0))).toBe("0 min");
+    expect(formatTimeLeft(inMinutes(59))).toBe("59 min");
+  });
+
+  it("does not go below zero minutes once the deadline has passed", () => {
+    expect(formatTimeLeft(inMinutes(-30))).toBe("0 min");
+  });
+
+  it("shows hours from one hour to under a day, rounded down", () => {
+    expect(formatTimeLeft(inMinutes(60))).toBe("1 hour");
+    expect(formatTimeLeft(inMinutes(119))).toBe("1 hour");
+    expect(formatTimeLeft(inMinutes(120))).toBe("2 hours");
+    expect(formatTimeLeft(inMinutes(24 * 60 - 1))).toBe("23 hours");
+  });
+
+  it("shows days from one day, rounded down", () => {
+    expect(formatTimeLeft(inMinutes(24 * 60))).toBe("1 day");
+    expect(formatTimeLeft(inMinutes(48 * 60 - 1))).toBe("1 day");
+    expect(formatTimeLeft(inMinutes(48 * 60))).toBe("2 days");
   });
 });
 

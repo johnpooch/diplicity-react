@@ -1251,7 +1251,10 @@ class TestChannelMessageListView:
         assert len(older_page.captured_queries) == len(short_history.captured_queries) + 1
 
 
-class TestChannelListView:
+class TestLegacyChannelListView:
+
+    def test_legacy_path_is_unchanged(self):
+        assert reverse("channel-list", args=["abc123"]) == "/games/abc123/channels/"
 
     @pytest.mark.django_db
     def test_list_channels_as_member(self, authenticated_client, active_game_with_channels):

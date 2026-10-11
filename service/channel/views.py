@@ -110,7 +110,13 @@ class ChannelMuteView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMember
         )
 
 
-class ChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
+@extend_schema(exclude=True)
+class LegacyChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
+    """Serves GET /games/<id>/channels/ with every channel's full message history
+    for mobile builds shipped before chat moved to channel previews, detail and
+    paginated history. Kept out of the schema so codegen only ever emits the
+    current reads. Remove once those builds are out of circulation."""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = ChannelSerializer
 
