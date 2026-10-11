@@ -2,7 +2,7 @@ from django.apps import apps
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from common.constants import GameStatus, MemberKind
+from common.constants import GameStatus, MemberDeparture, MemberKind
 from common.models import BaseModel
 from emit import emit
 
@@ -207,6 +207,18 @@ class Member(BaseModel):
     @property
     def removed(self):
         return self.removed_at is not None
+
+    @property
+    def departure(self):
+        if self.eliminated:
+            return MemberDeparture.ELIMINATED
+        if self.civil_disorder:
+            return MemberDeparture.CIVIL_DISORDER
+        if self.withdrawn:
+            return MemberDeparture.WITHDRAWN
+        if self.removed:
+            return MemberDeparture.REMOVED
+        return None
 
     @property
     def left_seat(self):

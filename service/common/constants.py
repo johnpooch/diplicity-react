@@ -229,6 +229,86 @@ class MusterStatus:
     CONFIRMED = "confirmed"
 
 
+class MyGamesSection:
+    NEEDS_ATTENTION = "needs_attention"
+    MANAGING = "managing"
+    ACTIVE = "active"
+    MUSTERING = "mustering"
+    PENDING = "pending"
+    RECENTLY_FINISHED = "recently_finished"
+    SANDBOX = "sandbox"
+
+    SECTION_CHOICES = (
+        (NEEDS_ATTENTION, "Needs attention"),
+        (MANAGING, "Managing"),
+        (ACTIVE, "Active"),
+        (MUSTERING, "Mustering"),
+        (PENDING, "Pending"),
+        (RECENTLY_FINISHED, "Recently finished"),
+        (SANDBOX, "Sandbox"),
+    )
+
+
+class MyGameStateKind:
+    CONFIRM_SEAT = "confirm_seat"
+    SUBMIT_ORDERS = "submit_orders"
+    VOTE_ON_DRAW = "vote_on_draw"
+    SEAT_CONFIRMED = "seat_confirmed"
+    ORDERS_UNCONFIRMED = "orders_unconfirmed"
+    ORDERS_CONFIRMED = "orders_confirmed"
+    RESOLVING = "resolving"
+    MUSTERING = "mustering"
+    WAITING_FOR_PLAYERS = "waiting_for_players"
+    PAUSED = "paused"
+    SANDBOX = "sandbox"
+    FINISHED = "finished"
+
+    KIND_CHOICES = (
+        (CONFIRM_SEAT, "Confirm seat"),
+        (SUBMIT_ORDERS, "Submit orders"),
+        (VOTE_ON_DRAW, "Vote on draw"),
+        (SEAT_CONFIRMED, "Seat confirmed"),
+        (ORDERS_UNCONFIRMED, "Orders unconfirmed"),
+        (ORDERS_CONFIRMED, "Orders confirmed"),
+        (RESOLVING, "Resolving"),
+        (MUSTERING, "Mustering"),
+        (WAITING_FOR_PLAYERS, "Waiting for players"),
+        (PAUSED, "Paused"),
+        (SANDBOX, "Sandbox"),
+        (FINISHED, "Finished"),
+    )
+
+
+class MyGameResult:
+    SOLO_VICTORY = "solo_victory"
+    WON_BY = "won_by"
+    DRAW = "draw"
+    ABANDONED = "abandoned"
+    ONGOING = "ongoing"
+
+    RESULT_CHOICES = (
+        (SOLO_VICTORY, "Solo victory"),
+        (WON_BY, "Won by"),
+        (DRAW, "Draw"),
+        (ABANDONED, "Abandoned"),
+        (ONGOING, "Ongoing"),
+    )
+
+
+class MemberDeparture:
+    ELIMINATED = "eliminated"
+    CIVIL_DISORDER = "civil_disorder"
+    WITHDRAWN = "withdrawn"
+    REMOVED = "removed"
+
+    DEPARTURE_CHOICES = (
+        (ELIMINATED, "Eliminated"),
+        (CIVIL_DISORDER, "Civil disorder"),
+        (WITHDRAWN, "Withdrawn"),
+        (REMOVED, "Removed"),
+    )
+
+
 class VariantStatus:
     DRAFT = "draft"
     PUBLISHED = "published"

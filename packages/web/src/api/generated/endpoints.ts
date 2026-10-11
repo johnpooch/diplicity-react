@@ -191,6 +191,21 @@ export const DeadlineModeEnum = {
   fixed_time: "fixed_time",
 } as const;
 
+/**
+ * * `eliminated` - Eliminated
+ * `civil_disorder` - Civil disorder
+ * `withdrawn` - Withdrawn
+ * `removed` - Removed
+ */
+export type DepartureEnum = (typeof DepartureEnum)[keyof typeof DepartureEnum];
+
+export const DepartureEnum = {
+  eliminated: "eliminated",
+  civil_disorder: "civil_disorder",
+  withdrawn: "withdrawn",
+  removed: "removed",
+} as const;
+
 export interface DrawVoteMember {
   readonly id: number;
   /** @nullable */
@@ -663,6 +678,58 @@ export interface GoogleAuth {
   readonly refreshToken: string;
 }
 
+/**
+ * * `needs_attention` - Needs attention
+ * `managing` - Managing
+ * `active` - Active
+ * `mustering` - Mustering
+ * `pending` - Pending
+ * `recently_finished` - Recently finished
+ * `sandbox` - Sandbox
+ */
+export type KeyEnum = (typeof KeyEnum)[keyof typeof KeyEnum];
+
+export const KeyEnum = {
+  needs_attention: "needs_attention",
+  managing: "managing",
+  active: "active",
+  mustering: "mustering",
+  pending: "pending",
+  recently_finished: "recently_finished",
+  sandbox: "sandbox",
+} as const;
+
+/**
+ * * `confirm_seat` - Confirm seat
+ * `submit_orders` - Submit orders
+ * `vote_on_draw` - Vote on draw
+ * `seat_confirmed` - Seat confirmed
+ * `orders_unconfirmed` - Orders unconfirmed
+ * `orders_confirmed` - Orders confirmed
+ * `resolving` - Resolving
+ * `mustering` - Mustering
+ * `waiting_for_players` - Waiting for players
+ * `paused` - Paused
+ * `sandbox` - Sandbox
+ * `finished` - Finished
+ */
+export type KindEnum = (typeof KindEnum)[keyof typeof KindEnum];
+
+export const KindEnum = {
+  confirm_seat: "confirm_seat",
+  submit_orders: "submit_orders",
+  vote_on_draw: "vote_on_draw",
+  seat_confirmed: "seat_confirmed",
+  orders_unconfirmed: "orders_unconfirmed",
+  orders_confirmed: "orders_confirmed",
+  resolving: "resolving",
+  mustering: "mustering",
+  waiting_for_players: "waiting_for_players",
+  paused: "paused",
+  sandbox: "sandbox",
+  finished: "finished",
+} as const;
+
 export interface MemberCreate {
   userId: number;
 }
@@ -673,6 +740,63 @@ export interface MemberNationAssign {
 
 export interface MemberNationPreference {
   nationIds: string[];
+}
+
+export interface MyGameSeats {
+  readonly filled: number;
+  readonly total: number;
+}
+
+/**
+ * * `solo_victory` - Solo victory
+ * `won_by` - Won by
+ * `draw` - Draw
+ * `abandoned` - Abandoned
+ * `ongoing` - Ongoing
+ */
+export type ResultEnum = (typeof ResultEnum)[keyof typeof ResultEnum];
+
+export const ResultEnum = {
+  solo_victory: "solo_victory",
+  won_by: "won_by",
+  draw: "draw",
+  abandoned: "abandoned",
+  ongoing: "ongoing",
+} as const;
+
+export interface MyGameState {
+  readonly kind: KindEnum;
+  /** @nullable */
+  readonly deadline: string | null;
+  readonly result: ResultEnum | NullEnum | null;
+  /** @nullable */
+  readonly winner: string | null;
+  readonly departure: DepartureEnum | NullEnum | null;
+}
+
+export interface MyGame {
+  readonly id: string;
+  readonly name: string;
+  readonly status: string;
+  readonly variantId: string;
+  readonly sandbox: boolean;
+  /** @nullable */
+  readonly currentPhaseId: number | null;
+  readonly currentPhase: GameListCurrentPhase | null;
+  /** @nullable */
+  readonly nation: string | null;
+  readonly seats: MyGameSeats | null;
+  readonly unreadCount: number;
+  readonly state: MyGameState;
+}
+
+export interface MyGamesSection {
+  readonly key: KeyEnum;
+  readonly games: readonly MyGame[];
+}
+
+export interface MyGamesCurrent {
+  readonly sections: readonly MyGamesSection[];
 }
 
 export interface NationFlagUpload {
@@ -9260,6 +9384,263 @@ export function useGamesFindSimilarRetrieveSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Return the authenticated user's current games, grouped into ordered sections, each game with a single state.
+ */
+export const gamesMineCurrentRetrieve = (signal?: AbortSignal) => {
+  return customInstance<MyGamesCurrent>({
+    url: `/games/mine/current/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGamesMineCurrentRetrieveQueryKey = () => {
+  return [`/games/mine/current/`] as const;
+};
+
+export const getGamesMineCurrentRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesMineCurrentRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>
+  > = ({ signal }) => gamesMineCurrentRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesMineCurrentRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>
+>;
+export type GamesMineCurrentRetrieveQueryError = unknown;
+
+export function useGamesMineCurrentRetrieve<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineCurrentRetrieve<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineCurrentRetrieve<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesMineCurrentRetrieve<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesMineCurrentRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesMineCurrentRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesMineCurrentRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>
+  > = ({ signal }) => gamesMineCurrentRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesMineCurrentRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>
+>;
+export type GamesMineCurrentRetrieveSuspenseQueryError = unknown;
+
+export function useGamesMineCurrentRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineCurrentRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineCurrentRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesMineCurrentRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineCurrentRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesMineCurrentRetrieveSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,

@@ -43,6 +43,9 @@ type CommitmentRequirementEnum = Literal['open', 'committed']
 type DeadlineModeEnum = Literal['duration', 'fixed_time']
 
 
+type DepartureEnum = Literal['eliminated', 'civil_disorder', 'withdrawn', 'removed']
+
+
 class DrawVoteMember(TypedDict):
     id: int
     user_id: int | None
@@ -148,6 +151,25 @@ class GoogleAuth(TypedDict):
     refresh_token: str
 
 
+type KeyEnum = Literal['needs_attention', 'managing', 'active', 'mustering', 'pending', 'recently_finished', 'sandbox']
+
+
+type KindEnum = Literal[
+    'confirm_seat',
+    'submit_orders',
+    'vote_on_draw',
+    'seat_confirmed',
+    'orders_unconfirmed',
+    'orders_confirmed',
+    'resolving',
+    'mustering',
+    'waiting_for_players',
+    'paused',
+    'sandbox',
+    'finished',
+]
+
+
 class Member(TypedDict):
     id: int
     user_id: int | None
@@ -195,6 +217,11 @@ type MusterStatusEnum = Literal['confirmation_required', 'confirmed']
 
 
 type MuteDurationEnum = Literal['8_hours', '24_hours', 'indefinite']
+
+
+class MyGameSeats(TypedDict):
+    filled: int
+    total: int
 
 
 class MyVote(TypedDict):
@@ -307,6 +334,9 @@ class Register(TypedDict):
     email: str
     password: str
     display_name: str
+
+
+type ResultEnum = Literal['solo_victory', 'won_by', 'draw', 'abandoned', 'ongoing']
 
 
 type RetreatFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
@@ -559,6 +589,14 @@ class GameRetrieve(TypedDict):
     total_unread_message_count: int
 
 
+class MyGameState(TypedDict):
+    kind: KindEnum
+    deadline: str | None
+    result: ResultEnum | NullEnum | None
+    winner: str | None
+    departure: DepartureEnum | NullEnum | None
+
+
 class OrderResolution(TypedDict):
     status: str
     by: Province | None
@@ -682,6 +720,25 @@ class GameList(TypedDict):
     total_unread_message_count: int
 
 
+class MyGame(TypedDict):
+    id: str
+    name: str
+    status: str
+    variant_id: str
+    sandbox: bool
+    current_phase_id: int | None
+    current_phase: GameListCurrentPhase | None
+    nation: str | None
+    seats: MyGameSeats | None
+    unread_count: int
+    state: MyGameState
+
+
+class MyGamesSection(TypedDict):
+    key: KeyEnum
+    games: list[MyGame]
+
+
 class Order(TypedDict):
     source: Province
     source_coast: Province | None
@@ -733,3 +790,7 @@ class GameFastest(TypedDict):
 
 class GameFindSimilar(TypedDict):
     game: GameList | None
+
+
+class MyGamesCurrent(TypedDict):
+    sections: list[MyGamesSection]

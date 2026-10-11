@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberDeparture, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -250,6 +250,63 @@ class GameListSerializer(serializers.Serializer):
                         statuses.append("nmr")
                     break
         return statuses
+
+
+class MyGameStateSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=MyGameStateKind.KIND_CHOICES, read_only=True)
+    deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    result = serializers.ChoiceField(choices=MyGameResult.RESULT_CHOICES, read_only=True, allow_null=True)
+    winner = serializers.CharField(read_only=True, allow_null=True)
+    departure = serializers.ChoiceField(choices=MemberDeparture.DEPARTURE_CHOICES, read_only=True, allow_null=True)
+
+
+class MyGameSeatsSerializer(serializers.Serializer):
+    filled = serializers.IntegerField(read_only=True)
+    total = serializers.IntegerField(read_only=True)
+
+
+class MyGameSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    variant_id = serializers.CharField(source="variant.id", read_only=True)
+    sandbox = serializers.BooleanField(read_only=True)
+    current_phase_id = serializers.SerializerMethodField()
+    current_phase = serializers.SerializerMethodField()
+    nation = serializers.SerializerMethodField()
+    seats = MyGameSeatsSerializer(source="seat_counts", read_only=True, allow_null=True)
+    unread_count = serializers.IntegerField(source="total_unread_message_count", read_only=True)
+    state = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_current_phase_id(self, obj):
+        current = obj.current_phase
+        return current.id if current else None
+
+    @extend_schema_field(GameListCurrentPhaseSerializer(allow_null=True))
+    def get_current_phase(self, obj):
+        current = obj.current_phase
+        return GameListCurrentPhaseSerializer(current).data if current else None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_nation(self, obj):
+        seat = obj.my_seat(self.context["request"].user)
+        if seat is None or seat.nation is None:
+            return None
+        return seat.nation.name
+
+    @extend_schema_field(MyGameStateSerializer)
+    def get_state(self, obj):
+        return MyGameStateSerializer(obj.my_game_state(self.context["request"].user)).data
+
+
+class MyGamesSectionSerializer(serializers.Serializer):
+    key = serializers.ChoiceField(choices=MyGamesSection.SECTION_CHOICES, read_only=True)
+    games = MyGameSerializer(many=True, read_only=True)
+
+
+class MyGamesCurrentSerializer(serializers.Serializer):
+    sections = MyGamesSectionSerializer(many=True, read_only=True)
 
 
 class GameFindSimilarSerializer(serializers.Serializer):

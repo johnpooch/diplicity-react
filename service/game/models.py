@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from functools import cached_property
 import random
@@ -28,12 +29,16 @@ from common.constants import (
     CommitmentRequirement,
     DeadlineMode,
     GameStatus,
+    MemberDeparture,
     MemberKind,
     MinReliability,
     MovementPhaseDuration,
     MusterJob,
     MusterReminderJob,
     MusterStatus,
+    MyGameResult,
+    MyGamesSection,
+    MyGameStateKind,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
@@ -50,6 +55,7 @@ from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMessage
+from draw_proposal.models import DrawVote
 from adjudicator import service as adjudication_service
 from game.utils import assign_nations
 
@@ -146,6 +152,12 @@ class GameQuerySet(models.QuerySet):
             sandbox=False,
             muster_deadline__isnull=False,
         )
+
+    def filter_mine(self, user):
+        return self.filter(id__in=Member.objects.filter(user=user).values("game_id"))
+
+    def with_my_games_data(self):
+        return self.with_list_data().prefetch_related("variant__nations")
 
     def with_related_data(self):
 
@@ -268,6 +280,68 @@ class GameManager(models.Manager):
         for game in games_without_counts:
             game.total_unread_message_count = counts.get(game.id, 0)
 
+    def hydrate_user_members(self, games, user):
+        members_by_game = defaultdict(list)
+        for member in Member.objects.filter(game_id__in=[game.id for game in games], user=user).select_related(
+            "nation", "user__profile"
+        ):
+            members_by_game[member.game_id].append(member)
+        for game in games:
+            game.user_members = members_by_game[game.id]
+
+    def hydrate_pending_draw_votes(self, games, user):
+        current_phase_ids = [game.current_phase.id for game in games if game.current_phase is not None]
+        pending_game_ids = set()
+        if current_phase_ids:
+            pending_game_ids = set(
+                DrawVote.objects.filter(
+                    member__user=user,
+                    accepted__isnull=True,
+                    proposal__cancelled=False,
+                    proposal__phase_id__in=current_phase_ids,
+                )
+                .exclude(proposal__votes__accepted=False)
+                .values_list("proposal__game_id", flat=True)
+            )
+        for game in games:
+            game.has_pending_draw_vote = game.id in pending_game_ids
+
+    def my_games_current(self, user):
+        recently_finished_cutoff = timezone.now() - timedelta(days=3)
+        games = list(
+            self.filter_mine(user)
+            .with_my_games_data()
+            .filter(
+                Q(status__in=(GameStatus.PENDING, GameStatus.MUSTERING, GameStatus.ACTIVE))
+                | Q(sandbox=True)
+                | Q(
+                    status__in=(GameStatus.COMPLETED, GameStatus.ABANDONED),
+                    finished_at__gte=recently_finished_cutoff,
+                )
+            )
+        )
+        self.hydrate_list_phases(games)
+        self.hydrate_total_unread_counts(games, user)
+        self.hydrate_user_members(games, user)
+        self.hydrate_pending_draw_votes(games, user)
+
+        games_by_section = defaultdict(list)
+        for game in games:
+            if game.in_my_games_current(user):
+                games_by_section[game.my_games_section(user)].append(game)
+
+        return [
+            {
+                "key": section,
+                "games": sorted(
+                    games_by_section[section],
+                    key=lambda game: game.my_games_sort_key(user) + (-game.created_at.timestamp(), game.id),
+                ),
+            }
+            for section, _ in MyGamesSection.SECTION_CHOICES
+            if games_by_section[section]
+        ]
+
     def hydrate_retrieve_phases(self, games):
         phases, current_phases, latest_completed_phases = self._latest_phases(games)
         self._prefetch_for_phases(
@@ -298,6 +372,9 @@ class GameManager(models.Manager):
 
     def filter_musterable(self):
         return self.get_queryset().filter_musterable()
+
+    def filter_mine(self, user):
+        return self.get_queryset().filter_mine(user)
 
     def fastest_start(self, user):
         candidates = (
@@ -723,6 +800,17 @@ class Game(BaseModel):
                 if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
             }
 
+    @property
+    def seat_counts(self):
+        if self.status == GameStatus.PENDING:
+            filled = len(self.members.all())
+        elif self.status == GameStatus.MUSTERING:
+            filled = len([member for member in self.members.all() if member.mustered_at is not None or member.is_bot])
+        else:
+            return None
+        total = len([nation for nation in self.variant.nations.all() if not nation.non_playable])
+        return {"filled": filled, "total": total}
+
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
             return self.movement_phase_duration_seconds
@@ -1029,6 +1117,156 @@ class Game(BaseModel):
         if current_member.is_bot or current_member.mustered_at is not None:
             return MusterStatus.CONFIRMED
         return MusterStatus.CONFIRMATION_REQUIRED
+
+    def my_seat(self, user):
+        if self.sandbox:
+            return None
+        return next(
+            (
+                member
+                for member in self.user_members
+                if member.user_id == user.id and not member.is_game_master
+            ),
+            None,
+        )
+
+    def in_my_games_current(self, user):
+        if self.sandbox:
+            return True
+        seat = self.my_seat(user)
+        if seat is None or seat.departure is None:
+            return True
+        return seat.departure == MemberDeparture.ELIMINATED and self.status != GameStatus.ACTIVE
+
+    def my_phase_state(self, user):
+        seat = self.my_seat(user)
+        current_phase = self.current_phase
+        if seat is None or current_phase is None:
+            return None
+        return next(
+            (phase_state for phase_state in current_phase.phase_states.all() if phase_state.member_id == seat.id),
+            None,
+        )
+
+    def my_game_state_kind(self, user):
+        if self.sandbox:
+            return MyGameStateKind.SANDBOX
+        seat = self.my_seat(user)
+        if self.status in (GameStatus.COMPLETED, GameStatus.ABANDONED) or (seat is not None and seat.departure):
+            return MyGameStateKind.FINISHED
+        if seat is None:
+            if self.status == GameStatus.PENDING:
+                return MyGameStateKind.WAITING_FOR_PLAYERS
+            if self.status == GameStatus.MUSTERING:
+                return MyGameStateKind.MUSTERING
+            if self.is_paused:
+                return MyGameStateKind.PAUSED
+            return MyGameStateKind.RESOLVING
+        if self.status == GameStatus.PENDING:
+            return MyGameStateKind.WAITING_FOR_PLAYERS
+        if self.status == GameStatus.MUSTERING:
+            if seat.mustered_at is None and not seat.is_bot:
+                return MyGameStateKind.CONFIRM_SEAT
+            return MyGameStateKind.SEAT_CONFIRMED
+        if self.is_paused:
+            return MyGameStateKind.PAUSED
+        phase_state = self.my_phase_state(user)
+        orders_open = (
+            phase_state is not None and phase_state.has_possible_orders and not phase_state.orders_confirmed
+        )
+        if orders_open and phase_state.order_count == 0:
+            return MyGameStateKind.SUBMIT_ORDERS
+        if self.has_pending_draw_vote:
+            return MyGameStateKind.VOTE_ON_DRAW
+        if orders_open:
+            return MyGameStateKind.ORDERS_UNCONFIRMED
+        if phase_state is not None and phase_state.orders_confirmed:
+            return MyGameStateKind.ORDERS_CONFIRMED
+        return MyGameStateKind.RESOLVING
+
+    def my_games_section(self, user):
+        kind = self.my_game_state_kind(user)
+        if kind == MyGameStateKind.SANDBOX:
+            return MyGamesSection.SANDBOX
+        if kind == MyGameStateKind.FINISHED:
+            return MyGamesSection.RECENTLY_FINISHED
+        if self.my_seat(user) is None:
+            return MyGamesSection.MANAGING
+        if kind == MyGameStateKind.WAITING_FOR_PLAYERS:
+            return MyGamesSection.PENDING
+        if kind in (MyGameStateKind.CONFIRM_SEAT, MyGameStateKind.SUBMIT_ORDERS, MyGameStateKind.VOTE_ON_DRAW):
+            return MyGamesSection.NEEDS_ATTENTION
+        if kind == MyGameStateKind.SEAT_CONFIRMED:
+            return MyGamesSection.MUSTERING
+        return MyGamesSection.ACTIVE
+
+    def my_game_deadline(self, user):
+        kind = self.my_game_state_kind(user)
+        if kind in (MyGameStateKind.CONFIRM_SEAT, MyGameStateKind.SEAT_CONFIRMED, MyGameStateKind.MUSTERING):
+            return self.muster_deadline
+        if kind in (
+            MyGameStateKind.SUBMIT_ORDERS,
+            MyGameStateKind.VOTE_ON_DRAW,
+            MyGameStateKind.ORDERS_CONFIRMED,
+            MyGameStateKind.RESOLVING,
+        ):
+            current_phase = self.current_phase
+            return current_phase.scheduled_resolution if current_phase is not None else None
+        return None
+
+    def my_game_result(self, user):
+        if self.status == GameStatus.ACTIVE:
+            return MyGameResult.ONGOING
+        if self.status == GameStatus.ABANDONED:
+            return MyGameResult.ABANDONED
+        victory = getattr(self, "victory", None)
+        if victory is None:
+            return None
+        winners = list(victory.members.all())
+        if len(winners) >= 2:
+            return MyGameResult.DRAW
+        seat = self.my_seat(user)
+        if seat is not None and winners[0].id == seat.id:
+            return MyGameResult.SOLO_VICTORY
+        return MyGameResult.WON_BY
+
+    def my_game_state(self, user):
+        kind = self.my_game_state_kind(user)
+        state = {
+            "kind": kind,
+            "deadline": self.my_game_deadline(user),
+            "result": None,
+            "winner": None,
+            "departure": None,
+        }
+        if kind == MyGameStateKind.FINISHED:
+            seat = self.my_seat(user)
+            state["result"] = self.my_game_result(user)
+            state["departure"] = seat.departure if seat is not None else None
+            if state["result"] == MyGameResult.WON_BY:
+                state["winner"] = self.victory.members.all()[0].nation.name
+        return state
+
+    def my_games_sort_key(self, user):
+        section = self.my_games_section(user)
+        kind = self.my_game_state_kind(user)
+        deadline = self.my_game_deadline(user)
+        deadline_key = (deadline is None, deadline.timestamp() if deadline is not None else 0)
+        if section == MyGamesSection.NEEDS_ATTENTION:
+            seat = self.my_seat(user)
+            return (seat.id not in self.nmrd_member_ids,) + deadline_key
+        if section == MyGamesSection.MANAGING:
+            return (self.status == GameStatus.PENDING,) + deadline_key
+        if section == MyGamesSection.ACTIVE:
+            rank = {MyGameStateKind.ORDERS_UNCONFIRMED: 0, MyGameStateKind.PAUSED: 2}.get(kind, 1)
+            return (rank,) + deadline_key
+        if section == MyGamesSection.MUSTERING:
+            return deadline_key
+        if section == MyGamesSection.PENDING:
+            return (-len(self.members.all()),)
+        if section == MyGamesSection.RECENTLY_FINISHED:
+            return (-self.finished_at.timestamp(),)
+        return ()
 
     def enter_mustering(self, window_seconds):
         self.status = GameStatus.MUSTERING

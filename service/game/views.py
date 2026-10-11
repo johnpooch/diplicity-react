@@ -19,6 +19,7 @@ from .serializers import (
     GamePauseSerializer,
     GameUnpauseSerializer,
     GameExtendDeadlineSerializer,
+    MyGamesCurrentSerializer,
 )
 from common.views import ConditionalGetMixin, SelectedGameMixin, resolve_game
 from common.serializers import EmptySerializer
@@ -72,6 +73,17 @@ class GameListView(generics.ListAPIView):
         Game.objects.hydrate_list_phases(page)
         Game.objects.hydrate_total_unread_counts(page, self.request.user)
         return page
+
+
+class MyGamesCurrentView(generics.GenericAPIView):
+    """Return the authenticated user's current games, grouped into ordered sections, each game with a single state."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MyGamesCurrentSerializer
+
+    def get(self, request):
+        sections = Game.objects.my_games_current(request.user)
+        return Response(self.get_serializer({"sections": sections}).data)
 
 
 class GameCreateView(generics.CreateAPIView):
