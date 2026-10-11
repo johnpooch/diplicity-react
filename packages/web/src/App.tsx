@@ -17,6 +17,7 @@ import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
 import { clearDeliveredNotifications } from "./utils/deliveredNotifications";
+import { reportOtaBundle } from "./utils/otaBundle";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
 import { useNotificationPermissionPrompt } from "./hooks/useNotificationPermissionPrompt";
 
@@ -72,14 +73,15 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (isNativePlatform()) {
+    if (isNativePlatform() && isMaintenanceMode) {
       SplashScreen.hide();
     }
-  }, []);
+  }, [isMaintenanceMode]);
 
   useEffect(() => {
     if (isNativePlatform()) {
       CapacitorUpdater.notifyAppReady();
+      reportOtaBundle();
     }
   }, []);
 

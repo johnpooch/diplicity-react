@@ -55,6 +55,7 @@ jobs:
           VITE_DIPLICITY_API_BASE_URL: ${{ vars.SERVICE_BASE_URL }}
           VITE_MAINTENANCE_MODE: ${{ vars.MAINTENANCE_MODE }}
           VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
       - name: Install service dependencies
         run: pip install -r requirements.txt

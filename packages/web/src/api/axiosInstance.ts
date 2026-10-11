@@ -8,8 +8,12 @@ const clientVersionHeaders = {
   'X-Client-Version': __APP_VERSION__,
 };
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 const axiosInstance = axios.create({
   baseURL: diplictityApiBaseUrl,
+  timeout: REQUEST_TIMEOUT_MS,
+  transitional: { clarifyTimeoutError: true },
   headers: {
     'Content-Type': 'application/json',
     ...clientVersionHeaders,

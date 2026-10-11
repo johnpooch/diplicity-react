@@ -21,6 +21,12 @@ describe("isNetworkError", () => {
     ).toBe(true);
   });
 
+  it("returns true for an axios request that timed out", () => {
+    expect(
+      isNetworkError(new AxiosError("timeout exceeded", AxiosError.ETIMEDOUT))
+    ).toBe(true);
+  });
+
   it("returns false for an axios error with a response code", () => {
     expect(
       isNetworkError(new AxiosError("Not Found", AxiosError.ERR_BAD_REQUEST))
