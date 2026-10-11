@@ -21,6 +21,7 @@ from .serializers import (
     GameUnpauseSerializer,
     GameExtendDeadlineSerializer,
     MyGamesCurrentSerializer,
+    MyGameSerializer,
 )
 from common.views import ConditionalGetMixin, SelectedGameMixin, resolve_game
 from common.serializers import EmptySerializer
@@ -84,6 +85,17 @@ class MyGamesCurrentView(generics.RetrieveAPIView):
 
     def get_object(self):
         return MyGamesService(self.request.user).current()
+
+
+class MyGamesFinishedView(generics.ListAPIView):
+    """Return the authenticated user's finished and departed games, newest first by when each game ended for them."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MyGameSerializer
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return MyGamesService(self.request.user).finished()
 
 
 class GameCreateView(generics.CreateAPIView):

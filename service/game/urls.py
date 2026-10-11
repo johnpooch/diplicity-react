@@ -42,6 +42,11 @@ urlpatterns = [
         name="my-games-current",
     ),
     path(
+        "games/mine/finished/",
+        views.MyGamesFinishedView.as_view(),
+        name="my-games-finished",
+    ),
+    path(
         "games/find-similar/",
         views.GameFindSimilarView.as_view(),
         name="game-find-similar",

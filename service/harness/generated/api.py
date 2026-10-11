@@ -796,6 +796,13 @@ class PaginatedGameListList(TypedDict):
     results: list[GameList]
 
 
+class PaginatedMyGameList(TypedDict):
+    count: int
+    next: NotRequired[str | None]
+    previous: NotRequired[str | None]
+    results: list[MyGame]
+
+
 class Variant(TypedDict):
     id: str
     name: str
