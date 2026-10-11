@@ -78,12 +78,7 @@ class ChannelMessageListView(SelectedGameMixin, CurrentGameMemberMixin, generics
         )
         query = ChannelMessagePageQuerySerializer(data=self.request.query_params)
         query.is_valid(raise_exception=True)
-        return (
-            ChannelMessage.objects.for_channel(channel)
-            .with_sender_data()
-            .select_related("sender__nation__flag")
-            .page(**query.validated_data)
-        )
+        return ChannelMessage.objects.for_channel(channel).with_sender_data().page(**query.validated_data)
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):

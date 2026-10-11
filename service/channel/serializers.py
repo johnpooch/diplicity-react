@@ -6,14 +6,8 @@ from django.conf import settings
 from django.core import exceptions
 from django.utils import timezone
 
-from .models import (
-    Channel,
-    ChannelMessage,
-    ChannelMember,
-    CHANNEL_MESSAGE_MAX_PAGE_SIZE,
-    CHANNEL_MESSAGE_PAGE_SIZE,
-    CHANNEL_TITLE_MAX_LENGTH,
-)
+from common.constants import ChannelMessagePagination
+from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
 from .policies import can_mute_channel, can_rename_channel
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
@@ -64,10 +58,10 @@ class ChannelMessageSerializer(serializers.Serializer):
 class ChannelMessagePageQuerySerializer(serializers.Serializer):
     before = serializers.IntegerField(required=False, min_value=1)
     after = serializers.IntegerField(required=False, min_value=1)
-    page_size = serializers.IntegerField(min_value=1, default=CHANNEL_MESSAGE_PAGE_SIZE)
+    page_size = serializers.IntegerField(min_value=1, default=ChannelMessagePagination.DEFAULT_PAGE_SIZE)
 
     def validate_page_size(self, value):
-        return min(value, CHANNEL_MESSAGE_MAX_PAGE_SIZE)
+        return min(value, ChannelMessagePagination.MAX_PAGE_SIZE)
 
     def validate(self, attrs):
         if "before" in attrs and "after" in attrs:
