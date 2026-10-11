@@ -1849,6 +1849,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/MyGamesCurrent'
           description: ''
+  /games/mine/finished/:
+    get:
+      operationId: games_mine_finished_list
+      description: Return the authenticated user's finished and departed games, newest
+        first by when each game ended for them.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMyGameList'
+          description: ''
   /sandbox-game/:
     post:
       operationId: sandbox_game_create
@@ -4060,6 +4089,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GameList'
+    PaginatedMyGameList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyGame'
     PasswordReset:
       type: object
       properties:

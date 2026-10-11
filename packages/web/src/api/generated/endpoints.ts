@@ -941,6 +941,15 @@ export interface PaginatedGameListList {
   results: GameList[];
 }
 
+export interface PaginatedMyGameList {
+  count: number;
+  /** @nullable */
+  next?: string | null;
+  /** @nullable */
+  previous?: string | null;
+  results: MyGame[];
+}
+
 export interface PasswordReset {
   email: string;
 }
@@ -1438,6 +1447,17 @@ export type GamesChannelsMessagesRetrieveParams = {
 export type GamesFindSimilarRetrieveParams = {
   movement_phase_duration: string;
   variant: string;
+};
+
+export type GamesMineFinishedListParams = {
+  /**
+   * A page number within the paginated result set.
+   */
+  page?: number;
+  /**
+   * Number of results to return per page.
+   */
+  page_size?: number;
 };
 
 /**
@@ -10598,6 +10618,286 @@ export function useGamesMineCurrentRetrieveSuspense<
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
   const queryOptions = getGamesMineCurrentRetrieveSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Return the authenticated user's finished and departed games, newest first by when each game ended for them.
+ */
+export const gamesMineFinishedList = (
+  params?: GamesMineFinishedListParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<PaginatedMyGameList>({
+    url: `/games/mine/finished/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getGamesMineFinishedListQueryKey = (
+  params?: GamesMineFinishedListParams
+) => {
+  return [`/games/mine/finished/`, ...(params ? [params] : [])] as const;
+};
+
+export const getGamesMineFinishedListQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesMineFinishedListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesMineFinishedList>>
+  > = ({ signal }) => gamesMineFinishedList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesMineFinishedList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesMineFinishedListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesMineFinishedList>>
+>;
+export type GamesMineFinishedListQueryError = unknown;
+
+export function useGamesMineFinishedList<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params: undefined | GamesMineFinishedListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesMineFinishedList>>,
+          TError,
+          Awaited<ReturnType<typeof gamesMineFinishedList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineFinishedList<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesMineFinishedList>>,
+          TError,
+          Awaited<ReturnType<typeof gamesMineFinishedList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineFinishedList<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesMineFinishedList<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesMineFinishedListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesMineFinishedListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesMineFinishedListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesMineFinishedList>>
+  > = ({ signal }) => gamesMineFinishedList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesMineFinishedList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesMineFinishedListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesMineFinishedList>>
+>;
+export type GamesMineFinishedListSuspenseQueryError = unknown;
+
+export function useGamesMineFinishedListSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params: undefined | GamesMineFinishedListParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineFinishedListSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesMineFinishedListSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesMineFinishedListSuspense<
+  TData = Awaited<ReturnType<typeof gamesMineFinishedList>>,
+  TError = unknown,
+>(
+  params?: GamesMineFinishedListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesMineFinishedList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesMineFinishedListSuspenseQueryOptions(
+    params,
+    options
+  );
 
   const query = useSuspenseQuery(
     queryOptions,

@@ -1,7 +1,8 @@
 from collections import defaultdict
 from datetime import timedelta
 
-from django.db.models import Q
+from django.db.models import F, Q
+from django.db.models.functions import Coalesce, Least
 from django.utils import timezone
 
 from common.constants import GameStatus, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
@@ -9,6 +10,18 @@ from draw_proposal.models import DrawVote
 from member.models import Member
 
 from .models import Game
+
+
+class _FinishedRows:
+    def __init__(self, seats, load_rows):
+        self._seats = seats
+        self._load_rows = load_rows
+
+    def count(self):
+        return self._seats.count()
+
+    def __getitem__(self, page):
+        return self._load_rows(list(self._seats[page]))
 
 
 class MyGamesService:
@@ -42,6 +55,32 @@ class MyGamesService:
                 if rows_by_section[section]
             ]
         }
+
+    def finished(self):
+        return _FinishedRows(self._finished_seats(), self._finished_rows)
+
+    def _finished_seats(self):
+        return (
+            Member.objects.filter(user=self.user, game__sandbox=False)
+            .annotate(departed_at=Least("eliminated_at", "civil_disorder_at", "removed_at", "withdrawn_at"))
+            .filter(
+                Q(game__status__in=(GameStatus.COMPLETED, GameStatus.ABANDONED))
+                | Q(game__status=GameStatus.ACTIVE, departed_at__isnull=False)
+            )
+            .annotate(ended_at=Coalesce("departed_at", "game__finished_at"))
+            .select_related("nation")
+            .order_by(F("ended_at").desc(nulls_last=True), "-game__created_at", "-game_id")
+        )
+
+    def _finished_rows(self, members):
+        games_by_id = Game.objects.with_list_data().in_bulk([member.game_id for member in members])
+        games = [games_by_id[member.game_id] for member in members]
+        Game.objects.hydrate_list_phases(games)
+        Game.objects.hydrate_total_unread_counts(games, self.user)
+        return [
+            self._row(game, None if member.is_game_master else member, MyGameStateKind.FINISHED)
+            for member, game in zip(members, games)
+        ]
 
     def _current_games(self):
         recently_finished_cutoff = timezone.now() - timedelta(days=3)
