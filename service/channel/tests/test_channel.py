@@ -8,9 +8,9 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
-from channel.models import Channel, ChannelEvent, ChannelMember, ChannelMessage
+from channel.models import Channel, ChannelEvent, ChannelMember, ChannelMessage, ChannelQuerySet
 from channel.serializers import ChannelSerializer
-from nation.models import Nation
+from nation.models import Nation, NationFlag
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
 from notification.models import Notification
@@ -625,17 +625,133 @@ class TestChannelListView:
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
-    def test_list_channels_unchanged_poll_skips_serialization(
+    def test_list_channels_returns_200_after_message_is_edited(
+        self, authenticated_client, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse("channel-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        message = ChannelMessage.objects.order_by("id").first()
+        message.body = "Edited"
+        message.save()
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["messages"][0]["body"] == "Edited"
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_200_after_requester_is_kicked(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        url = reverse("channel-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        game.members.filter(user__username="primaryuser").update(kicked=True)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["can_rename"] is False
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_200_after_sender_nation_flag_changes(
+        self, authenticated_client, game_with_public_channel_and_messages, classical_france_nation
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse("channel-list", args=[game.id])
+        first = authenticated_client.get(url)
+        flag = NationFlag.objects.get(nation=classical_france_nation)
+        flag.svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>'
+        flag.save()
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=first["ETag"])
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            response.data[0]["messages"][0]["sender"]["nation"]["flag_url"]
+            != first.data[0]["messages"][0]["sender"]["nation"]["flag_url"]
+        )
+        assert response["ETag"] != first["ETag"]
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_304_when_another_member_joins_a_channel(
+        self, authenticated_client, game_with_public_channel_and_messages, tertiary_user, classical_germany_nation
+    ):
+        game = game_with_public_channel_and_messages
+        public_channel = game.channels.get(name="Public Press")
+        newcomer = game.members.create(user=tertiary_user, nation=classical_germany_nation)
+        url = reverse("channel-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        ChannelMember.objects.create(channel=public_channel, member=newcomer)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_304_when_marking_read_leaves_unread_counts_unchanged(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        authenticated_client.post(reverse("channel-mark-read", args=[game.id, channel.id]))
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_list_channels_returns_304_after_message_in_an_inaccessible_channel(
+        self, authenticated_client_for_secondary_user, active_game_with_channels
+    ):
+        game = active_game_with_channels
+        private_channel = game.channels.get(name="Private Member")
+        url = reverse("channel-list", args=[game.id])
+        etag = authenticated_client_for_secondary_user.get(url)["ETag"]
+        ChannelMessage.objects.create(channel=private_channel, sender=game.members.first(), body="Secret")
+
+        response = authenticated_client_for_secondary_user.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_list_channels_unauthenticated_returns_200_after_public_message(
+        self, unauthenticated_client, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        public_channel = game.channels.get(name="Public Press")
+        url = reverse("channel-list", args=[game.id])
+        etag = unauthenticated_client.get(url)["ETag"]
+        unchanged = unauthenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+        ChannelMessage.objects.create(channel=public_channel, sender=game.members.first(), body="Message 3")
+
+        response = unauthenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert unchanged.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["messages"][-1]["body"] == "Message 3"
+
+    @pytest.mark.django_db
+    def test_list_channels_unchanged_poll_skips_building_the_list(
         self, authenticated_client, game_with_public_channel_and_messages
     ):
         game = game_with_public_channel_and_messages
         url = reverse("channel-list", args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
 
-        with patch.object(ChannelSerializer, "to_representation") as to_representation:
+        with (
+            patch.object(ChannelQuerySet, "with_related_data") as with_related_data,
+            patch.object(ChannelSerializer, "to_representation") as to_representation,
+        ):
             response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        with_related_data.assert_not_called()
         to_representation.assert_not_called()
 
     @pytest.mark.django_db
@@ -645,18 +761,46 @@ class TestChannelListView:
         game = game_with_public_channel_and_messages
         public_channel = game.channels.get(name="Public Press")
         url = reverse("channel-list", args=[game.id])
+        short_etag = authenticated_client.get(url)["ETag"]
         with CaptureQueriesContext(connection) as short_history:
-            authenticated_client.get(url, HTTP_IF_NONE_MATCH=authenticated_client.get(url)["ETag"])
+            authenticated_client.get(url, HTTP_IF_NONE_MATCH=short_etag)
         sender = game.members.last()
         for index in range(20):
             ChannelMessage.objects.create(channel=public_channel, sender=sender, body=f"Message {index}")
-        etag = authenticated_client.get(url)["ETag"]
+        ChannelEvent.objects.create_for_channels("phase_resolved", [public_channel], phase=game.current_phase)
+        long_etag = authenticated_client.get(url)["ETag"]
 
         with CaptureQueriesContext(connection) as long_history:
-            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=long_etag)
 
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
         assert len(long_history.captured_queries) == len(short_history.captured_queries)
+
+    @pytest.mark.django_db
+    def test_list_channels_unchanged_poll_query_count_does_not_grow_with_members(
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        user_factory,
+        classical_germany_nation,
+        classical_italy_nation,
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse("channel-list", args=[game.id])
+        small_etag = authenticated_client.get(url)["ETag"]
+        with CaptureQueriesContext(connection) as few_members:
+            authenticated_client.get(url, HTTP_IF_NONE_MATCH=small_etag)
+        for nation in [classical_germany_nation, classical_italy_nation]:
+            user = user_factory()
+            UserProfilePicture.objects.store(user.profile, b"picture", "image/png")
+            game.members.create(user=user, nation=nation)
+        large_etag = authenticated_client.get(url)["ETag"]
+
+        with CaptureQueriesContext(connection) as more_members:
+            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=large_etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert len(more_members.captured_queries) == len(few_members.captured_queries)
 
 
 class TestChannelListOrdering:

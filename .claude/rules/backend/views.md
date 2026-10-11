@@ -49,9 +49,11 @@ Any GET the client polls mixes in `ConditionalGetMixin` from `common.views`. It 
 
 `ConditionalGetMixin` saves bandwidth, not server work: the body is still built on every poll. When building it is expensive, a polled endpoint may mix in `PrecomputedConditionalGetMixin` instead and implement `get_fingerprint()`. The mixin answers a matching `If-None-Match` with an empty 304 after authentication and permissions have run, without calling the list or retrieve handler. Use it only when tests cover every response input:
 
-- The fingerprint hashes a narrow projection of every value that can change the response. Include the computed value where the response computes one, such as an unread count or a mute that expires, rather than the stored field it is derived from. Do not rely on `updated_at` alone: `QuerySet.update()` and bulk writes do not advance it.
+- Fingerprint what the response exposes, not the raw inputs behind it. Compute values the way the response does: reuse the queryset annotations, policy functions and serializers for small dependencies such as members or events. Do not maintain a second handwritten list of their fields. A raw input whose change leaves the response unchanged, such as a read timestamp behind an unchanged unread count, only causes needless 200s.
+- Do not load or serialize the history the endpoint exists to skip. Summarize it with aggregates such as count, maximum ID and maximum `updated_at`. Those aggregates assume the rows are append-only or are changed only through `save()`. A `QuerySet.update()` that rewrites a row without advancing `updated_at` goes undetected, so do not add one to a fingerprinted model.
 - Bump the fingerprint's representation-version salt whenever serialization changes without a database change.
-- For each input, the endpoint's tests take an ETag, perform the mutation, and assert a 200 with a different ETag. Another test asserts that an unchanged poll is a 304 that skips the serializer, with a query count that does not grow with history.
+- For each input, the endpoint's tests take an ETag, perform the mutation, and assert a 200 with a different ETag. Add tests that changes the response doesn't expose still get a 304. Add a test that an unchanged poll skips the expensive build. Add tests that its query count stays the same as history and related rows grow, comparing two equivalent conditional requests.
+- A fixed query count is not fixed database work. Aggregating history still scans it, so describe the saving as skipping serialization and transfer, not as cost independent of history.
 
 `channel/utils.py` holds the reference implementation for the channel list.
 
