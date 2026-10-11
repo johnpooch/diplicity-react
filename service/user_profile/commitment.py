@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 from common.constants import Commitment, CommitmentRequirement, PhaseStatus, PhaseType
 from phase.models import PhaseState
 
@@ -51,7 +53,10 @@ def get_rated_outcomes(user):
             phase__game__sandbox=False,
             phase__game__private=False,
         )
-        .exclude(member__kicked=True, member__withdrawn_at__isnull=True)
+        .exclude(
+            Q(member__removed_at__isnull=False) | Q(member__replaced_by__isnull=False),
+            member__withdrawn_at__isnull=True,
+        )
         .select_related("phase")
         .order_by("member_id", "phase__ordinal")
     )

@@ -126,8 +126,8 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           game?.totalUnreadMessageCount &&
           game.totalUnreadMessageCount > 0) ||
         (item.label === "Orders" &&
-          Array.isArray(game?.members) &&
-          game.members.some(m => m.isCurrentUser && m.civilDisorder))
+          (game?.orderStatus === "orders_required" ||
+            game?.orderStatus === "orders_not_confirmed"))
           ? "•"
           : undefined;
       let path: string;
@@ -160,7 +160,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     location.pathname,
     game?.totalUnreadMessageCount,
     game?.sandbox,
-    game?.members,
+    game?.orderStatus,
     game?.status,
   ]);
 

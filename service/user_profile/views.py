@@ -3,6 +3,7 @@ from rest_framework.parsers import MultiPartParser
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.views import View
 from drf_spectacular.utils import extend_schema
 
@@ -114,7 +115,7 @@ class UserAccountDeleteView(generics.DestroyAPIView):
             ongoing_members = user_members.filter(
                 game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
             )
-            ongoing_members.update(kicked=True)
+            ongoing_members.holding_seat().update(removed_at=timezone.now())
             PhaseState.objects.filter(
                 member__in=ongoing_members, phase__status=PhaseStatus.ACTIVE
             ).update(has_possible_orders=False)

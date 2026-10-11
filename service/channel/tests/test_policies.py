@@ -14,7 +14,7 @@ def test_can_rename_private_channel():
         status=GameStatus.ACTIVE,
         sandbox=False,
     )
-    member = SimpleNamespace(kicked=False)
+    member = SimpleNamespace(left_seat=False)
 
     assert can_rename_channel(channel, game, member, True) is True
 
@@ -22,12 +22,12 @@ def test_can_rename_private_channel():
 @pytest.mark.parametrize(
     ("private", "member", "is_channel_member", "sandbox", "press_type", "status"),
     [
-        (False, SimpleNamespace(kicked=False), True, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
+        (False, SimpleNamespace(left_seat=False), True, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
         (True, None, False, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(kicked=False), False, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(kicked=True), True, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(kicked=False), True, True, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(kicked=False), True, False, PressType.NO_PRESS, GameStatus.ACTIVE),
+        (True, SimpleNamespace(left_seat=False), False, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
+        (True, SimpleNamespace(left_seat=True), True, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
+        (True, SimpleNamespace(left_seat=False), True, True, PressType.FULL_PRESS, GameStatus.ACTIVE),
+        (True, SimpleNamespace(left_seat=False), True, False, PressType.NO_PRESS, GameStatus.ACTIVE),
     ],
 )
 def test_cannot_rename_channel_when_not_permitted(
@@ -55,7 +55,7 @@ def test_can_rename_private_channel_after_no_press_game_ends():
         status=GameStatus.COMPLETED,
         sandbox=False,
     )
-    member = SimpleNamespace(kicked=False)
+    member = SimpleNamespace(left_seat=False)
 
     assert can_rename_channel(channel, game, member, True) is True
 

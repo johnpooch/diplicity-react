@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { GameDetailLayout } from "./GameDetailLayout";
+import type { GameRetrieve } from "@/api/generated/endpoints";
 
 vi.mock("@/api/generated/endpoints", async importOriginal => {
   const actual =
@@ -50,7 +51,11 @@ beforeAll(() => {
 const pollGame = async (
   queryClient: QueryClient,
   gameId: string,
-  game: { currentPhaseId: number | null; status: string }
+  game: {
+    currentPhaseId: number | null;
+    status: string;
+    orderStatus?: GameRetrieve["orderStatus"];
+  }
 ) => {
   queryClient.setQueryData([`/game/${gameId}/`], {
     id: gameId,
@@ -201,4 +206,74 @@ describe("GameDetailLayout phase transitions", () => {
       ).not.toBeInTheDocument();
     }
   );
+});
+
+describe("GameDetailLayout orders navigation dot", () => {
+  const ordersDot = () =>
+    screen
+      .getByRole("button", { name: "Orders" })
+      .querySelector(".rounded-full.bg-primary");
+
+  it.each(["orders_required", "orders_not_confirmed"] as const)(
+    "shows the dot when the order status is %s",
+    async orderStatus => {
+      const { queryClient } = renderLayout();
+
+      await pollGame(queryClient, "game-1", {
+        currentPhaseId: 1,
+        status: "active",
+        orderStatus,
+      });
+
+      expect(ordersDot()).toBeInTheDocument();
+    }
+  );
+
+  it.each(["orders_submitted", "no_orders_required", null] as const)(
+    "hides the dot when the order status is %s",
+    async orderStatus => {
+      const { queryClient } = renderLayout();
+
+      await pollGame(queryClient, "game-1", {
+        currentPhaseId: 1,
+        status: "active",
+        orderStatus,
+      });
+
+      expect(ordersDot()).not.toBeInTheDocument();
+    }
+  );
+
+  it("hides the dot for a member in civil disorder whose order status is null", async () => {
+    const { queryClient } = renderLayout();
+
+    queryClient.setQueryData(["/game/game-1/"], {
+      id: "game-1",
+      currentPhaseId: 1,
+      status: "active",
+      sandbox: false,
+      orderStatus: null,
+      members: [{ isCurrentUser: true, civilDisorder: true, withdrawn: false }],
+    });
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+    expect(ordersDot()).not.toBeInTheDocument();
+  });
+
+  it("clears the dot when a poll reports the orders as submitted", async () => {
+    const { queryClient } = renderLayout();
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+      orderStatus: "orders_required",
+    });
+
+    await pollGame(queryClient, "game-1", {
+      currentPhaseId: 1,
+      status: "active",
+      orderStatus: "orders_submitted",
+    });
+
+    expect(ordersDot()).not.toBeInTheDocument();
+  });
 });

@@ -981,7 +981,7 @@ class TestAdjudicationService:
         Italian Army Berlin moves to Kiel (supported by Munich).
         German Fleet Kiel holds — dislodged, but Germany is in Civil Disorder.
         """
-        member_germany.civil_disorder = True
+        member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
         phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
@@ -1016,7 +1016,7 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        member_germany.civil_disorder = True
+        member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
         phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
@@ -1048,7 +1048,7 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        member_germany.civil_disorder = True
+        member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
         phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
@@ -1081,7 +1081,7 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        member_germany.kicked = True
+        member_germany.removed_at = timezone.now()
         member_germany.save()
 
         phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
@@ -1176,7 +1176,7 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        member_italy.civil_disorder = True
+        member_italy.civil_disorder_at = timezone.now()
         member_italy.save()
         self._setup_italy_build(phase_fall_1901_movement, member_italy, member_germany)
 
@@ -1193,7 +1193,7 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        member_italy.kicked = True
+        member_italy.removed_at = timezone.now()
         member_italy.save()
         self._setup_italy_build(phase_fall_1901_movement, member_italy, member_germany)
 
@@ -1211,7 +1211,7 @@ class TestAdjudicationService:
         member_germany,
         tertiary_user,
     ):
-        member_italy.civil_disorder = True
+        member_italy.civil_disorder_at = timezone.now()
         member_italy.save()
         self._setup_italy_build(phase_fall_1901_movement, member_italy, member_germany)
         Member.objects.hand_over_seat(member_italy, tertiary_user)
@@ -1264,9 +1264,9 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        member_italy.civil_disorder = True
+        member_italy.civil_disorder_at = timezone.now()
         member_italy.save()
-        member_germany.civil_disorder = True
+        member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
         phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)

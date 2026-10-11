@@ -161,6 +161,30 @@ describe("GameInfoScreen", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("shows the withdraw button below the game info when the player can withdraw", () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({
+        data: { ...mockActiveGames[0], canWithdraw: true },
+      });
+      renderGameInfo(mockActiveGames[0].id);
+
+      const button = screen.getByRole("button", { name: /withdraw from game/i });
+      expect(
+        screen.getByTestId("game-info-content").compareDocumentPosition(button) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
+    it("hides the withdraw button when the player cannot withdraw", () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({
+        data: { ...mockActiveGames[0], canWithdraw: false },
+      });
+      renderGameInfo(mockActiveGames[0].id);
+
+      expect(
+        screen.queryByRole("button", { name: /withdraw from game/i })
+      ).not.toBeInTheDocument();
+    });
+
     it("shows no join/leave button for an active game", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({ data: mockActiveGames[0] });
       renderGameInfo(mockActiveGames[0].id);

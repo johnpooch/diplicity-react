@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
 import { GameMap } from "@/components/GameMap";
 import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
@@ -33,6 +34,7 @@ const MapConfirmOrders: React.FC = () => {
   const canModifyOrders =
     currentMember !== undefined &&
     !currentMember.civilDisorder &&
+    !currentMember.withdrawn &&
     !game.sandbox &&
     canEnterOrdersForPhase(game, phase, selectedPhase);
 
@@ -80,9 +82,23 @@ const MapScreen: React.FC = () => {
   );
 };
 
+const MapScreenSkeleton: React.FC = () => (
+  <div className="flex flex-col flex-1 min-h-0">
+    <GameDetailAppBar title={<Skeleton className="h-5 w-40" />} />
+    <div className="h-[5px] shrink-0" />
+    <div className="flex-1 overflow-y-auto">
+      <Panel>
+        <Panel.Content>
+          <Skeleton className="aspect-[4/3] w-full" />
+        </Panel.Content>
+      </Panel>
+    </div>
+  </div>
+);
+
 const MapScreenSuspense: React.FC = () => (
   <QueryErrorBoundary>
-    <Suspense fallback={<div></div>}>
+    <Suspense fallback={<MapScreenSkeleton />}>
       <MapScreen />
     </Suspense>
   </QueryErrorBoundary>

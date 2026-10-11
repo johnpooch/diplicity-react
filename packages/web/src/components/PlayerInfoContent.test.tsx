@@ -31,7 +31,12 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockKickMutateAsync,
     isPending: false,
   }),
+  useGameMemberWithdrawPartialUpdate: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
   getGameRetrieveQueryKey: () => ["game"],
+  getGamesListQueryKey: () => ["games"],
   getGameAddableUserListQueryKey: () => ["addable-user"],
 }));
 
@@ -87,6 +92,7 @@ const baseMember = {
   isAdmin: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
+  withdrawn: false,
   removable: false,
   nationPreferenceIds: [],
 };
@@ -538,6 +544,75 @@ describe("PlayerInfoContent", () => {
       "bg-destructive",
       "text-white"
     );
+  });
+
+  it("offers withdrawal when the player can withdraw", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canWithdraw: true,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.getByRole("button", { name: /withdraw from game/i })
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer withdrawal when the player cannot withdraw", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canWithdraw: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.queryByRole("button", { name: /withdraw from game/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("dims and labels withdrawn players", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, userId: 1, name: "Alice" },
+        {
+          ...baseMember,
+          id: 2,
+          userId: 2,
+          name: "Bob",
+          nation: "France",
+          isCurrentUser: false,
+          withdrawn: true,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.getByLabelText("View profile for Bob").parentElement
+    ).toHaveClass("opacity-70");
+    expect(
+      screen.getByLabelText("View profile for Alice").parentElement
+    ).not.toHaveClass("opacity-70");
+    expect(screen.getByLabelText("Withdrawn")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Civil Disorder")).not.toBeInTheDocument();
   });
 
   it("uses a labelled Remove player button for removable members", () => {

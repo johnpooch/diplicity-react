@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 
 from common.constants import DeadlineMode, GameStatus, PhaseStatus
@@ -165,7 +166,7 @@ def test_member_status_includes_civil_disorder(
     member = game.members.create(
         user=primary_user,
         nation=classical_england_nation,
-        civil_disorder=True,
+        civil_disorder_at=timezone.now(),
     )
     phase = game.phases.create(
         variant=classical_variant,
@@ -299,7 +300,7 @@ def test_member_status_null_for_sandbox_game(
     member = game.members.create(
         user=primary_user,
         nation=classical_england_nation,
-        civil_disorder=True,
+        civil_disorder_at=timezone.now(),
     )
     phase = game.phases.create(
         variant=classical_variant,

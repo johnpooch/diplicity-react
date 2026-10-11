@@ -32,6 +32,19 @@ sandbox_create_viewname = "sandbox-game-create"
 find_similar_viewname = "game-find-similar"
 fastest_viewname = "game-fastest"
 
+ORDER_STATUS_BY_SEAT = [
+    ("orders_required", "orders_required"),
+    ("orders_not_confirmed", "orders_not_confirmed"),
+    ("orders_confirmed", "orders_submitted"),
+    ("eliminated", "no_orders_required"),
+    ("civil_disorder", None),
+    ("withdrawn", None),
+    ("removed", None),
+    ("replaced", None),
+    ("spectator", None),
+    ("sandbox", None),
+]
+
 
 def queried_phase_ids(table):
     phase_ids = set()
@@ -344,9 +357,9 @@ class TestGameRetrieveView:
         game.members.create(user=primary_user, nation=classical_england_nation)
         replaced = game.members.create(user=secondary_user, nation=classical_france_nation)
         replacement = game.members.create(user=bot_user)
-        replaced.kicked = True
+        replaced.removed_at = timezone.now()
         replaced.replaced_by = replacement
-        replaced.save(update_fields=["kicked", "replaced_by"])
+        replaced.save(update_fields=["removed_at", "replaced_by"])
         replacement.nation = classical_france_nation
         replacement.save(update_fields=["nation"])
 
@@ -396,6 +409,18 @@ class TestGameRetrieveView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["order_status"] == "orders_required"
         assert response.data["phase_confirmed"] is False
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("seat,expected", ORDER_STATUS_BY_SEAT)
+    def test_retrieve_game_reports_order_status_for_seat(
+        self, authenticated_client, seated_game_factory, seat, expected
+    ):
+        game = seated_game_factory(seat)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["order_status"] == expected
 
     @pytest.mark.django_db
     def test_retrieve_game_reports_nmr_from_latest_completed_phase(
@@ -635,9 +660,9 @@ class TestGameListView:
         base_pending_phase(game)
         replaced = game.members.create(user=primary_user, nation=classical_england_nation)
         replacement = game.members.create(user=bot_user)
-        replaced.kicked = True
+        replaced.removed_at = timezone.now()
         replaced.replaced_by = replacement
-        replaced.save(update_fields=["kicked", "replaced_by"])
+        replaced.save(update_fields=["removed_at", "replaced_by"])
         replacement.nation = classical_england_nation
         replacement.save(update_fields=["nation"])
 
@@ -685,6 +710,19 @@ class TestGameListView:
         order_statuses = {g["id"]: g["order_status"] for g in response.data["results"]}
         assert order_statuses[submitted_game.id] == "orders_submitted"
         assert order_statuses[required_game.id] == "orders_required"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("seat,expected", ORDER_STATUS_BY_SEAT)
+    def test_list_games_reports_order_status_for_seat(
+        self, authenticated_client, seated_game_factory, seat, expected
+    ):
+        game = seated_game_factory(seat)
+
+        response = authenticated_client.get(reverse(list_viewname), {"sandbox": game.sandbox})
+
+        assert response.status_code == status.HTTP_200_OK
+        order_statuses = {g["id"]: g["order_status"] for g in response.data["results"]}
+        assert order_statuses[game.id] == expected
 
     @pytest.mark.django_db
     def test_list_games_reports_nmr_from_latest_completed_phase(

@@ -10,7 +10,7 @@ def can_rename_channel(channel, game, member, is_channel_member):
         member
         and is_channel_member
         and channel.private
-        and not member.kicked
+        and not member.left_seat
         and not game.sandbox
         and not no_press_active
     )

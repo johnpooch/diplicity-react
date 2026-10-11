@@ -18,8 +18,13 @@ class MemberQuerySet(models.QuerySet):
 
     def vacant(self):
         return self.not_replaced().filter(
-            models.Q(civil_disorder=True) | models.Q(kicked=True) | models.Q(withdrawn_at__isnull=False)
+            models.Q(civil_disorder_at__isnull=False)
+            | models.Q(removed_at__isnull=False)
+            | models.Q(withdrawn_at__isnull=False)
         )
+
+    def holding_seat(self):
+        return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
@@ -37,9 +42,10 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                 ]
             )
 
-            member.kicked = True
+            if not member.vacant:
+                member.removed_at = timezone.now()
             member.replaced_by = replacement
-            member.save(update_fields=["kicked", "replaced_by"])
+            member.save(update_fields=["removed_at", "replaced_by"])
 
             replacement.nation = member.nation
             replacement.save(update_fields=["nation"])
@@ -83,8 +89,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             return
 
         with transaction.atomic():
-            member.kicked = True
-            member.save(update_fields=["kicked"])
+            member.removed_at = timezone.now()
+            member.save(update_fields=["removed_at"])
 
             phase = self._lock_active_phase(member.game)
             if phase is not None:
@@ -143,12 +149,15 @@ class Member(BaseModel):
     sandbox = models.BooleanField(default=False)
     won = models.BooleanField(default=False)
     drew = models.BooleanField(default=False)
-    eliminated = models.BooleanField(default=False)
-    kicked = models.BooleanField(default=False)
+    legacy_eliminated = models.BooleanField(default=False, db_column="eliminated")
+    legacy_kicked = models.BooleanField(default=False, db_column="kicked")
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
-    civil_disorder = models.BooleanField(default=False)
+    legacy_civil_disorder = models.BooleanField(default=False, db_column="civil_disorder")
     seeking_replacement = models.BooleanField(default=False)
     mustered_at = models.DateTimeField(null=True, blank=True)
+    eliminated_at = models.DateTimeField(null=True, blank=True)
+    civil_disorder_at = models.DateTimeField(null=True, blank=True)
+    removed_at = models.DateTimeField(null=True, blank=True)
     withdrawn_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
@@ -187,12 +196,28 @@ class Member(BaseModel):
         return self.kind == MemberKind.GAME_MASTER
 
     @property
+    def eliminated(self):
+        return self.eliminated_at is not None
+
+    @property
+    def civil_disorder(self):
+        return self.civil_disorder_at is not None
+
+    @property
     def withdrawn(self):
         return self.withdrawn_at is not None
 
     @property
+    def removed(self):
+        return self.removed_at is not None
+
+    @property
+    def left_seat(self):
+        return self.removed or self.replaced_by_id is not None
+
+    @property
     def vacant(self):
-        return self.replaced_by_id is None and (self.civil_disorder or self.kicked or self.withdrawn)
+        return self.replaced_by_id is None and (self.civil_disorder or self.removed or self.withdrawn)
 
     @property
     def occupied(self):

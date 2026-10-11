@@ -49,6 +49,7 @@ const baseMember = (overrides = {}) => ({
   isGameCreator: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
+  withdrawn: false,
   ...overrides,
 });
 
@@ -104,6 +105,22 @@ describe("ProposeDrawScreen (DIAS)", () => {
 
     expect(screen.getByText("Civil Disorder")).toBeInTheDocument();
     expect(screen.getByText(/excluded from draw victory/i)).toBeInTheDocument();
+  });
+
+  it("shows withdrawn members marked as excluded", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      members: [
+        baseMember({ id: 1, nation: "England" }),
+        baseMember({ id: 2, nation: "France", name: "Bob", withdrawn: true }),
+      ],
+    });
+
+    renderScreen();
+
+    expect(screen.getByText("Withdrawn")).toBeInTheDocument();
+    expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
+    expect(screen.getByText("Bob (excluded from draw victory)")).toBeInTheDocument();
   });
 
   it("does not render any SC threshold UI", () => {

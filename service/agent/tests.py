@@ -1046,7 +1046,7 @@ class TestReplaceMemberWithBotCommand:
         )
 
     @pytest.mark.django_db
-    def test_seats_the_bot_in_a_new_member_and_kicks_the_original(self, active_game_factory, in_memory_procrastinate):
+    def test_seats_the_bot_in_a_new_member_and_removes_the_original(self, active_game_factory, in_memory_procrastinate):
         game = active_game_factory()
         member = game.members.first()
 
@@ -1054,10 +1054,10 @@ class TestReplaceMemberWithBotCommand:
 
         replacement = game.members.get(user__username="dealmakerbot")
         assert replacement.nation == member.nation
-        assert replacement.kicked is False
+        assert replacement.left_seat is False
 
         member.refresh_from_db()
-        assert member.kicked is True
+        assert member.removed_at is not None
         assert member.replaced_by == replacement
         assert member.user is not None
 
@@ -1136,8 +1136,8 @@ class TestReplaceMemberWithBotCommand:
         game = active_game_factory()
         member = game.members.first()
         member.user = None
-        member.kicked = True
-        member.save(update_fields=["user", "kicked"])
+        member.removed_at = timezone.now()
+        member.save(update_fields=["user", "removed_at"])
 
         self._replace(game, member)
 
@@ -1270,10 +1270,10 @@ class TestReplanMemberCommand:
     def test_rejects_a_kicked_member(self, active_game_factory, primary_user, in_memory_procrastinate):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
-        member.kicked = True
-        member.save(update_fields=["kicked"])
+        member.removed_at = timezone.now()
+        member.save(update_fields=["removed_at"])
 
-        with pytest.raises(CommandError, match="has been kicked"):
+        with pytest.raises(CommandError, match="has left the seat"):
             self._replan(game, member)
 
         assert not AgentTask.objects.filter(member=member).exists()

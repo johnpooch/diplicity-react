@@ -337,12 +337,14 @@ class PhaseManager(models.Manager):
         ).exclude(
             member__nation_id__in=phase.nations_with_forced_orders
         ).exclude(
-            member__kicked=True
+            member__removed_at__isnull=False
+        ).exclude(
+            member__replaced_by__isnull=False
         ).exclude(
             member__withdrawn_at__isnull=False
         ).annotate(order_count=Count("orders"))
 
-        received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder=False)
+        received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder_at__isnull=True)
         received_ids = list(base_qs.filter(received).values_list("id", flat=True))
         nmr_ids = list(base_qs.exclude(received).values_list("id", flat=True))
 
@@ -399,9 +401,10 @@ class PhaseManager(models.Manager):
         if not newly_cd_members:
             return []
 
+        civil_disorder_at = timezone.now()
         for m in newly_cd_members:
-            m.civil_disorder = True
-        Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
+            m.civil_disorder_at = civil_disorder_at
+        Member.objects.bulk_update(newly_cd_members, ["civil_disorder_at"])
 
         if any(m.user_id == phase.game.admin_id for m in newly_cd_members):
             phase.game.reassign_admin()
@@ -424,8 +427,8 @@ class PhaseManager(models.Manager):
 
         if eliminated:
             for m in eliminated:
-                m.civil_disorder = False
-            Member.objects.bulk_update(eliminated, ["civil_disorder"])
+                m.civil_disorder_at = None
+            Member.objects.bulk_update(eliminated, ["civil_disorder_at"])
 
         return surviving
 
@@ -508,8 +511,8 @@ class PhaseManager(models.Manager):
             sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
 
         candidates = list(
-            previous_phase.game.members.filter(
-                eliminated=False, kicked=False, nation__isnull=False
+            previous_phase.game.members.holding_seat().filter(
+                eliminated_at__isnull=True, nation__isnull=False
             ).select_related("user", "nation")
         )
 
@@ -522,9 +525,10 @@ class PhaseManager(models.Manager):
         if not newly_eliminated:
             return
 
+        eliminated_at = timezone.now()
         for m in newly_eliminated:
-            m.eliminated = True
-        Member.objects.bulk_update(newly_eliminated, ["eliminated"])
+            m.eliminated_at = eliminated_at
+        Member.objects.bulk_update(newly_eliminated, ["eliminated_at"])
 
         game = previous_phase.game
 

@@ -90,7 +90,7 @@ class BaseMemberSerializer(serializers.Serializer):
 class MemberSerializer(BaseMemberSerializer):
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
     eliminated = serializers.BooleanField(read_only=True)
-    kicked = serializers.BooleanField(read_only=True)
+    kicked = serializers.BooleanField(read_only=True, source="left_seat")
     is_game_creator = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
