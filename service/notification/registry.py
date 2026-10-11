@@ -328,8 +328,8 @@ class RemovedFromStagingSpec(NotificationSpec):
 class EnteredCivilDisorderSpec(NotificationSpec):
     def get_body(self):
         return (
-            f"You have entered civil disorder in {self.context.game.name}. "
-            "Your units hold each turn until you return to the game."
+            f"You have entered civil disorder in {self.context.game.name} and have left the game. "
+            "Your units hold each turn and your seat is open for another player."
         )
 
 
@@ -376,22 +376,6 @@ class CivilDisorderSpec(NotificationSpec):
         names = [self.player_name(nation=nation_name) for nation_name in nation_names]
         verb = "has" if len(names) == 1 else "have"
         return f"{join_names(names)} {verb} entered civil disorder."
-
-
-@register("civil_disorder_recovery")
-class CivilDisorderRecoverySpec(NotificationSpec):
-    exclude_actor = True
-
-    def get_audience(self):
-        return self.context.game.seated_member_user_ids()
-
-    def get_link(self):
-        return self._phase_url("player-info")
-
-    def get_body(self):
-        member = self.context.game.members.filter(user=self.context.actor).first()
-        nation_name = member.nation.name if member and member.nation else None
-        return f"{self.player_name(nation=nation_name)} has returned from civil disorder."
 
 
 @register("withdrawal")

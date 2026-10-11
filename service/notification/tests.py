@@ -261,7 +261,6 @@ class TestRegistry:
             "seat_filled",
             "entered_civil_disorder",
             "civil_disorder",
-            "civil_disorder_recovery",
             "withdrawal",
             "elimination",
             "nmr_extension_used",
@@ -334,14 +333,6 @@ class TestNotificationLinks:
         )
 
     @pytest.mark.django_db
-    def test_civil_disorder_recovery_links_to_player_info(self, active_game, primary_user):
-        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
-        assert rendered["link"] == (
-            f"{settings.FRONTEND_URL}/game/{active_game.id}"
-            f"/phase/{active_game.current_phase.id}/player-info"
-        )
-
-    @pytest.mark.django_db
     def test_withdrawal_links_to_player_info(self, active_game, primary_user):
         rendered = render_push("withdrawal", game=active_game, actor=primary_user, nation_name="England")
         assert rendered["link"] == (
@@ -385,34 +376,10 @@ class TestNotificationCopy:
         assert rendered["body"] == "England, France and Italy have entered civil disorder."
 
     @pytest.mark.django_db
-    def test_civil_disorder_recovery_names_the_returning_nation(self, active_game, primary_user):
-        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
-        assert rendered["heading"] == active_game.name
-        assert rendered["body"] == "England has returned from civil disorder."
-
-    @pytest.mark.django_db
     def test_withdrawal_names_the_withdrawn_nation(self, active_game, primary_user):
         rendered = render_push("withdrawal", game=active_game, actor=primary_user, nation_name="England")
         assert rendered["heading"] == active_game.name
         assert rendered["body"] == "England has withdrawn from the game. The seat is open for another player to take."
-
-    @pytest.mark.django_db
-    def test_civil_disorder_recovery_without_a_nation_names_the_player(self, active_game, primary_user):
-        active_game.members.filter(user=primary_user).update(nation=None)
-
-        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
-        assert rendered["body"] == f"{primary_user.profile.name} has returned from civil disorder."
-
-    @pytest.mark.django_db
-    def test_civil_disorder_recovery_without_a_nation_masks_the_player_in_an_anonymous_game(
-        self, active_game, primary_user
-    ):
-        active_game.members.filter(user=primary_user).update(nation=None)
-        active_game.anonymous = True
-        active_game.save()
-
-        rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
-        assert rendered["body"] == "Anonymous has returned from civil disorder."
 
     @pytest.mark.django_db
     def test_seat_filled_names_the_nation_in_the_body(self, active_game):
@@ -503,7 +470,6 @@ class TestSeatedResolver:
             "game_deadline_extended",
             "nmr_extension_applied",
             "seat_filled",
-            "civil_disorder_recovery",
             "withdrawal",
         ],
     )
@@ -526,7 +492,6 @@ class TestSeatedExceptActorResolver:
             "game_resumed",
             "game_deadline_extended",
             "seat_filled",
-            "civil_disorder_recovery",
             "withdrawal",
         ],
     )
@@ -1206,8 +1171,8 @@ class TestEnteredCivilDisorderNotification:
 
         delivery = _push("entered_civil_disorder").first()
         assert delivery.body == (
-            f"You have entered civil disorder in {game.name}. "
-            "Your units hold each turn until you return to the game."
+            f"You have entered civil disorder in {game.name} and have left the game. "
+            "Your units hold each turn and your seat is open for another player."
         )
 
     @pytest.mark.django_db

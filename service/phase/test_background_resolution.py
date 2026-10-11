@@ -1205,29 +1205,6 @@ class TestPauseAndUnpause:
 class TestMembershipChangeArming:
 
     @pytest.mark.django_db
-    def test_civil_disorder_recovery_pushes_the_job_back_to_the_deadline(
-        self, phase_factory, classical_england_nation
-    ):
-        deadline = timezone.now() + timedelta(hours=24)
-        phase = phase_factory(
-            scheduled_resolution=deadline,
-            phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
-            ],
-        )
-        phase.game.members.update(civil_disorder=True)
-        Phase.objects.arm_resolution(phase)
-        assert _armed_job(phase).scheduled_at is None
-
-        member = phase.game.members.first()
-        member.civil_disorder = False
-        member.save(update_fields=["civil_disorder"])
-        phase.phase_states.filter(member=member).update(orders_confirmed=False)
-        Phase.objects.arm_resolution(phase)
-
-        assert _armed_job(phase).scheduled_at == deadline
-
-    @pytest.mark.django_db
     def test_removing_the_last_unconfirmed_member_pulls_the_job_forward(
         self, phase_factory, classical_england_nation, classical_france_nation, secondary_user
     ):

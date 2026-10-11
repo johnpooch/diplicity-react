@@ -4,10 +4,15 @@ import { tokenStorage } from '../auth/tokenStorage';
 const diplictityApiBaseUrl =
   import.meta.env.VITE_DIPLICITY_API_BASE_URL || 'http://localhost:8000';
 
+const clientVersionHeaders = {
+  'X-Client-Version': __APP_VERSION__,
+};
+
 const axiosInstance = axios.create({
   baseURL: diplictityApiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
+    ...clientVersionHeaders,
   },
 });
 
@@ -75,7 +80,8 @@ axiosInstance.interceptors.response.use(
           `${diplictityApiBaseUrl}/api/token/refresh/`,
           {
             refresh: refreshToken,
-          }
+          },
+          { headers: clientVersionHeaders }
         );
 
         if (refreshResult.data?.access) {
