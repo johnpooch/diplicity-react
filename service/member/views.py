@@ -9,11 +9,10 @@ from .models import Member
 from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGamePlayer, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGamePlayer, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGamePlayer, IsGameManager, IsMusteringGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
-from phase.models import Phase
 
 
 @extend_schema(responses={201: MemberSerializer})
@@ -182,32 +181,16 @@ class MemberNationAssignView(SelectedGameMixin, generics.GenericAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
-    serializer_class = EmptySerializer
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveGame,
-        IsNotKickedGamePlayer,
-        IsInCivilDisorder,
-    ]
+@extend_schema(exclude=True)
+class CivilDisorderRecoveryView(generics.GenericAPIView):
+    """Serves POST /game/<id>/recover-from-civil-disorder/ for mobile builds shipped
+    before civil disorder became permanent. Kept out of the schema so codegen no
+    longer emits it. Remove once those builds are out of circulation."""
 
-    @extend_schema(request=EmptySerializer, responses={200: MemberSerializer})
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, *args, **kwargs):
-        game = self.get_game()
-        member = get_object_or_404(Member, game=game, user=request.user)
-
-        with transaction.atomic():
-            member.civil_disorder = False
-            member.save(update_fields=["civil_disorder"])
-
-            current_phase = game.current_phase
-            if current_phase:
-                current_phase.phase_states.filter(member=member).update(
-                    orders_confirmed=False
-                )
-                Phase.objects.arm_resolution(current_phase)
-
-            emit("civil_disorder_recovery", game=game, actor=request.user)
-
-        serializer = MemberSerializer(member, context=self.get_serializer_context())
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Civil disorder is permanent. You cannot return to this game."},
+            status=status.HTTP_410_GONE,
+        )
