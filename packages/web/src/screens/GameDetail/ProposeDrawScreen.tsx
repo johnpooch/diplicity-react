@@ -19,8 +19,10 @@ import {
   ItemMedia,
 } from "@/components/ui/item";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
+import { WithdrawnBadge } from "@/components/WithdrawnBadge";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGameRetrieveSuspense,
   useGamesDrawProposalsCreateCreate,
@@ -41,8 +43,12 @@ const ProposeDrawScreen: React.FC = () => {
   const createProposalMutation = useGamesDrawProposalsCreateCreate();
 
   const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
-  const includedMembers = activeMembers.filter(m => !m.civilDisorder);
-  const cdMembers = activeMembers.filter(m => m.civilDisorder);
+  const includedMembers = activeMembers.filter(
+    m => !m.civilDisorder && !m.withdrawn
+  );
+  const excludedMembers = activeMembers.filter(
+    m => m.civilDisorder || m.withdrawn
+  );
 
   const handleSubmit = async () => {
     try {
@@ -80,7 +86,8 @@ const ProposeDrawScreen: React.FC = () => {
             <AlertDescription>
               All surviving players are automatically included in the draw. The
               proposal passes only if every active player accepts. Civil
-              disorder players auto-accept but do not share in the victory.
+              disorder and withdrawn players auto-accept but do not share in the
+              victory.
             </AlertDescription>
           </Alert>
           <Panel.Content>
@@ -105,7 +112,7 @@ const ProposeDrawScreen: React.FC = () => {
                   <ItemSeparator />
                 </React.Fragment>
               ))}
-              {cdMembers.map(member => (
+              {excludedMembers.map(member => (
                 <React.Fragment key={member.id}>
                   <Item className="opacity-60">
                     <ItemMedia>
@@ -120,7 +127,11 @@ const ProposeDrawScreen: React.FC = () => {
                     <ItemContent>
                       <ItemTitle className="flex items-center gap-2">
                         {member.nation}
-                        <CivilDisorderBadge />
+                        {member.withdrawn ? (
+                          <WithdrawnBadge />
+                        ) : (
+                          <CivilDisorderBadge />
+                        )}
                       </ItemTitle>
                       <ItemDescription>
                         {member.name} (excluded from draw victory)
@@ -148,9 +159,31 @@ const ProposeDrawScreen: React.FC = () => {
   );
 };
 
+const ProposeDrawScreenSkeleton: React.FC = () => (
+  <div className="flex flex-col flex-1 min-h-0">
+    <GameDetailAppBar title="Propose Draw" variant="secondary" />
+    <div className="flex-1 overflow-y-auto">
+      <Panel>
+        <Skeleton className="h-16 w-full rounded-none" />
+        <Panel.Content>
+          {[0, 1, 2].map(index => (
+            <div key={index} className="flex items-center gap-4 p-4">
+              <Skeleton className="size-10 rounded-full" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+          ))}
+        </Panel.Content>
+      </Panel>
+    </div>
+  </div>
+);
+
 const ProposeDrawScreenSuspense: React.FC = () => (
   <QueryErrorBoundary>
-    <Suspense fallback={<div></div>}>
+    <Suspense fallback={<ProposeDrawScreenSkeleton />}>
       <ProposeDrawScreen />
     </Suspense>
   </QueryErrorBoundary>

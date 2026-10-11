@@ -140,7 +140,7 @@ const mockGame = {
   canDelete: false,
   phases: [1],
   currentPhaseId: 1,
-  members: [] as { nation: string; civilDisorder: boolean; kicked: boolean }[],
+  members: [] as { nation: string; civilDisorder: boolean; withdrawn?: boolean; kicked: boolean }[],
   sandbox: false,
   victory: null,
   phaseConfirmed: false,
@@ -245,6 +245,18 @@ describe("GameMap", () => {
     mockGame.members = [];
     mockGame.currentPhaseId = 1;
     mockGame.status = "active";
+  });
+
+  it("marks a withdrawn nation like one in civil disorder", async () => {
+    mockGame.members = [
+      { nation: "England", civilDisorder: false, withdrawn: true, kicked: false },
+      { nation: "France", civilDisorder: false, withdrawn: false, kicked: false },
+    ];
+
+    render(gameMapJsx());
+
+    await waitFor(() => expect(mockMapView).toHaveBeenCalled());
+    expect(getLastCivilDisorderNationsProp()).toEqual(["England"]);
   });
 
   it("stops shading a nation in civil disorder once its member has been replaced", async () => {

@@ -8,6 +8,7 @@ import {
   SearchX,
   Star,
   Swords,
+  LogOut,
   UserX,
   Handshake,
   Eye,
@@ -43,6 +44,7 @@ import { NationBadge } from "@/components/NationBadge";
 import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
 import { useRequiredParams } from "@/hooks";
 import {
@@ -517,10 +519,12 @@ const OrdersScreen: React.FC = () => {
   const currentMember = members.find(m => m.isCurrentUser);
   const isSpectator = !currentMember;
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
+  const isCurrentMemberWithdrawn = currentMember?.withdrawn ?? false;
   const canModifyOrders =
     !isSpectator &&
     canEnterOrdersForPhase(game, phase, selectedPhase) &&
-    !isCurrentMemberInCivilDisorder;
+    !isCurrentMemberInCivilDisorder &&
+    !isCurrentMemberWithdrawn;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -623,6 +627,13 @@ const OrdersScreen: React.FC = () => {
                 message="You have left this game. Your units hold each turn and your seat is open for another player."
                 className="h-full"
               />
+            ) : isCurrentMemberWithdrawn ? (
+              <Notice
+                icon={LogOut}
+                title="Withdrawn"
+                message="You have withdrawn from this game. Your units hold each turn and your seat is open for another player."
+                className="h-full"
+              />
             ) : !hasContent && !isActivePhase ? (
               <Notice
                 icon={SearchX}
@@ -673,7 +684,9 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {!isCurrentMemberInCivilDisorder && (rightFooterButton || showDrawProposalsButton) && (
+          {!isCurrentMemberInCivilDisorder &&
+            !isCurrentMemberWithdrawn &&
+            (rightFooterButton || showDrawProposalsButton) && (
             <Panel.Footer>
               <div className="flex w-full items-center">
                 <div className="flex-1">
@@ -704,9 +717,30 @@ const OrdersScreen: React.FC = () => {
   );
 };
 
+const OrdersScreenSkeleton: React.FC = () => (
+  <div className="flex flex-col flex-1 min-h-0">
+    <GameDetailAppBar title={<Skeleton className="h-5 w-40" />} />
+    <div className="flex-1 overflow-y-auto">
+      <Panel>
+        <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+          {[0, 1, 2].map(index => (
+            <div key={index} className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-full" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            </div>
+          ))}
+        </Panel.Content>
+      </Panel>
+    </div>
+  </div>
+);
+
 const OrdersScreenSuspense: React.FC = () => (
   <QueryErrorBoundary>
-    <Suspense fallback={<div></div>}>
+    <Suspense fallback={<OrdersScreenSkeleton />}>
       <OrdersScreen />
     </Suspense>
   </QueryErrorBoundary>

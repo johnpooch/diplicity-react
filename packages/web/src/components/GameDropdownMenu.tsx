@@ -31,13 +31,18 @@ import {
 import {
   useGameLeaveDestroy,
   useGameDeleteDestroy,
+  useGameMemberWithdrawPartialUpdate,
   getGamesListQueryKey,
+  getGameRetrieveQueryKey,
   GameList,
 } from "@/api/generated/endpoints";
 import { copyLink } from "@/utils/copyLink";
 
 interface GameDropdownMenuProps {
-  game: Pick<GameList, "id" | "sandbox" | "canLeave" | "canDelete" | "status">;
+  game: Pick<
+    GameList,
+    "id" | "sandbox" | "canLeave" | "canWithdraw" | "canDelete" | "status"
+  >;
   onNavigateToGameInfo?: () => void;
   onNavigateToPlayerInfo?: () => void;
 }
@@ -48,10 +53,13 @@ export function GameDropdownMenu({
   onNavigateToPlayerInfo,
 }: GameDropdownMenuProps) {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showWithdrawConfirmation, setShowWithdrawConfirmation] =
+    useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const leaveGameMutation = useGameLeaveDestroy();
   const deleteGameMutation = useGameDeleteDestroy();
+  const withdrawMutation = useGameMemberWithdrawPartialUpdate();
 
   const handleLeaveGame = async () => {
     try {
@@ -60,6 +68,20 @@ export function GameDropdownMenu({
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
     } catch {
       toast.error("Failed to leave game");
+    }
+  };
+
+  const handleWithdraw = async () => {
+    setShowWithdrawConfirmation(false);
+    try {
+      await withdrawMutation.mutateAsync({ gameId: game.id });
+      toast.success("You have withdrawn from the game");
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+    } catch {
+      toast.error("Failed to withdraw from game");
     }
   };
 
@@ -116,6 +138,15 @@ export function GameDropdownMenu({
             </DropdownMenuItem>
           </>
         )}
+        {game.canWithdraw && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowWithdrawConfirmation(true)}>
+              <LogOut />
+              Withdraw from game
+            </DropdownMenuItem>
+          </>
+        )}
         {game.canDelete && (
           <>
             <DropdownMenuSeparator />
@@ -126,6 +157,27 @@ export function GameDropdownMenu({
           </>
         )}
       </DropdownMenuContent>
+
+      <AlertDialog
+        open={showWithdrawConfirmation}
+        onOpenChange={setShowWithdrawConfirmation}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Withdraw from game</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your seat will be left for another player to claim and you cannot
+              rejoin this game. Your commitment rating is not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleWithdraw}>
+              Withdraw
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={showDeleteConfirmation}

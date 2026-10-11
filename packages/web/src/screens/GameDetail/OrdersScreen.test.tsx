@@ -73,6 +73,7 @@ const baseMember = (overrides = {}) => ({
   isGameCreator: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
+  withdrawn: false,
   ...overrides,
 });
 
@@ -154,6 +155,46 @@ describe("OrdersScreen civil disorder handling", () => {
     renderOrdersScreen();
 
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("OrdersScreen withdrawal handling", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ withdrawn: true }),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+      },
+    ]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      currentPhaseId: 1,
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ withdrawn: true })],
+    });
+  });
+
+  it("shows the withdrawn notice in place of the order controls", () => {
+    renderOrdersScreen();
+
+    expect(screen.getByText("Withdrawn")).toBeInTheDocument();
+    expect(screen.getByText(/you have withdrawn from this game/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /draw proposals/i })).not.toBeInTheDocument();
+  });
+
+  it("offers no way back into the game", () => {
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /return|recover|rejoin/i })).not.toBeInTheDocument();
   });
 });
 
