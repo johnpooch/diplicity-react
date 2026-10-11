@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { toast } from "sonner";
-import type { Channel } from "@/api/generated/endpoints";
+import type { ChannelDetail } from "@/api/generated/endpoints";
 import { ChannelRenameScreen } from "./ChannelRenameScreen";
 
 beforeAll(() => {
@@ -25,19 +25,24 @@ beforeAll(() => {
 
 const renameChannel = vi.fn().mockResolvedValue({ id: 1, title: "Renamed" });
 
-const mockChannelsData = vi.fn();
+const mockChannelData = vi.fn();
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
 vi.mock("@/api/generated/endpoints", () => ({
-  useGamesChannelsListSuspense: () => ({ data: mockChannelsData() }),
+  useGamesChannelsRetrieveSuspense: () => ({ data: mockChannelData() }),
   useGamesChannelsPartialUpdate: () => ({
     mutateAsync: renameChannel,
     isPending: false,
   }),
-  getGamesChannelsListQueryKey: (gameId: string) => [`/games/${gameId}/channels/`],
+  getGamesChannelsRetrieveQueryKey: (gameId: string, channelId: number) => [
+    `/games/${gameId}/channels/${channelId}/`,
+  ],
+  getGamesChannelPreviewsListQueryKey: (gameId: string) => [
+    `/games/${gameId}/channel-previews/`,
+  ],
 }));
 
 const channel = {
@@ -45,11 +50,11 @@ const channel = {
   name: "England, France",
   title: "The great alliance",
   private: true,
-} as Channel;
+} as ChannelDetail;
 
-const renderScreen = () =>
+const renderScreen = (queryClient = new QueryClient()) =>
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/game/game-1/phase/1/chat/channel/1/rename"]}>
         <Routes>
           <Route
@@ -69,7 +74,7 @@ beforeEach(() => {
 
 describe("ChannelRenameScreen", () => {
   it("renames the channel to the name the player types", async () => {
-    mockChannelsData.mockReturnValue([channel]);
+    mockChannelData.mockReturnValue(channel);
     const user = userEvent.setup();
     renderScreen();
 
@@ -93,8 +98,25 @@ describe("ChannelRenameScreen", () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  it("refreshes the channel and its preview after renaming", async () => {
+    mockChannelData.mockReturnValue(channel);
+    const queryClient = new QueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const user = userEvent.setup();
+    renderScreen(queryClient);
+
+    await user.click(screen.getByRole("button", { name: "Rename channel" }));
+
+    await waitFor(() =>
+      expect(invalidate.mock.calls.map(call => call[0]?.queryKey)).toEqual([
+        ["/games/game-1/channels/1/"],
+        ["/games/game-1/channel-previews/"],
+      ])
+    );
+  });
+
   it("refuses to clear the name", async () => {
-    mockChannelsData.mockReturnValue([channel]);
+    mockChannelData.mockReturnValue(channel);
     renameChannel.mockClear();
     const user = userEvent.setup();
     renderScreen();
@@ -107,7 +129,7 @@ describe("ChannelRenameScreen", () => {
   });
 
   it("shows feedback when renaming fails", async () => {
-    mockChannelsData.mockReturnValue([channel]);
+    mockChannelData.mockReturnValue(channel);
     renameChannel.mockRejectedValue(new Error("Request failed"));
     const user = userEvent.setup();
     renderScreen();

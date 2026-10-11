@@ -12,10 +12,11 @@ import { Panel } from "@/components/Panel";
 import { useRequiredParams } from "@/hooks";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import {
-  getGamesChannelsListQueryKey,
+  getGamesChannelPreviewsListQueryKey,
+  getGamesChannelsRetrieveQueryKey,
   useGameRetrieveSuspense,
-  useGamesChannelsListSuspense,
   useGamesChannelsMutePartialUpdate,
+  useGamesChannelsRetrieveSuspense,
 } from "@/api/generated/endpoints";
 import { GameDetailAppBar } from "./AppBar";
 import { ChannelAvatar } from "./ChannelAvatar";
@@ -33,11 +34,12 @@ const ChannelOptionsScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: channel } = useGamesChannelsRetrieveSuspense(
+    gameId,
+    Number(channelId)
+  );
   const variant = useGameVariant(game);
   const muteMutation = useGamesChannelsMutePartialUpdate();
-  const channel = channels.find(item => item.id === Number(channelId));
-  if (!channel) throw new Error("Channel not found");
 
   const currentMember = game.members.find(member => member.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
@@ -56,9 +58,14 @@ const ChannelOptionsScreen: React.FC = () => {
         channelId: channel.id,
         data: { muteDuration: "indefinite" },
       });
-      await queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelsRetrieveQueryKey(gameId, channel.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelPreviewsListQueryKey(gameId),
+        }),
+      ]);
     } catch {
       toast.error("There was an error muting this channel");
     }
@@ -71,9 +78,14 @@ const ChannelOptionsScreen: React.FC = () => {
         channelId: channel.id,
         data: { muteDuration: null },
       });
-      await queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelsRetrieveQueryKey(gameId, channel.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelPreviewsListQueryKey(gameId),
+        }),
+      ]);
     } catch {
       toast.error("There was an error unmuting this channel");
     }

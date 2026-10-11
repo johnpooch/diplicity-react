@@ -21,9 +21,10 @@ import {
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import {
-  getGamesChannelsListQueryKey,
-  useGamesChannelsListSuspense,
+  getGamesChannelPreviewsListQueryKey,
+  getGamesChannelsRetrieveQueryKey,
   useGamesChannelsPartialUpdate,
+  useGamesChannelsRetrieveSuspense,
 } from "@/api/generated/endpoints";
 
 const CHANNEL_TITLE_MAX_LENGTH = 50;
@@ -49,15 +50,16 @@ const ChannelRenameScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: channels } = useGamesChannelsListSuspense(gameId);
-  const channel = channels.find(c => c.id === parseInt(channelId));
-  if (!channel) throw new Error("Channel not found");
+  const { data: channel } = useGamesChannelsRetrieveSuspense(
+    gameId,
+    parseInt(channelId)
+  );
 
   const renameMutation = useGamesChannelsPartialUpdate();
 
   const form = useForm<RenameFormValues>({
     resolver: zodResolver(renameSchema),
-    defaultValues: { title: channel.title ?? "" },
+    defaultValues: { title: channel.title },
   });
 
   const handleBack = () => {
@@ -71,9 +73,14 @@ const ChannelRenameScreen: React.FC = () => {
         channelId: channel.id,
         data: { title: values.title },
       });
-      await queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelsRetrieveQueryKey(gameId, channel.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelPreviewsListQueryKey(gameId),
+        }),
+      ]);
       handleBack();
     } catch {
       toast.error("Failed to rename channel");

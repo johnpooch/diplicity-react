@@ -18,7 +18,7 @@ import { Panel } from "../../components/Panel";
 import {
   ChannelMessage,
   useGameRetrieveSuspense,
-  useGamesChannelsListSuspense,
+  useGamesChannelPreviewsListSuspense,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import {
@@ -29,10 +29,9 @@ import {
 import { ChannelAvatar } from "./ChannelAvatar";
 
 const getLatestMessagePreview = (
-  messages: readonly ChannelMessage[]
+  latestMessage: ChannelMessage | null
 ): string => {
-  if (messages.length === 0) return "No messages";
-  const latestMessage = messages[messages.length - 1];
+  if (!latestMessage) return "No messages";
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
     : getMessageSenderLabel(latestMessage.sender);
@@ -45,7 +44,7 @@ const ChannelListScreen: React.FC = () => {
     phaseId: string;
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: channels } = useGamesChannelPreviewsListSuspense(gameId);
   const variant = useGameVariant(game);
 
   const currentMember = game.members.find(m => m.isCurrentUser);
@@ -125,7 +124,7 @@ const ChannelListScreen: React.FC = () => {
                           {getChannelDisplayName(channel, currentNationName)}
                         </span>
                         <p className="truncate text-sm text-muted-foreground">
-                          {getLatestMessagePreview(channel.messages)}
+                          {getLatestMessagePreview(channel.latestMessage)}
                         </p>
                       </div>
                       {channel.unreadMessageCount > 0 && (
