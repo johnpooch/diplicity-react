@@ -69,7 +69,7 @@ class DrawProposalManager(models.Manager):
 
         votes_to_create = []
         for member in all_active_members:
-            if member.unplayed:
+            if member.vacant:
                 votes_to_create.append(
                     DrawVote(
                         proposal=proposal,
@@ -90,8 +90,8 @@ class DrawProposalManager(models.Manager):
 
         DrawVote.objects.bulk_create(votes_to_create)
 
-        # If every active member's vote is already True (e.g. proposer is the
-        # only played active member, so all votes are auto-True), the proposal
+        # If every active member's vote is already True (e.g. proposer holds the
+        # only occupied seat, so all votes are auto-True), the proposal
         # is already ACCEPTED at creation time and needs to be processed.
         if proposal.status == DrawProposalStatus.ACCEPTED:
             proposal.process_acceptance()

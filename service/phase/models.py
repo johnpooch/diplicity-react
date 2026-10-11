@@ -364,7 +364,7 @@ class PhaseManager(models.Manager):
             if phase_state.orders_outcome != PhaseState.OrdersOutcome.NMR:
                 continue
             member = phase_state.member
-            if not member.played or member.eliminated:
+            if not member.occupied or member.eliminated:
                 continue
             current_nmr_members.append(member)
 
@@ -747,7 +747,7 @@ class PhaseManager(models.Manager):
                     member=member,
                     phase=new_phase,
                     has_possible_orders=member.nation.name in nations_with_orders and member.replaced_by_id is None,
-                    orders_confirmed=member.unplayed,
+                    orders_confirmed=member.vacant,
                 )
             )
 
@@ -895,7 +895,7 @@ class Phase(BaseModel):
                 orders_confirmed=False,
                 member__nmr_extensions_remaining__gt=0,
             )
-            .exclude(member__in=Member.objects.unplayed())
+            .exclude(member__in=Member.objects.vacant())
             .annotate(order_count=Count("orders"))
             .filter(order_count=0)
             .select_related("member")

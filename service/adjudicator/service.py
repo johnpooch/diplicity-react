@@ -107,14 +107,14 @@ def resolve(phase) -> Dict[str, Any]:
 
         state, variant = _build_state(phase)
         nation_name_by_id = {nation.id: nation.name for nation in variant.nations}
-        unplayed_nations = set(
+        vacant_nations = set(
             phase.game.members
             .players()
-            .unplayed()
+            .vacant()
             .values_list("nation__name", flat=True)
         )
         non_playable_nations = {n.name for n in variant.nations if n.non_playable}
-        skip_nations = unplayed_nations | non_playable_nations
+        skip_nations = vacant_nations | non_playable_nations
 
         states = Engine().adjudicate(state)
         resolved = states[0]

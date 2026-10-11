@@ -83,7 +83,7 @@ class IsActiveGamePlayer(BasePermission):
             self.message = "User is not a player in the game."
             return False
 
-        if any(not member.eliminated and member.played for member in members):
+        if any(not member.eliminated and member.occupied for member in members):
             return True
 
         if all(member.eliminated for member in members):

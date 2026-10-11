@@ -840,7 +840,7 @@ class Game(BaseModel):
                 for member in self.members.players()
                 .filter(user__isnull=False)
                 .exclude(user_id=self.admin_id)
-                if member.played
+                if member.occupied
             ]
             if not candidates:
                 return
@@ -860,13 +860,13 @@ class Game(BaseModel):
     def seated_member_user_ids(self):
         ids = {
             m.user_id for m in self.members.all()
-            if m.user_id is not None and m.played
+            if m.user_id is not None and m.occupied
         }
         return self._with_game_master(ids)
 
     def active_member_user_ids(self):
         active = self.members.filter(eliminated=False)
-        ids = {m.user_id for m in active if m.user_id is not None and m.played}
+        ids = {m.user_id for m in active if m.user_id is not None and m.occupied}
         return self._with_game_master(ids)
 
     def should_abandon(self):
@@ -877,7 +877,7 @@ class Game(BaseModel):
         if not remaining:
             return False
 
-        return all(m.unplayed for m in remaining)
+        return all(m.vacant for m in remaining)
 
     def winner_members(self):
         victory = Victory.objects.filter(game=self).prefetch_related("members").first()

@@ -14,7 +14,7 @@ class MemberQuerySet(models.QuerySet):
     def players(self):
         return self.filter(kind=MemberKind.PLAYER)
 
-    def unplayed(self):
+    def vacant(self):
         return self.not_replaced().filter(models.Q(civil_disorder=True) | models.Q(kicked=True))
 
 
@@ -156,16 +156,16 @@ class Member(BaseModel):
         return self.kind == MemberKind.GAME_MASTER
 
     @property
-    def unplayed(self):
+    def vacant(self):
         return self.replaced_by_id is None and (self.civil_disorder or self.kicked)
 
     @property
-    def played(self):
-        return self.replaced_by_id is None and not self.unplayed
+    def occupied(self):
+        return self.replaced_by_id is None and not self.vacant
 
     @property
     def replaceable(self):
-        return (self.unplayed or self.seeking_replacement) and not (
+        return (self.vacant or self.seeking_replacement) and not (
             self.eliminated or self.replaced_by_id is not None
         )
 

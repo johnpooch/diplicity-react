@@ -77,7 +77,7 @@ class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
         members = phase.game.members.players().select_related("nation").filter(
             user=request.user, eliminated=False
         )
-        nation_names = [m.nation.name for m in members if m.played]
+        nation_names = [m.nation.name for m in members if m.occupied]
 
         all_orders = []
         for nation_name in nation_names:
