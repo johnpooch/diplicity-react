@@ -141,6 +141,19 @@ describe("MapScreen confirm orders button", () => {
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 
+  it("hides the button when the user has withdrawn", () => {
+    mockGameData.mockReturnValue({
+      id: "1",
+      status: "active",
+      currentPhaseId: 5,
+      sandbox: false,
+      phaseConfirmed: false,
+      members: [{ id: 1, isCurrentUser: true, civilDisorder: false, withdrawn: true }],
+    });
+    renderScreen();
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+
   it("hides the button when nothing is orderable", () => {
     mockPhaseStatesData.mockReturnValue([
       { member: { isCurrentUser: true }, maxOrders: null, orderableProvinces: [] },

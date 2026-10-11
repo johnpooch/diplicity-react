@@ -127,7 +127,9 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           game.totalUnreadMessageCount > 0) ||
         (item.label === "Orders" &&
           Array.isArray(game?.members) &&
-          game.members.some(m => m.isCurrentUser && m.civilDisorder))
+          game.members.some(
+            m => m.isCurrentUser && (m.civilDisorder || m.withdrawn)
+          ))
           ? "•"
           : undefined;
       let path: string;

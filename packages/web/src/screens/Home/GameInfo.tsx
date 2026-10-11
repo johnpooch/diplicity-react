@@ -9,6 +9,7 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
+import { WithdrawGameAction } from "@/components/WithdrawGameAction";
 import {
   useGameRetrieveSuspense,
   useGameMemberJoinCreate,
@@ -172,6 +173,7 @@ const GameInfo: React.FC = () => {
       ) : (
         <Skeleton className="w-full h-64 rounded-lg" />
       )}
+      {game.canWithdraw && <WithdrawGameAction game={game} />}
       {canAddBots && (
         <AddBotSheet
           gameId={gameId}

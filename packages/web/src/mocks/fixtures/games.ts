@@ -820,6 +820,65 @@ const buildActiveCivilDisorder = () => {
 
 export const activeGameCivilDisorder = buildActiveCivilDisorder();
 
+const buildActiveWithdrawnPlayer = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "France" ? { ...m, withdrawn: true, replaceable: true } : m
+  );
+  const phase = makePhase(1301, 5, {
+    season: "Spring",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 36 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game in Spring 1901 where the France player has withdrawn. The current user (England) can still withdraw.",
+    game: makeGame(
+      "active-withdrawn-player",
+      "An Empty Chair",
+      members,
+      [phase],
+      {
+        canWithdraw: true,
+        orderStatus: "orders_required",
+        memberStatus: [],
+      }
+    ),
+    phases: [phase],
+    ordersByPhase: { 1301: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameWithdrawnPlayer = buildActiveWithdrawnPlayer();
+
+const buildActiveWithdrawn = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "England" ? { ...m, withdrawn: true, replaceable: true } : m
+  );
+  const phase = makePhase(1401, 5, {
+    season: "Spring",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 36 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game in Spring 1901 where the current user (England) has withdrawn and cannot submit orders.",
+    game: makeGame("active-withdrawn", "Gone Fishing", members, [phase], {
+      orderStatus: "no_orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1401: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameWithdrawn = buildActiveWithdrawn();
+
 const makeSeatOpenMembers = (idBase: number): Member[] =>
   makeActiveMembers().map((m, index) => ({
     ...m,
