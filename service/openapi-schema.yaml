@@ -2459,8 +2459,8 @@ components:
         latestMessage:
           allOf:
           - $ref: '#/components/schemas/ChannelMessage'
-          nullable: true
           readOnly: true
+          nullable: true
       required:
       - id
       - latestMessage

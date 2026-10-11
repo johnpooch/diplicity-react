@@ -1,5 +1,5 @@
 from django.db import IntegrityError, models, transaction
-from django.db.models import Q, BooleanField, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F
+from django.db.models import Q, BooleanField, Case, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F, When
 from django.contrib.auth import get_user_model
 from django.core import exceptions
 from django.utils import timezone
@@ -51,14 +51,15 @@ class ChannelQuerySet(models.QuerySet):
         )
         return self.annotate(first_unread_message_id=Subquery(first_unread_message))
 
-    def with_preview_data(self):
-        return self.prefetch_related(
-            models.Prefetch(
-                "messages",
-                queryset=ChannelMessage.objects.with_sender_data()
-                .select_related("sender__nation__flag")
-                .order_by("-created_at", "-id")[:1],
-                to_attr="latest_messages",
+    def with_requester_membership(self, member):
+        if member is None:
+            return self.annotate(requester_is_member=Value(False, output_field=BooleanField()))
+        membership = ChannelMember.objects.filter(channel=OuterRef("pk"), member=member)
+        return self.annotate(
+            requester_is_member=Case(
+                When(private=False, then=Value(True)),
+                default=Exists(membership),
+                output_field=BooleanField(),
             )
         )
 
@@ -138,6 +139,15 @@ class ChannelManager(models.Manager):
 
     def order_for_list(self):
         return self.get_queryset().order_for_list()
+
+    def hydrate_latest_messages(self, channels):
+        messages = (
+            ChannelMessage.objects.with_sender_data()
+            .select_related("sender__nation__flag")
+            .in_bulk([channel.latest_message_id for channel in channels if channel.latest_message_id is not None])
+        )
+        for channel in channels:
+            channel.latest_message = messages.get(channel.latest_message_id)
 
 
 class Channel(BaseModel):

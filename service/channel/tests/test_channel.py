@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 from channel.models import Channel, ChannelEvent, ChannelMember, ChannelMessage, ChannelQuerySet
-from channel.serializers import ChannelDetailSerializer, ChannelPreviewSerializer, ChannelSerializer
+from channel.serializers import ChannelSerializer
 from nation.models import Nation, NationFlag
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
@@ -359,13 +359,68 @@ class TestChannelRetrieveUpdateView:
         url = reverse("channel-update", args=[game.id, channel.id])
         first = authenticated_client.get(url)
 
-        with patch.object(ChannelDetailSerializer, "to_representation") as to_representation:
-            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{first['ETag']}")
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{first['ETag']}")
 
         assert first["Cache-Control"] == "private, no-cache"
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
         assert response["ETag"] == first["ETag"]
-        to_representation.assert_not_called()
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_head_public_channel_unauthenticated(self, unauthenticated_client, active_game_with_channels):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Public Channel")
+
+        response = unauthenticated_client.head(reverse("channel-update", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.content == b""
+
+    @pytest.mark.django_db
+    def test_head_private_channel_as_member(self, authenticated_client, active_game_with_channels):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+
+        response = authenticated_client.head(reverse("channel-update", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_head_private_channel_as_non_member_not_found(
+        self, authenticated_client_for_secondary_user, active_game_with_channels
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+
+        response = authenticated_client_for_secondary_user.head(reverse("channel-update", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_options_channel_unauthenticated_omits_rename_action(
+        self, unauthenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+
+        response = unauthenticated_client.options(reverse("channel-update", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "actions" not in response.data
+
+    @pytest.mark.django_db
+    def test_options_channel_as_member_describes_rename_action(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+
+        response = authenticated_client.options(reverse("channel-update", args=[game.id, channel.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert set(response.data["actions"]["PUT"]) == {"id", "title"}
 
     @pytest.mark.django_db
     def test_retrieve_channel_returns_304_after_activity_in_another_channel(
@@ -695,17 +750,14 @@ class TestChannelPreviewListView:
         url = reverse("channel-preview-list", args=[game_with_public_channel_and_messages.id])
         first = authenticated_client.get(url)
 
-        with (
-            patch.object(ChannelQuerySet, "with_preview_data") as with_preview_data,
-            patch.object(ChannelPreviewSerializer, "to_representation") as to_representation,
-        ):
-            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{first['ETag']}")
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{first['ETag']}")
+        head = authenticated_client.head(url, HTTP_IF_NONE_MATCH=first["ETag"])
 
         assert first["Cache-Control"] == "private, no-cache"
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
         assert response["ETag"] == first["ETag"]
-        with_preview_data.assert_not_called()
-        to_representation.assert_not_called()
+        assert head.status_code == status.HTTP_304_NOT_MODIFIED
 
     @pytest.mark.django_db
     def test_list_channel_previews_returns_304_after_message_in_an_inaccessible_channel(

@@ -5,10 +5,8 @@ from django.apps import apps
 from django.conf import settings
 from django.core import exceptions
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
 
 from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
-from .permissions import is_channel_member
 from .policies import can_mute_channel, can_rename_channel
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
@@ -137,13 +135,7 @@ class ChannelPreviewSerializer(serializers.Serializer):
     private = serializers.BooleanField(read_only=True)
     muted = serializers.BooleanField(read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True)
-    latest_message = serializers.SerializerMethodField()
-
-    @extend_schema_field(ChannelMessageSerializer(allow_null=True))
-    def get_latest_message(self, channel):
-        if not channel.latest_messages:
-            return None
-        return ChannelMessageSerializer(channel.latest_messages[0], context=self.context).data
+    latest_message = ChannelMessageSerializer(read_only=True, allow_null=True)
 
 
 class ChannelDetailSerializer(serializers.Serializer):
@@ -161,12 +153,11 @@ class ChannelDetailSerializer(serializers.Serializer):
     events = ChannelEventSerializer(many=True, read_only=True)
 
     def get_can_mute(self, channel) -> bool:
-        member = self.context.get("current_game_member")
-        return can_mute_channel(member, is_channel_member(channel, member))
+        return can_mute_channel(self.context.get("current_game_member"), channel.requester_is_member)
 
     def get_can_rename(self, channel) -> bool:
         member = self.context.get("current_game_member")
-        return can_rename_channel(channel, self.context["game"], member, is_channel_member(channel, member))
+        return can_rename_channel(channel, self.context["game"], member, channel.requester_is_member)
 
 
 class ChannelUpdateSerializer(serializers.Serializer):
