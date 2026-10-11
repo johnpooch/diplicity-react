@@ -41,6 +41,25 @@ describe("customInstance", () => {
 
     expect(isNetworkError(error)).toBe(true);
   });
+
+  it("gives up on a request after 30 seconds with a timeout error", async () => {
+    let request: InternalAxiosRequestConfig | undefined;
+    axiosInstance.defaults.adapter = async config => {
+      request = config;
+      return {
+        status: 200,
+        statusText: "",
+        data: [],
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse;
+    };
+
+    await customInstance({ url: "/variants/" });
+
+    expect(request?.timeout).toBe(30_000);
+    expect(request?.transitional?.clarifyTimeoutError).toBe(true);
+  });
 });
 
 describe("client version header", () => {

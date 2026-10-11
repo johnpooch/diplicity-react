@@ -62,10 +62,10 @@ class TestUpdateCheckView:
 
     @pytest.mark.django_db
     def test_serves_bundle_when_binary_exactly_meets_minimum(self, unauthenticated_client, bundle_factory):
-        bundle_factory("1.6.0", minimum_native_version="1.6.0")
+        bundle_factory("1.6.0.1", minimum_native_version="1.6.0")
         url = reverse("update-check")
         response = unauthenticated_client.post(url, plugin_payload(version_build="1.6.0"), format="json")
-        assert response.data["version"] == "1.6.0"
+        assert response.data["version"] == "1.6.0.1"
 
     @pytest.mark.django_db
     def test_no_bundle_runnable_by_the_installed_binary_returns_no_url(self, unauthenticated_client, bundle_factory):
@@ -79,18 +79,18 @@ class TestUpdateCheckView:
     @pytest.mark.django_db
     def test_ignores_bundles_for_another_platform(self, unauthenticated_client, bundle_factory):
         bundle_factory("1.5.10", platform=BundlePlatform.ANDROID)
-        bundle_factory("1.5.9", platform=BundlePlatform.IOS)
+        bundle_factory("1.5.9.1", platform=BundlePlatform.IOS)
         url = reverse("update-check")
         response = unauthenticated_client.post(url, plugin_payload(), format="json")
-        assert response.data["version"] == "1.5.9"
+        assert response.data["version"] == "1.5.9.1"
 
     @pytest.mark.django_db
     def test_ignores_inactive_bundles(self, unauthenticated_client, bundle_factory):
         bundle_factory("1.5.10", active=False)
-        bundle_factory("1.5.9")
+        bundle_factory("1.5.9.1")
         url = reverse("update-check")
         response = unauthenticated_client.post(url, plugin_payload(), format="json")
-        assert response.data["version"] == "1.5.9"
+        assert response.data["version"] == "1.5.9.1"
 
     @pytest.mark.django_db
     def test_no_bundles_at_all_returns_no_url(self, unauthenticated_client):
@@ -110,10 +110,37 @@ class TestUpdateCheckView:
 
     @pytest.mark.django_db
     def test_older_bundle_still_offered_to_a_client_ahead_of_it(self, unauthenticated_client, bundle_factory):
-        bundle_factory("1.5.9")
+        bundle_factory("1.5.9.1")
         url = reverse("update-check")
         response = unauthenticated_client.post(url, plugin_payload(version_name="1.5.10"), format="json")
-        assert response.data["version"] == "1.5.9"
+        assert response.data["version"] == "1.5.9.1"
+
+    @pytest.mark.django_db
+    def test_withholds_a_bundle_older_than_the_installed_binary(self, unauthenticated_client, bundle_factory):
+        bundle_factory("1.5.12.4", minimum_native_version="1.5.12")
+        url = reverse("update-check")
+        response = unauthenticated_client.post(
+            url, plugin_payload(version_build="1.5.13", version_name="1.5.13"), format="json"
+        )
+        assert "url" not in response.data
+        assert response.data["kind"] == UpdateResponseKind.UP_TO_DATE
+
+    @pytest.mark.django_db
+    def test_withholds_a_bundle_numbered_the_same_as_the_installed_binary(self, unauthenticated_client, bundle_factory):
+        bundle_factory("1.5.13.0", minimum_native_version="1.5.12")
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(version_build="1.5.13"), format="json")
+        assert "url" not in response.data
+
+    @pytest.mark.django_db
+    def test_serves_a_bundle_built_on_the_installed_binary_over_older_ones(
+        self, unauthenticated_client, bundle_factory
+    ):
+        bundle_factory("1.5.12.4", minimum_native_version="1.5.12")
+        bundle_factory("1.5.13.1", minimum_native_version="1.5.13")
+        url = reverse("update-check")
+        response = unauthenticated_client.post(url, plugin_payload(version_build="1.5.13"), format="json")
+        assert response.data["version"] == "1.5.13.1"
 
     @pytest.mark.django_db
     def test_unknown_platform_is_rejected(self, unauthenticated_client):
@@ -155,10 +182,10 @@ class TestUpdateCheckView:
 
     @pytest.mark.django_db
     def test_two_component_native_version_meets_a_three_component_minimum(self, unauthenticated_client, bundle_factory):
-        bundle_factory("1.6.0", minimum_native_version="1.6.0")
+        bundle_factory("1.6.0.1", minimum_native_version="1.6.0")
         url = reverse("update-check")
         response = unauthenticated_client.post(url, plugin_payload(version_build="1.6"), format="json")
-        assert response.data["version"] == "1.6.0"
+        assert response.data["version"] == "1.6.0.1"
 
     @pytest.mark.django_db
     def test_non_decimal_version_component_does_not_error(self, unauthenticated_client, bundle_factory):
@@ -224,7 +251,7 @@ class TestReleaseBundleCommand:
             "--dist",
             str(dist_directory),
             "--bundle-version",
-            "1.6.0",
+            "1.6.0.1",
             "--minimum-native-version",
             "1.6.0",
         )
@@ -333,6 +360,22 @@ class TestReleaseBundleCommand:
                 "v1.5.10",
                 "--minimum-native-version",
                 "1.5.9",
+            )
+        assert bundle_uploads == []
+
+    @pytest.mark.django_db
+    def test_refuses_a_version_no_newer_than_its_minimum_native_version(self, dist_directory, bundle_uploads):
+        with pytest.raises(
+            CommandError, match="bundle version '1.5.12' must be newer than minimum native version '1.5.12'"
+        ):
+            call_command(
+                "release_bundle",
+                "--dist",
+                str(dist_directory),
+                "--bundle-version",
+                "1.5.12",
+                "--minimum-native-version",
+                "1.5.12",
             )
         assert bundle_uploads == []
 

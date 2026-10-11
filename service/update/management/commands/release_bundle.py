@@ -67,6 +67,11 @@ class Command(BaseCommand):
             if len(value) > max_length:
                 raise CommandError(f"{label} '{value}' is longer than {max_length} characters")
 
+        if parse_version(version) <= parse_version(minimum_native_version):
+            raise CommandError(
+                f"bundle version '{version}' must be newer than minimum native version '{minimum_native_version}'"
+            )
+
         published = Bundle.objects.filter(platform__in=platforms).values_list("platform", "version")
         taken = sorted({platform for platform, other in published if parse_version(other) == parse_version(version)})
         if taken:
