@@ -20,13 +20,17 @@ vi.mock("./GameMapCanvas/GameMapCanvas", () => ({
       province: string,
       position: { x: number; y: number }
     ) => void;
+    onClickBackground?: () => void;
   }) => {
     mockGameMapCanvas(props);
     return (
-      <button
-        data-testid="province"
-        onClick={() => props.onClickProvince?.("lon", { x: 42, y: 99 })}
-      />
+      <>
+        <button
+          data-testid="province"
+          onClick={() => props.onClickProvince?.("lon", { x: 42, y: 99 })}
+        />
+        <button data-testid="background" onClick={() => props.onClickBackground?.()} />
+      </>
     );
   },
 }));
@@ -53,6 +57,17 @@ describe("MapView", () => {
     expect(mockGameMapCanvas).toHaveBeenCalledWith(
       expect.objectContaining({ mode: "interactive" })
     );
+  });
+
+  it("forwards clicks that miss every province", async () => {
+    const onClickBackground = vi.fn();
+    renderWithClient(
+      <MapView {...baseProps} mode="interactive" onClickBackground={onClickBackground} />
+    );
+
+    fireEvent.click(await screen.findByTestId("background"));
+
+    expect(onClickBackground).toHaveBeenCalled();
   });
 
   it("does not mount the Leaflet host in static mode", () => {

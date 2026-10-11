@@ -42,6 +42,7 @@ type GameMapCanvasProps = {
   showFillToggle?: boolean;
   focus?: string[];
   onClickProvince?: (province: string, position: { x: number; y: number }) => void;
+  onClickBackground?: () => void;
   style?: React.CSSProperties;
 };
 
@@ -118,8 +119,10 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   // Keep the latest interaction callbacks in refs so the map is created once and
   // never torn down just because a handler identity changed.
   const onClickRef = useRef(props.onClickProvince);
+  const onClickBackgroundRef = useRef(props.onClickBackground);
   const variantIdRef = useRef(props.variant.id);
   onClickRef.current = props.onClickProvince;
+  onClickBackgroundRef.current = props.onClickBackground;
   variantIdRef.current = props.variant.id;
 
   useEffect(() => {
@@ -144,6 +147,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       forceCompositeOnBase: isNativePlatform(),
       onClickProvince: (province, position) =>
         onClickRef.current?.(province, position),
+      onClickBackground: () => onClickBackgroundRef.current?.(),
       onGesture: handleGesture,
     });
     controllerRef.current = controller;
