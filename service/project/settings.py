@@ -143,6 +143,7 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
     "traceparent",
     "tracestate",
+    "x-client-version",
 ]
 
 ROOT_URLCONF = "project.urls"
