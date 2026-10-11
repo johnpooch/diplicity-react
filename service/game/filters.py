@@ -83,7 +83,7 @@ class GameFilter(django_filters.FilterSet):
                     Member.objects.filter(
                         game=OuterRef("pk"),
                         user=self.request.user,
-                        eliminated=True,
+                        eliminated_at__isnull=False,
                     )
                 )
                 qs = qs.annotate(user_eliminated=user_eliminated)

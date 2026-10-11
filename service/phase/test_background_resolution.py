@@ -1059,7 +1059,7 @@ class TestPhaseCreationArming:
         self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
     ):
         previous_phase = italy_vs_germany_phase_with_orders
-        previous_phase.game.members.update(civil_disorder=True)
+        previous_phase.game.members.update(civil_disorder_at=timezone.now())
 
         new_phase = Phase.objects.create_from_adjudication_data(
             Phase.objects.with_related_data().get(pk=previous_phase.pk),

@@ -782,7 +782,7 @@ def test_cd_only_retreat_phase_is_skipped(
     italy_ps.orders.create(source=mun, order_type=OrderType.SUPPORT, target=kie, aux=ber)
 
     # Germany is in Civil Disorder — no orders, confirmed automatically.
-    germany_member.civil_disorder = True
+    germany_member.civil_disorder_at = timezone.now()
     germany_member.save()
 
     # Confirm both sides so filter_due_phases picks up the phase.
@@ -1490,7 +1490,7 @@ def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
     germany_member = active_game.members.filter(nation__name="Germany").first()
     italy_member = active_game.members.filter(nation__name="Italy").first()
 
-    germany_member.civil_disorder = True
+    germany_member.civil_disorder_at = timezone.now()
     germany_member.save()
 
     # Italy (secondary) proposes the draw.

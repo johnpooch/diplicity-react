@@ -176,7 +176,7 @@ class TestGameFinishedAtAbandonment:
         game = phase.game
 
         for member in game.members.all():
-            member.civil_disorder = True
+            member.civil_disorder_at = timezone.now()
             member.save()
 
         before = timezone.now()

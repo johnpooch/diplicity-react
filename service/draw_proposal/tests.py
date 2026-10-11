@@ -151,7 +151,7 @@ class TestDrawProposalManager:
         phase_factory(game=game)
         proposer = member_factory(game=game)
         cd_member = member_factory(game=game)
-        cd_member.civil_disorder = True
+        cd_member.civil_disorder_at = timezone.now()
         cd_member.save()
 
         proposal = DrawProposal.objects.create_proposal(
@@ -169,9 +169,9 @@ class TestDrawProposalManager:
         phase_factory(game=game)
         proposer = member_factory(game=game)
         other = member_factory(game=game)
-        eliminated = member_factory(game=game, eliminated=True)
+        eliminated = member_factory(game=game, eliminated_at=timezone.now())
         replacement = member_factory(game=game)
-        replaced = member_factory(game=game, kicked=True, replaced_by=replacement)
+        replaced = member_factory(game=game, removed_at=timezone.now(), replaced_by=replacement)
 
         proposal = DrawProposal.objects.create_proposal(
             game=game, created_by=proposer,
@@ -189,7 +189,7 @@ class TestDrawProposalManager:
         phase_factory(game=game)
         proposer = member_factory(game=game)
         member_factory(game=game)
-        kicked = member_factory(game=game, kicked=True)
+        kicked = member_factory(game=game, removed_at=timezone.now())
 
         proposal = DrawProposal.objects.create_proposal(
             game=game, created_by=proposer,
@@ -301,7 +301,7 @@ class TestDrawProposalProcessAcceptance:
         proposer = member_factory(game=game)
         active_other = member_factory(game=game)
         cd_member = member_factory(game=game)
-        cd_member.civil_disorder = True
+        cd_member.civil_disorder_at = timezone.now()
         cd_member.save()
 
         proposal = DrawProposal.objects.create_proposal(
@@ -429,7 +429,7 @@ class TestDrawProposalCreateView:
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
         phase_factory(game=game)
-        member_factory(game=game, user=primary_user, civil_disorder=True)
+        member_factory(game=game, user=primary_user, civil_disorder_at=timezone.now())
         member_factory(game=game)
         self._auth(api_client, primary_user)
 
@@ -466,7 +466,7 @@ class TestDrawProposalCreateView:
         phase_factory(game=game)
         proposer = member_factory(game=game, user=primary_user)
         cd_member = member_factory(game=game)
-        cd_member.civil_disorder = True
+        cd_member.civil_disorder_at = timezone.now()
         cd_member.save()
 
         self._auth(api_client, primary_user)
@@ -788,8 +788,8 @@ class TestDrawProposalListView:
         phase_factory(game=game)
         proposer = member_factory(game=game, user=primary_user)
         member_factory(game=game)
-        member_factory(game=game, civil_disorder=True)
-        member_factory(game=game, civil_disorder=True)
+        member_factory(game=game, civil_disorder_at=timezone.now())
+        member_factory(game=game, civil_disorder_at=timezone.now())
         DrawProposal.objects.create_proposal(game=game, created_by=proposer)
 
         response = authenticated_client.get(reverse("draw-proposal-list", args=[game.id]))

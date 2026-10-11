@@ -1522,7 +1522,7 @@ class TestKickedMemberCannotChat:
     ):
         game = active_game_with_kicked_member
         channel = Channel.objects.create(game=game, name="Public Press", private=False)
-        channel.members.add(game.members.get(kicked=True))
+        channel.members.add(game.members.get(removed_at__isnull=False))
 
         url = reverse("channel-message-create", args=[game.id, channel.id])
         response = authenticated_client_for_secondary_user.post(url, {"body": "Still here"}, format="json")
@@ -1536,7 +1536,7 @@ class TestKickedMemberCannotChat:
     ):
         game = active_game_with_kicked_member
         url = reverse("channel-create", args=[game.id])
-        payload = {"member_ids": [game.members.get(kicked=False).id]}
+        payload = {"member_ids": [game.members.get(removed_at__isnull=True).id]}
         response = authenticated_client_for_secondary_user.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN

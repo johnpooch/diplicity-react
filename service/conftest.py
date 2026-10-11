@@ -677,7 +677,7 @@ def phase_factory(db, classical_variant, primary_user, user_factory):
 
 @pytest.fixture
 def member_factory(db):
-    def _create(game=None, user=None, nation=None, eliminated=False, kicked=False, **kwargs):
+    def _create(game=None, user=None, nation=None, **kwargs):
         if game is None:
             variant = Variant.objects.first()
             game = Game.objects.create(
@@ -702,8 +702,6 @@ def member_factory(db):
             game=game,
             user=user,
             nation=nation,
-            eliminated=eliminated,
-            kicked=kicked,
             **kwargs,
         )
 
@@ -829,7 +827,7 @@ def draw_proposal_factory(db, member_factory):
             cancelled=cancelled,
         )
 
-        all_active_members = list(game.members.filter(eliminated=False, kicked=False))
+        all_active_members = list(game.members.holding_seat().filter(eliminated_at__isnull=True))
 
         if included_member_ids is None:
             included_member_ids = [created_by.id]
@@ -1092,7 +1090,7 @@ def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, cla
 @pytest.fixture
 def active_game_with_eliminated_member(db, active_game_with_phase_state, secondary_user, classical_france_nation):
     member = active_game_with_phase_state.members.create(
-        user=secondary_user, eliminated=True, nation=classical_france_nation
+        user=secondary_user, eliminated_at=timezone.now(), nation=classical_france_nation
     )
     active_game_with_phase_state.current_phase.phase_states.create(member=member)
     return active_game_with_phase_state
@@ -1101,7 +1099,7 @@ def active_game_with_eliminated_member(db, active_game_with_phase_state, seconda
 @pytest.fixture
 def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_user, classical_france_nation):
     member = active_game_with_phase_state.members.create(
-        user=secondary_user, kicked=True, nation=classical_france_nation
+        user=secondary_user, removed_at=timezone.now(), nation=classical_france_nation
     )
     active_game_with_phase_state.current_phase.phase_states.create(member=member)
     return active_game_with_phase_state

@@ -13,8 +13,8 @@ class ReplanError(Exception):
 def replan(member):
     if member.user is None or not member.user.profile.is_bot:
         raise ReplanError(f"{member} is not played by a bot")
-    if member.kicked:
-        raise ReplanError(f"{member} has been kicked")
+    if member.left_seat:
+        raise ReplanError(f"{member} has left the seat")
 
     phase = member.game.current_phase
 
