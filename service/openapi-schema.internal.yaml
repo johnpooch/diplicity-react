@@ -1120,29 +1120,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/PhaseList'
           description: ''
-  /game/{game_id}/recover-from-civil-disorder/:
-    post:
-      operationId: game_recover_from_civil_disorder_create
-      description: |-
-        Used by views that have a game parameter in the URL. Provides a get_game
-        method that returns the game object. Also adds game to the serializer context.
-      parameters:
-      - in: path
-        name: game_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - game
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Member'
-          description: ''
   /game/{game_id}/resolve-phase/:
     post:
       operationId: game_resolve_phase_create

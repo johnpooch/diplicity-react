@@ -57,7 +57,6 @@ import {
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
   useGamesDrawProposalsListSuspense,
-  useGameRecoverFromCivilDisorderCreate,
   useGamePhaseRevertUpdate,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
@@ -502,7 +501,6 @@ const OrdersScreen: React.FC = () => {
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
-  const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
   if (!variant) {
     return (
@@ -557,18 +555,6 @@ const OrdersScreen: React.FC = () => {
       navigate(`/game/${gameId}/phase/${result.id}/orders`);
     } catch {
       toast.error("Failed to resolve phase");
-    }
-  };
-
-  const handleRecoverFromCivilDisorder = async () => {
-    try {
-      await recoverMutation.mutateAsync({ gameId });
-      queryClient.invalidateQueries({
-        queryKey: getGameRetrieveQueryKey(gameId),
-      });
-      toast.success("Welcome back!");
-    } catch {
-      toast.error("Failed to recover from civil disorder");
     }
   };
 
@@ -634,16 +620,8 @@ const OrdersScreen: React.FC = () => {
               <Notice
                 icon={UserX}
                 title="Civil Disorder"
-                message="Your nation is in civil disorder. Your units hold each turn and you cannot submit orders."
+                message="You have left this game. Your units hold each turn and your seat is open for another player."
                 className="h-full"
-                actions={
-                  <Button
-                    onClick={handleRecoverFromCivilDisorder}
-                    disabled={recoverMutation.isPending}
-                  >
-                    I'm back
-                  </Button>
-                }
               />
             ) : !hasContent && !isActivePhase ? (
               <Notice

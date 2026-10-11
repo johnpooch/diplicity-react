@@ -40,7 +40,6 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersDeleteDestroy: () => mockDeleteOrderMutation(),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGamePhaseRevertUpdate: () => ({ mutateAsync: mockRevertPhase, isPending: false }),
   useGamesDrawProposalsListSuspense: () => ({ data: [] }),
   getGameRetrieveQueryKey: () => ["game"],
@@ -116,7 +115,7 @@ describe("OrdersScreen civil disorder handling", () => {
 
     renderOrdersScreen();
 
-    expect(screen.getByText(/your nation is in civil disorder/i)).toBeInTheDocument();
+    expect(screen.getByText(/your seat is open for another player/i)).toBeInTheDocument();
   });
 
   it("does not show civil disorder banner when current member is not in CD", () => {
@@ -132,7 +131,7 @@ describe("OrdersScreen civil disorder handling", () => {
 
     renderOrdersScreen();
 
-    expect(screen.queryByText(/your nation is in civil disorder/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/your seat is open for another player/i)).not.toBeInTheDocument();
   });
 
   it("hides the confirm orders button when current member is in CD", () => {
@@ -155,38 +154,6 @@ describe("OrdersScreen civil disorder handling", () => {
     renderOrdersScreen();
 
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
-  });
-
-  it("shows 'I'm back' button when current member is in civil disorder", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      currentPhaseId: 1,
-      sandbox: false,
-      deadlineMode: "duration",
-      phaseConfirmed: false,
-      members: [baseMember({ civilDisorder: true })],
-    });
-
-    renderOrdersScreen();
-
-    expect(screen.getByRole("button", { name: /i'm back/i })).toBeInTheDocument();
-  });
-
-  it("does not show 'I'm back' button when current member is not in civil disorder", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      currentPhaseId: 1,
-      sandbox: false,
-      deadlineMode: "duration",
-      phaseConfirmed: false,
-      members: [baseMember({ civilDisorder: false })],
-    });
-
-    renderOrdersScreen();
-
-    expect(screen.queryByRole("button", { name: /i'm back/i })).not.toBeInTheDocument();
   });
 });
 

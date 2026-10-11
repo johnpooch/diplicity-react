@@ -81,8 +81,6 @@ const gameOr404 = (gameId: string | readonly string[]) => {
 const notFound = () =>
   HttpResponse.json({ detail: "Not found." }, { status: 404 });
 
-const recoveredCivilDisorderGames = new Set<string>();
-
 const nationPreferencesByGameId = new Map<string, string[]>();
 
 export const handlers = [
@@ -173,14 +171,8 @@ export const handlers = [
     if (!fixture) return notFound();
     const game = { ...fixture.game } as Record<string, unknown>;
     delete game.currentPhase;
-    const members = recoveredCivilDisorderGames.has(String(params.gameId))
-      ? fixture.game.members.map(m =>
-          m.isCurrentUser ? { ...m, civilDisorder: false } : m
-        )
-      : fixture.game.members;
     return HttpResponse.json({
       ...game,
-      members,
       totalUnreadMessageCount: fixture.totalUnreadMessageCount,
     });
   }),
@@ -369,15 +361,6 @@ export const handlers = [
   http.post("*/game/:gameId/clone-to-sandbox/", () =>
     HttpResponse.json({ id: "active-movement" }, { status: 201 })
   ),
-
-  http.post("*/game/:gameId/recover-from-civil-disorder/", ({ params }) => {
-    const fixture = gameOr404(params.gameId as string);
-    if (!fixture) return notFound();
-    const member = fixture.game.members.find(m => m.isCurrentUser);
-    if (!member) return notFound();
-    recoveredCivilDisorderGames.add(String(params.gameId));
-    return HttpResponse.json({ ...member, civilDisorder: false });
-  }),
 
   http.post("*/game/:gameId/orders/", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;

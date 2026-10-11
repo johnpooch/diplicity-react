@@ -302,18 +302,6 @@ class CanUseBotOpponent(BasePermission):
         return user_can_use_bot_opponent(request.user)
 
 
-class IsInCivilDisorder(BasePermission):
-    message = "Player is not in civil disorder."
-
-    def has_permission(self, request, view):
-        game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.players().filter(user=request.user).first()
-        if not member:
-            self.message = "User is not a player in the game."
-            return False
-        return member.civil_disorder
-
-
 class IsUnmusteredMember(BasePermission):
     message = "Seat is already confirmed."
 
