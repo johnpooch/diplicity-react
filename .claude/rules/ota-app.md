@@ -4,6 +4,9 @@ paths:
   - ".github/workflows/ios-release.yml"
   - ".github/workflows/ios-pr-build.yml"
   - ".github/workflows/android-release.yml"
+  - ".github/workflows/bundle-release.yml"
+  - "packages/web/index.html"
+  - "packages/web/src/components/UpdateGate.tsx"
 ---
 
 # OTA updates in the app
@@ -39,3 +42,22 @@ bundle that crashes *before* `App` mounts rolls back and one that crashes after 
 the call later — after auth, or after a first screen renders — widens the net but puts more work
 inside the timeout. If you move it, re-verify the rollback on a device: it is the only safety net
 between a bad bundle and every installed app.
+
+## A bundle can start without the splash screen
+
+With `autoUpdate: "atBackground"` the plugin applies a bundle by reloading the WebView while the app is
+backgrounded, so the new page boots with no splash in front of it and with its first requests issued
+as iOS suspends the app. Anything that holds up the first render shows as a blank screen. Hence:
+
+- `index.html` puts no render-blocking resource from a third-party origin ahead of the app. Fonts are
+  self-hosted through `@fontsource`; a stylesheet from a CDN stalls the whole page if it hangs.
+- `UpdateGate` bounds its checks with a timeout and fails open, and it is what hides the splash screen,
+  once it has settled. Do not hide the splash on `App` mount: that uncovers a page the gate is still
+  holding blank.
+
+## Native builds report to Sentry
+
+Every workflow that builds the web app for a store release or an OTA bundle passes `VITE_SENTRY_DSN`;
+without it `src/sentry.ts` skips initialisation and native failures are invisible.
+`src/utils/otaBundle.ts` tags events with the running bundle version (every bundle shares the store
+build's `__APP_VERSION__`) and reports a bundle the plugin rolled back.

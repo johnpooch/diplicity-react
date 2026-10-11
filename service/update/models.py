@@ -10,10 +10,11 @@ class BundleManager(models.Manager):
     def latest_for(self, platform, native_version):
         if not settings.R2_PUBLIC_BASE_URL:
             return None
+        native = parse_version(native_version)
         runnable = [
             bundle
             for bundle in self.filter(platform=platform, active=True)
-            if parse_version(bundle.minimum_native_version) <= parse_version(native_version)
+            if parse_version(bundle.minimum_native_version) <= native and parse_version(bundle.version) > native
         ]
         if not runnable:
             return None

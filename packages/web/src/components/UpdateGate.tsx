@@ -1,13 +1,30 @@
-import React, { Component, Suspense } from "react";
+import React, { Component, Suspense, useEffect } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowUpCircle } from "lucide-react";
-import { useVersionRetrieveSuspense } from "@/api/generated/endpoints";
+import {
+  useVersionRetrieveSuspense,
+  versionRetrieve,
+} from "@/api/generated/endpoints";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/Notice";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/constants";
 import { isIosPlatform, isNativePlatform } from "@/utils/platform";
+
+const UPDATE_CHECK_TIMEOUT_MS = 5000;
+
+const withUpdateCheckTimeout = <T,>(promise: Promise<T>): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error("Update check timed out")),
+      UPDATE_CHECK_TIMEOUT_MS
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
 
 const parseVersion = (version: string): number[] =>
   version.split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -51,17 +68,35 @@ interface UpdateGateProps {
   children: React.ReactNode;
 }
 
+const ReleaseSplashScreen: React.FC<UpdateGateProps> = ({ children }) => {
+  useEffect(() => {
+    SplashScreen.hide();
+  }, []);
+  return <>{children}</>;
+};
+
 const NativeUpdateGate: React.FC<UpdateGateProps> = ({ children }) => {
-  const { data: version } = useVersionRetrieveSuspense();
+  const { data: version } = useVersionRetrieveSuspense({
+    query: {
+      queryFn: ({ signal }) => withUpdateCheckTimeout(versionRetrieve(signal)),
+      retry: false,
+    },
+  });
   const { data: appInfo } = useSuspenseQuery({
     queryKey: ["capacitorAppInfo"],
-    queryFn: () => CapacitorApp.getInfo(),
+    queryFn: () => withUpdateCheckTimeout(CapacitorApp.getInfo()),
+    retry: false,
   });
 
-  if (isBelowMinimum(appInfo.version, version.minimumClientVersion)) {
-    return <UpdateRequired />;
-  }
-  return <>{children}</>;
+  return (
+    <ReleaseSplashScreen>
+      {isBelowMinimum(appInfo.version, version.minimumClientVersion) ? (
+        <UpdateRequired />
+      ) : (
+        children
+      )}
+    </ReleaseSplashScreen>
+  );
 };
 
 interface FailOpenBoundaryProps {
@@ -94,7 +129,9 @@ class FailOpenBoundary extends Component<
 const UpdateGate: React.FC<UpdateGateProps> = ({ children }) => {
   if (!isNativePlatform()) return <>{children}</>;
   return (
-    <FailOpenBoundary fallback={children}>
+    <FailOpenBoundary
+      fallback={<ReleaseSplashScreen>{children}</ReleaseSplashScreen>}
+    >
       <Suspense fallback={null}>
         <NativeUpdateGate>{children}</NativeUpdateGate>
       </Suspense>
