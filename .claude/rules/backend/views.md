@@ -47,6 +47,16 @@ Every view needs a docstring. drf-spectacular extracts it, and without one it pi
 
 Any GET the client polls mixes in `ConditionalGetMixin` from `common.views`. It hashes the rendered body into an ETag, sets `Cache-Control: private, no-cache`, and returns an empty 304 when `If-None-Match` matches (weak comparison, so Railway's gzip-downgraded `W/` ETags still match). Because the ETag is the body, it cannot go stale — but a polled response must not contain values that change on their own between polls (a countdown in seconds, a server `now`), or every poll becomes a 200 again. The 304 test for the endpoint guards this.
 
+`ConditionalGetMixin` saves bandwidth, not server work: the body is still built on every poll. When building it is expensive, a polled endpoint may mix in `PrecomputedConditionalGetMixin` instead and implement `get_fingerprint()`. The mixin answers a matching `If-None-Match` with an empty 304 after authentication and permissions have run, without calling the list or retrieve handler. Use it only when tests cover every response input:
+
+- Fingerprint what the response exposes, not the raw inputs behind it. Compute values the way the response does: reuse the queryset annotations, policy functions and serializers for small dependencies such as members or events. Do not maintain a second handwritten list of their fields. A raw input whose change leaves the response unchanged, such as a read timestamp behind an unchanged unread count, only causes needless 200s.
+- Do not load or serialize the history the endpoint exists to skip. Summarize it with aggregates such as count, maximum ID and maximum `updated_at`. Those aggregates assume the rows are append-only or are changed only through `save()`. A `QuerySet.update()` that rewrites a row without advancing `updated_at` goes undetected, so do not add one to a fingerprinted model.
+- Bump the fingerprint's representation-version salt whenever serialization changes without a database change.
+- For each input, the endpoint's tests take an ETag, perform the mutation, and assert a 200 with a different ETag. Add tests that changes the response doesn't expose still get a 304. Add a test that an unchanged poll skips the expensive build. Add tests that its query count stays the same as history and related rows grow, comparing two equivalent conditional requests.
+- A fixed query count is not fixed database work. Aggregating history still scans it, so describe the saving as skipping serialization and transfer, not as cost independent of history.
+
+`channel/utils.py` holds the reference implementation for the channel list.
+
 **Review check:** using a DRF generic, not a raw `APIView`? permission classes declared rather than checked in the body? view is thin? mixins used for shared context? queryset uses a QuerySet method (`with_list_data()`, etc.)? generic matches the mutation, with no body override just to change the status code? docstring present?
 
 - When two endpoints differ only in a small input (who is seated) or authz, share one create path. Thin wrappers are fine when the public API wants distinct operations.

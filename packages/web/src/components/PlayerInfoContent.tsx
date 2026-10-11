@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Handshake,
   Link2,
+  LogOut,
   RotateCcw,
   Star,
   Swords,
@@ -17,6 +18,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { AddBotSheet } from "@/components/AddBotSheet";
+import { WithdrawGameAction } from "@/components/WithdrawGameAction";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import {
@@ -277,7 +279,8 @@ export const PlayerInfoContent: React.FC = () => {
     const showNationSeat = isPending && member.isCurrentUser;
     const showRemove = canRemove(member);
     const showActions = member.replaceable || showRemove;
-    const isDimmed = member.eliminated || member.civilDisorder;
+    const isDimmed =
+      member.eliminated || member.civilDisorder || member.withdrawn;
 
     const stopRowClick = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -337,6 +340,25 @@ export const PlayerInfoContent: React.FC = () => {
                       </TooltipContent>
                     </Tooltip>
                   )}
+                  {member.withdrawn && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground text-white"
+                          aria-label="Withdrawn"
+                          tabIndex={0}
+                          onPointerDown={event => event.stopPropagation()}
+                          onClick={event => event.stopPropagation()}
+                          onKeyDown={event => event.stopPropagation()}
+                        >
+                          <LogOut className="size-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        This player has withdrawn from the game.
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                   {winner && (
                     <span
                       className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-black"
@@ -376,6 +398,14 @@ export const PlayerInfoContent: React.FC = () => {
                     aria-label="Civil Disorder"
                   >
                     <UserX className="size-3" />
+                  </span>
+                )}
+                {member.withdrawn && (
+                  <span
+                    className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground text-white"
+                    aria-label="Withdrawn"
+                  >
+                    <LogOut className="size-3" />
                   </span>
                 )}
               </div>
@@ -611,6 +641,8 @@ export const PlayerInfoContent: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {game.canWithdraw && <WithdrawGameAction game={game} />}
 
       {canAddBots && (
         <AddBotSheet
