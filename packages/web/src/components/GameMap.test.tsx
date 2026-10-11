@@ -383,10 +383,12 @@ describe("GameMap", () => {
       render(gameMapJsx(queryClient));
       clickProvince("lon");
 
-      await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith("Order cleared"));
+      await waitFor(() =>
+        expect(queryClient.getQueryData(["/game/game-1/orders/1"])).toEqual([])
+      );
       expect(mockDeleteMutateAsync).toHaveBeenCalledWith({ gameId: "game-1", sourceId: "lon" });
       expect(mockWizardState.select).not.toHaveBeenCalled();
-      expect(queryClient.getQueryData(["/game/game-1/orders/1"])).toEqual([]);
+      expect(mockToastSuccess).not.toHaveBeenCalled();
     });
 
     it("hides the order while it is being cleared", async () => {
@@ -444,8 +446,9 @@ describe("GameMap", () => {
       clickProvince("lon");
       fireEvent.click(await screen.findByText("Clear Order"));
 
-      await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith("Order cleared"));
-      expect(mockDeleteMutateAsync).toHaveBeenCalledWith({ gameId: "game-1", sourceId: "lon" });
+      await waitFor(() =>
+        expect(mockDeleteMutateAsync).toHaveBeenCalledWith({ gameId: "game-1", sourceId: "lon" })
+      );
       expect(mockWizardReset).toHaveBeenCalled();
     });
 

@@ -206,7 +206,6 @@ const GameMap: React.FC = () => {
       queryClient.invalidateQueries({
         queryKey: getGamePhaseStatesListQueryKey(gameId),
       });
-      toast.success("Order cleared");
     } catch {
       toast.error("Failed to clear order");
     } finally {
