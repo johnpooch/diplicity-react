@@ -2,6 +2,7 @@ import json
 from phase.utils import transform_options
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from django.test.utils import override_settings
 from django.db import connection
 from django.test import TestCase
@@ -747,7 +748,7 @@ class TestOrderCreateView:
         self, authenticated_client, sandbox_game_with_phase_options, classical_austria_nation
     ):
         game = sandbox_game_with_phase_options
-        game.members.filter(nation=classical_austria_nation).update(eliminated=True)
+        game.members.filter(nation=classical_austria_nation).update(eliminated_at=timezone.now())
 
         url = reverse("order-create", args=[game.id])
         response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
@@ -760,7 +761,7 @@ class TestOrderCreateView:
         self, authenticated_client, sandbox_game_with_phase_options, primary_user
     ):
         game = sandbox_game_with_phase_options
-        game.members.filter(user=primary_user).update(eliminated=True)
+        game.members.filter(user=primary_user).update(eliminated_at=timezone.now())
 
         url = reverse("order-create", args=[game.id])
         response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
@@ -770,7 +771,7 @@ class TestOrderCreateView:
 
     @pytest.mark.django_db
     def test_order_create_rejected_for_eliminated_player(self, authenticated_client, game_with_options, primary_user):
-        game_with_options.members.filter(user=primary_user).update(eliminated=True)
+        game_with_options.members.filter(user=primary_user).update(eliminated_at=timezone.now())
 
         url = reverse("order-create", args=[game_with_options.id])
         response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
@@ -780,7 +781,7 @@ class TestOrderCreateView:
 
     @pytest.mark.django_db
     def test_order_create_rejected_for_kicked_player(self, authenticated_client, game_with_options, primary_user):
-        game_with_options.members.filter(user=primary_user).update(kicked=True)
+        game_with_options.members.filter(user=primary_user).update(removed_at=timezone.now())
 
         url = reverse("order-create", args=[game_with_options.id])
         response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
@@ -792,7 +793,7 @@ class TestOrderCreateView:
     def test_order_create_rejected_for_civil_disorder_player(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(civil_disorder=True)
+        game_with_options.members.filter(user=primary_user).update(civil_disorder_at=timezone.now())
 
         url = reverse("order-create", args=[game_with_options.id])
         response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
@@ -3185,7 +3186,7 @@ class TestOrderOptionsView:
     def test_kicked_member_returns_no_options(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(kicked=True)
+        game_with_options.members.filter(user=primary_user).update(removed_at=timezone.now())
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -3195,7 +3196,7 @@ class TestOrderOptionsView:
     def test_eliminated_member_returns_no_options(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(eliminated=True)
+        game_with_options.members.filter(user=primary_user).update(eliminated_at=timezone.now())
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -3205,7 +3206,7 @@ class TestOrderOptionsView:
     def test_civil_disorder_member_returns_no_options(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(civil_disorder=True)
+        game_with_options.members.filter(user=primary_user).update(civil_disorder_at=timezone.now())
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK

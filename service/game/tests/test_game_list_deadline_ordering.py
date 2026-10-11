@@ -52,7 +52,7 @@ def test_eliminated_games_sort_last_regardless_of_deadline(
     phase_factory(game=active, status=PhaseStatus.ACTIVE, scheduled_resolution=now + timedelta(hours=5))
 
     eliminated = game_factory(variant=classical_variant, status=GameStatus.ACTIVE)
-    eliminated.members.create(user=primary_user, eliminated=True)
+    eliminated.members.create(user=primary_user, eliminated_at=timezone.now())
     phase_factory(game=eliminated, status=PhaseStatus.ACTIVE, scheduled_resolution=now + timedelta(hours=1))
 
     url = reverse(list_viewname) + "?mine=true&status=active&ordering=deadline"

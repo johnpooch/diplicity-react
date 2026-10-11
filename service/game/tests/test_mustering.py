@@ -411,8 +411,8 @@ class TestStartIfMustered:
 
         confirmed = game.members.get(user=primary_user)
         removed = game.members.get(user=secondary_user)
-        assert confirmed.kicked is False
-        assert removed.kicked is True
+        assert confirmed.left_seat is False
+        assert removed.removed_at is not None
         assert removed.nation_id is not None
         assert removed.replaceable is True
 
@@ -439,7 +439,7 @@ class TestStartIfMustered:
 
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
-        assert not game.members.filter(kicked=True).exists()
+        assert not game.members.filter(removed_at__isnull=False).exists()
 
     @pytest.mark.django_db
     def test_expiry_notifications_split_by_confirmation(
@@ -503,7 +503,7 @@ class TestStartIfMustered:
 
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
-        assert game.members.get(user=bot_user).kicked is False
+        assert game.members.get(user=bot_user).left_seat is False
 
     @pytest.mark.django_db
     def test_start_if_mustered_is_a_noop_for_non_mustering_games(
@@ -525,7 +525,7 @@ class TestStartIfMustered:
         game.refresh_from_db()
         assert game.status == GameStatus.MUSTERING
         assert game.muster_deadline is not None
-        assert not game.members.filter(kicked=True).exists()
+        assert not game.members.filter(removed_at__isnull=False).exists()
 
     @pytest.mark.django_db
     def test_expiry_before_the_deadline_starts_a_fully_confirmed_game(
@@ -545,7 +545,7 @@ class TestStartIfMustered:
 
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
-        assert not game.members.filter(kicked=True).exists()
+        assert not game.members.filter(removed_at__isnull=False).exists()
 
     @pytest.mark.django_db
     def test_expiry_from_an_old_window_cannot_start_the_next_one(
@@ -570,7 +570,7 @@ class TestStartIfMustered:
         game.refresh_from_db()
         assert game.status == GameStatus.MUSTERING
         assert game.members.get(user=tertiary_user).mustered_at is None
-        assert not game.members.filter(kicked=True).exists()
+        assert not game.members.filter(removed_at__isnull=False).exists()
 
 
 class TestMusterEndpoint:
@@ -760,7 +760,7 @@ class TestStatusAudit:
 
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
-        assert not game.members.get(user=primary_user).kicked
+        assert not game.members.get(user=primary_user).left_seat
 
     def test_game_master_can_delete_a_mustering_game(
         self,

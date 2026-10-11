@@ -73,7 +73,7 @@ def normalise_picture(upload):
 def get_player_stats(user):
     completed_members = (
         Member.objects.filter(
-            Q(kicked=False) | Q(withdrawn_at__isnull=False),
+            Q(removed_at__isnull=True, replaced_by__isnull=True) | Q(withdrawn_at__isnull=False),
             user=user,
             game__status=GameStatus.COMPLETED,
             game__sandbox=False,

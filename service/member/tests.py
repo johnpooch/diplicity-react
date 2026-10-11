@@ -64,7 +64,7 @@ class TestCivilDisorderSerialization:
             status=GameStatus.ACTIVE,
         )
         game.members.create(
-            user=primary_user, nation=classical_england_nation, civil_disorder=True
+            user=primary_user, nation=classical_england_nation, civil_disorder_at=timezone.now()
         )
 
         url = reverse(retrieve_viewname, args=[game.id])
@@ -118,7 +118,7 @@ class TestDeletedUserMemberSerialization:
             variant=classical_variant,
             status=GameStatus.ACTIVE,
         )
-        game.members.create(user=None, nation=classical_england_nation, kicked=True)
+        game.members.create(user=None, nation=classical_england_nation, removed_at=timezone.now())
 
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -529,7 +529,7 @@ def _record_nmr(game, member):
 class TestRemoveMemberFromActiveGame:
 
     @pytest.mark.django_db
-    def test_remove_keeps_the_row_and_marks_it_kicked(self, authenticated_client, active_game_factory):
+    def test_remove_keeps_the_row_and_records_the_removal(self, authenticated_client, active_game_factory):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
         _record_nmr(game, member)
@@ -539,7 +539,7 @@ class TestRemoveMemberFromActiveGame:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         member.refresh_from_db()
-        assert member.kicked is True
+        assert member.removed_at is not None
         assert member.replaced_by is None
         assert member.user is not None
 
@@ -669,7 +669,7 @@ class TestRemovalRequiresMissedOrders:
     def test_member_in_civil_disorder_can_be_removed(self, authenticated_client, active_game_factory):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        member.civil_disorder = True
+        member.civil_disorder_at = timezone.now()
         member.save()
 
         url = reverse(kick_viewname, args=[game.id, member.id])
@@ -690,7 +690,7 @@ class TestRemovalRequiresMissedOrders:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["detail"] == "This player has not missed any orders."
         member.refresh_from_db()
-        assert member.kicked is False
+        assert member.left_seat is False
 
     @pytest.mark.django_db
     def test_member_who_submitted_orders_last_phase_cannot_be_removed(
@@ -807,7 +807,7 @@ class TestMemberReplace:
         assert response.data["nation"] == member.nation.name
         replacement = game.members.get(user=tertiary_user)
         assert replacement.nation == member.nation
-        assert replacement.kicked is False
+        assert replacement.left_seat is False
         member.refresh_from_db()
         assert member.replaced_by == replacement
 
@@ -859,13 +859,63 @@ class TestMemberReplace:
     ):
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
-        member.civil_disorder = True
+        member.civil_disorder_at = timezone.now()
         member.save()
 
         url = reverse(replace_viewname, args=[game.id, member.id])
         response = authenticated_client_for_tertiary_user.post(url)
 
         assert response.status_code == status.HTTP_201_CREATED
+        member.refresh_from_db()
+        assert member.replaced_by is not None
+        assert member.removed_at is None
+
+    @pytest.mark.django_db
+    def test_withdrawn_seat_can_be_taken_over_without_recording_a_removal(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        _withdraw(game, member)
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        member.refresh_from_db()
+        assert member.replaced_by is not None
+        assert member.removed_at is None
+
+    @pytest.mark.django_db
+    def test_removed_seat_keeps_its_removal_time_when_taken_over(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._open_seat(game)
+        member.refresh_from_db()
+        removed_at = member.removed_at
+
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        member.refresh_from_db()
+        assert member.replaced_by is not None
+        assert member.removed_at == removed_at
+
+    @pytest.mark.django_db
+    def test_replaced_member_is_reported_as_kicked(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        member.civil_disorder_at = timezone.now()
+        member.save()
+        authenticated_client_for_tertiary_user.post(reverse(replace_viewname, args=[game.id, member.id]))
+
+        response = _client_for(member.user).get(reverse("phase-state-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["member"]["kicked"] is True
+        assert response.data[0]["member"]["civil_disorder"] is True
 
     @pytest.mark.django_db
     def test_civil_disorder_player_cannot_reclaim_their_own_seat(
@@ -873,7 +923,7 @@ class TestMemberReplace:
     ):
         game = active_game_factory()
         member = game.members.get(user=primary_user)
-        member.civil_disorder = True
+        member.civil_disorder_at = timezone.now()
         member.save()
 
         url = reverse(replace_viewname, args=[game.id, member.id])
@@ -912,7 +962,7 @@ class TestMemberReplace:
     def test_eliminated_seat_forbidden(self, authenticated_client_for_tertiary_user, active_game_factory):
         game = active_game_factory()
         member = self._open_seat(game)
-        member.eliminated = True
+        member.eliminated_at = timezone.now()
         member.save()
 
         url = reverse(replace_viewname, args=[game.id, member.id])
@@ -962,7 +1012,7 @@ class TestMemberReplace:
         self, authenticated_client_for_tertiary_user, pending_game_created_by_primary_user, secondary_user
     ):
         game = pending_game_created_by_primary_user
-        member = game.members.create(user=secondary_user, kicked=True)
+        member = game.members.create(user=secondary_user, removed_at=timezone.now())
 
         url = reverse(replace_viewname, args=[game.id, member.id])
         response = authenticated_client_for_tertiary_user.post(url)
@@ -1117,7 +1167,7 @@ class TestCivilDisorderRecoveryView:
     def test_civil_disorder_is_permanent(self, authenticated_client, active_game_factory, primary_user):
         game = active_game_factory()
         member = game.members.get(user=primary_user)
-        member.civil_disorder = True
+        member.civil_disorder_at = timezone.now()
         member.save()
 
         url = reverse(recovery_viewname, args=[game.id])
@@ -1144,7 +1194,7 @@ class TestReplaceableSerialization:
         self, authenticated_client, classical_variant, classical_england_nation, primary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        game.members.create(user=primary_user, nation=classical_england_nation, civil_disorder=True)
+        game.members.create(user=primary_user, nation=classical_england_nation, civil_disorder_at=timezone.now())
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1184,7 +1234,7 @@ class TestReplaceableSerialization:
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         game.members.create(
-            user=primary_user, nation=classical_england_nation, civil_disorder=True, eliminated=True
+            user=primary_user, nation=classical_england_nation, civil_disorder_at=timezone.now(), eliminated_at=timezone.now()
         )
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -1196,7 +1246,7 @@ class TestReplaceableSerialization:
         self, authenticated_client, classical_variant, classical_england_nation, primary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        game.members.create(user=primary_user, nation=classical_england_nation, kicked=True)
+        game.members.create(user=primary_user, nation=classical_england_nation, removed_at=timezone.now())
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1210,7 +1260,7 @@ class TestReplaceableSerialization:
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         game.members.create(
-            user=primary_user, nation=classical_england_nation, kicked=True, eliminated=True
+            user=primary_user, nation=classical_england_nation, removed_at=timezone.now(), eliminated_at=timezone.now()
         )
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -1224,7 +1274,7 @@ class TestReplaceableSerialization:
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
         replaced = game.members.create(
-            user=primary_user, nation=classical_england_nation, civil_disorder=True, replaced_by=replacement
+            user=primary_user, nation=classical_england_nation, civil_disorder_at=timezone.now(), replaced_by=replacement
         )
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -2097,9 +2147,9 @@ class TestMemberWithdrawView:
     @pytest.mark.parametrize(
         "departure",
         [
-            {"eliminated": True},
-            {"civil_disorder": True},
-            {"kicked": True},
+            {"eliminated_at": timezone.now()},
+            {"civil_disorder_at": timezone.now()},
+            {"removed_at": timezone.now()},
             {"withdrawn_at": timezone.now()},
         ],
     )
@@ -2273,7 +2323,7 @@ class TestMemberWithdrawView:
         game = active_game_factory()
         admin_member = game.members.get(user=game.admin)
         member = _non_admin_player(game)
-        game.members.players().exclude(id__in=[admin_member.id, member.id]).update(civil_disorder=True)
+        game.members.players().exclude(id__in=[admin_member.id, member.id]).update(civil_disorder_at=timezone.now())
 
         _withdraw(game, member)
         game.refresh_from_db()
@@ -2291,7 +2341,7 @@ class TestMemberWithdrawView:
     def test_withdrawal_by_the_last_playing_member_abandons_the_game(self, active_game_factory):
         game = active_game_factory()
         member = _non_admin_player(game)
-        game.members.players().exclude(id=member.id).update(civil_disorder=True)
+        game.members.players().exclude(id=member.id).update(civil_disorder_at=timezone.now())
 
         _withdraw(game, member)
 

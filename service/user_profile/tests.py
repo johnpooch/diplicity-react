@@ -1,4 +1,5 @@
 import io
+from datetime import timedelta
 
 import pytest
 from unittest.mock import patch
@@ -153,7 +154,7 @@ class TestUserAccountDelete:
         assert not Member.objects.filter(id=member.id).exists()
 
     @pytest.mark.django_db
-    def test_active_game_member_preserved_with_kicked_and_null_user(
+    def test_active_game_member_preserved_with_removal_and_null_user(
         self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
     ):
         user = user_factory()
@@ -165,8 +166,42 @@ class TestUserAccountDelete:
         client.delete(url)
 
         member.refresh_from_db()
-        assert member.kicked is True
+        assert member.removed_at is not None
         assert member.user is None
+
+    @pytest.mark.django_db
+    def test_completed_game_member_preserved_with_removal_and_null_user(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        game.status = GameStatus.COMPLETED
+        game.save()
+        member = game.members.create(user=user)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        member.refresh_from_db()
+        assert member.removed_at is not None
+        assert member.user is None
+
+    @pytest.mark.django_db
+    def test_member_already_off_the_seat_keeps_its_departure_time_on_delete(
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+        game = base_active_game_for_primary_user
+        removed_at = timezone.now() - timedelta(days=1)
+        member = game.members.create(user=user, removed_at=removed_at)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        member.refresh_from_db()
+        assert member.removed_at == removed_at
 
     @pytest.mark.django_db
     def test_creator_of_active_game_cleared_on_delete(
@@ -188,7 +223,7 @@ class TestUserAccountDelete:
         member.refresh_from_db()
         game.refresh_from_db()
         assert game.created_by is None
-        assert member.kicked is True
+        assert member.left_seat is True
         assert member.user is None
 
     @pytest.mark.django_db
@@ -915,7 +950,7 @@ class TestPublicUserProfileRetrieveView:
             member = game.members.create(
                 user=user,
                 nation=classical_england_nation,
-                civil_disorder=(i < 2),
+                civil_disorder_at=timezone.now() if i < 2 else None,
             )
             phase = game.phases.create(
                 variant=classical_variant,
@@ -1035,7 +1070,7 @@ class TestPublicUserProfileRetrieveView:
             finished_at=timezone.now(),
         )
         game.members.create(
-            user=user, nation=classical_england_nation, kicked=True
+            user=user, nation=classical_england_nation, removed_at=timezone.now()
         )
 
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
@@ -1062,7 +1097,7 @@ class TestPublicUserProfileRetrieveView:
             finished_at=timezone.now(),
         )
         member = game.members.create(
-            user=user, nation=classical_england_nation, kicked=True, withdrawn_at=timezone.now()
+            user=user, nation=classical_england_nation, removed_at=timezone.now(), withdrawn_at=timezone.now()
         )
         for ordinal, outcome in enumerate([RECEIVED, NMR, None], start=1):
             phase = game.phases.create(
@@ -1239,7 +1274,7 @@ class TestRecomputeCommitment:
         outcomes,
         private=False,
         sandbox=False,
-        kicked=False,
+        removed=False,
         withdrawn_at=None,
         phase_type=PhaseType.MOVEMENT,
     ):
@@ -1250,7 +1285,12 @@ class TestRecomputeCommitment:
             private=private,
             sandbox=sandbox,
         )
-        member = game.members.create(user=user, nation=nation, kicked=kicked, withdrawn_at=withdrawn_at)
+        member = game.members.create(
+            user=user,
+            nation=nation,
+            removed_at=timezone.now() if removed else None,
+            withdrawn_at=withdrawn_at,
+        )
         for ordinal, outcome in enumerate(outcomes, start=1):
             phase = game.phases.create(
                 variant=variant,
@@ -1290,7 +1330,7 @@ class TestRecomputeCommitment:
         assert recompute_commitment(user) == Commitment.LOW
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("exclusion", ["private", "sandbox", "kicked"])
+    @pytest.mark.parametrize("exclusion", ["private", "sandbox", "removed"])
     def test_excluded_phases_not_rated(
         self, user_factory, classical_variant, classical_england_nation, exclusion
     ):
@@ -1327,7 +1367,7 @@ class TestRecomputeCommitment:
             classical_variant,
             classical_england_nation,
             [RECEIVED, NMR],
-            kicked=True,
+            removed=True,
             withdrawn_at=timezone.now(),
         )
         assert get_rated_outcomes(user) == [NMR, RECEIVED]

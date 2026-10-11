@@ -357,9 +357,9 @@ class TestGameRetrieveView:
         game.members.create(user=primary_user, nation=classical_england_nation)
         replaced = game.members.create(user=secondary_user, nation=classical_france_nation)
         replacement = game.members.create(user=bot_user)
-        replaced.kicked = True
+        replaced.removed_at = timezone.now()
         replaced.replaced_by = replacement
-        replaced.save(update_fields=["kicked", "replaced_by"])
+        replaced.save(update_fields=["removed_at", "replaced_by"])
         replacement.nation = classical_france_nation
         replacement.save(update_fields=["nation"])
 
@@ -660,9 +660,9 @@ class TestGameListView:
         base_pending_phase(game)
         replaced = game.members.create(user=primary_user, nation=classical_england_nation)
         replacement = game.members.create(user=bot_user)
-        replaced.kicked = True
+        replaced.removed_at = timezone.now()
         replaced.replaced_by = replacement
-        replaced.save(update_fields=["kicked", "replaced_by"])
+        replaced.save(update_fields=["removed_at", "replaced_by"])
         replacement.nation = classical_england_nation
         replacement.save(update_fields=["nation"])
 

@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 
 from game.models import Game
@@ -105,8 +106,8 @@ class TestReassignAdmin:
         self, pending_game_factory, secondary_user, member_factory
     ):
         game = pending_game_factory()
-        member_factory(game=game, user=secondary_user, kicked=True)
-        member_factory(game=game, civil_disorder=True)
+        member_factory(game=game, user=secondary_user, removed_at=timezone.now())
+        member_factory(game=game, civil_disorder_at=timezone.now())
         eligible_member = member_factory(game=game)
 
         game.reassign_admin()

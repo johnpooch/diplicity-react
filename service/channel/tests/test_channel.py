@@ -648,7 +648,7 @@ class TestChannelListView:
         game = active_game_with_private_channel
         url = reverse("channel-list", args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        game.members.filter(user__username="primaryuser").update(kicked=True)
+        game.members.filter(user__username="primaryuser").update(removed_at=timezone.now())
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -1865,7 +1865,7 @@ class TestKickedMemberCannotChat:
     ):
         game = active_game_with_kicked_member
         channel = Channel.objects.create(game=game, name="Public Press", private=False)
-        channel.members.add(game.members.get(kicked=True))
+        channel.members.add(game.members.get(removed_at__isnull=False))
 
         url = reverse("channel-message-create", args=[game.id, channel.id])
         response = authenticated_client_for_secondary_user.post(url, {"body": "Still here"}, format="json")
@@ -1879,7 +1879,7 @@ class TestKickedMemberCannotChat:
     ):
         game = active_game_with_kicked_member
         url = reverse("channel-create", args=[game.id])
-        payload = {"member_ids": [game.members.get(kicked=False).id]}
+        payload = {"member_ids": [game.members.get(removed_at__isnull=True).id]}
         response = authenticated_client_for_secondary_user.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN

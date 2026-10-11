@@ -87,7 +87,7 @@ def test_confirm_phase_user_kicked(authenticated_client_for_secondary_user, acti
 
 @pytest.mark.django_db
 def test_confirm_phase_user_in_civil_disorder(authenticated_client, active_game_with_phase_state, primary_user):
-    active_game_with_phase_state.members.filter(user=primary_user).update(civil_disorder=True)
+    active_game_with_phase_state.members.filter(user=primary_user).update(civil_disorder_at=timezone.now())
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -2214,7 +2214,7 @@ class TestGameEndingFinalisesPhases:
         stale_phase = self._stale_active_phase(game, ordinal=phase.ordinal + 2)
 
         for member in game.members.all():
-            member.civil_disorder = True
+            member.civil_disorder_at = timezone.now()
             member.save()
 
         with patch("phase.models.resolve", return_value=mock_adjudication_data_basic):
@@ -2238,7 +2238,7 @@ class TestGameEndingFinalisesPhases:
         game = phase.game
 
         for member in game.members.all():
-            member.civil_disorder = True
+            member.civil_disorder_at = timezone.now()
             member.save()
 
         with patch("phase.models.resolve") as mock_resolve:
@@ -2878,13 +2878,15 @@ class TestAbandonmentDetection:
         )
         Member.objects.create(
             nation=italy_nation, user=primary_user, game=game,
-            civil_disorder=italy_cd,
-            eliminated=italy_eliminated, kicked=italy_kicked,
+            civil_disorder_at=timezone.now() if italy_cd else None,
+            eliminated_at=timezone.now() if italy_eliminated else None,
+            removed_at=timezone.now() if italy_kicked else None,
         )
         Member.objects.create(
             nation=germany_nation, user=secondary_user, game=game,
-            civil_disorder=germany_cd,
-            eliminated=germany_eliminated, kicked=germany_kicked,
+            civil_disorder_at=timezone.now() if germany_cd else None,
+            eliminated_at=timezone.now() if germany_eliminated else None,
+            removed_at=timezone.now() if germany_kicked else None,
         )
         return game
 
@@ -3511,7 +3513,7 @@ class TestCivilDisorderDetection:
             primary_user,
             secondary_user,
         )
-        italy.civil_disorder = True
+        italy.civil_disorder_at = timezone.now()
         italy.save()
 
         phase1 = Phase.objects.create(
@@ -4084,7 +4086,7 @@ class TestCivilDisorderExcludesEliminatedMembers:
             nation=italy_vs_germany_germany_nation,
             user=secondary_user,
             game=game,
-            eliminated=True,
+            eliminated_at=timezone.now(),
         )
 
         phase1 = Phase.objects.create(
@@ -4434,7 +4436,7 @@ class TestSetOrdersOutcome:
             primary_user,
             secondary_user,
         )
-        italy.civil_disorder = True
+        italy.civil_disorder_at = timezone.now()
         italy.save()
         ps = phase.phase_states.create(
             member=italy, has_possible_orders=True, orders_confirmed=True
@@ -4667,7 +4669,7 @@ class TestCivilDisorderAutoConfirm:
             nation=italy_vs_germany_italy_nation,
             user=primary_user,
             game=game,
-            civil_disorder=True,
+            civil_disorder_at=timezone.now(),
         )
         active_member = Member.objects.create(
             nation=italy_vs_germany_germany_nation,
@@ -4727,7 +4729,7 @@ class TestCivilDisorderAutoConfirm:
             nation=italy_vs_germany_italy_nation,
             user=primary_user,
             game=game,
-            civil_disorder=True,
+            civil_disorder_at=timezone.now(),
         )
         active_member = Member.objects.create(
             nation=italy_vs_germany_germany_nation,
@@ -6103,7 +6105,7 @@ class TestNMRExtensionsFixedTime:
         game.fixed_deadline_timezone = "UTC"
         game.save()
         italy.nmr_extensions_remaining = 1
-        italy.civil_disorder = True
+        italy.civil_disorder_at = timezone.now()
         italy.save()
         phase.units.create(
             province=italy_vs_germany_venice_province,
@@ -6522,7 +6524,7 @@ class TestCheckEliminations:
         in_memory_procrastinate,
     ):
         game, italy, germany = elimination_game_factory()
-        italy.eliminated = True
+        italy.eliminated_at = timezone.now()
         italy.save()
 
         previous_phase = Phase.objects.create(
@@ -6540,6 +6542,36 @@ class TestCheckEliminations:
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
         assert not _elimination_notifications().exists()
+
+    @pytest.mark.django_db
+    def test_civil_disorder_member_eliminated_later_keeps_their_civil_disorder(
+        self,
+        elimination_game_factory,
+        italy_vs_germany_variant,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_kiel_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = elimination_game_factory()
+        italy.civil_disorder_at = timezone.now()
+        italy.save()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        italy.refresh_from_db()
+        assert italy.eliminated is True
+        assert italy.civil_disorder is True
 
     @pytest.mark.django_db
     def test_sends_elimination_notification_to_eliminated_member(
@@ -6617,8 +6649,8 @@ class TestKickedMemberPhaseStates:
     ):
         phase = italy_vs_germany_phase_with_orders
         kicked = phase.game.members.get(nation__name="Italy")
-        kicked.kicked = True
-        kicked.save(update_fields=["kicked"])
+        kicked.removed_at = timezone.now()
+        kicked.save(update_fields=["removed_at"])
 
         new_phase = Phase.objects.create_from_adjudication_data(
             phase,
@@ -6642,8 +6674,8 @@ class TestKickedMemberPhaseStates:
     ):
         phase = italy_vs_germany_phase_with_orders
         replaced = phase.game.members.get(nation__name="Italy")
-        replaced.civil_disorder = True
-        replaced.save(update_fields=["civil_disorder"])
+        replaced.civil_disorder_at = timezone.now()
+        replaced.save(update_fields=["civil_disorder_at"])
         replacement = Member.objects.hand_over_seat(replaced, tertiary_user)
 
         new_phase = Phase.objects.create_from_adjudication_data(

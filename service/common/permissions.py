@@ -52,7 +52,7 @@ class IsNotKickedGamePlayer(BasePermission):
         member = game.members.players().filter(user=request.user).first()
         if not member:
             return False
-        if member.kicked:
+        if member.left_seat:
             self.message = "Cannot perform action for kicked players."
             return False
         return True
@@ -66,7 +66,7 @@ class IsNotKickedGameParticipant(BasePermission):
         member = game.members.filter(user=request.user).first()
         if not member:
             return False
-        if member.kicked:
+        if member.left_seat:
             self.message = "Cannot perform action for kicked players."
             return False
         return True

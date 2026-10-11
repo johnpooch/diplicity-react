@@ -213,9 +213,9 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
         game = game_factory(variant=classical_variant, game_master=game_master)
         active_one = member_factory(game=game, user=user_factory())
         active_two = member_factory(game=game, user=user_factory())
-        eliminated = member_factory(game=game, user=user_factory(), eliminated=True)
-        kicked = member_factory(game=game, user=user_factory(), kicked=True)
-        civil = member_factory(game=game, user=user_factory(), civil_disorder=True)
+        eliminated = member_factory(game=game, user=user_factory(), eliminated_at=timezone.now())
+        kicked = member_factory(game=game, user=user_factory(), removed_at=timezone.now())
+        civil = member_factory(game=game, user=user_factory(), civil_disorder_at=timezone.now())
         withdrawn = member_factory(game=game, user=user_factory(), withdrawn_at=timezone.now())
         replaced = member_factory(game=game, user=user_factory())
         replacement = Member.objects.hand_over_seat(replaced, user_factory())
@@ -852,7 +852,7 @@ class TestDrawProposalNotification:
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
-        game.members.create(user=tertiary_user, eliminated=True)
+        game.members.create(user=tertiary_user, eliminated_at=timezone.now())
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
@@ -866,7 +866,7 @@ class TestDrawProposalNotification:
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
-        game.members.create(user=tertiary_user, civil_disorder=True)
+        game.members.create(user=tertiary_user, civil_disorder_at=timezone.now())
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
@@ -880,7 +880,7 @@ class TestDrawProposalNotification:
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
-        game.members.create(user=tertiary_user, kicked=True)
+        game.members.create(user=tertiary_user, removed_at=timezone.now())
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 

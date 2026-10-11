@@ -828,7 +828,7 @@ class Game(BaseModel):
 
     def can_remove_member(self, member):
         with tracer.start_as_current_span("game.models.can_remove_member"):
-            if member.is_game_master or member.kicked or member.withdrawn or member.replaced_by_id is not None:
+            if member.is_game_master or member.left_seat or member.withdrawn:
                 return False
             if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
                 return True
@@ -878,7 +878,7 @@ class Game(BaseModel):
         return self._with_game_master(ids)
 
     def active_member_user_ids(self):
-        active = self.members.filter(eliminated=False)
+        active = self.members.filter(eliminated_at__isnull=True)
         ids = {m.user_id for m in active if m.user_id is not None and m.occupied}
         return self._with_game_master(ids)
 
@@ -886,7 +886,7 @@ class Game(BaseModel):
         if self.sandbox:
             return False
 
-        remaining = list(self.members.players().not_replaced().filter(eliminated=False))
+        remaining = list(self.members.players().not_replaced().filter(eliminated_at__isnull=True))
         if not remaining:
             return False
 

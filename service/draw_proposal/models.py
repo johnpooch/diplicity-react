@@ -56,7 +56,7 @@ class DrawProposalManager(models.Manager):
         phase = game.current_phase
 
         all_active_members = list(game.members.players().not_replaced().filter(
-            eliminated=False
+            eliminated_at__isnull=True
         ))
 
         proposal = self.create(
