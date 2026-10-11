@@ -23,6 +23,11 @@ class DeterministicSampler(Sampler):
         return f"DeterministicSampler{{1/{TRACE_SAMPLE_RATE}}}"
 
 
+def client_version_request_hook(span, request):
+    client_version = request.headers.get("X-Client-Version", "").strip()
+    span.set_attribute("client.version", client_version or "none")
+
+
 def configure_opentelemetry():
     honeycomb_api_key = os.getenv("HONEYCOMB_API_KEY")
 
@@ -55,7 +60,7 @@ def configure_opentelemetry():
 
     trace.set_tracer_provider(tracer_provider)
 
-    DjangoInstrumentor().instrument()
+    DjangoInstrumentor().instrument(request_hook=client_version_request_hook)
 
     PsycopgInstrumentor().instrument(enable_commenter=True)
 

@@ -1,10 +1,12 @@
+import pytest
+from django.test import RequestFactory
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
 
-from project.otel_config import TRACE_SAMPLE_RATE, DeterministicSampler
+from project.otel_config import TRACE_SAMPLE_RATE, DeterministicSampler, client_version_request_hook
 
 SAMPLED_TRACE_ID = 0x4BF92F3577B34DA6A3CE929D0E0E4736
 DROPPED_TRACE_ID = 0x0AF7651916CD43DD8448EB211C80319C
@@ -44,3 +46,22 @@ class TestDeterministicSampler:
         sampled = sum(sampler.should_sample(None, trace_id, "task").decision.is_sampled() for trace_id in range(1000))
 
         assert sampled == 1000 // TRACE_SAMPLE_RATE
+
+
+def _client_version_attribute(**headers):
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    request = RequestFactory().get("/game/", headers=headers)
+    with provider.get_tracer(__name__).start_as_current_span("GET game/") as span:
+        client_version_request_hook(span, request)
+    return exporter.get_finished_spans()[0].attributes["client.version"]
+
+
+class TestClientVersionRequestHook:
+    def test_request_span_records_the_client_version_header(self):
+        assert _client_version_attribute(x_client_version=" 1.4.2 ") == "1.4.2"
+
+    @pytest.mark.parametrize("headers", [{}, {"x_client_version": "   "}])
+    def test_request_span_records_none_when_the_client_sends_no_version(self, headers):
+        assert _client_version_attribute(**headers) == "none"
