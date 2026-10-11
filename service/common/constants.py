@@ -229,6 +229,84 @@ class MusterStatus:
     CONFIRMED = "confirmed"
 
 
+class GameActionKey:
+    JOIN = "join"
+    CONFIRM_SEAT = "confirm_seat"
+    EDIT_NATION_PREFERENCES = "edit_nation_preferences"
+    ASSIGN_NATIONS = "assign_nations"
+    EXTEND_DEADLINE = "extend_deadline"
+    PAUSE = "pause"
+    UNPAUSE = "unpause"
+    LEAVE = "leave"
+    WITHDRAW = "withdraw"
+
+    KEY_CHOICES = (
+        (JOIN, "Join"),
+        (CONFIRM_SEAT, "Confirm seat"),
+        (EDIT_NATION_PREFERENCES, "Edit nation preferences"),
+        (ASSIGN_NATIONS, "Assign nations"),
+        (EXTEND_DEADLINE, "Extend deadline"),
+        (PAUSE, "Pause"),
+        (UNPAUSE, "Unpause"),
+        (LEAVE, "Leave"),
+        (WITHDRAW, "Withdraw"),
+    )
+
+
+class MemberActionKey:
+    TAKE_OVER = "take_over"
+    SHARE_REPLACEMENT_LINK = "share_replacement_link"
+    REMOVE_FROM_LOBBY = "remove_from_lobby"
+    REMOVE_FROM_GAME = "remove_from_game"
+
+    KEY_CHOICES = (
+        (TAKE_OVER, "Take over"),
+        (SHARE_REPLACEMENT_LINK, "Share replacement link"),
+        (REMOVE_FROM_LOBBY, "Remove from lobby"),
+        (REMOVE_FROM_GAME, "Remove from game"),
+    )
+
+
+class ActionBlockedReason:
+    COMMITMENT_TOO_LOW = "commitment_too_low"
+    NO_MISSED_ORDERS = "no_missed_orders"
+
+    REASON_CHOICES = (
+        (COMMITMENT_TOO_LOW, "Commitment too low"),
+        (NO_MISSED_ORDERS, "No missed orders"),
+    )
+
+
+class ParticipationStatus:
+    GAME_MASTER = "game_master"
+    REPLACED = "replaced"
+    REMOVED = "removed"
+    WITHDRAWN = "withdrawn"
+    WON = "won"
+    DREW = "drew"
+    ELIMINATED = "eliminated"
+    CIVIL_DISORDER = "civil_disorder"
+    SEAT_UNCONFIRMED = "seat_unconfirmed"
+    SEAT_CONFIRMED = "seat_confirmed"
+    JOINED = "joined"
+    PLAYING = "playing"
+
+    STATUS_CHOICES = (
+        (GAME_MASTER, "Game master"),
+        (REPLACED, "Replaced"),
+        (REMOVED, "Removed"),
+        (WITHDRAWN, "Withdrawn"),
+        (WON, "Won"),
+        (DREW, "Drew"),
+        (ELIMINATED, "Eliminated"),
+        (CIVIL_DISORDER, "Civil disorder"),
+        (SEAT_UNCONFIRMED, "Seat unconfirmed"),
+        (SEAT_CONFIRMED, "Seat confirmed"),
+        (JOINED, "Joined"),
+        (PLAYING, "Playing"),
+    )
+
+
 class MyGamesSection:
     NEEDS_ATTENTION = "needs_attention"
     MANAGING = "managing"

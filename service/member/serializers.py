@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db import IntegrityError, transaction
 from drf_spectacular.utils import extend_schema_field
 
-from common.constants import GameStatus
+from common.constants import ActionBlockedReason, GameActionKey, GameStatus, MemberActionKey, ParticipationStatus
 from emit import emit
 from user_profile.models import UserProfile
 
@@ -124,6 +124,64 @@ class MemberSerializer(BaseMemberSerializer):
             return False
         game = self._get_game(obj)
         return obj.user_id is not None and obj.user_id == game.admin_id
+
+
+class MemberActionSerializer(serializers.Serializer):
+    key = serializers.ChoiceField(
+        choices=GameActionKey.KEY_CHOICES + MemberActionKey.KEY_CHOICES, read_only=True
+    )
+    blocked_reason = serializers.ChoiceField(
+        choices=ActionBlockedReason.REASON_CHOICES, allow_null=True, read_only=True
+    )
+
+
+class MemberDetailSerializer(BaseMemberSerializer):
+    is_admin = serializers.SerializerMethodField()
+    nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
+    participation_status = serializers.ChoiceField(choices=ParticipationStatus.STATUS_CHOICES, read_only=True)
+    supply_center_count = serializers.SerializerMethodField()
+    unit_count = serializers.SerializerMethodField()
+    nmr_extensions_remaining = serializers.IntegerField(read_only=True)
+    nmr_extensions_allowed = serializers.IntegerField(read_only=True, source="game.nmr_extensions_allowed")
+    nation_preferences = serializers.SerializerMethodField()
+    actions = serializers.SerializerMethodField()
+
+    def _counted_phase(self, obj):
+        game = self._get_game(obj)
+        if obj.nation_id is None or game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
+            return None
+        return game.current_phase
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_is_admin(self, obj):
+        if self._is_masked(obj):
+            return False
+        game = self._get_game(obj)
+        return obj.user_id is not None and obj.user_id == game.admin_id
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_supply_center_count(self, obj):
+        phase = self._counted_phase(obj)
+        if phase is None:
+            return None
+        return phase.supply_centers.filter(nation_id=obj.nation_id).count()
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_unit_count(self, obj):
+        phase = self._counted_phase(obj)
+        if phase is None:
+            return None
+        return phase.units.filter(nation_id=obj.nation_id).count()
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField(), allow_null=True))
+    def get_nation_preferences(self, obj):
+        if not self._is_current_user(obj) or self._get_game(obj).status != GameStatus.PENDING:
+            return None
+        return [preference.nation.name for preference in obj.nation_preferences.all()]
+
+    @extend_schema_field(MemberActionSerializer(many=True))
+    def get_actions(self, obj):
+        return MemberActionSerializer(obj.actions_for(self.context["request"].user), many=True).data
 
 
 class MemberJoinSerializer(MemberSerializer):

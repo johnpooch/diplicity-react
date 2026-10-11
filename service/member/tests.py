@@ -18,7 +18,7 @@ from order.models import Order
 from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile
 from victory.models import Victory
-from common.constants import Commitment, CommitmentRequirement, GameStatus, OrderType, PhaseStatus, UserKind
+from common.constants import Commitment, CommitmentRequirement, GameStatus, MemberKind, OrderType, PhaseStatus, UserKind
 
 User = get_user_model()
 
@@ -2434,3 +2434,662 @@ def _game_data(client, viewname, game):
         return client.get(reverse(retrieve_viewname, args=[game.id])).data
     response = client.get(reverse(list_viewname))
     return next(g for g in response.data["results"] if g["id"] == game.id)
+
+
+member_retrieve_viewname = "game-member-retrieve"
+
+
+def _actions(response):
+    return [(action["key"], action["blocked_reason"]) for action in response.data["actions"]]
+
+
+class TestMemberRetrieveView:
+
+    def _other_member(self, game):
+        return game.members.players().exclude(user=game.admin).first()
+
+    def _retrieve(self, client, member):
+        return client.get(reverse(member_retrieve_viewname, args=[member.game_id, member.id]))
+
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, active_game_factory):
+        game = active_game_factory()
+
+        response = self._retrieve(unauthenticated_client, self._other_member(game))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_member_of_another_game_not_found(
+        self, authenticated_client, active_game_factory, pending_game_created_by_secondary_user
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+
+        url = reverse(member_retrieve_viewname, args=[pending_game_created_by_secondary_user.id, member.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_nonexistent_member_not_found(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+
+        url = reverse(member_retrieve_viewname, args=[game.id, 0])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_returns_the_members_place_in_the_game(self, authenticated_client, active_game_factory):
+        game = active_game_factory(nmr_extensions_allowed=2)
+        member = self._other_member(game)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == member.id
+        assert response.data["user_id"] == member.user_id
+        assert response.data["name"] == member.user.profile.name
+        assert response.data["is_current_user"] is False
+        assert response.data["is_bot"] is False
+        assert response.data["is_admin"] is False
+        assert response.data["nation"] == member.nation.name
+        assert response.data["participation_status"] == "playing"
+        assert response.data["nmr_extensions_remaining"] == 2
+        assert response.data["nmr_extensions_allowed"] == 2
+
+    @pytest.mark.django_db
+    def test_reports_the_admin(self, authenticated_client_for_secondary_user, active_game_factory, primary_user):
+        game = active_game_factory()
+        member = game.members.get(user=primary_user)
+
+        response = self._retrieve(authenticated_client_for_secondary_user, member)
+
+        assert response.data["is_admin"] is True
+
+    @pytest.mark.django_db
+    def test_masks_identity_in_an_anonymous_game(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        game.anonymous = True
+        game.save()
+        member = self._other_member(game)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["user_id"] is None
+        assert response.data["name"] == "Anonymous"
+        assert response.data["picture"] is None
+        assert response.data["nation"] == member.nation.name
+
+    @pytest.mark.django_db
+    def test_does_not_mask_the_requesting_user_in_an_anonymous_game(
+        self, authenticated_client, active_game_factory, primary_user
+    ):
+        game = active_game_factory()
+        game.anonymous = True
+        game.save()
+        member = game.members.get(user=primary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["user_id"] == primary_user.id
+        assert response.data["is_current_user"] is True
+
+    @pytest.mark.django_db
+    def test_game_master_status(self, authenticated_client, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
+        member = game.members.get(kind=MemberKind.GAME_MASTER)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["participation_status"] == "game_master"
+        assert response.data["nation"] is None
+
+    @pytest.mark.django_db
+    def test_replaced_status_takes_precedence_over_removed(
+        self, authenticated_client, active_game_factory, tertiary_user
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        Member.objects.remove(member)
+        Member.objects.hand_over_seat(member, tertiary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "replaced"
+
+    @pytest.mark.django_db
+    def test_removed_status_takes_precedence_over_withdrawn(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.withdrawn_at = timezone.now()
+        member.removed_at = timezone.now()
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "removed"
+
+    @pytest.mark.django_db
+    def test_withdrawn_status_takes_precedence_over_victory(
+        self, authenticated_client, active_game_factory, victory_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.withdrawn_at = timezone.now()
+        member.save()
+        victory = victory_factory(game=game, winning_phase=game.current_phase)
+        victory.members.add(member)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "withdrawn"
+
+    @pytest.mark.django_db
+    def test_won_status_for_a_solo_victory(self, authenticated_client, active_game_factory, victory_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        victory = victory_factory(game=game, winning_phase=game.current_phase)
+        victory.members.add(member)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "won"
+
+    @pytest.mark.django_db
+    def test_drew_status_for_a_draw(self, authenticated_client, active_game_factory, victory_factory, primary_user):
+        game = active_game_factory()
+        member = self._other_member(game)
+        victory = victory_factory(game=game, winning_phase=game.current_phase)
+        victory.members.add(member, game.members.get(user=primary_user))
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "drew"
+
+    @pytest.mark.django_db
+    def test_victory_status_takes_precedence_over_eliminated(
+        self, authenticated_client, active_game_factory, victory_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.eliminated_at = timezone.now()
+        member.save()
+        victory = victory_factory(game=game, winning_phase=game.current_phase)
+        victory.members.add(member)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "won"
+
+    @pytest.mark.django_db
+    def test_member_outside_the_victory_keeps_their_own_status(
+        self, authenticated_client, active_game_factory, victory_factory, primary_user
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        victory = victory_factory(game=game, winning_phase=game.current_phase)
+        victory.members.add(game.members.get(user=primary_user))
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "playing"
+
+    @pytest.mark.django_db
+    def test_eliminated_status_takes_precedence_over_civil_disorder(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.eliminated_at = timezone.now()
+        member.civil_disorder_at = timezone.now()
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "eliminated"
+
+    @pytest.mark.django_db
+    def test_civil_disorder_status(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.civil_disorder_at = timezone.now()
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "civil_disorder"
+
+    @pytest.mark.django_db
+    def test_seat_unconfirmed_status_in_a_mustering_game(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+        member = game.members.create(user=secondary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "seat_unconfirmed"
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_status_once_mustered(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+        member = game.members.create(user=secondary_user, mustered_at=timezone.now())
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "seat_confirmed"
+
+    @pytest.mark.django_db
+    def test_bot_seat_is_confirmed_in_a_mustering_game(
+        self, authenticated_client, pending_game_created_by_primary_user, bot_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+        member = game.members.create(user=bot_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "seat_confirmed"
+
+    @pytest.mark.django_db
+    def test_joined_status_in_a_pending_game(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        member = game.members.create(user=secondary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["participation_status"] == "joined"
+
+    @pytest.mark.django_db
+    def test_counts_units_and_supply_centers_from_the_current_phase(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        primary_user,
+        classical_england_nation,
+        classical_london_province,
+        classical_liverpool_province,
+    ):
+        game = active_game_with_phase_state
+        previous_phase = game.current_phase
+        previous_phase.status = PhaseStatus.COMPLETED
+        previous_phase.save()
+        phase = game.phases.create(
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=2,
+        )
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_liverpool_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_liverpool_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=previous_phase.units.first().province)
+
+        response = self._retrieve(authenticated_client, game.members.get(user=primary_user))
+
+        assert response.data["unit_count"] == 2
+        assert response.data["supply_center_count"] == 3
+
+    @pytest.mark.django_db
+    def test_counts_are_null_before_the_game_starts(
+        self, authenticated_client, pending_game_created_by_primary_user, primary_user
+    ):
+        member = pending_game_created_by_primary_user.members.get(user=primary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["unit_count"] is None
+        assert response.data["supply_center_count"] is None
+
+    @pytest.mark.django_db
+    def test_counts_are_null_without_a_nation(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
+        member = game.members.get(kind=MemberKind.GAME_MASTER)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["unit_count"] is None
+        assert response.data["supply_center_count"] is None
+
+    @pytest.mark.django_db
+    def test_returns_nation_preferences_to_the_requesting_user_in_a_pending_game(
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        primary_user,
+        classical_france_nation,
+        classical_england_nation,
+    ):
+        member = pending_game_created_by_primary_user.members.get(user=primary_user)
+        Member.objects.set_nation_preferences(member, [classical_france_nation, classical_england_nation])
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["nation_preferences"] == [classical_france_nation.name, classical_england_nation.name]
+
+    @pytest.mark.django_db
+    def test_hides_nation_preferences_of_other_members(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user, classical_france_nation
+    ):
+        member = pending_game_created_by_primary_user.members.create(user=secondary_user)
+        Member.objects.set_nation_preferences(member, [classical_france_nation])
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["nation_preferences"] is None
+
+    @pytest.mark.django_db
+    def test_hides_nation_preferences_once_the_game_starts(
+        self, authenticated_client, active_game_factory, primary_user
+    ):
+        member = active_game_factory().members.get(user=primary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["nation_preferences"] is None
+
+    @pytest.mark.django_db
+    def test_own_member_returns_the_game_actions(self, authenticated_client, active_game_factory, primary_user):
+        game = active_game_factory()
+        member = game.members.get(user=primary_user)
+
+        response = self._retrieve(authenticated_client, member)
+        game_response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert _actions(response) == [("extend_deadline", None), ("pause", None), ("withdraw", None)]
+        assert response.data["actions"] == game_response.data["actions"]
+
+    @pytest.mark.django_db
+    def test_playing_member_offers_no_actions_to_another_player(
+        self, authenticated_client_for_secondary_user, active_game_factory, secondary_user, primary_user
+    ):
+        game = active_game_factory()
+        players = list(game.members.players().exclude(user=primary_user))
+        players[0].user = secondary_user
+        players[0].save()
+
+        response = self._retrieve(authenticated_client_for_secondary_user, players[1])
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_replaceable_seat_offers_take_over_to_an_outsider(
+        self, authenticated_client_for_tertiary_user, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        Member.objects.remove(member)
+
+        response = self._retrieve(authenticated_client_for_tertiary_user, member)
+
+        assert _actions(response) == [("take_over", None), ("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_take_over_blocked_when_commitment_is_too_low(
+        self, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user, set_commitment
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        Member.objects.remove(member)
+        set_commitment(tertiary_user, Commitment.LOW)
+
+        response = self._retrieve(authenticated_client_for_tertiary_user, member)
+
+        assert _actions(response) == [("take_over", "commitment_too_low"), ("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_take_over_blocked_when_the_game_requires_committed_players(
+        self, authenticated_client_for_tertiary_user, active_game_factory, tertiary_user, set_commitment
+    ):
+        game = active_game_factory()
+        game.commitment_requirement = CommitmentRequirement.COMMITTED
+        game.save()
+        member = self._other_member(game)
+        Member.objects.remove(member)
+        set_commitment(tertiary_user, Commitment.MEDIUM)
+
+        response = self._retrieve(authenticated_client_for_tertiary_user, member)
+
+        assert _actions(response) == [("take_over", "commitment_too_low"), ("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_replaceable_seat_offers_only_the_link_to_a_player(
+        self, authenticated_client_for_secondary_user, active_game_factory, secondary_user, primary_user
+    ):
+        game = active_game_factory()
+        players = list(game.members.players().exclude(user=primary_user))
+        players[0].user = secondary_user
+        players[0].save()
+        Member.objects.remove(players[1])
+
+        response = self._retrieve(authenticated_client_for_secondary_user, players[1])
+
+        assert _actions(response) == [("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_replaceable_seat_offers_only_the_link_to_a_former_player(
+        self, authenticated_client_for_secondary_user, active_game_factory, secondary_user, primary_user
+    ):
+        game = active_game_factory()
+        players = list(game.members.players().exclude(user=primary_user))
+        players[0].user = secondary_user
+        players[0].save()
+        Member.objects.remove(players[0])
+        Member.objects.remove(players[1])
+
+        response = self._retrieve(authenticated_client_for_secondary_user, players[1])
+
+        assert _actions(response) == [("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_replaceable_seat_offers_only_the_link_to_the_game_master(
+        self, authenticated_client_factory, active_game_with_game_master_factory
+    ):
+        game = active_game_with_game_master_factory()
+        member = game.members.players().first()
+        Member.objects.remove(member)
+
+        response = self._retrieve(authenticated_client_factory(game.game_master), member)
+
+        assert _actions(response) == [("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_replaced_seat_offers_no_actions(self, authenticated_client_for_tertiary_user, active_game_factory, user_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        Member.objects.remove(member)
+        Member.objects.hand_over_seat(member, user_factory())
+
+        response = self._retrieve(authenticated_client_for_tertiary_user, member)
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_finished_game_offers_no_take_over(self, authenticated_client_for_tertiary_user, active_game_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        Member.objects.remove(member)
+        game.status = GameStatus.COMPLETED
+        game.save()
+
+        response = self._retrieve(authenticated_client_for_tertiary_user, member)
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_manager_can_remove_a_player_from_a_pending_game(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        member = pending_game_created_by_primary_user.members.create(user=secondary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("remove_from_lobby", None)]
+
+    @pytest.mark.django_db
+    def test_manager_can_remove_a_player_from_a_mustering_game(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+        member = game.members.create(user=secondary_user)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("remove_from_lobby", None)]
+
+    @pytest.mark.django_db
+    def test_lobby_removal_not_offered_to_other_players(
+        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user, secondary_user, tertiary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.members.create(user=secondary_user)
+        member = game.members.create(user=tertiary_user)
+
+        response = self._retrieve(authenticated_client_for_secondary_user, member)
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_lobby_removal_not_offered_for_the_game_master(
+        self, authenticated_client_for_secondary_user, pending_game_with_game_master_factory, secondary_user
+    ):
+        game = pending_game_with_game_master_factory()
+        game.admin = secondary_user
+        game.save()
+        game.members.create(user=secondary_user)
+        member = game.members.get(kind=MemberKind.GAME_MASTER)
+
+        response = self._retrieve(authenticated_client_for_secondary_user, member)
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_removal_from_game_blocked_until_the_player_misses_orders(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("remove_from_game", "no_missed_orders")]
+
+    @pytest.mark.django_db
+    def test_removal_from_game_available_after_missed_orders(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        _record_nmr(game, member)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("remove_from_game", None)]
+
+    @pytest.mark.django_db
+    def test_civil_disorder_seat_offers_link_and_removal_to_the_manager(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.civil_disorder_at = timezone.now()
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("share_replacement_link", None), ("remove_from_game", None)]
+
+    @pytest.mark.django_db
+    def test_removal_from_game_not_offered_for_a_removed_player(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        _record_nmr(game, member)
+        Member.objects.remove(member)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_removal_from_game_not_offered_for_a_withdrawn_player(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.withdrawn_at = timezone.now()
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == [("share_replacement_link", None)]
+
+    @pytest.mark.django_db
+    def test_removal_from_game_not_offered_for_a_bot(self, authenticated_client, active_game_factory, bot_user):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.user = bot_user
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_removal_from_game_not_offered_for_an_eliminated_player_in_civil_disorder(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = self._other_member(game)
+        member.eliminated_at = timezone.now()
+        member.civil_disorder_at = timezone.now()
+        member.save()
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert _actions(response) == []
+
+    @pytest.mark.django_db
+    def test_removal_from_game_not_offered_to_other_players(
+        self, authenticated_client_for_secondary_user, active_game_factory, secondary_user, primary_user
+    ):
+        game = active_game_factory()
+        players = list(game.members.players().exclude(user=primary_user))
+        players[0].user = secondary_user
+        players[0].save()
+        _record_nmr(game, players[1])
+
+        response = self._retrieve(authenticated_client_for_secondary_user, players[1])
+
+        assert _actions(response) == []
+
+
+class TestMemberRetrieveViewQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_retrieve_member_query_count(self, authenticated_client, active_game_factory):
+        game = active_game_factory()
+        member = game.members.players().exclude(user=game.admin).first()
+        _record_nmr(game, member)
+
+        url = reverse(member_retrieve_viewname, args=[game.id, member.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+        assert query_count == 7

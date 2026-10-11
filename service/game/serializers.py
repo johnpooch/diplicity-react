@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, MemberDeparture, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import ActionBlockedReason, Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameActionKey, MemberDeparture, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -296,6 +296,13 @@ class GameFastestSerializer(serializers.Serializer):
     game = GameListSerializer(allow_null=True)
 
 
+class GameActionSerializer(serializers.Serializer):
+    key = serializers.ChoiceField(choices=GameActionKey.KEY_CHOICES, read_only=True)
+    blocked_reason = serializers.ChoiceField(
+        choices=ActionBlockedReason.REASON_CHOICES, allow_null=True, read_only=True
+    )
+
+
 class GameRetrieveSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
@@ -337,6 +344,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
     muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.SerializerMethodField()
+    actions = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(
         choices=[
@@ -355,6 +363,10 @@ class GameRetrieveSerializer(serializers.Serializer):
     ))
     def get_muster_status(self, obj):
         return obj.muster_status(self.context["request"].user)
+
+    @extend_schema_field(GameActionSerializer(many=True))
+    def get_actions(self, obj):
+        return GameActionSerializer(obj.actions_for(self.context["request"].user), many=True).data
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):

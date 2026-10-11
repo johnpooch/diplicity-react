@@ -6,7 +6,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
-from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer, MemberWithdrawSerializer
+from .serializers import MemberCreateSerializer, MemberDetailSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer, MemberWithdrawSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
 from common.permissions import CanUseBotOpponent, IsActiveGame, IsActiveGamePlayer, IsGameMaster, IsGamePlayer, IsGameManager, IsMusteringGame, IsNotSandboxGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
@@ -40,6 +40,22 @@ class LegacyMemberCreateView(MemberCreateView):
     seating endpoints moved under /member/. Kept out of the schema so codegen
     only ever emits the current path. Remove once those builds are out of
     circulation."""
+
+
+class MemberRetrieveView(generics.RetrieveAPIView):
+    """Retrieve one member's place in a game, including game masters and members
+    who have left their seat, with the actions the requesting user can take on
+    them. On the requesting user's own member, the actions are the game actions."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MemberDetailSerializer
+
+    def get_object(self):
+        return get_object_or_404(
+            Member.objects.with_detail_data(),
+            game_id=self.kwargs["game_id"],
+            id=self.kwargs["member_id"],
+        )
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):

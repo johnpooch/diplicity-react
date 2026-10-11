@@ -23,6 +23,9 @@ class AppleAuth(TypedDict):
     refresh_token: str
 
 
+type BlockedReasonEnum = Literal['commitment_too_low', 'no_missed_orders']
+
+
 class ChannelEvent(TypedDict):
     id: int
     text: str
@@ -102,6 +105,19 @@ class FlatOrderOption(TypedDict):
     named_coast: FieldValue | None
 
 
+type GameActionKeyEnum = Literal[
+    'join',
+    'confirm_seat',
+    'edit_nation_preferences',
+    'assign_nations',
+    'extend_deadline',
+    'pause',
+    'unpause',
+    'leave',
+    'withdraw',
+]
+
+
 class GameCloneToSandbox(TypedDict):
     id: str
 
@@ -151,9 +167,6 @@ class GoogleAuth(TypedDict):
     refresh_token: str
 
 
-type KeyEnum = Literal['needs_attention', 'managing', 'active', 'mustering', 'pending', 'recently_finished', 'sandbox']
-
-
 type KindEnum = Literal[
     'confirm_seat',
     'submit_orders',
@@ -192,6 +205,23 @@ class Member(TypedDict):
     nation_preference_ids: list[str]
 
 
+type MemberActionKeyEnum = Literal[
+    'join',
+    'confirm_seat',
+    'edit_nation_preferences',
+    'assign_nations',
+    'extend_deadline',
+    'pause',
+    'unpause',
+    'leave',
+    'withdraw',
+    'take_over',
+    'share_replacement_link',
+    'remove_from_lobby',
+    'remove_from_game',
+]
+
+
 class MemberCreate(TypedDict):
     user_id: int
 
@@ -224,6 +254,11 @@ class MyGameSeats(TypedDict):
     total: int
 
 
+type MyGamesSectionKeyEnum = Literal[
+    'needs_attention', 'managing', 'active', 'mustering', 'pending', 'recently_finished', 'sandbox'
+]
+
+
 class MyVote(TypedDict):
     included: bool
     accepted: bool | None
@@ -253,6 +288,22 @@ type OrderStatusEnum = Literal['orders_required', 'orders_submitted', 'orders_no
 
 
 type OrderTypeEnum = Literal['Move', 'MoveViaConvoy', 'Hold', 'Support', 'Convoy', 'Build', 'Disband']
+
+
+type ParticipationStatusEnum = Literal[
+    'game_master',
+    'replaced',
+    'removed',
+    'withdrawn',
+    'won',
+    'drew',
+    'eliminated',
+    'civil_disorder',
+    'seat_unconfirmed',
+    'seat_confirmed',
+    'joined',
+    'playing',
+]
 
 
 class PasswordReset(TypedDict):
@@ -542,6 +593,11 @@ class FCMDevice(TypedDict):
     type: TypeEnum
 
 
+class GameAction(TypedDict):
+    key: GameActionKeyEnum
+    blocked_reason: BlockedReasonEnum | NullEnum | None
+
+
 class GameCreate(TypedDict):
     id: str
     name: str
@@ -618,6 +674,31 @@ class GameRetrieve(TypedDict):
     muster_deadline: str | None
     muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
+    actions: list[GameAction]
+
+
+class MemberAction(TypedDict):
+    key: MemberActionKeyEnum
+    blocked_reason: BlockedReasonEnum | NullEnum | None
+
+
+class MemberDetail(TypedDict):
+    id: int
+    user_id: int | None
+    name: str
+    picture: str | None
+    is_current_user: bool
+    is_bot: bool
+    commitment: str | None
+    is_admin: bool
+    nation: str | None
+    participation_status: ParticipationStatusEnum
+    supply_center_count: int | None
+    unit_count: int | None
+    nmr_extensions_remaining: int
+    nmr_extensions_allowed: int
+    nation_preferences: list[str] | None
+    actions: list[MemberAction]
 
 
 class MyGameState(TypedDict):
@@ -766,7 +847,7 @@ class MyGame(TypedDict):
 
 
 class MyGamesSection(TypedDict):
-    key: KeyEnum
+    key: MyGamesSectionKeyEnum
     games: list[MyGame]
 
 

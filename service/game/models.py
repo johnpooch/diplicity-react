@@ -27,6 +27,7 @@ from common.constants import (
     CommitmentEligibility,
     CommitmentRequirement,
     DeadlineMode,
+    GameActionKey,
     GameStatus,
     MemberKind,
     MinReliability,
@@ -846,6 +847,37 @@ class Game(BaseModel):
             if member.is_bot:
                 return True
             return member.civil_disorder or member.id in self.nmrd_member_ids
+
+    def actions_for(self, user):
+        if not user.is_authenticated:
+            return []
+        manages = self.can_manage(user)
+        active = self.status == GameStatus.ACTIVE
+        current_phase = self.current_phase
+        holds_seat = any(
+            member.user_id is not None and member.user_id == user.id and not member.is_game_master
+            for member in self.members.all()
+        )
+        is_game_master = self.game_master_id is not None and self.game_master_id == user.id
+        rules = (
+            (GameActionKey.JOIN, self.can_join(user)),
+            (GameActionKey.CONFIRM_SEAT, self.muster_status(user) == MusterStatus.CONFIRMATION_REQUIRED),
+            (GameActionKey.EDIT_NATION_PREFERENCES, self.status == GameStatus.PENDING and holds_seat),
+            (GameActionKey.ASSIGN_NATIONS, self.status == GameStatus.PENDING and is_game_master),
+            (
+                GameActionKey.EXTEND_DEADLINE,
+                manages
+                and active
+                and not self.is_paused
+                and current_phase is not None
+                and current_phase.scheduled_resolution is not None,
+            ),
+            (GameActionKey.PAUSE, manages and active and not self.is_paused),
+            (GameActionKey.UNPAUSE, manages and active and self.is_paused),
+            (GameActionKey.LEAVE, self.can_leave(user)),
+            (GameActionKey.WITHDRAW, self.can_withdraw(user)),
+        )
+        return [{"key": key, "blocked_reason": None} for key, available in rules if available]
 
     def get_public_press(self):
         return self.channels.get(private=False)

@@ -2,7 +2,15 @@ from django.apps import apps
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from common.constants import GameStatus, MemberDeparture, MemberKind
+from common.constants import (
+    ActionBlockedReason,
+    CommitmentEligibility,
+    GameStatus,
+    MemberActionKey,
+    MemberDeparture,
+    MemberKind,
+    ParticipationStatus,
+)
 from common.models import BaseModel
 from emit import emit
 
@@ -25,6 +33,19 @@ class MemberQuerySet(models.QuerySet):
 
     def holding_seat(self):
         return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
+
+    def with_detail_data(self):
+        Phase = apps.get_model("phase", "Phase")
+        return self.select_related(
+            "nation",
+            "user__profile__uploaded_picture",
+            "game__victory",
+        ).prefetch_related(
+            "game__members",
+            "game__victory__members",
+            models.Prefetch("game__phases", queryset=Phase.objects.defer("options")),
+            "nation_preferences__nation",
+        )
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
@@ -239,6 +260,33 @@ class Member(BaseModel):
         )
 
     @property
+    def participation_status(self):
+        if self.is_game_master:
+            return ParticipationStatus.GAME_MASTER
+        if self.replaced_by_id is not None:
+            return ParticipationStatus.REPLACED
+        if self.removed:
+            return ParticipationStatus.REMOVED
+        if self.withdrawn:
+            return ParticipationStatus.WITHDRAWN
+        victory = getattr(self.game, "victory", None)
+        if victory is not None:
+            victor_ids = [member.id for member in victory.members.all()]
+            if self.id in victor_ids:
+                return ParticipationStatus.WON if len(victor_ids) == 1 else ParticipationStatus.DREW
+        if self.eliminated:
+            return ParticipationStatus.ELIMINATED
+        if self.civil_disorder:
+            return ParticipationStatus.CIVIL_DISORDER
+        if self.game.status == GameStatus.MUSTERING:
+            if self.mustered_at is None and not self.is_bot:
+                return ParticipationStatus.SEAT_UNCONFIRMED
+            return ParticipationStatus.SEAT_CONFIRMED
+        if self.game.status == GameStatus.PENDING:
+            return ParticipationStatus.JOINED
+        return ParticipationStatus.PLAYING
+
+    @property
     def is_bot(self):
         return self.user is not None and self.user.profile.is_bot
 
@@ -253,6 +301,46 @@ class Member(BaseModel):
         if self.user is None:
             return None
         return self.user.profile.picture
+
+    def actions_for(self, user):
+        game = self.game
+        if self.user_id is not None and self.user_id == user.id:
+            return game.actions_for(user)
+        manages = game.can_manage(user)
+        active = game.status == GameStatus.ACTIVE
+        actions = []
+        if active and self.replaceable:
+            user_is_player = any(
+                member.user_id == user.id and not member.is_game_master for member in game.members.all()
+            )
+            user_is_game_master = game.game_master_id is not None and game.game_master_id == user.id
+            if not user_is_player and not user_is_game_master:
+                eligible = game.commitment_eligibility(user) == CommitmentEligibility.ELIGIBLE
+                actions.append({
+                    "key": MemberActionKey.TAKE_OVER,
+                    "blocked_reason": None if eligible else ActionBlockedReason.COMMITMENT_TOO_LOW,
+                })
+            actions.append({"key": MemberActionKey.SHARE_REPLACEMENT_LINK, "blocked_reason": None})
+        if (
+            manages
+            and game.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            and game.can_remove_member(self)
+        ):
+            actions.append({"key": MemberActionKey.REMOVE_FROM_LOBBY, "blocked_reason": None})
+        if (
+            manages
+            and active
+            and not self.is_game_master
+            and not self.is_bot
+            and not self.left_seat
+            and not self.withdrawn
+            and not (self.eliminated and self.civil_disorder)
+        ):
+            actions.append({
+                "key": MemberActionKey.REMOVE_FROM_GAME,
+                "blocked_reason": None if game.can_remove_member(self) else ActionBlockedReason.NO_MISSED_ORDERS,
+            })
+        return actions
 
     def __str__(self):
         username = self.user.username if self.user else "Deleted User"
