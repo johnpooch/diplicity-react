@@ -135,11 +135,10 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_withdraw(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_can_withdraw"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.can_withdraw(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_withdraw(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_delete(self, obj):
@@ -361,11 +360,10 @@ class GameRetrieveSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_withdraw(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_can_withdraw"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.can_withdraw(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_withdraw(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_delete(self, obj):
