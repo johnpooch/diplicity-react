@@ -800,6 +800,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/MemberNationPreference'
           description: ''
+  /game/{gameId}/member/withdraw/:
+    post:
+      operationId: gameMemberWithdrawCreate
+      description: Withdraw the requesting user from an active game, leaving their
+        seat vacant for another player to claim.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
   /game/{gameId}/members/{memberId}/replace/:
     post:
       operationId: gameMembersReplaceCreate
@@ -2729,6 +2751,9 @@ components:
         canLeave:
           type: boolean
           readOnly: true
+        canWithdraw:
+          type: boolean
+          readOnly: true
         canDelete:
           type: boolean
           readOnly: true
@@ -2872,6 +2897,7 @@ components:
       - canJoin
       - canLeave
       - canManage
+      - canWithdraw
       - commitmentEligibility
       - commitmentRequirement
       - createdAt
@@ -3052,6 +3078,9 @@ components:
         canLeave:
           type: boolean
           readOnly: true
+        canWithdraw:
+          type: boolean
+          readOnly: true
         canDelete:
           type: boolean
           readOnly: true
@@ -3189,6 +3218,7 @@ components:
       - canJoin
       - canLeave
       - canManage
+      - canWithdraw
       - commitmentEligibility
       - commitmentRequirement
       - createdAt
@@ -3300,6 +3330,9 @@ components:
         civilDisorder:
           type: boolean
           readOnly: true
+        withdrawn:
+          type: boolean
+          readOnly: true
         seekingReplacement:
           type: boolean
           readOnly: true
@@ -3333,6 +3366,7 @@ components:
       - replaceable
       - seekingReplacement
       - userId
+      - withdrawn
     MemberCreate:
       type: object
       properties:

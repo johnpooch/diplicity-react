@@ -95,6 +95,7 @@ class MemberSerializer(BaseMemberSerializer):
     is_admin = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
+    withdrawn = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
     removable = serializers.SerializerMethodField()

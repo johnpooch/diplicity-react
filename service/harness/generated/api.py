@@ -163,6 +163,7 @@ class Member(TypedDict):
     is_admin: bool
     nmr_extensions_remaining: int
     civil_disorder: bool
+    withdrawn: bool
     seeking_replacement: bool
     replaceable: bool
     removable: bool
@@ -522,6 +523,7 @@ class GameRetrieve(TypedDict):
     created_at: str
     can_join: bool
     can_leave: bool
+    can_withdraw: bool
     can_delete: bool
     can_manage: bool
     game_master: GameMaster | None
@@ -643,6 +645,7 @@ class GameList(TypedDict):
     created_at: str
     can_join: bool
     can_leave: bool
+    can_withdraw: bool
     can_delete: bool
     can_manage: bool
     game_master: GameMaster | None

@@ -81,6 +81,7 @@ class GameListSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
+    can_withdraw = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
     game_master = GameMasterSerializer(allow_null=True, read_only=True)
@@ -131,6 +132,14 @@ class GameListSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.can_leave(user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_withdraw(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_can_withdraw"):
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.can_withdraw(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_delete(self, obj):
@@ -257,6 +266,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
+    can_withdraw = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
     game_master = GameMasterSerializer(allow_null=True, read_only=True)
@@ -348,6 +358,14 @@ class GameRetrieveSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.can_leave(user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_withdraw(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_can_withdraw"):
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.can_withdraw(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_delete(self, obj):

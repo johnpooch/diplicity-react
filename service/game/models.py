@@ -794,6 +794,19 @@ class Game(BaseModel):
             game_is_unstarted = self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
             return user_is_player and game_is_unstarted
 
+    def can_withdraw(self, user):
+        with tracer.start_as_current_span("game.models.can_withdraw"):
+            if self.status != GameStatus.ACTIVE or self.sandbox:
+                return False
+            return any(
+                member.user_id is not None
+                and member.user_id == user.id
+                and not member.is_game_master
+                and not member.eliminated
+                and member.occupied
+                for member in self.members.all()
+            )
+
     def can_delete(self, user):
         with tracer.start_as_current_span("game.models.can_delete"):
             if (
@@ -815,7 +828,7 @@ class Game(BaseModel):
 
     def can_remove_member(self, member):
         with tracer.start_as_current_span("game.models.can_remove_member"):
-            if member.is_game_master or member.kicked or member.replaced_by_id is not None:
+            if member.is_game_master or member.kicked or member.withdrawn or member.replaced_by_id is not None:
                 return False
             if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
                 return True

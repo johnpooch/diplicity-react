@@ -116,6 +116,11 @@ class CivilDisorderRecoveryEvent(ChannelEventSpec):
     pass
 
 
+@register("withdrawal")
+class WithdrawalEvent(ChannelEventSpec):
+    pass
+
+
 @register("elimination")
 class EliminationEvent(ChannelEventSpec):
     pass

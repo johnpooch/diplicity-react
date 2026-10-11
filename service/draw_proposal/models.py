@@ -99,6 +99,18 @@ class DrawProposalManager(models.Manager):
         return proposal
 
 
+    def apply_withdrawal(self, member, phase):
+        pending = list(self.pending_for_phase(phase))
+        own = [proposal for proposal in pending if proposal.created_by_id == member.id]
+        others = [proposal for proposal in pending if proposal.created_by_id != member.id]
+
+        self.filter(id__in=[proposal.id for proposal in own]).update(cancelled=True)
+        DrawVote.objects.filter(proposal__in=others, member=member).update(accepted=True, included=False)
+
+        for proposal in others:
+            proposal.process_acceptance()
+
+
 class DrawProposal(BaseModel):
     objects = DrawProposalManager()
 

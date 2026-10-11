@@ -9,7 +9,7 @@ from .models import Member
 from .serializers import MemberCreateSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsGameMaster, IsGamePlayer, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGamePlayer, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import CanUseBotOpponent, IsActiveGame, IsActiveGamePlayer, IsGameMaster, IsGamePlayer, IsGameManager, IsInCivilDisorder, IsMusteringGame, IsNotKickedGamePlayer, IsNotSandboxGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
@@ -130,6 +130,27 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
         member.save(update_fields=["mustered_at"])
 
         Game.objects.arm_muster(game)
+
+        serializer = MemberSerializer(member, context=self.get_serializer_context())
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MemberWithdrawView(SelectedGameMixin, generics.GenericAPIView):
+    serializer_class = EmptySerializer
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsActiveGame,
+        IsNotSandboxGame,
+        IsActiveGamePlayer,
+    ]
+
+    @extend_schema(request=EmptySerializer, responses={200: MemberSerializer})
+    def post(self, request, *args, **kwargs):
+        """Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim."""
+        game = self.get_game()
+        member = get_object_or_404(Member, game=game, user=request.user)
+
+        Member.objects.withdraw(member)
 
         serializer = MemberSerializer(member, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_200_OK)

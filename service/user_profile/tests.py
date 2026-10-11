@@ -1044,6 +1044,46 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["total_games"] == 0
 
     @pytest.mark.django_db
+    def test_withdrawn_game_counts_as_a_loss_and_skips_unrated_phases(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="withdrawnuser", email="withdrawn@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Withdrawn User")
+
+        game = Game.objects.create(
+            name="Withdrawn Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        member = game.members.create(
+            user=user, nation=classical_england_nation, kicked=True, withdrawn_at=timezone.now()
+        )
+        for ordinal, outcome in enumerate([RECEIVED, NMR, None], start=1):
+            phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+            )
+            phase.phase_states.create(member=member, has_possible_orders=True, orders_outcome=outcome)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 1
+        assert response.data["losses"] == 1
+        assert response.data["nmr_rate"] == 0.5
+        assert response.data["cd_rate"] == 0.0
+
+    @pytest.mark.django_db
     def test_retreat_phase_nmrs_count_toward_nmr_rate(
         self,
         authenticated_client,
@@ -1200,6 +1240,7 @@ class TestRecomputeCommitment:
         private=False,
         sandbox=False,
         kicked=False,
+        withdrawn_at=None,
         phase_type=PhaseType.MOVEMENT,
     ):
         game = Game.objects.create(
@@ -1209,7 +1250,7 @@ class TestRecomputeCommitment:
             private=private,
             sandbox=sandbox,
         )
-        member = game.members.create(user=user, nation=nation, kicked=kicked)
+        member = game.members.create(user=user, nation=nation, kicked=kicked, withdrawn_at=withdrawn_at)
         for ordinal, outcome in enumerate(outcomes, start=1):
             phase = game.phases.create(
                 variant=variant,
@@ -1275,6 +1316,21 @@ class TestRecomputeCommitment:
             [RECEIVED, NMR, NMR, NMR, NMR, NMR, NMR, NMR],
         )
         assert get_rated_outcomes(user) == [NMR, NMR, RECEIVED]
+
+    @pytest.mark.django_db
+    def test_withdrawn_member_keeps_outcomes_from_before_the_seat_was_taken_over(
+        self, user_factory, classical_variant, classical_england_nation
+    ):
+        user = user_factory()
+        self._build_history(
+            user,
+            classical_variant,
+            classical_england_nation,
+            [RECEIVED, NMR],
+            kicked=True,
+            withdrawn_at=timezone.now(),
+        )
+        assert get_rated_outcomes(user) == [NMR, RECEIVED]
 
     @pytest.mark.django_db
     def test_non_movement_nmrs_do_not_trigger_clamp(

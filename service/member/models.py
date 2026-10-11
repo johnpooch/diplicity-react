@@ -1,8 +1,10 @@
 from django.apps import apps
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from common.constants import GameStatus, MemberKind
 from common.models import BaseModel
+from emit import emit
 
 User = get_user_model()
 
@@ -15,7 +17,9 @@ class MemberQuerySet(models.QuerySet):
         return self.filter(kind=MemberKind.PLAYER)
 
     def vacant(self):
-        return self.not_replaced().filter(models.Q(civil_disorder=True) | models.Q(kicked=True))
+        return self.not_replaced().filter(
+            models.Q(civil_disorder=True) | models.Q(kicked=True) | models.Q(withdrawn_at__isnull=False)
+        )
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
@@ -88,6 +92,32 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                 Phase = apps.get_model("phase", "Phase")
                 Phase.objects.arm_resolution(phase)
 
+    def withdraw(self, member):
+        DrawProposal = apps.get_model("draw_proposal", "DrawProposal")
+        Phase = apps.get_model("phase", "Phase")
+        game = member.game
+
+        with transaction.atomic():
+            member.withdrawn_at = timezone.now()
+            member.save(update_fields=["withdrawn_at"])
+
+            phase = self._lock_active_phase(game)
+            if phase is not None:
+                self._vacate_phase(member, phase, orders_confirmed=True)
+                Phase.objects.arm_resolution(phase)
+                DrawProposal.objects.apply_withdrawal(member, phase)
+
+            game.refresh_from_db(fields=["status"])
+            if game.status == GameStatus.ACTIVE:
+                if member.user_id is not None and member.user_id == game.admin_id:
+                    game.reassign_admin()
+                if game.should_abandon():
+                    game.finish(GameStatus.ABANDONED)
+
+            emit("withdrawal", game=game, actor=member.user, nation_name=member.nation.name)
+
+        return member
+
     def _lock_active_phase(self, game):
         Phase = apps.get_model("phase", "Phase")
 
@@ -119,6 +149,7 @@ class Member(BaseModel):
     civil_disorder = models.BooleanField(default=False)
     seeking_replacement = models.BooleanField(default=False)
     mustered_at = models.DateTimeField(null=True, blank=True)
+    withdrawn_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
         null=True,
@@ -156,8 +187,12 @@ class Member(BaseModel):
         return self.kind == MemberKind.GAME_MASTER
 
     @property
+    def withdrawn(self):
+        return self.withdrawn_at is not None
+
+    @property
     def vacant(self):
-        return self.replaced_by_id is None and (self.civil_disorder or self.kicked)
+        return self.replaced_by_id is None and (self.civil_disorder or self.kicked or self.withdrawn)
 
     @property
     def occupied(self):

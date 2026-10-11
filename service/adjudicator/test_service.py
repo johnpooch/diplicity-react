@@ -1,4 +1,5 @@
 import pytest
+from django.utils import timezone
 from phase.models import Phase
 from game.models import Game
 from member.models import Member
@@ -1105,6 +1106,56 @@ class TestAdjudicationService:
 
         germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
         assert germany_units == []
+
+    @pytest.mark.django_db
+    def test_resolve_withdrawn_retreat_phase_is_skipped(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        member_germany.withdrawn_at = timezone.now()
+        member_germany.save()
+
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_italy, "ber")
+        create_supply_center(phase_state_italy, "mun")
+        create_supply_center(phase_state_germany, "kie")
+
+        create_unit(phase_state_italy, "ber", "Army")
+        create_unit(phase_state_italy, "mun", "Army")
+        create_unit(phase_state_germany, "kie", "Fleet")
+
+        create_order(phase_state_italy, "ber", OrderType.MOVE, "kie")
+        create_order(phase_state_italy, "mun", OrderType.SUPPORT, "kie", "ber")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
+
+        germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
+        assert germany_units == []
+
+    @pytest.mark.django_db
+    def test_adjustment_skipped_when_only_withdrawn_nation_can_build(
+        self,
+        phase_fall_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        member_italy.withdrawn_at = timezone.now()
+        member_italy.save()
+        self._setup_italy_build(phase_fall_1901_movement, member_italy, member_germany)
+
+        data = adjudication_service.resolve(phase_fall_1901_movement)
+
+        assert data["year"] == 1902
+        assert data["season"] == "Spring"
+        assert data["type"] == "Movement"
 
     @staticmethod
     def _setup_italy_build(phase, member_italy, member_germany):

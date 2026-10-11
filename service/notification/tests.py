@@ -216,6 +216,7 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
         eliminated = member_factory(game=game, user=user_factory(), eliminated=True)
         kicked = member_factory(game=game, user=user_factory(), kicked=True)
         civil = member_factory(game=game, user=user_factory(), civil_disorder=True)
+        withdrawn = member_factory(game=game, user=user_factory(), withdrawn_at=timezone.now())
         replaced = member_factory(game=game, user=user_factory())
         replacement = Member.objects.hand_over_seat(replaced, user_factory())
         return {
@@ -226,6 +227,7 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
             "eliminated": eliminated,
             "kicked": kicked,
             "civil": civil,
+            "withdrawn": withdrawn,
             "replaced": replaced,
             "replacement": replacement,
         }
@@ -260,6 +262,7 @@ class TestRegistry:
             "entered_civil_disorder",
             "civil_disorder",
             "civil_disorder_recovery",
+            "withdrawal",
             "elimination",
             "nmr_extension_used",
             "nmr_extension_applied",
@@ -339,6 +342,14 @@ class TestNotificationLinks:
         )
 
     @pytest.mark.django_db
+    def test_withdrawal_links_to_player_info(self, active_game, primary_user):
+        rendered = render_push("withdrawal", game=active_game, actor=primary_user, nation_name="England")
+        assert rendered["link"] == (
+            f"{settings.FRONTEND_URL}/game/{active_game.id}"
+            f"/phase/{active_game.current_phase.id}/player-info"
+        )
+
+    @pytest.mark.django_db
     def test_civil_disorder_push_data_carries_the_link(self, active_game):
         rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
         assert rendered["data"] == {
@@ -378,6 +389,12 @@ class TestNotificationCopy:
         rendered = render_push("civil_disorder_recovery", game=active_game, actor=primary_user)
         assert rendered["heading"] == active_game.name
         assert rendered["body"] == "England has returned from civil disorder."
+
+    @pytest.mark.django_db
+    def test_withdrawal_names_the_withdrawn_nation(self, active_game, primary_user):
+        rendered = render_push("withdrawal", game=active_game, actor=primary_user, nation_name="England")
+        assert rendered["heading"] == active_game.name
+        assert rendered["body"] == "England has withdrawn from the game. The seat is open for another player to take."
 
     @pytest.mark.django_db
     def test_civil_disorder_recovery_without_a_nation_names_the_player(self, active_game, primary_user):
@@ -487,15 +504,17 @@ class TestSeatedResolver:
             "nmr_extension_applied",
             "seat_filled",
             "civil_disorder_recovery",
+            "withdrawal",
         ],
     )
-    def test_kicked_civil_disorder_and_replaced_members_are_not_notified(self, emit_game, event_type):
+    def test_kicked_civil_disorder_withdrawn_and_replaced_members_are_not_notified(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
         result = resolve_recipients(
             event_type, game=state["game"], actor=state["active_one"].user
         )
         assert state["kicked"].user_id not in result
         assert state["civil"].user_id not in result
+        assert state["withdrawn"].user_id not in result
         assert state["replaced"].user_id not in result
 
 
@@ -508,6 +527,7 @@ class TestSeatedExceptActorResolver:
             "game_deadline_extended",
             "seat_filled",
             "civil_disorder_recovery",
+            "withdrawal",
         ],
     )
     def test_excludes_the_actor(self, emit_game, event_type):
@@ -676,13 +696,14 @@ class TestChannelMessageResolver:
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
 
-    def test_public_channel_does_not_notify_kicked_civil_disorder_or_replaced_members(self, emit_game):
+    def test_public_channel_does_not_notify_kicked_civil_disorder_withdrawn_or_replaced_members(self, emit_game):
         state = emit_game()
         channel = Channel.objects.create(game=state["game"], name="Global", private=False)
         message = ChannelMessage.objects.create(channel=channel, sender=state["active_one"], body="hi")
         result = resolve_recipients("channel_message", message=message)
         assert state["kicked"].user_id not in result
         assert state["civil"].user_id not in result
+        assert state["withdrawn"].user_id not in result
         assert state["replaced"].user_id not in result
         assert state["replacement"].user_id in result
 

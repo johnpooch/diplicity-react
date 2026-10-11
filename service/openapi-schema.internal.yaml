@@ -800,6 +800,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/MemberNationPreference'
           description: ''
+  /game/{game_id}/member/withdraw/:
+    post:
+      operationId: game_member_withdraw_create
+      description: Withdraw the requesting user from an active game, leaving their
+        seat vacant for another player to claim.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
   /game/{game_id}/members/{member_id}/replace/:
     post:
       operationId: game_members_replace_create
@@ -2729,6 +2751,9 @@ components:
         can_leave:
           type: boolean
           readOnly: true
+        can_withdraw:
+          type: boolean
+          readOnly: true
         can_delete:
           type: boolean
           readOnly: true
@@ -2872,6 +2897,7 @@ components:
       - can_join
       - can_leave
       - can_manage
+      - can_withdraw
       - commitment_eligibility
       - commitment_requirement
       - created_at
@@ -3052,6 +3078,9 @@ components:
         can_leave:
           type: boolean
           readOnly: true
+        can_withdraw:
+          type: boolean
+          readOnly: true
         can_delete:
           type: boolean
           readOnly: true
@@ -3189,6 +3218,7 @@ components:
       - can_join
       - can_leave
       - can_manage
+      - can_withdraw
       - commitment_eligibility
       - commitment_requirement
       - created_at
@@ -3300,6 +3330,9 @@ components:
         civil_disorder:
           type: boolean
           readOnly: true
+        withdrawn:
+          type: boolean
+          readOnly: true
         seeking_replacement:
           type: boolean
           readOnly: true
@@ -3333,6 +3366,7 @@ components:
       - replaceable
       - seeking_replacement
       - user_id
+      - withdrawn
     MemberCreate:
       type: object
       properties:

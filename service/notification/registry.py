@@ -394,6 +394,21 @@ class CivilDisorderRecoverySpec(NotificationSpec):
         return f"{self.player_name(nation=nation_name)} has returned from civil disorder."
 
 
+@register("withdrawal")
+class WithdrawalSpec(NotificationSpec):
+    exclude_actor = True
+
+    def get_audience(self):
+        return self.context.game.seated_member_user_ids()
+
+    def get_link(self):
+        return self._phase_url("player-info")
+
+    def get_body(self):
+        nation = self.player_name(nation=self.context.payload["nation_name"])
+        return f"{nation} has withdrawn from the game. The seat is open for another player to take."
+
+
 @register("elimination")
 class EliminationSpec(NotificationSpec):
     def get_body(self):
