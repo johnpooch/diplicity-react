@@ -86,6 +86,14 @@ def test_confirm_phase_user_kicked(authenticated_client_for_secondary_user, acti
 
 
 @pytest.mark.django_db
+def test_confirm_phase_user_in_civil_disorder(authenticated_client, active_game_with_phase_state, primary_user):
+    active_game_with_phase_state.members.filter(user=primary_user).update(civil_disorder=True)
+    url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
+    response = authenticated_client.post(url)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
 def test_confirm_phase_unauthenticated(unauthenticated_client, active_game_with_phase_state):
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
     response = unauthenticated_client.post(url)
@@ -2896,7 +2904,7 @@ class TestAbandonmentDetection:
             primary_user, secondary_user,
             italy_cd=True, germany_cd=True,
         )
-        assert Phase.objects._check_abandonment(game) is True
+        assert game.should_abandon() is True
 
     @pytest.mark.django_db
     def test_no_abandonment_when_one_active_member_not_in_cd(
@@ -2914,7 +2922,7 @@ class TestAbandonmentDetection:
             primary_user, secondary_user,
             italy_cd=True, germany_cd=False,
         )
-        assert Phase.objects._check_abandonment(game) is False
+        assert game.should_abandon() is False
 
     @pytest.mark.django_db
     def test_no_abandonment_when_no_members_in_cd(
@@ -2931,7 +2939,7 @@ class TestAbandonmentDetection:
             italy_vs_germany_germany_nation,
             primary_user, secondary_user,
         )
-        assert Phase.objects._check_abandonment(game) is False
+        assert game.should_abandon() is False
 
     @pytest.mark.django_db
     def test_no_abandonment_in_sandbox(
@@ -2950,7 +2958,7 @@ class TestAbandonmentDetection:
             italy_cd=True, germany_cd=True,
             sandbox=True,
         )
-        assert Phase.objects._check_abandonment(game) is False
+        assert game.should_abandon() is False
 
     @pytest.mark.django_db
     def test_no_abandonment_when_no_active_members(
@@ -2967,12 +2975,50 @@ class TestAbandonmentDetection:
             italy_vs_germany_germany_nation,
             primary_user, secondary_user,
             italy_eliminated=True,
-            germany_kicked=True,
+            germany_eliminated=True,
         )
-        assert Phase.objects._check_abandonment(game) is False
+        assert game.should_abandon() is False
 
     @pytest.mark.django_db
-    def test_abandonment_ignores_eliminated_and_kicked_members(
+    def test_abandonment_when_every_remaining_member_removed(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = self._make_game(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+            italy_kicked=True,
+            germany_kicked=True,
+        )
+        assert game.should_abandon() is True
+
+    @pytest.mark.django_db
+    def test_abandonment_when_remaining_members_removed_or_in_cd(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = self._make_game(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+            italy_cd=True,
+            germany_kicked=True,
+        )
+        assert game.should_abandon() is True
+
+    @pytest.mark.django_db
+    def test_abandonment_ignores_eliminated_members(
         self,
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
@@ -2988,7 +3034,7 @@ class TestAbandonmentDetection:
             italy_cd=True,
             germany_eliminated=True,
         )
-        assert Phase.objects._check_abandonment(game) is True
+        assert game.should_abandon() is True
 
     @pytest.mark.django_db
     def test_abandoned_game_excluded_from_filter_due_phases(
@@ -6563,7 +6609,7 @@ class TestCheckEliminations:
 class TestKickedMemberPhaseStates:
 
     @pytest.mark.django_db
-    def test_kicked_member_has_no_possible_orders_in_the_next_phase(
+    def test_kicked_member_is_confirmed_in_the_next_phase(
         self,
         italy_vs_germany_phase_with_orders,
         mock_adjudication_data_basic,
@@ -6579,5 +6625,34 @@ class TestKickedMemberPhaseStates:
             {**mock_adjudication_data_basic, "options": adjudication_data_italy_vs_germany["options"]},
         )
 
-        assert new_phase.phase_states.get(member=kicked).has_possible_orders is False
-        assert new_phase.phase_states.get(member__nation__name="Germany").has_possible_orders is True
+        kicked_state = new_phase.phase_states.get(member=kicked)
+        germany_state = new_phase.phase_states.get(member__nation__name="Germany")
+        assert kicked_state.has_possible_orders is True
+        assert kicked_state.orders_confirmed is True
+        assert germany_state.has_possible_orders is True
+        assert germany_state.orders_confirmed is False
+
+    @pytest.mark.django_db
+    def test_replaced_member_has_no_possible_orders_in_the_next_phase(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+        adjudication_data_italy_vs_germany,
+        tertiary_user,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        replaced = phase.game.members.get(nation__name="Italy")
+        replaced.civil_disorder = True
+        replaced.save(update_fields=["civil_disorder"])
+        replacement = Member.objects.hand_over_seat(replaced, tertiary_user)
+
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase,
+            {**mock_adjudication_data_basic, "options": adjudication_data_italy_vs_germany["options"]},
+        )
+
+        replaced_state = new_phase.phase_states.get(member=replaced)
+        replacement_state = new_phase.phase_states.get(member=replacement)
+        assert replaced_state.has_possible_orders is False
+        assert replacement_state.has_possible_orders is True
+        assert replacement_state.orders_confirmed is False

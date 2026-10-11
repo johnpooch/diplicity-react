@@ -83,11 +83,16 @@ class IsActiveGamePlayer(BasePermission):
             self.message = "User is not a player in the game."
             return False
 
-        if any(not member.eliminated and not member.kicked for member in members):
+        if any(
+            not member.eliminated and not member.unplayed and member.replaced_by_id is None
+            for member in members
+        ):
             return True
 
         if all(member.eliminated for member in members):
             self.message = "Cannot perform action for eliminated players."
+        elif any(member.civil_disorder for member in members):
+            self.message = "Cannot perform action for players in civil disorder."
         else:
             self.message = "Cannot perform action for kicked players."
         return False

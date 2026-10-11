@@ -419,7 +419,7 @@ class TestStartIfMustered:
         phase = game.current_phase
         assert phase.status == PhaseStatus.ACTIVE
         removed_state = phase.phase_states.get(member=removed)
-        assert removed_state.has_possible_orders is False
+        assert removed_state.orders_confirmed is True
 
     @pytest.mark.django_db
     def test_expiry_with_all_confirmed_removes_nobody(

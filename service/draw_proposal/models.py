@@ -55,8 +55,8 @@ class DrawProposalManager(models.Manager):
     def create_proposal(self, game, created_by):
         phase = game.current_phase
 
-        all_active_members = list(game.members.players().filter(
-            eliminated=False, kicked=False
+        all_active_members = list(game.members.players().not_replaced().filter(
+            eliminated=False
         ))
 
         proposal = self.create(
@@ -69,7 +69,7 @@ class DrawProposalManager(models.Manager):
 
         votes_to_create = []
         for member in all_active_members:
-            if member.civil_disorder:
+            if member.unplayed:
                 votes_to_create.append(
                     DrawVote(
                         proposal=proposal,
@@ -91,7 +91,7 @@ class DrawProposalManager(models.Manager):
         DrawVote.objects.bulk_create(votes_to_create)
 
         # If every active member's vote is already True (e.g. proposer is the
-        # only non-CD active member, so all votes are auto-True), the proposal
+        # only played active member, so all votes are auto-True), the proposal
         # is already ACCEPTED at creation time and needs to be processed.
         if proposal.status == DrawProposalStatus.ACCEPTED:
             proposal.process_acceptance()

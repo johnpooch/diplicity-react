@@ -336,6 +336,8 @@ class PhaseManager(models.Manager):
             has_possible_orders=True
         ).exclude(
             member__nation_id__in=phase.nations_with_forced_orders
+        ).exclude(
+            member__kicked=True
         ).annotate(order_count=Count("orders"))
 
         received = Q(order_count__gt=0) | Q(orders_confirmed=True, member__civil_disorder=False)
@@ -362,7 +364,7 @@ class PhaseManager(models.Manager):
             if phase_state.orders_outcome != PhaseState.OrdersOutcome.NMR:
                 continue
             member = phase_state.member
-            if member.civil_disorder or member.eliminated or member.kicked:
+            if member.unplayed or member.eliminated or member.replaced_by_id is not None:
                 continue
             current_nmr_members.append(member)
 
@@ -529,16 +531,6 @@ class PhaseManager(models.Manager):
                 continue
             emit("elimination", game=game, recipients=[member.user_id])
 
-    def _check_abandonment(self, game):
-        if game.sandbox:
-            return False
-
-        active_members = list(game.members.players().filter(eliminated=False, kicked=False))
-        if not active_members:
-            return False
-
-        return all(m.civil_disorder for m in active_members)
-
     def resolve(self, phase):
         with self.claim(phase.pk, self.filter(status=PhaseStatus.ACTIVE)) as claimed:
             if not claimed:
@@ -551,7 +543,7 @@ class PhaseManager(models.Manager):
             self._set_orders_outcome(phase)
             newly_cd_members = self._check_civil_disorder(phase)
 
-            if self._check_abandonment(phase.game):
+            if phase.game.should_abandon():
                 self._notify_civil_disorder(phase, newly_cd_members)
                 self._recompute_commitment(phase)
                 phase.game.finish(GameStatus.ABANDONED)
@@ -573,7 +565,7 @@ class PhaseManager(models.Manager):
             if victory:
                 new_phase.game.finish(GameStatus.COMPLETED)
                 new_phase.game.emit_game_ended()
-            elif self._check_abandonment(new_phase.game):
+            elif new_phase.game.should_abandon():
                 new_phase.game.finish(GameStatus.ABANDONED)
 
             new_phase.refresh_from_db()
@@ -754,8 +746,8 @@ class PhaseManager(models.Manager):
                 new_phase.phase_states.model(
                     member=member,
                     phase=new_phase,
-                    has_possible_orders=member.nation.name in nations_with_orders and not member.kicked,
-                    orders_confirmed=member.civil_disorder,
+                    has_possible_orders=member.nation.name in nations_with_orders and member.replaced_by_id is None,
+                    orders_confirmed=member.unplayed,
                 )
             )
 
@@ -903,7 +895,7 @@ class Phase(BaseModel):
                 orders_confirmed=False,
                 member__nmr_extensions_remaining__gt=0,
             )
-            .exclude(member__civil_disorder=True)
+            .exclude(member__in=Member.objects.unplayed())
             .annotate(order_count=Count("orders"))
             .filter(order_count=0)
             .select_related("member")

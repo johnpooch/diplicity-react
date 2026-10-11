@@ -14,6 +14,9 @@ class MemberQuerySet(models.QuerySet):
     def players(self):
         return self.filter(kind=MemberKind.PLAYER)
 
+    def unplayed(self):
+        return self.not_replaced().filter(models.Q(civil_disorder=True) | models.Q(kicked=True))
+
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
@@ -39,7 +42,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
             phase = self._lock_active_phase(member.game)
             if phase is not None:
-                self._vacate_phase(member, phase)
+                self._vacate_phase(member, phase, has_possible_orders=False)
                 PhaseState.objects.create(
                     member=replacement,
                     phase=phase,
@@ -81,7 +84,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
             phase = self._lock_active_phase(member.game)
             if phase is not None:
-                self._vacate_phase(member, phase)
+                self._vacate_phase(member, phase, orders_confirmed=True)
                 Phase = apps.get_model("phase", "Phase")
                 Phase.objects.arm_resolution(phase)
 
@@ -93,12 +96,12 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             return None
         return phase
 
-    def _vacate_phase(self, member, phase):
+    def _vacate_phase(self, member, phase, **phase_state_fields):
         Order = apps.get_model("order", "Order")
 
         phase_states = phase.phase_states.filter(member=member)
         Order.objects.filter(phase_state__in=phase_states).delete()
-        phase_states.update(has_possible_orders=False)
+        phase_states.update(**phase_state_fields)
 
 
 class Member(BaseModel):
@@ -153,8 +156,12 @@ class Member(BaseModel):
         return self.kind == MemberKind.GAME_MASTER
 
     @property
+    def unplayed(self):
+        return self.replaced_by_id is None and (self.civil_disorder or self.kicked)
+
+    @property
     def replaceable(self):
-        return (self.kicked or self.civil_disorder or self.seeking_replacement) and not (
+        return (self.unplayed or self.seeking_replacement) and not (
             self.eliminated or self.replaced_by_id is not None
         )
 

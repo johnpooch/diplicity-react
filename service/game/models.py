@@ -835,11 +835,14 @@ class Game(BaseModel):
 
     def reassign_admin(self):
         with tracer.start_as_current_span("game.models.reassign_admin"):
-            candidates = list(
-                self.members.players()
-                .filter(kicked=False, civil_disorder=False, user__isnull=False)
+            candidates = [
+                member
+                for member in self.members.players()
+                .not_replaced()
+                .filter(user__isnull=False)
                 .exclude(user_id=self.admin_id)
-            )
+                if not member.unplayed
+            ]
             if not candidates:
                 return
 
@@ -858,14 +861,24 @@ class Game(BaseModel):
     def seated_member_user_ids(self):
         ids = {
             m.user_id for m in self.members.all()
-            if m.user_id is not None and not m.kicked
+            if m.user_id is not None and m.replaced_by_id is None and not m.unplayed
         }
         return self._with_game_master(ids)
 
     def active_member_user_ids(self):
-        active = self.members.filter(eliminated=False, kicked=False, civil_disorder=False)
-        ids = {m.user_id for m in active if m.user_id is not None}
+        active = self.members.not_replaced().filter(eliminated=False)
+        ids = {m.user_id for m in active if m.user_id is not None and not m.unplayed}
         return self._with_game_master(ids)
+
+    def should_abandon(self):
+        if self.sandbox:
+            return False
+
+        remaining = list(self.members.players().not_replaced().filter(eliminated=False))
+        if not remaining:
+            return False
+
+        return all(m.unplayed for m in remaining)
 
     def winner_members(self):
         victory = Victory.objects.filter(game=self).prefetch_related("members").first()
