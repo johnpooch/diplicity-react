@@ -7,6 +7,7 @@ import { GameDetailAppBar } from "./AppBar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/Panel";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { WithdrawGameAction } from "@/components/WithdrawGameAction";
 import { useRequiredParams } from "@/hooks";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
@@ -81,6 +82,7 @@ const GameInfoScreen: React.FC = () => {
               }
               onShare={() => copyLink(`/game/${gameId}`)}
             />
+            {game.canWithdraw && <WithdrawGameAction game={game} />}
           </Panel.Content>
         </Panel>
       </div>

@@ -31,7 +31,12 @@ vi.mock("@/api/generated/endpoints", () => ({
     mutateAsync: mockKickMutateAsync,
     isPending: false,
   }),
+  useGameMemberWithdrawPartialUpdate: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
   getGameRetrieveQueryKey: () => ["game"],
+  getGamesListQueryKey: () => ["games"],
   getGameAddableUserListQueryKey: () => ["addable-user"],
 }));
 
@@ -539,6 +544,42 @@ describe("PlayerInfoContent", () => {
       "bg-destructive",
       "text-white"
     );
+  });
+
+  it("offers withdrawal when the player can withdraw", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canWithdraw: true,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.getByRole("button", { name: /withdraw from game/i })
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer withdrawal when the player cannot withdraw", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canWithdraw: false,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.queryByRole("button", { name: /withdraw from game/i })
+    ).not.toBeInTheDocument();
   });
 
   it("dims and labels withdrawn players", () => {

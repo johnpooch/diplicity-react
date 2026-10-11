@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { AddBotSheet } from "@/components/AddBotSheet";
+import { WithdrawGameAction } from "@/components/WithdrawGameAction";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import {
@@ -640,6 +641,8 @@ export const PlayerInfoContent: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {game.canWithdraw && <WithdrawGameAction game={game} />}
 
       {canAddBots && (
         <AddBotSheet
