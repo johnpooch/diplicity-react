@@ -128,6 +128,38 @@ class ChannelSerializer(serializers.Serializer):
         )
 
 
+class ChannelPreviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    private = serializers.BooleanField(read_only=True)
+    muted = serializers.BooleanField(read_only=True)
+    unread_message_count = serializers.IntegerField(read_only=True)
+    latest_message = ChannelMessageSerializer(read_only=True, allow_null=True)
+
+
+class ChannelDetailSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    private = serializers.BooleanField(read_only=True)
+    muted = serializers.BooleanField(read_only=True)
+    can_mute = serializers.SerializerMethodField()
+    can_rename = serializers.SerializerMethodField()
+    unread_message_count = serializers.IntegerField(read_only=True)
+    first_unread_message_id = serializers.IntegerField(read_only=True, allow_null=True)
+    latest_message_id = serializers.IntegerField(read_only=True, allow_null=True)
+    latest_event_id = serializers.IntegerField(read_only=True, allow_null=True)
+    events = ChannelEventSerializer(many=True, read_only=True)
+
+    def get_can_mute(self, channel) -> bool:
+        return can_mute_channel(self.context.get("current_game_member"), channel.requester_is_member)
+
+    def get_can_rename(self, channel) -> bool:
+        member = self.context.get("current_game_member")
+        return can_rename_channel(channel, self.context["game"], member, channel.requester_is_member)
+
+
 class ChannelUpdateSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     title = serializers.CharField(

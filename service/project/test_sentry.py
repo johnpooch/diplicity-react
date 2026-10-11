@@ -21,7 +21,15 @@ class TestTracesSampler:
     def test_infrastructure_and_asset_requests_are_never_traced(self, path):
         assert traces_sampler(_request(path)) == 0
 
-    @pytest.mark.parametrize("path", ["/game/the-match-1a2b/", "/games/the-match-1a2b/channels/"])
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/game/the-match-1a2b/",
+            "/games/the-match-1a2b/channels/",
+            "/games/the-match-1a2b/channel-previews/",
+            "/games/the-match-1a2b/channels/42/",
+        ],
+    )
     def test_polled_reads_are_sampled_at_the_polled_rate(self, path):
         assert traces_sampler(_request(path)) == POLLED_TRACES_SAMPLE_RATE
 

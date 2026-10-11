@@ -1,5 +1,5 @@
 from django.db import IntegrityError, models, transaction
-from django.db.models import Q, BooleanField, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F
+from django.db.models import Q, BooleanField, Case, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F, When
 from django.contrib.auth import get_user_model
 from django.core import exceptions
 from django.utils import timezone
@@ -32,6 +32,43 @@ class ChannelQuerySet(models.QuerySet):
         return self.prefetch_related(
             "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile__uploaded_picture", "members", "members__user", "members__user__profile__uploaded_picture",
             models.Prefetch("events", queryset=ChannelEvent.objects.for_display()),
+        )
+
+    def with_latest_message_id(self):
+        latest_message = (
+            ChannelMessage.objects.filter(channel=OuterRef("pk")).order_by("-created_at", "-id").values("id")[:1]
+        )
+        return self.annotate(latest_message_id=Subquery(latest_message))
+
+    def with_first_unread_message_id(self, user):
+        if not user.is_authenticated:
+            return self.annotate(first_unread_message_id=Value(None, output_field=IntegerField()))
+        first_unread_message = (
+            ChannelMessage.objects.filter(channel=OuterRef("pk"))
+            .unread_by(user)
+            .order_by("created_at", "id")
+            .values("id")[:1]
+        )
+        return self.annotate(first_unread_message_id=Subquery(first_unread_message))
+
+    def with_requester_membership(self, member):
+        if member is None:
+            return self.annotate(requester_is_member=Value(False, output_field=BooleanField()))
+        membership = ChannelMember.objects.filter(channel=OuterRef("pk"), member=member)
+        return self.annotate(
+            requester_is_member=Case(
+                When(private=False, then=Value(True)),
+                default=Exists(membership),
+                output_field=BooleanField(),
+            )
+        )
+
+    def with_detail_data(self):
+        latest_event = (
+            ChannelEvent.objects.for_display().filter(channel=OuterRef("pk")).order_by("-created_at", "-id").values("id")[:1]
+        )
+        return self.annotate(latest_event_id=Subquery(latest_event)).prefetch_related(
+            models.Prefetch("events", queryset=ChannelEvent.objects.for_display().select_related("phase"))
         )
 
     def order_for_list(self):
@@ -102,6 +139,15 @@ class ChannelManager(models.Manager):
 
     def order_for_list(self):
         return self.get_queryset().order_for_list()
+
+    def hydrate_latest_messages(self, channels):
+        messages = (
+            ChannelMessage.objects.with_sender_data()
+            .select_related("sender__nation__flag")
+            .in_bulk([channel.latest_message_id for channel in channels if channel.latest_message_id is not None])
+        )
+        for channel in channels:
+            channel.latest_message = messages.get(channel.latest_message_id)
 
 
 class Channel(BaseModel):

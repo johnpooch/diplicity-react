@@ -5,15 +5,21 @@ from .views import (
     ChannelListView,
     ChannelMarkReadView,
     ChannelMuteView,
-    ChannelUpdateView,
+    ChannelPreviewListView,
+    ChannelRetrieveUpdateView,
 )
 
 urlpatterns = [
     path("games/<str:game_id>/channels/", ChannelListView.as_view(), name="channel-list"),
+    path(
+        "games/<str:game_id>/channel-previews/",
+        ChannelPreviewListView.as_view(),
+        name="channel-preview-list",
+    ),
     path("games/<str:game_id>/channels/create/", ChannelCreateView.as_view(), name="channel-create"),
     path(
         "games/<str:game_id>/channels/<int:channel_id>/",
-        ChannelUpdateView.as_view(),
+        ChannelRetrieveUpdateView.as_view(),
         name="channel-update",
     ),
     path(
