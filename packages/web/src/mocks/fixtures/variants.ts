@@ -39,6 +39,7 @@ const buildVariant = (raw: GodipVariant): Variant =>
       nationId: n.name.toLowerCase().replace(/\s+/g, "-"),
       name: n.name,
       color: n.color,
+      nonPlayable: false,
       flagUrl: null,
     })),
     provinces: raw.provinces.map(p => ({
@@ -61,11 +62,25 @@ const buildVariant = (raw: GodipVariant): Variant =>
     },
   }) as unknown as Variant;
 
+const withNeutralNation = (variant: Variant): Variant => ({
+  ...variant,
+  nations: [
+    ...variant.nations,
+    {
+      nationId: "neutral",
+      name: "Neutral",
+      color: "#9E9E9E",
+      nonPlayable: true,
+      flagUrl: null,
+    },
+  ],
+});
+
 export const extraVariants: Variant[] = [
   buildVariant(cantonGodip as GodipVariant),
   buildVariant(hundredGodip as GodipVariant),
   buildVariant(vietnamGodip as GodipVariant),
-  buildVariant(youngstownGodip as GodipVariant),
+  withNeutralNation(buildVariant(youngstownGodip as GodipVariant)),
 ];
 
 export const allVariants: Variant[] = [classicalVariant, ...extraVariants];

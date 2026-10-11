@@ -83,6 +83,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { CREATE_GAME_PARAM } from "@/utils/routes";
+import { countPlayableNations } from "@/utils/playableNations";
 
 const gameSchema = z.object({
   name: z
@@ -266,7 +267,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
           rows={[
             {
               label: "Number of nations",
-              value: selectedVariant?.nations.length.toString(),
+              value: countPlayableNations(selectedVariant.nations).toString(),
               icon: <Users className="size-4" />,
             },
             {
@@ -1179,7 +1180,7 @@ const CreateGame: React.FC = () => {
               <p className="text-muted-foreground">
                 {similarMatch.members.length}
                 {matchedVariant
-                  ? ` / ${matchedVariant.nations.length}`
+                  ? ` / ${countPlayableNations(matchedVariant.nations)}`
                   : ""}{" "}
                 players
               </p>

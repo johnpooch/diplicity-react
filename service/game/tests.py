@@ -1376,6 +1376,34 @@ class TestGameListViewOrdering:
         assert ordered_ids.index(newer_game.id) < ordered_ids.index(older_game.id)
 
     @pytest.mark.django_db
+    def test_ordering_slots_remaining_excludes_non_playable_nations(
+        self, authenticated_client, classical_variant, italy_vs_germany_variant, base_pending_phase,
+        pending_game_with_players,
+    ):
+        classical_variant.nations.create(nation_id="neutral", name="Neutral", color="#000000", non_playable=True)
+        one_seat_game = pending_game_with_players(player_count=6)
+        two_seat_game = Game.objects.create(
+            name="Two Seat Game",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(two_seat_game)
+
+        Game.objects.filter(id=one_seat_game.id).update(
+            created_at=timezone.now() - timedelta(days=2)
+        )
+        Game.objects.filter(id=two_seat_game.id).update(
+            created_at=timezone.now() - timedelta(days=1)
+        )
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"ordering": "slots_remaining"})
+        assert response.status_code == status.HTTP_200_OK
+
+        ordered_ids = [g["id"] for g in response.data["results"]]
+        assert ordered_ids.index(one_seat_game.id) < ordered_ids.index(two_seat_game.id)
+
+    @pytest.mark.django_db
     def test_ordering_combined_with_can_join_and_variant(
         self,
         authenticated_client,

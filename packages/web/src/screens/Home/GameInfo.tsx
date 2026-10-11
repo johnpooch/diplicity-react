@@ -28,6 +28,7 @@ import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
 import { copyLink } from "@/utils/copyLink";
+import { countPlayableNations } from "@/utils/playableNations";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -92,9 +93,7 @@ const GameInfo: React.FC = () => {
     navigate(`/game-info/${gameId}`);
   };
 
-  const playableSeats = variant
-    ? variant.nations.filter(n => !n.nonPlayable).length
-    : 0;
+  const playableSeats = variant ? countPlayableNations(variant.nations) : 0;
   const openSeats = Math.max(0, playableSeats - game.members.length);
   const canAddBots =
     game.status === "pending" &&

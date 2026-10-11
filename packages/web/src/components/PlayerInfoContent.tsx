@@ -62,6 +62,7 @@ import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId, isFinishedGameStatus } from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { copyLink } from "@/utils/copyLink";
+import { countPlayableNations } from "@/utils/playableNations";
 
 const PlayerMedia: React.FC<{
   member: Member;
@@ -192,9 +193,7 @@ export const PlayerInfoContent: React.FC = () => {
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
   const canTakeOverSeat =
     !game.members.some(m => m.isCurrentUser) && !isGameMaster;
-  const playableSeats = variant
-    ? variant.nations.filter(n => !n.nonPlayable).length
-    : 0;
+  const playableSeats = variant ? countPlayableNations(variant.nations) : 0;
   const openSeats = isPending
     ? Math.max(0, playableSeats - game.members.length)
     : 0;
