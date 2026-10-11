@@ -65,7 +65,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsListSuspense: () => ({ data: [] }),
   useVariantsRetrieve: () => ({ data: undefined }),
   useGamesChannelsCreateCreate: () => ({ mutateAsync: createChannel, isPending: false }),
-  getGamesChannelsListQueryKey: (gameId: string) => [`/game/${gameId}/channels/`],
+  getGamesChannelPreviewsListQueryKey: (gameId: string) => [`/games/${gameId}/channel-previews/`],
 }));
 
 const renderScreen = () =>

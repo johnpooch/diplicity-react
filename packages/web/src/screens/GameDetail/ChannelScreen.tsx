@@ -1,9 +1,18 @@
-import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
+import React, {
+  Suspense,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useMemo,
+} from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, SendHorizontal, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
+import { useChannelMessages } from "@/hooks/useChannelMessages";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -33,10 +42,11 @@ import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
   useUserRetrieveSuspense,
-  useGamesChannelsListSuspense,
+  useGamesChannelsRetrieveSuspense,
   useGamesChannelsMessagesCreateCreate,
   useGamesChannelsMarkReadCreate,
-  getGamesChannelsListQueryKey,
+  getGamesChannelsRetrieveQueryKey,
+  getGamesChannelPreviewsListQueryKey,
   getGameRetrieveQueryKey,
   ChannelMessage as ChannelMessageType,
   ChannelEvent as ChannelEventType,
@@ -192,12 +202,183 @@ const NewMessagesDivider: React.FC = () => (
   </div>
 );
 
+interface ThreadMessageProps {
+  item: MessageDisplayItem;
+  showSenderLabel: boolean;
+  flagUrl: string | null;
+}
+
+const ThreadMessage: React.FC<ThreadMessageProps> = ({
+  item,
+  showSenderLabel,
+  flagUrl,
+}) => (
+  <Message className={item.isCurrentUser ? "flex-row-reverse" : undefined}>
+    {item.showAvatar ? (
+      <div
+        className={cn(
+          "size-8 shrink-0",
+          item.sender.isGameMaster && "overflow-hidden rounded-full border"
+        )}
+      >
+        {item.sender.isGameMaster ? (
+          <Avatar className="size-8 rounded-none">
+            <AvatarImage src={item.sender.picture ?? undefined} />
+            <AvatarFallback className="rounded-none text-xs">
+              {item.sender.name[0]?.toUpperCase() ?? "?"}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <NationFlag
+            flagUrl={flagUrl}
+            alt={item.sender.nationName ?? item.sender.name}
+            className="size-8"
+            color={item.sender.nationColor}
+          />
+        )}
+      </div>
+    ) : (
+      <div className="size-8 shrink-0" />
+    )}
+    <div className="max-w-[80%]">
+      <MessageContent
+        className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
+        style={{
+          backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
+          border: brightnessByColor(item.sender.nationColor) > 128
+            ? `1px solid ${item.sender.nationColor}`
+            : undefined,
+        }}
+      >
+        {item.showAvatar && showSenderLabel && (
+          <p
+            className="mb-0.5 text-xs font-semibold"
+            style={{ color: item.sender.nationColor }}
+          >
+            {item.isCurrentUser && !item.sender.isGameMaster
+              ? "You"
+              : item.sender.label}
+          </p>
+        )}
+        {item.body}
+      </MessageContent>
+      <MessageTimestamp
+        className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
+      >
+        {item.formattedTime}
+      </MessageTimestamp>
+    </div>
+  </Message>
+);
+
+const threadItemKey = (item: ThreadItem) => `${item.kind}-${item.id}`;
+
+const isScrolledToBottom = (element: HTMLElement) =>
+  element.scrollHeight - element.scrollTop - element.clientHeight < 8;
+
+interface ChannelThreadProps {
+  items: ThreadItem[];
+  unreadDivider: number | "top" | null;
+  hasOlder: boolean;
+  isFetchingOlder: boolean;
+  isFetchOlderError: boolean;
+  fetchOlder: () => void;
+  scrollToBottomOnAppendRef: React.RefObject<boolean>;
+  renderMessage: (item: MessageDisplayItem) => React.ReactNode;
+}
+
+const ChannelThread: React.FC<ChannelThreadProps> = ({
+  items,
+  unreadDivider,
+  hasOlder,
+  isFetchingOlder,
+  isFetchOlderError,
+  fetchOlder,
+  scrollToBottomOnAppendRef,
+  renderMessage,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
+  const previousRef = useRef<{
+    firstKey: string;
+    lastKey: string;
+    scrollHeight: number;
+  } | null>(null);
+  const sentinelRef = useInfiniteScroll(
+    fetchOlder,
+    hasOlder && !isFetchOlderError,
+    isFetchingOlder
+  );
+
+  const firstKey = threadItemKey(items[0]);
+  const lastKey = threadItemKey(items[items.length - 1]);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const previous = previousRef.current;
+    if (!previous) {
+      container.scrollTop = container.scrollHeight;
+    } else if (previous.lastKey !== lastKey) {
+      if (isAtBottomRef.current || scrollToBottomOnAppendRef.current) {
+        container.scrollTop = container.scrollHeight;
+        scrollToBottomOnAppendRef.current = false;
+      }
+    } else if (previous.firstKey !== firstKey) {
+      container.scrollTop += container.scrollHeight - previous.scrollHeight;
+    }
+    isAtBottomRef.current = isScrolledToBottom(container);
+    previousRef.current = {
+      firstKey,
+      lastKey,
+      scrollHeight: container.scrollHeight,
+    };
+  }, [firstKey, lastKey, scrollToBottomOnAppendRef]);
+
+  return (
+    <div
+      ref={containerRef}
+      onScroll={event => {
+        isAtBottomRef.current = isScrolledToBottom(event.currentTarget);
+      }}
+      className="flex-1 min-h-0 overflow-y-auto [overflow-anchor:none] flex flex-col gap-3 px-3 py-4"
+    >
+      {hasOlder &&
+        (isFetchOlderError ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-center"
+            onClick={() => fetchOlder()}
+            disabled={isFetchingOlder}
+          >
+            Load earlier messages
+          </Button>
+        ) : (
+          <div ref={sentinelRef} />
+        ))}
+      {unreadDivider === "top" && <NewMessagesDivider />}
+      {items.map(item =>
+        item.kind === "event" ? (
+          <ThreadEventNotice key={threadItemKey(item)} text={item.text} />
+        ) : (
+          <React.Fragment key={threadItemKey(item)}>
+            {item.id === unreadDivider && <NewMessagesDivider />}
+            {renderMessage(item)}
+          </React.Fragment>
+        )
+      )}
+    </div>
+  );
+};
+
 const ChannelScreen: React.FC = () => {
   const { gameId, phaseId, channelId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
     channelId: string;
   }>();
+  const numericChannelId = parseInt(channelId);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -207,19 +388,22 @@ const ChannelScreen: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: userProfile } = useUserRetrieveSuspense();
-  const { data: channels } = useGamesChannelsListSuspense(gameId, {
-    query: {
-      refetchInterval: 5000,
-    },
-  });
+  const { data: channel } = useGamesChannelsRetrieveSuspense(
+    gameId,
+    numericChannelId,
+    { query: { refetchInterval: 5000 } }
+  );
+  const { messages, hasOlder, fetchOlder, isFetchingOlder, isFetchOlderError } =
+    useChannelMessages(gameId, numericChannelId, channel.latestMessageId);
   const variant = useGameVariant(game);
   const createMessageMutation = useGamesChannelsMessagesCreateCreate({
     mutation: { retry: 2 },
   });
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isSendingRef = useRef(false);
+  const scrollToBottomOnAppendRef = useRef(false);
+  const [firstUnreadMessageId] = useState(channel.firstUnreadMessageId);
 
   useEffect(() => {
     setSearchParams(prev => {
@@ -228,16 +412,6 @@ const ChannelScreen: React.FC = () => {
       return next;
     }, { replace: true });
   }, [channelId, setSearchParams]);
-
-  const channel = channels.find(c => c.id === parseInt(channelId));
-  if (!channel) throw new Error("Channel not found");
-
-  const [firstUnreadMessageId] = useState<number | null>(() => {
-    const count = channel.unreadMessageCount;
-    if (count <= 0) return null;
-    const index = channel.messages.length - count;
-    return index > 0 ? channel.messages[index].id : null;
-  });
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const isGameMaster =
@@ -280,10 +454,13 @@ const ChannelScreen: React.FC = () => {
     if (!canPost) return;
     markReadMutation.mutateAsync({
       gameId,
-      channelId: parseInt(channelId),
+      channelId: numericChannelId,
     }).then(() => {
       queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
+        queryKey: getGamesChannelsRetrieveQueryKey(gameId, numericChannelId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelPreviewsListQueryKey(gameId),
       });
       queryClient.invalidateQueries({
         queryKey: getGameRetrieveQueryKey(gameId),
@@ -294,13 +471,6 @@ const ChannelScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object excluded per project convention (not referentially stable); fire once on mount
   }, [gameId, channelId]);
 
-  useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
-    }
-  }, [channel.messages, channel.events]);
-
   const handleSubmit = async () => {
     if (!message.trim() || isSendingRef.current) return;
     isSendingRef.current = true;
@@ -308,12 +478,16 @@ const ChannelScreen: React.FC = () => {
     try {
       await createMessageMutation.mutateAsync({
         gameId,
-        channelId: parseInt(channelId),
+        channelId: numericChannelId,
         data: { body: message, clientMessageId: getOrCreateDraftId() },
       });
       setMessage("");
+      scrollToBottomOnAppendRef.current = true;
       queryClient.invalidateQueries({
-        queryKey: getGamesChannelsListQueryKey(gameId),
+        queryKey: getGamesChannelsRetrieveQueryKey(gameId, numericChannelId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelPreviewsListQueryKey(gameId),
       });
     } catch {
       toast.error("Failed to send message");
@@ -335,10 +509,31 @@ const ChannelScreen: React.FC = () => {
     game.status !== "completed" &&
     game.status !== "abandoned";
 
+  const oldestLoadedMessage = messages[0];
   const threadItems = useMemo(
-    () => buildThreadItems(channel.messages, channel.events),
-    [channel.messages, channel.events]
+    () =>
+      buildThreadItems(
+        messages,
+        hasOlder && oldestLoadedMessage
+          ? channel.events.filter(
+              event =>
+                Date.parse(event.createdAt) >=
+                Date.parse(oldestLoadedMessage.createdAt)
+            )
+          : channel.events
+      ),
+    [messages, channel.events, hasOlder, oldestLoadedMessage]
   );
+
+  const unreadDivider =
+    firstUnreadMessageId === null
+      ? null
+      : messages.some(item => item.id === firstUnreadMessageId)
+        ? firstUnreadMessageId
+        : hasOlder &&
+            messages.every(item => item.id > firstUnreadMessageId)
+          ? "top"
+          : null;
 
   if (isNoPressActiveGame) {
     return (
@@ -384,85 +579,26 @@ const ChannelScreen: React.FC = () => {
                   className="h-full"
                 />
               ) : (
-                <div
-                  ref={messagesContainerRef}
-                  className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 px-3 py-4"
-                >
-                  {threadItems.map(item =>
-                    item.kind === "event" ? (
-                      <ThreadEventNotice key={`event-${item.id}`} text={item.text} />
-                    ) : (
-                      <React.Fragment key={`message-${item.id}`}>
-                        {item.id === firstUnreadMessageId && <NewMessagesDivider />}
-                        <Message
-                          className={
-                            item.isCurrentUser ? "flex-row-reverse" : undefined
-                          }
-                        >
-                          {item.showAvatar ? (
-                            <div
-                              className={cn(
-                                "size-8 shrink-0",
-                                item.sender.isGameMaster &&
-                                  "overflow-hidden rounded-full border"
-                              )}
-                            >
-                              {item.sender.isGameMaster ? (
-                                <Avatar className="size-8 rounded-none">
-                                  <AvatarImage src={item.sender.picture ?? undefined} />
-                                  <AvatarFallback className="rounded-none text-xs">
-                                    {item.sender.name[0]?.toUpperCase() ?? "?"}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <NationFlag
-                                  flagUrl={
-                                    variant
-                                      ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                      : null
-                                  }
-                                  alt={item.sender.nationName ?? item.sender.name}
-                                  className="size-8"
-                                  color={item.sender.nationColor}
-                                />
-                              )}
-                            </div>
-                          ) : (
-                            <div className="size-8 shrink-0" />
-                          )}
-                          <div className="max-w-[80%]">
-                            <MessageContent
-                              className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
-                              style={{
-                                backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                                border: brightnessByColor(item.sender.nationColor) > 128
-                                  ? `1px solid ${item.sender.nationColor}`
-                                  : undefined,
-                              }}
-                            >
-                              {item.showAvatar && showSenderLabels && (
-                                <p
-                                  className="mb-0.5 text-xs font-semibold"
-                                  style={{ color: item.sender.nationColor }}
-                                >
-                                  {item.isCurrentUser && !item.sender.isGameMaster
-                                    ? "You"
-                                    : item.sender.label}
-                                </p>
-                              )}
-                              {item.body}
-                            </MessageContent>
-                            <MessageTimestamp
-                              className={cn("mt-0.5", !item.isCurrentUser && "text-left")}
-                            >
-                              {item.formattedTime}
-                            </MessageTimestamp>
-                          </div>
-                        </Message>
-                      </React.Fragment>
-                    )
+                <ChannelThread
+                  items={threadItems}
+                  unreadDivider={unreadDivider}
+                  hasOlder={hasOlder}
+                  isFetchingOlder={isFetchingOlder}
+                  isFetchOlderError={isFetchOlderError}
+                  fetchOlder={fetchOlder}
+                  scrollToBottomOnAppendRef={scrollToBottomOnAppendRef}
+                  renderMessage={item => (
+                    <ThreadMessage
+                      item={item}
+                      showSenderLabel={showSenderLabels}
+                      flagUrl={
+                        variant
+                          ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                          : null
+                      }
+                    />
                   )}
-                </div>
+                />
               )}
             </div>
           </Panel.Content>
@@ -497,12 +633,19 @@ const ChannelScreen: React.FC = () => {
   );
 };
 
-const ChannelScreenSuspense: React.FC = () => (
-  <QueryErrorBoundary>
-    <Suspense fallback={<div></div>}>
-      <ChannelScreen />
-    </Suspense>
-  </QueryErrorBoundary>
-);
+const ChannelScreenSuspense: React.FC = () => {
+  const { gameId, channelId } = useRequiredParams<{
+    gameId: string;
+    channelId: string;
+  }>();
+
+  return (
+    <QueryErrorBoundary key={`${gameId}/${channelId}`}>
+      <Suspense fallback={<div></div>}>
+        <ChannelScreen />
+      </Suspense>
+    </QueryErrorBoundary>
+  );
+};
 
 export { ChannelScreenSuspense as ChannelScreen };

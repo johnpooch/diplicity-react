@@ -32,7 +32,7 @@ vi.mock("@/api/generated/endpoints", () => ({
       members: mockMembersData(),
     },
   }),
-  useGamesChannelsListSuspense: () => ({
+  useGamesChannelPreviewsListSuspense: () => ({
     data: mockChannelsData(),
   }),
   useVariantsListSuspense: () => ({
@@ -63,28 +63,42 @@ describe("ChannelListScreen", () => {
         id: 1,
         name: "Secret Alliance",
         private: true,
-        memberIds: [1, 2],
         unreadMessageCount: 5,
-        messages: [
-          {
+        latestMessage: {
+          id: 1,
+          body: "Hello",
+          sender: {
             id: 1,
-            body: "Hello",
-            sender: {
-              id: 1,
-              name: "Alice",
-              picture: null,
-              nation: { name: "Austria" },
-              isCurrentUser: false,
-            },
-            createdAt: "2024-01-15T12:00:00Z",
+            name: "Alice",
+            picture: null,
+            nation: { name: "Austria" },
+            isCurrentUser: false,
           },
-        ],
+          createdAt: "2024-01-15T12:00:00Z",
+        },
       },
     ]);
 
     renderChannelList();
 
     expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("Austria: Hello")).toBeInTheDocument();
+  });
+
+  it("says when a channel has no messages yet", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "Secret Alliance",
+        private: true,
+        unreadMessageCount: 0,
+        latestMessage: null,
+      },
+    ]);
+
+    renderChannelList();
+
+    expect(screen.getByText("No messages")).toBeInTheDocument();
   });
 
   it("does not show unread badge when count is zero", () => {
@@ -93,9 +107,8 @@ describe("ChannelListScreen", () => {
         id: 1,
         name: "Secret Alliance",
         private: true,
-        memberIds: [1, 2],
         unreadMessageCount: 0,
-        messages: [],
+        latestMessage: null,
       },
     ]);
 
@@ -111,17 +124,15 @@ describe("ChannelListScreen", () => {
         id: 1,
         name: "Private Chat",
         private: true,
-        memberIds: [1, 2],
         unreadMessageCount: 3,
-        messages: [],
+        latestMessage: null,
       },
       {
         id: 2,
         name: "Public Press",
         private: false,
-        memberIds: [1, 2, 3],
         unreadMessageCount: 0,
-        messages: [],
+        latestMessage: null,
       },
     ]);
 

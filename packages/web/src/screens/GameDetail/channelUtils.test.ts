@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
+import type { ChannelDetail, ChannelMember, Member } from "@/api/generated/endpoints";
 import {
   getChannelDisplayName,
   getChannelFlagUrls,
@@ -29,7 +29,7 @@ const member = (id: number, nation: string, overrides: Partial<Member> = {}) =>
     ...overrides,
   }) as Member;
 
-const publicChannel = { id: 1, name: "Public Press", private: false } as Channel;
+const publicChannel = { id: 1, name: "Public Press", private: false } as ChannelDetail;
 
 const variantNations = [
   { name: "England", flagUrl: "england.svg", color: "#ff0000" },
@@ -43,13 +43,13 @@ describe("getChannelDisplayName", () => {
       name: "England, Italy",
       title: "The great alliance",
       private: true,
-    } as Channel;
+    } as ChannelDetail;
 
     expect(getChannelDisplayName(channel, "England")).toBe("The great alliance");
   });
 
   it("falls back to the other nations when the channel has no name", () => {
-    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const channel = { id: 2, name: "England, Italy", private: true } as ChannelDetail;
 
     expect(getChannelDisplayName(channel, "England")).toBe("Italy");
   });
@@ -57,7 +57,7 @@ describe("getChannelDisplayName", () => {
 
 describe("getChannelSubtitle", () => {
   it("names the players behind the nations when the channel has no name", () => {
-    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const channel = { id: 2, name: "England, Italy", private: true } as ChannelDetail;
     const members = [member(1, "England"), member(2, "Italy")];
 
     expect(getChannelSubtitle(channel, members, "England")).toBe("Player 2");
@@ -69,7 +69,7 @@ describe("getChannelSubtitle", () => {
       name: "England, Italy",
       title: "The great alliance",
       private: true,
-    } as Channel;
+    } as ChannelDetail;
     const members = [member(1, "England"), member(2, "Italy")];
 
     expect(getChannelSubtitle(channel, members, "England")).toBe("Italy");
@@ -80,7 +80,7 @@ describe("getChannelSubtitle", () => {
   });
 
   it("is empty when no member holds the nation any more", () => {
-    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const channel = { id: 2, name: "England, Italy", private: true } as ChannelDetail;
 
     expect(getChannelSubtitle(channel, [member(1, "England")], "England")).toBeNull();
   });
@@ -103,7 +103,7 @@ describe("getChannelFlagUrls", () => {
   });
 
   it("takes private channel flags from the channel name rather than the member list", () => {
-    const privateChannel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const privateChannel = { id: 2, name: "England, Italy", private: true } as ChannelDetail;
 
     expect(
       getChannelFlagUrls(privateChannel, [], "England", variantNations)
@@ -134,13 +134,13 @@ describe("getChannelMemberNations", () => {
 
 describe("isGroupChannel", () => {
   it("is false for a direct channel between two nations", () => {
-    const channel = { id: 2, name: "England, Italy", private: true } as Channel;
+    const channel = { id: 2, name: "England, Italy", private: true } as ChannelDetail;
 
     expect(isGroupChannel(channel, [], "England")).toBe(false);
   });
 
   it("is true for a private channel with more than one other nation", () => {
-    const channel = { id: 2, name: "England, Italy, France", private: true } as Channel;
+    const channel = { id: 2, name: "England, Italy, France", private: true } as ChannelDetail;
 
     expect(isGroupChannel(channel, [], "England")).toBe(true);
   });

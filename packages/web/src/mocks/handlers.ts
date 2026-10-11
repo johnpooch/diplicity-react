@@ -1,5 +1,9 @@
 import { http, HttpResponse } from "msw";
 import type {
+  Channel,
+  ChannelDetail,
+  ChannelMessagePage,
+  ChannelPreview,
   GameList,
   PaginatedGameListList,
   PhaseList,
@@ -77,6 +81,70 @@ const gameOr404 = (gameId: string | readonly string[]) => {
   if (!fixture) return null;
   return fixture;
 };
+
+const toChannelPreview = (channel: Channel): ChannelPreview => ({
+  id: channel.id,
+  name: channel.name,
+  title: channel.title ?? "",
+  private: channel.private,
+  muted: channel.muted,
+  unreadMessageCount: channel.unreadMessageCount,
+  latestMessage: channel.messages[channel.messages.length - 1] ?? null,
+});
+
+const toChannelDetail = (channel: Channel): ChannelDetail => {
+  const unread = channel.messages
+    .filter(message => !message.sender.isCurrentUser)
+    .slice(-channel.unreadMessageCount);
+  const messageIds = channel.messages.map(message => message.id);
+  const eventIds = channel.events.map(event => event.id);
+  return {
+    id: channel.id,
+    name: channel.name,
+    title: channel.title ?? "",
+    private: channel.private,
+    muted: channel.muted,
+    canMute: channel.canMute,
+    canRename: channel.canRename,
+    unreadMessageCount: channel.unreadMessageCount,
+    firstUnreadMessageId:
+      channel.unreadMessageCount > 0 ? (unread[0]?.id ?? null) : null,
+    latestMessageId: messageIds.length > 0 ? Math.max(...messageIds) : null,
+    latestEventId: eventIds.length > 0 ? Math.max(...eventIds) : null,
+    events: channel.events,
+  };
+};
+
+const toChannelMessagePage = (
+  channel: Channel,
+  searchParams: URLSearchParams
+): ChannelMessagePage => {
+  const pageSize = Math.min(Number(searchParams.get("page_size") ?? 50), 100);
+  const before = searchParams.get("before");
+  const after = searchParams.get("after");
+  const byId = [...channel.messages].sort((a, b) => a.id - b.id);
+  if (after !== null) {
+    const newer = byId.filter(message => message.id > Number(after));
+    return {
+      results: newer.slice(0, pageSize),
+      hasOlder: byId.some(message => message.id <= Number(after)),
+      hasNewer: newer.length > pageSize,
+    };
+  }
+  const older =
+    before === null
+      ? byId
+      : byId.filter(message => message.id < Number(before));
+  return {
+    results: older.slice(-pageSize),
+    hasOlder: older.length > pageSize,
+    hasNewer:
+      before !== null && byId.some(message => message.id >= Number(before)),
+  };
+};
+
+const findChannel = (gameId: string, channelId: string) =>
+  gameOr404(gameId)?.channels.find(item => item.id === Number(channelId));
 
 const notFound = () =>
   HttpResponse.json({ detail: "Not found." }, { status: 404 });
@@ -213,6 +281,36 @@ export const handlers = [
     const fixture = gameOr404(params.gameId as string);
     return fixture ? HttpResponse.json(fixture.channels) : notFound();
   }),
+
+  http.get("*/games/:gameId/channel-previews/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    return fixture
+      ? HttpResponse.json(fixture.channels.map(toChannelPreview))
+      : notFound();
+  }),
+
+  http.get("*/games/:gameId/channels/:channelId/", ({ params }) => {
+    const channel = findChannel(
+      params.gameId as string,
+      params.channelId as string
+    );
+    return channel ? HttpResponse.json(toChannelDetail(channel)) : notFound();
+  }),
+
+  http.get(
+    "*/games/:gameId/channels/:channelId/messages/",
+    ({ params, request }) => {
+      const channel = findChannel(
+        params.gameId as string,
+        params.channelId as string
+      );
+      return channel
+        ? HttpResponse.json(
+            toChannelMessagePage(channel, new URL(request.url).searchParams)
+          )
+        : notFound();
+    }
+  ),
 
   http.get("*/games/:gameId/draw-proposals/", ({ params }) => {
     const fixture = gameOr404(params.gameId as string);

@@ -28,10 +28,9 @@ import { useGameVariant } from "@/hooks/useGameVariant";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
 import {
-  getGamesChannelsListQueryKey,
+  getGamesChannelPreviewsListQueryKey,
   useGameRetrieveSuspense,
   useGamesChannelsCreateCreate,
-  type Channel,
   type Member,
 } from "@/api/generated/endpoints";
 
@@ -139,10 +138,9 @@ const ChannelCreateScreen: React.FC = () => {
           title: values.title,
         },
       });
-      queryClient.setQueryData<Channel[]>(
-        getGamesChannelsListQueryKey(gameId),
-        (old) => [...(old ?? []), response]
-      );
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelPreviewsListQueryKey(gameId),
+      });
       toast.success("Channel created successfully");
       if (response) {
         navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);

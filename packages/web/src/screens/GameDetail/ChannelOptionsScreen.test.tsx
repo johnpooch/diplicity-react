@@ -68,17 +68,22 @@ vi.mock("@/api/generated/endpoints", () => ({
     },
   }),
   useUserRetrieveSuspense: () => ({ data: { userId: 1 } }),
-  useGamesChannelsListSuspense: () => ({ data: [mockChannel()] }),
+  useGamesChannelsRetrieveSuspense: () => ({ data: mockChannel() }),
   useGamesChannelsMutePartialUpdate: () => ({
     mutateAsync: muteChannel,
     isPending: false,
   }),
-  getGamesChannelsListQueryKey: (gameId: string) => ["channels", gameId],
+  getGamesChannelsRetrieveQueryKey: (gameId: string, channelId: number) => [
+    "channel",
+    gameId,
+    channelId,
+  ],
+  getGamesChannelPreviewsListQueryKey: (gameId: string) => ["previews", gameId],
 }));
 
-const renderScreen = () =>
+const renderScreen = (queryClient = new QueryClient()) =>
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={["/game/game-1/phase/1/chat/channel/7/options"]}
       >
@@ -184,6 +189,24 @@ describe("ChannelOptionsScreen", () => {
       })
     );
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the channel and its preview after muting", async () => {
+    const queryClient = new QueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const user = userEvent.setup();
+    renderScreen(queryClient);
+
+    await user.click(
+      screen.getByRole("button", { name: "Mute notifications" })
+    );
+
+    await waitFor(() =>
+      expect(invalidate.mock.calls.map(call => call[0]?.queryKey)).toEqual([
+        ["channel", "game-1", 7],
+        ["previews", "game-1"],
+      ])
+    );
   });
 
   it("shows feedback when muting fails", async () => {

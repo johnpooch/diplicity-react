@@ -1,4 +1,6 @@
-import { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
+import { ChannelDetail, ChannelMember, Member } from "@/api/generated/endpoints";
+
+type ChannelIdentity = Pick<ChannelDetail, "name" | "title" | "private">;
 
 export type ChannelNation = { flagUrl: string | null; color: string };
 
@@ -38,7 +40,7 @@ export const brightnessByColor = (hex: string): number => {
 
 // Private channel names are formatted by the backend as "Nation1, Nation2, ..."
 const getOtherNationNames = (
-  channel: Channel,
+  channel: ChannelIdentity,
   currentNationName: string | undefined
 ): string[] =>
   channel.name
@@ -47,7 +49,7 @@ const getOtherNationNames = (
     .filter(n => n !== currentNationName);
 
 const getAllChannelNationNames = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[]
 ): string[] =>
   channel.private
@@ -58,7 +60,7 @@ const getAllChannelNationNames = (
         .filter((nation): nation is string => nation !== null);
 
 export const getChannelDisplayName = (
-  channel: Channel,
+  channel: ChannelIdentity,
   currentNationName: string | undefined
 ): string => {
   if (channel.title) return channel.title;
@@ -70,7 +72,7 @@ export const getChannelDisplayName = (
 // Whatever the title does not already say: the nations for a named
 // channel, and the players behind them for an unnamed one.
 export const getChannelSubtitle = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[],
   currentNationName: string | undefined
 ): string | null => {
@@ -85,7 +87,7 @@ export const getChannelSubtitle = (
 };
 
 const getChannelNationNames = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[],
   currentNationName: string | undefined
 ): string[] =>
@@ -97,7 +99,7 @@ const getChannelNationNames = (
         .filter((n): n is string => n !== null);
 
 export const getChannelFlagUrls = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[],
   currentNationName: string | undefined,
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
@@ -110,7 +112,7 @@ export const getChannelFlagUrls = (
 };
 
 export const getChannelMemberNations = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[],
   variantNations: ReadonlyArray<{
     name: string;
@@ -135,7 +137,7 @@ export const getChannelMemberNations = (
 // currently have a seat in it, so it always shows sender labels; only a
 // private channel can be the direct kind that hides them.
 export const isGroupChannel = (
-  channel: Channel,
+  channel: ChannelIdentity,
   members: readonly Member[],
   currentNationName: string | undefined
 ): boolean =>
