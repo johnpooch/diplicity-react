@@ -209,6 +209,8 @@ class GameListSerializer(serializers.Serializer):
             return None
         for phase_state in current_phase.phase_states.all():
             if phase_state.member.user_id == user.id:
+                if not phase_state.member.occupied:
+                    return None
                 if phase_state.orders_confirmed:
                     return "orders_submitted"
                 if not phase_state.has_possible_orders:
@@ -411,6 +413,8 @@ class GameRetrieveSerializer(serializers.Serializer):
             return None
         for phase_state in current_phase.phase_states.all():
             if phase_state.member.user_id == user.id:
+                if not phase_state.member.occupied:
+                    return None
                 if phase_state.orders_confirmed:
                     return "orders_submitted"
                 if not phase_state.has_possible_orders:
