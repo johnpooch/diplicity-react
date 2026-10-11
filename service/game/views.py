@@ -75,15 +75,14 @@ class GameListView(generics.ListAPIView):
         return page
 
 
-class MyGamesCurrentView(generics.GenericAPIView):
+class MyGamesCurrentView(generics.RetrieveAPIView):
     """Return the authenticated user's current games, grouped into ordered sections, each game with a single state."""
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = MyGamesCurrentSerializer
 
-    def get(self, request):
-        sections = Game.objects.my_games_current(request.user)
-        return Response(self.get_serializer({"sections": sections}).data)
+    def get_object(self):
+        return {"sections": Game.objects.my_games_current(self.request.user)}
 
 
 class GameCreateView(generics.CreateAPIView):
