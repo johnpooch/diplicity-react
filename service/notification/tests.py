@@ -462,14 +462,13 @@ class TestSeatedResolver:
         "event_type",
         ["game_start", "game_draw", "phase_resolved", "phase_resolved_early"],
     )
-    def test_includes_eliminated_and_civil_disorder_but_not_kicked_or_replaced(self, emit_game, event_type):
+    def test_includes_eliminated_but_not_civil_disorder_kicked_or_replaced(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
         result = resolve_recipients(event_type, game=state["game"])
         assert result == {
             state["active_one"].user_id,
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["civil"].user_id,
             state["replacement"].user_id,
             state["game_master"].id,
         }
@@ -490,12 +489,13 @@ class TestSeatedResolver:
             "civil_disorder_recovery",
         ],
     )
-    def test_kicked_and_replaced_members_are_not_notified(self, emit_game, event_type):
+    def test_kicked_civil_disorder_and_replaced_members_are_not_notified(self, emit_game, event_type):
         state = emit_game(with_game_master=True)
         result = resolve_recipients(
             event_type, game=state["game"], actor=state["active_one"].user
         )
         assert state["kicked"].user_id not in result
+        assert state["civil"].user_id not in result
         assert state["replaced"].user_id not in result
 
 
@@ -518,7 +518,6 @@ class TestSeatedExceptActorResolver:
         assert result == {
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["civil"].user_id,
             state["replacement"].user_id,
             state["game_master"].id,
         }
@@ -587,7 +586,6 @@ class TestWinnersResolver:
         assert result == {
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["civil"].user_id,
             state["replacement"].user_id,
             state["game_master"].id,
         }
@@ -601,7 +599,6 @@ class TestNmrExtensionAppliedResolver:
             state["active_one"].user_id,
             state["active_two"].user_id,
             state["eliminated"].user_id,
-            state["civil"].user_id,
             state["replacement"].user_id,
             state["game_master"].id,
         }
@@ -679,14 +676,24 @@ class TestChannelMessageResolver:
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
 
-    def test_public_channel_does_not_notify_kicked_or_replaced_members(self, emit_game):
+    def test_public_channel_does_not_notify_kicked_civil_disorder_or_replaced_members(self, emit_game):
         state = emit_game()
         channel = Channel.objects.create(game=state["game"], name="Global", private=False)
         message = ChannelMessage.objects.create(channel=channel, sender=state["active_one"], body="hi")
         result = resolve_recipients("channel_message", message=message)
         assert state["kicked"].user_id not in result
+        assert state["civil"].user_id not in result
         assert state["replaced"].user_id not in result
         assert state["replacement"].user_id in result
+
+    def test_private_channel_does_not_notify_a_civil_disorder_member(self, emit_game):
+        state = emit_game()
+        channel = Channel.objects.create(game=state["game"], name="Private", private=True)
+        sender = state["active_one"]
+        channel.members.set([sender, state["civil"], state["active_two"]])
+        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        result = resolve_recipients("channel_message", message=message)
+        assert result == {state["active_two"].user_id}
 
     def test_private_channel_does_not_notify_a_replaced_member(self, emit_game):
         state = emit_game()

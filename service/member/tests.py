@@ -541,7 +541,7 @@ class TestRemoveMemberFromActiveGame:
         assert member.user is not None
 
     @pytest.mark.django_db
-    def test_remove_discards_orders_and_vacates_the_phase_state(
+    def test_remove_discards_orders_and_confirms_the_phase_state(
         self, authenticated_client, active_game_factory, classical_london_province
     ):
         game = active_game_factory()
@@ -556,7 +556,7 @@ class TestRemoveMemberFromActiveGame:
         authenticated_client.delete(url)
 
         phase_state.refresh_from_db()
-        assert phase_state.has_possible_orders is False
+        assert phase_state.orders_confirmed is True
         assert not Order.objects.filter(phase_state__member=member).exists()
 
     @pytest.mark.django_db
@@ -575,6 +575,21 @@ class TestRemoveMemberFromActiveGame:
         authenticated_client.delete(url)
 
         assert phase.id in [p.id for p in Phase.objects.filter_due_phases()]
+
+    @pytest.mark.django_db
+    def test_game_with_every_player_removed_is_abandoned_at_resolution(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        for member in game.members.exclude(user=game.admin):
+            _record_nmr(game, member)
+            authenticated_client.delete(reverse(kick_viewname, args=[game.id, member.id]))
+        Member.objects.remove(game.members.get(user=game.admin))
+
+        Phase.objects.resolve(game.current_phase)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
 
     @pytest.mark.django_db
     def test_remove_notifies_the_removed_player(self, authenticated_client, active_game_factory):

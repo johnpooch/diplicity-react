@@ -162,23 +162,42 @@ class TestDrawProposalManager:
         assert cd_vote.included is False
         assert cd_vote.accepted is True
 
-    def test_create_proposal_excludes_eliminated_and_kicked_members(
+    def test_create_proposal_excludes_eliminated_and_replaced_members(
         self, game_factory, phase_factory, member_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
         phase_factory(game=game)
         proposer = member_factory(game=game)
+        other = member_factory(game=game)
         eliminated = member_factory(game=game, eliminated=True)
+        replacement = member_factory(game=game)
+        replaced = member_factory(game=game, kicked=True, replaced_by=replacement)
+
+        proposal = DrawProposal.objects.create_proposal(
+            game=game, created_by=proposer,
+        )
+
+        assert proposal.votes.count() == 3
+        assert set(proposal.votes.values_list("member_id", flat=True)) == {proposer.id, other.id, replacement.id}
+        assert not proposal.votes.filter(member=eliminated).exists()
+        assert not proposal.votes.filter(member=replaced).exists()
+
+    def test_create_proposal_auto_accepts_for_kicked_members(
+        self, game_factory, phase_factory, member_factory
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase_factory(game=game)
+        proposer = member_factory(game=game)
+        member_factory(game=game)
         kicked = member_factory(game=game, kicked=True)
 
         proposal = DrawProposal.objects.create_proposal(
             game=game, created_by=proposer,
         )
 
-        assert proposal.votes.count() == 1
-        assert proposal.votes.first().member == proposer
-        assert not proposal.votes.filter(member=eliminated).exists()
-        assert not proposal.votes.filter(member=kicked).exists()
+        vote = proposal.votes.get(member=kicked)
+        assert vote.accepted is True
+        assert vote.included is False
 
     def test_active_queryset_excludes_cancelled(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory
@@ -404,6 +423,21 @@ class TestDrawProposalCreateView:
             f"/games/{game.id}/draw-proposals/create/", {}, format="json",
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_create_proposal_fails_for_civil_disorder_member(
+        self, api_client, game_factory, phase_factory, member_factory, primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase_factory(game=game)
+        member_factory(game=game, user=primary_user, civil_disorder=True)
+        member_factory(game=game)
+        self._auth(api_client, primary_user)
+
+        response = api_client.post(
+            f"/games/{game.id}/draw-proposals/create/", {}, format="json",
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert DrawProposal.objects.count() == 0
 
     def test_create_proposal_fails_if_member_already_has_active_proposal(
         self, api_client, game_factory, phase_factory, member_factory,

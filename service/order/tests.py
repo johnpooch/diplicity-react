@@ -788,6 +788,18 @@ class TestOrderCreateView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 0
 
+    @pytest.mark.django_db
+    def test_order_create_rejected_for_civil_disorder_player(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(civil_disorder=True)
+
+        url = reverse("order-create", args=[game_with_options.id])
+        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.count() == 0
+
 
 class TestOrderDeleteView:
     @pytest.mark.django_db
@@ -3184,6 +3196,16 @@ class TestOrderOptionsView:
         self, authenticated_client, game_with_options, primary_user
     ):
         game_with_options.members.filter(user=primary_user).update(eliminated=True)
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
+
+    @pytest.mark.django_db
+    def test_civil_disorder_member_returns_no_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(civil_disorder=True)
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
