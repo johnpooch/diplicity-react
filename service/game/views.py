@@ -113,7 +113,7 @@ class GameFindSimilarView(generics.GenericAPIView):
 
         candidates.sort(
             key=lambda g: (
-                g.variant.nations.count() - g.members.count(),
+                g.variant.nations.filter(non_playable=False).count() - g.members.count(),
                 -g.created_at.timestamp(),
             )
         )

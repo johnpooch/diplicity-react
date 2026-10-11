@@ -40,6 +40,7 @@ import {
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
+import { countPlayableNations } from "../utils/playableNations";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -101,7 +102,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const isFinished = game.status === "completed" || isAbandoned;
   const currentMember = members.find(m => m.isCurrentUser);
   const showAvatars = !game.sandbox;
-  const totalSlots = variant.nations.length;
+  const totalSlots = countPlayableNations(variant.nations);
   const joinedCount = members.length;
   const winnerIds = new Set(game.victory?.members.map(m => m.id) ?? []);
 

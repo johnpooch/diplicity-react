@@ -2,6 +2,8 @@ import React from "react";
 import { Info, Trophy, Pause, UserCog } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import type { Nation } from "@/api/generated/endpoints";
+import { countPlayableNations } from "@/utils/playableNations";
 
 interface GameStatusAlertsProps {
   game: {
@@ -13,7 +15,7 @@ interface GameStatusAlertsProps {
     } | null;
   };
   variant?: {
-    nations: { length: number } | readonly unknown[];
+    nations: readonly Pick<Nation, "nonPlayable">[];
   };
   action?: React.ReactNode;
   adminAction?: React.ReactNode;
@@ -27,10 +29,8 @@ export function GameStatusAlerts({
   adminAction,
   showPausedNotice = true,
 }: GameStatusAlertsProps) {
-  const nationCount = variant?.nations
-    ? Array.isArray(variant.nations)
-      ? variant.nations.length
-      : variant.nations.length
+  const nationCount = variant
+    ? countPlayableNations(variant.nations)
     : undefined;
 
   return (

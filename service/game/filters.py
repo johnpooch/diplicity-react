@@ -68,8 +68,10 @@ class GameFilter(django_filters.FilterSet):
             # account deletion, so every member row counts toward fill.
             return queryset.annotate(
                 member_count=Count("members", distinct=True),
-                nation_count=Count("variant__nations", distinct=True),
-                slots_remaining=F("nation_count") - F("member_count"),
+                seat_count=Count(
+                    "variant__nations", filter=Q(variant__nations__non_playable=False), distinct=True
+                ),
+                slots_remaining=F("seat_count") - F("member_count"),
             ).order_by("slots_remaining", "-created_at")
         if value == "deadline":
             next_deadline = (

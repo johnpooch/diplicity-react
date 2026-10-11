@@ -327,6 +327,23 @@ describe("GameCard", () => {
       ).toBeInTheDocument();
     });
 
+    it("excludes non-playable nations from the total slots", () => {
+      renderGameCard({
+        game: mockPendingGames[0],
+        ...defaultProps,
+        variant: {
+          ...defaultProps.variant,
+          nations: [
+            ...mockNations,
+            { nationId: "neutral", name: "Neutral", color: "#9E9E9E", nonPlayable: true, flagUrl: null },
+          ],
+        },
+      });
+      expect(
+        screen.getByText(`${mockPendingGames[0].members.length}/${mockNations.length} joined`)
+      ).toBeInTheDocument();
+    });
+
     it("does not show order status or result badges", () => {
       renderGameCard({ game: mockPendingGames[0], ...defaultProps });
       expect(screen.queryByText(/joined/)).toBeInTheDocument();
