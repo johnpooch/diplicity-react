@@ -5,7 +5,8 @@ from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsCha
 from .models import Channel, ChannelMember
 from .permissions import CanMuteChannel, CanRenameChannel
 from .serializers import ChannelSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelMuteSerializer, ChannelUpdateSerializer
-from common.views import ConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
+from .utils import channel_list_fingerprint
+from common.views import PrecomputedConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
@@ -55,7 +56,7 @@ class ChannelMuteView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMember
         )
 
 
-class ChannelListView(ConditionalGetMixin, SelectedGameMixin, generics.ListAPIView):
+class ChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ChannelSerializer
 
@@ -73,6 +74,9 @@ class ChannelListView(ConditionalGetMixin, SelectedGameMixin, generics.ListAPIVi
         context = super().get_serializer_context()
         context["current_game_member"] = self.get_current_game_member()
         return context
+
+    def get_fingerprint(self):
+        return channel_list_fingerprint(self.request, self.get_game(), self.get_current_game_member())
 
     def get_queryset(self):
         game = self.get_game()
