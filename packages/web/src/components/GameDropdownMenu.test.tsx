@@ -111,9 +111,7 @@ describe("GameDropdownMenu withdrawal", () => {
     await userEvent.click(dialog.getByRole("button", { name: /^withdraw$/i }));
 
     expect(mockWithdrawMutateAsync).toHaveBeenCalledWith({ gameId: "game-1" });
-    expect(toast.success).toHaveBeenCalledWith(
-      "You have withdrawn from the game"
-    );
+    expect(toast.success).not.toHaveBeenCalled();
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["games"] });
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["game", "game-1"],

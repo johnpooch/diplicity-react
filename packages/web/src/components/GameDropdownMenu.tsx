@@ -75,7 +75,6 @@ export function GameDropdownMenu({
     setShowWithdrawConfirmation(false);
     try {
       await withdrawMutation.mutateAsync({ gameId: game.id });
-      toast.success("You have withdrawn from the game");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
       queryClient.invalidateQueries({
         queryKey: getGameRetrieveQueryKey(game.id),
