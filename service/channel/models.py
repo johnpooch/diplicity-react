@@ -9,6 +9,8 @@ from common.models import BaseModel
 User = get_user_model()
 
 CHANNEL_TITLE_MAX_LENGTH = 50
+CHANNEL_MESSAGE_PAGE_SIZE = 50
+CHANNEL_MESSAGE_MAX_PAGE_SIZE = 100
 
 
 class ChannelQuerySet(models.QuerySet):
@@ -207,6 +209,22 @@ class ChannelMessageQuerySet(models.QuerySet):
 
     def with_sender_data(self):
         return self.select_related("sender", "sender__user", "sender__user__profile__uploaded_picture")
+
+    def page(self, before=None, after=None, page_size=CHANNEL_MESSAGE_PAGE_SIZE):
+        if after is not None:
+            window = list(self.filter(id__gt=after).order_by("id")[: page_size + 1])
+            return {
+                "results": window[:page_size],
+                "has_older": self.filter(id__lte=after).exists(),
+                "has_newer": len(window) > page_size,
+            }
+        older = self if before is None else self.filter(id__lt=before)
+        window = list(older.order_by("-id")[: page_size + 1])
+        return {
+            "results": window[:page_size][::-1],
+            "has_older": len(window) > page_size,
+            "has_newer": before is not None and self.filter(id__gte=before).exists(),
+        }
 
     def unread_by(self, user):
         last_read_subquery = Subquery(

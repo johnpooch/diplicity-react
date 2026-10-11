@@ -1,11 +1,22 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
 
-from .models import Channel, ChannelMember
+from .models import Channel, ChannelMember, ChannelMessage
 from .permissions import CanMuteChannel, CanRenameChannel
-from .serializers import ChannelSerializer, ChannelDetailSerializer, ChannelMessageSerializer, ChannelMarkReadSerializer, ChannelMuteSerializer, ChannelPreviewSerializer, ChannelUpdateSerializer
+from .serializers import (
+    ChannelSerializer,
+    ChannelDetailSerializer,
+    ChannelMessageSerializer,
+    ChannelMessagePageQuerySerializer,
+    ChannelMessagePageSerializer,
+    ChannelMarkReadSerializer,
+    ChannelMuteSerializer,
+    ChannelPreviewSerializer,
+    ChannelUpdateSerializer,
+)
 from .utils import channel_list_fingerprint
 from common.views import ConditionalGetMixin, PrecomputedConditionalGetMixin, SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin
 
@@ -51,6 +62,28 @@ class ChannelRetrieveUpdateView(ConditionalGetMixin, SelectedGameMixin, CurrentG
 
     def get_object(self):
         return self.get_channel()
+
+
+@extend_schema(parameters=[ChannelMessagePageQuerySerializer])
+class ChannelMessageListView(SelectedGameMixin, CurrentGameMemberMixin, generics.RetrieveAPIView):
+    """List a page of a channel's messages, oldest to newest, bounded by message ID with `before` or `after`."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ChannelMessagePageSerializer
+
+    def get_object(self):
+        channel = get_object_or_404(
+            Channel.objects.accessible_to_member(self.get_current_game_member(), self.get_game()),
+            id=self.kwargs["channel_id"],
+        )
+        query = ChannelMessagePageQuerySerializer(data=self.request.query_params)
+        query.is_valid(raise_exception=True)
+        return (
+            ChannelMessage.objects.for_channel(channel)
+            .with_sender_data()
+            .select_related("sender__nation__flag")
+            .page(**query.validated_data)
+        )
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):

@@ -466,6 +466,12 @@ class ChannelMessage(TypedDict):
     created_at: str
 
 
+class ChannelMessagePage(TypedDict):
+    results: list[ChannelMessage]
+    has_older: bool
+    has_newer: bool
+
+
 class ChannelMute(TypedDict):
     muted: bool
     mute_duration: MuteDurationEnum | NullEnum | None

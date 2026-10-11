@@ -1480,6 +1480,50 @@ paths:
       responses:
         '201':
           description: No response body
+  /games/{gameId}/channels/{channelId}/messages/:
+    get:
+      operationId: gamesChannelsMessagesRetrieve
+      description: List a page of a channel's messages, oldest to newest, bounded
+        by message ID with `before` or `after`.
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+          minimum: 1
+      - in: query
+        name: before
+        schema:
+          type: integer
+          minimum: 1
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+          minimum: 1
+          default: 50
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelMessagePage'
+          description: ''
   /games/{gameId}/channels/{channelId}/messages/create/:
     post:
       operationId: gamesChannelsMessagesCreateCreate
@@ -2420,6 +2464,24 @@ components:
       - createdAt
       - id
       - sender
+    ChannelMessagePage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelMessage'
+          readOnly: true
+        hasOlder:
+          type: boolean
+          readOnly: true
+        hasNewer:
+          type: boolean
+          readOnly: true
+      required:
+      - hasNewer
+      - hasOlder
+      - results
     ChannelMute:
       type: object
       properties:
