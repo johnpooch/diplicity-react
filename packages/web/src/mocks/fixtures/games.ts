@@ -807,8 +807,8 @@ const buildActiveCivilDisorder = () => {
       members,
       [phase],
       {
-        orderStatus: "no_orders_required",
-        memberStatus: [],
+        orderStatus: null,
+        memberStatus: ["civil_disorder"],
       }
     ),
     phases: [phase],
@@ -867,7 +867,7 @@ const buildActiveWithdrawn = () => {
     description:
       "Active game in Spring 1901 where the current user (England) has withdrawn and cannot submit orders.",
     game: makeGame("active-withdrawn", "Gone Fishing", members, [phase], {
-      orderStatus: "no_orders_required",
+      orderStatus: null,
       memberStatus: [],
     }),
     phases: [phase],
@@ -935,7 +935,7 @@ const buildActiveSeatOpenSpectator = () => {
     description:
       "Active game with an open Turkey seat that the current user is not a member of. Used to demo the takeover link landing screen.",
     game: makeGame("seat-open-spectator", "The Open Seat", members, [phase], {
-      orderStatus: "no_orders_required",
+      orderStatus: null,
       memberStatus: [],
     }),
     phases: [phase],
