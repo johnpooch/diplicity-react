@@ -3,6 +3,7 @@ import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { determineRenderableProvinces } from "../utils/provinces";
 import { buildOptimisticOrder } from "../utils/buildOptimisticOrder";
 import {
@@ -362,10 +363,8 @@ const GameMap: React.FC = () => {
             {canClearMenuSource && (
               <>
                 <FloatingMenuSeparator />
-                <FloatingMenuItem
-                  variant="destructive"
-                  onClick={() => handleClearOrder(menuSource)}
-                >
+                <FloatingMenuItem onClick={() => handleClearOrder(menuSource)}>
+                  <Trash2 />
                   Clear Order
                 </FloatingMenuItem>
               </>
