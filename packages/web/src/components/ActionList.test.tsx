@@ -23,6 +23,8 @@ const mockPause = vi.fn();
 const mockUnpause = vi.fn();
 const mockExtendDeadline = vi.fn();
 const mockKick = vi.fn();
+const mockClone = vi.fn();
+const mockDelete = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -34,6 +36,8 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameUnpausePartialUpdate: () => ({ mutateAsync: mockUnpause, isPending: false }),
   useGameExtendDeadlineUpdate: () => ({ mutateAsync: mockExtendDeadline, isPending: false }),
   useGameKickDestroy: () => ({ mutateAsync: mockKick, isPending: false }),
+  useGameCloneToSandboxCreate: () => ({ mutateAsync: mockClone, isPending: false }),
+  useGameDeleteDestroy: () => ({ mutateAsync: mockDelete, isPending: false }),
   getGameAddableUserListQueryKey: () => ["addable"],
   getGameMemberRetrieveQueryKey: () => ["member"],
   getGamePhaseRetrieveQueryKey: () => ["phase"],
@@ -269,6 +273,63 @@ describe("ActionList", () => {
     await user.click(screen.getByRole("button", { name: /invite replacement/i }));
 
     expect(mockCopyLink).toHaveBeenCalledWith("/game/game-1/replace/7");
+  });
+
+  it("renders the main next step as a button above the other actions", () => {
+    renderActions(
+      [
+        { key: "take_over", blockedReason: null },
+        { key: "share_replacement_link", blockedReason: null },
+      ],
+      { member }
+    );
+
+    const [takeOver, invite] = screen.getAllByRole("button");
+    expect(takeOver).toHaveTextContent("Take over seat");
+    expect(takeOver).toHaveAttribute("data-slot", "button");
+    expect(invite).toHaveTextContent("Invite replacement");
+    expect(invite).not.toHaveAttribute("data-slot", "button");
+  });
+
+  it("clones the game and opens the new sandbox", async () => {
+    const user = userEvent.setup();
+    mockClone.mockResolvedValue({ id: "sandbox-1" });
+    renderActions([{ key: "clone_to_sandbox", blockedReason: null }]);
+
+    await user.click(screen.getByRole("button", { name: /clone to sandbox/i }));
+
+    expect(mockClone).not.toHaveBeenCalled();
+    expect(screen.getByText(/A sandbox copy of this game/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Create sandbox" }));
+
+    expect(mockClone).toHaveBeenCalledWith({ gameId: "game-1", data: {} });
+    expect(mockNavigate).toHaveBeenCalledWith("/game/sandbox-1");
+  });
+
+  it("deletes the game and goes home", async () => {
+    const user = userEvent.setup();
+    renderActions([{ key: "delete", blockedReason: null }]);
+
+    await user.click(screen.getByRole("button", { name: /delete game/i }));
+
+    expect(screen.getByText(/Players who have joined will be notified/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(mockDelete).toHaveBeenCalledWith({ gameId: "game-1" });
+    expect(mockNavigate).toHaveBeenCalledWith("/");
+  });
+
+  it("explains deleting a sandbox game", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({ sandbox: true, showShortGameJoinWarning: false });
+    renderActions([{ key: "delete", blockedReason: null }]);
+
+    await user.click(screen.getByRole("button", { name: /delete game/i }));
+
+    expect(screen.getByText("Delete sandbox game")).toBeInTheDocument();
+    expect(screen.getByText(/delete this sandbox game and all its data/)).toBeInTheDocument();
   });
 
   it("reports a failed action", async () => {

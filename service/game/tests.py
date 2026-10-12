@@ -67,8 +67,8 @@ def queried_unread_game_ids(sql):
     return set(re.findall(r"'([^']+)'", match.group(1)))
 
 
-def _action_keys(response):
-    return [action["key"] for action in response.data["actions"]]
+def _action_keys(response, field="actions"):
+    return [action["key"] for action in response.data[field]]
 
 
 class TestGameRetrieveView:
@@ -476,12 +476,30 @@ class TestGameRetrieveView:
         assert response.data["actions"] == [{"key": "join", "blocked_reason": None}]
 
     @pytest.mark.django_db
-    def test_retrieve_game_offers_nation_preferences_and_leave_to_a_pending_player(
+    def test_retrieve_game_offers_leave_to_a_pending_player(
         self, authenticated_client, pending_game_created_by_primary_user
     ):
         response = authenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
 
-        assert _action_keys(response) == ["edit_nation_preferences", "leave"]
+        assert _action_keys(response) == ["leave"]
+
+    @pytest.mark.django_db
+    def test_retrieve_game_offers_nation_preferences_on_the_player_list_to_a_pending_player(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
+
+        assert _action_keys(response, "player_list_actions") == ["edit_nation_preferences"]
+
+    @pytest.mark.django_db
+    def test_retrieve_game_offers_no_player_list_actions_once_the_game_starts(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.data["player_list_actions"] == []
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_confirm_seat_to_an_unconfirmed_player(
@@ -509,14 +527,15 @@ class TestGameRetrieveView:
         assert _action_keys(response) == ["leave"]
 
     @pytest.mark.django_db
-    def test_retrieve_game_offers_nation_assignment_to_the_game_master(
+    def test_retrieve_game_offers_nation_assignment_and_delete_to_the_game_master(
         self, authenticated_client, pending_game_with_game_master_factory
     ):
         game = pending_game_with_game_master_factory()
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response) == ["assign_nations"]
+        assert _action_keys(response, "player_list_actions") == ["assign_nations"]
+        assert _action_keys(response) == ["delete"]
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_management_and_withdraw_to_an_active_manager(
@@ -526,7 +545,7 @@ class TestGameRetrieveView:
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response) == ["extend_deadline", "pause", "withdraw"]
+        assert _action_keys(response) == ["extend_deadline", "pause", "clone_to_sandbox", "withdraw"]
 
     @pytest.mark.django_db
     def test_retrieve_game_omits_extend_deadline_without_a_deadline(self, authenticated_client, active_game_factory):
@@ -535,7 +554,7 @@ class TestGameRetrieveView:
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response) == ["pause", "withdraw"]
+        assert _action_keys(response) == ["pause", "clone_to_sandbox", "withdraw"]
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_unpause_to_the_manager_of_a_paused_game(
@@ -547,10 +566,10 @@ class TestGameRetrieveView:
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response) == ["unpause", "withdraw"]
+        assert _action_keys(response) == ["unpause", "clone_to_sandbox", "withdraw"]
 
     @pytest.mark.django_db
-    def test_retrieve_game_offers_only_withdraw_to_an_active_player(
+    def test_retrieve_game_offers_clone_and_withdraw_to_an_active_player(
         self, authenticated_client_factory, active_game_factory, secondary_user
     ):
         game = active_game_factory(creator=secondary_user)
@@ -558,7 +577,7 @@ class TestGameRetrieveView:
 
         response = authenticated_client_factory(member.user).get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response) == ["withdraw"]
+        assert _action_keys(response) == ["clone_to_sandbox", "withdraw"]
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_no_actions_to_an_outsider_of_an_active_game(
@@ -569,6 +588,16 @@ class TestGameRetrieveView:
         response = authenticated_client_for_tertiary_user.get(reverse(retrieve_viewname, args=[game.id]))
 
         assert response.data["actions"] == []
+
+    @pytest.mark.django_db
+    def test_retrieve_game_offers_delete_without_clone_on_a_sandbox_game(
+        self, authenticated_client, sandbox_game_factory
+    ):
+        game = sandbox_game_factory()
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert _action_keys(response) == ["delete"]
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_no_actions_on_a_finished_game(self, authenticated_client, active_game_factory):

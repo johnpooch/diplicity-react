@@ -542,8 +542,8 @@ export const PlayerInfoContent: React.FC = () => {
         </section>
       )}
 
-      {game.actions.length > 0 && (
-        <ActionList gameId={gameId} actions={game.actions} />
+      {game.playerListActions.length > 0 && (
+        <ActionList gameId={gameId} actions={game.playerListActions} />
       )}
 
       {canAddBots && (

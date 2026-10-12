@@ -97,23 +97,61 @@ const REPLACED_MEMBERS: Record<string, MemberDetail> = {
   },
 };
 
-export const gameActionsFor = ({ game }: GameFixture): GameAction[] => {
-  const holdsSeat = game.members.some(member => member.isCurrentUser);
+const GAME_INFO_KEYS: GameAction["key"][] = [
+  "join",
+  "confirm_seat",
+  "extend_deadline",
+  "pause",
+  "unpause",
+  "clone_to_sandbox",
+  "leave",
+  "withdraw",
+  "delete",
+];
+
+const PLAYER_LIST_KEYS: GameAction["key"][] = [
+  "edit_nation_preferences",
+  "assign_nations",
+];
+
+const SEAT_KEYS: GameAction["key"][] = ["confirm_seat", "leave", "withdraw"];
+
+const availableGameActions = ({ game }: GameFixture) => {
+  const isPlayer = game.members.some(member => member.isCurrentUser);
   const isGameMaster = game.gameMaster?.userId === currentUserProfile.userId;
-  const manages = game.canManage && game.status === "active";
-  const rules: [GameAction["key"], boolean][] = [
-    ["join", game.canJoin],
-    ["confirm_seat", game.musterStatus === "confirmation_required"],
-    ["edit_nation_preferences", game.status === "pending" && holdsSeat],
-    ["assign_nations", game.status === "pending" && isGameMaster],
-    ["extend_deadline", manages && !game.isPaused],
-    ["pause", manages && !game.isPaused],
-    ["unpause", manages && game.isPaused],
-    ["leave", game.canLeave],
-    ["withdraw", game.canWithdraw],
-  ];
-  return rules.filter(([, available]) => available).map(([key]) => action(key));
+  const active = game.status === "active";
+  const manages = game.canManage && active;
+  return new Set<GameAction["key"]>(
+    (
+      [
+        ["join", game.canJoin],
+        ["confirm_seat", game.musterStatus === "confirmation_required"],
+        ["edit_nation_preferences", game.status === "pending" && isPlayer],
+        ["assign_nations", game.status === "pending" && isGameMaster],
+        ["extend_deadline", manages && !game.isPaused],
+        ["pause", manages && !game.isPaused],
+        ["unpause", manages && game.isPaused],
+        ["clone_to_sandbox", active && !game.sandbox && isPlayer],
+        ["leave", game.canLeave],
+        ["withdraw", game.canWithdraw],
+        ["delete", game.canDelete],
+      ] as [GameAction["key"], boolean][]
+    )
+      .filter(([, available]) => available)
+      .map(([key]) => key)
+  );
 };
+
+const actionsFrom = (fixture: GameFixture, keys: GameAction["key"][]) => {
+  const available = availableGameActions(fixture);
+  return keys.filter(key => available.has(key)).map(key => action(key));
+};
+
+export const gameActionsFor = (fixture: GameFixture): GameAction[] =>
+  actionsFrom(fixture, GAME_INFO_KEYS);
+
+export const playerListActionsFor = (fixture: GameFixture): GameAction[] =>
+  actionsFrom(fixture, PLAYER_LIST_KEYS);
 
 const defaultStatus = (
   { game }: GameFixture,
@@ -151,7 +189,7 @@ const gameMasterDetail = (fixture: GameFixture, id: number): MemberDetail => ({
   nmrExtensionsRemaining: 0,
   nmrExtensionsAllowed: fixture.game.nmrExtensionsAllowed,
   nationPreferences: null,
-  actions: gameActionsFor(fixture),
+  actions: actionsFrom(fixture, SEAT_KEYS),
 });
 
 export const memberDetailFor = (
@@ -197,7 +235,7 @@ export const memberDetailFor = (
         ? member.nationPreferenceIds.map(nationId => nation(nationId).name)
         : null,
     actions: member.isCurrentUser
-      ? gameActionsFor(fixture)
+      ? actionsFrom(fixture, SEAT_KEYS)
       : (MEMBER_ACTIONS[game.id]?.[key] ?? []),
   };
 };

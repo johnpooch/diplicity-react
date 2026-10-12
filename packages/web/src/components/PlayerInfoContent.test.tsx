@@ -22,7 +22,7 @@ const mockUserProfileData = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
-    data: { actions: [], gameMasterMemberId: null, ...mockGameData() },
+    data: { playerListActions: [], gameMasterMemberId: null, ...mockGameData() },
   }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useVariantsRetrieve: () => ({ data: undefined }),
@@ -493,7 +493,7 @@ describe("PlayerInfoContent", () => {
     );
   });
 
-  it("renders the game's actions below the list", () => {
+  it("renders the player list actions below the list", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
@@ -501,20 +501,20 @@ describe("PlayerInfoContent", () => {
       victory: null,
       phases: [{ id: 1, status: "active" }],
       members: [{ ...baseMember }],
-      actions: [
-        { key: "pause", blockedReason: null },
-        { key: "withdraw", blockedReason: null },
+      playerListActions: [
+        { key: "edit_nation_preferences", blockedReason: null },
+        { key: "assign_nations", blockedReason: null },
       ],
     });
 
     renderPlayerInfo();
 
     expect(screen.getByTestId("action-list")).toHaveTextContent(
-      "pause,withdraw"
+      "edit_nation_preferences,assign_nations"
     );
   });
 
-  it("renders no actions when the game offers none", () => {
+  it("renders no actions when the player list offers none", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",

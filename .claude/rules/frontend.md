@@ -140,7 +140,7 @@ Use React Router hooks (`useNavigate`, `useParams`, `useSearchParams`, `useLocat
 
 ### Game and member actions
 
-The backend decides which game and member actions appear, in what order, and whether each is blocked. Render them with `ActionList`, passing the response's `actions` unchanged; never filter, reorder or decide availability on the client. A screen that shows only part of the list (the game info admin alert) selects keys, nothing more. A new action key gets its label, icon, copy and confirmation in `actionDisplay.ts` and its handler in `ActionList`.
+The backend decides which game and member actions appear, on which screen, in what order, and whether each is blocked. Each screen renders the list the response gives it for that screen (game info renders `actions`, the players screen renders `playerListActions`, the member screen renders the member's `actions`) with `ActionList`, unchanged; never filter, reorder or decide availability on the client. If a screen needs a different set, the backend returns a new list. A new action key gets its label, icon, copy and confirmation in `actionDisplay.ts` and its handler in `ActionList`.
 
 ### Tailwind
 

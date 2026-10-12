@@ -305,7 +305,7 @@ class Member(BaseModel):
     def actions_for(self, user):
         game = self.game
         if self.user_id is not None and self.user_id == user.id:
-            return game.actions_for(user)
+            return game.seat_actions_for(user)
         manages = game.can_manage(user)
         active = game.status == GameStatus.ACTIVE
         actions = []

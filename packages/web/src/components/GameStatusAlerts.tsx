@@ -1,7 +1,6 @@
 import React from "react";
-import { Info, Trophy, Pause, UserCog } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
+import { Info, Trophy, Pause } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Nation } from "@/api/generated/endpoints";
 import { countPlayableNations } from "@/utils/playableNations";
 
@@ -18,7 +17,6 @@ interface GameStatusAlertsProps {
     nations: readonly Pick<Nation, "nonPlayable">[];
   };
   action?: React.ReactNode;
-  adminAction?: React.ReactNode;
   showPausedNotice?: boolean;
 }
 
@@ -26,7 +24,6 @@ export function GameStatusAlerts({
   game,
   variant,
   action,
-  adminAction,
   showPausedNotice = true,
 }: GameStatusAlertsProps) {
   const nationCount = variant
@@ -50,25 +47,11 @@ export function GameStatusAlerts({
         </Alert>
       )}
 
-      {game.status === "active" && adminAction ? (
-        <Alert className={cn("p-5", game.isPaused && "border-destructive")}>
-          <UserCog className="size-4" />
-          <AlertTitle>Admin</AlertTitle>
-          <AlertDescription>
-            {game.isPaused
-              ? "This game is paused."
-              : "Control the game phases here"}
-          </AlertDescription>
-          <div className="col-start-2 pt-2">{adminAction}</div>
+      {showPausedNotice && game.isPaused && (
+        <Alert>
+          <Pause className="size-4" />
+          <AlertDescription>This game is currently paused.</AlertDescription>
         </Alert>
-      ) : (
-        showPausedNotice &&
-        game.isPaused && (
-          <Alert>
-            <Pause className="size-4" />
-            <AlertDescription>This game is currently paused.</AlertDescription>
-          </Alert>
-        )
       )}
 
       {game.victory && (

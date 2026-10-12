@@ -7,7 +7,6 @@ import {
   Lock,
   MessageCircleOff,
   Pause,
-  Share2,
   ShieldPlus,
   Trophy,
 } from "lucide-react";
@@ -25,9 +24,6 @@ import {
 import { getNationSeatState } from "@/components/NationSeat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { ActionList } from "@/components/ActionList";
-import { CloneToSandboxAction } from "@/components/CloneToSandboxAction";
-import { DeleteGameAction } from "@/components/DeleteGameAction";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import { describePhaseTiming } from "@/components/DeadlineSummary";
 import { MapView } from "@/components/MapView";
@@ -36,29 +32,20 @@ import { buildVariantInfoRows } from "@/components/variantInfoRows";
 import {
   useGameRetrieveSuspense,
   useUserRetrieveSuspense,
-  GameActionKeyEnum,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { formatDateTime, formatTimeAgo } from "@/util";
 import { useRequiredParams } from "@/hooks";
 
-const ADMIN_ACTION_KEYS: readonly GameActionKeyEnum[] = [
-  "extend_deadline",
-  "pause",
-  "unpause",
-];
-
 interface GameInfoContentProps {
   pendingAction?: React.ReactNode;
   onOpenVariantDetails?: () => void;
-  onShare?: () => void;
   showTitle?: boolean;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   pendingAction,
   onOpenVariantDetails,
-  onShare,
   showTitle = true,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -71,11 +58,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const isPending = game.status === "pending";
   const isGameMaster =
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
-  const adminActions = game.actions.filter(action =>
-    ADMIN_ACTION_KEYS.includes(action.key)
-  );
-  const canCloneToSandbox = !game.sandbox && game.status === "active";
-  const canDeleteGame = game.canDelete;
 
   const nationSeatAlert = isPending && currentMember && (
     <Alert>
@@ -203,31 +185,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
 
   return (
     <>
-      <GameStatusAlerts
-        game={game}
-        variant={variant}
-        action={pendingAction}
-        adminAction={
-          adminActions.length > 0 ? (
-            <ActionList gameId={gameId} actions={adminActions} />
-          ) : undefined
-        }
-      />
-      {(onShare || canCloneToSandbox || canDeleteGame) && (
-        <div className="flex flex-wrap gap-2">
-          {onShare && (
-            <Button size="sm" variant="outline" className="flex-1" onClick={onShare}>
-              <Share2 />
-              Share game
-            </Button>
-          )}
-          {canCloneToSandbox ? (
-            <CloneToSandboxAction game={game} />
-          ) : (
-            canDeleteGame && <DeleteGameAction game={game} />
-          )}
-        </div>
-      )}
+      <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
       {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
       {nationSeatAlert}
       {showTitle && (

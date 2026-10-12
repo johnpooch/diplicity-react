@@ -113,8 +113,10 @@ type GameActionKeyEnum = Literal[
     'extend_deadline',
     'pause',
     'unpause',
+    'clone_to_sandbox',
     'leave',
     'withdraw',
+    'delete',
 ]
 
 
@@ -213,8 +215,10 @@ type MemberActionKeyEnum = Literal[
     'extend_deadline',
     'pause',
     'unpause',
+    'clone_to_sandbox',
     'leave',
     'withdraw',
+    'delete',
     'take_over',
     'share_replacement_link',
     'remove_from_lobby',
@@ -676,6 +680,7 @@ class GameRetrieve(TypedDict):
     muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
     actions: list[GameAction]
+    player_list_actions: list[GameAction]
 
 
 class MemberAction(TypedDict):

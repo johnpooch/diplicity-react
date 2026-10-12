@@ -857,35 +857,48 @@ class Game(BaseModel):
             return member.civil_disorder or member.id in self.nmrd_member_ids
 
     def actions_for(self, user):
+        return self._actions_from(user, GameActionKey.GAME_INFO_KEYS)
+
+    def player_list_actions_for(self, user):
+        return self._actions_from(user, GameActionKey.PLAYER_LIST_KEYS)
+
+    def seat_actions_for(self, user):
+        return self._actions_from(user, GameActionKey.SEAT_KEYS)
+
+    def _actions_from(self, user, keys):
         if not user.is_authenticated:
             return []
+        available = self._action_availability(user)
+        return [{"key": key, "blocked_reason": None} for key in keys if available[key]]
+
+    def _action_availability(self, user):
         manages = self.can_manage(user)
         active = self.status == GameStatus.ACTIVE
         current_phase = self.current_phase
-        holds_seat = any(
+        is_player = any(
             member.user_id is not None and member.user_id == user.id and not member.is_game_master
             for member in self.members.all()
         )
         is_game_master = self.game_master_id is not None and self.game_master_id == user.id
-        rules = (
-            (GameActionKey.JOIN, self.can_join(user)),
-            (GameActionKey.CONFIRM_SEAT, self.muster_status(user) == MusterStatus.CONFIRMATION_REQUIRED),
-            (GameActionKey.EDIT_NATION_PREFERENCES, self.status == GameStatus.PENDING and holds_seat),
-            (GameActionKey.ASSIGN_NATIONS, self.status == GameStatus.PENDING and is_game_master),
-            (
-                GameActionKey.EXTEND_DEADLINE,
+        return {
+            GameActionKey.JOIN: self.can_join(user),
+            GameActionKey.CONFIRM_SEAT: self.muster_status(user) == MusterStatus.CONFIRMATION_REQUIRED,
+            GameActionKey.EDIT_NATION_PREFERENCES: self.status == GameStatus.PENDING and is_player,
+            GameActionKey.ASSIGN_NATIONS: self.status == GameStatus.PENDING and is_game_master,
+            GameActionKey.EXTEND_DEADLINE: (
                 manages
                 and active
                 and not self.is_paused
                 and current_phase is not None
-                and current_phase.scheduled_resolution is not None,
+                and current_phase.scheduled_resolution is not None
             ),
-            (GameActionKey.PAUSE, manages and active and not self.is_paused),
-            (GameActionKey.UNPAUSE, manages and active and self.is_paused),
-            (GameActionKey.LEAVE, self.can_leave(user)),
-            (GameActionKey.WITHDRAW, self.can_withdraw(user)),
-        )
-        return [{"key": key, "blocked_reason": None} for key, available in rules if available]
+            GameActionKey.PAUSE: manages and active and not self.is_paused,
+            GameActionKey.UNPAUSE: manages and active and self.is_paused,
+            GameActionKey.CLONE_TO_SANDBOX: active and not self.sandbox and is_player,
+            GameActionKey.LEAVE: self.can_leave(user),
+            GameActionKey.WITHDRAW: self.can_withdraw(user),
+            GameActionKey.DELETE: self.can_delete(user),
+        }
 
     def get_public_press(self):
         return self.channels.get(private=False)

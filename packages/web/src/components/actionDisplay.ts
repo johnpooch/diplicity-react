@@ -1,11 +1,13 @@
 import {
   CircleCheck,
   Clock,
+  Copy,
   Flag,
   Link2,
   LogOut,
   Pause,
   Play,
+  Trash2,
   UserCog,
   UserMinus,
   UserPlus,
@@ -27,6 +29,7 @@ interface ActionDisplay {
   label: string;
   icon: LucideIcon;
   primary?: boolean;
+  destructive?: boolean;
   success?: (member?: ActionMember) => string;
   error?: string;
 }
@@ -75,28 +78,45 @@ const ACTION_DISPLAY: Record<MemberActionKeyEnum, ActionDisplay> = {
     success: () => "Game resumed",
     error: "Failed to resume game",
   },
+  clone_to_sandbox: {
+    label: "Clone to sandbox",
+    icon: Copy,
+    success: () => "Sandbox created",
+    error: "Failed to create sandbox",
+  },
   leave: {
     label: "Leave game",
     icon: LogOut,
+    destructive: true,
     success: () => "Successfully left game",
     error: "Failed to leave game",
   },
   withdraw: {
     label: "Withdraw from game",
     icon: LogOut,
+    destructive: true,
     error: "Failed to withdraw from game",
+  },
+  delete: {
+    label: "Delete game",
+    icon: Trash2,
+    destructive: true,
+    success: () => "Game deleted",
+    error: "Failed to delete game",
   },
   take_over: { label: "Take over seat", icon: UserPlus, primary: true },
   share_replacement_link: { label: "Invite replacement", icon: Link2 },
   remove_from_lobby: {
     label: "Remove player",
     icon: UserMinus,
+    destructive: true,
     success: removedToast,
     error: "Failed to remove player",
   },
   remove_from_game: {
     label: "Remove player",
     icon: UserMinus,
+    destructive: true,
     success: removedToast,
     error: "Failed to remove player",
   },
@@ -110,7 +130,8 @@ const BLOCKED_REASONS: Record<BlockedReasonEnum, string> = {
 
 const confirmationFor = (
   key: MemberActionKeyEnum,
-  member?: ActionMember
+  member: ActionMember | undefined,
+  sandbox: boolean
 ): ActionConfirmation | null => {
   const removeTitle = `Remove ${member?.nation ?? member?.name}`;
   switch (key) {
@@ -123,6 +144,21 @@ const confirmationFor = (
       };
     case "withdraw":
       return WITHDRAW_CONFIRMATION;
+    case "clone_to_sandbox":
+      return {
+        title: "Clone to sandbox",
+        description:
+          "A sandbox copy of this game will be created at the current phase. You can use it to explore different strategies. If you already have 3 sandbox games, your oldest one will be deleted.",
+        confirmLabel: "Create sandbox",
+      };
+    case "delete":
+      return {
+        title: sandbox ? "Delete sandbox game" : "Delete game",
+        description: sandbox
+          ? "This will permanently delete this sandbox game and all its data. This action cannot be undone."
+          : "This will permanently delete this game. Players who have joined will be notified. This action cannot be undone.",
+        confirmLabel: "Delete",
+      };
     case "remove_from_lobby":
       return {
         title: removeTitle,

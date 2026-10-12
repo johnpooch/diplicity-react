@@ -161,6 +161,24 @@ describe("GameInfoContent nation preference alert", () => {
   });
 });
 
+describe("GameInfoContent paused notice", () => {
+  it("tells everyone the game is paused", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...mockActiveGames[0],
+      isPaused: true,
+      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
+    });
+
+    renderGameInfo();
+
+    expect(
+      screen.getByText("This game is currently paused.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+  });
+});
+
 describe("GameInfoContent nation assignment alert", () => {
   it("offers nation assignment to the game master while pending", () => {
     mockUserProfileData.mockReturnValue({ userId: 9 });
@@ -193,110 +211,3 @@ describe("GameInfoContent nation assignment alert", () => {
   });
 });
 
-describe("GameInfoContent admin actions", () => {
-  it("shows Pause and Extend deadline to a manager of an active, unpaused game", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockActiveGames[0],
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
-      actions: [
-        { key: "extend_deadline", blockedReason: null },
-        { key: "pause", blockedReason: null },
-        { key: "withdraw", blockedReason: null },
-      ],
-    });
-
-    renderGameInfo();
-
-    expect(screen.getByRole("button", { name: /pause/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /extend deadline/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /withdraw/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows Resume to a manager of a paused game, still under the Admin title", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockActiveGames[0],
-      isPaused: true,
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
-      actions: [{ key: "unpause", blockedReason: null }],
-    });
-
-    renderGameInfo();
-
-    expect(screen.getByRole("button", { name: /resume/i })).toBeInTheDocument();
-    expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("This game is paused.")).toBeInTheDocument();
-  });
-
-  it("is not shown when the game offers no admin actions", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockActiveGames[0],
-      canManage: true,
-      isPaused: false,
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
-      actions: [{ key: "withdraw", blockedReason: null }],
-    });
-
-    renderGameInfo();
-
-    expect(
-      screen.queryByRole("button", { name: /pause/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /extend deadline/i })
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe("GameInfoContent clone to sandbox", () => {
-  it("is shown to any player of an active, non-sandbox game", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockActiveGames[0],
-      canManage: false,
-      sandbox: false,
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
-    });
-
-    renderGameInfo();
-
-    expect(
-      screen.getByRole("button", { name: /clone to sandbox/i })
-    ).toBeInTheDocument();
-  });
-
-  it("is not shown for a sandbox game", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockActiveGames[0],
-      canManage: false,
-      sandbox: true,
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
-    });
-
-    renderGameInfo();
-
-    expect(
-      screen.queryByRole("button", { name: /clone to sandbox/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it("is not shown for a pending game", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue(
-      pendingGameFor({ isCurrentUser: true, nation: null })
-    );
-
-    renderGameInfo();
-
-    expect(
-      screen.queryByRole("button", { name: /clone to sandbox/i })
-    ).not.toBeInTheDocument();
-  });
-});

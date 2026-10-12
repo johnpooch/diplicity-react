@@ -26,6 +26,7 @@ import {
   GAME_MASTER_MEMBER_IDS,
   gameActionsFor,
   memberDetailFor,
+  playerListActionsFor,
 } from "./members";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
 import cantonMapSvg from "./fixtures/data/canton.d.svg?raw";
@@ -253,6 +254,7 @@ export const handlers = [
       ...game,
       gameMasterMemberId: GAME_MASTER_MEMBER_IDS[fixture.game.id] ?? null,
       actions: gameActionsFor(fixture),
+      playerListActions: playerListActionsFor(fixture),
       totalUnreadMessageCount: fixture.totalUnreadMessageCount,
     });
   }),

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +22,10 @@ import {
   confirmationFor,
   type ActionMember,
 } from "@/components/actionDisplay";
+import { cn } from "@/lib/utils";
 import {
+  useGameCloneToSandboxCreate,
+  useGameDeleteDestroy,
   useGameExtendDeadlineUpdate,
   useGameKickDestroy,
   useGameLeaveDestroy,
@@ -44,12 +48,14 @@ import {
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
 
+interface Action {
+  key: MemberActionKeyEnum;
+  blockedReason: BlockedReasonEnum | null;
+}
+
 interface ActionListProps {
   gameId: string;
-  actions: readonly {
-    key: MemberActionKeyEnum;
-    blockedReason: BlockedReasonEnum | null;
-  }[];
+  actions: readonly Action[];
   member?: ActionMember;
   onMemberGone?: () => void;
 }
@@ -76,14 +82,18 @@ export const ActionList: React.FC<ActionListProps> = ({
   const unpauseMutation = useGameUnpausePartialUpdate();
   const extendDeadlineMutation = useGameExtendDeadlineUpdate();
   const kickMutation = useGameKickDestroy();
+  const cloneMutation = useGameCloneToSandboxCreate();
+  const deleteMutation = useGameDeleteDestroy();
 
   const memberGone = (key: MemberActionKeyEnum) =>
     key === "leave" || key === "remove_from_lobby";
 
-  const mutate = (key: MemberActionKeyEnum, duration: DurationEnum) => {
+  const mutate = async (key: MemberActionKeyEnum, duration: DurationEnum) => {
     switch (key) {
       case "join":
-        return joinMutation.mutateAsync({ gameId });
+        await joinMutation.mutateAsync({ gameId });
+        if (!game.sandbox) checkNotificationPermission();
+        return;
       case "confirm_seat":
         return musterMutation.mutateAsync({ gameId });
       case "leave":
@@ -96,6 +106,15 @@ export const ActionList: React.FC<ActionListProps> = ({
         return unpauseMutation.mutateAsync({ gameId });
       case "extend_deadline":
         return extendDeadlineMutation.mutateAsync({ gameId, data: { duration } });
+      case "clone_to_sandbox": {
+        const sandbox = await cloneMutation.mutateAsync({ gameId, data: {} });
+        navigate(`/game/${sandbox.id}`);
+        return;
+      }
+      case "delete":
+        await deleteMutation.mutateAsync({ gameId });
+        navigate("/");
+        return;
       case "remove_from_lobby":
       case "remove_from_game":
         return member && kickMutation.mutateAsync({ gameId, memberId: member.id });
@@ -135,7 +154,6 @@ export const ActionList: React.FC<ActionListProps> = ({
     const display = ACTION_DISPLAY[key];
     try {
       await mutate(key, duration);
-      if (key === "join" && !game.sandbox) checkNotificationPermission();
       if (memberGone(key)) onMemberGone?.();
       await invalidate(key);
       if (display.success) toast.success(display.success(member));
@@ -154,21 +172,24 @@ export const ActionList: React.FC<ActionListProps> = ({
     else if (key === "share_replacement_link" && replacePath) copyLink(replacePath);
     else if (key === "extend_deadline") setOpenDialog(key);
     else if (key === "join" && game.showShortGameJoinWarning) setOpenDialog(key);
-    else if (confirmationFor(key, member)) setOpenDialog(key);
+    else if (confirmationFor(key, member, game.sandbox)) setOpenDialog(key);
     else runMutation(key);
   };
 
-  const confirmation = openDialog ? confirmationFor(openDialog, member) : null;
+  const confirmation = openDialog
+    ? confirmationFor(openDialog, member, game.sandbox)
+    : null;
   const closeDialog = (open: boolean) => !open && setOpenDialog(null);
+  const primaryActions = actions.filter(action => ACTION_DISPLAY[action.key].primary);
+  const rowActions = actions.filter(action => !ACTION_DISPLAY[action.key].primary);
 
   return (
     <div className="flex flex-col gap-3">
-      {actions.map(action => {
+      {primaryActions.map(action => {
         const display = ACTION_DISPLAY[action.key];
         return (
           <div key={action.key} className="flex flex-col gap-1">
             <Button
-              variant={display.primary ? "default" : "outline"}
               disabled={action.blockedReason !== null || runningKey !== null}
               onClick={() => handleClick(action.key)}
             >
@@ -183,6 +204,38 @@ export const ActionList: React.FC<ActionListProps> = ({
           </div>
         );
       })}
+
+      {rowActions.length > 0 && (
+        <Card className="overflow-hidden py-0">
+          <CardContent className="flex flex-col divide-y p-0">
+            {rowActions.map(action => {
+              const display = ACTION_DISPLAY[action.key];
+              return (
+                <button
+                  key={action.key}
+                  type="button"
+                  disabled={action.blockedReason !== null || runningKey !== null}
+                  onClick={() => handleClick(action.key)}
+                  className={cn(
+                    "flex items-center gap-3 px-6 py-3 text-left text-sm hover:bg-accent/50 disabled:pointer-events-none disabled:text-muted-foreground",
+                    display.destructive && "text-destructive"
+                  )}
+                >
+                  <display.icon className="size-4 shrink-0" />
+                  <span className="flex flex-col gap-0.5">
+                    {display.label}
+                    {action.blockedReason && (
+                      <span className="text-muted-foreground">
+                        {BLOCKED_REASONS[action.blockedReason]}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       <AlertDialog open={confirmation !== null} onOpenChange={closeDialog}>
         <AlertDialogContent>

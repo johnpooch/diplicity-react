@@ -346,6 +346,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     muster_status = serializers.SerializerMethodField()
     total_unread_message_count = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
+    player_list_actions = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(
         choices=[
@@ -377,6 +378,10 @@ class GameRetrieveSerializer(serializers.Serializer):
     @extend_schema_field(GameActionSerializer(many=True))
     def get_actions(self, obj):
         return GameActionSerializer(obj.actions_for(self.context["request"].user), many=True).data
+
+    @extend_schema_field(GameActionSerializer(many=True))
+    def get_player_list_actions(self, obj):
+        return GameActionSerializer(obj.player_list_actions_for(self.context["request"].user), many=True).data
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):

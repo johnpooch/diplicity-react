@@ -2906,8 +2906,10 @@ components:
       - extend_deadline
       - pause
       - unpause
+      - clone_to_sandbox
       - leave
       - withdraw
+      - delete
       type: string
       description: |-
         * `join` - Join
@@ -2917,8 +2919,10 @@ components:
         * `extend_deadline` - Extend deadline
         * `pause` - Pause
         * `unpause` - Unpause
+        * `clone_to_sandbox` - Clone to sandbox
         * `leave` - Leave
         * `withdraw` - Withdraw
+        * `delete` - Delete
     GameCloneToSandbox:
       type: object
       properties:
@@ -3532,6 +3536,11 @@ components:
           items:
             $ref: '#/components/schemas/GameAction'
           readOnly: true
+        playerListActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameAction'
+          readOnly: true
       required:
       - actions
       - anonymous
@@ -3565,6 +3574,7 @@ components:
       - pausedAt
       - phaseConfirmed
       - phases
+      - playerListActions
       - pressType
       - private
       - retreatFrequency
@@ -3742,8 +3752,10 @@ components:
       - extend_deadline
       - pause
       - unpause
+      - clone_to_sandbox
       - leave
       - withdraw
+      - delete
       - take_over
       - share_replacement_link
       - remove_from_lobby
@@ -3757,8 +3769,10 @@ components:
         * `extend_deadline` - Extend deadline
         * `pause` - Pause
         * `unpause` - Unpause
+        * `clone_to_sandbox` - Clone to sandbox
         * `leave` - Leave
         * `withdraw` - Withdraw
+        * `delete` - Delete
         * `take_over` - Take over
         * `share_replacement_link` - Share replacement link
         * `remove_from_lobby` - Remove from lobby
