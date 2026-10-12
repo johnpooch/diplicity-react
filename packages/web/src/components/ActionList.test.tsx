@@ -112,27 +112,51 @@ describe("ActionList", () => {
     ]);
   });
 
-  it("renders a blocked action disabled with its reason beneath it", () => {
+  it("renders a blocked action disabled and explains why from an info button", async () => {
+    const user = userEvent.setup();
     renderActions(
       [{ key: "remove_from_game", blockedReason: "no_missed_orders" }],
       { member }
     );
 
-    expect(screen.getByRole("button", { name: /remove player/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove player" })).toBeDisabled();
     expect(
-      screen.getByText("This player has not missed any orders.")
-    ).toBeInTheDocument();
+      screen.queryByText("This player has not missed any orders.")
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Why can't I use remove player?" })
+    );
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "This player has not missed any orders."
+    );
   });
 
-  it("explains a takeover blocked by commitment", () => {
+  it("explains a takeover blocked by commitment", async () => {
+    const user = userEvent.setup();
     renderActions([{ key: "take_over", blockedReason: "commitment_too_low" }], {
       member,
     });
 
-    expect(screen.getByRole("button", { name: /take over seat/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Take over seat" })).toBeDisabled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Why can't I use take over seat?" })
+    );
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Your commitment rating does not meet this game's requirement."
+    );
+  });
+
+  it("does not offer an explanation for an available action", () => {
+    renderActions([{ key: "remove_from_game", blockedReason: null }], { member });
+
+    expect(screen.getByRole("button", { name: "Remove player" })).toBeEnabled();
     expect(
-      screen.getByText("Your commitment rating does not meet this game's requirement.")
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: /Why can't I use/ })
+    ).not.toBeInTheDocument();
   });
 
   it("confirms before removing a player from an active game", async () => {

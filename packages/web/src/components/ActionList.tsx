@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ExtendDeadlineDialog } from "@/components/ExtendDeadlineDialog";
+import { InfoButton } from "@/components/InfoButton";
 import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
 import {
   ACTION_DISPLAY,
@@ -182,25 +183,31 @@ export const ActionList: React.FC<ActionListProps> = ({
   const closeDialog = (open: boolean) => !open && setOpenDialog(null);
   const primaryActions = actions.filter(action => ACTION_DISPLAY[action.key].primary);
   const rowActions = actions.filter(action => !ACTION_DISPLAY[action.key].primary);
+  const blockedInfo = (action: Action, className?: string) =>
+    action.blockedReason && (
+      <InfoButton
+        label={ACTION_DISPLAY[action.key].label}
+        ariaLabel={`Why can't I use ${ACTION_DISPLAY[action.key].label.toLowerCase()}?`}
+        text={BLOCKED_REASONS[action.blockedReason]}
+        className={className}
+      />
+    );
 
   return (
     <div className="flex flex-col gap-3">
       {primaryActions.map(action => {
         const display = ACTION_DISPLAY[action.key];
         return (
-          <div key={action.key} className="flex flex-col gap-1">
+          <div key={action.key} className="flex items-center gap-3">
             <Button
+              className="flex-1"
               disabled={action.blockedReason !== null || runningKey !== null}
               onClick={() => handleClick(action.key)}
             >
               <display.icon />
               {display.label}
             </Button>
-            {action.blockedReason && (
-              <p className="text-sm text-muted-foreground">
-                {BLOCKED_REASONS[action.blockedReason]}
-              </p>
-            )}
+            {blockedInfo(action)}
           </div>
         );
       })}
@@ -211,26 +218,21 @@ export const ActionList: React.FC<ActionListProps> = ({
             {rowActions.map(action => {
               const display = ACTION_DISPLAY[action.key];
               return (
-                <button
-                  key={action.key}
-                  type="button"
-                  disabled={action.blockedReason !== null || runningKey !== null}
-                  onClick={() => handleClick(action.key)}
-                  className={cn(
-                    "flex items-center gap-3 px-6 py-3 text-left text-sm hover:bg-accent/50 disabled:pointer-events-none disabled:text-muted-foreground",
-                    display.destructive && "text-destructive"
-                  )}
-                >
-                  <display.icon className="size-4 shrink-0" />
-                  <span className="flex flex-col gap-0.5">
-                    {display.label}
-                    {action.blockedReason && (
-                      <span className="text-muted-foreground">
-                        {BLOCKED_REASONS[action.blockedReason]}
-                      </span>
+                <div key={action.key} className="flex items-center">
+                  <button
+                    type="button"
+                    disabled={action.blockedReason !== null || runningKey !== null}
+                    onClick={() => handleClick(action.key)}
+                    className={cn(
+                      "flex flex-1 items-center gap-3 px-6 py-3 text-left text-sm hover:bg-accent/50 disabled:pointer-events-none disabled:text-muted-foreground",
+                      display.destructive && "text-destructive"
                     )}
-                  </span>
-                </button>
+                  >
+                    <display.icon className="size-4 shrink-0" />
+                    {display.label}
+                  </button>
+                  {blockedInfo(action, "mr-4")}
+                </div>
               );
             })}
           </CardContent>

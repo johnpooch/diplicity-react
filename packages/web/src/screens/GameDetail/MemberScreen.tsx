@@ -151,7 +151,7 @@ const MemberContent: React.FC = () => {
     <div className="flex flex-col gap-4">
       <PlayerCard
         member={member}
-        profilePath={`/game/${gameId}/phase/${phaseId}/player/${member.userId}`}
+        profilePath={`/game/${gameId}/phase/${phaseId}/player/${member.userId}?member=${member.id}`}
       />
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">In this game</h2>

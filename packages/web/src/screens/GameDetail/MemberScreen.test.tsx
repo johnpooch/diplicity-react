@@ -166,7 +166,7 @@ describe("MemberScreen", () => {
 
     expect(
       await screen.findByRole("link", { name: "View profile for Bob" })
-    ).toHaveAttribute("href", "/game/game-1/phase/5/player/20");
+    ).toHaveAttribute("href", "/game/game-1/phase/5/player/20?member=7");
   });
 
   it("does not link an anonymous member and shows the nation as the title", async () => {
