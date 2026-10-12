@@ -17,7 +17,7 @@ import {
   gamesMineFinishedList,
   getGamesMineFinishedListQueryKey,
   useGamesMineCurrentRetrieveSuspense,
-  type KeyEnum,
+  type MyGamesSectionKeyEnum,
 } from "@/api/generated/endpoints";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,7 +29,7 @@ const views = [
 
 type View = (typeof views)[number]["key"];
 
-const sectionTitles: Record<KeyEnum, string> = {
+const sectionTitles: Record<MyGamesSectionKeyEnum, string> = {
   needs_attention: "Needs attention",
   managing: "Managing",
   active: "Active",

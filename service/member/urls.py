@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("game/<str:game_id>/member/", views.MemberCreateView.as_view(), name="game-member-create"),
+    path("game/<str:game_id>/member/<int:member_id>/", views.MemberRetrieveView.as_view(), name="game-member-retrieve"),
     path("game/<str:game_id>/member/join/", views.MemberJoinView.as_view(), name="game-join"),
     path("game/<str:game_id>/leave/", views.MemberDeleteView.as_view(), name="game-leave"),
     path("game/<str:game_id>/muster/", views.MemberMusterView.as_view(), name="game-muster"),

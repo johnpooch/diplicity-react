@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { MyGames } from "./MyGames";
 import { classicalVariant } from "@/mocks/fixtures";
 import type {
-  KeyEnum,
+  MyGamesSectionKeyEnum,
   MyGame,
   MyGameState,
   MyGamesCurrent,
@@ -67,7 +67,7 @@ const makeGame = (
   ...overrides,
 });
 
-const current = (...sections: [KeyEnum, MyGame[]][]): MyGamesCurrent => ({
+const current = (...sections: [MyGamesSectionKeyEnum, MyGame[]][]): MyGamesCurrent => ({
   sections: sections.map(([key, games]) => ({ key, games })),
 });
 

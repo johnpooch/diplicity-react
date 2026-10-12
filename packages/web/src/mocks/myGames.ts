@@ -1,5 +1,5 @@
 import type {
-  KeyEnum,
+  MyGamesSectionKeyEnum,
   MyGame,
   MyGameSeats,
   MyGameState,
@@ -51,7 +51,7 @@ const myGame = (name: GameFixtureName, spec: MyGameSpec): MyGame => {
   };
 };
 
-const currentSections: [KeyEnum, MyGame[]][] = [
+const currentSections: [MyGamesSectionKeyEnum, MyGame[]][] = [
   [
     "needs_attention",
     [

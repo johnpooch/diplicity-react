@@ -69,6 +69,18 @@ export interface AppleAuth {
   readonly refreshToken: string;
 }
 
+/**
+ * * `commitment_too_low` - Commitment too low
+ * `no_missed_orders` - No missed orders
+ */
+export type BlockedReasonEnum =
+  (typeof BlockedReasonEnum)[keyof typeof BlockedReasonEnum];
+
+export const BlockedReasonEnum = {
+  commitment_too_low: "commitment_too_low",
+  no_missed_orders: "no_missed_orders",
+} as const;
+
 export interface Nation {
   nationId: string;
   name: string;
@@ -370,6 +382,37 @@ export interface FlatOrderOption {
   aux: FieldValue | null;
   unitType: FieldValue | null;
   namedCoast: FieldValue | null;
+}
+
+/**
+ * * `join` - Join
+ * `confirm_seat` - Confirm seat
+ * `edit_nation_preferences` - Edit nation preferences
+ * `assign_nations` - Assign nations
+ * `extend_deadline` - Extend deadline
+ * `pause` - Pause
+ * `unpause` - Unpause
+ * `leave` - Leave
+ * `withdraw` - Withdraw
+ */
+export type GameActionKeyEnum =
+  (typeof GameActionKeyEnum)[keyof typeof GameActionKeyEnum];
+
+export const GameActionKeyEnum = {
+  join: "join",
+  confirm_seat: "confirm_seat",
+  edit_nation_preferences: "edit_nation_preferences",
+  assign_nations: "assign_nations",
+  extend_deadline: "extend_deadline",
+  pause: "pause",
+  unpause: "unpause",
+  leave: "leave",
+  withdraw: "withdraw",
+} as const;
+
+export interface GameAction {
+  readonly key: GameActionKeyEnum;
+  readonly blockedReason: BlockedReasonEnum | NullEnum | null;
 }
 
 export interface GameCloneToSandbox {
@@ -701,6 +744,7 @@ export interface GameRetrieve {
   readonly musterDeadline: string | null;
   readonly musterStatus: MusterStatusEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
+  readonly actions: readonly GameAction[];
 }
 
 export interface GoogleAuth {
@@ -711,27 +755,6 @@ export interface GoogleAuth {
   readonly accessToken: string;
   readonly refreshToken: string;
 }
-
-/**
- * * `needs_attention` - Needs attention
- * `managing` - Managing
- * `active` - Active
- * `mustering` - Mustering
- * `pending` - Pending
- * `recently_finished` - Recently finished
- * `sandbox` - Sandbox
- */
-export type KeyEnum = (typeof KeyEnum)[keyof typeof KeyEnum];
-
-export const KeyEnum = {
-  needs_attention: "needs_attention",
-  managing: "managing",
-  active: "active",
-  mustering: "mustering",
-  pending: "pending",
-  recently_finished: "recently_finished",
-  sandbox: "sandbox",
-} as const;
 
 /**
  * * `confirm_seat` - Confirm seat
@@ -764,8 +787,105 @@ export const KindEnum = {
   finished: "finished",
 } as const;
 
+/**
+ * * `join` - Join
+ * `confirm_seat` - Confirm seat
+ * `edit_nation_preferences` - Edit nation preferences
+ * `assign_nations` - Assign nations
+ * `extend_deadline` - Extend deadline
+ * `pause` - Pause
+ * `unpause` - Unpause
+ * `leave` - Leave
+ * `withdraw` - Withdraw
+ * `take_over` - Take over
+ * `share_replacement_link` - Share replacement link
+ * `remove_from_lobby` - Remove from lobby
+ * `remove_from_game` - Remove from game
+ */
+export type MemberActionKeyEnum =
+  (typeof MemberActionKeyEnum)[keyof typeof MemberActionKeyEnum];
+
+export const MemberActionKeyEnum = {
+  join: "join",
+  confirm_seat: "confirm_seat",
+  edit_nation_preferences: "edit_nation_preferences",
+  assign_nations: "assign_nations",
+  extend_deadline: "extend_deadline",
+  pause: "pause",
+  unpause: "unpause",
+  leave: "leave",
+  withdraw: "withdraw",
+  take_over: "take_over",
+  share_replacement_link: "share_replacement_link",
+  remove_from_lobby: "remove_from_lobby",
+  remove_from_game: "remove_from_game",
+} as const;
+
+export interface MemberAction {
+  readonly key: MemberActionKeyEnum;
+  readonly blockedReason: BlockedReasonEnum | NullEnum | null;
+}
+
 export interface MemberCreate {
   userId: number;
+}
+
+/**
+ * * `game_master` - Game master
+ * `replaced` - Replaced
+ * `removed` - Removed
+ * `withdrawn` - Withdrawn
+ * `won` - Won
+ * `drew` - Drew
+ * `eliminated` - Eliminated
+ * `civil_disorder` - Civil disorder
+ * `seat_unconfirmed` - Seat unconfirmed
+ * `seat_confirmed` - Seat confirmed
+ * `joined` - Joined
+ * `playing` - Playing
+ */
+export type ParticipationStatusEnum =
+  (typeof ParticipationStatusEnum)[keyof typeof ParticipationStatusEnum];
+
+export const ParticipationStatusEnum = {
+  game_master: "game_master",
+  replaced: "replaced",
+  removed: "removed",
+  withdrawn: "withdrawn",
+  won: "won",
+  drew: "drew",
+  eliminated: "eliminated",
+  civil_disorder: "civil_disorder",
+  seat_unconfirmed: "seat_unconfirmed",
+  seat_confirmed: "seat_confirmed",
+  joined: "joined",
+  playing: "playing",
+} as const;
+
+export interface MemberDetail {
+  readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly isCurrentUser: boolean;
+  readonly isBot: boolean;
+  /** @nullable */
+  readonly commitment: string | null;
+  readonly isAdmin: boolean;
+  /** @nullable */
+  readonly nation: string | null;
+  readonly participationStatus: ParticipationStatusEnum;
+  /** @nullable */
+  readonly supplyCenterCount: number | null;
+  /** @nullable */
+  readonly unitCount: number | null;
+  readonly nmrExtensionsRemaining: number;
+  readonly nmrExtensionsAllowed: number;
+  /** @nullable */
+  readonly nationPreferences: readonly string[] | null;
+  readonly actions: readonly MemberAction[];
 }
 
 export interface MemberNationAssign {
@@ -824,8 +944,30 @@ export interface MyGame {
   readonly state: MyGameState;
 }
 
+/**
+ * * `needs_attention` - Needs attention
+ * `managing` - Managing
+ * `active` - Active
+ * `mustering` - Mustering
+ * `pending` - Pending
+ * `recently_finished` - Recently finished
+ * `sandbox` - Sandbox
+ */
+export type MyGamesSectionKeyEnum =
+  (typeof MyGamesSectionKeyEnum)[keyof typeof MyGamesSectionKeyEnum];
+
+export const MyGamesSectionKeyEnum = {
+  needs_attention: "needs_attention",
+  managing: "managing",
+  active: "active",
+  mustering: "mustering",
+  pending: "pending",
+  recently_finished: "recently_finished",
+  sandbox: "sandbox",
+} as const;
+
 export interface MyGamesSection {
-  readonly key: KeyEnum;
+  readonly key: MyGamesSectionKeyEnum;
   readonly games: readonly MyGame[];
 }
 
@@ -4097,6 +4239,309 @@ export const useGameMemberCreate = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(getGameMemberCreateMutationOptions(options), queryClient);
 };
+
+/**
+ * Retrieve one member's place in a game, including game masters and members
+who have left their seat, with the actions the requesting user can take on
+them. On the requesting user's own member, the actions are the game actions.
+ */
+export const gameMemberRetrieve = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<MemberDetail>({
+    url: `/game/${gameId}/member/${memberId}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGameMemberRetrieveQueryKey = (
+  gameId: string,
+  memberId: number
+) => {
+  return [`/game/${gameId}/member/${memberId}/`] as const;
+};
+
+export const getGameMemberRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGameMemberRetrieveQueryKey(gameId, memberId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberRetrieve>>
+  > = ({ signal }) => gameMemberRetrieve(gameId, memberId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(gameId && memberId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberRetrieve>>
+>;
+export type GameMemberRetrieveQueryError = unknown;
+
+export function useGameMemberRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberRetrieveQueryOptions(
+    gameId,
+    memberId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGameMemberRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGameMemberRetrieveQueryKey(gameId, memberId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberRetrieve>>
+  > = ({ signal }) => gameMemberRetrieve(gameId, memberId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberRetrieve>>
+>;
+export type GameMemberRetrieveSuspenseQueryError = unknown;
+
+export function useGameMemberRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberRetrieveSuspenseQueryOptions(
+    gameId,
+    memberId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Pin a nation to a member of a pending game, or unpin it. Game master

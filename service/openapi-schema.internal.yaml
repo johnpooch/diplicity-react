@@ -667,6 +667,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
+  /game/{game_id}/member/{member_id}/:
+    get:
+      operationId: game_member_retrieve
+      description: |-
+        Retrieve one member's place in a game, including game masters and members
+        who have left their seat, with the actions the requesting user can take on
+        them. On the requesting user's own member, the actions are the game actions.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDetail'
+          description: ''
   /game/{game_id}/member/{member_id}/nation/:
     put:
       operationId: game_member_nation_update
@@ -2284,6 +2313,14 @@ components:
       - id_token
       - name
       - refresh_token
+    BlockedReasonEnum:
+      enum:
+      - commitment_too_low
+      - no_missed_orders
+      type: string
+      description: |-
+        * `commitment_too_low` - Commitment too low
+        * `no_missed_orders` - No missed orders
     Channel:
       type: object
       properties:
@@ -2844,6 +2881,44 @@ components:
       - source
       - target
       - unit_type
+    GameAction:
+      type: object
+      properties:
+        key:
+          allOf:
+          - $ref: '#/components/schemas/GameActionKeyEnum'
+          readOnly: true
+        blocked_reason:
+          readOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/BlockedReasonEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - blocked_reason
+      - key
+    GameActionKeyEnum:
+      enum:
+      - join
+      - confirm_seat
+      - edit_nation_preferences
+      - assign_nations
+      - extend_deadline
+      - pause
+      - unpause
+      - leave
+      - withdraw
+      type: string
+      description: |-
+        * `join` - Join
+        * `confirm_seat` - Confirm seat
+        * `edit_nation_preferences` - Edit nation preferences
+        * `assign_nations` - Assign nations
+        * `extend_deadline` - Extend deadline
+        * `pause` - Pause
+        * `unpause` - Unpause
+        * `leave` - Leave
+        * `withdraw` - Withdraw
     GameCloneToSandbox:
       type: object
       properties:
@@ -3448,7 +3523,13 @@ components:
         total_unread_message_count:
           type: integer
           readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameAction'
+          readOnly: true
       required:
+      - actions
       - anonymous
       - can_delete
       - can_join
@@ -3517,24 +3598,6 @@ components:
       - id_token
       - name
       - refresh_token
-    KeyEnum:
-      enum:
-      - needs_attention
-      - managing
-      - active
-      - mustering
-      - pending
-      - recently_finished
-      - sandbox
-      type: string
-      description: |-
-        * `needs_attention` - Needs attention
-        * `managing` - Managing
-        * `active` - Active
-        * `mustering` - Mustering
-        * `pending` - Pending
-        * `recently_finished` - Recently finished
-        * `sandbox` - Sandbox
     KindEnum:
       enum:
       - confirm_seat
@@ -3649,6 +3712,52 @@ components:
       - seeking_replacement
       - user_id
       - withdrawn
+    MemberAction:
+      type: object
+      properties:
+        key:
+          allOf:
+          - $ref: '#/components/schemas/MemberActionKeyEnum'
+          readOnly: true
+        blocked_reason:
+          readOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/BlockedReasonEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - blocked_reason
+      - key
+    MemberActionKeyEnum:
+      enum:
+      - join
+      - confirm_seat
+      - edit_nation_preferences
+      - assign_nations
+      - extend_deadline
+      - pause
+      - unpause
+      - leave
+      - withdraw
+      - take_over
+      - share_replacement_link
+      - remove_from_lobby
+      - remove_from_game
+      type: string
+      description: |-
+        * `join` - Join
+        * `confirm_seat` - Confirm seat
+        * `edit_nation_preferences` - Edit nation preferences
+        * `assign_nations` - Assign nations
+        * `extend_deadline` - Extend deadline
+        * `pause` - Pause
+        * `unpause` - Unpause
+        * `leave` - Leave
+        * `withdraw` - Withdraw
+        * `take_over` - Take over
+        * `share_replacement_link` - Share replacement link
+        * `remove_from_lobby` - Remove from lobby
+        * `remove_from_game` - Remove from game
     MemberCreate:
       type: object
       properties:
@@ -3656,6 +3765,86 @@ components:
           type: integer
           writeOnly: true
       required:
+      - user_id
+    MemberDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+          nullable: true
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          nullable: true
+          readOnly: true
+        is_current_user:
+          type: boolean
+          readOnly: true
+        is_bot:
+          type: boolean
+          readOnly: true
+        commitment:
+          type: string
+          nullable: true
+          readOnly: true
+        is_admin:
+          type: boolean
+          readOnly: true
+        nation:
+          type: string
+          readOnly: true
+          nullable: true
+        participation_status:
+          allOf:
+          - $ref: '#/components/schemas/ParticipationStatusEnum'
+          readOnly: true
+        supply_center_count:
+          type: integer
+          nullable: true
+          readOnly: true
+        unit_count:
+          type: integer
+          nullable: true
+          readOnly: true
+        nmr_extensions_remaining:
+          type: integer
+          readOnly: true
+        nmr_extensions_allowed:
+          type: integer
+          readOnly: true
+        nation_preferences:
+          type: array
+          items:
+            type: string
+          nullable: true
+          readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberAction'
+          readOnly: true
+      required:
+      - actions
+      - commitment
+      - id
+      - is_admin
+      - is_bot
+      - is_current_user
+      - name
+      - nation
+      - nation_preferences
+      - nmr_extensions_allowed
+      - nmr_extensions_remaining
+      - participation_status
+      - picture
+      - supply_center_count
+      - unit_count
       - user_id
     MemberNationAssign:
       type: object
@@ -3838,7 +4027,7 @@ components:
       properties:
         key:
           allOf:
-          - $ref: '#/components/schemas/KeyEnum'
+          - $ref: '#/components/schemas/MyGamesSectionKeyEnum'
           readOnly: true
         games:
           type: array
@@ -3848,6 +4037,24 @@ components:
       required:
       - games
       - key
+    MyGamesSectionKeyEnum:
+      enum:
+      - needs_attention
+      - managing
+      - active
+      - mustering
+      - pending
+      - recently_finished
+      - sandbox
+      type: string
+      description: |-
+        * `needs_attention` - Needs attention
+        * `managing` - Managing
+        * `active` - Active
+        * `mustering` - Mustering
+        * `pending` - Pending
+        * `recently_finished` - Recently finished
+        * `sandbox` - Sandbox
     MyVote:
       type: object
       properties:
@@ -4086,6 +4293,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MyGame'
+    ParticipationStatusEnum:
+      enum:
+      - game_master
+      - replaced
+      - removed
+      - withdrawn
+      - won
+      - drew
+      - eliminated
+      - civil_disorder
+      - seat_unconfirmed
+      - seat_confirmed
+      - joined
+      - playing
+      type: string
+      description: |-
+        * `game_master` - Game master
+        * `replaced` - Replaced
+        * `removed` - Removed
+        * `withdrawn` - Withdrawn
+        * `won` - Won
+        * `drew` - Drew
+        * `eliminated` - Eliminated
+        * `civil_disorder` - Civil disorder
+        * `seat_unconfirmed` - Seat unconfirmed
+        * `seat_confirmed` - Seat confirmed
+        * `joined` - Joined
+        * `playing` - Playing
     PasswordReset:
       type: object
       properties:
