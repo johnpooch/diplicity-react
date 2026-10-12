@@ -135,10 +135,18 @@ class GameQuerySet(models.QuerySet):
 
         phases_prefetch = Prefetch("phases", queryset=Phase.objects.defer("options"))
 
-        return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
-            members_prefetch,
-            victory_members_prefetch,
-            phases_prefetch,
+        game_master_member_subquery = Member.objects.filter(
+            game=OuterRef("pk"), kind=MemberKind.GAME_MASTER
+        ).values("id")[:1]
+
+        return (
+            self.select_related("variant", "victory", "game_master__profile__uploaded_picture")
+            .prefetch_related(
+                members_prefetch,
+                victory_members_prefetch,
+                phases_prefetch,
+            )
+            .annotate(game_master_member_id=Subquery(game_master_member_subquery))
         )
 
     def filter_musterable(self):

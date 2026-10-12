@@ -369,6 +369,9 @@ class GameRetrieveSerializer(serializers.Serializer):
     def get_game_master_member_id(self, obj):
         if obj.game_master_id is None:
             return None
+        annotated = getattr(obj, "game_master_member_id", None)
+        if annotated is not None:
+            return annotated
         return Member.objects.filter(game=obj, kind=MemberKind.GAME_MASTER).values_list("id", flat=True).first()
 
     @extend_schema_field(GameActionSerializer(many=True))
