@@ -141,13 +141,6 @@ class Variant(BaseModel):
         return self.id
 
     @property
-    def solo_victory_supply_centers(self):
-        for condition in self.victory_conditions:
-            if condition["type"] == "supply-center-majority":
-                return condition["supplyCenters"]
-        return None
-
-    @property
     def victory_conditions_summary(self):
         summary = {
             "soloVictorySupplyCenters": None,
@@ -156,7 +149,8 @@ class Variant(BaseModel):
         }
         for condition in self.victory_conditions:
             if condition["type"] == "supply-center-majority":
-                summary["soloVictorySupplyCenters"] = condition["supplyCenters"]
+                if "nation" not in condition:
+                    summary["soloVictorySupplyCenters"] = condition["supplyCenters"]
             elif condition["type"] == "timed-resolution":
                 if condition["resolution"] == "shared-draw":
                     summary["drawAfterYear"] = condition["year"]
@@ -171,6 +165,17 @@ class Variant(BaseModel):
             return self.template_phases[0] if self.template_phases else None
 
         return self.phases.filter(game__isnull=True, status=PhaseStatus.TEMPLATE).first()
+
+    def solo_victory_supply_centers_for(self, nation_id):
+        default = None
+        for condition in self.victory_conditions:
+            if condition["type"] != "supply-center-majority":
+                continue
+            if "nation" not in condition:
+                default = condition["supplyCenters"]
+            elif condition["nation"] == nation_id:
+                return condition["supplyCenters"]
+        return default
 
 
 class VariantSvg(BaseModel):

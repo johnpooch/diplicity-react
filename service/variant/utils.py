@@ -54,6 +54,7 @@ def validate_dvar(dvar):
     errors.extend(_validate_dvar_references(dvar))
     errors.extend(_validate_dvar_adjacencies(dvar))
     errors.extend(_validate_dvar_phase_progression(dvar))
+    errors.extend(_validate_dvar_victory_conditions(dvar))
     return errors
 
 
@@ -120,6 +121,58 @@ def _validate_dvar_references(dvar):
                     "initialState.supplyCenters",
                 )
             )
+
+    return errors
+
+
+def _validate_dvar_victory_conditions(dvar):
+    errors = []
+    nation_ids = {nation["id"] for nation in dvar["nations"]}
+    non_playable_ids = {nation["id"] for nation in dvar["nations"] if nation.get("non_playable", False)}
+    has_default = False
+    overridden = set()
+
+    for index, condition in enumerate(dvar["victoryConditions"]):
+        if condition["type"] != "supply-center-majority":
+            continue
+        path = f"victoryConditions.{index}"
+        nation = condition.get("nation")
+        if nation is None:
+            if has_default:
+                errors.append(
+                    DvarValidationError(
+                        "DUPLICATE_VICTORY_CONDITION",
+                        "Only one supply-center-majority condition may omit 'nation'.",
+                        path,
+                    )
+                )
+            has_default = True
+        elif nation not in nation_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_NATION",
+                    f"Victory condition references unknown nation '{nation}'.",
+                    f"{path}.nation",
+                )
+            )
+        elif nation in non_playable_ids:
+            errors.append(
+                DvarValidationError(
+                    "NON_PLAYABLE_NATION",
+                    f"Victory condition references non-playable nation '{nation}'.",
+                    f"{path}.nation",
+                )
+            )
+        elif nation in overridden:
+            errors.append(
+                DvarValidationError(
+                    "DUPLICATE_VICTORY_CONDITION",
+                    f"Nation '{nation}' has more than one supply-center-majority condition.",
+                    f"{path}.nation",
+                )
+            )
+        else:
+            overridden.add(nation)
 
     return errors
 

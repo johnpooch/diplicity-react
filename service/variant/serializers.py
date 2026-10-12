@@ -6,7 +6,6 @@ from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field, inline_serializer
 from lxml import etree
 from rest_framework import serializers
-from nation.serializers import NationSerializer
 
 from common.constants import VariantStatus
 from .models import Variant, VariantSvg
@@ -21,9 +20,30 @@ from .utils import (
 
 
 class VictoryConditionsSerializer(serializers.Serializer):
-    solo_victory_supply_centers = serializers.IntegerField(source="soloVictorySupplyCenters")
+    solo_victory_supply_centers = serializers.IntegerField(source="soloVictorySupplyCenters", allow_null=True)
     game_ends_year = serializers.IntegerField(source="gameEndsYear", allow_null=True)
     draw_after_year = serializers.IntegerField(source="drawAfterYear", allow_null=True)
+
+
+class VariantNationSerializer(serializers.Serializer):
+    nation_id = serializers.CharField()
+    name = serializers.CharField()
+    color = serializers.CharField(read_only=True)
+    non_playable = serializers.BooleanField()
+    flag_url = serializers.SerializerMethodField()
+    solo_victory_supply_centers = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_flag_url(self, nation) -> str | None:
+        path = nation.flag_path
+        if path is None:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_solo_victory_supply_centers(self, nation) -> int | None:
+        return nation.variant.solo_victory_supply_centers_for(nation.nation_id)
 
 
 class VariantProvinceSerializer(serializers.Serializer):
@@ -85,7 +105,7 @@ class VariantSerializer(serializers.Serializer):
     can_edit = serializers.SerializerMethodField()
     victory_conditions = VictoryConditionsSerializer(source="victory_conditions_summary")
     svg_url = serializers.SerializerMethodField()
-    nations = NationSerializer(many=True)
+    nations = VariantNationSerializer(many=True)
     provinces = VariantProvinceSerializer(many=True)
     template_phase = VariantTemplatePhaseSerializer()
 

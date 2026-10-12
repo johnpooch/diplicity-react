@@ -49,6 +49,81 @@ class TestCheckForSoloWinner:
         else:
             assert result == members[winner_index]
 
+    @pytest.mark.parametrize(
+        "default,overrides,sc_counts,winner_index",
+        [
+            pytest.param(None, {0: 15}, [15, 10], 0, id="override_only_winner"),
+            pytest.param(None, {1: 15}, [30, 10], None, id="nation_without_target_cannot_win"),
+            pytest.param(None, {0: 15}, [15, 20], 0, id="nation_without_target_does_not_block"),
+            pytest.param(18, {0: 15}, [15, 17], 0, id="lower_override_reached_below_default"),
+            pytest.param(18, {0: 20}, [19, 10], None, id="higher_override_not_reached"),
+            pytest.param(18, {0: 15}, [16, 18], 0, id="highest_ratio_wins_over_more_supply_centers"),
+            pytest.param(18, {0: 15}, [15, 19], 1, id="highest_ratio_wins_with_default_target"),
+            pytest.param(18, {0: 9}, [9, 18], None, id="no_winner_when_ratios_tied"),
+            pytest.param(20, {0: 10}, [12, 24], None, id="no_winner_when_ratios_tied_above_target"),
+        ],
+    )
+    def test_check_for_solo_winner_with_per_nation_targets(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        supply_center_factory,
+        default,
+        overrides,
+        sc_counts,
+        winner_index,
+    ):
+        game = game_factory()
+        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
+
+        members = [member_factory(game=game) for _ in sc_counts]
+
+        conditions = [] if default is None else [{"type": "supply-center-majority", "supplyCenters": default}]
+        conditions += [
+            {"type": "supply-center-majority", "supplyCenters": target, "nation": members[index].nation.nation_id}
+            for index, target in overrides.items()
+        ]
+        game.variant.victory_conditions = conditions
+        game.variant.save()
+
+        for member, count in zip(members, sc_counts):
+            for _ in range(count):
+                supply_center_factory(phase=phase, nation=member.nation)
+
+        result = check_for_solo_winner(game, phase)
+
+        if winner_index is None:
+            assert result is None
+        else:
+            assert result == members[winner_index]
+
+    def test_replacement_member_can_win_solo(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        supply_center_factory,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
+
+        original = member_factory(game=game)
+        other = member_factory(game=game)
+        nation = original.nation
+        for _ in range(18):
+            supply_center_factory(phase=phase, nation=nation)
+        for _ in range(5):
+            supply_center_factory(phase=phase, nation=other.nation)
+
+        replacement = member_factory(game=game, nation=None)
+        original.replaced_by = replacement
+        original.save()
+        replacement.nation = nation
+        replacement.save()
+
+        assert check_for_solo_winner(game, phase) == replacement
+
     def test_returns_none_when_variant_has_no_solo_victory_condition(
         self,
         game_factory,

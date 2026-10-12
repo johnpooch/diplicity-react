@@ -4,23 +4,23 @@ import type {
   Variant,
   PhaseRetrieve,
   Member,
-  Nation,
   Order,
   PhaseState,
   Province,
   StatusEnum,
   UserProfile,
+  VariantNation,
   VariantProvince,
 } from "@/api/generated/endpoints";
 
-export const mockNations: Nation[] = [
-  { nationId: "austria", name: "Austria", color: "#FF0000", nonPlayable: false, flagUrl: null },
-  { nationId: "england", name: "England", color: "#0000FF", nonPlayable: false, flagUrl: null },
-  { nationId: "france", name: "France", color: "#00FFFF", nonPlayable: false, flagUrl: null },
-  { nationId: "germany", name: "Germany", color: "#000000", nonPlayable: false, flagUrl: null },
-  { nationId: "italy", name: "Italy", color: "#00FF00", nonPlayable: false, flagUrl: null },
-  { nationId: "russia", name: "Russia", color: "#FFFFFF", nonPlayable: false, flagUrl: null },
-  { nationId: "turkey", name: "Turkey", color: "#FFFF00", nonPlayable: false, flagUrl: null },
+export const mockNations: VariantNation[] = [
+  { nationId: "austria", name: "Austria", color: "#FF0000", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
+  { nationId: "england", name: "England", color: "#0000FF", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
+  { nationId: "france", name: "France", color: "#00FFFF", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
+  { nationId: "germany", name: "Germany", color: "#000000", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
+  { nationId: "italy", name: "Italy", color: "#00FF00", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
+  { nationId: "russia", name: "Russia", color: "#FFFFFF", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
+  { nationId: "turkey", name: "Turkey", color: "#FFFF00", nonPlayable: false, flagUrl: null, soloVictorySupplyCenters: 18 },
 ];
 
 export const mockMembers: Member[] = [
@@ -771,7 +771,7 @@ export const mockVariants: Variant[] = [
     ownerId: null,
     ownerUsername: null,
     canEdit: false,
-    nations: [mockNations[4], mockNations[3]],
+    nations: [mockNations[4], mockNations[3]].map(nation => ({ ...nation, soloVictorySupplyCenters: 4 })),
     provinces: mockProvinces.slice(3, 5),
     victoryConditions: {
       soloVictorySupplyCenters: 4,

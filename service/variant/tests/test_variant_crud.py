@@ -190,6 +190,109 @@ def test_create_variant_rejects_schema_violation(authenticated_client, classical
 
 
 @pytest.mark.django_db
+def test_create_variant_exposes_per_nation_victory_targets(authenticated_client, classical_dvar, classical_dsvg):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "per-nation-targets"
+    dvar["victoryConditions"] = [
+        {"type": "supply-center-majority", "supplyCenters": 18},
+        {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"},
+    ]
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+    assert response.data["victory_conditions"]["solo_victory_supply_centers"] == 18
+    targets = {nation["nation_id"]: nation["solo_victory_supply_centers"] for nation in response.data["nations"]}
+    assert targets.pop("england") == 15
+    assert set(targets.values()) == {18}
+
+
+@pytest.mark.django_db
+def test_create_variant_with_only_nation_targets(authenticated_client, classical_dvar, classical_dsvg):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "override-only"
+    dvar["victoryConditions"] = [
+        {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"},
+    ]
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+    assert response.data["victory_conditions"]["solo_victory_supply_centers"] is None
+    targets = {nation["nation_id"]: nation["solo_victory_supply_centers"] for nation in response.data["nations"]}
+    assert targets.pop("england") == 15
+    assert set(targets.values()) == {None}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "victory_conditions,code",
+    [
+        pytest.param(
+            [
+                {"type": "supply-center-majority", "supplyCenters": 18},
+                {"type": "supply-center-majority", "supplyCenters": 20},
+            ],
+            "DUPLICATE_VICTORY_CONDITION",
+            id="duplicate_default",
+        ),
+        pytest.param(
+            [
+                {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"},
+                {"type": "supply-center-majority", "supplyCenters": 16, "nation": "england"},
+            ],
+            "DUPLICATE_VICTORY_CONDITION",
+            id="duplicate_override",
+        ),
+        pytest.param(
+            [{"type": "supply-center-majority", "supplyCenters": 15, "nation": "atlantis"}],
+            "UNKNOWN_NATION",
+            id="unknown_nation",
+        ),
+    ],
+)
+def test_create_variant_rejects_invalid_supply_center_targets(
+    authenticated_client, classical_dvar, classical_dsvg, victory_conditions, code
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "invalid-targets"
+    dvar["victoryConditions"] = victory_conditions
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert [error["code"] for error in response.data["dvar"]] == [code]
+    assert not Variant.objects.filter(id__endswith="invalid-targets").exists()
+
+
+@pytest.mark.django_db
+def test_create_variant_rejects_supply_center_target_for_non_playable_nation(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "non-playable-target"
+    for nation in dvar["nations"]:
+        if nation["id"] == "england":
+            nation["non_playable"] = True
+    dvar["victoryConditions"].append(
+        {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"}
+    )
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert [error["code"] for error in response.data["dvar"]] == ["NON_PLAYABLE_NATION"]
+
+
+@pytest.mark.django_db
 def test_update_own_draft_success(authenticated_client, classical_dvar, classical_dsvg):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "my-draft-2"

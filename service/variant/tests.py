@@ -1,3 +1,4 @@
+import copy
 import pytest
 from common.constants import PhaseStatus, VariantStatus
 from phase.models import Phase
@@ -250,6 +251,60 @@ class TestAdjudicationModifiers:
     @pytest.mark.django_db
     def test_classical_has_no_modifiers(self, classical_variant):
         assert classical_variant.adjudication_modifiers == []
+
+
+class TestSupplyCenterTargetDeserialization:
+
+    @pytest.mark.django_db
+    def test_nation_override_accepted(self, classical_variant):
+        canonical = copy.deepcopy(variant_to_canonical_dict(classical_variant))
+        canonical["victoryConditions"].append(
+            {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"}
+        )
+        variant = deserialize_variant(canonical)
+        assert [(c.supply_centers, c.nation) for c in variant.victory_conditions] == [(18, None), (15, "england")]
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "extra,match",
+        [
+            pytest.param(
+                [{"type": "supply-center-majority", "supplyCenters": 20}],
+                "Duplicate default",
+                id="duplicate_default",
+            ),
+            pytest.param(
+                [
+                    {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"},
+                    {"type": "supply-center-majority", "supplyCenters": 16, "nation": "england"},
+                ],
+                "Duplicate supply-center-majority victory condition for nation 'england'",
+                id="duplicate_override",
+            ),
+            pytest.param(
+                [{"type": "supply-center-majority", "supplyCenters": 15, "nation": "atlantis"}],
+                "unknown nation 'atlantis'",
+                id="unknown_nation",
+            ),
+        ],
+    )
+    def test_invalid_supply_center_targets_rejected(self, classical_variant, extra, match):
+        canonical = copy.deepcopy(variant_to_canonical_dict(classical_variant))
+        canonical["victoryConditions"].extend(extra)
+        with pytest.raises(VariantValidationError, match=match):
+            deserialize_variant(canonical)
+
+    @pytest.mark.django_db
+    def test_non_playable_nation_override_rejected(self, classical_variant):
+        canonical = copy.deepcopy(variant_to_canonical_dict(classical_variant))
+        for nation in canonical["nations"]:
+            if nation["id"] == "england":
+                nation["non_playable"] = True
+        canonical["victoryConditions"].append(
+            {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"}
+        )
+        with pytest.raises(VariantValidationError, match="non-playable nation 'england'"):
+            deserialize_variant(canonical)
 
 
 class TestVariantToCanonicalDict:

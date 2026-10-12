@@ -41,6 +41,7 @@ const buildVariant = (raw: GodipVariant): Variant =>
       color: n.color,
       nonPlayable: false,
       flagUrl: null,
+      soloVictorySupplyCenters: 18,
     })),
     provinces: raw.provinces.map(p => ({
       id: p.id,
@@ -72,6 +73,7 @@ const withNeutralNation = (variant: Variant): Variant => ({
       color: "#9E9E9E",
       nonPlayable: true,
       flagUrl: null,
+      soloVictorySupplyCenters: null,
     },
   ],
 });

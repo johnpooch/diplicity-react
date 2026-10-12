@@ -412,6 +412,9 @@ $defs:
     examples:
       - type: supply-center-majority
         supplyCenters: 18
+      - type: supply-center-majority
+        supplyCenters: 15
+        nation: england
       - type: timed-resolution
         year: 1453
         resolution: most-supply-centers
@@ -431,6 +434,16 @@ $defs:
               Number of supply centers a single nation must control to win
               outright. For Classical this is 18 (a majority of the 34 SCs).
               Checked each adjustment phase.
+          nation:
+            type: string
+            description: |
+              Optional. A playable nation id from `nations`. Without it the
+              condition is the default target for every nation; with it the
+              condition overrides the default for that nation. A variant may
+              have at most one default and one override per nation. When
+              several nations reach their targets in the same phase, the one
+              with the highest ratio of supply centers to target wins; a
+              shared highest ratio means nobody does.
       - type: object
         additionalProperties: false
         required: [type, year, resolution]

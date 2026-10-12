@@ -20,43 +20,50 @@
       "nationId": "austria",
       "name": "Austria",
       "color": "#F44336",
-      "flagUrl": "/mock-assets/flags/austria.svg"
+      "flagUrl": "/mock-assets/flags/austria.svg",
+      "soloVictorySupplyCenters": 18
     },
     {
       "nationId": "england",
       "name": "England",
       "color": "#2196F3",
-      "flagUrl": "/mock-assets/flags/england.svg"
+      "flagUrl": "/mock-assets/flags/england.svg",
+      "soloVictorySupplyCenters": 18
     },
     {
       "nationId": "france",
       "name": "France",
       "color": "#80DEEA",
-      "flagUrl": "/mock-assets/flags/france.svg"
+      "flagUrl": "/mock-assets/flags/france.svg",
+      "soloVictorySupplyCenters": 18
     },
     {
       "nationId": "germany",
       "name": "Germany",
       "color": "#90A4AE",
-      "flagUrl": "/mock-assets/flags/germany.svg"
+      "flagUrl": "/mock-assets/flags/germany.svg",
+      "soloVictorySupplyCenters": 18
     },
     {
       "nationId": "italy",
       "name": "Italy",
       "color": "#4CAF50",
-      "flagUrl": "/mock-assets/flags/italy.svg"
+      "flagUrl": "/mock-assets/flags/italy.svg",
+      "soloVictorySupplyCenters": 18
     },
     {
       "nationId": "russia",
       "name": "Russia",
       "color": "#F5F5F5",
-      "flagUrl": "/mock-assets/flags/russia.svg"
+      "flagUrl": "/mock-assets/flags/russia.svg",
+      "soloVictorySupplyCenters": 18
     },
     {
       "nationId": "turkey",
       "name": "Turkey",
       "color": "#FFC107",
-      "flagUrl": "/mock-assets/flags/turkey.svg"
+      "flagUrl": "/mock-assets/flags/turkey.svg",
+      "soloVictorySupplyCenters": 18
     }
   ],
   "provinces": [

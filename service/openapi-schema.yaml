@@ -4914,7 +4914,7 @@ components:
         nations:
           type: array
           items:
-            $ref: '#/components/schemas/Nation'
+            $ref: '#/components/schemas/VariantNation'
         provinces:
           type: array
           items:
@@ -4937,6 +4937,34 @@ components:
       - templatePhase
       - unitScaling
       - victoryConditions
+    VariantNation:
+      type: object
+      properties:
+        nationId:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+          readOnly: true
+        nonPlayable:
+          type: boolean
+        flagUrl:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+        soloVictorySupplyCenters:
+          type: integer
+          nullable: true
+          readOnly: true
+      required:
+      - color
+      - flagUrl
+      - name
+      - nationId
+      - nonPlayable
+      - soloVictorySupplyCenters
     VariantProvince:
       type: object
       properties:
@@ -5096,6 +5124,7 @@ components:
       properties:
         soloVictorySupplyCenters:
           type: integer
+          nullable: true
         gameEndsYear:
           type: integer
           nullable: true

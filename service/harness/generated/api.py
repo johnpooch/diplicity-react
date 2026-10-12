@@ -454,6 +454,15 @@ class UserProfilePicture(TypedDict):
     picture: str
 
 
+class VariantNation(TypedDict):
+    nation_id: str
+    name: str
+    color: str
+    non_playable: bool
+    flag_url: str | None
+    solo_victory_supply_centers: int | None
+
+
 VariantProvinceAdjacency = TypedDict(
     'VariantProvinceAdjacency',
     {
@@ -507,7 +516,7 @@ class Victory(TypedDict):
 
 
 class VictoryConditions(TypedDict):
-    solo_victory_supply_centers: int
+    solo_victory_supply_centers: int | None
     game_ends_year: int | None
     draw_after_year: int | None
 
@@ -898,7 +907,7 @@ class Variant(TypedDict):
     can_edit: bool
     victory_conditions: VictoryConditions
     svg_url: str | None
-    nations: list[Nation]
+    nations: list[VariantNation]
     provinces: list[VariantProvince]
     template_phase: VariantTemplatePhase
 
