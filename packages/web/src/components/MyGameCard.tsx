@@ -143,7 +143,8 @@ const MyGameCard: React.FC<MyGameCardProps> = ({ game }) => {
         "max-w-full bg-background",
         isMobile && "absolute bottom-2 right-2 max-w-[58%]",
         attentionKinds.includes(game.state.kind) &&
-          "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+          "border-orange-400 bg-amber-50 text-amber-950 dark:bg-amber-100 dark:text-amber-950",
+        game.state.kind === "orders_confirmed" && "border-green-600 dark:border-green-500"
       )}
     >
       <badge.icon />

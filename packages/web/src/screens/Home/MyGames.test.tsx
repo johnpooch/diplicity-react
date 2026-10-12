@@ -258,6 +258,25 @@ describe("MyGames state badges", () => {
       );
     }
   );
+
+  it("outlines confirmed orders in green", () => {
+    renderCurrentGame(makeGame({ kind: "orders_confirmed" }));
+
+    expect(screen.getByText("Confirmed").closest("[data-slot=badge]")).toHaveClass(
+      "border-green-600"
+    );
+  });
+
+  it.each([
+    ["submit_orders", "Submit orders"],
+    ["orders_unconfirmed", "Orders in · confirm to resolve early"],
+  ] as const)("does not outline %s in green", (kind, label) => {
+    renderCurrentGame(makeGame({ kind }));
+
+    expect(screen.getByText(label).closest("[data-slot=badge]")).not.toHaveClass(
+      "border-green-600"
+    );
+  });
 });
 
 describe("MyGames card badges", () => {
