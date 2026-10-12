@@ -97,6 +97,7 @@ class VictoryConditionType:
 @dataclass(frozen=True)
 class SupplyCenterMajorityVictory:
     supply_centers: int
+    nation: Optional[str] = None
 
 
 @dataclass(frozen=True)

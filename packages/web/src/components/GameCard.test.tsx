@@ -335,7 +335,7 @@ describe("GameCard", () => {
           ...defaultProps.variant,
           nations: [
             ...mockNations,
-            { nationId: "neutral", name: "Neutral", color: "#9E9E9E", nonPlayable: true, flagUrl: null },
+            { nationId: "neutral", name: "Neutral", color: "#9E9E9E", nonPlayable: true, flagUrl: null, soloVictorySupplyCenters: null },
           ],
         },
       });

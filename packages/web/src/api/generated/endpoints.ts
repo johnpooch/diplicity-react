@@ -1301,11 +1301,23 @@ export interface UserProfilePicture {
 }
 
 export interface VictoryConditions {
-  soloVictorySupplyCenters: number;
+  /** @nullable */
+  soloVictorySupplyCenters: number | null;
   /** @nullable */
   gameEndsYear: number | null;
   /** @nullable */
   drawAfterYear: number | null;
+}
+
+export interface VariantNation {
+  nationId: string;
+  name: string;
+  readonly color: string;
+  nonPlayable: boolean;
+  /** @nullable */
+  readonly flagUrl: string | null;
+  /** @nullable */
+  readonly soloVictorySupplyCenters: number | null;
 }
 
 export interface VariantProvinceAdjacency {
@@ -1366,7 +1378,7 @@ export interface Variant {
   victoryConditions: VictoryConditions;
   /** @nullable */
   readonly svgUrl: string | null;
-  nations: Nation[];
+  nations: VariantNation[];
   provinces: VariantProvince[];
   templatePhase: VariantTemplatePhase;
 }

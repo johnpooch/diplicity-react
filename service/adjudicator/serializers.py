@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import jsonschema
 import yaml
@@ -109,10 +109,44 @@ def _validate_adjacency_symmetry(
                 )
 
 
+def _validate_supply_center_targets(
+    victory_conditions: Tuple[VictoryCondition, ...], nations: Tuple[Nation, ...]
+) -> None:
+    playable_nation_ids = {n.id for n in nations if not n.non_playable}
+    nation_ids = {n.id for n in nations}
+    has_default = False
+    overridden: set = set()
+    for condition in victory_conditions:
+        if not isinstance(condition, SupplyCenterMajorityVictory):
+            continue
+        if condition.nation is None:
+            if has_default:
+                raise VariantValidationError(
+                    "Duplicate default supply-center-majority victory condition"
+                )
+            has_default = True
+            continue
+        if condition.nation not in nation_ids:
+            raise VariantValidationError(
+                f"Supply-center-majority victory condition references unknown nation {condition.nation!r}"
+            )
+        if condition.nation not in playable_nation_ids:
+            raise VariantValidationError(
+                f"Supply-center-majority victory condition references non-playable nation {condition.nation!r}"
+            )
+        if condition.nation in overridden:
+            raise VariantValidationError(
+                f"Duplicate supply-center-majority victory condition for nation {condition.nation!r}"
+            )
+        overridden.add(condition.nation)
+
+
 def _deserialize_victory_condition(data: Dict[str, Any]) -> VictoryCondition:
     type_ = data["type"]
     if type_ == VictoryConditionType.SUPPLY_CENTER_MAJORITY:
-        return SupplyCenterMajorityVictory(supply_centers=data["supplyCenters"])
+        return SupplyCenterMajorityVictory(
+            supply_centers=data["supplyCenters"], nation=data.get("nation")
+        )
     if type_ == VictoryConditionType.TIMED_RESOLUTION:
         return TimedResolutionVictory(year=data["year"], resolution=data["resolution"])
     if type_ == VictoryConditionType.PROVINCE_CONTROL:
@@ -201,6 +235,11 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
             )
         bucket.add(rule.priority)
 
+    victory_conditions = tuple(
+        _deserialize_victory_condition(vc) for vc in data["victoryConditions"]
+    )
+    _validate_supply_center_targets(victory_conditions, nations)
+
     modifiers = tuple(data.get("adjudicationModifiers", []))
     for tag in modifiers:
         if tag not in SUPPORTED_ADJUDICATION_MODIFIERS:
@@ -213,9 +252,7 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
         name=data["name"],
         description=data["description"],
         author=data["author"],
-        victory_conditions=tuple(
-            _deserialize_victory_condition(vc) for vc in data["victoryConditions"]
-        ),
+        victory_conditions=victory_conditions,
         rules=data.get("rules"),
         adjudication_modifiers=modifiers,
         phase_progression=phase_progression,

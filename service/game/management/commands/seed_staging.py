@@ -262,7 +262,7 @@ class Command(BaseCommand):
     def _seed_finished_solo_win(self):
         game = self._game("Finished: you won solo", creator=self.tester, players=[self.tester, *self.players[:6]])
         self._start(game, {self.tester: "France"})
-        self._give_supply_centers(game, self.tester, game.variant.solo_victory_supply_centers)
+        self._give_supply_centers(game, self.tester, game.variant.solo_victory_supply_centers_for("france"))
         self._advance(game)
         return game
 
@@ -271,7 +271,7 @@ class Command(BaseCommand):
             "Finished: another player won solo", creator=self.players[0], players=[self.tester, *self.players[:6]]
         )
         self._start(game, {self.players[0]: "Turkey"})
-        self._give_supply_centers(game, self.players[0], game.variant.solo_victory_supply_centers)
+        self._give_supply_centers(game, self.players[0], game.variant.solo_victory_supply_centers_for("turkey"))
         self._advance(game)
         return game
 
