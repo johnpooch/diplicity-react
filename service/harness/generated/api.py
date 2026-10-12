@@ -644,6 +644,7 @@ class GameRetrieve(TypedDict):
     can_delete: bool
     can_manage: bool
     game_master: GameMaster | None
+    game_master_member_id: int | None
     phases: list[int]
     current_phase_id: int | None
     members: list[Member]

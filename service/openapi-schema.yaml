@@ -3403,6 +3403,10 @@ components:
           - $ref: '#/components/schemas/GameMaster'
           readOnly: true
           nullable: true
+        gameMasterMemberId:
+          type: integer
+          nullable: true
+          readOnly: true
         phases:
           type: array
           items:
@@ -3544,6 +3548,7 @@ components:
       - fixedDeadlineTime
       - fixedDeadlineTimezone
       - gameMaster
+      - gameMasterMemberId
       - id
       - isPaused
       - memberStatus

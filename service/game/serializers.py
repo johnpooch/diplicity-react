@@ -314,6 +314,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
     game_master = GameMasterSerializer(allow_null=True, read_only=True)
+    game_master_member_id = serializers.SerializerMethodField()
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     members = MemberSerializer(many=True, read_only=True)
@@ -363,6 +364,12 @@ class GameRetrieveSerializer(serializers.Serializer):
     ))
     def get_muster_status(self, obj):
         return obj.muster_status(self.context["request"].user)
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_game_master_member_id(self, obj):
+        if obj.game_master_id is None:
+            return None
+        return Member.objects.filter(game=obj, kind=MemberKind.GAME_MASTER).values_list("id", flat=True).first()
 
     @extend_schema_field(GameActionSerializer(many=True))
     def get_actions(self, obj):

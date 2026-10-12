@@ -704,6 +704,8 @@ export interface GameRetrieve {
   readonly canDelete: boolean;
   readonly canManage: boolean;
   readonly gameMaster: GameMaster | null;
+  /** @nullable */
+  readonly gameMasterMemberId: number | null;
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;

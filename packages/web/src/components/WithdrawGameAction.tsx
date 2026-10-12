@@ -19,6 +19,13 @@ import {
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 
+export const WITHDRAW_CONFIRMATION = {
+  title: "Withdraw from game",
+  description:
+    "Your seat will be left for another player to claim and you cannot rejoin this game. Your commitment rating is not affected.",
+  confirmLabel: "Withdraw",
+};
+
 interface WithdrawGameActionProps {
   game: {
     id: string;
@@ -59,16 +66,15 @@ export const WithdrawGameAction: React.FC<WithdrawGameActionProps> = ({
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Withdraw from game</AlertDialogTitle>
+            <AlertDialogTitle>{WITHDRAW_CONFIRMATION.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              Your seat will be left for another player to claim and you cannot
-              rejoin this game. Your commitment rating is not affected.
+              {WITHDRAW_CONFIRMATION.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleWithdraw}>
-              Withdraw
+              {WITHDRAW_CONFIRMATION.confirmLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

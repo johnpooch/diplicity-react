@@ -3,22 +3,18 @@ import {
   ChevronDown,
   ChevronRight,
   Handshake,
-  Link2,
   LogOut,
   RotateCcw,
   Star,
   Swords,
   Trophy,
-  UserMinus,
   UserPlus,
   UserX,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 
+import { ActionList } from "@/components/ActionList";
 import { AddBotSheet } from "@/components/AddBotSheet";
-import { WithdrawGameAction } from "@/components/WithdrawGameAction";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import {
@@ -29,17 +25,6 @@ import {
 } from "@/components/NationFlag";
 import { NationSeatFlag, getNationSeatLabel } from "@/components/NationSeat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -51,17 +36,13 @@ import { cn } from "@/lib/utils";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
-  useGameKickDestroy,
   useUserRetrieveSuspense,
-  getGameAddableUserListQueryKey,
-  getGameRetrieveQueryKey,
   Member,
   Variant,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId, isFinishedGameStatus } from "@/util";
 import { useRequiredParams } from "@/hooks";
-import { copyLink } from "@/utils/copyLink";
 import { countPlayableNations } from "@/utils/playableNations";
 
 const PlayerMedia: React.FC<{
@@ -161,12 +142,9 @@ export const PlayerInfoContent: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
   const { data: userProfile } = useUserRetrieveSuspense();
-  const queryClient = useQueryClient();
-  const kickMutation = useGameKickDestroy();
 
   const [addBotOpen, setAddBotOpen] = useState(false);
   const [formerOpen, setFormerOpen] = useState(true);
-  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -191,8 +169,6 @@ export const PlayerInfoContent: React.FC = () => {
   const isPending = game.status === "pending";
   const isGameMaster =
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
-  const canTakeOverSeat =
-    !game.members.some(m => m.isCurrentUser) && !isGameMaster;
   const playableSeats = variant ? countPlayableNations(variant.nations) : 0;
   const openSeats = isPending
     ? Math.max(0, playableSeats - game.members.length)
@@ -200,36 +176,18 @@ export const PlayerInfoContent: React.FC = () => {
   const canAddBots =
     isPending && game.canManage && userProfile.canCreateBotGames;
 
-  const canRemove = (member: Member) =>
-    game.canManage &&
-    !member.isCurrentUser &&
-    member.removable &&
-    !(member.eliminated && member.civilDisorder);
+  const memberPath = (memberId: number) =>
+    `/game/${gameId}/phase/${phaseId}/member/${memberId}`;
 
-  const profilePath = (member: Member) =>
-    phaseId
-      ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
-      : `/player/${member.userId}`;
-
-  const handleRemove = async () => {
-    const member = memberToRemove;
-    setMemberToRemove(null);
-    if (!member) return;
-    try {
-      await kickMutation.mutateAsync({ gameId, memberId: member.id });
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: getGameRetrieveQueryKey(gameId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: getGameAddableUserListQueryKey(gameId),
-        }),
-      ]);
-      toast.success(`${member.name} removed from the game`);
-    } catch {
-      toast.error("Failed to remove player");
-    }
+  const rowPath = (member: Member) => {
+    if (phaseId) return memberPath(member.id);
+    return member.userId ? `/player/${member.userId}` : null;
   };
+
+  const gameMasterPath =
+    phaseId && game.gameMasterMemberId !== null
+      ? memberPath(game.gameMasterMemberId)
+      : `/player/${game.gameMaster?.userId}`;
 
   const originalOrder = new Map(
     game.members.map((member, index) => [member.id, index])
@@ -276,8 +234,7 @@ export const PlayerInfoContent: React.FC = () => {
     const supplyCenterCount = getSupplyCenterCount(member);
     const unitCount = getUnitCount(member);
     const showNationSeat = isPending && member.isCurrentUser;
-    const showRemove = canRemove(member);
-    const showActions = member.replaceable || showRemove;
+    const path = rowPath(member);
     const isDimmed =
       member.eliminated || member.civilDisorder || member.withdrawn;
 
@@ -291,20 +248,20 @@ export const PlayerInfoContent: React.FC = () => {
         <div
           className={cn(
             "flex flex-1 min-w-0 items-center gap-3",
-            member.userId && "cursor-pointer"
+            path && "cursor-pointer"
           )}
-          role={member.userId ? "link" : undefined}
-          tabIndex={member.userId ? 0 : undefined}
+          role={path ? "link" : undefined}
+          tabIndex={path ? 0 : undefined}
           aria-label={
-            member.userId ? `View profile for ${member.name}` : undefined
+            path
+              ? `View ${phaseId ? "details" : "profile"} for ${member.name}`
+              : undefined
           }
-          onClick={
-            member.userId ? () => navigate(profilePath(member)) : undefined
-          }
+          onClick={path ? () => navigate(path) : undefined}
           onKeyDown={
-            member.userId
+            path
               ? e => {
-                  if (e.key === "Enter") navigate(profilePath(member));
+                  if (e.key === "Enter") navigate(path);
                 }
               : undefined
           }
@@ -447,45 +404,11 @@ export const PlayerInfoContent: React.FC = () => {
             </div>
           )}
 
-          {member.userId && (
+          {path && (
             <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
           )}
         </div>
 
-        {showActions && (
-          <div className="flex flex-wrap gap-2 pt-3">
-            {member.replaceable && canTakeOverSeat && (
-              <Button
-                size="sm"
-                onClick={() => navigate(`/game/${gameId}/replace/${member.id}`)}
-              >
-                <UserPlus />
-                Replace
-              </Button>
-            )}
-            {member.replaceable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyLink(`/game/${gameId}/replace/${member.id}`)}
-              >
-                <Link2 />
-                Invite replacement
-              </Button>
-            )}
-            {showRemove && (
-              <Button
-                variant="outline"
-                size="sm"
-                aria-label={`Remove ${member.name}`}
-                onClick={() => setMemberToRemove(member)}
-              >
-                <UserMinus />
-                Remove player
-              </Button>
-            )}
-          </div>
-        )}
       </div>
     );
   };
@@ -516,7 +439,7 @@ export const PlayerInfoContent: React.FC = () => {
               </Avatar>
               <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                 <Link
-                  to={`/player/${game.gameMaster.userId}`}
+                  to={gameMasterPath}
                   className="font-medium text-primary underline-offset-4 hover:underline truncate"
                 >
                   {game.gameMaster.name}
@@ -619,29 +542,9 @@ export const PlayerInfoContent: React.FC = () => {
         </section>
       )}
 
-      <AlertDialog
-        open={memberToRemove !== null}
-        onOpenChange={open => !open && setMemberToRemove(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Remove {memberToRemove?.nation ?? memberToRemove?.name}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {isPending
-                ? `${memberToRemove?.name} is removed from the lobby. They can join again while the game has an open seat.`
-                : "Their orders for this phase are discarded and the seat opens for a replacement. They can view the game but cannot rejoin."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemove}>Remove</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {game.canWithdraw && <WithdrawGameAction game={game} />}
+      {game.actions.length > 0 && (
+        <ActionList gameId={gameId} actions={game.actions} />
+      )}
 
       {canAddBots && (
         <AddBotSheet

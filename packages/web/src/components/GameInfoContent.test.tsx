@@ -20,12 +20,21 @@ const mockGameData = vi.fn();
 const mockUserProfileData = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
-  useGameRetrieveSuspense: () => ({ data: mockGameData() }),
+  useGameRetrieveSuspense: () => ({ data: { actions: [], ...mockGameData() } }),
   useUserRetrieveSuspense: () => ({ data: mockUserProfileData() }),
   useGamePauseUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameUnpausePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameExtendDeadlineUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameCloneToSandboxCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameKickDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameLeaveDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameMemberJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameMemberWithdrawPartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameMusterCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  getDevicesListQueryKey: () => ["devices"],
+  getGameAddableUserListQueryKey: () => ["addable"],
+  getGameMemberRetrieveQueryKey: () => ["member"],
   getGameRetrieveQueryKey: () => ["game"],
   getGamesListQueryKey: () => ["games"],
   getGamePhasesListQueryKey: () => ["phases"],
@@ -189,9 +198,12 @@ describe("GameInfoContent admin actions", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
     mockGameData.mockReturnValue({
       ...mockActiveGames[0],
-      canManage: true,
-      isPaused: false,
       members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
+      actions: [
+        { key: "extend_deadline", blockedReason: null },
+        { key: "pause", blockedReason: null },
+        { key: "withdraw", blockedReason: null },
+      ],
     });
 
     renderGameInfo();
@@ -200,31 +212,35 @@ describe("GameInfoContent admin actions", () => {
     expect(
       screen.getByRole("button", { name: /extend deadline/i })
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /withdraw/i })
+    ).not.toBeInTheDocument();
   });
 
   it("shows Resume to a manager of a paused game, still under the Admin title", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
     mockGameData.mockReturnValue({
       ...mockActiveGames[0],
-      canManage: true,
       isPaused: true,
       members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
+      actions: [{ key: "unpause", blockedReason: null }],
     });
 
     renderGameInfo();
 
     expect(screen.getByRole("button", { name: /resume/i })).toBeInTheDocument();
     expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("Paused")).toBeInTheDocument();
+    expect(screen.getByText("This game is paused.")).toBeInTheDocument();
   });
 
-  it("is not shown to a player who cannot manage the game", () => {
+  it("is not shown when the game offers no admin actions", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
     mockGameData.mockReturnValue({
       ...mockActiveGames[0],
-      canManage: false,
+      canManage: true,
       isPaused: false,
       members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
+      actions: [{ key: "withdraw", blockedReason: null }],
     });
 
     renderGameInfo();

@@ -138,6 +138,10 @@ Use React Router hooks (`useNavigate`, `useParams`, `useSearchParams`, `useLocat
 // BAD: <div className="text-center text-muted-foreground p-8"><p>No games found</p></div>
 ```
 
+### Game and member actions
+
+The backend decides which game and member actions appear, in what order, and whether each is blocked. Render them with `ActionList`, passing the response's `actions` unchanged; never filter, reorder or decide availability on the client. A screen that shows only part of the list (the game info admin alert) selects keys, nothing more. A new action key gets its label, icon, copy and confirmation in `actionDisplay.ts` and its handler in `ActionList`.
+
 ### Tailwind
 
 Only add classes that do something. Question every class: does it override a default that needs overriding? Is the spacing already handled by a parent `gap`?

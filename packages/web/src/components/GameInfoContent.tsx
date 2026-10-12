@@ -25,7 +25,7 @@ import {
 import { getNationSeatState } from "@/components/NationSeat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { GameAdminActions } from "@/components/GameAdminActions";
+import { ActionList } from "@/components/ActionList";
 import { CloneToSandboxAction } from "@/components/CloneToSandboxAction";
 import { DeleteGameAction } from "@/components/DeleteGameAction";
 import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
@@ -36,10 +36,17 @@ import { buildVariantInfoRows } from "@/components/variantInfoRows";
 import {
   useGameRetrieveSuspense,
   useUserRetrieveSuspense,
+  GameActionKeyEnum,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { formatDateTime, formatTimeAgo } from "@/util";
 import { useRequiredParams } from "@/hooks";
+
+const ADMIN_ACTION_KEYS: readonly GameActionKeyEnum[] = [
+  "extend_deadline",
+  "pause",
+  "unpause",
+];
 
 interface GameInfoContentProps {
   pendingAction?: React.ReactNode;
@@ -64,7 +71,9 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const isPending = game.status === "pending";
   const isGameMaster =
     !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
-  const canShowAdminActions = game.canManage && game.status === "active";
+  const adminActions = game.actions.filter(action =>
+    ADMIN_ACTION_KEYS.includes(action.key)
+  );
   const canCloneToSandbox = !game.sandbox && game.status === "active";
   const canDeleteGame = game.canDelete;
 
@@ -199,7 +208,9 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
         variant={variant}
         action={pendingAction}
         adminAction={
-          canShowAdminActions ? <GameAdminActions game={game} /> : undefined
+          adminActions.length > 0 ? (
+            <ActionList gameId={gameId} actions={adminActions} />
+          ) : undefined
         }
       />
       {(onShare || canCloneToSandbox || canDeleteGame) && (

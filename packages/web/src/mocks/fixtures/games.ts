@@ -947,6 +947,37 @@ const buildActiveSeatOpenSpectator = () => {
 
 export const activeGameSeatOpenSpectator = buildActiveSeatOpenSpectator();
 
+const buildActiveSeatOpenLocked = () => {
+  const members = makeSeatOpenMembers(1601).map((m, index) => ({
+    ...m,
+    userId: 300 + index,
+    name: m.isCurrentUser ? "Grace" : m.name,
+    isCurrentUser: false,
+  }));
+  const phase = makePhase(1601, 3, {
+    season: "Fall",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 18 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game that requires committed players, with an open Turkey seat. The current user is not a member and does not meet the commitment requirement, so the takeover is blocked.",
+    game: makeGame("seat-open-locked", "The Guarded Seat", members, [phase], {
+      commitmentRequirement: "committed",
+      commitmentEligibility: "committed_locked",
+      orderStatus: null,
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1601: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameSeatOpenLocked = buildActiveSeatOpenLocked();
+
 const buildSandbox = () => {
   const members = makeActiveMembers().map(m => ({
     ...m,
@@ -982,8 +1013,9 @@ const buildActivePaused = () => {
   });
   return makeFixture({
     description:
-      "Active game in Fall 1901 that the game master has paused. Deadlines are suspended until it resumes.",
+      "Active game in Fall 1901 that the current user manages and has paused. Deadlines are suspended until it resumes.",
     game: makeGame("active-paused", "Holding Pattern", members, [phase], {
+      canManage: true,
       isPaused: true,
       pausedAt: "2026-05-01T12:00:00Z",
       orderStatus: "orders_required",

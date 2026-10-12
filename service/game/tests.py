@@ -441,6 +441,24 @@ class TestGameRetrieveView:
 
 
     @pytest.mark.django_db
+    def test_retrieve_game_reports_the_game_masters_member(
+        self, authenticated_client, pending_game_with_game_master_factory
+    ):
+        game = pending_game_with_game_master_factory()
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.data["game_master_member_id"] == game.members.get(kind=MemberKind.GAME_MASTER).id
+
+    @pytest.mark.django_db
+    def test_retrieve_game_reports_no_game_master_member_without_a_game_master(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
+
+        assert response.data["game_master_member_id"] is None
+
+    @pytest.mark.django_db
     def test_retrieve_game_offers_no_actions_to_anonymous_visitors(
         self, unauthenticated_client, pending_game_created_by_primary_user
     ):

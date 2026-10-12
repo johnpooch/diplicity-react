@@ -19,25 +19,27 @@ const mockGameData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
 const mockUserProfileData = vi.fn();
-const mockKickMutateAsync = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
-  useGameRetrieveSuspense: () => ({ data: mockGameData() }),
+  useGameRetrieveSuspense: () => ({
+    data: { actions: [], gameMasterMemberId: null, ...mockGameData() },
+  }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useVariantsRetrieve: () => ({ data: undefined }),
   useGamePhaseRetrieve: () => ({ data: mockCurrentPhaseData() }),
   useUserRetrieveSuspense: () => ({ data: mockUserProfileData() }),
-  useGameKickDestroy: () => ({
-    mutateAsync: mockKickMutateAsync,
-    isPending: false,
-  }),
-  useGameMemberWithdrawPartialUpdate: () => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  }),
-  getGameRetrieveQueryKey: () => ["game"],
-  getGamesListQueryKey: () => ["games"],
-  getGameAddableUserListQueryKey: () => ["addable-user"],
+}));
+
+interface MockActionListProps {
+  actions: { key: string }[];
+}
+
+vi.mock("@/components/ActionList", () => ({
+  ActionList: ({ actions }: MockActionListProps) => (
+    <div data-testid="action-list">
+      {actions.map(action => action.key).join(",")}
+    </div>
+  ),
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -63,17 +65,26 @@ if (!Element.prototype.releasePointerCapture)
 if (!Element.prototype.scrollIntoView)
   Element.prototype.scrollIntoView = () => {};
 
-const mockCopyLink = vi.fn();
-vi.mock("@/utils/copyLink", () => ({
-  copyLink: (path: string) => mockCopyLink(path),
-}));
-
 const renderPlayerInfo = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={["/game/game-1"]}>
         <Routes>
           <Route path="/game/:gameId" element={<PlayerInfoContent />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+
+const renderGamePlayerInfo = () =>
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={["/game/game-1/phase/5/player-info"]}>
+        <Routes>
+          <Route
+            path="/game/:gameId/phase/:phaseId/player-info"
+            element={<PlayerInfoContent />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -307,70 +318,6 @@ describe("PlayerInfoContent", () => {
     expect(screen.getByTestId("add-bot-sheet")).toBeInTheDocument();
   });
 
-  it("lets an admin remove a bot from a pending game", async () => {
-    const user = userEvent.setup();
-    mockKickMutateAsync.mockResolvedValue(undefined);
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "pending",
-      canManage: true,
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [],
-      members: [
-        { ...baseMember, nation: null },
-        {
-          ...baseMember,
-          id: 2,
-          name: "The Dealmaker",
-          isCurrentUser: false,
-          isBot: true,
-          nation: null,
-          removable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    await user.click(screen.getByLabelText("Remove The Dealmaker"));
-    await user.click(screen.getByRole("button", { name: "Remove" }));
-
-    expect(mockKickMutateAsync).toHaveBeenCalledWith({
-      gameId: "game-1",
-      memberId: 2,
-    });
-  });
-
-  it("does not offer Remove Player to non-admins", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "pending",
-      canManage: false,
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [],
-      members: [
-        { ...baseMember, nation: null },
-        {
-          ...baseMember,
-          id: 2,
-          name: "The Dealmaker",
-          isCurrentUser: false,
-          isBot: true,
-          nation: null,
-          removable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(
-      screen.queryByLabelText("Remove The Dealmaker")
-    ).not.toBeInTheDocument();
-  });
-
   it("navigates to the profile when the card is clicked", async () => {
     const user = userEvent.setup();
     mockGameData.mockReturnValue({
@@ -546,29 +493,31 @@ describe("PlayerInfoContent", () => {
     );
   });
 
-  it("offers withdrawal when the player can withdraw", () => {
+  it("renders the game's actions below the list", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
-      canWithdraw: true,
       nmrExtensionsAllowed: 0,
       victory: null,
       phases: [{ id: 1, status: "active" }],
       members: [{ ...baseMember }],
+      actions: [
+        { key: "pause", blockedReason: null },
+        { key: "withdraw", blockedReason: null },
+      ],
     });
 
     renderPlayerInfo();
 
-    expect(
-      screen.getByRole("button", { name: /withdraw from game/i })
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("action-list")).toHaveTextContent(
+      "pause,withdraw"
+    );
   });
 
-  it("does not offer withdrawal when the player cannot withdraw", () => {
+  it("renders no actions when the game offers none", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",
       status: "active",
-      canWithdraw: false,
       nmrExtensionsAllowed: 0,
       victory: null,
       phases: [{ id: 1, status: "active" }],
@@ -577,9 +526,104 @@ describe("PlayerInfoContent", () => {
 
     renderPlayerInfo();
 
-    expect(
-      screen.queryByRole("button", { name: /withdraw from game/i })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("action-list")).not.toBeInTheDocument();
+  });
+
+  it("does not render seat controls on the rows", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      canManage: true,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", isCurrentUser: false },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          civilDisorder: true,
+          replaceable: true,
+          removable: true,
+        },
+      ],
+    });
+
+    renderGamePlayerInfo();
+
+    expect(screen.queryByRole("button", { name: /replace/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /invite replacement/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
+  });
+
+  it("navigates to the member screen when a row is clicked inside a game", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, userId: 1, name: "Alice" },
+        { ...baseMember, id: 2, userId: 77, name: "Bob", isCurrentUser: false },
+      ],
+    });
+
+    renderGamePlayerInfo();
+
+    await user.click(screen.getByLabelText("View details for Bob"));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/game/game-1/phase/5/member/2");
+  });
+
+  it("navigates to the member screen for anonymous, bot and former rows", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, userId: 1, name: "Alice" },
+        { ...baseMember, id: 2, userId: null, name: "Anonymous", isCurrentUser: false },
+        { ...baseMember, id: 3, userId: 101, name: "The Bear", isBot: true, isCurrentUser: false },
+        { ...baseMember, id: 4, userId: 9, name: "Dan", kicked: true, isCurrentUser: false },
+      ],
+    });
+
+    renderGamePlayerInfo();
+
+    await user.click(screen.getByLabelText("View details for Anonymous"));
+    await user.click(screen.getByLabelText("View details for The Bear"));
+    await user.click(screen.getByLabelText("View details for Dan"));
+
+    expect(mockNavigate).toHaveBeenNthCalledWith(1, "/game/game-1/phase/5/member/2");
+    expect(mockNavigate).toHaveBeenNthCalledWith(2, "/game/game-1/phase/5/member/3");
+    expect(mockNavigate).toHaveBeenNthCalledWith(3, "/game/game-1/phase/5/member/4");
+  });
+
+  it("links the game master to their member screen inside a game", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      gameMaster: { userId: 42, name: "Gina", picture: null },
+      gameMasterMemberId: 900,
+      members: [{ ...baseMember }],
+    });
+
+    renderGamePlayerInfo();
+
+    expect(screen.getByRole("link", { name: "Gina" })).toHaveAttribute(
+      "href",
+      "/game/game-1/phase/5/member/900"
+    );
   });
 
   it("dims and labels withdrawn players", () => {
@@ -613,65 +657,6 @@ describe("PlayerInfoContent", () => {
     ).not.toHaveClass("opacity-70");
     expect(screen.getByLabelText("Withdrawn")).toBeInTheDocument();
     expect(screen.queryByLabelText("Civil Disorder")).not.toBeInTheDocument();
-  });
-
-  it("uses a labelled Remove player button for removable members", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      canManage: true,
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          nation: "France",
-          isCurrentUser: false,
-          civilDisorder: true,
-          removable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(
-      screen.getByRole("button", { name: "Remove Bob" })
-    ).toHaveTextContent("Remove player");
-  });
-
-  it("does not offer removal when a Civil Disorder player is already eliminated", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      canManage: true,
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          nation: "France",
-          isCurrentUser: false,
-          eliminated: true,
-          civilDisorder: true,
-          removable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(
-      screen.queryByRole("button", { name: "Remove Bob" })
-    ).not.toBeInTheDocument();
   });
 
   it("explains the player metrics with tooltips", async () => {
@@ -875,140 +860,6 @@ describe("PlayerInfoContent", () => {
     expect(screen.getByText("Former players (1)")).toBeInTheDocument();
   });
 
-  it("does not offer to remove a member who is already removed", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      canManage: true,
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          isCurrentUser: false,
-          kicked: true,
-          replaceable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(
-      screen.queryByRole("button", { name: "Replace" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("copies the takeover link for a replaceable seat", async () => {
-    const user = userEvent.setup();
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          isCurrentUser: false,
-          kicked: true,
-          replaceable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    await user.click(
-      screen.getByRole("button", { name: /Invite replacement/ })
-    );
-
-    expect(mockCopyLink).toHaveBeenCalledWith("/game/game-1/replace/2");
-  });
-
-  it("does not offer to replace a seat to a member of the game", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice", isCurrentUser: true },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          isCurrentUser: false,
-          kicked: true,
-          replaceable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(
-      screen.queryByRole("button", { name: "Replace" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("does not offer Remove Player for a member who has not missed orders", () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      canManage: true,
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice" },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          isCurrentUser: false,
-          removable: false,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(screen.queryByLabelText("Remove Bob")).not.toBeInTheDocument();
-  });
-
-  it("offers to replace a seat to a non-member", async () => {
-    mockGameData.mockReturnValue({
-      variantId: "classical",
-      status: "active",
-      nmrExtensionsAllowed: 0,
-      victory: null,
-      phases: [{ id: 1, status: "active" }],
-      members: [
-        { ...baseMember, id: 1, name: "Alice", isCurrentUser: false },
-        {
-          ...baseMember,
-          id: 2,
-          name: "Bob",
-          isCurrentUser: false,
-          kicked: true,
-          replaceable: true,
-        },
-      ],
-    });
-
-    renderPlayerInfo();
-
-    expect(screen.getByRole("button", { name: "Replace" })).toBeInTheDocument();
-  });
   it("does not announce assigned nations while pending with a pin", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",

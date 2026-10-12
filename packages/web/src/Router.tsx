@@ -337,6 +337,14 @@ export const createAuthenticatedRoutes = (
                 ),
               },
               {
+                path: "member/:memberId",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.MemberScreen />
+                  </Suspense>
+                ),
+              },
+              {
                 path: "replace/:memberId",
                 element: (
                   <Suspense fallback={<RouteFallback />}>
