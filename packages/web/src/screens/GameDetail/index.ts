@@ -41,5 +41,6 @@ export const GameDetail = {
     () => import("./PlayerProfileScreen"),
     "PlayerProfileScreen"
   ),
+  MemberScreen: lazyScreen(() => import("./MemberScreen"), "MemberScreen"),
   ReplaceScreen: lazyScreen(() => import("./ReplaceScreen"), "ReplaceScreen"),
 };

@@ -237,8 +237,10 @@ class GameActionKey:
     EXTEND_DEADLINE = "extend_deadline"
     PAUSE = "pause"
     UNPAUSE = "unpause"
+    CLONE_TO_SANDBOX = "clone_to_sandbox"
     LEAVE = "leave"
     WITHDRAW = "withdraw"
+    DELETE = "delete"
 
     KEY_CHOICES = (
         (JOIN, "Join"),
@@ -248,9 +250,15 @@ class GameActionKey:
         (EXTEND_DEADLINE, "Extend deadline"),
         (PAUSE, "Pause"),
         (UNPAUSE, "Unpause"),
+        (CLONE_TO_SANDBOX, "Clone to sandbox"),
         (LEAVE, "Leave"),
         (WITHDRAW, "Withdraw"),
+        (DELETE, "Delete"),
     )
+
+    GAME_INFO_KEYS = (JOIN, CONFIRM_SEAT, EXTEND_DEADLINE, PAUSE, UNPAUSE, CLONE_TO_SANDBOX, LEAVE, WITHDRAW, DELETE)
+    PLAYER_LIST_KEYS = (EDIT_NATION_PREFERENCES, ASSIGN_NATIONS)
+    SEAT_KEYS = (CONFIRM_SEAT, LEAVE, WITHDRAW)
 
 
 class MemberActionKey:

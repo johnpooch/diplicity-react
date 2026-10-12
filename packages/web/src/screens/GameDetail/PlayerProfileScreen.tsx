@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import {
@@ -15,13 +15,19 @@ const PlayerProfileScreen: React.FC = () => {
     phaseId: string;
     userId: string;
   }>();
+  const [searchParams] = useSearchParams();
+  const memberId = searchParams.get("member");
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Player Profile"
         onNavigateBack={() =>
-          navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
+          navigate(
+            memberId
+              ? `/game/${gameId}/phase/${phaseId}/member/${memberId}`
+              : `/game/${gameId}/phase/${phaseId}/player-info`
+          )
         }
         variant="secondary"
       />

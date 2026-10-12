@@ -7,10 +7,16 @@ import { cn } from "@/lib/utils";
 interface InfoButtonProps {
   label: string;
   text: string;
+  ariaLabel?: string;
   className?: string;
 }
 
-const InfoButton: React.FC<InfoButtonProps> = ({ label, text, className }) => {
+const InfoButton: React.FC<InfoButtonProps> = ({
+  label,
+  text,
+  ariaLabel,
+  className,
+}) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,7 +32,7 @@ const InfoButton: React.FC<InfoButtonProps> = ({ label, text, className }) => {
             "-m-2 p-2 text-muted-foreground/60 hover:text-muted-foreground",
             className
           )}
-          aria-label={`What are ${label}?`}
+          aria-label={ariaLabel ?? `What are ${label}?`}
         >
           <Info className="size-3.5" />
         </button>

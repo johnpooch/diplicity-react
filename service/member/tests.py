@@ -2804,15 +2804,25 @@ class TestMemberRetrieveView:
         assert response.data["nation_preferences"] is None
 
     @pytest.mark.django_db
-    def test_own_member_returns_the_game_actions(self, authenticated_client, active_game_factory, primary_user):
+    def test_own_member_returns_the_seat_actions(self, authenticated_client, active_game_factory, primary_user):
         game = active_game_factory()
         member = game.members.get(user=primary_user)
 
         response = self._retrieve(authenticated_client, member)
-        game_response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _actions(response) == [("extend_deadline", None), ("pause", None), ("withdraw", None)]
-        assert response.data["actions"] == game_response.data["actions"]
+        assert _actions(response) == [("withdraw", None)]
+
+    @pytest.mark.django_db
+    def test_own_member_offers_confirm_seat_and_leave_while_mustering(
+        self, authenticated_client, pending_game_created_by_primary_user, primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+
+        response = self._retrieve(authenticated_client, game.members.get(user=primary_user))
+
+        assert _actions(response) == [("confirm_seat", None), ("leave", None)]
 
     @pytest.mark.django_db
     def test_playing_member_offers_no_actions_to_another_player(

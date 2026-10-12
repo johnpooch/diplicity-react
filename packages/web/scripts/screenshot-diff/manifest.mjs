@@ -6,6 +6,10 @@
 // without touching this file.
 
 import { fixtureByGameId, publicProfiles } from "../../src/mocks/fixtures/index.ts";
+import {
+  GAME_MASTER_MEMBER_IDS,
+  memberDetailFor,
+} from "../../src/mocks/members.ts";
 
 export const viewports = [
   { name: "mobile", width: 390, height: 844 },
@@ -73,6 +77,21 @@ const phaseGameScreens = (gameId, phaseId, fixture) => {
     screens.push({
       name: `player-profile__${gameId}`,
       path: `${base}/player/${profiled.userId}`,
+    });
+  }
+  const featuredMemberId =
+    GAME_MASTER_MEMBER_IDS[gameId] ??
+    (fixture.game.members ?? []).find(
+      member =>
+        !member.isCurrentUser &&
+        memberDetailFor(fixture, member.id)?.actions.length > 0
+    )?.id ??
+    (fixture.game.members ?? []).find(member => member.isCurrentUser)?.id ??
+    fixture.game.members?.[0]?.id;
+  if (featuredMemberId !== undefined) {
+    screens.push({
+      name: `member__${gameId}`,
+      path: `${base}/member/${featuredMemberId}`,
     });
   }
   return screens;

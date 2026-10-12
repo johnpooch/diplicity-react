@@ -392,8 +392,10 @@ export interface FlatOrderOption {
  * `extend_deadline` - Extend deadline
  * `pause` - Pause
  * `unpause` - Unpause
+ * `clone_to_sandbox` - Clone to sandbox
  * `leave` - Leave
  * `withdraw` - Withdraw
+ * `delete` - Delete
  */
 export type GameActionKeyEnum =
   (typeof GameActionKeyEnum)[keyof typeof GameActionKeyEnum];
@@ -406,8 +408,10 @@ export const GameActionKeyEnum = {
   extend_deadline: "extend_deadline",
   pause: "pause",
   unpause: "unpause",
+  clone_to_sandbox: "clone_to_sandbox",
   leave: "leave",
   withdraw: "withdraw",
+  delete: "delete",
 } as const;
 
 export interface GameAction {
@@ -704,6 +708,8 @@ export interface GameRetrieve {
   readonly canDelete: boolean;
   readonly canManage: boolean;
   readonly gameMaster: GameMaster | null;
+  /** @nullable */
+  readonly gameMasterMemberId: number | null;
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;
@@ -745,6 +751,7 @@ export interface GameRetrieve {
   readonly musterStatus: MusterStatusEnum | NullEnum | null;
   readonly totalUnreadMessageCount: number;
   readonly actions: readonly GameAction[];
+  readonly playerListActions: readonly GameAction[];
 }
 
 export interface GoogleAuth {
@@ -795,8 +802,10 @@ export const KindEnum = {
  * `extend_deadline` - Extend deadline
  * `pause` - Pause
  * `unpause` - Unpause
+ * `clone_to_sandbox` - Clone to sandbox
  * `leave` - Leave
  * `withdraw` - Withdraw
+ * `delete` - Delete
  * `take_over` - Take over
  * `share_replacement_link` - Share replacement link
  * `remove_from_lobby` - Remove from lobby
@@ -813,8 +822,10 @@ export const MemberActionKeyEnum = {
   extend_deadline: "extend_deadline",
   pause: "pause",
   unpause: "unpause",
+  clone_to_sandbox: "clone_to_sandbox",
   leave: "leave",
   withdraw: "withdraw",
+  delete: "delete",
   take_over: "take_over",
   share_replacement_link: "share_replacement_link",
   remove_from_lobby: "remove_from_lobby",

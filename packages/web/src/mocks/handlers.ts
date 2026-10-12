@@ -22,6 +22,12 @@ import {
 } from "./fixtures";
 import { nation as classicalNation } from "./fixtures/classical";
 import { myGamesCurrent, myGamesFinished } from "./myGames";
+import {
+  GAME_MASTER_MEMBER_IDS,
+  gameActionsFor,
+  memberDetailFor,
+  playerListActionsFor,
+} from "./members";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
 import cantonMapSvg from "./fixtures/data/canton.d.svg?raw";
 import hundredMapSvg from "./fixtures/data/hundred.d.svg?raw";
@@ -246,8 +252,18 @@ export const handlers = [
     delete game.currentPhase;
     return HttpResponse.json({
       ...game,
+      gameMasterMemberId: GAME_MASTER_MEMBER_IDS[fixture.game.id] ?? null,
+      actions: gameActionsFor(fixture),
+      playerListActions: playerListActionsFor(fixture),
       totalUnreadMessageCount: fixture.totalUnreadMessageCount,
     });
+  }),
+
+  http.get("*/game/:gameId/member/:memberId/", ({ params }) => {
+    if (!/^\d+$/.test(String(params.memberId))) return;
+    const fixture = gameOr404(params.gameId as string);
+    const member = fixture && memberDetailFor(fixture, Number(params.memberId));
+    return member ? HttpResponse.json(member) : notFound();
   }),
 
   http.get("*/game/:gameId/phases/", ({ params }) => {
@@ -457,6 +473,8 @@ export const handlers = [
   http.patch("*/game/:gameId/confirm-phase/", () => HttpResponse.json({})),
   http.post("*/game/:gameId/resolve-phase/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/phase/:phaseId/revert/", () => HttpResponse.json({})),
+  http.post("*/game/:gameId/muster/", () => HttpResponse.json({})),
+  http.patch("*/game/:gameId/member/withdraw/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/pause/", () => HttpResponse.json({})),
   http.patch("*/game/:gameId/unpause/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/extend-deadline/", () => HttpResponse.json({})),
