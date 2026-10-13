@@ -2,6 +2,7 @@ from django.conf import settings
 
 from draw_proposal.models import DrawProposal
 from notification.models import NotificationDelivery
+from notification.utils import build_push_tag
 
 Channel = NotificationDelivery.Channel
 
@@ -83,7 +84,7 @@ class NotificationSpec:
             "body": self.get_body(),
             "link": link,
             "data": self._push_data(link),
-            "tag": self.get_tag(),
+            "tag": build_push_tag(self.get_tag()),
         }
 
     def _push_data(self, link):
