@@ -32,7 +32,9 @@ from notification.tasks import (
 from notification.utils import (
     FIREBASE_UNCONFIGURED_ERROR,
     NO_ACTIVE_DEVICE_ERROR,
+    PUSH_TAG_MAX_LENGTH,
     PUSH_TTL,
+    build_push_tag,
     build_webpush_topic,
     build_push_message,
     push_results_by_user,
@@ -1567,6 +1569,18 @@ class TestBuildPushMessage:
 
         assert one.apns.headers["apns-collapse-id"] != two.apns.headers["apns-collapse-id"]
         assert one.webpush.headers["Topic"] != two.webpush.headers["Topic"]
+
+    def test_push_tag_keeps_a_tag_that_fits(self):
+        assert build_push_tag("game-the-assault-of-the-adroit-advertisement-65162925") == (
+            "game-the-assault-of-the-adroit-advertisement-65162925"
+        )
+
+    def test_push_tag_shortens_a_tag_that_does_not_fit(self):
+        tag = "game-the-contest-of-the-contumacious-comb-mirror-reality-ffd02c0a"
+
+        assert len(build_push_tag(tag)) <= PUSH_TAG_MAX_LENGTH
+        assert build_push_tag(tag) == build_push_tag(tag)
+        assert build_push_tag(tag) != build_push_tag(f"{tag}-admin")
 
     def test_webpush_topic_fits_the_header_limit(self):
         topic = build_webpush_topic("game-the-assault-of-the-adroit-advertisement-65162925")

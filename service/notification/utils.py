@@ -12,6 +12,13 @@ PUSH_TTL = timedelta(hours=1)
 FIREBASE_UNCONFIGURED_ERROR = "firebase is not configured"
 NO_ACTIVE_DEVICE_ERROR = "no active device"
 WEBPUSH_TOPIC_LENGTH = 24
+PUSH_TAG_MAX_LENGTH = 64
+
+
+def build_push_tag(tag):
+    if tag is None or len(tag) <= PUSH_TAG_MAX_LENGTH:
+        return tag
+    return hashlib.sha256(tag.encode()).hexdigest()[:PUSH_TAG_MAX_LENGTH]
 
 
 def build_webpush_topic(tag):

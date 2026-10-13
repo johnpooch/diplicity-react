@@ -232,6 +232,32 @@ def test_join_game_max_players(
 
 
 @pytest.mark.django_db
+def test_joining_the_last_seat_starts_a_game_with_a_long_id(
+    authenticated_client, secondary_user, classical_variant, italy_vs_germany_variant, base_pending_phase
+):
+    game = Game.objects.create(
+        name="The Contest of the Contumacious Comb MIRROR REALITY",
+        variant=classical_variant,
+        status=GameStatus.PENDING,
+        created_by=secondary_user,
+        admin=secondary_user,
+    )
+    base_pending_phase(game)
+    game.variant = italy_vs_germany_variant
+    game.save()
+    game.channels.create(name="Public Press", private=False)
+    game.seat(secondary_user)
+
+    url = reverse(join_viewname, args=[game.id])
+    response = authenticated_client.post(url)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    game.refresh_from_db()
+    assert game.status == GameStatus.ACTIVE
+    assert Notification.objects.filter(event_type="game_start", recipient=secondary_user).exists()
+
+
+@pytest.mark.django_db
 def test_join_game_rejects_request_whose_seat_is_taken_by_the_same_user_after_its_checks(
     authenticated_client, pending_game_created_by_secondary_user, italy_vs_germany_variant, primary_user
 ):
