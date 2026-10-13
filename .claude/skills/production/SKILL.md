@@ -109,6 +109,13 @@ Add the `deploy-to-staging` label to a PR. `.github/workflows/pr-staging.yml` wi
 
 The Netlify deploy preview automatically derives the staging backend URL from the PR number (`packages/web/netlify.toml` uses `REVIEW_ID`).
 
+Staging CORS also allows `http://localhost:5173`, so a local frontend can run against it:
+
+```bash
+cd packages/web
+VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging-pr-<number>.up.railway.app npm run dev
+```
+
 ## Redeploy
 
 Add the `deploy-to-staging` label again — the workflow reuses the existing environment and re-clones the database.

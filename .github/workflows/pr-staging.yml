@@ -478,7 +478,7 @@ jobs:
             --arg projectId "$PROJECT_ID" \
             --arg envId "$ENV_ID" \
             --arg serviceId "$DJANGO_SERVICE_ID" \
-            --arg cors "${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost" \
+            --arg cors "${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost,http://localhost:5173" \
             --arg hosts "$STAGING_DOMAIN" \
             --arg csrf "https://${STAGING_DOMAIN}" \
             '{
