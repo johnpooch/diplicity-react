@@ -159,22 +159,98 @@ class TestChannelCreateView:
         assert response.data["member_ids"][0] == "Channel already exists."
 
     @pytest.mark.django_db
-    def test_create_channel_inactive_game(
-        self, authenticated_client, classical_variant, primary_user, classical_england_nation
+    def test_create_channel_in_pending_game_is_named_after_players(
+        self, authenticated_client, pending_game_created_by_secondary_user, primary_user, secondary_user
     ):
-        Game = apps.get_model("game", "Game")
+        game = pending_game_created_by_secondary_user
+        authenticated_client.post(reverse("game-join", args=[game.id]), {}, format="json")
+        other_member = game.members.get(user=secondary_user)
 
-        inactive_game = Game.objects.create(
-            name="Inactive Game",
-            variant=classical_variant,
-            status=GameStatus.PENDING,
+        url = reverse("channel-create", args=[game.id])
+        response = authenticated_client.post(url, {"member_ids": [other_member.id]}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == ", ".join(
+            sorted([primary_user.profile.name, secondary_user.profile.name])
         )
-        inactive_game.members.create(user=primary_user, nation=classical_england_nation)
 
-        url = reverse("channel-create", args=[inactive_game.id])
-        payload = {"member_ids": []}
-        response = authenticated_client.post(url, payload, format="json")
+    @pytest.mark.django_db
+    def test_create_channel_in_pending_game_with_same_players_rejected(
+        self, authenticated_client, pending_game_created_by_secondary_user, secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        authenticated_client.post(reverse("game-join", args=[game.id]), {}, format="json")
+        other_member = game.members.get(user=secondary_user)
+
+        url = reverse("channel-create", args=[game.id])
+        authenticated_client.post(url, {"member_ids": [other_member.id]}, format="json")
+        response = authenticated_client.post(url, {"member_ids": [other_member.id]}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["member_ids"][0] == "Channel already exists."
+
+    @pytest.mark.django_db
+    def test_pending_game_channel_is_named_after_nations_once_the_game_starts(
+        self,
+        authenticated_client,
+        authenticated_client_factory,
+        user_factory,
+        pending_game_created_by_secondary_user,
+        primary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_secondary_user
+        join_url = reverse("game-join", args=[game.id])
+        authenticated_client.post(join_url, {}, format="json")
+        other_member = game.members.get(user=secondary_user)
+        create_response = authenticated_client.post(
+            reverse("channel-create", args=[game.id]), {"member_ids": [other_member.id]}, format="json"
+        )
+
+        while game.members.players().count() < 7:
+            authenticated_client_factory(user_factory()).post(join_url, {}, format="json")
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+        response = authenticated_client.get(reverse("channel-update", args=[game.id, create_response.data["id"]]))
+        channel_nations = sorted(
+            member.nation.name for member in game.members.filter(user__in=[primary_user, secondary_user])
+        )
+        assert response.data["name"] == ", ".join(channel_nations)
+
+    @pytest.mark.django_db
+    def test_member_of_pending_game_can_rename_channel(
+        self, authenticated_client, pending_game_created_by_secondary_user, primary_user, secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        authenticated_client.post(reverse("game-join", args=[game.id]), {}, format="json")
+        other_member = game.members.get(user=secondary_user)
+        channel_id = authenticated_client.post(
+            reverse("channel-create", args=[game.id]), {"member_ids": [other_member.id]}, format="json"
+        ).data["id"]
+
+        response = authenticated_client.patch(
+            reverse("channel-update", args=[game.id, channel_id]), {"title": "Lobby allies"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["title"] == "Lobby allies"
+
+    @pytest.mark.django_db
+    def test_create_channel_in_pending_anonymous_game_forbidden(
+        self, authenticated_client, pending_game_created_by_secondary_user, secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        game.anonymous = True
+        game.save(update_fields=["anonymous"])
+        authenticated_client.post(reverse("game-join", args=[game.id]), {}, format="json")
+        other_member = game.members.get(user=secondary_user)
+
+        url = reverse("channel-create", args=[game.id])
+        response = authenticated_client.post(url, {"member_ids": [other_member.id]}, format="json")
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not game.channels.filter(private=True).exists()
 
     @pytest.mark.django_db
     def test_create_channel_non_member(

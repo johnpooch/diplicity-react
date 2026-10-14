@@ -240,6 +240,16 @@ class IsNotNoPressActiveGame(BasePermission):
         return game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
+class IsNotUnstartedAnonymousGame(BasePermission):
+    message = "Private channels are not available in anonymous games until the game starts."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        if not game.anonymous:
+            return True
+        return game.status not in (GameStatus.PENDING, GameStatus.MUSTERING)
+
+
 class IsGameManager(BasePermission):
     message = "Only the game manager can perform this action."
 

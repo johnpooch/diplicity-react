@@ -133,8 +133,7 @@ class ChannelSerializer(serializers.Serializer):
         if channel_members.count() != len(member_ids):
             raise serializers.ValidationError("One or more members are not part of the game.")
 
-        nations = sorted([m.nation.name for m in channel_members])
-        channel_name = ", ".join(nations)
+        channel_name = Channel.objects.name_for_members(channel_members)
 
         if game.channels.filter(name=channel_name).exists():
             raise serializers.ValidationError("Channel already exists.")
@@ -206,7 +205,7 @@ class ChannelUpdateSerializer(serializers.Serializer):
             game=instance.game,
             phase=instance.game.current_phase,
             channel=instance,
-            nation=member.nation.name,
+            nation=Channel.objects.member_label(member),
             name=title,
         )
         return instance

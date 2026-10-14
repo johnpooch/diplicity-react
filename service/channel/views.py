@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
-from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
+from common.permissions import IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame, IsNotUnstartedAnonymousGame
 
 from .models import Channel, ChannelMember, ChannelMessage
 from .permissions import CanMuteChannel, CanRenameChannel
@@ -22,7 +22,7 @@ from common.views import ConditionalGetMixin, PrecomputedConditionalGetMixin, Se
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsNotKickedGamePlayer, IsNotSandboxGame, IsNotNoPressActiveGame]
+    permission_classes = [permissions.IsAuthenticated, IsNotKickedGamePlayer, IsNotSandboxGame, IsNotNoPressActiveGame, IsNotUnstartedAnonymousGame]
     serializer_class = ChannelSerializer
 
 

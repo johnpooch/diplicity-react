@@ -110,14 +110,25 @@ class ChannelManager(models.Manager):
     def get_queryset(self):
         return ChannelQuerySet(self.model, using=self._db)
 
+    @staticmethod
+    def member_label(member):
+        return member.nation.name if member.nation else member.name
+
+    def name_for_members(self, members):
+        return ", ".join(sorted(self.member_label(member) for member in members))
+
     def create_from_member_ids(self, user, member_ids, game, title=""):
         member_ids = member_ids + [game.members.players().get(user=user).id]
         channel_members = game.members.players().filter(id__in=member_ids)
-        nations = sorted([m.nation.name for m in channel_members])
-        channel_name = ", ".join(nations)
-        channel = self.create(name=channel_name, title=title, private=True, game=game)
+        channel = self.create(name=self.name_for_members(channel_members), title=title, private=True, game=game)
         channel.members.set(channel_members)
         return channel
+
+    def name_private_channels_after_nations(self, game):
+        channels = list(self.filter(game=game, private=True).prefetch_related("members__nation"))
+        for channel in channels:
+            channel.name = self.name_for_members(channel.members.all())
+        self.bulk_update(channels, ["name"])
 
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)
