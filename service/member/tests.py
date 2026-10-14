@@ -391,6 +391,51 @@ def test_leave_pending_game_with_other_members_preserves_game(
 
 
 @pytest.mark.django_db
+def test_leave_pending_game_deletes_private_channel_left_with_one_member(
+    authenticated_client,
+    authenticated_client_factory,
+    pending_game_created_by_secondary_user_joined_by_primary,
+    secondary_user,
+):
+    game = pending_game_created_by_secondary_user_joined_by_primary
+    authenticated_client.post(
+        reverse("channel-create", args=[game.id]),
+        {"member_ids": [game.members.get(user=secondary_user).id]},
+        format="json",
+    )
+
+    response = authenticated_client.delete(reverse(leave_viewname, args=[game.id]))
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    channels = authenticated_client_factory(secondary_user).get(reverse("channel-preview-list", args=[game.id])).data
+    assert [channel["private"] for channel in channels] == [False]
+
+
+@pytest.mark.django_db
+def test_leave_pending_game_renames_private_channel_after_remaining_members(
+    authenticated_client,
+    authenticated_client_factory,
+    user_factory,
+    pending_game_created_by_secondary_user_joined_by_primary,
+    secondary_user,
+):
+    game = pending_game_created_by_secondary_user_joined_by_primary
+    third_user = user_factory()
+    authenticated_client_factory(third_user).post(reverse(join_viewname, args=[game.id]), {}, format="json")
+    authenticated_client.post(
+        reverse("channel-create", args=[game.id]),
+        {"member_ids": [game.members.get(user=secondary_user).id, game.members.get(user=third_user).id]},
+        format="json",
+    )
+
+    authenticated_client.delete(reverse(leave_viewname, args=[game.id]))
+
+    channels = authenticated_client_factory(secondary_user).get(reverse("channel-preview-list", args=[game.id])).data
+    private_names = [channel["name"] for channel in channels if channel["private"]]
+    assert private_names == [", ".join(sorted([secondary_user.profile.name, third_user.profile.name]))]
+
+
+@pytest.mark.django_db
 def test_join_game_member_is_not_game_creator(
     authenticated_client, pending_game_created_by_secondary_user, primary_user
 ):
@@ -435,6 +480,26 @@ class TestKickMember:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not game.members.filter(user=secondary_user).exists()
+
+    @pytest.mark.django_db
+    def test_kick_member_from_pending_game_deletes_private_channel_left_with_one_member(
+        self,
+        authenticated_client,
+        authenticated_client_factory,
+        pending_game_created_by_primary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_primary_user
+        secondary_client = authenticated_client_factory(secondary_user)
+        secondary_client.post(reverse(join_viewname, args=[game.id]), {}, format="json")
+        member = game.members.get(user=secondary_user)
+        authenticated_client.post(reverse("channel-create", args=[game.id]), {"member_ids": [member.id]}, format="json")
+
+        response = authenticated_client.delete(reverse(kick_viewname, args=[game.id, member.id]))
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        channels = authenticated_client.get(reverse("channel-preview-list", args=[game.id])).data
+        assert [channel["private"] for channel in channels] == [False]
 
     @pytest.mark.django_db
     def test_kick_member_non_game_master_forbidden(

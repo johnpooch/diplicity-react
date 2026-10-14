@@ -124,6 +124,20 @@ class ChannelManager(models.Manager):
         channel.members.set(channel_members)
         return channel
 
+    def leave_private_channels(self, member):
+        channels = list(
+            self.filter(private=True, members=member).prefetch_related("members__nation", "members__user__profile")
+        )
+        remaining_members = {
+            channel.id: [channel_member for channel_member in channel.members.all() if channel_member.id != member.id]
+            for channel in channels
+        }
+        self.filter(id__in=[channel.id for channel in channels if len(remaining_members[channel.id]) < 2]).delete()
+        kept = [channel for channel in channels if len(remaining_members[channel.id]) >= 2]
+        for channel in kept:
+            channel.name = self.name_for_members(remaining_members[channel.id])
+        self.bulk_update(kept, ["name"])
+
     def name_private_channels_after_nations(self, game):
         channels = list(self.filter(game=game, private=True).prefetch_related("members__nation"))
         for channel in channels:
