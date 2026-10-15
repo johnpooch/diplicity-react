@@ -18,7 +18,7 @@ from select_orders.scorers import (
     quality_strong,
     support_coherence,
 )
-from select_orders.prompt import system_prompt, user_prompt
+from select_orders.prompt import check_option_ids, system_prompt, user_prompt
 from select_orders.types import Fixture
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
@@ -34,13 +34,25 @@ def load_fixtures(eval_set: str | None = None) -> list[Fixture]:
     return members
 
 
-def fixture_to_sample(fixture: Fixture) -> Sample:
+def select_fixtures(eval_set: str | None = None, fixture_id: str | None = None) -> list[Fixture]:
+    fixtures = load_fixtures(eval_set)
+    if fixture_id is None:
+        return fixtures
+    selected = [fixture for fixture in fixtures if fixture["id"] == fixture_id]
+    if not selected:
+        raise FixtureError(f"fixture '{fixture_id}' is not in eval set '{eval_set}'")
+    return selected
+
+
+def fixture_to_sample(fixture: Fixture, system: str | None = None, user: str | None = None) -> Sample:
     context = fixture_to_context(fixture)
+    if user is not None:
+        check_option_ids(user, context)
     return Sample(
         id=fixture["id"],
         input=[
-            ChatMessageSystem(content=system_prompt(context)),
-            ChatMessageUser(content=user_prompt(context)),
+            ChatMessageSystem(content=system_prompt(context) if system is None else system),
+            ChatMessageUser(content=user_prompt(context) if user is None else user),
         ],
         metadata={
             "context": context,
@@ -63,13 +75,35 @@ def _scorers():
     ]
 
 
-def _dataset(eval_set: str | None = None) -> MemoryDataset:
-    return MemoryDataset([fixture_to_sample(fixture) for fixture in load_fixtures(eval_set)])
+def _read_prompt(path: str | None) -> str | None:
+    return None if path is None else Path(path).read_text()
+
+
+def _dataset(
+    eval_set: str | None = None,
+    fixture_id: str | None = None,
+    system_file: str | None = None,
+    user_file: str | None = None,
+) -> MemoryDataset:
+    if (system_file or user_file) and fixture_id is None:
+        raise FixtureError("a custom prompt is written for one fixture; name it with --fixture")
+    fixtures = select_fixtures(eval_set, fixture_id)
+    system, user = _read_prompt(system_file), _read_prompt(user_file)
+    return MemoryDataset([fixture_to_sample(fixture, system, user) for fixture in fixtures])
 
 
 @task
-def select_orders(eval_set: str | None = None):
-    return Task(dataset=_dataset(eval_set), solver=generate(), scorer=_scorers())
+def select_orders(
+    eval_set: str | None = None,
+    fixture_id: str | None = None,
+    system_file: str | None = None,
+    user_file: str | None = None,
+):
+    return Task(
+        dataset=_dataset(eval_set, fixture_id, system_file, user_file),
+        solver=generate(),
+        scorer=_scorers(),
+    )
 
 
 @task
