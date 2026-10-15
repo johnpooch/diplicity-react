@@ -656,6 +656,7 @@ class GameRetrieve(TypedDict):
     can_withdraw: bool
     can_delete: bool
     can_manage: bool
+    can_create_channel: bool
     game_master: GameMaster | None
     game_master_member_id: int | None
     phases: list[int]

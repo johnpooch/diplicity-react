@@ -44,20 +44,6 @@ class IsGameParticipant(BasePermission):
         return game.members.filter(user=request.user).exists()
 
 
-class IsNotKickedGamePlayer(BasePermission):
-    message = "User is not a player in the game."
-
-    def has_permission(self, request, view):
-        game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.players().filter(user=request.user).first()
-        if not member:
-            return False
-        if member.left_seat:
-            self.message = "Cannot perform action for kicked players."
-            return False
-        return True
-
-
 class IsNotKickedGameParticipant(BasePermission):
     message = "User is not a member of the game."
 

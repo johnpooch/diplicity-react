@@ -5,9 +5,9 @@ from django.db.models import Count, Max
 
 from .models import Channel, ChannelEvent
 from .policies import can_mute_channel, can_rename_channel
-from .serializers import ChannelEventSerializer, ChannelMemberSerializer
+from .serializers import ChannelEventSerializer, ChannelMemberSerializer, derive_channel_name
 
-CHANNEL_LIST_REPRESENTATION_VERSION = 2
+CHANNEL_LIST_REPRESENTATION_VERSION = 3
 
 
 def _digest(projection):
@@ -22,6 +22,7 @@ def channel_list_fingerprint(request, game, member):
         Channel.objects.accessible_to_member(member, game)
         .with_unread_counts(user)
         .with_mute_state(user)
+        .with_member_names()
         .annotate(
             message_count=Count("messages", distinct=True),
             last_message_id=Max("messages__id"),
@@ -44,7 +45,7 @@ def channel_list_fingerprint(request, game, member):
             [
                 [
                     channel.id,
-                    channel.name,
+                    derive_channel_name(channel, context),
                     channel.title,
                     channel.private,
                     channel.created_at,

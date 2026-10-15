@@ -3402,6 +3402,9 @@ components:
         can_manage:
           type: boolean
           readOnly: true
+        can_create_channel:
+          type: boolean
+          readOnly: true
         game_master:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
@@ -3544,6 +3547,7 @@ components:
       required:
       - actions
       - anonymous
+      - can_create_channel
       - can_delete
       - can_join
       - can_leave

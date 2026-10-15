@@ -6,6 +6,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
+from channel.models import Channel
 from .serializers import MemberCreateSerializer, MemberDetailSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer, MemberWithdrawSerializer
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
@@ -70,6 +71,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         game = instance.game
         user_id = instance.user_id
         with transaction.atomic():
+            Channel.objects.delete_channels_left_with_one_member(instance)
             super().perform_destroy(instance)
             game.return_to_pending()
             if user_id == game.admin_id:

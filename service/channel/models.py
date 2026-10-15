@@ -28,6 +28,9 @@ class ChannelQuerySet(models.QuerySet):
     def for_game(self, game):
         return self.filter(game=game)
 
+    def with_member_names(self):
+        return self.prefetch_related("members__nation", "members__user__profile")
+
     def with_related_data(self):
         return self.prefetch_related(
             "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile__uploaded_picture", "members", "members__user", "members__user__profile__uploaded_picture",
@@ -113,11 +116,19 @@ class ChannelManager(models.Manager):
     def create_from_member_ids(self, user, member_ids, game, title=""):
         member_ids = member_ids + [game.members.players().get(user=user).id]
         channel_members = game.members.players().filter(id__in=member_ids)
-        nations = sorted([m.nation.name for m in channel_members])
-        channel_name = ", ".join(nations)
-        channel = self.create(name=channel_name, title=title, private=True, game=game)
+        channel = self.create(title=title, private=True, game=game)
         channel.members.set(channel_members)
         return channel
+
+    def private_channel_exists_for_members(self, game, member_ids):
+        return any(
+            {member.id for member in channel.members.all() if member.replaced_by_id is None} == set(member_ids)
+            for channel in self.filter(game=game, private=True).prefetch_related("members")
+        )
+
+    def delete_channels_left_with_one_member(self, member):
+        channels = self.filter(private=True, members=member).prefetch_related("members")
+        self.filter(id__in=[channel.id for channel in channels if len(channel.members.all()) <= 2]).delete()
 
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)

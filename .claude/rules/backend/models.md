@@ -21,6 +21,8 @@ Two responsibilities: define fields, and define properties for convenient access
 
 **A human-readable primary key always carries a random suffix.** `Game.id` is a slug of the name plus a short uuid fragment, so no id is ever issued twice — including after the row it belonged to is deleted. Never hand out the bare slug when it happens to be free: a recycled id lets a request holding a stale one act on an unrelated row, and lets a delete strand the new row's children.
 
+**Derive a value other rows already determine; do not store a copy and keep it in sync.** A private channel's `name` is built when it is read from the channel's current members (`derive_channel_name` in `service/channel/serializers.py`), so starting a game, leaving, or a seat changing hands needs no rename step. Store a value only when nothing else can reproduce it.
+
 **Do not leave unused domain in the schema for a future feature.** If fields are not used yet, remove them and re-add when the feature lands. Absent beats switched-off scaffolding.
 
 Query optimisation belongs on a custom QuerySet, never in a view:

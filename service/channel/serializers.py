@@ -22,6 +22,24 @@ class ChannelMemberSerializer(BaseMemberSerializer):
     is_game_master = serializers.BooleanField(read_only=True)
 
 
+def derive_channel_name(channel, context):
+    if not channel.private:
+        return channel.name
+    member_serializer = ChannelMemberSerializer(context=context)
+    return ", ".join(
+        sorted(
+            member.nation.name if member.nation else member_serializer.get_name(member)
+            for member in channel.members.all()
+            if member.replaced_by_id is None
+        )
+    )
+
+
+class ChannelNameMixin:
+    def get_name(self, channel) -> str:
+        return derive_channel_name(channel, self.context)
+
+
 class ChannelMessageSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     body = serializers.CharField(
@@ -81,9 +99,9 @@ class ChannelEventSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
 
 
-class ChannelSerializer(serializers.Serializer):
+class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
+    name = serializers.SerializerMethodField()
     title = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -133,10 +151,7 @@ class ChannelSerializer(serializers.Serializer):
         if channel_members.count() != len(member_ids):
             raise serializers.ValidationError("One or more members are not part of the game.")
 
-        nations = sorted([m.nation.name for m in channel_members])
-        channel_name = ", ".join(nations)
-
-        if game.channels.filter(name=channel_name).exists():
+        if Channel.objects.private_channel_exists_for_members(game, member_ids):
             raise serializers.ValidationError("Channel already exists.")
 
         return value
@@ -149,9 +164,9 @@ class ChannelSerializer(serializers.Serializer):
         )
 
 
-class ChannelPreviewSerializer(serializers.Serializer):
+class ChannelPreviewSerializer(ChannelNameMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
+    name = serializers.SerializerMethodField()
     title = serializers.CharField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     muted = serializers.BooleanField(read_only=True)
@@ -159,9 +174,9 @@ class ChannelPreviewSerializer(serializers.Serializer):
     latest_message = ChannelMessageSerializer(read_only=True, allow_null=True)
 
 
-class ChannelDetailSerializer(serializers.Serializer):
+class ChannelDetailSerializer(ChannelNameMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
+    name = serializers.SerializerMethodField()
     title = serializers.CharField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     muted = serializers.BooleanField(read_only=True)
@@ -192,6 +207,13 @@ class ChannelUpdateSerializer(serializers.Serializer):
         },
     )
 
+    def actor_label(self, member):
+        if member.nation:
+            return member.nation.name
+        if member.game.anonymity_active:
+            return "Anonymous"
+        return member.name
+
     def update(self, instance, validated_data):
         title = validated_data["title"]
         if title == instance.title:
@@ -206,7 +228,7 @@ class ChannelUpdateSerializer(serializers.Serializer):
             game=instance.game,
             phase=instance.game.current_phase,
             channel=instance,
-            nation=member.nation.name,
+            nation=self.actor_label(member),
             name=title,
         )
         return instance

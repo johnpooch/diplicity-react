@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from .policies import can_mute_channel, can_rename_channel
+from .policies import can_create_channel, can_mute_channel, can_rename_channel
 
 
 def is_channel_member(channel, member):
@@ -9,6 +9,13 @@ def is_channel_member(channel, member):
     if not channel.private:
         return True
     return channel.members.filter(id=member.id).exists()
+
+
+class CanCreateChannel(BasePermission):
+    message = "You cannot create a channel in this game."
+
+    def has_permission(self, request, view):
+        return can_create_channel(view.get_game(), view.get_current_game_member())
 
 
 class CanRenameChannel(BasePermission):

@@ -21,6 +21,7 @@ beforeAll(() => {
 
 const mockChannelsData = vi.fn();
 const mockMembersData = vi.fn(() => [{ id: 1, nation: "Austria", isCurrentUser: true }]);
+const mockCanCreateChannel = vi.fn(() => true);
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
@@ -30,6 +31,7 @@ vi.mock("@/api/generated/endpoints", () => ({
       status: "active",
       variantId: "standard",
       members: mockMembersData(),
+      canCreateChannel: mockCanCreateChannel(),
     },
   }),
   useGamesChannelPreviewsListSuspense: () => ({
@@ -144,7 +146,7 @@ describe("ChannelListScreen", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("shows create channel button for a member", () => {
+  it("shows create channel button when the game allows creating channels", () => {
     mockChannelsData.mockReturnValue([]);
 
     renderChannelList();
@@ -156,9 +158,9 @@ describe("ChannelListScreen", () => {
     }
   });
 
-  it("hides create channel button when the user is not a member", () => {
+  it("hides create channel button when the game does not allow creating channels", () => {
     mockChannelsData.mockReturnValue([]);
-    mockMembersData.mockReturnValue([{ id: 1, nation: "Austria", isCurrentUser: false }]);
+    mockCanCreateChannel.mockReturnValue(false);
 
     renderChannelList();
 

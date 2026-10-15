@@ -2,10 +2,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
-from common.permissions import IsActiveOrCompletedGame, IsGameParticipant, IsChannelMember, IsNotKickedGamePlayer, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
+from common.permissions import IsGameParticipant, IsChannelMember, IsNotKickedGameParticipant, IsNotSandboxGame, IsNotNoPressActiveGame
 
 from .models import Channel, ChannelMember, ChannelMessage
-from .permissions import CanMuteChannel, CanRenameChannel
+from .permissions import CanCreateChannel, CanMuteChannel, CanRenameChannel
 from .serializers import (
     ChannelSerializer,
     ChannelDetailSerializer,
@@ -22,7 +22,7 @@ from common.views import ConditionalGetMixin, PrecomputedConditionalGetMixin, Se
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsNotKickedGamePlayer, IsNotSandboxGame, IsNotNoPressActiveGame]
+    permission_classes = [permissions.IsAuthenticated, CanCreateChannel]
     serializer_class = ChannelSerializer
 
 
@@ -53,6 +53,7 @@ class ChannelRetrieveUpdateView(ConditionalGetMixin, SelectedGameMixin, CurrentG
             .with_first_unread_message_id(user)
             .with_latest_message_id()
             .with_detail_data()
+            .with_member_names()
         )
 
     def get_channel(self):
@@ -131,6 +132,7 @@ class LegacyChannelListView(PrecomputedConditionalGetMixin, SelectedGameMixin, C
             .with_unread_counts(user)
             .with_mute_state(user)
             .with_related_data()
+            .with_member_names()
             .order_for_list()
         )
 
@@ -148,6 +150,7 @@ class ChannelPreviewListView(ConditionalGetMixin, SelectedGameMixin, CurrentGame
             .with_unread_counts(user)
             .with_mute_state(user)
             .with_latest_message_id()
+            .with_member_names()
             .order_for_list()
         )
         Channel.objects.hydrate_latest_messages(channels)
