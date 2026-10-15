@@ -46,4 +46,4 @@ export const promptDiff = (before: string, after: string): Block[] => {
   return blocks;
 };
 
-export const hasChanges = (blocks: Block[]): boolean => blocks.some(block => block.kind === "changed");
+export const countChanges = (blocks: Block[]): number => blocks.filter(block => block.kind === "changed").length;

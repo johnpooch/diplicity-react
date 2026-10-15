@@ -52,7 +52,14 @@ export type FixtureDetail = BoardState & {
   order_sets: OrderSet[];
 };
 
-export type RunHeader = { name: string; id: string; epochs: number; model: string; created: string };
+export type RunHeader = {
+  name: string;
+  id: string;
+  epochs: number;
+  model: string;
+  created: string;
+  prompt: string | null;
+};
 
 export type RunCounts = {
   answers: number;
@@ -66,6 +73,8 @@ export type RunCounts = {
   output_tokens: number;
   score: number | null;
 };
+
+export type RunSummary = RunHeader & RunCounts & { fixture_ids: string[] };
 
 export type RunDetail = RunHeader &
   RunCounts & {
@@ -138,7 +147,7 @@ export const useFixture = (fixtureId: string) =>
 export const useRuns = () =>
   useSuspenseQuery({
     queryKey: ["runs"],
-    queryFn: () => request<{ runs: RunHeader[] }>("/api/runs/").then(body => body.runs),
+    queryFn: () => request<{ runs: RunSummary[] }>("/api/runs/").then(body => body.runs),
   });
 
 export const useRun = (name: string) =>
