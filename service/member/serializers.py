@@ -175,7 +175,7 @@ class MemberDetailSerializer(BaseMemberSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.CharField(), allow_null=True))
     def get_nation_preferences(self, obj):
-        if not self._is_current_user(obj) or self._get_game(obj).status != GameStatus.PENDING:
+        if not self._is_current_user(obj) or obj.is_game_master or self._get_game(obj).status != GameStatus.PENDING:
             return None
         return [preference.nation.name for preference in obj.nation_preferences.all()]
 

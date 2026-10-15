@@ -100,6 +100,7 @@ const REPLACED_MEMBERS: Record<string, MemberDetail> = {
 const GAME_INFO_KEYS: GameAction["key"][] = [
   "join",
   "confirm_seat",
+  "assign_nations",
   "extend_deadline",
   "pause",
   "unpause",
@@ -109,10 +110,7 @@ const GAME_INFO_KEYS: GameAction["key"][] = [
   "delete",
 ];
 
-const PLAYER_LIST_KEYS: GameAction["key"][] = [
-  "edit_nation_preferences",
-  "assign_nations",
-];
+const PLAYER_LIST_KEYS: GameAction["key"][] = ["edit_nation_preferences"];
 
 const SEAT_KEYS: GameAction["key"][] = ["confirm_seat", "leave", "withdraw"];
 
