@@ -1,7 +1,6 @@
 import json
 from collections import Counter
 from datetime import UTC, datetime
-from functools import lru_cache
 from pathlib import Path
 
 from django.conf import settings
@@ -51,13 +50,19 @@ def _fixture_path(fixture_id: str) -> Path:
     return settings.EVALS_FIXTURES_DIR / f"{fixture_id}.json"
 
 
-@lru_cache(maxsize=256)
-def _parse_fixture(text: str) -> Fixture:
-    return validate_fixture(json.loads(text))
+_parsed_fixtures: dict[Path, tuple[str, Fixture]] = {}
+
+
+def _cached_fixture(path: Path) -> Fixture:
+    text = path.read_text()
+    cached = _parsed_fixtures.get(path)
+    if cached is None or cached[0] != text:
+        cached = _parsed_fixtures[path] = (text, validate_fixture(json.loads(text)))
+    return cached[1]
 
 
 def _fixtures() -> list[Fixture]:
-    fixtures = [_parse_fixture(path.read_text()) for path in sorted(settings.EVALS_FIXTURES_DIR.glob("*.json"))]
+    fixtures = [_cached_fixture(path) for path in sorted(settings.EVALS_FIXTURES_DIR.glob("*.json"))]
     return [fixture for fixture in fixtures if settings.EVALS_EVAL_SET in fixture["eval_sets"]]
 
 
