@@ -1,4 +1,5 @@
 import copy
+import gzip
 import json
 
 import pytest
@@ -99,6 +100,27 @@ def test_list_variants_returns_304_on_matching_if_none_match(authenticated_clien
     second = authenticated_client.get(reverse("variant-list"), HTTP_IF_NONE_MATCH=etag)
     assert second.status_code == status.HTTP_304_NOT_MODIFIED
     assert second["ETag"] == etag
+
+
+@pytest.mark.django_db
+def test_list_variants_is_gzipped_when_client_accepts(authenticated_client):
+    response = authenticated_client.get(reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip")
+
+    assert response["Content-Encoding"] == "gzip"
+    assert "Accept-Encoding" in response["Vary"]
+    assert json.loads(gzip.decompress(response.content))
+
+
+@pytest.mark.django_db
+def test_list_variants_returns_304_on_replayed_gzip_etag(authenticated_client):
+    first = authenticated_client.get(reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip")
+    etag = first["ETag"]
+    assert etag.startswith('W/"')
+
+    second = authenticated_client.get(
+        reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip", HTTP_IF_NONE_MATCH=etag
+    )
+    assert second.status_code == status.HTTP_304_NOT_MODIFIED
 
 
 @pytest.mark.django_db

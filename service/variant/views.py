@@ -1,4 +1,3 @@
-import gzip
 import hashlib
 import json
 
@@ -151,14 +150,6 @@ class VariantSvgView(View):
         except VariantSvg.DoesNotExist:
             return HttpResponseNotFound()
 
-        body = variant_svg.svg.encode()
-        accepts_gzip = "gzip" in request.headers.get("Accept-Encoding", "")
-        if accepts_gzip:
-            body = gzip.compress(body)
-
-        response = HttpResponse(body, content_type="image/svg+xml")
+        response = HttpResponse(variant_svg.svg, content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=31536000, immutable"
-        response["Vary"] = "Accept-Encoding"
-        if accepts_gzip:
-            response["Content-Encoding"] = "gzip"
         return response
