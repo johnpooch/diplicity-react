@@ -1,4 +1,5 @@
 import type { Label } from "./api";
+import type { Interval } from "./stats";
 
 export const LABELS: { label: Label; name: string; key: string; dot: string; active: string }[] = [
   {
@@ -19,6 +20,9 @@ export const LABELS: { label: Label; name: string; key: string; dot: string; act
 
 export const formatScore = (score: number | null): string =>
   score === null ? "–" : `${Math.round(score * 100)}%`;
+
+export const formatInterval = (interval: Interval | null): string =>
+  interval === null ? "–" : `${Math.round(interval.low * 100)}–${Math.round(interval.high * 100)}%`;
 
 export const formatRun = (created: string): string =>
   new Date(created).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });

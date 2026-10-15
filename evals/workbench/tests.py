@@ -64,7 +64,7 @@ def fixtures_dir(tmp_path, settings):
 
 @pytest.fixture
 def run(fixtures_dir, settings):
-    def _run(*completions, name="select_orders", fixtures=(FIXTURE,)):
+    def _run(*completions, name="select_orders", fixtures=(FIXTURE,), prompt=None):
         task = Task(
             dataset=MemoryDataset([fixture_to_sample(fixture) for fixture in fixtures]),
             solver=_scripted_solver(completions),
@@ -76,6 +76,7 @@ def run(fixtures_dir, settings):
             epochs=len(completions),
             log_dir=str(settings.EVALS_LOGS_DIR),
             display="none",
+            metadata={"prompt": {"name": prompt, "digest": "0" * 64}} if prompt else None,
         )[0]
         return log.location.rsplit("/", 1)[-1].removesuffix(".eval")
 
@@ -185,6 +186,35 @@ class TestRunList:
         (listed,) = client.get("/api/runs/").json()["runs"]
         assert listed["name"] == name
         assert listed["model"] == "mockllm/model"
+
+    def test_run_carries_its_prompt_name(self, client, run):
+        name = run(_completion(ATTACK), prompt="calm-lantern-oct-15")
+        (listed,) = client.get("/api/runs/").json()["runs"]
+        assert listed["prompt"] == "calm-lantern-oct-15"
+        assert client.get(f"/api/runs/{name}/").json()["prompt"] == "calm-lantern-oct-15"
+
+    def test_run_from_before_prompt_names_has_none(self, client, run):
+        run(_completion(ATTACK))
+        (listed,) = client.get("/api/runs/").json()["runs"]
+        assert listed["prompt"] is None
+
+    def test_lists_runs_with_their_score_and_fixtures(self, client, fixtures_dir, run):
+        other = {**FIXTURE, "id": "second_opening"}
+        write_fixture(fixtures_dir / "second_opening.json", other)
+        run(_completion(ATTACK), _completion(SIT), "not json", fixtures=(FIXTURE, other))
+        _label(client, ATTACK, "reasonable")
+        (listed,) = client.get("/api/runs/").json()["runs"]
+        assert listed["fixture_ids"] == ["paris_opening", "second_opening"]
+        assert (listed["answers"], listed["failed"], listed["reasonable"], listed["unmarked"]) == (6, 2, 1, 3)
+        assert listed["score"] == 0.25
+
+    def test_listed_score_follows_a_relabel(self, client, run):
+        run(_completion(ATTACK))
+        assert client.get("/api/runs/").json()["runs"][0]["score"] == 0
+        _label(client, ATTACK, "reasonable")
+        assert client.get("/api/runs/").json()["runs"][0]["score"] == 1
+        _label(client, ATTACK, "unreasonable")
+        assert client.get("/api/runs/").json()["runs"][0]["score"] == 0
 
     def test_leaves_out_runs_of_other_tasks(self, client, run):
         name = run(_completion(ATTACK), name="dumbbot_select_orders")

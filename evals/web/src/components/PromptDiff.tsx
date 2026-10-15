@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { hasChanges, promptDiff, type Block } from "@/promptDiff";
+import { plural } from "@/labels";
+import { countChanges, promptDiff, type Block } from "@/promptDiff";
 
 interface PromptDiffProps {
   title: string;
@@ -58,23 +59,27 @@ const Changed: React.FC<ChangedProps> = ({ block }) => (
 
 export const PromptDiff: React.FC<PromptDiffProps> = ({ title, before, after }) => {
   const blocks = useMemo(() => (before === null ? null : promptDiff(before, after)), [before, after]);
-  const changed = blocks !== null && hasChanges(blocks);
-  const [open, setOpen] = useState(false);
+  const changes = blocks === null ? 0 : countChanges(blocks);
+  const [open, setOpen] = useState(changes > 0);
+  const status =
+    blocks === null
+      ? plural(after.split("\n").length, "line")
+      : changes > 0
+        ? plural(changes, "changed paragraph")
+        : "No changes";
 
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-4">
         <h3 className="text-sm font-semibold">{title}</h3>
-        {!changed && (
-          <span className="flex items-baseline gap-2 text-sm text-muted-foreground">
-            {blocks !== null && "No changes"}
-            <Button variant="ghost" size="sm" onClick={() => setOpen(!open)}>
-              {open ? "Hide" : "Show"}
-            </Button>
-          </span>
-        )}
+        <span className="flex items-baseline gap-2 text-sm text-muted-foreground">
+          {status}
+          <Button variant="ghost" size="sm" onClick={() => setOpen(!open)}>
+            {open ? "Hide" : "Show"}
+          </Button>
+        </span>
       </div>
-      {changed && (
+      {open && blocks !== null && changes > 0 && (
         <div className="rounded-md border px-3 py-2 font-mono text-xs leading-relaxed whitespace-pre-wrap">
           {blocks.map((block, index) =>
             block.kind === "same" ? (
@@ -85,7 +90,7 @@ export const PromptDiff: React.FC<PromptDiffProps> = ({ title, before, after }) 
           )}
         </div>
       )}
-      {!changed && open && (
+      {open && changes === 0 && (
         <pre className="rounded-md border px-3 py-2 font-mono text-xs leading-relaxed whitespace-pre-wrap">
           {after}
         </pre>

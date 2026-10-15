@@ -10,7 +10,7 @@ from inspect_ai.log import EvalSample
 
 from select_orders.context import fixture_to_context
 from select_orders.exceptions import FixtureError
-from select_orders.fixtures import read_fixture, write_fixture
+from select_orders.fixtures import read_fixture, validate_fixture, write_fixture
 from select_orders.notation import Notation
 from select_orders.options import describe_option, option_from_id, option_id
 from select_orders.order_sets import label_order_set, order_set_key, order_set_label
@@ -20,6 +20,7 @@ from workbench.runs import (
     distinct_order_sets,
     list_runs,
     read_run,
+    run_samples,
     sample_prompts,
     score,
     summarise,
@@ -49,8 +50,19 @@ def _fixture_path(fixture_id: str) -> Path:
     return settings.EVALS_FIXTURES_DIR / f"{fixture_id}.json"
 
 
+_parsed_fixtures: dict[Path, tuple[str, Fixture]] = {}
+
+
+def _cached_fixture(path: Path) -> Fixture:
+    text = path.read_text()
+    cached = _parsed_fixtures.get(path)
+    if cached is None or cached[0] != text:
+        cached = _parsed_fixtures[path] = (text, validate_fixture(json.loads(text)))
+    return cached[1]
+
+
 def _fixtures() -> list[Fixture]:
-    fixtures = [read_fixture(path) for path in sorted(settings.EVALS_FIXTURES_DIR.glob("*.json"))]
+    fixtures = [_cached_fixture(path) for path in sorted(settings.EVALS_FIXTURES_DIR.glob("*.json"))]
     return [fixture for fixture in fixtures if settings.EVALS_EVAL_SET in fixture["eval_sets"]]
 
 
@@ -86,6 +98,12 @@ def _by_fixture(samples: list[EvalSample]) -> list[tuple[Fixture, list[EvalSampl
         if sample.id in fixtures:
             grouped.setdefault(sample.id, []).append(sample)
     return [(fixtures[fixture_id], grouped[fixture_id]) for fixture_id in sorted(grouped)]
+
+
+def _scored(samples: list[EvalSample]) -> tuple[list[dict], dict]:
+    summaries = [{**_summary(fixture), **summarise(fixture, own)} for fixture, own in _by_fixture(samples)]
+    totals = {key: sum(summary[key] for summary in summaries) for key in SUMMED}
+    return summaries, {**totals, "score": score(totals["reasonable"], totals["answers"] - totals["failed"])}
 
 
 @require_GET
@@ -175,7 +193,11 @@ def order_set_labels(request, fixture_id):
 
 @require_GET
 def run_list(request):
-    return JsonResponse({"runs": list_runs(settings.EVALS_LOGS_DIR)})
+    runs = []
+    for header in list_runs(settings.EVALS_LOGS_DIR):
+        summaries, totals = _scored(run_samples(settings.EVALS_LOGS_DIR, header["name"]))
+        runs.append({**header, **totals, "fixture_ids": [summary["id"] for summary in summaries]})
+    return JsonResponse({"runs": runs})
 
 
 @require_GET
@@ -185,16 +207,8 @@ def run_detail(request, name):
     except RunError as e:
         return _error(str(e), 404)
 
-    fixtures = [{**_summary(fixture), **summarise(fixture, own)} for fixture, own in _by_fixture(samples)]
-    totals = {key: sum(fixture[key] for fixture in fixtures) for key in SUMMED}
-    return JsonResponse(
-        {
-            **header,
-            **totals,
-            "score": score(totals["reasonable"], totals["answers"] - totals["failed"]),
-            "fixtures": fixtures,
-        }
-    )
+    fixtures, totals = _scored(samples)
+    return JsonResponse({**header, **totals, "fixtures": fixtures})
 
 
 @require_GET

@@ -36,6 +36,7 @@ def _header(path: Path, log: EvalLog) -> dict:
         "model": log.eval.model,
         "created": log.eval.created,
         "status": log.status,
+        "prompt": (log.eval.metadata or {}).get("prompt", {}).get("name"),
     }
 
 
@@ -44,12 +45,16 @@ def list_runs(logs_dir: Path) -> list[dict]:
     return [header for header in headers if header["task"] == MODEL_TASK and header["status"] == SUCCESS]
 
 
-def read_run(logs_dir: Path, name: str) -> tuple[dict, list[EvalSample]]:
-    if name not in {header["name"] for header in list_runs(logs_dir)}:
-        raise RunError(f"unknown run '{name}'")
+def run_samples(logs_dir: Path, name: str) -> list[EvalSample]:
     path = logs_dir / f"{name}.eval"
-    log = _read(str(path), path.stat().st_mtime, False)
-    return _header(path, log), log.samples or []
+    return _read(str(path), path.stat().st_mtime, False).samples or []
+
+
+def read_run(logs_dir: Path, name: str) -> tuple[dict, list[EvalSample]]:
+    headers = {header["name"]: header for header in list_runs(logs_dir)}
+    if name not in headers:
+        raise RunError(f"unknown run '{name}'")
+    return headers[name], run_samples(logs_dir, name)
 
 
 def sample_problem(sample: EvalSample) -> str | None:

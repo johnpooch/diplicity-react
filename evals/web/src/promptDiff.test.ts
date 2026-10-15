@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { hasChanges, promptDiff } from "./promptDiff";
+import { countChanges, promptDiff } from "./promptDiff";
 
 describe("promptDiff", () => {
   test("identical prompts have no changes", () => {
     const blocks = promptDiff("one\ntwo\n", "one\ntwo\n");
     expect(blocks).toEqual([{ kind: "same", lines: ["one", "two"] }]);
-    expect(hasChanges(blocks)).toBe(false);
+    expect(countChanges(blocks)).toBe(0);
   });
 
   test("a reworded paragraph is highlighted word by word, not as a whole line", () => {
@@ -26,7 +26,7 @@ describe("promptDiff", () => {
       },
       { kind: "same", lines: ["Format."] },
     ]);
-    expect(hasChanges(blocks)).toBe(true);
+    expect(countChanges(blocks)).toBe(1);
   });
 
   test("an added paragraph is one added block", () => {
