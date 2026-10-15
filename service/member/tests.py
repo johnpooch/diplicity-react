@@ -412,7 +412,7 @@ def test_leave_pending_game_deletes_private_channel_left_with_one_member(
 
 
 @pytest.mark.django_db
-def test_leave_pending_game_renames_private_channel_after_remaining_members(
+def test_leave_pending_game_names_private_channel_after_remaining_members(
     authenticated_client,
     authenticated_client_factory,
     user_factory,

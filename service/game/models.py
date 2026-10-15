@@ -50,7 +50,7 @@ from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
-from channel.models import Channel, ChannelMessage
+from channel.models import ChannelMessage
 from adjudicator import service as adjudication_service
 from game.utils import assign_nations
 
@@ -1005,7 +1005,6 @@ class Game(BaseModel):
 
             # Use bulk_update to avoid n+1 queries
             Member.objects.bulk_update(members, ["nation", "nmr_extensions_remaining", "updated_at"])
-            Channel.objects.name_private_channels_after_nations(self)
 
             nations_with_orders = current_phase.nations_with_possible_orders
             phase_states_to_create = [

@@ -106,7 +106,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
             Channel = apps.get_model("channel", "Channel")
             with transaction.atomic():
-                Channel.objects.leave_private_channels(member)
+                Channel.objects.delete_channels_left_with_one_member(member)
                 member.delete()
                 member.game.return_to_pending()
             return

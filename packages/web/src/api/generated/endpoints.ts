@@ -707,6 +707,7 @@ export interface GameRetrieve {
   readonly canWithdraw: boolean;
   readonly canDelete: boolean;
   readonly canManage: boolean;
+  readonly canCreateChannel: boolean;
   readonly gameMaster: GameMaster | null;
   /** @nullable */
   readonly gameMasterMemberId: number | null;

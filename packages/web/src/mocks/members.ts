@@ -153,6 +153,15 @@ export const gameActionsFor = (fixture: GameFixture): GameAction[] =>
 export const playerListActionsFor = (fixture: GameFixture): GameAction[] =>
   actionsFrom(fixture, PLAYER_LIST_KEYS);
 
+export const canCreateChannelFor = ({ game }: GameFixture): boolean => {
+  const currentMember = game.members.find(member => member.isCurrentUser);
+  const noPressActive =
+    game.pressType === "no_press" &&
+    game.status !== "completed" &&
+    game.status !== "abandoned";
+  return !!currentMember && !currentMember.kicked && !game.sandbox && !noPressActive;
+};
+
 const defaultStatus = (
   { game }: GameFixture,
   member: Member

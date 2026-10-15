@@ -8,6 +8,7 @@ from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import ActionBlockedReason, Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameActionKey, MemberDeparture, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
+from channel.policies import can_create_channel
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from emit import emit
@@ -313,6 +314,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     can_withdraw = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
+    can_create_channel = serializers.SerializerMethodField()
     game_master = GameMasterSerializer(allow_null=True, read_only=True)
     game_master_member_id = serializers.SerializerMethodField()
     phases = serializers.SerializerMethodField()
@@ -443,6 +445,16 @@ class GameRetrieveSerializer(serializers.Serializer):
         if not user.is_authenticated:
             return False
         return obj.can_manage(user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_create_channel(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        member = next(
+            (member for member in obj.members.all() if member.user_id == user.id and not member.left_seat), None
+        )
+        return can_create_channel(obj, member)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):

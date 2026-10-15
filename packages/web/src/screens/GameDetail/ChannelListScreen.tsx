@@ -55,17 +55,13 @@ const ChannelListScreen: React.FC = () => {
     game.pressType === "no_press" &&
     game.status !== "completed" &&
     game.status !== "abandoned";
-  const isUnstartedAnonymousGame =
-    game.anonymous && (game.status === "pending" || game.status === "mustering");
-  const canCreateChannel =
-    !!currentMember && !isSandboxGame && !isNoPressActiveGame && !isUnstartedAnonymousGame;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Chats"
         rightButton={
-          canCreateChannel ? (
+          game.canCreateChannel ? (
             <Button variant="outline" size="icon" aria-label="Create channel" asChild>
               <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
                 <MessageSquarePlus />
@@ -140,7 +136,7 @@ const ChannelListScreen: React.FC = () => {
                 </CardContent>
               </Card>
             )}
-            {canCreateChannel && (
+            {game.canCreateChannel && (
               <Button className="w-full" size="lg" asChild>
                 <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
                   <MessageSquarePlus />

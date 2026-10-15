@@ -431,7 +431,7 @@ class TestGetChannels:
         assert [(channel["name"], len(channel["messages"])) for channel in channels] == [
             ("Public Press", 230),
             ("Empty", 0),
-            ("Private", 150),
+            ("Germany, Italy", 150),
         ]
 
     @pytest.mark.django_db

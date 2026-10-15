@@ -71,7 +71,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         game = instance.game
         user_id = instance.user_id
         with transaction.atomic():
-            Channel.objects.leave_private_channels(instance)
+            Channel.objects.delete_channels_left_with_one_member(instance)
             super().perform_destroy(instance)
             game.return_to_pending()
             if user_id == game.admin_id:

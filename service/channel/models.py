@@ -28,6 +28,9 @@ class ChannelQuerySet(models.QuerySet):
     def for_game(self, game):
         return self.filter(game=game)
 
+    def with_member_names(self):
+        return self.prefetch_related("members__nation", "members__user__profile")
+
     def with_related_data(self):
         return self.prefetch_related(
             "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile__uploaded_picture", "members", "members__user", "members__user__profile__uploaded_picture",
@@ -110,39 +113,22 @@ class ChannelManager(models.Manager):
     def get_queryset(self):
         return ChannelQuerySet(self.model, using=self._db)
 
-    @staticmethod
-    def member_label(member):
-        return member.nation.name if member.nation else member.name
-
-    def name_for_members(self, members):
-        return ", ".join(sorted(self.member_label(member) for member in members))
-
     def create_from_member_ids(self, user, member_ids, game, title=""):
         member_ids = member_ids + [game.members.players().get(user=user).id]
         channel_members = game.members.players().filter(id__in=member_ids)
-        channel = self.create(name=self.name_for_members(channel_members), title=title, private=True, game=game)
+        channel = self.create(title=title, private=True, game=game)
         channel.members.set(channel_members)
         return channel
 
-    def leave_private_channels(self, member):
-        channels = list(
-            self.filter(private=True, members=member).prefetch_related("members__nation", "members__user__profile")
+    def private_channel_exists_for_members(self, game, member_ids):
+        return any(
+            {member.id for member in channel.members.all() if member.replaced_by_id is None} == set(member_ids)
+            for channel in self.filter(game=game, private=True).prefetch_related("members")
         )
-        remaining_members = {
-            channel.id: [channel_member for channel_member in channel.members.all() if channel_member.id != member.id]
-            for channel in channels
-        }
-        self.filter(id__in=[channel.id for channel in channels if len(remaining_members[channel.id]) < 2]).delete()
-        kept = [channel for channel in channels if len(remaining_members[channel.id]) >= 2]
-        for channel in kept:
-            channel.name = self.name_for_members(remaining_members[channel.id])
-        self.bulk_update(kept, ["name"])
 
-    def name_private_channels_after_nations(self, game):
-        channels = list(self.filter(game=game, private=True).prefetch_related("members__nation"))
-        for channel in channels:
-            channel.name = self.name_for_members(channel.members.all())
-        self.bulk_update(channels, ["name"])
+    def delete_channels_left_with_one_member(self, member):
+        channels = self.filter(private=True, members=member).prefetch_related("members")
+        self.filter(id__in=[channel.id for channel in channels if len(channel.members.all()) <= 2]).delete()
 
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)

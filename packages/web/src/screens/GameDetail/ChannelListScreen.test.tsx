@@ -20,12 +20,8 @@ beforeAll(() => {
 });
 
 const mockChannelsData = vi.fn();
-const mockMembersData = vi.fn(
-  (): { id: number; nation: string | null; isCurrentUser: boolean }[] => [
-    { id: 1, nation: "Austria", isCurrentUser: true },
-  ]
-);
-const mockGameOverrides = vi.fn(() => ({}));
+const mockMembersData = vi.fn(() => [{ id: 1, nation: "Austria", isCurrentUser: true }]);
+const mockCanCreateChannel = vi.fn(() => true);
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
@@ -35,7 +31,7 @@ vi.mock("@/api/generated/endpoints", () => ({
       status: "active",
       variantId: "standard",
       members: mockMembersData(),
-      ...mockGameOverrides(),
+      canCreateChannel: mockCanCreateChannel(),
     },
   }),
   useGamesChannelPreviewsListSuspense: () => ({
@@ -150,7 +146,7 @@ describe("ChannelListScreen", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("shows create channel button for a member", () => {
+  it("shows create channel button when the game allows creating channels", () => {
     mockChannelsData.mockReturnValue([]);
 
     renderChannelList();
@@ -162,29 +158,9 @@ describe("ChannelListScreen", () => {
     }
   });
 
-  it("hides create channel button when the user is not a member", () => {
+  it("hides create channel button when the game does not allow creating channels", () => {
     mockChannelsData.mockReturnValue([]);
-    mockMembersData.mockReturnValue([{ id: 1, nation: "Austria", isCurrentUser: false }]);
-
-    renderChannelList();
-
-    expect(screen.queryByRole("link", { name: /create channel/i })).not.toBeInTheDocument();
-  });
-
-  it("shows create channel button for a member of a pending game", () => {
-    mockChannelsData.mockReturnValue([]);
-    mockMembersData.mockReturnValue([{ id: 1, nation: null, isCurrentUser: true }]);
-    mockGameOverrides.mockReturnValue({ status: "pending", anonymous: false });
-
-    renderChannelList();
-
-    expect(screen.getAllByRole("link", { name: /create channel/i })).toHaveLength(2);
-  });
-
-  it("hides create channel button in an anonymous game that has not started", () => {
-    mockChannelsData.mockReturnValue([]);
-    mockMembersData.mockReturnValue([{ id: 1, nation: null, isCurrentUser: true }]);
-    mockGameOverrides.mockReturnValue({ status: "pending", anonymous: true });
+    mockCanCreateChannel.mockReturnValue(false);
 
     renderChannelList();
 

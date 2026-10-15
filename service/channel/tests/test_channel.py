@@ -13,6 +13,7 @@ from channel.serializers import ChannelSerializer
 from nation.models import Nation, NationFlag
 from game.models import Game
 from game.serializers import GameRetrieveSerializer
+from member.models import Member
 from notification.models import Notification
 from phase.models import Phase
 from user_profile.models import UserProfile, UserProfilePicture
@@ -122,9 +123,9 @@ class TestChannelCreateView:
         self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
     ):
         other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
-        Channel.objects.create(game=active_game_with_phase_state, name="England, France", private=True)
-
         url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        authenticated_client.post(url, {"member_ids": [other_member.id]}, format="json")
+
         payload = {"member_ids": [other_member.id], "title": "A different name"}
         response = authenticated_client.post(url, payload, format="json")
 
@@ -149,11 +150,10 @@ class TestChannelCreateView:
         self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
     ):
         other_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
-
-        Channel.objects.create(game=active_game_with_phase_state, name="England, France", private=True)
-
         url = reverse("channel-create", args=[active_game_with_phase_state.id])
         payload = {"member_ids": [other_member.id]}
+        authenticated_client.post(url, payload, format="json")
+
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["member_ids"][0] == "Channel already exists."
@@ -237,8 +237,13 @@ class TestChannelCreateView:
         assert response.data["title"] == "Lobby allies"
 
     @pytest.mark.django_db
-    def test_create_channel_in_pending_anonymous_game_forbidden(
-        self, authenticated_client, pending_game_created_by_secondary_user, secondary_user
+    def test_pending_anonymous_game_channel_name_hides_other_players(
+        self,
+        authenticated_client,
+        authenticated_client_factory,
+        pending_game_created_by_secondary_user,
+        primary_user,
+        secondary_user,
     ):
         game = pending_game_created_by_secondary_user
         game.anonymous = True
@@ -249,8 +254,32 @@ class TestChannelCreateView:
         url = reverse("channel-create", args=[game.id])
         response = authenticated_client.post(url, {"member_ids": [other_member.id]}, format="json")
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert not game.channels.filter(private=True).exists()
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == ", ".join(sorted(["Anonymous", primary_user.profile.name]))
+        previews = authenticated_client_factory(secondary_user).get(reverse("channel-preview-list", args=[game.id])).data
+        assert [preview["name"] for preview in previews if preview["private"]] == [
+            ", ".join(sorted(["Anonymous", secondary_user.profile.name]))
+        ]
+
+    @pytest.mark.django_db
+    def test_renaming_channel_in_pending_anonymous_game_announces_an_anonymous_player(
+        self, authenticated_client, pending_game_created_by_secondary_user, secondary_user, in_memory_procrastinate
+    ):
+        game = pending_game_created_by_secondary_user
+        game.anonymous = True
+        game.save(update_fields=["anonymous"])
+        authenticated_client.post(reverse("game-join", args=[game.id]), {}, format="json")
+        other_member = game.members.get(user=secondary_user)
+        channel_id = authenticated_client.post(
+            reverse("channel-create", args=[game.id]), {"member_ids": [other_member.id]}, format="json"
+        ).data["id"]
+
+        authenticated_client.patch(
+            reverse("channel-update", args=[game.id, channel_id]), {"title": "Lobby allies"}, format="json"
+        )
+
+        response = authenticated_client.get(reverse("channel-update", args=[game.id, channel_id]))
+        assert [event["text"] for event in response.data["events"]] == ["Anonymous renamed the channel to Lobby allies"]
 
     @pytest.mark.django_db
     def test_create_channel_non_member(
@@ -275,6 +304,16 @@ class TestChannelCreateView:
         assert not Channel.objects.filter(game=game, private=True).exists()
 
     @pytest.mark.django_db
+    def test_create_channel_as_kicked_player_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member, primary_user
+    ):
+        game = active_game_with_kicked_member
+        player = game.members.get(user=primary_user)
+        url = reverse("channel-create", args=[game.id])
+        response = authenticated_client_for_secondary_user.post(url, {"member_ids": [player.id]}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
     def test_create_channel_sandbox_game_forbidden(self, authenticated_client, sandbox_game_factory):
         game = sandbox_game_factory()
         url = reverse("channel-create", args=[game.id])
@@ -296,7 +335,7 @@ class TestChannelRetrieveUpdateView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {
             "id": channel.id,
-            "name": "Private Member",
+            "name": "England",
             "title": "",
             "private": True,
             "muted": False,
@@ -743,7 +782,7 @@ class TestChannelPreviewListView:
         response = authenticated_client.get(reverse("channel-preview-list", args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
-        assert [preview["name"] for preview in response.data] == ["Public Channel", "Private Member"]
+        assert [preview["name"] for preview in response.data] == ["Public Channel", "England"]
         public, private = response.data
         assert set(private) == {
             "id",
@@ -806,7 +845,7 @@ class TestChannelPreviewListView:
 
         response = authenticated_client.get(reverse("channel-preview-list", args=[game.id]))
 
-        assert [preview["name"] for preview in response.data] == ["Public Press", "Newer", "Older", "Quiet"]
+        assert [preview["id"] for preview in response.data] == [public_channel.id, newer.id, older.id, quiet.id]
 
     @pytest.mark.django_db
     def test_list_channel_previews_unread_count_excludes_own_messages(
@@ -900,13 +939,14 @@ class TestChannelPreviewListView:
     ):
         game = active_game_with_channels
         url = reverse("channel-preview-list", args=[game.id])
+        channel = game.channels.get(name="Private Non-Member")
         etag = authenticated_client.get(url)["ETag"]
-        ChannelMember.objects.create(channel=game.channels.get(name="Private Non-Member"), member=game.members.first())
+        ChannelMember.objects.create(channel=channel, member=game.members.first())
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        assert "Private Non-Member" in [preview["name"] for preview in response.data]
+        assert channel.id in [preview["id"] for preview in response.data]
 
     @pytest.mark.django_db
     def test_list_channel_previews_returns_200_when_a_timed_mute_expires(
@@ -925,6 +965,44 @@ class TestChannelPreviewListView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data[0]["muted"] is False
+
+    @pytest.mark.django_db
+    def test_private_channel_name_lists_a_handed_over_seat_once(
+        self, authenticated_client, active_game_with_phase_state, secondary_user, tertiary_user, classical_france_nation
+    ):
+        game = active_game_with_phase_state
+        other_member = game.members.create(user=secondary_user, nation=classical_france_nation)
+        authenticated_client.post(
+            reverse("channel-create", args=[game.id]), {"member_ids": [other_member.id]}, format="json"
+        )
+        Member.objects.hand_over_seat(other_member, tertiary_user)
+
+        response = authenticated_client.get(reverse("channel-preview-list", args=[game.id]))
+
+        assert [preview["name"] for preview in response.data if preview["private"]] == ["England, France"]
+
+    @pytest.mark.django_db
+    def test_list_channel_previews_query_count_does_not_grow_with_private_channels(
+        self, authenticated_client, active_game_with_phase_state, user_factory, classical_france_nation, classical_germany_nation
+    ):
+        game = active_game_with_phase_state
+        player = game.members.first()
+        url = reverse("channel-preview-list", args=[game.id])
+
+        def add_private_channel(nation):
+            other_player = game.members.create(user=user_factory(), nation=nation)
+            channel = Channel.objects.create(game=game, private=True)
+            channel.members.add(player, other_player)
+
+        add_private_channel(classical_france_nation)
+        with CaptureQueriesContext(connection) as one_channel:
+            authenticated_client.get(url)
+        add_private_channel(classical_germany_nation)
+        with CaptureQueriesContext(connection) as two_channels:
+            response = authenticated_client.get(url)
+
+        assert sorted(channel["name"] for channel in response.data) == ["England, France", "England, Germany"]
+        assert len(two_channels.captured_queries) == len(one_channel.captured_queries)
 
     @pytest.mark.django_db
     def test_list_channel_previews_unchanged_poll_query_count_does_not_grow_with_history(
@@ -1333,6 +1411,29 @@ class TestLegacyChannelListView:
         assert reverse("channel-list", args=["abc123"]) == "/games/abc123/channels/"
 
     @pytest.mark.django_db
+    def test_list_channels_query_count_does_not_grow_with_private_channels(
+        self, authenticated_client, active_game_with_phase_state, user_factory, classical_france_nation, classical_germany_nation
+    ):
+        game = active_game_with_phase_state
+        player = game.members.first()
+        url = reverse("channel-list", args=[game.id])
+
+        def add_private_channel(nation):
+            other_player = game.members.create(user=user_factory(), nation=nation)
+            channel = Channel.objects.create(game=game, private=True)
+            channel.members.add(player, other_player)
+
+        add_private_channel(classical_france_nation)
+        with CaptureQueriesContext(connection) as one_channel:
+            authenticated_client.get(url)
+        add_private_channel(classical_germany_nation)
+        with CaptureQueriesContext(connection) as two_channels:
+            response = authenticated_client.get(url)
+
+        assert sorted(channel["name"] for channel in response.data) == ["England, France", "England, Germany"]
+        assert len(two_channels.captured_queries) == len(one_channel.captured_queries)
+
+    @pytest.mark.django_db
     def test_list_channels_as_member(self, authenticated_client, active_game_with_channels):
         url = reverse("channel-list", args=[active_game_with_channels.id])
         response = authenticated_client.get(url)
@@ -1341,11 +1442,12 @@ class TestLegacyChannelListView:
         assert len(response.data) == 2
 
         channel_names = [channel["name"] for channel in response.data]
-        assert "Private Member" in channel_names
+        assert "England" in channel_names
         assert "Public Channel" in channel_names
-        assert "Private Non-Member" not in channel_names
+        non_member_channel = active_game_with_channels.channels.get(name="Private Non-Member")
+        assert non_member_channel.id not in [channel["id"] for channel in response.data]
 
-        private_channel = next(channel for channel in response.data if channel["name"] == "Private Member")
+        private_channel = next(channel for channel in response.data if channel["private"])
         public_channel = next(channel for channel in response.data if channel["name"] == "Public Channel")
         assert private_channel["can_rename"] is True
         assert private_channel["can_mute"] is True
@@ -1404,7 +1506,7 @@ class TestLegacyChannelListView:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
-        private_channel = next(ch for ch in response.data if ch["name"] == "Private Member")
+        private_channel = next(ch for ch in response.data if ch["private"])
         assert len(private_channel["messages"]) == 1
         assert private_channel["messages"][0]["body"] == "Test message"
         assert private_channel["messages"][0]["sender"]["is_current_user"] == True
@@ -1430,7 +1532,7 @@ class TestLegacyChannelListView:
 
         channel_names = [channel["name"] for channel in response.data]
         assert "Other Game Channel" not in channel_names
-        assert "Private Member" in channel_names
+        assert "England" in channel_names
         assert "Public Channel" in channel_names
 
     @pytest.mark.django_db
@@ -1591,7 +1693,7 @@ class TestLegacyChannelListView:
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        assert "Private Non-Member" in [ch["name"] for ch in response.data]
+        assert channel.id in [ch["id"] for ch in response.data]
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
@@ -1840,8 +1942,7 @@ class TestChannelListOrdering:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        names = [ch["name"] for ch in response.data]
-        assert names == ["Public Press", "Private"]
+        assert [ch["id"] for ch in response.data] == [public_channel.id, private_channel.id]
 
     @pytest.mark.django_db
     def test_private_channels_sorted_by_most_recent_activity(
@@ -1850,7 +1951,7 @@ class TestChannelListOrdering:
         game = active_game_with_phase_state
         member = game.members.first()
 
-        Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
         older = Channel.objects.create(game=game, name="Older", private=True)
         newer = Channel.objects.create(game=game, name="Newer", private=True)
         older.members.add(member)
@@ -1865,8 +1966,7 @@ class TestChannelListOrdering:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        names = [ch["name"] for ch in response.data]
-        assert names == ["Public Press", "Newer", "Older"]
+        assert [ch["id"] for ch in response.data] == [public_channel.id, newer.id, older.id]
 
     @pytest.mark.django_db
     def test_channels_without_messages_sorted_last(
@@ -1875,7 +1975,7 @@ class TestChannelListOrdering:
         game = active_game_with_phase_state
         member = game.members.first()
 
-        Channel.objects.create(game=game, name="Public Press", private=False)
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
         with_message = Channel.objects.create(game=game, name="With Message", private=True)
         without_message = Channel.objects.create(game=game, name="Without Message", private=True)
         with_message.members.add(member)
@@ -1887,8 +1987,7 @@ class TestChannelListOrdering:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        names = [ch["name"] for ch in response.data]
-        assert names == ["Public Press", "With Message", "Without Message"]
+        assert [ch["id"] for ch in response.data] == [public_channel.id, with_message.id, without_message.id]
 
 
 class TestChannelMessageCreateView:
@@ -2691,7 +2790,7 @@ class TestChannelUnreadCount:
         response = authenticated_client.get(list_url)
 
         public_data = next(ch for ch in response.data if ch["name"] == "Public Press")
-        private_data = next(ch for ch in response.data if ch["name"] == "Private Channel")
+        private_data = next(ch for ch in response.data if ch["id"] == private_channel.id)
 
         assert public_data["unread_message_count"] == 0
         assert private_data["unread_message_count"] == 1

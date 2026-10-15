@@ -268,6 +268,62 @@ class TestGameRetrieveView:
         assert response.data["can_leave"] is False
 
     @pytest.mark.django_db
+    def test_can_create_channel_true_pending_game_player(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.get(url)
+        assert response.data["can_create_channel"] is True
+
+    @pytest.mark.django_db
+    def test_can_create_channel_true_active_game_player(self, authenticated_client, active_game_with_phase_state):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client.get(url)
+        assert response.data["can_create_channel"] is True
+
+    @pytest.mark.django_db
+    def test_can_create_channel_false_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        response = unauthenticated_client.get(url)
+        assert response.data["can_create_channel"] is False
+
+    @pytest.mark.django_db
+    def test_can_create_channel_false_non_member(
+        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+    ):
+        url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client_for_secondary_user.get(url)
+        assert response.data["can_create_channel"] is False
+
+    @pytest.mark.django_db
+    def test_can_create_channel_false_kicked_player(
+        self, authenticated_client_for_secondary_user, active_game_with_kicked_member
+    ):
+        url = reverse(retrieve_viewname, args=[active_game_with_kicked_member.id])
+        response = authenticated_client_for_secondary_user.get(url)
+        assert response.data["can_create_channel"] is False
+
+    @pytest.mark.django_db
+    def test_can_create_channel_false_game_master(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+        assert response.data["can_create_channel"] is False
+
+    @pytest.mark.django_db
+    def test_can_create_channel_false_sandbox_game(self, authenticated_client, sandbox_game_factory):
+        game = sandbox_game_factory()
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+        assert response.data["can_create_channel"] is False
+
+    @pytest.mark.django_db
+    def test_can_create_channel_false_active_no_press_game(self, authenticated_client, active_game_with_phase_state):
+        active_game_with_phase_state.press_type = PressType.NO_PRESS
+        active_game_with_phase_state.save(update_fields=["press_type"])
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client.get(url)
+        assert response.data["can_create_channel"] is False
+
+    @pytest.mark.django_db
     def test_phase_confirmed_true(self, authenticated_client, active_game_with_confirmed_phase_state):
         url = reverse(retrieve_viewname, args=[active_game_with_confirmed_phase_state.id])
         response = authenticated_client.get(url)
@@ -3347,7 +3403,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 57
+        assert query_count == 56
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -3368,7 +3424,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 57
+        assert query_count == 56
 
 
 class TestSandboxGameFiltering:
