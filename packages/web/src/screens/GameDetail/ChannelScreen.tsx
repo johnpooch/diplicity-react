@@ -341,7 +341,7 @@ const ChannelThread: React.FC<ChannelThreadProps> = ({
       onScroll={event => {
         isAtBottomRef.current = isScrolledToBottom(event.currentTarget);
       }}
-      className="flex-1 min-h-0 overflow-y-auto [overflow-anchor:none] flex flex-col gap-3 px-3 py-4"
+      className="flex-1 min-h-0 overflow-y-auto [overflow-anchor:none] flex flex-col gap-3 px-3 py-4 md:p-2"
     >
       {hasOlder &&
         (isFetchOlderError ? (
@@ -603,7 +603,7 @@ const ChannelScreen: React.FC = () => {
             </div>
           </Panel.Content>
           {canPost && (
-            <Panel.Footer className="px-2 py-2 md:px-3">
+            <Panel.Footer>
               <div className="flex gap-2 w-full">
                 <Textarea
                   placeholder="Type a message"

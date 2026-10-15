@@ -79,9 +79,9 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
         <div className="flex items-stretch flex-1 min-h-0 w-full">
           {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
           <Sidebar collapsible="icon">
-            <SidebarHeader>
-              <Item className="p-1">
-                <ItemMedia variant="image">
+            <SidebarHeader className="px-3 pt-6">
+              <Item className="border-0 px-2 py-0">
+                <ItemMedia>
                   <DiplicityLogo />
                 </ItemMedia>
                 <ItemContent>

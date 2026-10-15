@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { LoaderFunctionArgs } from "react-router";
@@ -20,24 +20,42 @@ vi.mock("./screens", () => ({
     OrdersScreen: React.lazy(() =>
       Promise.resolve({ default: () => <div data-testid="orders-screen" /> })
     ),
+    GameInfoScreen: React.lazy(() =>
+      Promise.resolve({ default: () => <div data-testid="game-info-screen" /> })
+    ),
   },
   Home: {},
   Variants: {},
   Tutorial: {},
 }));
 
+const mockGameStatus = vi.fn();
+
+vi.mock("./api/generated/endpoints", async importOriginal => ({
+  ...(await importOriginal<typeof import("./api/generated/endpoints")>()),
+  useGameRetrieveSuspense: () => ({ data: { status: mockGameStatus() } }),
+}));
+
 const renderRoute = () =>
   render(
-    <MemoryRouter>
-      <Suspense fallback={null}>
-        <GameIndexRoute />
-      </Suspense>
+    <MemoryRouter initialEntries={["/game/game-1/phase/5"]}>
+      <Routes>
+        <Route
+          path="/game/:gameId/phase/:phaseId"
+          element={
+            <Suspense fallback={null}>
+              <GameIndexRoute />
+            </Suspense>
+          }
+        />
+      </Routes>
     </MemoryRouter>
   );
 
 describe("GameIndexRoute", () => {
   beforeEach(() => {
     mockUseIsMobile.mockReset();
+    mockGameStatus.mockReturnValue("active");
   });
 
   it("renders MapScreen on mobile", async () => {
@@ -52,6 +70,14 @@ describe("GameIndexRoute", () => {
     renderRoute();
     expect(await screen.findByTestId("orders-screen")).toBeTruthy();
     expect(screen.queryByTestId("map-screen")).toBeNull();
+  });
+
+  it("renders GameInfoScreen on desktop for a game that has not started", async () => {
+    mockUseIsMobile.mockReturnValue(false);
+    mockGameStatus.mockReturnValue("mustering");
+    renderRoute();
+    expect(await screen.findByTestId("game-info-screen")).toBeTruthy();
+    expect(screen.queryByTestId("orders-screen")).toBeNull();
   });
 });
 

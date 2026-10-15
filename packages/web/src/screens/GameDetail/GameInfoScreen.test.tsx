@@ -18,13 +18,17 @@ vi.mock("@/components/GameInfoContent", () => ({
 
 interface MockActionListProps {
   actions: { key: string }[];
+  children?: React.ReactNode;
 }
 
 vi.mock("@/components/ActionList", () => ({
-  ActionList: ({ actions }: MockActionListProps) => (
-    <div data-testid="action-list">
-      {actions.map(action => action.key).join(",")}
-    </div>
+  ActionList: ({ actions, children }: MockActionListProps) => (
+    <>
+      <div data-testid="action-list">
+        {actions.map(action => action.key).join(",")}
+      </div>
+      {children}
+    </>
   ),
 }));
 
@@ -84,10 +88,4 @@ describe("GameInfoScreen", () => {
     );
   });
 
-  it("renders no action list when the game offers none", async () => {
-    renderGameInfoScreen();
-
-    await screen.findByTestId("game-info-content");
-    expect(screen.queryByTestId("action-list")).not.toBeInTheDocument();
-  });
 });

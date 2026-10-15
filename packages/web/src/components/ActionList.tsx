@@ -48,6 +48,7 @@ import {
 } from "@/api/generated/endpoints";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
+import { getNationPreferencePath } from "@/util";
 
 interface Action {
   key: MemberActionKeyEnum;
@@ -59,6 +60,7 @@ interface ActionListProps {
   actions: readonly Action[];
   member?: ActionMember;
   onMemberGone?: () => void;
+  children?: React.ReactNode;
 }
 
 export const ActionList: React.FC<ActionListProps> = ({
@@ -66,6 +68,7 @@ export const ActionList: React.FC<ActionListProps> = ({
   actions,
   member,
   onMemberGone,
+  children,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -167,7 +170,7 @@ export const ActionList: React.FC<ActionListProps> = ({
 
   const handleClick = (key: MemberActionKeyEnum) => {
     const replacePath = member && `/game/${gameId}/replace/${member.id}`;
-    if (key === "edit_nation_preferences") navigate(`/nation-preference/${gameId}`);
+    if (key === "edit_nation_preferences") navigate(getNationPreferencePath(gameId, phaseId));
     else if (key === "assign_nations") navigate(`/nation-assignment/${gameId}`);
     else if (key === "take_over" && replacePath) navigate(replacePath);
     else if (key === "share_replacement_link" && replacePath) copyLink(replacePath);
@@ -194,7 +197,7 @@ export const ActionList: React.FC<ActionListProps> = ({
     );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {primaryActions.map(action => {
         const display = ACTION_DISPLAY[action.key];
         return (
@@ -211,6 +214,8 @@ export const ActionList: React.FC<ActionListProps> = ({
           </div>
         );
       })}
+
+      {children}
 
       {rowActions.length > 0 && (
         <Card className="overflow-hidden py-0">

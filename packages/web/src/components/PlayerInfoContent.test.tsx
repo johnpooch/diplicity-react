@@ -22,7 +22,7 @@ const mockUserProfileData = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
-    data: { playerListActions: [], gameMasterMemberId: null, ...mockGameData() },
+    data: { actions: [], playerListActions: [], gameMasterMemberId: null, ...mockGameData() },
   }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useVariantsRetrieve: () => ({ data: undefined }),
@@ -32,13 +32,19 @@ vi.mock("@/api/generated/endpoints", () => ({
 
 interface MockActionListProps {
   actions: { key: string }[];
+  children?: React.ReactNode;
 }
 
 vi.mock("@/components/ActionList", () => ({
-  ActionList: ({ actions }: MockActionListProps) => (
-    <div data-testid="action-list">
-      {actions.map(action => action.key).join(",")}
-    </div>
+  ActionList: ({ actions, children }: MockActionListProps) => (
+    <>
+      {actions.length > 0 && (
+        <div data-testid="action-list">
+          {actions.map(action => action.key).join(",")}
+        </div>
+      )}
+      {children}
+    </>
   ),
 }));
 
@@ -973,7 +979,7 @@ describe("PlayerInfoContent", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("offers nation assignment to the game master while pending", () => {
+  it("links to nation assignment from the game master card when the game offers it", () => {
     mockUserProfileData.mockReturnValue({ canCreateBotGames: true, userId: 9 });
     mockGameData.mockReturnValue({
       variantId: "classical",
@@ -983,13 +989,15 @@ describe("PlayerInfoContent", () => {
       phases: [{ id: 1, status: "pending" }],
       gameMaster: { userId: 9, name: "GM", picture: null },
       members: [{ ...baseMember, isCurrentUser: false, nation: null }],
+      actions: [{ key: "assign_nations", blockedReason: null }],
     });
 
     renderPlayerInfo();
 
-    expect(
-      screen.getByRole("button", { name: /assign nations/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Assign nations" })).toHaveAttribute(
+      "href",
+      "/nation-assignment/game-1"
+    );
   });
 
   it("does not offer nation assignment to players", () => {
@@ -1007,7 +1015,7 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(
-      screen.queryByRole("button", { name: /assign nations/i })
+      screen.queryByRole("link", { name: /assign nations/i })
     ).not.toBeInTheDocument();
   });
 });

@@ -27,13 +27,17 @@ vi.mock("@/hooks/use-mobile", () => ({
 
 interface MockActionListProps {
   actions: { key: string; blockedReason: string | null }[];
+  children?: React.ReactNode;
 }
 
 vi.mock("@/components/ActionList", () => ({
-  ActionList: ({ actions }: MockActionListProps) => (
-    <div data-testid="action-list">
-      {actions.map(action => action.key).join(",")}
-    </div>
+  ActionList: ({ actions, children }: MockActionListProps) => (
+    <>
+      <div data-testid="action-list">
+        {actions.map(action => action.key).join(",")}
+      </div>
+      {children}
+    </>
   ),
 }));
 
@@ -152,13 +156,13 @@ describe("MemberScreen", () => {
     expect(screen.queryByLabelText(/Supply centres/)).not.toBeInTheDocument();
   });
 
-  it("explains a game without deadline extensions", async () => {
+  it("omits deadline extensions for a game without them", async () => {
     mockMemberData.mockReturnValue({ ...baseMember, nmrExtensionsAllowed: 0 });
 
     renderMemberScreen();
 
     await screen.findByText("In this game");
-    expect(rowValue("Deadline extensions")).toBe("Not used in this game");
+    expect(screen.queryByText("Deadline extensions")).not.toBeInTheDocument();
   });
 
   it("links the player card to the profile", async () => {
@@ -198,7 +202,7 @@ describe("MemberScreen", () => {
     expect(await screen.findByText("Your settings")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /Nation preferences/ })
-    ).toHaveAttribute("href", "/nation-preference/game-1");
+    ).toHaveAttribute("href", "/game/game-1/phase/5/nation-preference");
     expect(screen.getByText("France, England")).toBeInTheDocument();
   });
 

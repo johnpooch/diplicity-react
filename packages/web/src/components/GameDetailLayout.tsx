@@ -25,7 +25,7 @@ import {
   getGamePhasesListQueryKey,
   getGamePhaseStatesListQueryKey,
 } from "@/api/generated/endpoints";
-import { isFinishedGameStatus } from "@/util";
+import { isFinishedGameStatus, isUnstartedGameStatus } from "@/util";
 
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
@@ -109,9 +109,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   const [searchParams] = useSearchParams();
 
   const navItems = useMemo(() => {
-    const items = game?.sandbox
-      ? navigationItems.filter(item => item.label !== "Chat")
-      : navigationItems;
+    const unstarted = isUnstartedGameStatus(game?.status ?? "");
+    const items = navigationItems.filter(
+      item =>
+        !(game?.sandbox && item.label === "Chat") &&
+        !(unstarted && item.label === "Orders")
+    );
     const searchParamsStr = searchParams.toString();
     const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
     const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");

@@ -1,9 +1,7 @@
 import React from "react";
-import { useNavigate } from "react-router";
 import {
   Calendar,
   ChevronRight,
-  Flag,
   Lock,
   MessageCircleOff,
   Pause,
@@ -11,8 +9,6 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -21,18 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { getNationSeatState } from "@/components/NationSeat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import { describePhaseTiming } from "@/components/DeadlineSummary";
 import { MapView } from "@/components/MapView";
 import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
 import { buildVariantInfoRows } from "@/components/variantInfoRows";
-import {
-  useGameRetrieveSuspense,
-  useUserRetrieveSuspense,
-} from "@/api/generated/endpoints";
+import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { formatDateTime, formatTimeAgo } from "@/util";
 import { useRequiredParams } from "@/hooks";
@@ -50,44 +41,8 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
-  const navigate = useNavigate();
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: userProfile } = useUserRetrieveSuspense();
   const variant = useGameVariant(game);
-  const currentMember = game.members.find(m => m.isCurrentUser);
-  const isPending = game.status === "pending";
-  const isGameMaster =
-    !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
-
-  const nationSeatAlert = isPending && currentMember && (
-    <Alert>
-      <Flag className="size-4" />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <AlertDescription>
-          {
-            {
-              assigned: `The Game Master assigned you ${currentMember.nation}.`,
-              ranked: "You have provided nation preferences.",
-              unset: "You have not chosen which nations you want to play.",
-            }[getNationSeatState(currentMember.nation, currentMember.nationPreferenceIds)]
-          }
-        </AlertDescription>
-        {!currentMember.nation && (
-          <div className="shrink-0 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() => navigate(`/nation-preference/${gameId}`)}
-            >
-              {(currentMember.nationPreferenceIds?.length ?? 0) > 0
-                ? "Edit Preferences"
-                : "Set Nation Preferences"}
-            </Button>
-          </div>
-        )}
-      </div>
-    </Alert>
-  );
 
   const phaseDeadlineRows: SettingsRow[] = [
     {
@@ -100,15 +55,16 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
       label: "Retreat/Adjustment",
       value: describePhaseTiming(game, "retreat"),
     },
-    {
-      key: "extensions",
-      label: "Deadline extensions",
-      value:
-        game.nmrExtensionsAllowed > 0
-          ? `${game.nmrExtensionsAllowed} per player`
-          : "None",
-      info: "If a player does not submit orders on time, a deadline extension is used.",
-    },
+    ...(game.nmrExtensionsAllowed > 0
+      ? [
+          {
+            key: "extensions",
+            label: "Deadline extensions",
+            value: `${game.nmrExtensionsAllowed} per player`,
+            info: "If a player does not submit orders on time, a deadline extension is used.",
+          },
+        ]
+      : []),
   ];
 
   const settingsRows: SettingsRow[] = [
@@ -186,8 +142,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
-      {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
-      {nationSeatAlert}
       {showTitle && (
         <h1 className="truncate text-xl font-semibold leading-9">
           {game.name}

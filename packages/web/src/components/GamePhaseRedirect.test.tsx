@@ -50,7 +50,7 @@ describe("GamePhaseRedirect", () => {
     renderAtGameRoute("abc-1");
 
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "/game-info/abc-1"
+      "/game/abc-1/phase/5/game-info"
     );
   });
 

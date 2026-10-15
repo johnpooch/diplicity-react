@@ -209,7 +209,7 @@ const MyGameCard: React.FC<MyGameCardProps> = ({ game }) => {
             )}
           </div>
           {game.unreadCount > 0 && (
-            <Badge variant="secondary">
+            <Badge>
               <Mail />
               {game.unreadCount}
             </Badge>

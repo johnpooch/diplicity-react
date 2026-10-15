@@ -21,7 +21,12 @@ import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { GameReplaceRedirect } from "./components/GameReplaceRedirect";
 import { useIsMobile } from "./hooks/use-mobile";
-import { getVariantsListQueryOptions } from "./api/generated/endpoints";
+import { useRequiredParams } from "./hooks";
+import {
+  getVariantsListQueryOptions,
+  useGameRetrieveSuspense,
+} from "./api/generated/endpoints";
+import { isUnstartedGameStatus } from "./util";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import { isNetworkError, isNotFoundError } from "./utils/network";
@@ -69,11 +74,21 @@ const AuthenticatedRoot: React.FC = () => {
   return <Outlet />;
 };
 
+const DesktopGameIndex: React.FC = () => {
+  const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  return isUnstartedGameStatus(game.status) ? (
+    <GameDetail.GameInfoScreen />
+  ) : (
+    <GameDetail.OrdersScreen />
+  );
+};
+
 export const GameIndexRoute: React.FC = () => {
   const isMobile = useIsMobile();
   return (
     <Suspense fallback={<RouteFallback />}>
-      {isMobile ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />}
+      {isMobile ? <GameDetail.MapScreen /> : <DesktopGameIndex />}
     </Suspense>
   );
 };
@@ -333,6 +348,14 @@ export const createAuthenticatedRoutes = (
                 element: (
                   <Suspense fallback={<RouteFallback />}>
                     <GameDetail.PlayerProfileScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "nation-preference",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.NationPreferenceScreen />
                   </Suspense>
                 ),
               },

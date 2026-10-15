@@ -4,7 +4,11 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
+import {
+  PhaseStepperTitle,
+  PhaseStepperStatus,
+  PhaseStepperActions,
+} from "@/components/PhaseStepper";
 import { GameMap } from "@/components/GameMap";
 import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { useRequiredParams } from "@/hooks";
@@ -63,7 +67,12 @@ const MapScreen: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title={<PhaseStepperTitle />}
+        title={
+          <>
+            <PhaseStepperTitle />
+            <PhaseStepperStatus />
+          </>
+        }
         rightButton={<PhaseStepperActions />}
         onNavigateBack={() => navigate("/")}
       />

@@ -112,6 +112,26 @@ describe("ActionList", () => {
     ]);
   });
 
+  it("renders primary actions above its content and row actions below", () => {
+    renderActions(
+      [
+        { key: "confirm_seat", blockedReason: null },
+        { key: "leave", blockedReason: null },
+      ],
+      { children: <p>Game details</p> }
+    );
+
+    const confirm = screen.getByRole("button", { name: "Confirm seat" });
+    const content = screen.getByText("Game details");
+    const leave = screen.getByRole("button", { name: "Leave game" });
+    expect(confirm.compareDocumentPosition(content)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(content.compareDocumentPosition(leave)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
   it("renders a blocked action disabled and explains why from an info button", async () => {
     const user = userEvent.setup();
     renderActions(

@@ -38,6 +38,7 @@ vi.mock("@/api/generated/endpoints", () => ({
 vi.mock("@/components/GameMap", () => ({ GameMap: () => null }));
 vi.mock("@/components/PhaseStepper", () => ({
   PhaseStepperTitle: () => null,
+  PhaseStepperStatus: () => null,
   PhaseStepperActions: () => null,
 }));
 

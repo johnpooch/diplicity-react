@@ -277,3 +277,19 @@ describe("GameDetailLayout orders navigation dot", () => {
     expect(ordersDot()).not.toBeInTheDocument();
   });
 });
+
+describe("GameDetailLayout orders navigation for unstarted games", () => {
+  it.each(["pending", "mustering"])(
+    "hides the Orders item for a %s game",
+    async status => {
+      const { queryClient } = renderLayout();
+
+      await pollGame(queryClient, "game-1", { currentPhaseId: 1, status });
+
+      expect(
+        screen.queryByRole("button", { name: "Orders" })
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Info" }).length).toBeGreaterThan(0);
+    }
+  );
+});

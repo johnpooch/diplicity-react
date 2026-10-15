@@ -66,7 +66,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
       )));
 
   return (
-    <div className="flex min-h-14 items-center gap-3 px-2 md:px-3">
+    <div className="flex min-h-14 items-center gap-3 px-2">
       {/* Left section */}
       {leftContent && (
         <div className="flex items-center gap-2">{leftContent}</div>

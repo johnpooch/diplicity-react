@@ -45,7 +45,11 @@ import { ConfirmOrdersButton } from "@/components/ConfirmOrdersButton";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PhaseStepperTitle, PhaseStepperActions } from "@/components/PhaseStepper";
+import {
+  PhaseStepperTitle,
+  PhaseStepperStatus,
+  PhaseStepperActions,
+} from "@/components/PhaseStepper";
 import { useRequiredParams } from "@/hooks";
 import {
   PhaseRetrieve,
@@ -619,7 +623,8 @@ const OrdersScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4 md:p-2">
+            <PhaseStepperStatus />
             {isCurrentMemberInCivilDisorder ? (
               <Notice
                 icon={UserX}
@@ -722,7 +727,7 @@ const OrdersScreenSkeleton: React.FC = () => (
     <GameDetailAppBar title={<Skeleton className="h-5 w-40" />} />
     <div className="flex-1 overflow-y-auto">
       <Panel>
-        <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+        <Panel.Content className="flex flex-col gap-4 px-3 py-4 md:p-2">
           {[0, 1, 2].map(index => (
             <div key={index} className="flex items-center gap-3">
               <Skeleton className="size-10 rounded-full" />

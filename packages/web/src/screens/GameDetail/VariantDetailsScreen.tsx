@@ -28,7 +28,7 @@ const VariantDetailsScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4 md:p-2">
             {variant ? (
               <>
                 <div className="w-full shrink-0 overflow-hidden rounded-xl">

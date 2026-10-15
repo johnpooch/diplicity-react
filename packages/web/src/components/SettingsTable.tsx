@@ -24,7 +24,7 @@ const SettingsTable: React.FC<{ rows: SettingsRow[] }> = ({ rows }) => {
         {rows.map(row => (
           <div key={row.key} className="px-6 py-3">
             <div className="flex items-center justify-between gap-4">
-              <span className="flex min-w-0 items-center gap-3 text-sm">
+              <span className="flex shrink-0 items-center gap-3 text-sm">
                 {row.icon && (
                   <row.icon className="size-4 shrink-0 text-muted-foreground" />
                 )}
