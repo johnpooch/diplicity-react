@@ -59,6 +59,8 @@ fi
 echo "Starting Gunicorn..."
 exec gunicorn project.wsgi:application \
     --bind 0.0.0.0:8000 \
-    --workers "${GUNICORN_WORKERS:-2}" \
+    --workers "${GUNICORN_WORKERS:-3}" \
     --threads "${GUNICORN_THREADS:-4}" \
-    --timeout "${GUNICORN_TIMEOUT:-60}"
+    --timeout "${GUNICORN_TIMEOUT:-60}" \
+    --max-requests 2000 \
+    --max-requests-jitter 200
