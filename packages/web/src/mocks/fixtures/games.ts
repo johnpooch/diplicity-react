@@ -629,9 +629,32 @@ const buildActiveDrawProposal = () => {
     phaseName: "Fall 1901, Movement",
     createdAt: futureIso(-3 * 24 * 60 * 60),
   };
+  const cancelledProposal: DrawProposal = {
+    ...proposal,
+    id: 3,
+    createdBy: proposedBy(members[4]),
+    status: "cancelled",
+    acceptedCount: 1,
+    pendingCount: 6,
+    myVote: { included: true, accepted: null },
+    createdAt: futureIso(-5 * 60 * 60),
+  };
+  const rejectedProposal: DrawProposal = {
+    ...expiredProposal,
+    id: 0,
+    createdBy: proposedBy(members[3]),
+    status: "rejected",
+    acceptedCount: 2,
+    rejectedCount: 1,
+    pendingCount: 4,
+    myVote: { included: true, accepted: null },
+    phaseId: 201,
+    phaseName: "Spring 1901, Movement",
+    createdAt: futureIso(-8 * 24 * 60 * 60),
+  };
   return makeFixture({
     description:
-      "Active game (Spring 1902 movement) with an open draw proposal created by Austria and an expired one from Fall 1901. The current user has not voted on the open proposal yet.",
+      "Active game (Spring 1902 movement) with an open draw proposal created by Austria, one Italy cancelled earlier this phase, an expired one from Fall 1901 and a rejected one from Spring 1901. The current user has not voted on the open proposal yet.",
     game: makeGame("active-draw-proposal", "Talk of Peace", members, [phase]),
     phases: [phase],
     ordersByPhase: { 401: [] },
@@ -645,7 +668,12 @@ const buildActiveDrawProposal = () => {
       makePhaseState(members[6], ["con", "ank", "smy"]),
     ],
     channels: [makeChannel("Public Press", members, [])],
-    drawProposals: [proposal, expiredProposal],
+    drawProposals: [
+      proposal,
+      cancelledProposal,
+      expiredProposal,
+      rejectedProposal,
+    ],
   });
 };
 
@@ -730,9 +758,32 @@ const buildFinishedDraw = () => {
   const game = makeGame("finished-draw", "Stalemate Lines", members, [
     finalPhase,
   ]);
+  const acceptedProposal: DrawProposal = {
+    id: 5,
+    createdBy: {
+      id: members[2].id,
+      userId: members[2].userId,
+      name: members[2].name,
+      picture: null,
+      isCurrentUser: false,
+      isBot: false,
+      commitment: "high",
+      nation: members[2].nation,
+    },
+    status: "accepted",
+    acceptedCount: 3,
+    rejectedCount: 0,
+    pendingCount: 0,
+    totalVotes: 3,
+    includedMemberIds: [members[0].id, members[2].id, members[6].id],
+    myVote: { included: true, accepted: true },
+    phaseId: 601,
+    phaseName: finalPhase.name,
+    createdAt: futureIso(-26 * 60 * 60),
+  };
   return makeFixture({
     description:
-      "Finished game that ended in a three-way draw between England (the current user), France, and Turkey.",
+      "Finished game that ended in a three-way draw between England (the current user), France, and Turkey, through a draw proposal from France.",
     game: {
       ...game,
       status: "completed",
@@ -746,6 +797,7 @@ const buildFinishedDraw = () => {
     phases: [finalPhase],
     ordersByPhase: { 601: [] },
     channels: [makeChannel("Public Press", members, [])],
+    drawProposals: [acceptedProposal],
   });
 };
 

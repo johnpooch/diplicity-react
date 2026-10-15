@@ -1,6 +1,8 @@
 from rest_framework import permissions, generics
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from common.permissions import (
     IsActiveGame,
     IsActiveOrCompletedGame,
@@ -9,6 +11,7 @@ from common.permissions import (
     IsNotSandboxGame,
 )
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
+from .constants import DrawProposalStatus
 from .models import DrawProposal
 from .serializers import DrawProposalSerializer, DrawVoteUpdateSerializer
 
@@ -19,8 +22,7 @@ class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.L
 
     def get_queryset(self):
         return (
-            DrawProposal.objects.active()
-            .for_game(self.get_game())
+            DrawProposal.objects.for_game(self.get_game())
             .order_by("-created_at")
             .with_related_data()
         )
@@ -83,9 +85,11 @@ class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics
             DrawProposal,
             id=proposal_id,
             created_by=current_member,
-            cancelled=False,
+            cancelled_at__isnull=True,
         )
 
     def perform_destroy(self, instance):
-        instance.cancelled = True
+        if instance.status != DrawProposalStatus.PENDING:
+            raise ValidationError("Only a pending draw proposal can be cancelled.")
+        instance.cancelled_at = timezone.now()
         instance.save()

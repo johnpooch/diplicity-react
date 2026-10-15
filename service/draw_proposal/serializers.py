@@ -1,9 +1,12 @@
+from django.db import transaction
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from emit import emit
 from .models import DrawProposal
 from .constants import DrawProposalStatus
+from common.permissions import IsCurrentPhaseActive
 from member.serializers import BaseMemberSerializer
+from phase.models import Phase
 
 
 class DrawVoteMemberSerializer(BaseMemberSerializer):
@@ -81,10 +84,17 @@ class DrawProposalSerializer(serializers.Serializer):
         game = self.context["game"]
         current_member = self.context["current_game_member"]
 
-        return DrawProposal.objects.create_proposal(
-            game=game,
-            created_by=current_member,
-        )
+        with transaction.atomic():
+            if Phase.objects.lock_if_active(game.current_phase.id) is None:
+                raise serializers.ValidationError(IsCurrentPhaseActive.message)
+            if DrawProposal.objects.pending_for_phase(game.current_phase).exists():
+                raise serializers.ValidationError(
+                    "There is already a pending draw proposal for this phase."
+                )
+            return DrawProposal.objects.create_proposal(
+                game=game,
+                created_by=current_member,
+            )
 
 
 class DrawVoteUpdateSerializer(serializers.Serializer):

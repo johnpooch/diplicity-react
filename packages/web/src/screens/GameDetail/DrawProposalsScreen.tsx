@@ -1,37 +1,23 @@
 import React, { Suspense, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
-import {
-  Check,
-  X,
-  Handshake,
-  Plus,
-  MoreVertical,
-  Ban,
-  ChevronDown,
-  Clock,
-} from "lucide-react";
+import { Ban, Check, Clock, Handshake, Undo2, X } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Item,
-  ItemContent,
-  ItemTitle,
-  ItemDescription,
-  ItemGroup,
-} from "@/components/ui/item";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { GameDetailAppBar } from "./AppBar";
@@ -45,150 +31,155 @@ import {
   getGamesDrawProposalsListQueryKey,
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
-import type {
-  DrawProposal,
-  GameRetrieve,
-  Member,
-  Variant,
-} from "@/api/generated/endpoints";
-import { useGameVariant } from "@/hooks/useGameVariant";
+import type { DrawProposal } from "@/api/generated/endpoints";
+import { getCurrentPhaseId, isFinishedGameStatus } from "@/util";
 
-type TabValue = "active" | "rejected";
+const canVoteOn = (proposal: DrawProposal) =>
+  proposal.status === "pending" &&
+  proposal.myVote !== null &&
+  proposal.myVote.accepted === null;
 
-interface ProposalItemProps {
+const getWaitingDescription = (proposal: DrawProposal) => {
+  if (canVoteOn(proposal)) {
+    return `${proposal.acceptedCount} of ${proposal.totalVotes} accepted`;
+  }
+  return `Waiting for ${proposal.pendingCount} ${proposal.pendingCount === 1 ? "player" : "players"}`;
+};
+
+const getStatusDisplay = (proposal: DrawProposal) => {
+  switch (proposal.status) {
+    case "pending":
+      return {
+        icon: Handshake,
+        title: proposal.createdBy.isCurrentUser
+          ? "Draw proposed by you"
+          : `Draw proposed by ${proposal.createdBy.nation}`,
+        description: getWaitingDescription(proposal),
+        highlighted: true,
+      };
+    case "accepted":
+      return {
+        icon: Handshake,
+        title: "Draw accepted",
+        description: "The game ended in a draw",
+        highlighted: true,
+      };
+    case "rejected":
+      return {
+        icon: Ban,
+        title: "Draw rejected",
+        description: proposal.phaseName,
+        highlighted: false,
+      };
+    case "cancelled":
+      return {
+        icon: Undo2,
+        title: "Draw cancelled",
+        description: proposal.phaseName,
+        highlighted: false,
+      };
+    default:
+      return {
+        icon: Clock,
+        title: "Draw expired",
+        description: proposal.phaseName,
+        highlighted: false,
+      };
+  }
+};
+
+interface PendingVote {
   proposal: DrawProposal;
-  game: GameRetrieve;
-  currentMember: Member | undefined;
-  variant: Variant | undefined;
-  onVote: (proposalId: number, accepted: boolean) => void;
-  onCancel: (proposalId: number) => void;
-  isVoting: boolean;
+  accepted: boolean;
+}
+
+interface ProposalRowProps {
+  proposal: DrawProposal;
+  onVote: (accepted: boolean) => void;
+  onCancel: () => void;
   isCancelling: boolean;
 }
 
-const ProposalItem: React.FC<ProposalItemProps> = ({
+const ProposalRow: React.FC<ProposalRowProps> = ({
   proposal,
-  game,
-  currentMember,
-  variant,
   onVote,
   onCancel,
-  isVoting,
   isCancelling,
 }) => {
-  const canVote =
-    proposal.status === "pending" &&
-    proposal.myVote !== null &&
-    proposal.myVote.accepted === null;
-  const isProposer = proposal.createdBy.id === currentMember?.id;
-  const includedMembers = proposal.includedMemberIds
-    .map(id => game.members.find(m => m.id === id))
-    .filter((m): m is Member => Boolean(m));
-
-  const nationColor = variant
-    ? findNationColor(variant.nations, proposal.createdBy.nation)
-    : null;
+  const {
+    icon: Icon,
+    title,
+    description,
+    highlighted,
+  } = getStatusDisplay(proposal);
+  const canCancel =
+    proposal.status === "pending" && proposal.createdBy.isCurrentUser;
 
   return (
-    <Item className="border-b border-b-border">
-      <NationFlag
-        flagUrl={variant ? findNationFlagUrl(variant.nations, proposal.createdBy.nation) : null}
-        alt={proposal.createdBy.nation ?? ""}
-        size="md"
-        className="size-8 self-start"
-        color={nationColor}
-      />
-      <ItemContent>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ItemTitle>Proposed by {proposal.createdBy.nation}</ItemTitle>
-            {proposal.status === "accepted" && (
-              <Badge variant="default" className="bg-green-600">
-                <Check className="mr-1 h-3 w-3" />
-                Accepted
-              </Badge>
-            )}
-            {proposal.status === "rejected" && (
-              <Badge variant="destructive">
-                <Ban className="mr-1 h-3 w-3" />
-                Rejected
-              </Badge>
-            )}
-            {proposal.status === "expired" && (
-              <Badge variant="secondary">
-                <Clock className="mr-1 h-3 w-3" />
-                Expired
-              </Badge>
-            )}
-          </div>
-          {isProposer && proposal.status === "pending" && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => onCancel(proposal.id)}
-                  disabled={isCancelling}
-                >
-                  Cancel Draw Proposal
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+    <div className="flex flex-col gap-3 p-3">
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "flex size-12 shrink-0 items-center justify-center rounded-full ring-3 ring-border",
+            highlighted
+              ? "bg-amber-400 text-black"
+              : "bg-muted text-muted-foreground"
+          )}
+        >
+          <Icon className="size-5" />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="font-semibold leading-tight">{title}</span>
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {proposal.status === "pending" && (
+            <p className="text-sm text-muted-foreground">
+              Expires when the phase resolves
+            </p>
           )}
         </div>
-        <ItemDescription className="line-clamp-none">
-          {includedMembers.map(m => m.nation).join(", ")}
-        </ItemDescription>
-        <div className="text-sm text-muted-foreground">
-          {proposal.acceptedCount} of {proposal.totalVotes} accepted
+      </div>
+      {canVoteOn(proposal) && (
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={() => onVote(true)}>
+            <Check />
+            Accept
+          </Button>
+          <Button
+            className="flex-1"
+            variant="outline"
+            onClick={() => onVote(false)}
+          >
+            <X />
+            Reject
+          </Button>
         </div>
-        {proposal.status === "pending" ? (
-          <div className="text-sm text-muted-foreground">
-            Expires when phase resolves
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">
-            {proposal.phaseName}
-          </div>
-        )}
-        {proposal.myVote && proposal.myVote.accepted !== null && (
-          <div className="text-sm">
-            Your vote:{" "}
-            {proposal.myVote.accepted ? (
-              <span className="text-green-600">Accepted</span>
-            ) : (
-              <span className="text-red-600">Rejected</span>
-            )}
-          </div>
-        )}
-        {canVote && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onVote(proposal.id, true)}
-              disabled={isVoting}
-            >
-              <Check className="mr-1 h-4 w-4" />
-              Accept
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onVote(proposal.id, false)}
-              disabled={isVoting}
-            >
-              <X className="mr-1 h-4 w-4" />
-              Reject
-            </Button>
-          </div>
-        )}
-      </ItemContent>
-    </Item>
+      )}
+      {canCancel && (
+        <Button variant="outline" onClick={onCancel} disabled={isCancelling}>
+          Cancel proposal
+        </Button>
+      )}
+    </div>
   );
+};
+
+const getVoteConfirmation = ({ proposal, accepted }: PendingVote) => {
+  if (!accepted) {
+    return {
+      title: "Reject draw",
+      description:
+        "The proposal fails for everyone and the game continues. You can't change your vote.",
+      confirmLabel: "Reject",
+    };
+  }
+  return {
+    title: "Accept draw",
+    description:
+      proposal.pendingCount === 1
+        ? "Every other player has accepted. The game ends now in a draw shared by all surviving players."
+        : "If every player accepts, the game ends in a draw shared by all surviving players. You can't change your vote.",
+    confirmLabel: "Accept",
+  };
 };
 
 const DrawProposalsScreen: React.FC = () => {
@@ -198,30 +189,23 @@ const DrawProposalsScreen: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [expiredOpen, setExpiredOpen] = useState(false);
-
-  const tab = (searchParams.get("tab") as TabValue) || "active";
-  const setTab = (value: TabValue) => {
-    setSearchParams({ tab: value });
-  };
+  const [pendingVote, setPendingVote] = useState<PendingVote | null>(null);
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-  const variant = useGameVariant(game);
   const voteMutation = useGamesDrawProposalsVotePartialUpdate();
   const cancelMutation = useGamesDrawProposalsCancelDestroy();
 
   const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentPhaseId = getCurrentPhaseId(game);
 
-  const handleVote = async (proposalId: number, accepted: boolean) => {
+  const handleVote = async ({ proposal, accepted }: PendingVote) => {
     try {
       await voteMutation.mutateAsync({
         gameId: gameId,
-        proposalId: proposalId,
+        proposalId: proposal.id,
         data: { accepted },
       });
-      toast.success(accepted ? "Draw proposal accepted" : "Draw proposal rejected");
       queryClient.invalidateQueries({
         queryKey: getGamesDrawProposalsListQueryKey(gameId),
       });
@@ -239,7 +223,6 @@ const DrawProposalsScreen: React.FC = () => {
         gameId: gameId,
         proposalId: proposalId,
       });
-      toast.success("Proposal cancelled");
       queryClient.invalidateQueries({
         queryKey: getGamesDrawProposalsListQueryKey(gameId),
       });
@@ -248,115 +231,105 @@ const DrawProposalsScreen: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/orders`);
-  };
-
-  const handleProposeDraw = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/propose-draw`);
-  };
-
-  const activeProposals = proposals.filter(
-    p => p.status === "pending" || p.status === "accepted"
+  const proposeDrawPath = `/game/${gameId}/phase/${phaseId}/propose-draw`;
+  const hasPendingProposal = proposals.some(p => p.status === "pending");
+  const hasProposedThisPhase = proposals.some(
+    p =>
+      p.phaseId === currentPhaseId &&
+      p.createdBy.id === currentMember?.id &&
+      p.status !== "cancelled"
   );
-  const expiredProposals = proposals.filter(p => p.status === "expired");
-  const rejectedProposals = proposals.filter(p => p.status === "rejected");
-
-  const hasActiveProposalByCurrentUser = activeProposals.some(
-    p => p.status === "pending" && p.createdBy.id === currentMember?.id
-  );
-  const isGameCompleted = game.status === "completed";
   const canProposeDraw =
-    !!currentMember && !game.sandbox && !hasActiveProposalByCurrentUser && !isGameCompleted;
+    !!currentMember &&
+    !game.sandbox &&
+    !isFinishedGameStatus(game.status) &&
+    !hasPendingProposal &&
+    !hasProposedThisPhase;
 
-  const renderProposal = (proposal: DrawProposal) => (
-    <ProposalItem
-      key={proposal.id}
-      proposal={proposal}
-      game={game}
-      currentMember={currentMember}
-      variant={variant}
-      onVote={handleVote}
-      onCancel={handleCancel}
-      isVoting={voteMutation.isPending}
-      isCancelling={cancelMutation.isPending}
-    />
-  );
+  const confirmation = pendingVote ? getVoteConfirmation(pendingVote) : null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Draw Proposals"
         variant="secondary"
-        onNavigateBack={handleBack}
+        onNavigateBack={() =>
+          navigate(`/game/${gameId}/phase/${phaseId}/orders`)
+        }
         rightButton={
           canProposeDraw ? (
-            <Button variant="outline" onClick={handleProposeDraw}>
-              <Plus />
-              New proposal
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Propose draw"
+              asChild
+            >
+              <Link to={proposeDrawPath}>
+                <Handshake />
+              </Link>
             </Button>
           ) : undefined
         }
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content>
-            <Tabs value={tab} onValueChange={value => setTab(value as TabValue)}>
-              <TabsList className="w-full">
-                <TabsTrigger value="active" className="flex-1">
-                  Active
-                </TabsTrigger>
-                <TabsTrigger value="rejected" className="flex-1">
-                  Rejected
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="active">
-                {activeProposals.length === 0 ? (
-                  <Notice
-                    icon={Handshake}
-                    title="No active proposals"
-                    message="There are no pending draw proposals for this phase."
-                  />
-                ) : (
-                  <ItemGroup>{activeProposals.map(renderProposal)}</ItemGroup>
-                )}
-                {expiredProposals.length > 0 && (
-                  <section className="flex flex-col gap-2 pt-4">
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
-                      aria-expanded={expiredOpen}
-                      onClick={() => setExpiredOpen(open => !open)}
-                    >
-                      <ChevronDown
-                        className={cn(
-                          "size-4 transition-transform",
-                          !expiredOpen && "-rotate-90"
-                        )}
-                      />
-                      Expired ({expiredProposals.length})
-                    </button>
-                    {expiredOpen && (
-                      <ItemGroup>{expiredProposals.map(renderProposal)}</ItemGroup>
-                    )}
-                  </section>
-                )}
-              </TabsContent>
-              <TabsContent value="rejected">
-                {rejectedProposals.length === 0 ? (
-                  <Notice
-                    icon={Ban}
-                    title="No rejected proposals"
-                    message="There are no rejected draw proposals in this game."
-                  />
-                ) : (
-                  <ItemGroup>{rejectedProposals.map(renderProposal)}</ItemGroup>
-                )}
-              </TabsContent>
-            </Tabs>
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+            {proposals.length === 0 ? (
+              <Notice
+                icon={Handshake}
+                title="No draw proposals"
+                className="h-full"
+              />
+            ) : (
+              <Card className="shrink-0 overflow-hidden py-0">
+                <CardContent className="flex flex-col divide-y p-0">
+                  {proposals.map(proposal => (
+                    <ProposalRow
+                      key={proposal.id}
+                      proposal={proposal}
+                      onVote={accepted =>
+                        setPendingVote({ proposal, accepted })
+                      }
+                      onCancel={() => handleCancel(proposal.id)}
+                      isCancelling={cancelMutation.isPending}
+                    />
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            {canProposeDraw && (
+              <Button className="w-full" size="lg" asChild>
+                <Link to={proposeDrawPath}>
+                  <Handshake />
+                  Propose Draw
+                </Link>
+              </Button>
+            )}
           </Panel.Content>
         </Panel>
       </div>
+      <AlertDialog
+        open={pendingVote !== null}
+        onOpenChange={open => !open && setPendingVote(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmation?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmation?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={voteMutation.isPending}
+              onClick={() => pendingVote && handleVote(pendingVote)}
+            >
+              {confirmation?.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -366,17 +339,20 @@ const DrawProposalsScreenSkeleton: React.FC = () => (
     <GameDetailAppBar title="Draw Proposals" variant="secondary" />
     <div className="flex-1 overflow-y-auto">
       <Panel>
-        <Panel.Content>
-          <Skeleton className="h-9 w-full" />
-          <div className="flex gap-4 p-4">
-            <Skeleton className="size-8 rounded-full" />
-            <div className="flex flex-1 flex-col gap-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-48" />
-            </div>
-          </div>
+        <Panel.Content className="flex flex-col gap-4 px-3 py-4">
+          <Card className="shrink-0 overflow-hidden py-0">
+            <CardContent className="flex flex-col divide-y p-0">
+              {[0, 1].map(index => (
+                <div key={index} className="flex items-center gap-3 p-3">
+                  <Skeleton className="size-12 rounded-full" />
+                  <div className="flex flex-1 flex-col gap-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </Panel.Content>
       </Panel>
     </div>

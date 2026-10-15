@@ -5392,7 +5392,7 @@ class TestMyGamesCurrentView:
     ):
         game = my_game_factory(has_possible_orders=False)
         draw_proposal_factory(
-            game=game, created_by=member_factory(game=game), phase=game.current_phase, cancelled=True
+            game=game, created_by=member_factory(game=game), phase=game.current_phase, cancelled_at=timezone.now()
         )
         rejected = draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
         rejected.votes.exclude(member__user=game.members.first().user).update(accepted=False)
