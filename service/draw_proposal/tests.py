@@ -80,7 +80,7 @@ class TestDrawProposalModel:
 
         assert proposal.status == DrawProposalStatus.EXPIRED
 
-    def test_status_rejected_when_cancelled(
+    def test_status_cancelled_when_cancelled(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
@@ -90,10 +90,10 @@ class TestDrawProposalModel:
 
         proposal = draw_proposal_factory(
             game=game, created_by=m1, phase=phase,
-            included_member_ids=[m1.id, m2.id], cancelled=True,
+            included_member_ids=[m1.id, m2.id], cancelled_at=timezone.now(),
         )
 
-        assert proposal.status == DrawProposalStatus.REJECTED
+        assert proposal.status == DrawProposalStatus.CANCELLED
 
     def test_included_members_excludes_non_included_votes(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory
@@ -213,7 +213,7 @@ class TestDrawProposalManager:
         )
         cancelled_proposal = draw_proposal_factory(
             game=game, created_by=m2, phase=phase,
-            included_member_ids=[m1.id, m2.id], cancelled=True,
+            included_member_ids=[m1.id, m2.id], cancelled_at=timezone.now(),
         )
 
         active = DrawProposal.objects.active()
@@ -459,6 +459,85 @@ class TestDrawProposalCreateView:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_create_proposal_fails_while_another_players_proposal_is_pending(
+        self, authenticated_client, game_factory, phase_factory, member_factory,
+        draw_proposal_factory, primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        member = member_factory(game=game, user=primary_user)
+        other = member_factory(game=game)
+        draw_proposal_factory(
+            game=game, created_by=other, phase=phase,
+            included_member_ids=[member.id, other.id],
+        )
+
+        response = authenticated_client.post(
+            reverse("draw-proposal-create", args=[game.id]), {}, format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert DrawProposal.objects.count() == 1
+
+    def test_create_proposal_succeeds_after_another_players_proposal_is_rejected(
+        self, authenticated_client, game_factory, phase_factory, member_factory,
+        draw_proposal_factory, primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        member = member_factory(game=game, user=primary_user)
+        other = member_factory(game=game)
+        rejected = draw_proposal_factory(
+            game=game, created_by=other, phase=phase,
+            included_member_ids=[member.id, other.id],
+        )
+        rejected.votes.filter(member=member).update(accepted=False)
+
+        response = authenticated_client.post(
+            reverse("draw-proposal-create", args=[game.id]), {}, format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_proposal_succeeds_after_another_players_proposal_is_cancelled(
+        self, authenticated_client, game_factory, phase_factory, member_factory,
+        draw_proposal_factory, primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        member = member_factory(game=game, user=primary_user)
+        other = member_factory(game=game)
+        draw_proposal_factory(
+            game=game, created_by=other, phase=phase,
+            included_member_ids=[member.id, other.id], cancelled_at=timezone.now(),
+        )
+
+        response = authenticated_client.post(
+            reverse("draw-proposal-create", args=[game.id]), {}, format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_proposal_fails_if_member_already_proposed_a_rejected_draw_this_phase(
+        self, authenticated_client, game_factory, phase_factory, member_factory,
+        draw_proposal_factory, primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        member = member_factory(game=game, user=primary_user)
+        other = member_factory(game=game)
+        rejected = draw_proposal_factory(
+            game=game, created_by=member, phase=phase,
+            included_member_ids=[member.id, other.id],
+        )
+        rejected.votes.filter(member=other).update(accepted=False)
+
+        response = authenticated_client.post(
+            reverse("draw-proposal-create", args=[game.id]), {}, format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_create_proposal_cd_members_get_excluded_and_auto_accepted(
         self, api_client, game_factory, phase_factory, member_factory, primary_user,
     ):
@@ -702,7 +781,29 @@ class TestDrawProposalCancelView:
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
         proposal.refresh_from_db()
-        assert proposal.cancelled is True
+        assert proposal.cancelled_at is not None
+        assert proposal.status == DrawProposalStatus.CANCELLED
+
+    def test_cannot_cancel_a_rejected_proposal(
+        self, authenticated_client, game_factory, phase_factory, member_factory,
+        draw_proposal_factory, primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        proposer = member_factory(game=game, user=primary_user)
+        other = member_factory(game=game)
+        proposal = draw_proposal_factory(
+            game=game, created_by=proposer, phase=phase,
+            included_member_ids=[proposer.id, other.id],
+        )
+        proposal.votes.filter(member=other).update(accepted=False)
+
+        response = authenticated_client.delete(
+            reverse("draw-proposal-cancel", args=[game.id, proposal.id])
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        proposal.refresh_from_db()
         assert proposal.status == DrawProposalStatus.REJECTED
 
     def test_cannot_cancel_others_proposal(
@@ -827,8 +928,8 @@ class TestDrawProposalListView:
         assert len(response.data) == 3
         assert len(several) == len(single)
 
-    def test_list_excludes_cancelled_proposals(
-        self, api_client, game_factory, phase_factory, member_factory,
+    def test_list_includes_cancelled_proposals_as_cancelled(
+        self, authenticated_client, game_factory, phase_factory, member_factory,
         draw_proposal_factory, primary_user,
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
@@ -836,21 +937,22 @@ class TestDrawProposalListView:
         m1 = member_factory(game=game, user=primary_user)
         m2 = member_factory(game=game)
 
-        active = draw_proposal_factory(
+        pending = draw_proposal_factory(
             game=game, created_by=m1, phase=phase,
             included_member_ids=[m1.id, m2.id],
         )
-        draw_proposal_factory(
+        cancelled = draw_proposal_factory(
             game=game, created_by=m2, phase=phase,
-            included_member_ids=[m1.id, m2.id], cancelled=True,
+            included_member_ids=[m1.id, m2.id], cancelled_at=timezone.now(),
         )
 
-        self._auth(api_client, primary_user)
-        response = api_client.get(f"/games/{game.id}/draw-proposals/")
+        response = authenticated_client.get(reverse("draw-proposal-list", args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == active.id
+        assert [(p["id"], p["status"]) for p in response.data] == [
+            (cancelled.id, DrawProposalStatus.CANCELLED),
+            (pending.id, DrawProposalStatus.PENDING),
+        ]
 
     def test_list_proposals_as_non_member(
         self, api_client, game_factory, phase_factory, member_factory,

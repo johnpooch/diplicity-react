@@ -117,7 +117,7 @@ class MyGamesService:
             DrawVote.objects.filter(
                 member__user=self.user,
                 accepted__isnull=True,
-                proposal__cancelled=False,
+                proposal__cancelled_at__isnull=True,
                 proposal__phase_id__in=current_phase_ids,
             )
             .exclude(proposal__votes__accepted=False)

@@ -983,7 +983,7 @@ class TestDrawProposalNotification:
         rejected = DrawProposal.objects.create_proposal(game=game, created_by=italy)
         rejected.votes.filter(member=germany).update(accepted=False)
         cancelled = DrawProposal.objects.create_proposal(game=game, created_by=germany)
-        cancelled.cancelled = True
+        cancelled.cancelled_at = timezone.now()
         cancelled.save()
 
         Phase.objects._emit_phase_resolved(phase)

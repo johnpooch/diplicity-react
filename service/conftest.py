@@ -797,7 +797,7 @@ def game_with_phase_history_factory(
 
 @pytest.fixture
 def draw_proposal_factory(db, member_factory):
-    def _create(game=None, created_by=None, phase=None, included_member_ids=None, cancelled=False):
+    def _create(game=None, created_by=None, phase=None, included_member_ids=None, cancelled_at=None):
         if game is None:
             variant = Variant.objects.first()
             game = Game.objects.create(
@@ -824,7 +824,7 @@ def draw_proposal_factory(db, member_factory):
             game=game,
             created_by=created_by,
             phase=phase,
-            cancelled=cancelled,
+            cancelled_at=cancelled_at,
         )
 
         all_active_members = list(game.members.holding_seat().filter(eliminated_at__isnull=True))

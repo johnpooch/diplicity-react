@@ -1,4 +1,5 @@
 from django.db import models, transaction
+from django.utils import timezone
 from django.db.models import Prefetch
 from common.models import BaseModel
 from common.constants import GameStatus
@@ -10,7 +11,7 @@ from victory.models import Victory
 
 class DrawProposalQuerySet(models.QuerySet):
     def active(self):
-        return self.filter(cancelled=False)
+        return self.filter(cancelled_at__isnull=True)
 
     def for_game(self, game):
         return self.filter(game=game)
@@ -104,7 +105,7 @@ class DrawProposalManager(models.Manager):
         own = [proposal for proposal in pending if proposal.created_by_id == member.id]
         others = [proposal for proposal in pending if proposal.created_by_id != member.id]
 
-        self.filter(id__in=[proposal.id for proposal in own]).update(cancelled=True)
+        self.filter(id__in=[proposal.id for proposal in own]).update(cancelled_at=timezone.now())
         DrawVote.objects.filter(proposal__in=others, member=member).update(accepted=True, included=False)
 
         for proposal in others:
@@ -123,12 +124,23 @@ class DrawProposal(BaseModel):
     phase = models.ForeignKey(
         "phase.Phase", related_name="draw_proposals", on_delete=models.CASCADE
     )
-    cancelled = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["game"]),
+            models.Index(fields=["phase"]),
+            models.Index(fields=["created_by"]),
+        ]
+
+    @property
+    def cancelled(self):
+        return self.cancelled_at is not None
 
     @property
     def status(self):
         if self.cancelled:
-            return DrawProposalStatus.REJECTED
+            return DrawProposalStatus.CANCELLED
         votes = list(self.votes.all())
         if any(v.accepted is False for v in votes):
             return DrawProposalStatus.REJECTED
@@ -166,13 +178,6 @@ class DrawProposal(BaseModel):
             self.game.emit_game_ended()
 
             return victory
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["game"]),
-            models.Index(fields=["phase"]),
-            models.Index(fields=["created_by"]),
-        ]
 
 
 class DrawVote(BaseModel):
