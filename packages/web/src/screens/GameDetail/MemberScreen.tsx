@@ -133,22 +133,26 @@ const MemberContent: React.FC = () => {
       label: "Participation status",
       value: PARTICIPATION_LABELS[member.participationStatus],
     },
-    ...(isGameMaster
+    ...(isGameMaster || member.nmrExtensionsAllowed === 0
       ? []
       : [
           {
             key: "extensions",
             label: "Deadline extensions",
-            value:
-              member.nmrExtensionsAllowed > 0
-                ? `${member.nmrExtensionsRemaining} of ${member.nmrExtensionsAllowed} remaining`
-                : "Not used in this game",
+            value: `${member.nmrExtensionsRemaining} of ${member.nmrExtensionsAllowed} remaining`,
           },
         ]),
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <ActionList
+      gameId={gameId}
+      actions={member.actions}
+      member={member}
+      onMemberGone={() =>
+        navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
+      }
+    >
       <PlayerCard
         member={member}
         profilePath={`/game/${gameId}/phase/${phaseId}/player/${member.userId}?member=${member.id}`}
@@ -162,7 +166,7 @@ const MemberContent: React.FC = () => {
           <h2 className="text-sm font-medium text-muted-foreground">Your settings</h2>
           <Card className="overflow-hidden py-0">
             <Link
-              to={`/nation-preference/${gameId}`}
+              to={`/game/${gameId}/phase/${phaseId}/nation-preference`}
               className="flex items-center justify-between gap-4 px-6 py-3 text-sm hover:bg-accent/50"
             >
               <span>Nation preferences</span>
@@ -178,17 +182,7 @@ const MemberContent: React.FC = () => {
           </Card>
         </section>
       )}
-      {member.actions.length > 0 && (
-        <ActionList
-          gameId={gameId}
-          actions={member.actions}
-          member={member}
-          onMemberGone={() =>
-            navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
-          }
-        />
-      )}
-    </div>
+    </ActionList>
   );
 };
 
@@ -221,7 +215,7 @@ const MemberScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="px-3 py-4">
+          <Panel.Content className="px-3 py-4 md:p-2">
             <QueryErrorBoundary>
               <Suspense fallback={<MemberContentSkeleton />}>
                 <MemberContent />

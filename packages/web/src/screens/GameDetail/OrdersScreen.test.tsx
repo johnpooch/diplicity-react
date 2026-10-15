@@ -58,6 +58,7 @@ vi.mock("@/components/NationFlag", () => ({
 }));
 vi.mock("@/components/PhaseStepper", () => ({
   PhaseStepperTitle: () => null,
+  PhaseStepperStatus: () => null,
   PhaseStepperActions: () => null,
 }));
 vi.mock("@/components/GameDropdownMenu", () => ({ GameDropdownMenu: () => null }));

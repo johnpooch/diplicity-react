@@ -99,13 +99,19 @@ describe("formatTimeLeft", () => {
 });
 
 describe("getGameLandingPath", () => {
-  it("routes pending games to game-info regardless of viewport", () => {
+  it("routes pending games to game-info in the game layout regardless of viewport", () => {
     const game = { id: "abc-1", status: "pending", currentPhaseId: 5 };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-1");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-1");
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-1/phase/5/game-info");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-1/phase/5/game-info");
   });
 
-  it("routes pending games to game-info even when currentPhaseId is null", () => {
+  it("routes mustering games to game-info in the game layout regardless of viewport", () => {
+    const game = { id: "abc-6", status: "mustering", currentPhaseId: 8 };
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-6/phase/8/game-info");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-6/phase/8/game-info");
+  });
+
+  it("routes pending games to the home game-info when currentPhaseId is null", () => {
     const game = { id: "abc-2", status: "pending", currentPhaseId: null };
     expect(getGameLandingPath(game, true)).toBe("/game-info/abc-2");
     expect(getGameLandingPath(game, false)).toBe("/game-info/abc-2");

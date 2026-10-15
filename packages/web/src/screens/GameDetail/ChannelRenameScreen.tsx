@@ -100,7 +100,7 @@ const ChannelRenameScreen: React.FC = () => {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(handleRename)}
-                className="flex flex-col gap-4 px-3 py-4"
+                className="flex flex-col gap-4 px-3 py-4 md:p-2"
               >
                 <FormField
                   control={form.control}

@@ -19,7 +19,13 @@ import {
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useRequiredParams } from "@/hooks";
 
-export const NationPreferenceContent: React.FC = () => {
+interface NationPreferenceContentProps {
+  savedPath: string;
+}
+
+export const NationPreferenceContent: React.FC<NationPreferenceContentProps> = ({
+  savedPath,
+}) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const navigate = useNavigate();
@@ -60,7 +66,7 @@ export const NationPreferenceContent: React.FC = () => {
         }),
       ]);
       toast.success("Nation preferences saved");
-      navigate(`/game-info/${gameId}`);
+      navigate(savedPath);
     } catch {
       toast.error("Failed to save nation preferences");
     }

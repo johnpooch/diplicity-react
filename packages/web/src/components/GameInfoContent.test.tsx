@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi } from "vitest";
@@ -85,79 +84,39 @@ const pendingGameFor = (overrides: Record<string, unknown>) => ({
   members: [{ ...mockMembers[6], isCurrentUser: true, nation: null, ...overrides }],
 });
 
-describe("GameInfoContent nation preference alert", () => {
-  it("asks a player who has not chosen to set preferences", async () => {
-    const user = userEvent.setup();
+describe("GameInfoContent nation preferences", () => {
+  it("does not prompt a pending player to set preferences", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
     mockGameData.mockReturnValue(pendingGameFor({}));
 
     renderGameInfo();
 
     expect(
-      screen.getByText("You have not chosen which nations you want to play.")
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Set Nation Preferences" }));
-
-    expect(mockNavigate).toHaveBeenCalledWith("/nation-preference/game-1");
-  });
-
-  it("confirms that a player has provided preferences", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue(
-      pendingGameFor({ nationPreferenceIds: ["austria", "england", "france"] })
-    );
-
-    renderGameInfo();
-
-    expect(
-      screen.getByText("You have provided nation preferences.")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Edit Preferences" })
-    ).toBeInTheDocument();
-  });
-
-  it("explains a nation assigned by the game master and offers no edit", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue(pendingGameFor({ nation: "Austria" }));
-
-    renderGameInfo();
-
-    expect(
-      screen.getByText("The Game Master assigned you Austria.")
-    ).toBeInTheDocument();
+      screen.queryByText("You have not chosen which nations you want to play.")
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Preferences/ })
     ).not.toBeInTheDocument();
   });
+});
 
-  it("is not shown to a non-member", () => {
+describe("GameInfoContent deadline extensions", () => {
+  it("omits the row when the game allows none", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockPendingGames[0],
-      members: [{ ...mockMembers[0], isCurrentUser: false, nation: null }],
-    });
+    mockGameData.mockReturnValue({ ...pendingGameFor({}), nmrExtensionsAllowed: 0 });
 
     renderGameInfo();
 
-    expect(
-      screen.queryByRole("button", { name: /Preferences/ })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Deadline extensions")).not.toBeInTheDocument();
   });
 
-  it("is not shown once the game is active", () => {
+  it("shows the allowance per player", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockActiveGames[0],
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: "Austria" }],
-    });
+    mockGameData.mockReturnValue({ ...pendingGameFor({}), nmrExtensionsAllowed: 2 });
 
     renderGameInfo();
 
-    expect(
-      screen.queryByText(/nations you want to play/)
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("2 per player")).toBeInTheDocument();
   });
 });
 
@@ -179,8 +138,8 @@ describe("GameInfoContent paused notice", () => {
   });
 });
 
-describe("GameInfoContent nation assignment alert", () => {
-  it("offers nation assignment to the game master while pending", () => {
+describe("GameInfoContent nation assignment", () => {
+  it("leaves nation assignment to the game info actions", () => {
     mockUserProfileData.mockReturnValue({ userId: 9 });
     mockGameData.mockReturnValue({
       ...mockPendingGames[0],
@@ -191,22 +150,7 @@ describe("GameInfoContent nation assignment alert", () => {
     renderGameInfo();
 
     expect(
-      screen.getByRole("button", { name: /assign nations/i })
-    ).toBeInTheDocument();
-  });
-
-  it("does not offer nation assignment to players", () => {
-    mockUserProfileData.mockReturnValue({ userId: 1 });
-    mockGameData.mockReturnValue({
-      ...mockPendingGames[0],
-      gameMaster: { userId: 9, name: "GM", picture: null },
-      members: [{ ...mockMembers[6], isCurrentUser: true, nation: null }],
-    });
-
-    renderGameInfo();
-
-    expect(
-      screen.queryByRole("button", { name: /assign nations/i })
+      screen.queryByText("You can assign nations to players before the game starts.")
     ).not.toBeInTheDocument();
   });
 });

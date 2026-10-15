@@ -1,5 +1,5 @@
 import React from "react";
-import { Info, Trophy, Pause } from "lucide-react";
+import { Pause } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Nation } from "@/api/generated/endpoints";
 import { countPlayableNations } from "@/utils/playableNations";
@@ -8,10 +8,6 @@ interface GameStatusAlertsProps {
   game: {
     status: string;
     isPaused?: boolean;
-    victory?: {
-      type: string;
-      members: readonly { name: string }[];
-    } | null;
   };
   variant?: {
     nations: readonly Pick<Nation, "nonPlayable">[];
@@ -33,35 +29,20 @@ export function GameStatusAlerts({
   return (
     <>
       {game.status === "pending" && (
-        <Alert className="p-5">
-          <Info className="size-4" />
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <AlertDescription>
-              This game has not started yet. The game will start once{" "}
-              {nationCount} players have joined.
-            </AlertDescription>
-            {action && (
-              <div className="shrink-0 w-full sm:w-auto">{action}</div>
-            )}
-          </div>
-        </Alert>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            The game will start once {nationCount} players have joined.
+          </p>
+          {action && (
+            <div className="shrink-0 w-full sm:w-auto">{action}</div>
+          )}
+        </div>
       )}
 
       {showPausedNotice && game.isPaused && (
         <Alert>
           <Pause className="size-4" />
           <AlertDescription>This game is currently paused.</AlertDescription>
-        </Alert>
-      )}
-
-      {game.victory && (
-        <Alert>
-          <Trophy className="size-4" />
-          <AlertDescription>
-            {game.victory.type === "solo"
-              ? `${game.victory.members[0]?.name ?? "A player"} has won the game!`
-              : `The game ended in a draw between ${game.victory.members.length} players.`}
-          </AlertDescription>
         </Alert>
       )}
 

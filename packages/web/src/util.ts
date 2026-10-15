@@ -1,4 +1,4 @@
-import { GameRetrieve, StatusEnum } from "./api/generated/endpoints";
+import { GameRetrieve } from "./api/generated/endpoints";
 import { adjectives, conflictSynonyms, nouns } from "./terms";
 
 function capitalize(s: string) {
@@ -16,13 +16,22 @@ const getCurrentPhaseId = (game: GameRetrieve) => {
 const isFinishedGameStatus = (status: string) =>
   status === "completed" || status === "abandoned";
 
+const isUnstartedGameStatus = (status: string) =>
+  status === "pending" || status === "mustering";
+
+const getNationPreferencePath = (gameId: string, phaseId?: string) =>
+  phaseId
+    ? `/game/${gameId}/phase/${phaseId}/nation-preference`
+    : `/nation-preference/${gameId}`;
+
 const getGameLandingPath = (
   game: { id: string; status: string; currentPhaseId: number | null },
   isMobile: boolean
 ): string => {
-  if (game.status === StatusEnum.pending) return `/game-info/${game.id}`;
-  if (!game.currentPhaseId) return "/";
+  const unstarted = isUnstartedGameStatus(game.status);
+  if (!game.currentPhaseId) return unstarted ? `/game-info/${game.id}` : "/";
   const base = `/game/${game.id}/phase/${game.currentPhaseId}`;
+  if (unstarted) return `${base}/game-info`;
   return isMobile ? base : `${base}/orders`;
 };
 
@@ -202,5 +211,7 @@ export {
   formatTimeLeft,
   getCurrentPhaseId,
   getGameLandingPath,
+  getNationPreferencePath,
   isFinishedGameStatus,
+  isUnstartedGameStatus,
 };

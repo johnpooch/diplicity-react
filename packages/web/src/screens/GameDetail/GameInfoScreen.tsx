@@ -46,16 +46,15 @@ const GameInfoScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="flex flex-col gap-4 px-3 py-4">
-            <GameInfoContent
-              showTitle={false}
-              onOpenVariantDetails={() =>
-                navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
-              }
-            />
-            {game.actions.length > 0 && (
-              <ActionList gameId={gameId} actions={game.actions} />
-            )}
+          <Panel.Content className="px-3 py-4 md:p-2">
+            <ActionList gameId={gameId} actions={game.actions}>
+              <GameInfoContent
+                showTitle={false}
+                onOpenVariantDetails={() =>
+                  navigate(`/game/${gameId}/phase/${phaseId}/game-info/variant`)
+                }
+              />
+            </ActionList>
           </Panel.Content>
         </Panel>
       </div>

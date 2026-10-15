@@ -16,7 +16,6 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ActionList } from "@/components/ActionList";
 import { AddBotSheet } from "@/components/AddBotSheet";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { NationAssignmentAlert } from "@/components/NationAssignmentAlert";
 import {
   NationFlag,
   findNationFlagUrl,
@@ -41,7 +40,11 @@ import {
   Variant,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
-import { getCurrentPhaseId, isFinishedGameStatus } from "@/util";
+import {
+  getCurrentPhaseId,
+  getNationPreferencePath,
+  isFinishedGameStatus,
+} from "@/util";
 import { useRequiredParams } from "@/hooks";
 import { countPlayableNations } from "@/utils/playableNations";
 
@@ -167,8 +170,9 @@ export const PlayerInfoContent: React.FC = () => {
   };
 
   const isPending = game.status === "pending";
-  const isGameMaster =
-    !!game.gameMaster && game.gameMaster.userId === userProfile.userId;
+  const canAssignNations = game.actions.some(
+    action => action.key === "assign_nations"
+  );
   const playableSeats = variant ? countPlayableNations(variant.nations) : 0;
   const openSeats = isPending
     ? Math.max(0, playableSeats - game.members.length)
@@ -371,7 +375,7 @@ export const PlayerInfoContent: React.FC = () => {
               <button
                 onClick={e => {
                   stopRowClick(e);
-                  navigate(`/nation-preference/${gameId}`);
+                  navigate(getNationPreferencePath(gameId, phaseId));
                 }}
                 onKeyDown={stopRowClick}
                 className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
@@ -414,7 +418,7 @@ export const PlayerInfoContent: React.FC = () => {
   };
 
   return (
-    <>
+    <ActionList gameId={gameId} actions={game.playerListActions}>
       {!game.victory && (
         <GameStatusAlerts
           game={game}
@@ -422,7 +426,6 @@ export const PlayerInfoContent: React.FC = () => {
           showPausedNotice={false}
         />
       )}
-      {isGameMaster && isPending && <NationAssignmentAlert gameId={gameId} />}
 
       {game.gameMaster && (
         <section className="flex flex-col gap-2">
@@ -437,14 +440,25 @@ export const PlayerInfoContent: React.FC = () => {
                   {game.gameMaster.name[0]?.toUpperCase() ?? "?"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                <Link
-                  to={gameMasterPath}
-                  className="font-medium text-primary underline-offset-4 hover:underline truncate"
-                >
-                  {game.gameMaster.name}
-                </Link>
-                <span className="text-sm text-muted-foreground">(Admin)</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    to={gameMasterPath}
+                    className="font-medium text-primary underline-offset-4 hover:underline truncate"
+                  >
+                    {game.gameMaster.name}
+                  </Link>
+                  <span className="text-sm text-muted-foreground">(Admin)</span>
+                </div>
+                {canAssignNations && (
+                  <Link
+                    to={`/nation-assignment/${gameId}`}
+                    className="flex w-fit items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Assign nations
+                    <ChevronRight className="size-3.5" />
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -542,10 +556,6 @@ export const PlayerInfoContent: React.FC = () => {
         </section>
       )}
 
-      {game.playerListActions.length > 0 && (
-        <ActionList gameId={gameId} actions={game.playerListActions} />
-      )}
-
       {canAddBots && (
         <AddBotSheet
           gameId={gameId}
@@ -553,6 +563,6 @@ export const PlayerInfoContent: React.FC = () => {
           onOpenChange={setAddBotOpen}
         />
       )}
-    </>
+    </ActionList>
   );
 };

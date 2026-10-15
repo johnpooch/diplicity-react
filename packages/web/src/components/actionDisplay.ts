@@ -58,7 +58,7 @@ const ACTION_DISPLAY: Record<MemberActionKeyEnum, ActionDisplay> = {
     error: "Failed to confirm seat",
   },
   edit_nation_preferences: { label: "Nation preferences", icon: Flag },
-  assign_nations: { label: "Assign nations", icon: UserCog },
+  assign_nations: { label: "Assign nations", icon: UserCog, primary: true },
   extend_deadline: {
     label: "Extend deadline",
     icon: Clock,
@@ -87,7 +87,6 @@ const ACTION_DISPLAY: Record<MemberActionKeyEnum, ActionDisplay> = {
   leave: {
     label: "Leave game",
     icon: LogOut,
-    destructive: true,
     success: () => "Successfully left game",
     error: "Failed to leave game",
   },

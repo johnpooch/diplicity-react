@@ -205,9 +205,13 @@ const FinishedGames: React.FC = () => {
   );
 };
 
-const MyGamesSkeleton: React.FC = () => (
+interface MyGamesSkeletonProps {
+  view: View;
+}
+
+const MyGamesSkeleton: React.FC<MyGamesSkeletonProps> = ({ view }) => (
   <div className="space-y-3">
-    <Skeleton className="h-6 w-32" />
+    {view === "current" && <Skeleton className="h-6 w-32" />}
     {[0, 1, 2].map(index => (
       <div key={index} className="flex flex-col overflow-hidden rounded-xl border md:flex-row">
         <Skeleton className="h-40 rounded-none md:h-44 md:w-48" />
@@ -227,7 +231,7 @@ const MyGamesSuspense: React.FC = () => {
     <ScreenContainer>
       <ScreenHeader title="My Games" actions={<ViewSelector />} />
       <QueryErrorBoundary key={view}>
-        <Suspense fallback={<MyGamesSkeleton />}>
+        <Suspense fallback={<MyGamesSkeleton view={view} />}>
           {view === "finished" ? <FinishedGames /> : <CurrentGames />}
         </Suspense>
       </QueryErrorBoundary>

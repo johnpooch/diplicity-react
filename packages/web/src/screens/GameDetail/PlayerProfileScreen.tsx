@@ -33,7 +33,7 @@ const PlayerProfileScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="px-3 py-4">
+          <Panel.Content className="px-3 py-4 md:p-2">
             <Suspense fallback={<PlayerProfileContentSkeleton />}>
               <PlayerProfileContent userId={Number(userId)} />
             </Suspense>

@@ -54,7 +54,7 @@ const renderContent = () =>
         <Routes>
           <Route
             path="/nation-preference/:gameId"
-            element={<NationPreferenceContent />}
+            element={<NationPreferenceContent savedPath="/game-info/pending-1" />}
           />
         </Routes>
       </MemoryRouter>

@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { toast } from "sonner";
-import { PhaseStepperTitle, PhaseStepperActions } from "./PhaseStepper";
+import {
+  PhaseStepperTitle,
+  PhaseStepperStatus,
+  PhaseStepperActions,
+} from "./PhaseStepper";
 
 class ResizeObserverMock {
   observe = vi.fn();
@@ -130,7 +134,7 @@ describe("PhaseStepperTitle", () => {
   });
 
   it("shows Resolved for a historical phase", () => {
-    renderAtRoute(<PhaseStepperTitle />, "/game/1/phase/5");
+    renderAtRoute(<PhaseStepperStatus />, "/game/1/phase/5");
     expect(screen.getByText("Resolved")).toBeInTheDocument();
   });
 
@@ -143,7 +147,7 @@ describe("PhaseStepperTitle", () => {
       scheduledResolution: "2026-01-01T00:00:00Z",
       remainingTime: 3600,
     });
-    renderAtRoute(<PhaseStepperTitle />, "/game/1/phase/6");
+    renderAtRoute(<PhaseStepperStatus />, "/game/1/phase/6");
     expect(screen.queryByText("Resolved")).not.toBeInTheDocument();
     const remainingTime = screen.getByText("1h 0m remaining");
     expect(remainingTime).toHaveClass("block", "w-fit");
