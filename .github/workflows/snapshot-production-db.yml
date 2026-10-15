@@ -2,7 +2,7 @@ name: Snapshot Production Database
 
 on:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 2 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -42,5 +42,5 @@ jobs:
           path: |
             snapshot.pgdata
             snapshot_timestamp.txt
-          retention-days: 7
+          retention-days: 14
           overwrite: true
