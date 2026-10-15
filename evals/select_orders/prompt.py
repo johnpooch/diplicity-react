@@ -1,9 +1,11 @@
+import re
 from functools import lru_cache
 
 from jinja2 import Environment, StrictUndefined, Template, TemplateError
 
 from select_orders.constants import PhaseType
 from select_orders.exceptions import PromptError
+from select_orders.options import option_id
 from select_orders.prompt_data import prompt_data
 from select_orders.types import Context
 
@@ -149,3 +151,13 @@ def user_prompt(context: Context, overrides: dict[str, str] | None = None) -> st
         "\n".join(options),
     ]
     return "\n\n".join(section for section in sections if section is not None)
+
+
+def check_option_ids(text: str, context: Context) -> None:
+    missing = [
+        option_id(option)
+        for option in context["order_options"]
+        if not re.search(rf"(?<![\w:]){re.escape(option_id(option))}(?![\w:])", text)
+    ]
+    if missing:
+        raise PromptError(f"user prompt is missing option ids: {missing}")

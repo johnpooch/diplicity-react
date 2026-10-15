@@ -1,7 +1,9 @@
 import json
 import math
+from datetime import date
 
 import pytest
+from django.core.management import CommandError, call_command
 from inspect_ai import Task
 from inspect_ai import eval as inspect_eval
 from inspect_ai.dataset import MemoryDataset, Sample
@@ -10,7 +12,13 @@ from inspect_ai.scorer import CORRECT, INCORRECT, Target
 from inspect_ai.solver import generate
 
 from select_orders.context import fixture_to_context
-from select_orders.evals import dumbbot_select_orders, fixture_to_sample, load_fixtures
+from select_orders.evals import (
+    dumbbot_select_orders,
+    fixture_to_sample,
+    load_fixtures,
+    select_fixtures,
+    select_orders,
+)
 from select_orders.exceptions import FixtureError, ParsingError, PromptError
 from select_orders.fixtures import ranked_options, read_fixture, validate_fixture, write_fixture
 from select_orders.notation import Notation
@@ -18,6 +26,7 @@ from select_orders.options import option_from_id, option_id
 from select_orders.order_sets import label_order_set, order_set_label
 from select_orders.parser import parse_completion
 from select_orders.prompt import DEFAULT_PARTS, system_prompt, user_prompt
+from select_orders.prompt_names import prompt_digest, prompt_name
 from select_orders.scorers import (
     convoy_coherence,
     coverage,
@@ -808,3 +817,105 @@ class TestNotation:
 
     def test_order_from_a_province_with_no_unit_drops_the_unit_letter(self):
         assert self._opening().order(_option("par", "Move", target="bur")) == "Par–Bur"
+
+
+def _write_prompt(tmp_path, name, text):
+    path = tmp_path / name
+    path.write_text(text)
+    return str(path)
+
+
+class TestCustomPrompt:
+
+    def test_fixture_narrows_the_eval_set_to_one_fixture(self):
+        assert [fixture["id"] for fixture in select_fixtures(None, "structure_single")] == ["structure_single"]
+
+    def test_unknown_fixture_raises(self):
+        with pytest.raises(FixtureError):
+            select_fixtures("opening", "nowhere")
+
+    def test_custom_user_prompt_replaces_only_the_user_message(self):
+        fixture = select_fixtures(None, "structure_single")[0]
+        custom = user_prompt(fixture_to_context(fixture)) + "\nThink carefully."
+        system, user = fixture_to_sample(fixture, user=custom).input
+        assert system.text == system_prompt(fixture_to_context(fixture))
+        assert user.text == custom
+
+    def test_user_prompt_missing_an_option_id_raises(self):
+        fixture = select_fixtures(None, "structure_single")[0]
+        context = fixture_to_context(fixture)
+        dropped = option_id(context["order_options"][0])
+        with pytest.raises(PromptError, match=dropped):
+            fixture_to_sample(fixture, user=user_prompt(context).replace(dropped, "gone"))
+
+    def test_option_id_counts_only_as_a_whole_id(self):
+        fixture = select_fixtures(None, "structure_single")[0]
+        context = fixture_to_context(fixture)
+        extended = option_id(context["order_options"][0])
+        with pytest.raises(PromptError, match=extended):
+            fixture_to_sample(fixture, user=user_prompt(context).replace(extended, f"{extended}:x"))
+
+    def test_task_sends_the_prompt_files_to_the_named_fixture(self, tmp_path):
+        system_file = _write_prompt(tmp_path, "system.txt", "Play well.")
+        task = select_orders(None, "structure_single", system_file=system_file)
+        [sample] = task.dataset
+        assert sample.id == "structure_single"
+        assert sample.input[0].text == "Play well."
+
+    def test_custom_prompt_without_a_named_fixture_raises(self, tmp_path):
+        with pytest.raises(FixtureError):
+            select_orders("fall_1901", system_file=_write_prompt(tmp_path, "system.txt", "Play well."))
+
+
+class TestPromptNames:
+
+    def _dataset(self, *system_texts):
+        fixture = select_fixtures(None, "structure_single")[0]
+        return MemoryDataset(
+            [
+                Sample(id=f"fixture_{index}", input=fixture_to_sample(fixture, system=text).input)
+                for index, text in enumerate(system_texts)
+            ]
+        )
+
+    def test_digest_follows_the_prompt_text(self):
+        assert prompt_digest(self._dataset("a", "b")) == prompt_digest(self._dataset("a", "b"))
+        assert prompt_digest(self._dataset("a", "b")) != prompt_digest(self._dataset("a", "c"))
+
+    def test_name_is_adjective_noun_month_day(self, tmp_path):
+        name = prompt_name(prompt_digest(self._dataset("a")), tmp_path, date(2026, 10, 15))
+        adjective, noun, month, day = name.split("-")
+        assert (month, day) == ("oct", "15")
+        assert adjective and noun
+
+    def _log(self, logs_dir, name):
+        task = dumbbot_select_orders()
+        digest = prompt_digest(task.dataset)
+        metadata = {"prompt": {"name": name, "digest": digest}}
+        inspect_eval(task, model="mockllm/model", display="none", log_dir=str(logs_dir), metadata=metadata)
+        return digest
+
+    def test_logged_prompt_keeps_its_name_on_a_later_day(self, tmp_path):
+        digest = self._log(tmp_path, "steady-harbour-oct-1")
+        assert prompt_name(digest, tmp_path, date(2026, 10, 15)) == "steady-harbour-oct-1"
+
+    def test_new_prompt_skips_a_name_already_logged_for_another_prompt(self, tmp_path):
+        day = date(2026, 10, 1)
+        wanted = prompt_name("0" * 64, tmp_path / "empty", day)
+        self._log(tmp_path / "logs", wanted)
+        assert prompt_name("0" * 64, tmp_path / "logs", day) != wanted
+
+
+class TestRenderPrompt:
+
+    def test_writes_the_fixture_prompts(self, tmp_path):
+        call_command("render_prompt", fixture="structure_single", eval_set=None, out=str(tmp_path / "p"))
+        fixture = select_fixtures(None, "structure_single")[0]
+        system, user = fixture_to_sample(fixture).input
+        assert (tmp_path / "p" / "system.txt").read_text() == system.text
+        assert (tmp_path / "p" / "user.txt").read_text() == user.text
+
+    def test_refuses_to_overwrite_an_edited_prompt(self, tmp_path):
+        call_command("render_prompt", fixture="structure_single", eval_set=None, out=str(tmp_path / "p"))
+        with pytest.raises(CommandError):
+            call_command("render_prompt", fixture="structure_single", eval_set=None, out=str(tmp_path / "p"))
