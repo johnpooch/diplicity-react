@@ -590,8 +590,8 @@ class TestGameRetrieveView:
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response, "player_list_actions") == ["assign_nations"]
-        assert _action_keys(response) == ["delete"]
+        assert response.data["player_list_actions"] == []
+        assert _action_keys(response) == ["assign_nations", "delete"]
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_management_and_withdraw_to_an_active_manager(

@@ -2895,6 +2895,16 @@ class TestMemberRetrieveView:
         assert response.data["nation_preferences"] is None
 
     @pytest.mark.django_db
+    def test_hides_nation_preferences_from_the_game_master(
+        self, authenticated_client, pending_game_with_game_master_factory
+    ):
+        member = pending_game_with_game_master_factory().members.get(kind=MemberKind.GAME_MASTER)
+
+        response = self._retrieve(authenticated_client, member)
+
+        assert response.data["nation_preferences"] is None
+
+    @pytest.mark.django_db
     def test_own_member_returns_the_seat_actions(self, authenticated_client, active_game_factory, primary_user):
         game = active_game_factory()
         member = game.members.get(user=primary_user)
