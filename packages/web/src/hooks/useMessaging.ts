@@ -14,6 +14,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth";
 import {
   getDevicesListQueryKey,
+  getGamesMineCurrentRetrieveQueryKey,
+  getGamesMineFinishedListQueryKey,
   useDevicesList,
   useDevicesCreate,
 } from "../api/generated/endpoints";
@@ -88,16 +90,33 @@ const useMessaging = (): MessagingState => {
 
   // Foreground message handler
   useEffect(() => {
-    if (native) {
-      const listener = addNotificationReceivedListener(() => {
+    const invalidateForPush = (gameId: string | undefined) => {
+      if (!gameId) {
         queryClient.invalidateQueries();
+        return;
+      }
+      const gamePaths = [`/game/${gameId}/`, `/games/${gameId}/`];
+      queryClient.invalidateQueries({
+        predicate: ({ queryKey: [path] }) =>
+          typeof path === "string" &&
+          gamePaths.some(gamePath => path.startsWith(gamePath)),
       });
+      queryClient.invalidateQueries({
+        queryKey: getGamesMineCurrentRetrieveQueryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamesMineFinishedListQueryKey(),
+      });
+    };
+
+    if (native) {
+      const listener = addNotificationReceivedListener(invalidateForPush);
       return () => {
         listener.then(l => l.remove());
       };
     } else {
-      return onMessageReceived(() => {
-        queryClient.invalidateQueries();
+      return onMessageReceived(payload => {
+        invalidateForPush(payload?.data?.game_id);
       });
     }
   }, [native, queryClient]);

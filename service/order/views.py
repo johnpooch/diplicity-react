@@ -2,52 +2,34 @@ import hashlib
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, generics, serializers, status
+from rest_framework import permissions, generics, serializers
 from rest_framework.response import Response
 
 from phase.models import Phase
 from .models import Order
 from .serializers import OrderSerializer, OrderOptionsResponseSerializer
 from .utils import flatten_options, build_move_coast_lookup, FIELD_ORDER
-from common.constants import PhaseStatus
-from common.etag import if_none_match
 from common.permissions import IsActiveGame, IsActiveGamePlayer, IsCurrentPhaseActive
-from common.views import SelectedPhaseMixin, CurrentPhaseMixin
+from common.views import (
+    CompletedPhaseCacheMixin,
+    CurrentPhaseMixin,
+    PrecomputedConditionalGetMixin,
+    SelectedPhaseMixin,
+)
 from common.serializers import EmptySerializer
 
-
-# Orders on a completed phase never change, and completed-phase visibility is
-# not user-specific (visible_to_user_in_phase returns every nation's orders), so
-# the response is immutable and identical across users. Cache it in the client.
-COMPLETED_PHASE_ORDERS_MAX_AGE = 60 * 60 * 24 * 7  # 1 week
+ORDER_OPTIONS_REPRESENTATION_VERSION = 1
 
 
-def _completed_phase_orders_etag(phase):
-    digest = hashlib.sha256(f"orders|{phase.id}".encode()).hexdigest()
-    return f'"{digest[:32]}"'
-
-
-class OrderListView(SelectedPhaseMixin, generics.ListAPIView):
+class OrderListView(CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = OrderSerializer
+    completed_phase_etag_salt = "orders"
 
     def get_queryset(self):
         return Order.objects.visible_to_user_in_phase(self.request.user, self.get_phase()).with_related_data()
 
     def list(self, request, *args, **kwargs):
-        phase = self.get_phase()
-        if phase.status == PhaseStatus.COMPLETED:
-            etag = _completed_phase_orders_etag(phase)
-            if if_none_match(request, etag):
-                response = Response(status=status.HTTP_304_NOT_MODIFIED)
-            else:
-                response = self._build_orders_response()
-            response["ETag"] = etag
-            response["Cache-Control"] = f"private, max-age={COMPLETED_PHASE_ORDERS_MAX_AGE}"
-            return response
-        return self._build_orders_response()
-
-    def _build_orders_response(self):
         orders = list(self.get_queryset())
         context = self.get_serializer_context()
         context["move_coast_lookup"] = build_move_coast_lookup(orders)
@@ -66,21 +48,34 @@ class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):
     serializer_class = OrderSerializer
 
 
-class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
+class OrderOptionsView(PrecomputedConditionalGetMixin, CurrentPhaseMixin, generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated, IsActiveGame]
     serializer_class = OrderOptionsResponseSerializer
+
+    def get_phase(self):
+        if not hasattr(self, "_phase"):
+            self._phase = super().get_phase()
+        return self._phase
+
+    def get_nation_names(self):
+        if not hasattr(self, "_nation_names"):
+            members = self.get_phase().game.members.players().select_related("nation").filter(
+                user=self.request.user, eliminated_at__isnull=True
+            )
+            self._nation_names = [m.nation.name for m in members if m.occupied]
+        return self._nation_names
+
+    def get_fingerprint(self):
+        key = f"{ORDER_OPTIONS_REPRESENTATION_VERSION}|{self.get_phase().id}|{','.join(self.get_nation_names())}"
+        return hashlib.sha256(key.encode()).hexdigest()[:32]
 
     def retrieve(self, request, *args, **kwargs):
         phase = self.get_phase()
         province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
         transformed = phase.transformed_options or {}
-        members = phase.game.members.players().select_related("nation").filter(
-            user=request.user, eliminated_at__isnull=True
-        )
-        nation_names = [m.nation.name for m in members if m.occupied]
 
         all_orders = []
-        for nation_name in nation_names:
+        for nation_name in self.get_nation_names():
             nation_options = transformed.get(nation_name, {})
             all_orders.extend(flatten_options(nation_options, province_lookup))
 

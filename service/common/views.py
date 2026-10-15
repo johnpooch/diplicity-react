@@ -1,3 +1,5 @@
+import hashlib
+
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.apps import apps
@@ -7,11 +9,14 @@ from django.views.decorators.http import conditional_page
 from rest_framework import status
 from rest_framework.response import Response
 
+from common.constants import PhaseStatus
 from common.etag import if_none_match
 
 Phase = apps.get_model("phase", "Phase")
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
+
+COMPLETED_PHASE_MAX_AGE = 60 * 60 * 24 * 7
 
 
 def resolve_game(request, game_id, lock=False):
@@ -165,4 +170,23 @@ class PrecomputedConditionalGetMixin:
             response = super().get(request, *args, **kwargs)
         response["ETag"] = etag
         response["Cache-Control"] = "private, no-cache"
+        return response
+
+
+class CompletedPhaseCacheMixin:
+
+    completed_phase_etag_salt = None
+
+    def get(self, request, *args, **kwargs):
+        phase = self.get_phase()
+        if phase.status != PhaseStatus.COMPLETED or resolve_game(request, self.kwargs.get("game_id")).sandbox:
+            return super().get(request, *args, **kwargs)
+        digest = hashlib.sha256(f"{self.completed_phase_etag_salt}|{phase.id}".encode()).hexdigest()
+        etag = f'"{digest[:32]}"'
+        if if_none_match(request, etag):
+            response = Response(status=status.HTTP_304_NOT_MODIFIED)
+        else:
+            response = super().get(request, *args, **kwargs)
+        response["ETag"] = etag
+        response["Cache-Control"] = f"private, max-age={COMPLETED_PHASE_MAX_AGE}"
         return response
