@@ -235,7 +235,7 @@ class IsGameManager(BasePermission):
 
 
 class IsGameMaster(BasePermission):
-    message = "Only the game master can perform this action."
+    message = "Only the game master can perform this action right now."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
