@@ -1,7 +1,7 @@
 from django.utils.http import parse_etags
 
-# Railway's edge proxy gzips our JSON responses, and a proxy that re-encodes a
-# body must downgrade the ETag it forwards to a weak validator. Clients
+# GZipMiddleware compresses our JSON responses, and because it re-encodes the
+# body it downgrades the ETag it sends to a weak validator. Clients
 # therefore replay `If-None-Match: W/"abc"` against an ETag we issued as
 # `"abc"`, and a plain `==` never matches — so every conditional request falls
 # through to a full 200. RFC 9110 13.1.2 requires If-None-Match to use the weak

@@ -1,5 +1,3 @@
-import gzip
-
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
@@ -88,14 +86,6 @@ class NationFlagSvgView(View):
         except NationFlag.DoesNotExist:
             return HttpResponseNotFound()
 
-        body = flag.svg.encode()
-        accepts_gzip = "gzip" in request.headers.get("Accept-Encoding", "")
-        if accepts_gzip:
-            body = gzip.compress(body)
-
-        response = HttpResponse(body, content_type="image/svg+xml")
+        response = HttpResponse(flag.svg, content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=31536000, immutable"
-        response["Vary"] = "Accept-Encoding"
-        if accepts_gzip:
-            response["Content-Encoding"] = "gzip"
         return response

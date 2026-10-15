@@ -193,14 +193,21 @@ class TestNationFlagSvgView:
         assert "immutable" in response["Cache-Control"]
         assert "max-age=31536000" in response["Cache-Control"]
 
-    def test_gzip_encoded_when_client_accepts(self, unauthenticated_client, primary_flag):
+    def test_gzip_encoded_when_client_accepts(self, unauthenticated_client, draft_variant_for_primary):
+        stripes = "".join(
+            f'<rect y="{i}" width="10" height="1" fill="#ff0000"/>' for i in range(10)
+        )
+        flag = NationFlag.objects.create(
+            nation=draft_variant_for_primary.nations.get(nation_id="reds"),
+            svg=f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">{stripes}</svg>',
+        )
         response = unauthenticated_client.get(
             reverse(
                 "nation-flag-svg",
                 kwargs={
                     "variant_id": "primary-draft",
                     "nation_id": "reds",
-                    "content_hash": primary_flag.content_hash,
+                    "content_hash": flag.content_hash,
                 },
             ),
             HTTP_ACCEPT_ENCODING="gzip",
