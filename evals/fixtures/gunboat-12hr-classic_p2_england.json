@@ -1671,6 +1671,71 @@
       "labeller": "timwyse",
       "labelled_at": "2026-10-15T17:06:58+00:00",
       "reason": "Norway is undisputed, no support needed"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Support:nwy:nrg",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-15T19:58:09+00:00",
+      "reason": "yorkshire can't move to belgium without convoy; NRG doesn't need support from NTH to norway  as norway is uncontested"
+    },
+    {
+      "orders": [
+        "nrg:Support:nwy:nth",
+        "nth:Move:nwy",
+        "yor:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-15T19:58:35+00:00",
+      "reason": "yorkshire can't move to belgium without convoy;  NTH doesn't need support from NRG to norway  as norway is uncontested"
+    },
+    {
+      "orders": [
+        "nrg:Move:nwy",
+        "nth:Hold",
+        "yor:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-15T20:02:36+00:00"
+    },
+    {
+      "orders": [
+        "nrg:Support:nwy:yor",
+        "nth:Convoy:nwy:yor",
+        "yor:MoveViaConvoy:nwy"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-15T20:05:20+00:00",
+      "reason": "NRG doesn't need to support into norway  as norway is uncontested"
+    },
+    {
+      "orders": [
+        "nrg:Support:nwy:nth",
+        "nth:Move:nwy",
+        "yor:MoveViaConvoy:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-15T20:05:57+00:00",
+      "reason": "yorkshire can't move to belgium without convoy; NRG doesn't need to support NTH into norway  as norway is uncontested"
+    },
+    {
+      "orders": [
+        "nrg:Support:nwy:yor",
+        "nth:Move:bel",
+        "yor:Move:nwy"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-15T20:15:12+00:00",
+      "reason": "yorkshire can't move to norway without convoy; NRG doesn't need to support into Yorkshire into norway  as norway is uncontested"
     }
   ]
 }
