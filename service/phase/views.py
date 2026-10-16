@@ -10,7 +10,7 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
-from common.views import SelectedGameMixin, SelectedPhaseMixin, CurrentGameMemberMixin
+from common.views import CompletedPhaseCacheMixin, SelectedGameMixin, SelectedPhaseMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
 from .serializers import (
@@ -68,11 +68,14 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
         ).order_by('ordinal')
 
 
-class PhaseRetrieveView(generics.RetrieveAPIView):
+class PhaseRetrieveView(CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.RetrieveAPIView):
+    """Retrieve a phase with its units, supply centers and province ownership."""
+
     permission_classes = [permissions.AllowAny]
     serializer_class = PhaseRetrieveSerializer
     lookup_field = 'id'
     lookup_url_kwarg = 'phase_id'
+    completed_phase_etag_salt = "phase"
 
     def get_queryset(self):
         return Phase.objects.with_related_data()

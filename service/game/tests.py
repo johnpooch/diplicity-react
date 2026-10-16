@@ -13,15 +13,17 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentRequirement, PressType, MemberKind, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
+from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentEligibility, CommitmentRequirement, PressType, MemberKind, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
-from user_profile.models import UserProfile
+from user_profile.models import UserProfile, UserProfilePicture
 from login.models import AuthUser
-from member.models import Member
+from member.models import Member, NationPreference
+from channel.models import ChannelMessage
+from victory.models import Victory
 from .management.commands.seed_staging import TESTER_EMAIL
 from .models import Game
 
@@ -149,6 +151,242 @@ class TestGameRetrieveView:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data["members"]) == 2
         assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_game_row_updated_in_place(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        Game.objects.filter(id=game.id).update(paused_at=timezone.now())
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_paused"] is True
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_member_departure(
+        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        game.members.filter(user=secondary_user).update(civil_disorder_at=timezone.now())
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        member = next(m for m in response.data["members"] if m["user_id"] == secondary_user.id)
+        assert member["civil_disorder"] is True
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_member_profile_change(
+        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        UserProfile.objects.filter(user=secondary_user).update(name="Renamed Player")
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "Renamed Player" in [m["name"] for m in response.data["members"]]
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_member_picture_change(
+        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        UserProfilePicture.objects.store(secondary_user.profile, b"picture", "image/png")
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        member = next(m for m in response.data["members"] if m["user_id"] == secondary_user.id)
+        assert "picture" in member["picture"]
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_game_master_profile_change(
+        self, authenticated_client, active_game_with_phase_state, tertiary_user
+    ):
+        game = active_game_with_phase_state
+        Game.objects.filter(id=game.id).update(game_master=tertiary_user)
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        UserProfile.objects.filter(user=tertiary_user).update(name="Renamed Game Master")
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["game_master"]["name"] == "Renamed Game Master"
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_requester_commitment_change(
+        self, authenticated_client, active_game_with_phase_state, primary_user, set_commitment
+    ):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        set_commitment(primary_user, Commitment.LOW)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["commitment_eligibility"] == CommitmentEligibility.LOW_LOCKED
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_new_phase(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        previous = game.current_phase
+        Phase.objects.filter(id=previous.id).update(status=PhaseStatus.COMPLETED)
+        phase = game.phases.create(
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=previous.ordinal + 1,
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["current_phase_id"] == phase.id
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_orders_confirmed(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        PhaseState.objects.filter(phase=game.current_phase).update(orders_confirmed=True)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["phase_confirmed"] is True
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_order_created(
+        self, authenticated_client, active_game_with_phase_state, classical_edinburgh_province
+    ):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        first = authenticated_client.get(url)
+        game.current_phase.phase_states.get().orders.create(
+            source=classical_edinburgh_province, order_type=OrderType.HOLD
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=first["ETag"])
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["order_status"] != first.data["order_status"]
+        assert response["ETag"] != first["ETag"]
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_unread_message(
+        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse(retrieve_viewname, args=[game.id])
+        first = authenticated_client.get(url)
+        ChannelMessage.objects.create(
+            channel=game.channels.get(name="Public Press"),
+            sender=game.members.get(user=secondary_user),
+            body="Message 3",
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=first["ETag"])
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_unread_message_count"] == first.data["total_unread_message_count"] + 1
+        assert response["ETag"] != first["ETag"]
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_nation_preference_change(
+        self, authenticated_client, pending_game_created_by_primary_user, primary_user, classical_england_nation
+    ):
+        game = pending_game_created_by_primary_user
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        NationPreference.objects.create(member=game.members.get(user=primary_user), nation=classical_england_nation, rank=1)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        member = next(m for m in response.data["members"] if m["user_id"] == primary_user.id)
+        assert member["nation_preference_ids"] == [classical_england_nation.nation_id]
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_victory(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        victory = Victory.objects.create(game=game, winning_phase=game.current_phase)
+        victory.members.add(game.members.get())
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["victory"]["id"] == victory.id
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_etag_differs_between_users(
+        self, authenticated_client, authenticated_client_for_secondary_user, game_with_two_members
+    ):
+        url = reverse(retrieve_viewname, args=[game_with_two_members.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client_for_secondary_user.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_304_after_unexposed_phase_change(
+        self, authenticated_client, active_game_with_phase_state, classical_england_nation, classical_london_province
+    ):
+        game = active_game_with_phase_state
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        game.current_phase.units.create(
+            type=UnitType.ARMY, nation=classical_england_nation, province=classical_london_province
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_304_after_activity_in_another_game(
+        self, authenticated_client, active_game_with_phase_state, pending_game_created_by_primary_user, secondary_user
+    ):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        etag = authenticated_client.get(url)["ETag"]
+        pending_game_created_by_primary_user.seat(secondary_user)
+        Game.objects.filter(id=pending_game_created_by_primary_user.id).update(name="Renamed")
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
 
     @pytest.mark.django_db
     def test_retrieve_game_response_structure(self, authenticated_client, pending_game_created_by_primary_user):
@@ -679,7 +917,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 12
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -720,7 +958,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 12
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -789,7 +1027,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 12
 
 
     @pytest.mark.django_db
@@ -804,6 +1042,23 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         assert all("DISTINCT ON" not in q["sql"] for q in connection.queries)
+
+    @pytest.mark.django_db
+    def test_unchanged_retrieve_query_count_does_not_grow_with_history(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        def conditional_query_count(game):
+            url = reverse(retrieve_viewname, args=[game.id])
+            etag = authenticated_client.get(url)["ETag"]
+            with CaptureQueriesContext(connection) as queries:
+                response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+            assert response.status_code == status.HTTP_304_NOT_MODIFIED
+            return len(queries)
+
+        short_history = game_with_phase_history_factory(phase_count=2)
+        long_history = game_with_phase_history_factory(phase_count=8)
+
+        assert conditional_query_count(long_history) == conditional_query_count(short_history)
 
     @pytest.mark.django_db
     def test_retrieve_game_phase_state_query_only_current_and_latest_completed_phases(

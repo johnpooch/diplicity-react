@@ -1,11 +1,14 @@
 from datetime import timedelta
 from functools import cached_property
+import hashlib
+import json
 import random
 import re
 import uuid
 
 from django.conf import settings
 from django.db import models, transaction
+from django.http import Http404
 from django.utils import timezone
 from django.db.models import (
     Count,
@@ -46,17 +49,20 @@ from common.models import BaseModel
 from emit import emit
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, deadline_warning_offset, FREQUENCY_INTERVALS
-from member.models import Member
+from member.models import Member, NationPreference
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMessage
+from user_profile.models import UserProfile
 from adjudicator import service as adjudication_service
 from game.utils import assign_nations
 
 tracer = trace.get_tracer(__name__)
 
 FASTEST_START_MIN_PLAYERS = 3
+
+GAME_RETRIEVE_REPRESENTATION_VERSION = 1
 
 
 class GameQuerySet(models.QuerySet):
@@ -291,6 +297,52 @@ class GameManager(models.Manager):
             "phase_states",
             PhaseState.objects.select_related("member__user").annotate(order_count=Count("orders")),
         )
+
+    def retrieve_fingerprint(self, game_id, request):
+        user = request.user
+        game = self.filter(id=game_id).with_total_unread_counts(user).values().first()
+        if game is None:
+            raise Http404
+        members = list(Member.objects.filter(game_id=game_id).order_by("id").values())
+        user_ids = {member["user_id"] for member in members} | {game["game_master_id"], user.id}
+        profiles = list(
+            UserProfile.objects.filter(user_id__in=user_ids - {None})
+            .annotate(uploaded_picture_hash=F("uploaded_picture__content_hash"))
+            .order_by("id")
+            .values()
+        )
+        phase_fields = [field.attname for field in Phase._meta.concrete_fields if field.name != "options"]
+        phases = list(Phase.objects.filter(game_id=game_id).order_by("ordinal", "id").values(*phase_fields))
+        completed_phases = [phase for phase in phases if phase["status"] == PhaseStatus.COMPLETED]
+        hydrated_phase_ids = {phase["id"] for phase in phases[-1:] + completed_phases[-1:]}
+        phase_states = list(
+            PhaseState.objects.filter(phase_id__in=hydrated_phase_ids)
+            .annotate(order_count=Count("orders"))
+            .order_by("id")
+            .values()
+        )
+        nation_preferences = list(
+            NationPreference.objects.filter(member__game_id=game_id).order_by("id").values()
+        )
+        victory_members = list(
+            Victory.members.through.objects.filter(victory__game_id=game_id)
+            .order_by("id")
+            .values("id", "victory_id", "member_id", "victory__winning_phase_id")
+        )
+        projection = [
+            GAME_RETRIEVE_REPRESENTATION_VERSION,
+            user.id,
+            request.build_absolute_uri("/"),
+            game,
+            members,
+            profiles,
+            phases,
+            phase_states,
+            nation_preferences,
+            victory_members,
+        ]
+        canonical = json.dumps(projection, sort_keys=True, default=str)
+        return hashlib.sha256(canonical.encode()).hexdigest()[:32]
 
     def _latest_phases(self, games):
         phases, current_phases, latest_completed_phases = [], [], []

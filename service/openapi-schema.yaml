@@ -1091,6 +1091,7 @@ paths:
   /game/{gameId}/phase/{phaseId}/:
     get:
       operationId: gamePhaseRetrieve
+      description: Retrieve a phase with its units, supply centers and province ownership.
       parameters:
       - in: path
         name: gameId

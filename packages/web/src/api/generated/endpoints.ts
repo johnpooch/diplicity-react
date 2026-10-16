@@ -6663,6 +6663,9 @@ export function useGamePhaseStatesListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+/**
+ * Retrieve a phase with its units, supply centers and province ownership.
+ */
 export const gamePhaseRetrieve = (
   gameId: string,
   phaseId: number,

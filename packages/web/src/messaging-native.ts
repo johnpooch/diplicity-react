@@ -30,9 +30,12 @@ export const addTokenRefreshListener = (
   });
 };
 
-export const addNotificationReceivedListener = (callback: () => void) => {
-  return FirebaseMessaging.addListener("notificationReceived", () => {
-    callback();
+export const addNotificationReceivedListener = (
+  callback: (gameId: string | undefined) => void
+) => {
+  return FirebaseMessaging.addListener("notificationReceived", (event) => {
+    const data = event.notification.data as Record<string, unknown>;
+    callback(data?.["game_id"] as string | undefined);
   });
 };
 

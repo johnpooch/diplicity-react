@@ -23,7 +23,7 @@ from .serializers import (
     MyGamesCurrentSerializer,
     MyGameSerializer,
 )
-from common.views import ConditionalGetMixin, SelectedGameMixin, resolve_game
+from common.views import PrecomputedConditionalGetMixin, SelectedGameMixin, resolve_game
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGamePlayer, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
@@ -33,9 +33,12 @@ from .filters import GameFilter
 tracer = trace.get_tracer(__name__)
 
 
-class GameRetrieveView(ConditionalGetMixin, generics.RetrieveAPIView):
+class GameRetrieveView(PrecomputedConditionalGetMixin, generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = GameRetrieveSerializer
+
+    def get_fingerprint(self):
+        return Game.objects.retrieve_fingerprint(self.kwargs.get("game_id"), self.request)
 
     def get_object(self):
         queryset = (

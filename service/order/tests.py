@@ -275,6 +275,18 @@ class TestOrderListViewCompletedPhaseCaching:
 
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
 
+    @pytest.mark.django_db
+    def test_sandbox_completed_phase_response_is_not_cached(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase = game.phases.get(ordinal=1)
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "ETag" not in response
+        assert "Cache-Control" not in response
+
 
 class TestOrderCreateView:
 
@@ -3284,6 +3296,75 @@ class TestOrderOptionsView:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data["orders"]) > 0
+
+    @pytest.mark.django_db
+    def test_response_has_revalidation_headers(self, authenticated_client, game_with_options):
+        response = authenticated_client.get(reverse("order-options", args=[game_with_options.id]))
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"]
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("weaken", [False, True])
+    def test_unchanged_options_return_304(self, authenticated_client, game_with_options, weaken):
+        url = reverse("order-options", args=[game_with_options.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}" if weaken else etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_new_phase_returns_200_with_new_etag(self, authenticated_client, game_with_options, sample_options):
+        game = game_with_options
+        url = reverse("order-options", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        previous = game.current_phase
+        previous.status = PhaseStatus.COMPLETED
+        previous.save()
+        game.phases.create(
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=previous.ordinal + 1,
+            options=sample_options,
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_losing_a_nation_returns_200_with_new_etag(self, authenticated_client, game_with_options, primary_user):
+        url = reverse("order-options", args=[game_with_options.id])
+        etag = authenticated_client.get(url)["ETag"]
+        member = game_with_options.members.get(user=primary_user)
+        member.eliminated_at = timezone.now()
+        member.save()
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["orders"] == []
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_etag_differs_between_nations(
+        self, authenticated_client, game_with_options, secondary_user, authenticated_client_factory
+    ):
+        url = reverse("order-options", args=[game_with_options.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client_factory(secondary_user).get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
 
 
 class TestSourceCoast:

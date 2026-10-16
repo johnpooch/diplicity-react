@@ -1654,6 +1654,72 @@ class TestPhaseRetrieveView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
+    def test_retrieve_phase_of_another_game_not_found(
+        self, authenticated_client, active_game_with_phase_state, game_with_three_phases
+    ):
+        phase = game_with_three_phases.phases.get(ordinal=1)
+        url = reverse("phase-retrieve", args=[active_game_with_phase_state.id, phase.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_active_phase_response_is_not_cached(self, authenticated_client, game_with_three_phases):
+        game = game_with_three_phases
+        phase = game.phases.get(ordinal=3)
+        response = authenticated_client.get(reverse("phase-retrieve", args=[game.id, phase.id]))
+        assert response.status_code == status.HTTP_200_OK
+        assert "ETag" not in response
+        assert "Cache-Control" not in response
+
+    @pytest.mark.django_db
+    def test_completed_phase_response_has_cache_headers(self, authenticated_client, game_with_three_phases):
+        game = game_with_three_phases
+        phase = game.phases.get(ordinal=1)
+        response = authenticated_client.get(reverse("phase-retrieve", args=[game.id, phase.id]))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase.id
+        assert response["ETag"]
+        assert response["Cache-Control"] == "private, max-age=604800"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("weaken", [False, True])
+    def test_completed_phase_matching_etag_returns_304(self, authenticated_client, game_with_three_phases, weaken):
+        game = game_with_three_phases
+        phase = game.phases.get(ordinal=1)
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}" if weaken else etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+        assert response["Cache-Control"] == "private, max-age=604800"
+
+    @pytest.mark.django_db
+    def test_completed_phase_etag_differs_per_phase(self, authenticated_client, game_with_three_phases):
+        game = game_with_three_phases
+        first, second = game.phases.filter(ordinal__in=[1, 2]).order_by("ordinal")
+        first_etag = authenticated_client.get(reverse("phase-retrieve", args=[game.id, first.id]))["ETag"]
+
+        response = authenticated_client.get(
+            reverse("phase-retrieve", args=[game.id, second.id]), HTTP_IF_NONE_MATCH=first_etag
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != first_etag
+
+    @pytest.mark.django_db
+    def test_sandbox_completed_phase_response_is_not_cached(self, authenticated_client, sandbox_game_with_three_phases):
+        game = sandbox_game_with_three_phases
+        phase = game.phases.get(ordinal=1)
+        response = authenticated_client.get(reverse("phase-retrieve", args=[game.id, phase.id]))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == PhaseStatus.COMPLETED
+        assert "ETag" not in response
+        assert "Cache-Control" not in response
+
+    @pytest.mark.django_db
     def test_retrieve_phase_response_structure(self, authenticated_client, active_game_with_phase_state):
         game = active_game_with_phase_state
         phase = game.current_phase
@@ -1843,7 +1909,7 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 21
+        assert query_count == 22
 
 
 class TestResolveTransactionSafety:
