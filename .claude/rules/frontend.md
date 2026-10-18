@@ -127,6 +127,8 @@ Hooks live in `src/hooks/`. Create one only when the logic is needed in multiple
 
 Use React Router hooks (`useNavigate`, `useParams`, `useSearchParams`, `useLocation`) and `Link` for declarative navigation. Store shareable or bookmarkable state in the URL. Use `useRequiredParams` for typed route params guaranteed by the route structure — it eliminates runtime null checks.
 
+A public page that renders whether or not the visitor is logged in (the blog) is declared once in `Router.tsx` and spread into both `createAuthenticatedRoutes` and `createUnauthenticatedRoutes`, ahead of each tree's catch-all. It sits outside the authenticated root, so it skips that root's loader, and it must not render `ScreenHeader` or anything else that reads the current user.
+
 ## UI
 
 - Use shadcn/ui components over raw HTML, and Lucide icons (`lucide-react`).

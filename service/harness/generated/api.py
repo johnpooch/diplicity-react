@@ -26,6 +26,21 @@ class AppleAuth(TypedDict):
 type BlockedReasonEnum = Literal['commitment_too_low', 'no_missed_orders']
 
 
+class BlogPostList(TypedDict):
+    slug: str
+    title: str
+    summary: str
+    created_at: str
+
+
+class BlogPostRetrieve(TypedDict):
+    slug: str
+    title: str
+    summary: str
+    body: str
+    created_at: str
+
+
 class ChannelEvent(TypedDict):
     id: int
     text: str

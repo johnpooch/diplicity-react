@@ -23,6 +23,8 @@ const loggedOutScreens = [
   { name: "check-email", path: "/check-email" },
   { name: "verify-email", path: "/verify-email" },
   { name: "reset-password", path: "/reset-password" },
+  { name: "blog", path: "/blog" },
+  { name: "blog-post", path: "/blog/spring-1901-update" },
 ];
 
 const homeScreens = [

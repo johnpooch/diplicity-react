@@ -81,6 +81,21 @@ export const BlockedReasonEnum = {
   no_missed_orders: "no_missed_orders",
 } as const;
 
+export interface BlogPostList {
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly createdAt: string;
+}
+
+export interface BlogPostRetrieve {
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly body: string;
+  readonly createdAt: string;
+}
+
 export interface Nation {
   nationId: string;
   name: string;
@@ -2539,6 +2554,492 @@ export const useAuthVerifyEmailCreate = <TError = unknown, TContext = unknown>(
     queryClient
   );
 };
+
+/**
+ * Lists every blog post, newest first. The body is omitted; fetch a post by
+slug to read it.
+ */
+export const blogList = (signal?: AbortSignal) => {
+  return customInstance<BlogPostList[]>({
+    url: `/blog/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getBlogListQueryKey = () => {
+  return [`/blog/`] as const;
+};
+
+export const getBlogListQueryOptions = <
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof blogList>>, TError, TData>
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBlogListQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof blogList>>> = ({
+    signal,
+  }) => blogList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof blogList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BlogListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof blogList>>
+>;
+export type BlogListQueryError = unknown;
+
+export function useBlogList<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogList>>,
+          TError,
+          Awaited<ReturnType<typeof blogList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogList<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogList>>,
+          TError,
+          Awaited<ReturnType<typeof blogList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogList<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogList>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useBlogList<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogList>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getBlogListQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getBlogListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<Awaited<ReturnType<typeof blogList>>, TError, TData>
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBlogListQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof blogList>>> = ({
+    signal,
+  }) => blogList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof blogList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BlogListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof blogList>>
+>;
+export type BlogListSuspenseQueryError = unknown;
+
+export function useBlogListSuspense<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogListSuspense<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogListSuspense<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useBlogListSuspense<
+  TData = Awaited<ReturnType<typeof blogList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getBlogListSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns a single blog post by slug, including its Markdown body.
+ */
+export const blogRetrieve = (slug: string, signal?: AbortSignal) => {
+  return customInstance<BlogPostRetrieve>({
+    url: `/blog/${slug}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getBlogRetrieveQueryKey = (slug: string) => {
+  return [`/blog/${slug}/`] as const;
+};
+
+export const getBlogRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogRetrieve>>, TError, TData>
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBlogRetrieveQueryKey(slug);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof blogRetrieve>>> = ({
+    signal,
+  }) => blogRetrieve(slug, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof blogRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BlogRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof blogRetrieve>>
+>;
+export type BlogRetrieveQueryError = unknown;
+
+export function useBlogRetrieve<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogRetrieve>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof blogRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogRetrieve<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogRetrieve>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof blogRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogRetrieve<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogRetrieve>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useBlogRetrieve<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof blogRetrieve>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getBlogRetrieveQueryOptions(slug, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getBlogRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBlogRetrieveQueryKey(slug);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof blogRetrieve>>> = ({
+    signal,
+  }) => blogRetrieve(slug, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof blogRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BlogRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof blogRetrieve>>
+>;
+export type BlogRetrieveSuspenseQueryError = unknown;
+
+export function useBlogRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useBlogRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useBlogRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof blogRetrieve>>,
+  TError = unknown,
+>(
+  slug: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof blogRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getBlogRetrieveSuspenseQueryOptions(slug, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const devicesList = (signal?: AbortSignal) => {
   return customInstance<FCMDevice[]>({
