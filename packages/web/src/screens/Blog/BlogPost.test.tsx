@@ -66,18 +66,27 @@ describe("BlogPost", () => {
     );
   });
 
-  it("does not render raw HTML or images in the body", async () => {
+  it("renders images in the body", async () => {
+    renderBlogPost();
+
+    expect(
+      await screen.findByRole("img", {
+        name: "Fall 1901 orders on the classical board",
+      })
+    ).toHaveAttribute("src", "/blog-images/classical-fall-1901-orders.webp");
+  });
+
+  it("does not render raw HTML in the body", async () => {
     mockUseBlogRetrieveSuspense.mockReturnValue({
       data: {
         ...blogPosts[1],
-        body: '<script>alert("x")</script>\n\n![Map](https://example.com/map.png)',
+        body: '<script>alert("x")</script>',
       },
     });
     const { container } = renderBlogPost("welcome");
 
     await screen.findByRole("heading", { level: 1 });
     expect(container.querySelector("script")).toBeNull();
-    expect(container.querySelector("img")).toBeNull();
   });
 
   it("shows a not found notice for an unknown slug", async () => {

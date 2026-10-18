@@ -7,6 +7,8 @@ export const blogPosts: BlogPostRetrieve[] = [
     summary: "Game masters, bot players and a fresh look for the order screen.",
     createdAt: "2026-05-01T10:00:00Z",
     body: [
+      "![Fall 1901 orders on the classical board](/blog-images/classical-fall-1901-orders.webp)",
+      "",
       "Diplicity has had a busy season. Here is what changed.",
       "",
       "## Game masters",

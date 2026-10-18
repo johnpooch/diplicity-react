@@ -129,6 +129,8 @@ Use React Router hooks (`useNavigate`, `useParams`, `useSearchParams`, `useLocat
 
 A public page that renders whether or not the visitor is logged in (the blog) is declared once in `Router.tsx` and spread into both `createAuthenticatedRoutes` and `createUnauthenticatedRoutes`, ahead of each tree's catch-all. It sits outside the authenticated root, so it skips that root's loader, and it must not render `ScreenHeader` or anything else that reads the current user.
 
+Images embedded in blog posts are committed to `packages/web/public/blog-images/` as compressed WebP, sized for the 672px content column at 2x, and referenced from the post's Markdown by absolute path. Everything in `public/` ships inside the mobile app bundle, so keep them few and small.
+
 ## UI
 
 - Use shadcn/ui components over raw HTML, and Lucide icons (`lucide-react`).
