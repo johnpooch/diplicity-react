@@ -1,0 +1,43 @@
+import type { BlogPostRetrieve } from "@/api/generated/endpoints";
+
+export const blogPosts: BlogPostRetrieve[] = [
+  {
+    slug: "spring-1901-update",
+    title: "Spring 1901 update",
+    summary: "Game masters, bot players and a fresh look for the order screen.",
+    createdAt: "2026-05-01T10:00:00Z",
+    body: [
+      "Diplicity has had a busy season. Here is what changed.",
+      "",
+      "## Game masters",
+      "",
+      "Anyone can now run a game as its **game master** without taking a seat. Game masters can pause the clock, extend deadlines and replace players who drop out.",
+      "",
+      "## Bot players",
+      "",
+      "Short of a seventh player? Fill empty seats with a bot:",
+      "",
+      "1. Open the game info screen.",
+      "2. Choose *Add bot*.",
+      "3. Pick a nation.",
+      "",
+      "> Bots submit orders every phase, so the game never stalls.",
+      "",
+      "## What's next",
+      "",
+      "| Feature | Status |",
+      "| --- | --- |",
+      "| Variant creator | In progress |",
+      "| Tournaments | Planned |",
+      "",
+      "Questions? Join us on [Discord](https://discord.gg/cwjzxEqTuN).",
+    ].join("\n"),
+  },
+  {
+    slug: "welcome",
+    title: "Welcome to the Diplicity blog",
+    summary: "Development news, strategy notes and community announcements.",
+    createdAt: "2026-04-12T09:30:00Z",
+    body: "This is where we will post development news, strategy notes and community announcements.",
+  },
+];

@@ -317,6 +317,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerifyEmail'
           description: ''
+  /blog/:
+    get:
+      operationId: blogList
+      description: |-
+        Lists every blog post, newest first. The body is omitted; fetch a post by
+        slug to read it.
+      tags:
+      - blog
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlogPostList'
+          description: ''
+  /blog/{slug}/:
+    get:
+      operationId: blogRetrieve
+      description: Returns a single blog post by slug, including its Markdown body.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - blog
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPostRetrieve'
+          description: ''
   /devices/:
     get:
       operationId: devicesList
@@ -2322,6 +2364,52 @@ components:
       description: |-
         * `commitment_too_low` - Commitment too low
         * `no_missed_orders` - No missed orders
+    BlogPostList:
+      type: object
+      properties:
+        slug:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        summary:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - createdAt
+      - slug
+      - summary
+      - title
+    BlogPostRetrieve:
+      type: object
+      properties:
+        slug:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        summary:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - body
+      - createdAt
+      - slug
+      - summary
+      - title
     Channel:
       type: object
       properties:

@@ -36,6 +36,7 @@ import {
 export type { GameFixture } from "./types";
 export { classicalVariant, classicalProvinces, nation, province } from "./classical";
 export { allVariants, extraVariants, draftVariant } from "./variants";
+export { blogPosts } from "./blog";
 export { botRoster, currentUserProfile, makeBotMember, makeMember, publicProfiles } from "./users";
 
 export const gameFixtures = {

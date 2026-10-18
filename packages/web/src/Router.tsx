@@ -14,9 +14,10 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
-import { GameDetail, Home, Tutorial, Variants } from "./screens";
+import { Blog, GameDetail, Home, Tutorial, Variants } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
+import { BlogLayout } from "./components/BlogLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { GameReplaceRedirect } from "./components/GameReplaceRedirect";
@@ -69,6 +70,14 @@ const GameDetailLayoutWrapper: React.FC = () => {
   );
 };
 
+const BlogLayoutWrapper: React.FC = () => {
+  return (
+    <BlogLayout>
+      <Outlet />
+    </BlogLayout>
+  );
+};
+
 const AuthenticatedRoot: React.FC = () => {
   useDeepLink();
   return <Outlet />;
@@ -92,6 +101,18 @@ export const GameIndexRoute: React.FC = () => {
     </Suspense>
   );
 };
+
+const blogRoutes: RouteObject[] = [
+  {
+    path: "/blog",
+    element: <BlogLayoutWrapper />,
+    errorElement: <RootErrorBoundary />,
+    children: [
+      { index: true, element: <Blog.BlogList /> },
+      { path: ":slug", element: <Blog.BlogPost /> },
+    ],
+  },
+];
 
 interface RouterProps {
   loggedIn: boolean;
@@ -381,6 +402,7 @@ export const createAuthenticatedRoutes = (
       },
     ],
   },
+  ...blogRoutes,
   {
     path: "*",
     loader: () => redirect("/"),
@@ -412,6 +434,7 @@ export const createUnauthenticatedRoutes = (): RouteObject[] => [
     path: "/reset-password",
     element: <ResetPassword />,
   },
+  ...blogRoutes,
   {
     path: "*",
     loader: ({ request }) => {
