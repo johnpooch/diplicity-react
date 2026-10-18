@@ -34,10 +34,8 @@ const BlogPost: React.FC = () => {
         </p>
         <p className="text-lg text-muted-foreground">{post.summary}</p>
       </header>
-      <div className="prose prose-neutral dark:prose-invert max-w-none">
-        <Markdown remarkPlugins={[remarkGfm]} disallowedElements={["img"]}>
-          {post.body}
-        </Markdown>
+      <div className="prose prose-neutral dark:prose-invert max-w-none prose-img:rounded-lg">
+        <Markdown remarkPlugins={[remarkGfm]}>{post.body}</Markdown>
       </div>
     </article>
   );
