@@ -284,8 +284,8 @@ const VariantsList: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this draft variant?</AlertDialogTitle>
             <AlertDialogDescription>
-              Any sandbox games using this variant will also be deleted. This
-              cannot be undone.
+              Every game using this variant will also be deleted, including
+              games in progress. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

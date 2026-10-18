@@ -1166,6 +1166,7 @@ export interface PatchedUserProfile {
 export interface PatchedVariantWrite {
   dvar?: string;
   dsvg?: string;
+  confirm?: boolean;
 }
 
 /**
@@ -1398,6 +1399,7 @@ export interface Variant {
 export interface VariantWrite {
   dvar: string;
   dsvg: string;
+  confirm?: boolean;
 }
 
 export interface VerifyEmail {
@@ -12354,6 +12356,9 @@ export const variantsCreate = (
   const formData = new FormData();
   formData.append(`dvar`, variantWrite.dvar);
   formData.append(`dsvg`, variantWrite.dsvg);
+  if (variantWrite.confirm !== undefined) {
+    formData.append(`confirm`, variantWrite.confirm.toString());
+  }
 
   return customInstance<VariantWrite>({
     url: `/variants/`,
@@ -12705,6 +12710,9 @@ export const variantsUpdate = (
   const formData = new FormData();
   formData.append(`dvar`, variantWrite.dvar);
   formData.append(`dsvg`, variantWrite.dsvg);
+  if (variantWrite.confirm !== undefined) {
+    formData.append(`confirm`, variantWrite.confirm.toString());
+  }
 
   return customInstance<VariantWrite>({
     url: `/variants/${id}/`,
@@ -12788,6 +12796,9 @@ export const variantsPartialUpdate = (
   }
   if (patchedVariantWrite.dsvg !== undefined) {
     formData.append(`dsvg`, patchedVariantWrite.dsvg);
+  }
+  if (patchedVariantWrite.confirm !== undefined) {
+    formData.append(`confirm`, patchedVariantWrite.confirm.toString());
   }
 
   return customInstance<VariantWrite>({
