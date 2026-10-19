@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { overlaps, scoreInterval, wilson } from "./stats";
+import { mean, meanInterval, overlaps, scoreInterval, wilson } from "./stats";
 
 const percent = (value: number) => Math.round(value * 100);
 
@@ -41,5 +41,28 @@ describe("overlaps", () => {
   test("touching intervals overlap and separate ones do not", () => {
     expect(overlaps({ low: 0.2, high: 0.5 }, { low: 0.5, high: 0.7 })).toBe(true);
     expect(overlaps({ low: 0.2, high: 0.4 }, { low: 0.5, high: 0.7 })).toBe(false);
+  });
+});
+
+describe("meanInterval", () => {
+  test("spans 1.96 standard errors either side of the mean", () => {
+    const interval = meanInterval([10, 12, 14, 16])!;
+    const half = (1.96 * Math.sqrt(20 / 3)) / 2;
+    expect(interval.low).toBeCloseTo(13 - half);
+    expect(interval.high).toBeCloseTo(13 + half);
+  });
+
+  test("identical values leave no spread", () => {
+    expect(meanInterval([5, 5, 5])).toEqual({ low: 5, high: 5 });
+  });
+
+  test("one value has a mean but no interval", () => {
+    expect(mean([7])).toBe(7);
+    expect(meanInterval([7])).toBeNull();
+  });
+
+  test("no values have neither", () => {
+    expect(mean([])).toBeNull();
+    expect(meanInterval([])).toBeNull();
   });
 });

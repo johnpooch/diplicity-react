@@ -3,6 +3,9 @@ import { TriangleAlert } from "lucide-react";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { FixtureScreen } from "@/screens/FixtureScreen";
 import { FixturesLayout } from "@/screens/FixturesLayout";
+import { GameRunScreen } from "@/screens/GameRunScreen";
+import { GameScreen } from "@/screens/GameScreen";
+import { GamesScreen } from "@/screens/GamesScreen";
 import { Layout } from "@/screens/Layout";
 import { ReviewScreen } from "@/screens/ReviewScreen";
 import { RunFixtureScreen } from "@/screens/RunFixtureScreen";
@@ -43,6 +46,9 @@ export const router = createBrowserRouter([
       { path: "runs/:runName", element: <RunScreen /> },
       { path: "runs/:runName/fixtures/:fixtureId", element: <RunFixtureScreen /> },
       { path: "runs/:runName/review", element: <ReviewScreen /> },
+      { path: "games", element: <GamesScreen /> },
+      { path: "games/:runName", element: <GameRunScreen /> },
+      { path: "games/:runName/:seed", element: <GameScreen /> },
     ],
   },
 ]);

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 const SECTIONS = [
   { to: "/fixtures", name: "Fixtures" },
   { to: "/runs", name: "Runs" },
+  { to: "/games", name: "Games" },
 ];
 
 export const Layout: React.FC = () => (

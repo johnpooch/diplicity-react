@@ -18,3 +18,14 @@ export const wilson = (successes: number, trials: number): Interval | null => {
 export const scoreInterval = (tally: Tally): Interval | null => wilson(tally.reasonable, usable(tally));
 
 export const overlaps = (a: Interval, b: Interval): boolean => a.low <= b.high && b.low <= a.high;
+
+export const mean = (values: number[]): number | null =>
+  values.length === 0 ? null : values.reduce((total, value) => total + value, 0) / values.length;
+
+export const meanInterval = (values: number[]): Interval | null => {
+  const centre = mean(values);
+  if (centre === null || values.length < 2) return null;
+  const variance = values.reduce((total, value) => total + (value - centre) ** 2, 0) / (values.length - 1);
+  const half = (Z * Math.sqrt(variance)) / Math.sqrt(values.length);
+  return { low: centre - half, high: centre + half };
+};
