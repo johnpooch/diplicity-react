@@ -5,17 +5,33 @@ from pathlib import Path
 
 from django.conf import settings
 from django.http import JsonResponse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from inspect_ai.log import EvalSample
 
+from games.exceptions import FeedbackError
+from games.feedback import feedback_path, phase_key, read_feedback, write_note
+from games.play import position
+from games.reference import read_reference
 from select_orders.context import fixture_to_context
 from select_orders.exceptions import FixtureError
-from select_orders.fixtures import read_fixture, validate_fixture, write_fixture
+from select_orders.fixtures import full_option, read_fixture, validate_fixture, write_fixture
 from select_orders.notation import Notation
 from select_orders.options import describe_option, option_from_id, option_id
 from select_orders.order_sets import label_order_set, order_set_key, order_set_label
 from select_orders.types import Context, Fixture
 from workbench.exceptions import RunError
+from workbench.game_runs import (
+    GAME_TASK,
+    answer,
+    failed_phases,
+    game_phases,
+    game_result,
+    game_summaries,
+    has_feedback,
+    list_game_runs,
+    mean,
+    orphaned_feedback,
+)
 from workbench.runs import (
     distinct_order_sets,
     list_runs,
@@ -287,3 +303,180 @@ def run_prompts(request, name):
     return JsonResponse(
         {"prompts": [{"fixture": fixture_id, **sample_prompts(first[fixture_id])} for fixture_id in sorted(first)]}
     )
+
+
+def _reference(nation: str) -> dict | None:
+    reference = read_reference(settings.EVALS_REFERENCE_DIR, nation)
+    return None if reference is None else {"games": reference["games"]}
+
+
+def _means(results: list[dict]) -> dict:
+    return {
+        "centres": mean([result["centres"] for result in results]),
+        "share": mean([result["share"] for result in results]),
+    }
+
+
+def _game_run(name: str) -> tuple[dict, list[EvalSample]]:
+    header, samples = read_run(settings.EVALS_LOGS_DIR, name, GAME_TASK)
+    return {**header, "nation": samples[0].metadata["nation"] if samples else None}, samples
+
+
+def _game(name: str, seed: int) -> tuple[dict, EvalSample]:
+    header, samples = _game_run(name)
+    found = [sample for sample in samples if sample.id == seed]
+    if not found:
+        raise RunError(f"game run '{name}' has no game with seed {seed}")
+    return header, found[0]
+
+
+def _feedback(feedback: dict | None) -> dict:
+    feedback = feedback or {}
+    return {"overall": feedback.get("overall", ""), "phases": feedback.get("phases", {})}
+
+
+def _game_phase(phase: dict, following: dict | None, nation: str) -> dict:
+    context = fixture_to_context(position(phase["phase"], phase["units"], phase["supply_centers"], nation, []))
+    results = {(entry["nation"], entry["source"]): entry["result"] for entry in phase["resolutions"]}
+    submitted = [
+        (player, option_id(full_option(option)), option["source"])
+        for player, options in sorted(phase["orders"].items())
+        for option in options
+    ]
+    details = _describe({order for _, order, _ in submitted}, context)
+    orders = [
+        {"nation": player, "id": order, **details[order], "result": results.get((player, source))}
+        for player, order, source in submitted
+    ]
+    notation = Notation(context)
+    given = answer(phase, nation)
+    return {
+        "key": phase_key(phase["phase"]),
+        "phase": phase["phase"],
+        "units": context["units"],
+        "supply_centers": phase["supply_centers"],
+        "dislodged": [unit["province"] for unit in following["units"] if unit.get("dislodged")] if following else [],
+        "orders": orders,
+        "answer": (
+            None
+            if given is None
+            else {
+                **given,
+                "orders": [
+                    {**entry, "name": notation.order(option_from_id(entry["id"]))}
+                    for entry in orders
+                    if entry["nation"] == nation
+                ],
+            }
+        ),
+    }
+
+
+@require_GET
+def game_run_list(request):
+    runs, seeds = [], {}
+    for header in list_game_runs(settings.EVALS_LOGS_DIR):
+        summaries = game_summaries(settings.EVALS_LOGS_DIR, header["name"])
+        results = [game_result(summary.metadata) for summary in summaries]
+        seeds[header["name"]] = {result["seed"] for result in results}
+        runs.append(
+            {
+                **header,
+                **_means(results),
+                "nation": summaries[0].metadata["nation"] if summaries else None,
+                "games": len(results),
+                "with_feedback": sum(
+                    has_feedback(settings.EVALS_FEEDBACK_DIR, header["name"], result["seed"]) for result in results
+                ),
+            }
+        )
+    nations = sorted({run["nation"] for run in runs if run["nation"]})
+    return JsonResponse(
+        {
+            "runs": runs,
+            "references": {nation: _reference(nation) for nation in nations},
+            "orphans": orphaned_feedback(settings.EVALS_FEEDBACK_DIR, seeds),
+        }
+    )
+
+
+@require_GET
+def game_run_detail(request, name):
+    try:
+        header, samples = _game_run(name)
+    except RunError as e:
+        return _error(str(e), 404)
+
+    games = [
+        {
+            **game_result(sample.metadata),
+            "failed": failed_phases(sample),
+            "feedback": has_feedback(settings.EVALS_FEEDBACK_DIR, name, sample.id),
+        }
+        for sample in sorted(samples, key=lambda sample: sample.id)
+    ]
+    return JsonResponse(
+        {
+            **header,
+            **_means(games),
+            "games": games,
+            "reference": _reference(header["nation"]) if header["nation"] else None,
+            "opening": sample_prompts(samples[0]) if samples else None,
+        }
+    )
+
+
+@require_GET
+def game_detail(request, name, seed):
+    try:
+        header, sample = _game(name, seed)
+    except RunError as e:
+        return _error(str(e), 404)
+    try:
+        feedback = read_feedback(feedback_path(settings.EVALS_FEEDBACK_DIR, name, seed))
+    except FeedbackError as e:
+        return _error(str(e), 409)
+
+    nation = sample.metadata["nation"]
+    phases = game_phases(sample)
+    return JsonResponse(
+        {
+            **header,
+            **game_result(sample.metadata),
+            "final_centres": sample.metadata["centres"],
+            "phases": [
+                _game_phase(phase, phases[index + 1] if index + 1 < len(phases) else None, nation)
+                for index, phase in enumerate(phases)
+            ],
+            "feedback": _feedback(feedback),
+        }
+    )
+
+
+@require_http_methods(["PUT"])
+def game_feedback(request, name, seed):
+    try:
+        _, sample = _game(name, seed)
+    except RunError as e:
+        return _error(str(e), 404)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _error("request body is not JSON", 400)
+    if not isinstance(body, dict):
+        return _error("request body must be an object", 400)
+    phase, note = body.get("phase"), body.get("note")
+    if phase is not None and not isinstance(phase, str):
+        return _error("'phase' must be a phase key or null for the overall note", 400)
+    if not isinstance(note, str):
+        return _error("'note' must be a string", 400)
+
+    keys = {phase_key(entry["phase"]) for entry in game_phases(sample)}
+    try:
+        updated = write_note(
+            feedback_path(settings.EVALS_FEEDBACK_DIR, name, seed), sample.metadata["nation"], keys, phase, note
+        )
+    except FeedbackError as e:
+        return _error(str(e), 400)
+    return JsonResponse(_feedback(updated))

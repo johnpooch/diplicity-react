@@ -11,4 +11,8 @@ urlpatterns = [
     path("runs/<str:name>/queue/", views.run_queue),
     path("runs/<str:name>/prompts/", views.run_prompts),
     path("runs/<str:name>/fixtures/<slug:fixture_id>/", views.run_fixture),
+    path("games/", views.game_run_list),
+    path("games/<str:name>/", views.game_run_detail),
+    path("games/<str:name>/<int:seed>/", views.game_detail),
+    path("games/<str:name>/<int:seed>/feedback/", views.game_feedback),
 ]
