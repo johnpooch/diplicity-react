@@ -1,10 +1,14 @@
 import React, { Suspense } from "react";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, matchRoutes } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { LoaderFunctionArgs } from "react-router";
-import { GameIndexRoute, createAuthenticatedRoutes } from "./Router";
+import {
+  GameIndexRoute,
+  createAuthenticatedRoutes,
+  createUnauthenticatedRoutes,
+} from "./Router";
 
 const mockUseIsMobile = vi.fn();
 
@@ -27,6 +31,7 @@ vi.mock("./screens", () => ({
   Home: {},
   Variants: {},
   Tutorial: {},
+  Blog: {},
 }));
 
 const mockGameStatus = vi.fn();
@@ -99,5 +104,23 @@ describe("createAuthenticatedRoutes", () => {
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).status).toBe(302);
     expect((response as Response).headers.get("Location")).toBe("/");
+  });
+});
+
+describe("blog routes", () => {
+  const routeTrees = [
+    ["logged in", createAuthenticatedRoutes(new QueryClient())],
+    ["logged out", createUnauthenticatedRoutes()],
+  ] as const;
+
+  it.each(routeTrees)("serves the blog index when %s", (_, routes) => {
+    const matches = matchRoutes([...routes], "/blog");
+    expect(matches?.map(match => match.route.path)).toEqual(["/blog", undefined]);
+  });
+
+  it.each(routeTrees)("serves a blog post when %s", (_, routes) => {
+    const matches = matchRoutes([...routes], "/blog/spring-1901-update");
+    expect(matches?.map(match => match.route.path)).toEqual(["/blog", ":slug"]);
+    expect(matches?.at(-1)?.params.slug).toBe("spring-1901-update");
   });
 });

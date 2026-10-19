@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "phase",
     "version",
     "update",
+    "blog",
     "user_profile",
     "login",
     "variant",

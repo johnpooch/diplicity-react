@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import type {
+  BlogPostList,
   Channel,
   ChannelDetail,
   ChannelMessagePage,
@@ -11,6 +12,7 @@ import type {
 } from "@/api/generated/endpoints";
 import {
   allVariants,
+  blogPosts,
   botRoster,
   currentUserProfile,
   draftVariant,
@@ -179,6 +181,22 @@ export const handlers = [
       v => v.id === params.variantId
     );
     return variant ? HttpResponse.json(variant) : notFound();
+  }),
+
+  http.get("*/blog/", () =>
+    HttpResponse.json(
+      blogPosts.map(({ slug, title, summary, createdAt }) => ({
+        slug,
+        title,
+        summary,
+        createdAt,
+      })) satisfies BlogPostList[]
+    )
+  ),
+
+  http.get("*/blog/:slug/", ({ params }) => {
+    const post = blogPosts.find(p => p.slug === params.slug);
+    return post ? HttpResponse.json(post) : notFound();
   }),
 
   http.get("*/mock-assets/classical-map.svg", () =>
