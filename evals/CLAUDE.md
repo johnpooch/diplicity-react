@@ -24,7 +24,7 @@ cd evals/web && npm run build && npm run lint && npm test
 
 ## The tool
 
-A local web UI for viewing fixtures and runs and for labelling order sets. The API is the `workbench` app in this Django project and the frontend is `evals/web`; both run on your machine only.
+A local web UI for viewing fixtures and runs, for labelling order sets and for reviewing games. The API is the `workbench` app in this Django project and the frontend is `evals/web`; both run on your machine only.
 
 ```bash
 cd evals && .venv/bin/python manage.py runserver 8001
@@ -37,8 +37,9 @@ cd evals/web && npm install && npm run dev   # http://localhost:5176
 - **Runs are read from `evals/logs/`, never started from the UI.** Produce one with `python manage.py run_evals`; `--epochs N` calls the model N times per fixture in one run, so do not pass it unless the user asks for repeated runs. `evals/logs/` is committed, overriding the root `logs` ignore, so a run everyone should see is committed like a fixture change. Only successful runs of the model task are listed: an errored run has nothing to judge, and a dumbbot run is the same every time.
 - **A hand-written prompt runs on one named fixture.** `render_prompt --fixture <id>` writes that fixture's current prompts to `evals/prompts/<id>/`, which is gitignored; edit them and pass `--system-file` and/or `--user-file` to `run_evals` with the same `--fixture`. A file replaces its whole message, so every legal option id must still appear in the user text, and the run refuses to start otherwise. Once a hand-written version wins, code it into `select_orders/prompt.py`.
 - **A run's prompt is named by its content.** `run_evals` hashes the fixture ids and the exact messages sent, and names the hash `adjective-noun-month-day` after the day it was first run. A hash already in `evals/logs/` keeps its name. Both are written to the log's eval metadata; go through `select_orders/prompt_names.py`. The workbench reads the name from the log header, never the full log; a run from before names has none and shows as unknown.
-- **The board shows the position and one order set, nothing else.** Whether a set is reasonable does not depend on how it resolved or on what the other nations ordered, so neither is drawn.
-- **The tool has three views with one job each**: Fixtures curates the labelled order sets, Runs summarises and compares runs and shows their prompts, and the review queue labels a run's unseen order sets. Do not add a control to a view that serves another view's job.
+- **The Fixtures and Runs boards show the position and one order set, nothing else.** Whether a set is reasonable does not depend on how it resolved or on what the other nations ordered, so neither is drawn.
+- **A game board shows every nation's orders, each in its nation's colour, with failed orders drawn as failed and the units the phase dislodged.** A game is reviewed as a sequence of resolved phases, so how each phase resolved is the point. The multi-nation mapping is `evals/web/src/gameBoard.ts`; it feeds the renderer's `RenderState` and leaves the copied renderer alone.
+- **The tool has four views with one job each**: Fixtures curates the labelled order sets, Runs summarises and compares runs and shows their prompts, the review queue labels a run's unseen order sets, and Games plays back and reviews game runs. Do not add a control to a view that serves another view's job.
 - **A run's fixture page is part of Runs and is read-only.** It shows what that run produced on the fixture: each distinct order set with its current label, the epochs that produced it and their reasoning, and each failed answer with its problem and raw completion. Labels are changed in Fixtures or the review queue, never there.
 - **A run's breakdown always adds up**: reasonable, unreasonable and unmarked answers sum to its answers minus its failed ones, which is the score's denominator. A failed answer is one that is not a legal order set; it counts towards no other metric.
 - **A label is global to a fixture and an order set.** It lives in the fixture's `order_set_labels` with an optional `reason`, and counts in every run that produces that set. Do not store labels, verdicts or scores in logs.
@@ -54,6 +55,24 @@ cd evals/web && npm install && npm run dev   # http://localhost:5176
 - **Prompt diffs go through `evals/web/src/promptDiff.ts`**, which wraps jsdiff: paragraphs are matched line by line and changed ones are highlighted word by word.
 - **The board renderer in `evals/web/src/board/` is a copy of the web app's.** Re-copy it to pick up changes; do not edit it in place or import the original.
 - **Use the shadcn components in `evals/web/src/components/ui/` over raw HTML controls.** They are copies of the playground's; copy another one in when you need it.
+
+## Games
+
+The model plays one nation of the classical variant against six dumbbots from Spring 1901 to the start of the Fall 1905 Adjustment. The `games` app plays them and the workbench serves them to the Games view.
+
+```bash
+cd evals && .venv/bin/python manage.py play_games --nation England [--games N] [--first-seed 0] [--model ...]
+cd evals && .venv/bin/python manage.py dumbbot_reference --nation England --seeds 100
+```
+
+- **Each game is billed, about 20 model calls.** `play_games` plays one game by default; do not raise `--games` or rerun it unless the user asks. A game run's log goes to `evals/logs/` and is committed like an order run; Games lists the successful ones, apart from order runs.
+- **A game is one sample, its seed is its id.** The same seed gives byte-identical dumbbot play: each dumbbot nation's random stream is derived from the seed and the nation (`games/play.py`). Every game is paired with the all-dumbbot game on its seed, of which only the final centres are kept.
+- **The model gets the unmodified `select_orders` prompt for each phase, stateless.** No history, no previous orders, no game-specific wording. Change the prompt in `select_orders/prompt.py`, never by forking it for games. A game run's prompt name hashes the nation and the prompts rendered on the opening board (`game_prompt_digest`).
+- **A failed answer submits no orders and is not retried.** A model error, unparseable JSON or an unknown option id leaves the phase failed with its problem and raw completion; the units hold, an undirected retreat disbands and an adjustment falls back to civil disorder. Only the first order for a province is submitted.
+- **Nobody is called for a phase with no legal option for them.** Such a phase is still resolved and recorded.
+- **A game's score is derived when it is read**: 100 × own centres² over the sum of every nation's centres², and 100 to a soloist and 0 to everyone else. It comes from the final centres in the log through `games/scoring.py`, and is always shown with the raw centre count.
+- **The dumbbot reference is a committed file per nation** in `evals/data/dumbbot_reference/`, written by `dumbbot_reference`. It assumes dumbbot and the adjudicator do not change, so it carries no source hash; regenerate it by hand if they do. The UI shows its mean and a 95% interval for the mean through `meanInterval` in `evals/web/src/stats.ts`.
+- **Feedback lives in `evals/feedback/<run log>/<seed>.json`, never in logs.** One optional plain-text overall note and one per phase, keyed `1902-Fall-Movement` (`games/feedback.py`). The workbench reads the file afresh and writes one note at a time; an empty note is dropped and a file with no note left is deleted. Review the diff and commit it like a fixture change. A feedback file whose game no longer exists is shown as an error in the Games list.
 
 ## Harvesting fixtures
 
