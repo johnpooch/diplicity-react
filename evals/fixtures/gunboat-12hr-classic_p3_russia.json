@@ -698,6 +698,7 @@
     ]
   },
   "eval_sets": [
+    "opening",
     "adjustment"
   ]
 }

@@ -664,6 +664,7 @@
     ]
   },
   "eval_sets": [
+    "opening",
     "retreat"
   ]
 }
