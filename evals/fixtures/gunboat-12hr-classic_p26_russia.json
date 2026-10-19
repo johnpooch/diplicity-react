@@ -1,0 +1,685 @@
+{
+  "schema_version": 2,
+  "id": "gunboat-12hr-classic_p26_russia",
+  "provenance": {
+    "source": "harvested",
+    "game_id": "gunboat-12hr-classic",
+    "phase_id": 59092,
+    "phase_ordinal": 26,
+    "harvested_at": "2026-10-19T19:47:52+00:00",
+    "press_type": "no_press",
+    "was_bot": false
+  },
+  "variant": "classical",
+  "nation": "Russia",
+  "phase": {
+    "season": "Fall",
+    "year": 1907,
+    "type": "Retreat"
+  },
+  "units": [
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "adr"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "aeg"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "alb"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "bel"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "bre"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "bul"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "den"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "eas"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "eng"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "fin"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "gal"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "gre"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "hel"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "hol"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "ion"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "iri"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "nrg"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "nth"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "pic"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "por"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "pru"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "rum"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ser"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "spa"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "stp",
+      "dislodged": true,
+      "dislodged_from": "nwy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "stp/nc"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "tri"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "vie"
+    }
+  ],
+  "supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Germany",
+      "province": "bel"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "England",
+      "province": "bre"
+    },
+    {
+      "nation": "Italy",
+      "province": "bud"
+    },
+    {
+      "nation": "Turkey",
+      "province": "bul"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "Germany",
+      "province": "den"
+    },
+    {
+      "nation": "England",
+      "province": "edi"
+    },
+    {
+      "nation": "Turkey",
+      "province": "gre"
+    },
+    {
+      "nation": "Germany",
+      "province": "hol"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "lvp"
+    },
+    {
+      "nation": "Germany",
+      "province": "mar"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "Germany",
+      "province": "nwy"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "France",
+      "province": "por"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Russia",
+      "province": "rum"
+    },
+    {
+      "nation": "Italy",
+      "province": "ser"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Turkey",
+      "province": "smy"
+    },
+    {
+      "nation": "England",
+      "province": "spa"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    },
+    {
+      "nation": "Germany",
+      "province": "swe"
+    },
+    {
+      "nation": "Italy",
+      "province": "tri"
+    },
+    {
+      "nation": "Italy",
+      "province": "tun"
+    },
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Italy",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "war"
+    }
+  ],
+  "order_options": [
+    {
+      "source": "stp",
+      "order_type": "Disband"
+    },
+    {
+      "source": "stp",
+      "order_type": "Move",
+      "target": "lvn"
+    },
+    {
+      "source": "stp",
+      "order_type": "Move",
+      "target": "mos"
+    }
+  ],
+  "decision_richness": 3,
+  "actual_orders": {
+    "England": [],
+    "France": [],
+    "Germany": [],
+    "Italy": [],
+    "Russia": [
+      {
+        "source": "stp",
+        "order_type": "Move",
+        "target": "mos"
+      }
+    ],
+    "Turkey": []
+  },
+  "actual_outcome": {
+    "resolutions": [
+      {
+        "nation": "Russia",
+        "source": "stp",
+        "result": "OK"
+      }
+    ],
+    "units": [
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "adr"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Turkey",
+        "province": "aeg"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "alb"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "bel"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "ber"
+      },
+      {
+        "type": "Army",
+        "nation": "England",
+        "province": "bre"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "bud"
+      },
+      {
+        "type": "Army",
+        "nation": "Turkey",
+        "province": "bul"
+      },
+      {
+        "type": "Army",
+        "nation": "Turkey",
+        "province": "con"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Germany",
+        "province": "den"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Turkey",
+        "province": "eas"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "eng"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "fin"
+      },
+      {
+        "type": "Army",
+        "nation": "Russia",
+        "province": "gal"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Turkey",
+        "province": "gre"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Germany",
+        "province": "hel"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "hol"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "ion"
+      },
+      {
+        "type": "Fleet",
+        "nation": "France",
+        "province": "iri"
+      },
+      {
+        "type": "Army",
+        "nation": "Russia",
+        "province": "mos"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Italy",
+        "province": "nap"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "nrg"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "nth"
+      },
+      {
+        "type": "Army",
+        "nation": "France",
+        "province": "par"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "pic"
+      },
+      {
+        "type": "Fleet",
+        "nation": "England",
+        "province": "por"
+      },
+      {
+        "type": "Army",
+        "nation": "Russia",
+        "province": "pru"
+      },
+      {
+        "type": "Army",
+        "nation": "Russia",
+        "province": "rum"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "ser"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Russia",
+        "province": "sev"
+      },
+      {
+        "type": "Army",
+        "nation": "Germany",
+        "province": "spa"
+      },
+      {
+        "type": "Fleet",
+        "nation": "Germany",
+        "province": "stp/nc"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "tri"
+      },
+      {
+        "type": "Army",
+        "nation": "Italy",
+        "province": "vie"
+      }
+    ],
+    "supply_centers": [
+      {
+        "nation": "Turkey",
+        "province": "ank"
+      },
+      {
+        "nation": "Germany",
+        "province": "bel"
+      },
+      {
+        "nation": "Germany",
+        "province": "ber"
+      },
+      {
+        "nation": "England",
+        "province": "bre"
+      },
+      {
+        "nation": "Italy",
+        "province": "bud"
+      },
+      {
+        "nation": "Turkey",
+        "province": "bul"
+      },
+      {
+        "nation": "Turkey",
+        "province": "con"
+      },
+      {
+        "nation": "Germany",
+        "province": "den"
+      },
+      {
+        "nation": "England",
+        "province": "edi"
+      },
+      {
+        "nation": "Turkey",
+        "province": "gre"
+      },
+      {
+        "nation": "Germany",
+        "province": "hol"
+      },
+      {
+        "nation": "Germany",
+        "province": "kie"
+      },
+      {
+        "nation": "England",
+        "province": "lon"
+      },
+      {
+        "nation": "England",
+        "province": "lvp"
+      },
+      {
+        "nation": "Germany",
+        "province": "mar"
+      },
+      {
+        "nation": "Russia",
+        "province": "mos"
+      },
+      {
+        "nation": "Germany",
+        "province": "mun"
+      },
+      {
+        "nation": "Italy",
+        "province": "nap"
+      },
+      {
+        "nation": "Germany",
+        "province": "nwy"
+      },
+      {
+        "nation": "France",
+        "province": "par"
+      },
+      {
+        "nation": "England",
+        "province": "por"
+      },
+      {
+        "nation": "Italy",
+        "province": "rom"
+      },
+      {
+        "nation": "Russia",
+        "province": "rum"
+      },
+      {
+        "nation": "Italy",
+        "province": "ser"
+      },
+      {
+        "nation": "Russia",
+        "province": "sev"
+      },
+      {
+        "nation": "Turkey",
+        "province": "smy"
+      },
+      {
+        "nation": "Germany",
+        "province": "spa"
+      },
+      {
+        "nation": "Germany",
+        "province": "stp"
+      },
+      {
+        "nation": "Germany",
+        "province": "swe"
+      },
+      {
+        "nation": "Italy",
+        "province": "tri"
+      },
+      {
+        "nation": "Italy",
+        "province": "tun"
+      },
+      {
+        "nation": "Italy",
+        "province": "ven"
+      },
+      {
+        "nation": "Italy",
+        "province": "vie"
+      },
+      {
+        "nation": "Russia",
+        "province": "war"
+      }
+    ]
+  },
+  "eval_sets": [
+    "retreat"
+  ]
+}
