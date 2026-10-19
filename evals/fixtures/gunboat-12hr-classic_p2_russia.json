@@ -900,5 +900,65 @@
   "eval_sets": [
     "opening",
     "fall_1901"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "bot:Move:swe",
+        "sev:Move:rum",
+        "ukr:Support:rum:sev",
+        "war:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:37:13+00:00",
+      "reason": "There's no reason for Warsaw to hold. It should move to Prussia, Silesia, or Galicia to strengthen its position and threaten supply centers Next phase"
+    },
+    {
+      "orders": [
+        "bot:Move:swe",
+        "sev:Support:rum:ukr",
+        "ukr:Move:rum",
+        "war:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:37:20+00:00",
+      "reason": "There's no reason for Warsaw to hold. It should move to Prussia, Silesia, or Galicia to strengthen its position and threaten supply centers. Next phase"
+    },
+    {
+      "orders": [
+        "bot:Move:swe",
+        "sev:Move:rum",
+        "ukr:Support:rum:sev",
+        "war:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:37:33+00:00"
+    },
+    {
+      "orders": [
+        "bot:Move:swe",
+        "sev:Support:rum:ukr",
+        "ukr:Move:rum",
+        "war:Move:gal"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:37:36+00:00"
+    },
+    {
+      "orders": [
+        "bot:Move:swe",
+        "sev:Move:rum",
+        "ukr:Support:sev:sev",
+        "war:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:38:00+00:00",
+      "reason": "There's no reason for Warsaw to hold. It should move to Prussia, Silesia, or Galicia to strengthen its position and threaten supply centers Next phase. Ukraine is supporting Sevastopol to hold, but Sevastopol is moving to Rumania. This is a wasted support order."
+    }
   ]
 }

@@ -930,5 +930,92 @@
   "eval_sets": [
     "opening",
     "fall_1901"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "hol:Support:bel:ruh",
+        "kie:Move:den",
+        "ruh:Move:bel"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:28:56+00:00"
+    },
+    {
+      "orders": [
+        "hol:Move:bel",
+        "kie:Move:den",
+        "ruh:Support:bel:hol"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:29:36+00:00"
+    },
+    {
+      "orders": [
+        "hol:Move:bel",
+        "kie:Move:den",
+        "ruh:Support:hol:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:30:01+00:00",
+      "reason": "The army in the Ruhr is supporting Holland to hold, even though Holland is moving to Belgium. This is a wasted order."
+    },
+    {
+      "orders": [
+        "hol:Move:bel",
+        "kie:Move:den",
+        "ruh:Move:hol"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:31:10+00:00",
+      "reason": "This order is very unlikely to succeed because both France's army in Picardy and England's fleet in the North Sea threaten Belgium."
+    },
+    {
+      "orders": [
+        "hol:Move:bel",
+        "kie:Move:hol",
+        "ruh:Support:bel:hol"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:32:07+00:00"
+    },
+    {
+      "orders": [
+        "hol:Hold",
+        "kie:Move:den",
+        "ruh:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:32:47+00:00",
+      "reason": "With Ruhr moving into Belgium, it might be balanced by the French army in Picardy or the English fleet in the North Sea. Holland is wasting a potential support order by holding. It should support Ruhr into Belgium."
+    },
+    {
+      "orders": [
+        "hol:Support:bel:ruh",
+        "kie:Move:hol",
+        "ruh:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:33:32+00:00",
+      "reason": "Holland is supporting Roar into Belgium, but Kiel is moving into Holland. The Kiel move into Holland is guaranteed to fail because Holland isn't vacating that province. Kiel would be better off going after Denmark."
+    },
+    {
+      "orders": [
+        "hol:Support:bel:ruh",
+        "kie:Hold",
+        "ruh:Move:bel"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:33:55+00:00",
+      "reason": "There is no point in Kiel holding. It should make an attempt at Denmark."
+    }
   ]
 }

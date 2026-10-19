@@ -871,8 +871,9 @@
         "pie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:33:02+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:25:32+00:00",
+      "reason": "There is no point in Piedmont holding. It may as well attack Venice in case Italy vacates Venice. This is assuming that this is a gunboat game, i.e. no comms"
     },
     {
       "orders": [
@@ -881,8 +882,9 @@
         "pie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:33:19+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:26:23+00:00",
+      "reason": "There is no point in Picardy holding or Piedmont holding. Picardy may as well make an attempt on Belgium. This helps keep Germany out of Belgium. Piedmont may as well attack Venice or try to improve its position in some other way."
     },
     {
       "orders": [
@@ -891,8 +893,9 @@
         "pie:Move:mar"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:33:38+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:26:55+00:00",
+      "reason": "There is no real reason why the army in Piedmont should move back to Marseille."
     },
     {
       "orders": [
@@ -921,8 +924,9 @@
         "pie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:34:14+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:27:32+00:00",
+      "reason": "Moving from the Mid-Atlantic Ocean to the English Channel leaves Portugal and Spain neutral at the end of this fall phase. France is guaranteed a build if it captures one of these neutral provinces."
     },
     {
       "orders": [
@@ -991,8 +995,9 @@
         "pie:Move:mar"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:35:42+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:28:12+00:00",
+      "reason": "There is no point in Picardy holding. It may as well make an attempt on Belgium in an effort to keep Germany out. There's no reason for Piedmont to retreat to Marseille."
     }
   ]
 }

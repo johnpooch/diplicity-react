@@ -973,5 +973,59 @@
   "eval_sets": [
     "opening",
     "fall_1901"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "apu:Support:ven:ven",
+        "ion:Move:tun",
+        "ven:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:34:57+00:00",
+      "reason": "There is no point in Apulia supporting Venice to hold, because Venice can't be dislodged. It only has one neighboring unit that threatens it: the French army in Piedmont."
+    },
+    {
+      "orders": [
+        "apu:Hold",
+        "ion:Move:tun",
+        "ven:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:35:30+00:00"
+    },
+    {
+      "orders": [
+        "apu:MoveViaConvoy:tun",
+        "ion:Convoy:tun:apu",
+        "ven:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:35:36+00:00"
+    },
+    {
+      "orders": [
+        "apu:Move:rom",
+        "ion:Move:tun",
+        "ven:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:35:44+00:00"
+    },
+    {
+      "orders": [
+        "apu:Hold",
+        "ion:Move:gre",
+        "ven:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:36:14+00:00",
+      "reason": "Tunis is uncontested, whereas Greece is contested by three other units. The fleet in the Ionian Sea should take Tunis."
+    }
   ]
 }

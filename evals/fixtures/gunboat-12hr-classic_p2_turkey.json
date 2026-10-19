@@ -838,5 +838,92 @@
   "eval_sets": [
     "opening",
     "fall_1901"
+  ],
+  "order_set_labels": [
+    {
+      "orders": [
+        "ank:Move:bla",
+        "bul:Move:gre",
+        "con:Hold"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:39:02+00:00",
+      "reason": "There is no reason for Constantinople to hold here. If Bulgaria gets through to Greece, Constantinople should come in behind and take Bulgaria. Holding doesn't actually protect any home centers, like the reasoning describes."
+    },
+    {
+      "orders": [
+        "ank:Hold",
+        "bul:Move:gre",
+        "con:Move:bul"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:39:29+00:00",
+      "reason": "There is no reason why Ankara should hold here."
+    },
+    {
+      "orders": [
+        "ank:Move:bla",
+        "bul:Move:gre",
+        "con:Move:bul"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:39:33+00:00"
+    },
+    {
+      "orders": [
+        "ank:Move:bla",
+        "bul:Move:rum",
+        "con:Move:bul"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:39:41+00:00"
+    },
+    {
+      "orders": [
+        "ank:Hold",
+        "bul:Move:rum",
+        "con:Move:bul"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:40:00+00:00",
+      "reason": "There is no reason that Ankara should hold here."
+    },
+    {
+      "orders": [
+        "ank:Move:bla",
+        "bul:Move:rum",
+        "con:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:40:26+00:00",
+      "reason": "There is no reason for Constantinople to hold here. It may as well move to Bulgaria. If Bulgaria gets through to Romania, Constantinople has a chance of capturing Bulgaria."
+    },
+    {
+      "orders": [
+        "ank:Move:con",
+        "bul:Move:gre",
+        "con:Move:bul"
+      ],
+      "label": "reasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:40:33+00:00"
+    },
+    {
+      "orders": [
+        "ank:Hold",
+        "bul:Move:gre",
+        "con:Hold"
+      ],
+      "label": "unreasonable",
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:40:52+00:00",
+      "reason": "There is no reason for either Constantinople or Ankara to hold here."
+    }
   ]
 }

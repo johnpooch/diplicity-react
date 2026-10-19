@@ -978,8 +978,9 @@
         "vie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:29:14+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:21:50+00:00",
+      "reason": "Trieste is exposed to an attack from Venice. Holding in Vienna does not strengthen Austria's position and leaves venice exposed to attack."
     },
     {
       "orders": [
@@ -988,8 +989,9 @@
         "vie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:29:16+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:22:03+00:00",
+      "reason": "Trieste is exposed to an attack from Venice. Holding in Vienna does not strengthen Austria's position and leaves venice exposed to attack."
     },
     {
       "orders": [
@@ -1008,8 +1010,9 @@
         "vie:Move:tri"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:29:29+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:22:30+00:00",
+      "reason": "Greece could be bounced by Bulgaria. Serbia's holding is a waste of potential support. It may as well support Albania to Greece."
     },
     {
       "orders": [
@@ -1028,8 +1031,9 @@
         "vie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:29:46+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:22:37+00:00",
+      "reason": "Trieste is exposed to an attack from Venice. Holding in Vienna does not strengthen Austria's position and leaves venice exposed to attack."
     },
     {
       "orders": [
@@ -1088,8 +1092,9 @@
         "vie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:31:07+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:22:52+00:00",
+      "reason": "Trieste is exposed to an attack from Venice. Holding in Vienna does not strengthen Austria's position and leaves venice exposed to attack. Also, Serbia is supporting Albania to hold while Albania moves to Greece. This is a wasted order."
     },
     {
       "orders": [
@@ -1098,8 +1103,9 @@
         "vie:Move:tri"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:31:33+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:24:09+00:00",
+      "reason": "Albania has a strong chance of taking Greece this phase if Serbia supports it. Supporting Vienna into Trieste protects against Venice, but the support isn't really necessary. Bouncing Venice would be sufficient. It's a bit of a wasted order."
     },
     {
       "orders": [
@@ -1108,8 +1114,9 @@
         "vie:Move:gal"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:31:40+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:24:26+00:00",
+      "reason": "Greece could be bounced by Bulgaria. Serbia's holding is a waste of potential support. It may as well support Albania to Greece."
     },
     {
       "orders": [
@@ -1118,8 +1125,9 @@
         "vie:Hold"
       ],
       "label": "unreasonable",
-      "labeller": "johnmcdowell",
-      "labelled_at": "2026-10-17T16:31:43+00:00"
+      "labeller": "vscode",
+      "labelled_at": "2026-10-19T19:24:32+00:00",
+      "reason": "Greece could be bounced by Bulgaria. Serbia's holding is a waste of potential support. It may as well support Albania to Greece."
     },
     {
       "orders": [
