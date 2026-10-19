@@ -6,7 +6,14 @@ from jsonschema import Draft202012Validator
 from select_orders.exceptions import FixtureError
 from select_orders.options import OPTION_KEYS, option_id
 from select_orders.schema import FIXTURE_SCHEMA
-from select_orders.types import Fixture, FixtureOrderOption, OrderOption, RankedOptions
+from select_orders.types import (
+    Fixture,
+    FixtureOrderOption,
+    FixtureSupplyCenter,
+    FixtureUnit,
+    OrderOption,
+    RankedOptions,
+)
 
 _VALIDATOR = Draft202012Validator(FIXTURE_SCHEMA)
 
@@ -25,6 +32,11 @@ def read_fixture(path: Path) -> Fixture:
 
 def write_fixture(path: Path, fixture: Fixture) -> None:
     path.write_text(json.dumps(validate_fixture(fixture), indent=2) + "\n")
+
+
+def max_orders(nation: str, units: list[FixtureUnit], supply_centers: list[FixtureSupplyCenter]) -> int:
+    owned = sum(1 for center in supply_centers if center["nation"] == nation)
+    return abs(owned - sum(1 for unit in units if unit["nation"] == nation))
 
 
 def full_option(option: FixtureOrderOption) -> OrderOption:

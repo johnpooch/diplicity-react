@@ -5,7 +5,7 @@ from engine.positions import Board
 from engine.rules import load_variant
 from harvest.exceptions import HarvestError
 from select_orders.constants import PhaseType
-from select_orders.fixtures import full_option, validate_fixture
+from select_orders.fixtures import full_option, max_orders, validate_fixture
 from select_orders.options import option_id
 from select_orders.schema import FIXTURE_SCHEMA_VERSION
 from select_orders.types import Fixture
@@ -180,8 +180,7 @@ class Harvest:
         if phase["contested_provinces"]:
             fixture["contested_provinces"] = phase["contested_provinces"]
         if phase["type"] == PhaseType.ADJUSTMENT:
-            owned = sum(1 for center in supply_centers if center["nation"] == nation)
-            fixture["max_orders"] = abs(owned - sum(1 for unit in units if unit["nation"] == nation))
+            fixture["max_orders"] = max_orders(nation, units, supply_centers)
         fixture["decision_richness"] = prod(counts.values())
         fixture["actual_orders"] = actual_orders
         fixture["actual_outcome"] = outcome
