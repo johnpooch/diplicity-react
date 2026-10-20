@@ -7,10 +7,10 @@
 # is ABI-compatible.
 
 # Node.js runtime source
-FROM node:24.21.0-bookworm-slim AS node
+FROM node:24.22.0-bookworm-slim AS node
 
 # Python 3.12 base
-FROM python:3.14-slim-bookworm
+FROM python:3.15-slim-bookworm
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
