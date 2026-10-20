@@ -1,13 +1,17 @@
 import json
+import shutil
+from pathlib import Path
 
 import pytest
 from inspect_ai import Task
 from inspect_ai import eval as inspect_eval
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.log import read_eval_log, write_eval_log
-from inspect_ai.model import ModelOutput, ModelUsage
+from inspect_ai.model import ModelOutput, ModelUsage, get_model
 from inspect_ai.solver import solver
 
+from games.evals import play_game
+from games.reference import write_reference
 from select_orders.evals import fixture_to_sample
 from select_orders.fixtures import read_fixture, write_fixture
 
@@ -409,3 +413,233 @@ class TestRunPrompts:
         assert prompts["fixture"] == "paris_opening"
         assert prompts["system"].startswith("You are an expert Diplomacy player.")
         assert "You are playing as France." in prompts["user"]
+
+
+OPENING_MOVE = "lon:Move:nth"
+
+
+def _game_output(content):
+    output = ModelOutput.from_content("mockllm/model", content)
+    output.usage = ModelUsage(input_tokens=10, output_tokens=5, total_tokens=15)
+    return output
+
+
+def _game_answer(messages, *args):
+    user = messages[-1].text
+    if "Spring 1901, Movement" in user:
+        return _game_output(_completion([OPENING_MOVE], "go north"))
+    if "Fall 1901, Movement" in user:
+        return _game_output("not json")
+    return _game_output(_completion([]))
+
+
+@pytest.fixture(scope="session")
+def game_log(tmp_path_factory):
+    (log,) = inspect_eval(
+        play_game("England", 0, 2),
+        model=get_model("mockllm/model", custom_outputs=_game_answer),
+        display="none",
+        log_dir=str(tmp_path_factory.mktemp("game_logs")),
+        metadata={"prompt": {"name": "calm-lantern-oct-15", "digest": "0" * 64}},
+    )
+    return Path(log.location)
+
+
+@pytest.fixture
+def game_run(game_log, fixtures_dir, settings, tmp_path):
+    settings.EVALS_FEEDBACK_DIR = tmp_path / "feedback"
+    settings.EVALS_REFERENCE_DIR = tmp_path / "reference"
+    shutil.copy(game_log, settings.EVALS_LOGS_DIR)
+    return game_log.stem
+
+
+def _note(client, run, seed, phase, note):
+    return client.put(
+        f"/api/games/{run}/{seed}/feedback/",
+        data=json.dumps({"phase": phase, "note": note}),
+        content_type="application/json",
+    )
+
+
+def _game(client, run, seed=0):
+    return client.get(f"/api/games/{run}/{seed}/").json()
+
+
+class TestGameRunList:
+
+    def test_lists_game_runs_with_their_mean_result(self, client, game_run):
+        (listed,) = client.get("/api/games/").json()["runs"]
+        rows = client.get(f"/api/games/{game_run}/").json()["games"]
+        assert (listed["name"], listed["nation"], listed["games"]) == (game_run, "England", 2)
+        assert (listed["model"], listed["prompt"]) == ("mockllm/model", "calm-lantern-oct-15")
+        assert listed["centres"] == pytest.approx(sum(row["centres"] for row in rows) / 2)
+        assert listed["share"] == pytest.approx(sum(row["share"] for row in rows) / 2)
+
+    def test_game_runs_and_order_runs_are_listed_apart(self, client, game_run, run):
+        order_run = run(_completion(ATTACK))
+        assert [listed["name"] for listed in client.get("/api/runs/").json()["runs"]] == [order_run]
+        assert [listed["name"] for listed in client.get("/api/games/").json()["runs"]] == [game_run]
+
+    def test_carries_the_dumbbot_reference_for_the_nation(self, client, game_run, settings):
+        assert client.get("/api/games/").json()["references"] == {"England": None}
+        games = [{"seed": 0, "centres": 5, "share": 12.5}, {"seed": 1, "centres": 6, "share": 16.0}]
+        write_reference(settings.EVALS_REFERENCE_DIR, "England", games)
+        assert client.get("/api/games/").json()["references"] == {"England": {"games": games}}
+
+    def test_counts_the_games_with_feedback(self, client, game_run):
+        assert client.get("/api/games/").json()["runs"][0]["with_feedback"] == 0
+        _note(client, game_run, 1, None, "Too passive.")
+        assert client.get("/api/games/").json()["runs"][0]["with_feedback"] == 1
+
+    def test_feedback_without_its_game_is_reported(self, client, game_run, settings):
+        for path in ("gone/0.json", f"{game_run}/9.json"):
+            (settings.EVALS_FEEDBACK_DIR / path).parent.mkdir(parents=True, exist_ok=True)
+            (settings.EVALS_FEEDBACK_DIR / path).write_text(json.dumps({"nation": "England", "overall": "note"}))
+        assert client.get("/api/games/").json()["orphans"] == [
+            {"path": f"feedback/{game_run}/9.json", "problem": f"game run '{game_run}' has no game with seed 9"},
+            {"path": "feedback/gone/0.json", "problem": "no game run 'gone' in the logs"},
+        ]
+
+    def test_invalid_feedback_file_is_reported(self, client, game_run, settings):
+        path = settings.EVALS_FEEDBACK_DIR / game_run / "0.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps({"nation": "England", "score": 3}))
+        (orphan,) = client.get("/api/games/").json()["orphans"]
+        assert "violates schema" in orphan["problem"]
+
+
+class TestGameRunDetail:
+
+    def test_unknown_run_is_not_found(self, client, game_run, run):
+        assert client.get("/api/games/nowhere/").status_code == 404
+        assert client.get(f"/api/games/{run(_completion(ATTACK))}/").status_code == 404
+
+    def test_lists_each_game_with_its_result_and_the_paired_game(self, client, game_run):
+        detail = client.get(f"/api/games/{game_run}/").json()
+        assert detail["nation"] == "England"
+        assert [row["seed"] for row in detail["games"]] == [0, 1]
+        row = detail["games"][0]
+        assert row["end"] == "horizon"
+        assert row["failed"] == 1
+        assert 0 <= row["share"] <= 100 and 0 <= row["paired_share"] <= 100
+        assert isinstance(row["centres"], int) and isinstance(row["paired_centres"], int)
+
+    def test_marks_the_games_with_feedback(self, client, game_run):
+        _note(client, game_run, 1, None, "Too passive.")
+        assert [row["feedback"] for row in client.get(f"/api/games/{game_run}/").json()["games"]] == [False, True]
+
+    def test_carries_the_opening_prompt(self, client, game_run):
+        opening = client.get(f"/api/games/{game_run}/").json()["opening"]
+        assert opening["system"].startswith("You are an expert Diplomacy player.")
+        assert "You are playing as England." in opening["user"]
+
+    def test_carries_the_reference_for_its_nation(self, client, game_run, settings):
+        assert client.get(f"/api/games/{game_run}/").json()["reference"] is None
+        write_reference(settings.EVALS_REFERENCE_DIR, "England", [{"seed": 0, "centres": 5, "share": 12.5}])
+        assert client.get(f"/api/games/{game_run}/").json()["reference"]["games"][0]["share"] == 12.5
+
+
+class TestGameDetail:
+
+    def test_unknown_game_is_not_found(self, client, game_run):
+        assert client.get(f"/api/games/{game_run}/9/").status_code == 404
+        assert client.get("/api/games/nowhere/0/").status_code == 404
+
+    def test_lists_every_phase_from_the_opening_to_the_last_played(self, client, game_run):
+        phases = _game(client, game_run)["phases"]
+        assert (phases[0]["key"], phases[-1]["key"]) == ("1901-Spring-Movement", "1905-Fall-Retreat")
+        assert len(phases) == 24
+
+    def test_phase_carries_every_nation_orders_with_their_results(self, client, game_run):
+        opening = _game(client, game_run)["phases"][0]
+        assert {order["nation"] for order in opening["orders"]} == {
+            "Austria",
+            "England",
+            "France",
+            "Germany",
+            "Italy",
+            "Russia",
+            "Turkey",
+        }
+        (london,) = [order for order in opening["orders"] if order["source"] == "lon"]
+        assert (london["id"], london["description"], london["result"]) == (OPENING_MOVE, "Move -> North Sea", "OK")
+
+    def test_phase_carries_the_model_answer_with_its_orders_named(self, client, game_run):
+        answer = _game(client, game_run)["phases"][0]["answer"]
+        assert (answer["reasoning"], answer["problem"]) == ("go north", None)
+        assert [order["name"] for order in answer["orders"]] == ["F Lon–NTH"]
+        assert answer["orders"][0]["result"] == "OK"
+        assert "You are playing as England." in answer["user"]
+
+    def test_failed_phase_carries_its_problem_and_raw_completion(self, client, game_run):
+        fall = next(phase for phase in _game(client, game_run)["phases"] if phase["key"] == "1901-Fall-Movement")
+        assert fall["answer"]["problem"].startswith("could not parse JSON")
+        assert fall["answer"]["completion"] == "not json"
+        assert fall["answer"]["orders"] == []
+        assert not [order for order in fall["orders"] if order["nation"] == "England"]
+
+    def test_phase_the_model_was_not_asked_has_no_answer(self, client, game_run):
+        assert _game(client, game_run)["phases"][1]["answer"] is None
+
+    def test_phase_names_the_units_its_resolution_dislodged(self, client, game_run):
+        phases = _game(client, game_run)["phases"]
+        for phase, following in zip(phases, phases[1:]):
+            assert phase["dislodged"] == [unit["province"] for unit in following["units"] if unit["dislodged"]]
+
+    def test_carries_the_final_centres_and_the_score(self, client, game_run):
+        game = _game(client, game_run)
+        assert set(game["final_centres"]) == {"Austria", "England", "France", "Germany", "Italy", "Russia", "Turkey"}
+        assert game["centres"] == game["final_centres"]["England"]
+        assert game["end"] == "horizon"
+
+    def test_carries_its_feedback(self, client, game_run):
+        assert _game(client, game_run)["feedback"] == {"overall": "", "phases": {}}
+        _note(client, game_run, 0, "1902-Fall-Movement", "Left Norway open.")
+        assert _game(client, game_run)["feedback"] == {
+            "overall": "",
+            "phases": {"1902-Fall-Movement": "Left Norway open."},
+        }
+
+
+class TestGameFeedback:
+
+    def _file(self, settings, run, seed=0):
+        return settings.EVALS_FEEDBACK_DIR / run / f"{seed}.json"
+
+    def test_notes_are_written_to_the_game_feedback_file(self, client, game_run, settings):
+        _note(client, game_run, 0, "1902-Fall-Movement", "Left Norway open.")
+        response = _note(client, game_run, 0, None, "Too passive.")
+        assert response.status_code == 200
+        assert response.json() == {"overall": "Too passive.", "phases": {"1902-Fall-Movement": "Left Norway open."}}
+        assert json.loads(self._file(settings, game_run).read_text()) == {
+            "nation": "England",
+            "overall": "Too passive.",
+            "phases": {"1902-Fall-Movement": "Left Norway open."},
+        }
+
+    def test_phase_the_game_does_not_contain_is_rejected(self, client, game_run, settings):
+        assert _note(client, game_run, 0, "1905-Fall-Adjustment", "note").status_code == 400
+        assert not self._file(settings, game_run).exists()
+
+    def test_emptied_note_is_removed_and_an_empty_file_deleted(self, client, game_run, settings):
+        _note(client, game_run, 0, None, "Too passive.")
+        _note(client, game_run, 0, "1902-Fall-Movement", "Left Norway open.")
+        _note(client, game_run, 0, None, "")
+        assert json.loads(self._file(settings, game_run).read_text()) == {
+            "nation": "England",
+            "phases": {"1902-Fall-Movement": "Left Norway open."},
+        }
+        _note(client, game_run, 0, "1902-Fall-Movement", "   ")
+        assert not self._file(settings, game_run).exists()
+
+    def test_malformed_body_is_rejected(self, client, game_run):
+        url = f"/api/games/{game_run}/0/feedback/"
+        assert client.put(url, data="nope", content_type="application/json").status_code == 400
+        assert _note(client, game_run, 0, None, 3).status_code == 400
+        assert _note(client, game_run, 0, 1902, "note").status_code == 400
+
+    def test_unknown_game_is_not_found(self, client, game_run):
+        assert _note(client, game_run, 9, None, "note").status_code == 404
+
+    def test_only_put_is_allowed(self, client, game_run):
+        assert client.get(f"/api/games/{game_run}/0/feedback/").status_code == 405

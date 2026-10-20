@@ -1,4 +1,5 @@
 import hashlib
+from collections.abc import Iterable
 from datetime import date
 from pathlib import Path
 
@@ -25,13 +26,24 @@ NOUNS = tuple("""
     """.split())
 
 
-def prompt_digest(dataset: Dataset) -> str:
+def _digest(parts: Iterable[str]) -> str:
     digest = hashlib.sha256()
-    for sample in sorted(dataset, key=lambda sample: str(sample.id)):
-        for part in (str(sample.id), *(message.text for message in sample.input)):
-            digest.update(part.encode())
-            digest.update(b"\0")
+    for part in parts:
+        digest.update(part.encode())
+        digest.update(b"\0")
     return digest.hexdigest()
+
+
+def prompt_digest(dataset: Dataset) -> str:
+    return _digest(
+        part
+        for sample in sorted(dataset, key=lambda sample: str(sample.id))
+        for part in (str(sample.id), *(message.text for message in sample.input))
+    )
+
+
+def game_prompt_digest(nation: str, system: str, user: str) -> str:
+    return _digest((nation, system, user))
 
 
 def _name_for(digest: str, day: date, taken: set[str]) -> str:

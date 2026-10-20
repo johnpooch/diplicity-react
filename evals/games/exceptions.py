@@ -1,0 +1,2 @@
+class FeedbackError(Exception):
+    pass

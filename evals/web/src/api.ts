@@ -191,3 +191,117 @@ export const useLabelOrderSet = () => {
       ]),
   });
 };
+
+export type GameEnd = "horizon" | "solo" | "eliminated";
+
+export type ReferenceGame = { seed: number; centres: number; share: number };
+
+export type Reference = { games: ReferenceGame[] } | null;
+
+export type GameRunSummary = RunHeader & {
+  nation: string;
+  games: number;
+  centres: number | null;
+  share: number | null;
+  with_feedback: number;
+};
+
+export type FeedbackOrphan = { path: string; problem: string };
+
+export type GameRuns = {
+  runs: GameRunSummary[];
+  references: Record<string, Reference>;
+  orphans: FeedbackOrphan[];
+};
+
+export type GameResult = {
+  seed: number;
+  centres: number;
+  share: number;
+  paired_centres: number;
+  paired_share: number;
+  end: GameEnd;
+};
+
+export type GameRunGame = GameResult & { failed: number; feedback: boolean };
+
+export type GameRunDetail = RunHeader & {
+  nation: string;
+  centres: number | null;
+  share: number | null;
+  games: GameRunGame[];
+  reference: Reference;
+  opening: { system?: string; user?: string } | null;
+};
+
+export type GameOrder = OrderDetail & { nation: string; id: string; result: string | null };
+
+export type GameAnswer = {
+  system: string;
+  user: string;
+  completion: string | null;
+  reasoning: string | null;
+  problem: string | null;
+  orders: (GameOrder & { name: string })[];
+};
+
+export type GamePhase = {
+  key: string;
+  phase: Phase;
+  units: Unit[];
+  supply_centers: { nation: string; province: string }[];
+  dislodged: string[];
+  orders: GameOrder[];
+  answer: GameAnswer | null;
+};
+
+export type Feedback = { overall: string; phases: Record<string, string> };
+
+export type Game = RunHeader &
+  GameResult & {
+    nation: string;
+    final_centres: Record<string, number>;
+    phases: GamePhase[];
+    feedback: Feedback;
+  };
+
+export type SaveNote = { phase: string | null; note: string };
+
+const gameRunUrl = (name: string) => `/api/games/${encodeURIComponent(name)}/`;
+
+export const useGameRuns = () =>
+  useSuspenseQuery({
+    queryKey: ["games"],
+    queryFn: () => request<GameRuns>("/api/games/"),
+  });
+
+export const useGameRun = (name: string) =>
+  useSuspenseQuery({
+    queryKey: ["games", name],
+    queryFn: () => request<GameRunDetail>(gameRunUrl(name)),
+  });
+
+export const useGame = (name: string, seed: number) =>
+  useSuspenseQuery({
+    queryKey: ["games", name, seed],
+    queryFn: () => request<Game>(`${gameRunUrl(name)}${seed}/`),
+  });
+
+export const useSaveNote = (name: string, seed: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SaveNote) =>
+      request<Feedback>(`${gameRunUrl(name)}${seed}/feedback/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    onSuccess: feedback => {
+      queryClient.setQueryData<Game>(["games", name, seed], game => (game ? { ...game, feedback } : game));
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["games"], exact: true, refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: ["games", name], exact: true, refetchType: "all" }),
+      ]);
+    },
+  });
+};

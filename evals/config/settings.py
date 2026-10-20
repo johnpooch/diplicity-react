@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     "select_orders",
     "harvest",
     "workbench",
+    "games",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -27,4 +28,6 @@ EVALS_MODEL = os.getenv("EVALS_MODEL", "anthropic/claude-haiku-5-5")
 EVALS_EVAL_SET = os.getenv("EVALS_EVAL_SET", "opening")
 EVALS_FIXTURES_DIR = BASE_DIR / "fixtures"
 EVALS_LOGS_DIR = BASE_DIR / "logs"
+EVALS_FEEDBACK_DIR = BASE_DIR / "feedback"
+EVALS_REFERENCE_DIR = BASE_DIR / "data" / "dumbbot_reference"
 EVALS_LABELLER = os.getenv("EVALS_LABELLER") or getpass.getuser()

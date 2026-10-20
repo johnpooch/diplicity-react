@@ -70,9 +70,11 @@ Do not build these as part of this plan. Each was considered and deferred.
   and was closed as not planned. Suite results live in memory for the session
   (D20).
 - **Deploying the tool.** Local only, see D5.
-- **Dumbbot rollouts** (playing a game-year or more forward with dumbbot in every
-  seat). Deferred until the one-phase comparison with the human has been tried
-  and found not to be enough. The design work already done is kept in section 11.
+- **Per-fixture dumbbot rollouts** (playing a game-year or more forward from a
+  fixture with dumbbot in every seat). Deferred until the one-phase comparison
+  with the human has been tried and found not to be enough. The design work
+  already done is kept in section 11. Whole games against dumbbot are in scope
+  (D22).
 - **The dumbbot match protocol.** Settled in
   [#1126](https://github.com/johnpooch/diplicity-react/issues/1126). Do not
   redefine it.
@@ -382,6 +384,26 @@ epochs counts once.
 kinds of label both earn their keep is open. One known gap: `actual_orders`
 leaves out implicit holds, so a model that orders those holds explicitly does not
 match the human's set.
+
+**D22. Whole games against dumbbot, for review.** Added in October 2026, and a
+partial reversal of the section 11 deferral: whole games are played, per-fixture
+rollouts stay deferred. The model plays one classical nation against six
+dumbbots from Spring 1901 until the Fall 1905 Adjustment begins; that phase is
+not played, because ownership is already fixed when it starts (section 3), and
+its starting board is the one scored. A game stops early on a solo or when the
+model's nation is eliminated. Each phase sends the unmodified, stateless
+`select_orders` prompt; a failed answer submits no orders and is not retried.
+
+The main output is human review: the Games view steps through a game with every
+nation's orders on the board, and John writes a note per phase and one for the
+game, committed under `evals/feedback/`, never in logs. The score is secondary
+and tracks over time whether the model is starting to beat dumbbot: normalised
+sum of squares (own centres² over the sum of all centres², all of it on a solo),
+derived from the logged centres when read. Two baselines sit beside it: the
+all-dumbbot game on the same seed, and a committed reference of 100 all-dumbbot
+seeds per nation shown as a mean with a 95% interval. Out of scope: history in
+the prompt, retries, promoting a phase to a fixture, exporting feedback, and
+starting games from the UI.
 
 ---
 
@@ -901,7 +923,7 @@ their *done when* is met in full.
 
 ### Not now
 
-Dumbbot rollouts, see section 11.
+Per-fixture dumbbot rollouts, see section 11. Whole games are built (D22).
 
 Reconnecting `evals/` to production: porting a better prompt, the option-id
 format or the reshaped board back into `service/harness`. Do this deliberately,
@@ -920,7 +942,8 @@ archive), and prompt-injection fixtures.
 
 Kept so the design work is not lost. Not part of the current plan (D10, Q9).
 Revisit only if the one-phase comparison with the human turns out not to be
-enough.
+enough. Whole games against dumbbot were built separately, for review rather
+than per-fixture measurement (D22).
 
 **The idea.** Start from the one-phase counterfactual (phase 0: the candidate
 order set against the other nations' real orders), then play forward with

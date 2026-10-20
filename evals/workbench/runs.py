@@ -40,9 +40,9 @@ def _header(path: Path, log: EvalLog) -> dict:
     }
 
 
-def list_runs(logs_dir: Path) -> list[dict]:
+def list_runs(logs_dir: Path, task: str = MODEL_TASK) -> list[dict]:
     headers = [_header(path, _read(str(path), path.stat().st_mtime, True)) for path in _paths(logs_dir)]
-    return [header for header in headers if header["task"] == MODEL_TASK and header["status"] == SUCCESS]
+    return [header for header in headers if header["task"] == task and header["status"] == SUCCESS]
 
 
 def run_samples(logs_dir: Path, name: str) -> list[EvalSample]:
@@ -50,8 +50,8 @@ def run_samples(logs_dir: Path, name: str) -> list[EvalSample]:
     return _read(str(path), path.stat().st_mtime, False).samples or []
 
 
-def read_run(logs_dir: Path, name: str) -> tuple[dict, list[EvalSample]]:
-    headers = {header["name"]: header for header in list_runs(logs_dir)}
+def read_run(logs_dir: Path, name: str, task: str = MODEL_TASK) -> tuple[dict, list[EvalSample]]:
+    headers = {header["name"]: header for header in list_runs(logs_dir, task)}
     if name not in headers:
         raise RunError(f"unknown run '{name}'")
     return headers[name], run_samples(logs_dir, name)
