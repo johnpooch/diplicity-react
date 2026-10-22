@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** August 28, 2026
+**Last updated:** October 22, 2026
 
 Diplicity is a mobile and web application for playing the classic Diplomacy board game online. This privacy policy explains what data we collect, how we use it, and your rights regarding that data.
 
@@ -10,13 +10,30 @@ Diplicity is developed and maintained by John McDowell (individual developer).
 
 ### Account Information
 
+You can create an account with an email address and password, or sign in with Google or Apple.
+
 When you sign in with Google, we receive and store:
 
 - **Name** — your Google account display name
 - **Email address** — your Google account email
 - **Profile picture URL** — a link to your Google profile photo, used unless you upload your own picture
 
-We do not access your Google password, contacts, or any other Google account data.
+When you sign in with Apple, we receive and store:
+
+- **Email address** — the email Apple shares with us, which may be a private relay address if you chose "Hide My Email"
+- **Name** — the first and last name Apple shares on your first sign-in, if you choose to share it
+
+We do not access your Google or Apple password, contacts, or any other data in those accounts.
+
+When you register with an email address and password, we store:
+
+- **Email address** — used to sign in and to send you account emails
+- **Password** — stored only as a salted one-way hash; we cannot read it
+- **Display name** — the name you choose for other players to see
+
+### Account Emails
+
+We send email only to verify a new email/password account and to reset a password you have asked to reset. These emails are delivered by Resend, which receives your email address and the content of the message. We do not send marketing email.
 
 ### Profile Pictures
 
@@ -37,6 +54,7 @@ When you use the app, we store:
 - **Orders** — the moves you submit during gameplay
 - **Chat messages** — messages you send in game chat channels
 - **Channel membership** — which chat channels you participate in
+- **AI bot activity** — in games with an AI bot player, the information sent to Anthropic for each bot decision or reply, and the response, kept with the game
 
 ### Device Tokens
 
@@ -57,6 +75,7 @@ We use your data to:
 
 - **Authenticate you** and maintain your session
 - **Run the game** — process orders, resolve phases, manage game membership
+- **Run computer-controlled players** — when a game includes an AI bot player, information about the game is sent to Anthropic to decide the bot's moves and replies (see Third-Party Services below)
 - **Deliver notifications** about game events you've opted into
 - **Monitor application health** — detect errors and performance issues (see Third-Party Services below)
 
@@ -68,12 +87,19 @@ We use the following third-party services:
 
 | Service | Purpose | Data Shared |
 |---------|---------|-------------|
-| **Google OAuth** | Authentication | Name, email, profile picture (received from Google) |
+| **Google Sign-In** | Authentication | Name, email, profile picture (received from Google) |
+| **Sign in with Apple** | Authentication | Email (possibly a private relay address) and, on first sign-in, name (received from Apple) |
+| **Resend** | Account emails (verification and password reset) | Your email address and the email's content |
+| **Anthropic** | Computer-controlled (AI bot) players | For games that include an AI bot player: the game state (board, units, nations and available orders) and the chat messages in channels the bot is a member of, labelled with the sender's nation. A channel's name can include a game master's display name. Your email address and account details are not sent. |
+| **Railway** | Hosting for the backend and its PostgreSQL database | All data described in this policy is stored on Railway's infrastructure |
+| **Cloudflare R2** | Storing and delivering mobile app update bundles | No account data; when the app downloads an update, Cloudflare receives the request, including your IP address |
 | **Firebase Cloud Messaging** | Push notifications | FCM device tokens |
 | **Sentry** | Error tracking | Error reports with PII masked; no authentication headers or credentials are sent |
 | **Honeycomb (OpenTelemetry)** | Performance monitoring | Request traces and timing data; no user-identifiable information |
 
 We do not sell or share your personal data with any other third parties.
+
+Chat messages sent in a channel that includes an AI bot player are processed by Anthropic so the bot can reply. If you do not want your messages processed this way, do not send them in a channel that includes a bot.
 
 ## 4. Data Storage & Security
 
