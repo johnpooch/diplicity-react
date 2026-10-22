@@ -6,3 +6,9 @@ export const isNetworkError = (error: unknown): boolean =>
 
 export const isNotFoundError = (error: unknown): boolean =>
   error instanceof AxiosError && error.response?.status === 404;
+
+export const isRateLimitedError = (error: unknown): boolean =>
+  error instanceof AxiosError && error.response?.status === 429;
+
+export const RATE_LIMITED_MESSAGE =
+  "Too many attempts. Please wait a while and try again.";

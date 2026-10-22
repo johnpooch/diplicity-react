@@ -1,3 +1,4 @@
+import hashlib
 import urllib.request
 import json
 
@@ -9,6 +10,7 @@ from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from rest_framework import exceptions
+from rest_framework.throttling import SimpleRateThrottle
 
 APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
 APPLE_ISSUER = "https://appleid.apple.com"
@@ -106,3 +108,20 @@ def verify_apple_id_token(id_token):
         raise exceptions.AuthenticationFailed("Apple authentication failed")
 
     return decoded
+
+
+class EmailRateThrottle(SimpleRateThrottle):
+    def get_cache_key(self, request, view):
+        email = request.data.get("email")
+        if not isinstance(email, str) or not email.strip():
+            return None
+        ident = hashlib.sha256(email.strip().lower().encode()).hexdigest()
+        return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class RegisterEmailRateThrottle(EmailRateThrottle):
+    scope = "register_email"
+
+
+class PasswordResetEmailRateThrottle(EmailRateThrottle):
+    scope = "password_reset_email"

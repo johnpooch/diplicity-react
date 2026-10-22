@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { toast } from "sonner";
+import { AxiosError, AxiosHeaders } from "axios";
+import type { AxiosResponse } from "axios";
 import { Login } from "./Login";
 
 const mockLogin = vi.fn();
@@ -38,6 +40,17 @@ vi.mock("@react-oauth/google", () => ({
 vi.mock("@/utils/platform", () => ({
   isNativePlatform: () => false,
 }));
+
+const rateLimitedError = () => {
+  const config = { headers: new AxiosHeaders() };
+  return new AxiosError(
+    "Request failed with status code 429",
+    AxiosError.ERR_BAD_REQUEST,
+    config,
+    undefined,
+    { status: 429, statusText: "", data: null, headers: {}, config } as AxiosResponse
+  );
+};
 
 const renderLogin = () =>
   render(
@@ -108,6 +121,36 @@ describe("Login", () => {
 
     expect(toastErrorSpy).toHaveBeenCalledWith("Invalid email or password");
     expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it("tells the user to wait when email sign-in is rate limited", async () => {
+    mockMutateAsync.mockRejectedValue(rateLimitedError());
+    const toastErrorSpy = vi.spyOn(toast, "error");
+
+    renderLogin();
+
+    await userEvent.type(screen.getByLabelText(/email/i), "player@example.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "wrongpass");
+    await userEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    expect(toastErrorSpy).toHaveBeenCalledWith(
+      "Too many attempts. Please wait a while and try again."
+    );
+  });
+
+  it("tells the user to wait when Apple sign-in is rate limited", async () => {
+    mockAppleMutateAsync.mockRejectedValue(rateLimitedError());
+    const toastErrorSpy = vi.spyOn(toast, "error");
+
+    renderLogin();
+
+    await userEvent.click(screen.getByRole("button", { name: /sign in with apple/i }));
+
+    await vi.waitFor(() =>
+      expect(toastErrorSpy).toHaveBeenCalledWith(
+        "Too many attempts. Please wait a while and try again."
+      )
+    );
   });
 
   it("has a link to the registration page", () => {

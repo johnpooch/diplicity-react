@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AxiosError, AxiosHeaders } from "axios";
 import type { AxiosResponse } from "axios";
-import { isNetworkError, isNotFoundError } from "./network";
+import { isNetworkError, isNotFoundError, isRateLimitedError } from "./network";
 
 const responseError = (status: number) => {
   const config = { headers: new AxiosHeaders() };
@@ -59,5 +59,19 @@ describe("isNotFoundError", () => {
 
   it("returns false for a non-axios error", () => {
     expect(isNotFoundError(new Error("Not Found"))).toBe(false);
+  });
+});
+
+describe("isRateLimitedError", () => {
+  it("returns true for an axios error with a 429 response", () => {
+    expect(isRateLimitedError(responseError(429))).toBe(true);
+  });
+
+  it("returns false for an axios error with a 401 response", () => {
+    expect(isRateLimitedError(responseError(401))).toBe(false);
+  });
+
+  it("returns false for a non-axios error", () => {
+    expect(isRateLimitedError(new Error("Too Many Requests"))).toBe(false);
   });
 });
