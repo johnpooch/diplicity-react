@@ -1,5 +1,6 @@
 import gzip
 import hashlib
+from pathlib import Path
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -9,6 +10,39 @@ from rest_framework import status
 from nation.admin import NationFlagAdminForm
 from nation.models import NationFlag
 from nation.utils import FLAG_MAX_BYTES
+
+
+COMMITTED_FLAGS = sorted((Path(__file__).resolve().parent.parent / "variant" / "data" / "flags").glob("*/*.svg"))
+
+SVG_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+
+UNSAFE_SVG_PAYLOADS = [
+    ('<a xlink:href="java&#x09;script:alert(1)"><rect id="kept"/></a>', "alert("),
+    ('<animate attributeName="href" values="javascript:alert(1)"/>', "alert("),
+    ('<set attributeName="href" from="javascript:alert(1)"/>', "alert("),
+    ('<rect onclick="alert(1)" onmouseover="alert(2)"/>', "alert("),
+    ("<script>alert(1)</script>", "alert("),
+    ('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>', "alert("),
+    ('<html:script xmlns:html="http://www.w3.org/1999/xhtml">alert(1)</html:script>', "alert("),
+    ('<a href="data:text/html,alert(1)"><rect/></a>', "alert("),
+    ('<image href="javascript:alert(1)"/>', "alert("),
+    ('<image xlink:href="data:image/svg+xml;base64,PHN2Zy8+"/>', "data:image/svg"),
+    ('<use href="https://evil.example/sprite.svg#a"/>', "evil.example"),
+    ('<rect fill="url(https://evil.example/a.png)"/>', "evil.example"),
+    ('<rect style="fill:url(https://evil.example/a.png)"/>', "evil.example"),
+    ('<rect style="fill:u\\72l(https://evil.example/a.png)"/>', "evil.example"),
+    ('<rect style="width:expression(alert(1))"/>', "alert("),
+    ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
+    ("<style>rect{fill:url(https://evil.example/a.png)}</style>", "evil.example"),
+    ("<style>@font-face{font-family:'F';src:url(https://evil.example/f.woff)}</style>", "evil.example"),
+]
+
+SAFE_SVG_CONTENT = [
+    '<use xlink:href="#a"/>',
+    '<image xlink:href="data:image/png;base64,iVBORw0KGgo="/>',
+    '<rect fill="url(#g)" style="fill:url(#g);stroke:#000"/>',
+    "<style>@font-face{font-family:'F';src:url(data:font/woff2;base64,AAAA) format('woff2')}</style>",
+]
 
 
 def _flag_upload(svg, filename="flag.svg"):
@@ -123,6 +157,58 @@ class TestNationFlagUploadView:
         assert "<script" not in flag.svg
         assert "onclick" not in flag.svg
         assert 'id="r1"' in flag.svg
+
+    @pytest.mark.parametrize("payload, marker", UNSAFE_SVG_PAYLOADS)
+    def test_upload_removes_unsafe_content(
+        self, authenticated_client, draft_variant_for_primary, payload, marker
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f'{SVG_OPEN}<rect id="sentinel"/>{payload}</svg>'),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert marker not in served
+        assert 'id="sentinel"' in served
+
+    @pytest.mark.parametrize("content", SAFE_SVG_CONTENT)
+    def test_upload_keeps_same_document_references(
+        self, authenticated_client, draft_variant_for_primary, content
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f"{SVG_OPEN}{content}</svg>"),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert content in served
+
+    def test_upload_rejects_non_svg_root(self, authenticated_client, draft_variant_for_primary):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload('<html xmlns="http://www.w3.org/1999/xhtml"><body/></html>'),
+            format="multipart",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {"flag": "Flag must be an <svg> element in the SVG namespace."}
+
+    def test_reuploading_a_served_flag_keeps_its_url(
+        self, authenticated_client, draft_variant_for_primary
+    ):
+        url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
+        first = authenticated_client.put(
+            url, _flag_upload(COMMITTED_FLAGS[0].read_text()), format="multipart"
+        )
+        served = authenticated_client.get(first.data["flag_url"]).content.decode()
+
+        second = authenticated_client.put(url, _flag_upload(served), format="multipart")
+
+        assert second.data["flag_url"] == first.data["flag_url"]
 
     def test_delete_flag(self, authenticated_client, draft_variant_for_primary, minimal_flag_svg):
         url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
@@ -243,6 +329,19 @@ class TestNationFlagSvgView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+    @pytest.mark.parametrize("flag_path", COMMITTED_FLAGS, ids=lambda path: f"{path.parent.name}/{path.stem}")
+    def test_committed_flags_keep_their_rendering(
+        self, authenticated_client, unauthenticated_client, svg_rendering_signature, flag_path
+    ):
+        variant = authenticated_client.get(reverse("variant-detail", kwargs={"pk": flag_path.parent.name}))
+        nation = next(nation for nation in variant.data["nations"] if nation["nation_id"] == flag_path.stem)
+
+        served = unauthenticated_client.get(nation["flag_url"])
+
+        assert served.status_code == status.HTTP_200_OK
+        assert svg_rendering_signature(served.content.decode()) == svg_rendering_signature(flag_path.read_text())
+
+
 @pytest.mark.django_db
 class TestNationFlagAdminForm:
     def test_admin_form_accepts_valid_upload(self, draft_variant_for_primary, minimal_flag_svg):
@@ -259,7 +358,7 @@ class TestNationFlagAdminForm:
 
     def test_admin_form_replaces_existing_flag(self, draft_variant_for_primary, minimal_flag_svg):
         nation = draft_variant_for_primary.nations.first()
-        existing = NationFlag.objects.create(nation=nation, svg="<svg/>")
+        existing = NationFlag.objects.create(nation=nation, svg='<svg xmlns="http://www.w3.org/2000/svg"/>')
         original_hash = existing.content_hash
 
         form = NationFlagAdminForm(
@@ -277,6 +376,16 @@ class TestNationFlagAdminForm:
 
         form = NationFlagAdminForm(
             data={"nation": nation.pk}, files={"svg_file": _admin_upload("<svg><g></svg>")}
+        )
+
+        assert not form.is_valid()
+
+    def test_admin_form_rejects_non_svg_root(self, draft_variant_for_primary):
+        nation = draft_variant_for_primary.nations.first()
+
+        form = NationFlagAdminForm(
+            data={"nation": nation.pk},
+            files={"svg_file": _admin_upload('<html xmlns="http://www.w3.org/1999/xhtml"/>')},
         )
 
         assert not form.is_valid()

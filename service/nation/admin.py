@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import admin
 from lxml import etree
 
+from variant.utils import SVG_NAMESPACE
 from .models import Nation, NationFlag
 from .utils import FLAG_MAX_BYTES
 
@@ -42,9 +43,11 @@ class NationFlagAdminForm(forms.ModelForm):
             raise forms.ValidationError("Uploaded file is not valid UTF-8 text.")
 
         try:
-            etree.fromstring(svg.encode())
+            root = etree.fromstring(svg.encode())
         except etree.XMLSyntaxError as exc:
             raise forms.ValidationError(f"Could not parse SVG: {exc}.")
+        if root.tag != f"{{{SVG_NAMESPACE}}}svg":
+            raise forms.ValidationError("Flag must be an <svg> element in the SVG namespace.")
 
         self.instance.svg = svg
         return cleaned_data

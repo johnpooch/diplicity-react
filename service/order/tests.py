@@ -42,7 +42,7 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
 
-        assert response.data[0]["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data[0]["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data[0]["order_type"] == OrderType.MOVE
 
         assert response.data[0]["source"]["id"] == "lon"
@@ -310,7 +310,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] is None
         assert response.data["unit_type"] is None
@@ -348,7 +348,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Move"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Move"
         assert response.data["unit_type"] is None
@@ -369,7 +369,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Move", "gal"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Move"
         assert response.data["unit_type"] is None
@@ -398,7 +398,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -420,7 +420,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support", "vie"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -451,7 +451,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support", "vie", "tri"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -474,7 +474,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Hold"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Hold"
         assert response.data["unit_type"] is None
@@ -514,7 +514,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Build"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Build"
         assert response.data["unit_type"] is None
@@ -553,7 +553,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Build", "Army"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Build"
         assert response.data["unit_type"] == "Army"
@@ -583,7 +583,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "MoveViaConvoy"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "MoveViaConvoy"
         assert response.data["unit_type"] is None
@@ -614,7 +614,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "MoveViaConvoy", "gal"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "MoveViaConvoy"
         assert response.data["unit_type"] is None
@@ -671,7 +671,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Disband"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Disband"
         assert response.data["unit_type"] is None

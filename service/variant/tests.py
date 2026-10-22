@@ -1,5 +1,10 @@
 import copy
+import json
+import re
+from pathlib import Path
+
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from common.constants import PhaseStatus, VariantStatus
 from phase.models import Phase
 from django.urls import reverse
@@ -9,7 +14,7 @@ from rest_framework import status
 
 from adjudicator.serializers import deserialize_variant, VariantValidationError
 from variant.models import Variant, default_phase_progression
-from variant.utils import variant_to_canonical_dict
+from variant.utils import normalize_dsvg, variant_to_canonical_dict
 
 IN_DB_VARIANT_IDS = {
     "classical", "italy-vs-germany", "hundred",
@@ -500,3 +505,111 @@ class TestNationColor:
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
         assert nations_by_id["england"]["color"] == "#2196F3"
         assert nations_by_id["italy"]["color"] == "#4CAF50"
+
+
+COMMITTED_DSVGS = sorted((Path(__file__).resolve().parent / "data" / "svg").glob("*.d.svg"))
+
+UNSAFE_DSVG_PAYLOADS = [
+    ('<a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="java&#x09;script:alert(1)"><rect/></a>', "alert("),
+    ('<animate attributeName="href" values="javascript:alert(1)"/>', "alert("),
+    ('<set attributeName="href" from="javascript:alert(1)"/>', "alert("),
+    ('<rect onclick="alert(1)"/>', "alert("),
+    ("<script>alert(1)</script>", "alert("),
+    ('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>', "alert("),
+    ('<a href="data:text/html,alert(1)"><rect/></a>', "alert("),
+    ('<use href="https://evil.example/sprite.svg#a"/>', "evil.example"),
+    ('<rect style="fill:url(https://evil.example/a.png)"/>', "evil.example"),
+    ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
+]
+
+
+def _variant_upload(dvar, dsvg):
+    return {
+        "dvar": SimpleUploadedFile("upload.dvar.json", json.dumps(dvar).encode(), "application/json"),
+        "dsvg": SimpleUploadedFile("upload.svg", dsvg.encode(), "image/svg+xml"),
+    }
+
+
+def _with_foreground_content(dsvg, content):
+    injected, count = re.subn(
+        r'(<g\b[^>]*\bid="foreground"[^>]*>)', lambda match: match.group(1) + content, dsvg, count=1
+    )
+    assert count == 1
+    return injected
+
+
+def _draft_dvar(dvar, slug):
+    draft = copy.deepcopy(dvar)
+    draft["id"] = slug
+    return draft
+
+
+@pytest.mark.django_db
+class TestVariantListCreateView:
+    @pytest.mark.parametrize("payload, marker", UNSAFE_DSVG_PAYLOADS)
+    def test_create_removes_unsafe_svg_content(
+        self, authenticated_client, classical_dvar, classical_dsvg, payload, marker
+    ):
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(
+                _draft_dvar(classical_dvar, "unsafe-draft"), _with_foreground_content(classical_dsvg, payload)
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert marker not in served
+        assert 'id="foreground"' in served
+
+    def test_create_rejects_non_svg_root(self, authenticated_client, classical_dvar):
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(_draft_dvar(classical_dvar, "html-draft"), '<html xmlns="http://www.w3.org/1999/xhtml"/>'),
+            format="multipart",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["dsvg"] == [
+            {"code": "INVALID_ROOT", "message": "Root element must be <svg> in the SVG namespace."}
+        ]
+
+    @pytest.mark.parametrize("dsvg_path", COMMITTED_DSVGS, ids=lambda path: path.name)
+    def test_committed_maps_keep_their_rendering(self, authenticated_client, svg_rendering_signature, dsvg_path):
+        variant_id = dsvg_path.name.removesuffix(".d.svg")
+        dvar = variant_to_canonical_dict(Variant.objects.get(id=variant_id))
+        source = dsvg_path.read_text()
+
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(_draft_dvar(dvar, f"{variant_id}-copy"), source),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert svg_rendering_signature(served) == svg_rendering_signature(normalize_dsvg(source))
+
+
+@pytest.mark.django_db
+class TestVariantDetailView:
+    @pytest.mark.parametrize("payload, marker", UNSAFE_DSVG_PAYLOADS[:3])
+    def test_update_removes_unsafe_svg_content(
+        self, authenticated_client, classical_dvar, classical_dsvg, payload, marker
+    ):
+        dvar = _draft_dvar(classical_dvar, "updated-draft")
+        created = authenticated_client.post(
+            reverse("variant-list"), _variant_upload(dvar, classical_dsvg), format="multipart"
+        )
+        assert created.status_code == status.HTTP_201_CREATED, created.data
+
+        response = authenticated_client.put(
+            reverse("variant-detail", kwargs={"pk": created.data["id"]}),
+            _variant_upload(dvar, _with_foreground_content(classical_dsvg, payload)),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert marker not in served
