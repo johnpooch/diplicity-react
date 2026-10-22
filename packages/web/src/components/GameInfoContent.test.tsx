@@ -57,6 +57,11 @@ vi.mock("@/api/generated/endpoints", () => ({
         id: "Classical",
         name: "Classical",
         nations: [],
+        victoryConditions: {
+          soloVictorySupplyCenters: 18,
+          gameEndsYear: null,
+          drawAfterYear: null,
+        },
         templatePhase: { season: "Spring", year: 1901, type: "Movement" },
       },
     ],
