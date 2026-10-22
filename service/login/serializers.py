@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import exceptions, serializers
@@ -49,9 +51,6 @@ class GoogleAuthSerializer(serializers.Serializer):
     def create(self, validated_data):
         id_info = verify_google_id_token(validated_data["id_token"])
         user, _, name = AuthUser.objects.create_from_google_id_info(id_info)
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
         profile, created = UserProfile.objects.get_or_create(
             user=user,
             defaults={"name": name, "picture": id_info.get("picture")},
@@ -83,9 +82,6 @@ class AppleAuthSerializer(serializers.Serializer):
             first_name=validated_data.get("first_name"),
             last_name=validated_data.get("last_name"),
         )
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
         profile, profile_created = UserProfile.objects.get_or_create(user=user, defaults={"name": name})
         if not profile_created and (validated_data.get("first_name") or validated_data.get("last_name")):
             profile.name = name
@@ -108,6 +104,14 @@ class RegisterSerializer(serializers.Serializer):
                 "If you signed up with Google or Apple, please sign in with Google or Apple instead."
             )
         return value
+
+    def validate(self, attrs):
+        candidate = User(email=attrs["email"])
+        try:
+            validate_password(attrs["password"], user=candidate)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"password": list(error.messages)})
+        return attrs
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -190,6 +194,11 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
         if not default_token_generator.check_token(attrs["uid"], attrs["token"]):
             raise serializers.ValidationError("Invalid or expired reset link.")
+
+        try:
+            validate_password(attrs["new_password"], user=attrs["uid"])
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"new_password": list(error.messages)})
 
         return attrs
 

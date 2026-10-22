@@ -1,4 +1,5 @@
 import React from "react";
+import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,6 +32,9 @@ const registerSchema = z
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
+const passwordErrorMessage = (error: unknown) =>
+  (error as AxiosError<{ password?: string[] }>).response?.data?.password?.[0];
+
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const registerMutation = useAuthRegisterCreate();
@@ -55,7 +59,11 @@ const Register: React.FC = () => {
         },
       });
       navigate("/check-email");
-    } catch {
+    } catch (error) {
+      const passwordError = passwordErrorMessage(error);
+      if (passwordError) {
+        form.setError("password", { message: passwordError });
+      }
       toast.error("Registration failed");
     }
   };

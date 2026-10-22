@@ -14,6 +14,13 @@ APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
 APPLE_ISSUER = "https://appleid.apple.com"
 
 
+def _require_verified_email(claims):
+    if not claims.get("email"):
+        raise exceptions.AuthenticationFailed("No email address was provided")
+    if claims.get("email_verified") not in (True, "true"):
+        raise exceptions.AuthenticationFailed("Email address is not verified")
+
+
 def _get_valid_client_ids():
     client_ids = []
     if settings.GOOGLE_CLIENT_ID:
@@ -43,6 +50,8 @@ def verify_google_id_token(id_token):
     valid_client_ids = _get_valid_client_ids()
     if id_info.get("aud") not in valid_client_ids:
         raise exceptions.AuthenticationFailed("Invalid token audience")
+
+    _require_verified_email(id_info)
 
     return id_info
 
@@ -104,5 +113,7 @@ def verify_apple_id_token(id_token):
         raise exceptions.AuthenticationFailed("Invalid token issuer")
     except jwt.InvalidTokenError:
         raise exceptions.AuthenticationFailed("Apple authentication failed")
+
+    _require_verified_email(decoded)
 
     return decoded
