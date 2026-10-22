@@ -81,6 +81,7 @@ if [ "$PG_READY" = true ] && [ -x "$VENV_DIR/bin/python" ]; then
   if ! ( cd "$PROJECT_DIR/service" && \
          DATABASE_HOST=127.0.0.1 DATABASE_PORT=5432 DATABASE_NAME=diplicity \
          DATABASE_USER=postgres DATABASE_PASSWORD=postgres \
+         DJANGO_SECRET_KEY="${DJANGO_SECRET_KEY:-local-development-only}" \
          "$VENV_DIR/bin/python" manage.py migrate --noinput ) >/tmp/diplicity-migrate.log 2>&1; then
     log "WARNING: migrate failed (see /tmp/diplicity-migrate.log)"
   fi
@@ -179,6 +180,7 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "export DATABASE_NAME=diplicity"
     echo "export DATABASE_USER=postgres"
     echo "export DATABASE_PASSWORD=postgres"
+    echo "export DJANGO_SECRET_KEY=\"${DJANGO_SECRET_KEY:-local-development-only}\""
     # pgweb credentials — exported if set in the environment config
     [ -n "${PGWEB_URL:-}" ]      && echo "export PGWEB_URL=\"${PGWEB_URL}\""
     [ -n "${PGWEB_USER:-}" ]     && echo "export PGWEB_USER=\"${PGWEB_USER}\""

@@ -43,7 +43,7 @@ RUN pip install gunicorn
 RUN useradd -ms /bin/bash appuser
 
 # Collect static files and set permissions
-RUN python manage.py collectstatic --noinput && chown -R appuser:appuser /app
+RUN DJANGO_SECRET_KEY=collectstatic-build-only python manage.py collectstatic --noinput && chown -R appuser:appuser /app
 
 # Copy and set up entrypoint script
 COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
