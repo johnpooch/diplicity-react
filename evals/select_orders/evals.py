@@ -7,7 +7,7 @@ from inspect_ai.solver import generate
 
 from select_orders.context import fixture_to_context
 from select_orders.dumbbot_solver import dumbbot_solver
-from select_orders.exceptions import FixtureError
+from select_orders.exceptions import FixtureError, PromptError
 from select_orders.fixtures import foreign_orders, ranked_options, read_fixture
 from select_orders.scorers import (
     convoy_coherence,
@@ -22,6 +22,7 @@ from select_orders.prompt import check_option_ids, system_prompt, user_prompt
 from select_orders.types import Fixture
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
+PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
 
 def load_fixtures(eval_set: str | None = None) -> list[Fixture]:
@@ -79,17 +80,35 @@ def _read_prompt(path: str | None) -> str | None:
     return None if path is None else Path(path).read_text()
 
 
+def variant_path(fixture_id: str, variant: str) -> Path:
+    return PROMPTS_DIR / fixture_id / f"{variant}.txt"
+
+
+def _variant_prompt(fixture: Fixture, variant: str | None) -> str | None:
+    if variant is None:
+        return None
+    path = variant_path(fixture["id"], variant)
+    if not path.is_file():
+        raise PromptError(f"fixture '{fixture['id']}' has no '{variant}' prompt at {path}; run build_prompts")
+    return path.read_text()
+
+
 def _dataset(
     eval_set: str | None = None,
     fixture_id: str | None = None,
     system_file: str | None = None,
     user_file: str | None = None,
+    user_variant: str | None = None,
 ) -> MemoryDataset:
     if (system_file or user_file) and fixture_id is None:
         raise FixtureError("a custom prompt is written for one fixture; name it with --fixture")
+    if user_file and user_variant:
+        raise PromptError("pass a user prompt file or a user prompt variant, not both")
     fixtures = select_fixtures(eval_set, fixture_id)
     system, user = _read_prompt(system_file), _read_prompt(user_file)
-    return MemoryDataset([fixture_to_sample(fixture, system, user) for fixture in fixtures])
+    return MemoryDataset(
+        [fixture_to_sample(fixture, system, user or _variant_prompt(fixture, user_variant)) for fixture in fixtures]
+    )
 
 
 @task
@@ -98,9 +117,10 @@ def select_orders(
     fixture_id: str | None = None,
     system_file: str | None = None,
     user_file: str | None = None,
+    user_variant: str | None = None,
 ):
     return Task(
-        dataset=_dataset(eval_set, fixture_id, system_file, user_file),
+        dataset=_dataset(eval_set, fixture_id, system_file, user_file, user_variant),
         solver=generate(),
         scorer=_scorers(),
     )

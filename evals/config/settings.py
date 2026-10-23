@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     "harvest",
     "workbench",
     "games",
+    "prompt_builder",
 ]
 
 ROOT_URLCONF = "config.urls"

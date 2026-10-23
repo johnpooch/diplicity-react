@@ -117,7 +117,11 @@ def system_prompt(context: Context, overrides: dict[str, str] | None = None) -> 
     )
 
 
-def user_prompt(context: Context, overrides: dict[str, str] | None = None) -> str:
+def render_part(part: str, values: dict | None = None) -> str:
+    return _render(DEFAULT_PARTS, part, values)
+
+
+def user_sections(context: Context, overrides: dict[str, str] | None = None) -> dict[str, str]:
     parts = _parts(overrides)
     data = prompt_data(context)
 
@@ -142,15 +146,19 @@ def user_prompt(context: Context, overrides: dict[str, str] | None = None) -> st
         options.append(_render(parts, "user.options.province", province))
         options.extend(_render(parts, "user.options.line", option) for option in province["options"])
 
-    sections = [
-        "\n".join(intro),
-        _section(parts, "players", data["players"]),
-        _section(parts, "board", board),
-        _section(parts, "units", data["units"]),
-        _section(parts, "supply_centres", data["supply_centres"]),
-        "\n".join(options),
-    ]
-    return "\n\n".join(section for section in sections if section is not None)
+    sections = {
+        "intro": "\n".join(intro),
+        "players": _section(parts, "players", data["players"]),
+        "board": _section(parts, "board", board),
+        "units": _section(parts, "units", data["units"]),
+        "supply_centres": _section(parts, "supply_centres", data["supply_centres"]),
+        "options": "\n".join(options),
+    }
+    return {name: section for name, section in sections.items() if section is not None}
+
+
+def user_prompt(context: Context, overrides: dict[str, str] | None = None) -> str:
+    return "\n\n".join(user_sections(context, overrides).values())
 
 
 def check_option_ids(text: str, context: Context) -> None:
