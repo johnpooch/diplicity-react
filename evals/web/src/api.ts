@@ -59,6 +59,7 @@ export type RunHeader = {
   model: string;
   created: string;
   prompt: string | null;
+  prompt_digest: string | null;
 };
 
 export type RunCounts = {

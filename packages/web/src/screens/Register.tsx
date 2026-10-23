@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuthRegisterCreate } from "../api/generated/endpoints";
+import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "../utils/network";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +65,9 @@ const Register: React.FC = () => {
       if (passwordError) {
         form.setError("password", { message: passwordError });
       }
-      toast.error("Registration failed");
+      toast.error(
+        isRateLimitedError(error) ? RATE_LIMITED_MESSAGE : "Registration failed"
+      );
     }
   };
 

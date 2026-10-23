@@ -9,6 +9,7 @@ const run = (name: string, created: string, overrides: Partial<RunSummary> = {})
   model: "anthropic/claude-haiku-5-5",
   created,
   prompt: null,
+  prompt_digest: null,
   answers: 30,
   failed: 0,
   reasonable: 0,

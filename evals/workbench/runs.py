@@ -37,6 +37,7 @@ def _header(path: Path, log: EvalLog) -> dict:
         "created": log.eval.created,
         "status": log.status,
         "prompt": (log.eval.metadata or {}).get("prompt", {}).get("name"),
+        "prompt_digest": (log.eval.metadata or {}).get("prompt", {}).get("digest"),
     }
 
 

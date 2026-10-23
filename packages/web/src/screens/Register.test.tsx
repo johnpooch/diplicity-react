@@ -2,6 +2,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { toast } from "sonner";
+import { AxiosError, AxiosHeaders } from "axios";
+import type { AxiosResponse } from "axios";
 import { Register } from "./Register";
 
 const mockMutateAsync = vi.fn();
@@ -21,6 +24,17 @@ vi.mock("@/api/generated/endpoints", () => ({
     isPending: false,
   }),
 }));
+
+const rateLimitedError = () => {
+  const config = { headers: new AxiosHeaders() };
+  return new AxiosError(
+    "Request failed with status code 429",
+    AxiosError.ERR_BAD_REQUEST,
+    config,
+    undefined,
+    { status: 429, statusText: "", data: null, headers: {}, config } as AxiosResponse
+  );
+};
 
 const renderRegister = () =>
   render(
@@ -104,6 +118,30 @@ describe("Register", () => {
     expect(
       await screen.findByText("This password is too common.")
     ).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("tells the user to wait when registration is rate limited", async () => {
+    mockMutateAsync.mockRejectedValue(rateLimitedError());
+    const toastErrorSpy = vi.spyOn(toast, "error");
+
+    renderRegister();
+
+    await userEvent.type(screen.getByLabelText(/email/i), "new@example.com");
+    await userEvent.type(screen.getByLabelText(/^password$/i), "strongpass123");
+    await userEvent.type(
+      screen.getByLabelText(/confirm password/i),
+      "strongpass123"
+    );
+    await userEvent.type(
+      screen.getByLabelText(/display name/i),
+      "New Player"
+    );
+    await userEvent.click(screen.getByRole("button", { name: /register/i }));
+
+    expect(toastErrorSpy).toHaveBeenCalledWith(
+      "Too many attempts. Please wait a while and try again."
+    );
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 

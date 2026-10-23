@@ -289,6 +289,17 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "project.exception_handler.custom_exception_handler",
+    "NUM_PROXIES": 1,
+    "DEFAULT_THROTTLE_RATES": {
+        "email_login": "30/hour",
+        "social_login": "30/hour",
+        "register": "10/hour",
+        "register_email": "3/hour",
+        "password_reset": "10/hour",
+        "password_reset_email": "3/hour",
+        "password_reset_confirm": "20/hour",
+        "verify_email": "20/hour",
+    },
 }
 
 SIMPLE_JWT = {

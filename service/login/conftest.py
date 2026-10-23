@@ -3,11 +3,26 @@ from unittest.mock import patch
 
 import jwt
 import pytest
+from django.core.cache import cache
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from login.utils import APPLE_ISSUER
+
+
+@pytest.fixture(autouse=True)
+def throttle_cache(settings):
+    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "throttle"}}
+    cache.clear()
+
+
+@pytest.fixture
+def throttle_limit(settings):
+    def _limit(scope):
+        return int(settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][scope].split("/")[0])
+
+    return _limit
 
 
 @pytest.fixture

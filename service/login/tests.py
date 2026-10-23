@@ -348,6 +348,24 @@ class TestGoogleAuthView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
+    def test_google_login_is_rate_limited_per_client(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token, throttle_limit
+    ):
+        url = reverse("auth")
+        for _ in range(throttle_limit("social_login")):
+            response = unauthenticated_client.post(
+                url, {"id_token": "valid_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+            )
+            assert response.status_code == status.HTTP_201_CREATED
+
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert "Retry-After" in response
+
+
 @pytest.mark.django_db
 class TestAppleAuthView:
     def test_missing_id_token_returns_400(self, unauthenticated_client):
@@ -635,6 +653,21 @@ class TestAppleAuthView:
         assert response.data["detail"] == "No email address was provided"
 
 
+    def test_apple_login_shares_the_social_login_limit(
+        self, unauthenticated_client, mock_google_auth, mock_apple_auth, mock_refresh_token, throttle_limit
+    ):
+        for _ in range(throttle_limit("social_login")):
+            unauthenticated_client.post(
+                reverse("auth"), {"id_token": "valid_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+            )
+
+        response = unauthenticated_client.post(
+            reverse("apple-auth"), {"id_token": "apple_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+
 @pytest.mark.django_db
 class TestEmailLoginView:
     def test_successful_login(self, unauthenticated_client):
@@ -725,6 +758,53 @@ class TestEmailLoginView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "not verified" in str(response.data)
         assert "check your email" in str(response.data).lower()
+
+
+    def _wrong_password(self, client, forwarded_for):
+        return client.post(
+            reverse("email-login"),
+            {"email": "player@example.com", "password": "wrongpass123"},
+            format="json",
+            HTTP_X_FORWARDED_FOR=forwarded_for,
+        )
+
+    def test_email_login_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
+        for _ in range(throttle_limit("email_login")):
+            assert self._wrong_password(unauthenticated_client, "203.0.113.1").status_code == 401
+
+        response = self._wrong_password(unauthenticated_client, "203.0.113.1")
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert "throttled" in response.data["detail"]
+        assert "Retry-After" in response
+
+    def test_email_login_limit_is_separate_for_each_client(self, unauthenticated_client, throttle_limit):
+        for _ in range(throttle_limit("email_login") + 1):
+            self._wrong_password(unauthenticated_client, "203.0.113.1")
+
+        response = self._wrong_password(unauthenticated_client, "203.0.113.2")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_email_login_limit_ignores_client_supplied_forwarded_for(self, unauthenticated_client, throttle_limit):
+        for index in range(throttle_limit("email_login")):
+            self._wrong_password(unauthenticated_client, f"198.51.100.{index}, 203.0.113.1")
+
+        response = self._wrong_password(unauthenticated_client, "198.51.100.250, 203.0.113.1")
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+    def test_email_login_without_forwarded_for_uses_the_peer_address(self, unauthenticated_client, throttle_limit):
+        for _ in range(throttle_limit("email_login")):
+            unauthenticated_client.post(
+                reverse("email-login"), {"email": "player@example.com", "password": "wrongpass123"}, format="json"
+            )
+
+        response = unauthenticated_client.post(
+            reverse("email-login"), {"email": "player@example.com", "password": "wrongpass123"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
 
 @pytest.mark.django_db
@@ -868,6 +948,49 @@ class TestRegisterView:
         assert "verify-email" in call_kwargs["html"]
 
 
+    def test_registration_is_rate_limited_per_client(self, unauthenticated_client, mock_send_email, throttle_limit):
+        for index in range(throttle_limit("register")):
+            response = unauthenticated_client.post(
+                reverse("register"),
+                {"email": f"player{index}@example.com", "password": "strongpass123", "display_name": "Player"},
+                format="json",
+                HTTP_X_FORWARDED_FOR="203.0.113.1",
+            )
+            assert response.status_code == status.HTTP_201_CREATED
+
+        response = unauthenticated_client.post(
+            reverse("register"),
+            {"email": "one-more@example.com", "password": "strongpass123", "display_name": "Player"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="203.0.113.1",
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert User.objects.filter(email="one-more@example.com").exists() is False
+        assert mock_send_email.call_count == throttle_limit("register")
+
+    def test_registration_is_rate_limited_per_email_across_clients(
+        self, unauthenticated_client, mock_send_email, throttle_limit
+    ):
+        for index in range(throttle_limit("register_email")):
+            unauthenticated_client.post(
+                reverse("register"),
+                {"email": "Target@Example.com", "password": "strongpass123", "display_name": "Player"},
+                format="json",
+                HTTP_X_FORWARDED_FOR=f"203.0.113.{index}",
+            )
+
+        response = unauthenticated_client.post(
+            reverse("register"),
+            {"email": "target@example.com", "password": "strongpass123", "display_name": "Player"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="198.51.100.1",
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert mock_send_email.call_count == 1
+
+
 @pytest.mark.django_db
 class TestVerifyEmailView:
     def test_valid_token_activates_user(self, unauthenticated_client):
@@ -923,6 +1046,26 @@ class TestVerifyEmailView:
         assert "Invalid verification link." in response.data["uid"]
 
 
+    def test_verify_email_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
+        for _ in range(throttle_limit("verify_email")):
+            response = unauthenticated_client.post(
+                reverse("verify-email"),
+                {"uid": "baduid", "token": "bad"},
+                format="json",
+                HTTP_X_FORWARDED_FOR="203.0.113.1",
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+        response = unauthenticated_client.post(
+            reverse("verify-email"),
+            {"uid": "baduid", "token": "bad"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="203.0.113.1",
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+
 @pytest.mark.django_db
 class TestPasswordResetView:
     def test_sends_reset_email_for_valid_user(self, unauthenticated_client, mock_send_email):
@@ -975,6 +1118,51 @@ class TestPasswordResetView:
 
         assert response.status_code == status.HTTP_201_CREATED
         mock_send_email.assert_not_called()
+
+
+    def test_password_reset_is_rate_limited_per_client(self, unauthenticated_client, mock_send_email, throttle_limit):
+        for index in range(throttle_limit("password_reset")):
+            response = unauthenticated_client.post(
+                reverse("password-reset"),
+                {"email": f"nobody{index}@example.com"},
+                format="json",
+                HTTP_X_FORWARDED_FOR="203.0.113.1",
+            )
+            assert response.status_code == status.HTTP_201_CREATED
+
+        response = unauthenticated_client.post(
+            reverse("password-reset"),
+            {"email": "nobody@example.com"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="203.0.113.1",
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+    def test_password_reset_is_rate_limited_per_email_across_clients(
+        self, unauthenticated_client, mock_send_email, throttle_limit
+    ):
+        User.objects.create_user(
+            username="resetuser", email="reset@example.com", password="strongpass123", is_active=True
+        )
+        for index in range(throttle_limit("password_reset_email")):
+            response = unauthenticated_client.post(
+                reverse("password-reset"),
+                {"email": "reset@example.com"},
+                format="json",
+                HTTP_X_FORWARDED_FOR=f"203.0.113.{index}",
+            )
+            assert response.status_code == status.HTTP_201_CREATED
+
+        response = unauthenticated_client.post(
+            reverse("password-reset"),
+            {"email": "RESET@example.com"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="198.51.100.1",
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert mock_send_email.call_count == throttle_limit("password_reset_email")
 
 
 @pytest.mark.django_db
@@ -1075,6 +1263,25 @@ class TestPasswordResetConfirmView:
         assert "This password is too common." in response.data["new_password"]
         user.refresh_from_db()
         assert user.check_password("oldpass123")
+
+    def test_password_reset_confirm_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
+        payload = {
+            "uid": "baduid",
+            "token": "bad-token",
+            "new_password": "newpass456",
+            "confirm_password": "newpass456",
+        }
+        for _ in range(throttle_limit("password_reset_confirm")):
+            response = unauthenticated_client.post(
+                reverse("password-reset-confirm"), payload, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+        response = unauthenticated_client.post(
+            reverse("password-reset-confirm"), payload, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
 
 @pytest.mark.django_db

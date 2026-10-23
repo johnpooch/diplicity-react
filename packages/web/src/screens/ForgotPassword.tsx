@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "react-router";
 import { Mail } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthPasswordResetCreate } from "@/api/generated/endpoints";
+import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/utils/network";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +35,16 @@ const ForgotPassword: React.FC = () => {
   });
 
   const handleSubmit = async (data: ForgotPasswordFormValues) => {
-    await mutation.mutateAsync({ data: { email: data.email } });
-    setSubmitted(true);
+    try {
+      await mutation.mutateAsync({ data: { email: data.email } });
+      setSubmitted(true);
+    } catch (error) {
+      toast.error(
+        isRateLimitedError(error)
+          ? RATE_LIMITED_MESSAGE
+          : "Failed to send reset link"
+      );
+    }
   };
 
   return (

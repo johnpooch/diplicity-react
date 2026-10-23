@@ -867,6 +867,64 @@ class TestCustomPrompt:
             select_orders("fall_1901", system_file=_write_prompt(tmp_path, "system.txt", "Play well."))
 
 
+class TestUserVariant:
+
+    def _write(self, prompts_dir, fixture_id, text):
+        path = prompts_dir / fixture_id / "user_9_test.txt"
+        path.parent.mkdir(parents=True)
+        path.write_text(text)
+
+    def _prompts(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("select_orders.evals.PROMPTS_DIR", tmp_path)
+        for fixture in load_fixtures("opening"):
+            self._write(tmp_path, fixture["id"], f"{user_prompt(fixture_to_context(fixture))}\nAs {fixture['id']}.")
+        return tmp_path
+
+    def test_sends_each_fixture_its_own_variant_file(self, tmp_path, monkeypatch):
+        self._prompts(tmp_path, monkeypatch)
+        task = select_orders("opening", user_variant="user_9_test")
+        assert len(task.dataset) == len(load_fixtures("opening")) > 1
+        for sample in task.dataset:
+            assert sample.input[1].text.endswith(f"As {sample.id}.")
+
+    def test_fixture_without_the_variant_file_raises(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("select_orders.evals.PROMPTS_DIR", tmp_path)
+        with pytest.raises(PromptError, match="build_prompts"):
+            select_orders("opening", user_variant="user_9_test")
+
+    def test_variant_and_user_file_together_raise(self, tmp_path, monkeypatch):
+        self._prompts(tmp_path, monkeypatch)
+        fixture = load_fixtures("opening")[0]
+        user_file = _write_prompt(tmp_path, "user.txt", user_prompt(fixture_to_context(fixture)))
+        with pytest.raises(PromptError):
+            select_orders("opening", fixture["id"], user_file=user_file, user_variant="user_9_test")
+
+
+class TestRunEvals:
+
+    def _run(self, monkeypatch, **options):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+        calls = []
+        monkeypatch.setattr(
+            "select_orders.management.commands.run_evals.inspect_eval",
+            lambda task, **kwargs: calls.append(kwargs["metadata"]["prompt"]),
+        )
+        call_command("run_evals", eval_set="fall_1901", **options)
+        return calls[0]
+
+    def test_named_prompt_keeps_the_given_name(self, monkeypatch):
+        prompt = self._run(monkeypatch, prompt_name="goodstart-style")
+        assert prompt["name"] == "goodstart-style"
+        assert prompt["digest"] == prompt_digest(select_orders("fall_1901").dataset)
+
+    def test_unnamed_prompt_is_named_by_its_hash(self, monkeypatch):
+        assert self._run(monkeypatch)["name"].count("-") == 3
+
+    def test_malformed_prompt_name_raises(self, monkeypatch):
+        with pytest.raises(CommandError):
+            self._run(monkeypatch, prompt_name="Good Start")
+
+
 class TestPromptNames:
 
     def _dataset(self, *system_texts):
