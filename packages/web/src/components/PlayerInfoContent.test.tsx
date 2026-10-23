@@ -684,13 +684,67 @@ describe("PlayerInfoContent", () => {
 
     expect(screen.getByLabelText("Supply centres: 1")).toBeInTheDocument();
     expect(screen.getByLabelText("Units: 1")).toBeInTheDocument();
-    expect(screen.getByLabelText("Deadline extensions: 2")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/Deadline extensions/)
+    ).not.toBeInTheDocument();
 
     await user.hover(screen.getByLabelText("Supply centres: 1"));
     await screen.findByRole("tooltip", { name: "Supply centres" });
     expect(
       document.querySelector('[data-slot="tooltip-content"]')
     ).toHaveAttribute("data-side", "bottom");
+  });
+
+  it("shows each nation's supply centres against its own target", async () => {
+    const user = userEvent.setup();
+    mockVariantsData.mockReturnValue([
+      {
+        ...classicalVariant,
+        nations: [
+          { ...classicalVariant.nations[0], name: "England", soloVictorySupplyCenters: 15 },
+          { ...classicalVariant.nations[1], name: "France", soloVictorySupplyCenters: 18 },
+          { ...classicalVariant.nations[2], name: "Germany", soloVictorySupplyCenters: null },
+        ],
+      },
+    ]);
+    mockCurrentPhaseData.mockReturnValue({
+      supplyCenters: [
+        { nation: { name: "England" } },
+        { nation: { name: "England" } },
+        { nation: { name: "France" } },
+        { nation: { name: "Germany" } },
+      ],
+      units: [],
+    });
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", nation: "England" },
+        { ...baseMember, id: 2, name: "Bob", nation: "France", isCurrentUser: false },
+        { ...baseMember, id: 3, name: "Carol", nation: "Germany", isCurrentUser: false },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(
+      screen.getByLabelText("Supply centres / needed to win: 2 / 15")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Supply centres / needed to win: 1 / 18")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Supply centres: 1")).toBeInTheDocument();
+
+    await user.hover(
+      screen.getByLabelText("Supply centres / needed to win: 2 / 15")
+    );
+    await screen.findByRole("tooltip", {
+      name: "Supply centres / needed to win",
+    });
   });
 
   it("does not open the player profile when a metric tooltip is activated", () => {

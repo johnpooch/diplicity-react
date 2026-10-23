@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Handshake,
   LogOut,
-  RotateCcw,
   Star,
   Swords,
   Trophy,
@@ -113,7 +112,7 @@ const PlayerMedia: React.FC<{
 const PlayerMetric: React.FC<{
   label: string;
   icon: React.ReactNode;
-  value: number | undefined;
+  value: number | string | undefined;
 }> = ({ label, icon, value }) => (
   <Tooltip>
     <TooltipTrigger asChild>
@@ -162,6 +161,10 @@ export const PlayerInfoContent: React.FC = () => {
       sc => sc.nation.name === member.nation
     ).length;
   };
+
+  const getSupplyCenterTarget = (member: Member) =>
+    variant?.nations.find(nation => nation.name === member.nation)
+      ?.soloVictorySupplyCenters ?? null;
 
   const getUnitCount = (member: Member) => {
     if (!currentPhase) return undefined;
@@ -236,6 +239,7 @@ export const PlayerInfoContent: React.FC = () => {
 
   const renderMemberRow = (member: Member, winner = false) => {
     const supplyCenterCount = getSupplyCenterCount(member);
+    const supplyCenterTarget = getSupplyCenterTarget(member);
     const unitCount = getUnitCount(member);
     const showNationSeat = isPending && member.isCurrentUser;
     const path = rowPath(member);
@@ -389,22 +393,23 @@ export const PlayerInfoContent: React.FC = () => {
           {member.nation && !isPending && (
             <div className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
               <PlayerMetric
-                label="Supply centres"
+                label={
+                  supplyCenterTarget === null
+                    ? "Supply centres"
+                    : "Supply centres / needed to win"
+                }
                 icon={<Star className="size-3" />}
-                value={supplyCenterCount}
+                value={
+                  supplyCenterCount === undefined || supplyCenterTarget === null
+                    ? supplyCenterCount
+                    : `${supplyCenterCount} / ${supplyCenterTarget}`
+                }
               />
               <PlayerMetric
                 label="Units"
                 icon={<Swords className="size-3" />}
                 value={unitCount}
               />
-              {game.nmrExtensionsAllowed > 0 && (
-                <PlayerMetric
-                  label="Deadline extensions"
-                  icon={<RotateCcw className="size-3" />}
-                  value={member.nmrExtensionsRemaining}
-                />
-              )}
             </div>
           )}
 
