@@ -3,7 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { useAuthPasswordResetConfirmCreate } from "@/api/generated/endpoints";
+import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/utils/network";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +57,11 @@ const ResetPassword: React.FC = () => {
         },
       });
       setStatus("success");
-    } catch {
+    } catch (error) {
+      if (isRateLimitedError(error)) {
+        toast.error(RATE_LIMITED_MESSAGE);
+        return;
+      }
       setStatus("error");
     }
   };

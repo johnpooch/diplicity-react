@@ -12,6 +12,7 @@ import {
   useAuthLoginCreate,
 } from "../api/generated/endpoints";
 import { isIosPlatform, isNativePlatform } from "@/utils/platform";
+import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/utils/network";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -74,6 +75,9 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const loginErrorMessage = (error: unknown) =>
+  isRateLimitedError(error) ? RATE_LIMITED_MESSAGE : "Login failed";
+
 const PlayStoreBadge: React.FC = () => (
   <a
     href={PLAY_STORE_URL}
@@ -122,8 +126,12 @@ const Login: React.FC = () => {
         name: result.name,
       });
       toast.success(`Logged in as ${result.name}`);
-    } catch {
-      toast.error("Invalid email or password");
+    } catch (error) {
+      toast.error(
+        isRateLimitedError(error)
+          ? RATE_LIMITED_MESSAGE
+          : "Invalid email or password"
+      );
     }
   };
 
@@ -148,8 +156,8 @@ const Login: React.FC = () => {
     }
     try {
       await sendIdTokenToBackend(credentialResponse.credential);
-    } catch {
-      toast.error("Login failed");
+    } catch (error) {
+      toast.error(loginErrorMessage(error));
     }
   };
 
@@ -161,8 +169,8 @@ const Login: React.FC = () => {
     try {
       const idToken = await nativeGoogleSignIn();
       await sendIdTokenToBackend(idToken);
-    } catch {
-      toast.error("Login failed");
+    } catch (error) {
+      toast.error(loginErrorMessage(error));
     }
   };
 
@@ -184,8 +192,8 @@ const Login: React.FC = () => {
   const handleAppleLogin = async () => {
     try {
       await finishAppleLogin(await nativeAppleSignIn());
-    } catch {
-      toast.error("Login failed");
+    } catch (error) {
+      toast.error(loginErrorMessage(error));
     }
   };
 
@@ -204,7 +212,7 @@ const Login: React.FC = () => {
       document.removeEventListener("AppleIDSignInOnSuccess", onSuccess);
       document.removeEventListener("AppleIDSignInOnFailure", onFailure);
       finishAppleLogin(parseAppleResponse((event as CustomEvent<AppleAuthResponse>).detail)).catch(
-        () => toast.error("Login failed")
+        (error) => toast.error(loginErrorMessage(error))
       );
     };
     const onFailure = () => {
