@@ -1,10 +1,12 @@
 import importlib
 import io
 import json
+from unittest.mock import patch
 
 import pytest
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.management import call_command
 from django.urls import reverse
@@ -14,6 +16,7 @@ from google.auth.exceptions import GoogleAuthError
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
+from login.models import AuthUserManager
 from user_profile.models import UserProfile, UserProfilePicture
 
 User = get_user_model()
@@ -283,6 +286,20 @@ class TestGoogleAuthView:
             format="json",
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_concurrent_first_sign_in_returns_the_account_the_other_request_created(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
+        def create_competing_account(name):
+            User.objects.create_user(username="testuser", email="test@example.com", password=None)
+            return "testuser"
+
+        with patch.object(AuthUserManager, "generate_username", side_effect=create_competing_account):
+            response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == User.objects.get(email="test@example.com").id
+        assert User.objects.filter(email="test@example.com").count() == 1
 
     @pytest.mark.parametrize("email_verified", [False, "false", None])
     def test_unverified_google_email_rejected(self, unauthenticated_client, mock_google_auth, email_verified):
@@ -1396,3 +1413,19 @@ class TestMakeUnrecognisedPasswordsUnusableMigration:
 
         user.refresh_from_db()
         assert user.password == encoded
+
+    def test_password_changed_after_the_scan_is_kept(self, monkeypatch):
+        user = User.objects.create(
+            username="socialuser", email="social@example.com", password="default_social_password"
+        )
+
+        def reset_password_during_scan(password):
+            User.objects.filter(id=user.id).update(password=make_password("newpass456"))
+            return False
+
+        monkeypatch.setattr(unusable_passwords_migration, "_is_recognised_hash", reset_password_during_scan)
+
+        unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
+
+        user.refresh_from_db()
+        assert user.check_password("newpass456") is True

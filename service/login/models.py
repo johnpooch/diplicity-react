@@ -1,5 +1,5 @@
 import random
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 
@@ -23,15 +23,24 @@ class AuthUserManager(models.Manager):
     def _get_or_create_social_user(self, email, name):
         user = self.filter(email__iexact=email).first()
         if user is None:
-            user = self.model(username=self.generate_username(name), email=email)
-            user.set_unusable_password()
-            user.save()
-            return user, True
+            try:
+                return self._create_social_user(email, name), True
+            except IntegrityError:
+                user = self.filter(email__iexact=email).first()
+                if user is None:
+                    raise
         if not user.is_active:
             user.set_unusable_password()
             user.is_active = True
             user.save(update_fields=["password", "is_active"])
         return user, False
+
+    def _create_social_user(self, email, name):
+        user = self.model(username=self.generate_username(name), email=email)
+        user.set_unusable_password()
+        with transaction.atomic():
+            user.save()
+        return user
 
     def generate_username(self, name):
         username = "".join(name.split(" ")).lower()

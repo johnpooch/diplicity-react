@@ -13,13 +13,10 @@ def _is_recognised_hash(password):
 def make_unrecognised_passwords_unusable(apps, schema_editor):
     User = apps.get_model("auth", "User")
 
-    users = []
-    for user in User.objects.exclude(password__startswith=UNUSABLE_PASSWORD_PREFIX).only("id", "password").iterator():
-        if not _is_recognised_hash(user.password):
-            user.password = make_password(None)
-            users.append(user)
-
-    User.objects.bulk_update(users, ["password"], batch_size=500)
+    scanned = User.objects.exclude(password__startswith=UNUSABLE_PASSWORD_PREFIX).values_list("id", "password")
+    for user_id, password in scanned.iterator():
+        if not _is_recognised_hash(password):
+            User.objects.filter(id=user_id, password=password).update(password=make_password(None))
 
 
 class Migration(migrations.Migration):
