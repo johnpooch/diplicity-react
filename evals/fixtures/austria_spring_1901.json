@@ -403,7 +403,8 @@
   ],
   "decision_richness": 1170,
   "eval_sets": [
-    "opening"
+    "opening",
+    "spring_1901"
   ],
   "order_set_labels": [
     {
@@ -589,6 +590,17 @@
       "labeller": "johnmcdowell",
       "labelled_at": "2026-10-07T11:39:30+00:00",
       "reason": "Supporting Budapest to hold while Budapest is moving to Serbia. This is an internally inconsistent order set, but also Budapest is not threatened by any other units, so supporting it to hold would make no sense anyway."
+    },
+    {
+      "orders": [
+        "bud:Move:ser",
+        "tri:Hold",
+        "vie:Support:tri:tri"
+      ],
+      "label": "unreasonable",
+      "labeller": "timwyse",
+      "labelled_at": "2026-10-23T15:04:51+00:00",
+      "reason": "Italy can\u2019t get support for Ven - Tri without a unit adjacent to Trieste. therefore Vienna: Support Trieste is unreasonable"
     }
   ]
 }

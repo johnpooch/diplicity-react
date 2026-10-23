@@ -3,10 +3,8 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from select_orders.evals import fixture_to_sample, select_fixtures
+from select_orders.evals import PROMPTS_DIR, fixture_to_sample, select_fixtures
 from select_orders.exceptions import FixtureError
-
-PROMPTS_DIR = Path(settings.BASE_DIR) / "prompts"
 
 
 class Command(BaseCommand):

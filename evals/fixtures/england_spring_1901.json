@@ -374,7 +374,8 @@
   ],
   "decision_richness": 900,
   "eval_sets": [
-    "opening"
+    "opening",
+    "spring_1901"
   ],
   "order_set_labels": [
     {

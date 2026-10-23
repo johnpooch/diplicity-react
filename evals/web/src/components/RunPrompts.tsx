@@ -110,7 +110,7 @@ const Comparison: React.FC<ComparisonProps> = ({ run, other }) => {
           The models differ ({run.model} here, {other.model} there), so the prompt is not the only change.
         </p>
       )}
-      {run.prompt !== null && run.prompt === other.prompt && (
+      {run.prompt_digest !== null && run.prompt_digest === other.prompt_digest && (
         <p className="text-muted-foreground">Both runs sent the same prompt.</p>
       )}
     </div>

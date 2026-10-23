@@ -195,12 +195,14 @@ class TestRunList:
         name = run(_completion(ATTACK), prompt="calm-lantern-oct-15")
         (listed,) = client.get("/api/runs/").json()["runs"]
         assert listed["prompt"] == "calm-lantern-oct-15"
+        assert listed["prompt_digest"] == "0" * 64
         assert client.get(f"/api/runs/{name}/").json()["prompt"] == "calm-lantern-oct-15"
 
     def test_run_from_before_prompt_names_has_none(self, client, run):
         run(_completion(ATTACK))
         (listed,) = client.get("/api/runs/").json()["runs"]
         assert listed["prompt"] is None
+        assert listed["prompt_digest"] is None
 
     def test_lists_runs_with_their_score_and_fixtures(self, client, fixtures_dir, run):
         other = {**FIXTURE, "id": "second_opening"}

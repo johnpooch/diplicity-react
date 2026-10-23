@@ -24,6 +24,7 @@ const detail = (name: string, fixtures: FixtureCounts[]): RunDetail => ({
   model: "anthropic/claude-haiku-5-5",
   created: "2026-10-15T17:04:02+00:00",
   prompt: null,
+  prompt_digest: null,
   fixtures: fixtures.map(counts),
 });
 
