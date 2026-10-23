@@ -684,7 +684,9 @@ describe("PlayerInfoContent", () => {
 
     expect(screen.getByLabelText("Supply centres: 1")).toBeInTheDocument();
     expect(screen.getByLabelText("Units: 1")).toBeInTheDocument();
-    expect(screen.getByLabelText("Deadline extensions: 2")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/Deadline extensions/)
+    ).not.toBeInTheDocument();
 
     await user.hover(screen.getByLabelText("Supply centres: 1"));
     await screen.findByRole("tooltip", { name: "Supply centres" });

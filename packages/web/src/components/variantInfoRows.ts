@@ -1,45 +1,43 @@
-import { BookOpen, Calendar, Target, Trophy, User } from "lucide-react";
+import { BookOpen, Calendar, Trophy, User } from "lucide-react";
 
 import type { Variant } from "@/api/generated/endpoints";
 import type { SettingsRow } from "@/components/SettingsTable";
 
-const formatSupplyCenters = (count: number) =>
-  `${count} supply ${count === 1 ? "centre" : "centres"}`;
+const formatList = (items: string[]) =>
+  items.length > 1
+    ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`
+    : items.join("");
 
-function buildVictoryRow(variant: Variant): SettingsRow | null {
+function buildVictoryRule(variant: Variant): string | null {
   const defaultTarget = variant.victoryConditions.soloVictorySupplyCenters;
-  const overrides = variant.nations.flatMap(
-    ({ name, nonPlayable, soloVictorySupplyCenters }) =>
-      nonPlayable ||
-      soloVictorySupplyCenters === null ||
-      soloVictorySupplyCenters === defaultTarget
-        ? []
-        : [`${name}: ${formatSupplyCenters(soloVictorySupplyCenters)}`]
+  const overrides = variant.nations.filter(
+    ({ nonPlayable, soloVictorySupplyCenters }) =>
+      !nonPlayable &&
+      soloVictorySupplyCenters !== null &&
+      soloVictorySupplyCenters !== defaultTarget
+  );
+  const nationTargets = formatList(
+    overrides.map(
+      ({ name, soloVictorySupplyCenters }) =>
+        `${name} (${soloVictorySupplyCenters})`
+    )
   );
 
-  if (defaultTarget === null && overrides.length === 0) return null;
+  if (defaultTarget === null) {
+    return overrides.length === 0
+      ? null
+      : `Solo victory: ${nationTargets} supply centres. Other nations cannot win solo.`;
+  }
 
-  return {
-    key: "victory",
-    icon: Target,
-    label: "Solo victory",
-    value:
-      defaultTarget === null
-        ? "Varies by nation"
-        : formatSupplyCenters(defaultTarget),
-    ...(overrides.length > 0 && {
-      text: [
-        ...overrides,
-        defaultTarget === null
-          ? "Other nations cannot win solo"
-          : `Every other nation: ${formatSupplyCenters(defaultTarget)}`,
-      ].join("\n"),
-    }),
-  };
+  return overrides.length === 0
+    ? `Solo victory: ${defaultTarget} supply centres.`
+    : `Solo victory: ${defaultTarget} supply centres, except ${nationTargets}.`;
 }
 
 function buildVariantInfoRows(variant: Variant): SettingsRow[] {
-  const victoryRow = buildVictoryRow(variant);
+  const rules = [buildVictoryRule(variant), variant.rules]
+    .filter(Boolean)
+    .join("\n\n");
 
   return [
     ...(variant.description
@@ -52,10 +50,9 @@ function buildVariantInfoRows(variant: Variant): SettingsRow[] {
           },
         ]
       : []),
-    ...(variant.rules
-      ? [{ key: "rules", icon: Trophy, label: "Rules", text: variant.rules }]
+    ...(rules
+      ? [{ key: "rules", icon: Trophy, label: "Rules", text: rules }]
       : []),
-    ...(victoryRow ? [victoryRow] : []),
     {
       key: "start-year",
       icon: Calendar,

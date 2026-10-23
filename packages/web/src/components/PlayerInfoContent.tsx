@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Handshake,
   LogOut,
-  RotateCcw,
   Star,
   Swords,
   Trophy,
@@ -411,13 +410,6 @@ export const PlayerInfoContent: React.FC = () => {
                 icon={<Swords className="size-3" />}
                 value={unitCount}
               />
-              {game.nmrExtensionsAllowed > 0 && (
-                <PlayerMetric
-                  label="Deadline extensions"
-                  icon={<RotateCcw className="size-3" />}
-                  value={member.nmrExtensionsRemaining}
-                />
-              )}
             </div>
           )}
 
