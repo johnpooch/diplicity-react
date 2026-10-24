@@ -3780,6 +3780,10 @@ components:
         replaceable:
           type: boolean
           readOnly: true
+        seatConfirmed:
+          type: boolean
+          readOnly: true
+          nullable: true
         removable:
           type: boolean
           readOnly: true
@@ -3805,6 +3809,7 @@ components:
       - picture
       - removable
       - replaceable
+      - seatConfirmed
       - seekingReplacement
       - userId
       - withdrawn

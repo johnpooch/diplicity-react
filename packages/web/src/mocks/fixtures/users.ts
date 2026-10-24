@@ -54,6 +54,7 @@ export const makeMember = (
   withdrawn: false,
   seekingReplacement: false,
   replaceable: false,
+  seatConfirmed: null,
   removable: false,
   commitment: "high",
   nationPreferenceIds: [],
