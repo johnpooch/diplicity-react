@@ -54,5 +54,4 @@ Query: $ARGUMENTS
 
 ## Safety
 
-- **Read-only queries only.** Never issue `INSERT`, `UPDATE`, `DELETE`, `DROP`, `TRUNCATE`, or any DDL.
-- If the user asks to modify data, refuse and explain that production data changes must go through a migration or a controlled admin process.
+Do not write to production unless the user asks you to.

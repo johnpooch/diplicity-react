@@ -39,12 +39,7 @@ If any `railway` command fails with an auth or "not logged in" error, **stop imm
 
 ## Write Safety
 
-`railway run` injects production env vars and runs locally against the **live production database**. Never execute write operations:
-- No `.create()`, `.update()`, `.delete()`, `.save()` in Django ORM
-- No `INSERT`, `UPDATE`, `DELETE` in raw SQL
-- No state-modifying management commands (`migrate`, `flush`, `loaddata`)
-
-If the user asks to modify production data, refuse — production changes must go through a migration or controlled admin process.
+`railway run` injects production env vars and runs locally against the **live production database**. Do not write to production unless the user asks you to.
 
 ## Admin superuser
 
@@ -87,7 +82,7 @@ for row in d['rows']:
 
 Use the `/prod-query` skill for guided read-only queries.
 
-pgweb is read-only by configuration. Never issue `INSERT`, `UPDATE`, `DELETE`, or DDL.
+pgweb is read-only by configuration.
 
 Check https://status.railway.com for platform-wide incidents.
 
