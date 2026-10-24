@@ -9,6 +9,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from common.permissions import IsOwnedDraftForWrite
+from variant.utils import SVG_NAMESPACE
 from .models import Nation, NationFlag
 from .serializers import NationFlagUploadSerializer, NationSerializer
 from .utils import FLAG_MAX_BYTES
@@ -56,10 +57,15 @@ class NationFlagUploadView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            etree.fromstring(text.encode())
+            root = etree.fromstring(text.encode())
         except etree.XMLSyntaxError as exc:
             return Response(
                 {"flag": f"Flag could not be parsed as SVG: {exc}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if root.tag != f"{{{SVG_NAMESPACE}}}svg":
+            return Response(
+                {"flag": "Flag must be an <svg> element in the SVG namespace."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

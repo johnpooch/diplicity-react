@@ -1,5 +1,6 @@
 import gzip
 import hashlib
+from pathlib import Path
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -9,6 +10,103 @@ from rest_framework import status
 from nation.admin import NationFlagAdminForm
 from nation.models import NationFlag
 from nation.utils import FLAG_MAX_BYTES
+
+
+COMMITTED_FLAGS = sorted((Path(__file__).resolve().parent.parent / "variant" / "data" / "flags").glob("*/*.svg"))
+
+SVG_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+
+UNSAFE_SVG_PAYLOADS = [
+    ('<a xlink:href="java&#x09;script:alert(1)"><rect id="kept"/></a>', "alert("),
+    ('<animate attributeName="href" values="javascript:alert(1)"/>', "alert("),
+    ('<set attributeName="href" from="javascript:alert(1)"/>', "alert("),
+    ('<rect onclick="alert(1)" onmouseover="alert(2)"/>', "alert("),
+    ("<script>alert(1)</script>", "alert("),
+    ('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>', "alert("),
+    ('<html:script xmlns:html="http://www.w3.org/1999/xhtml">alert(1)</html:script>', "alert("),
+    ('<a href="data:text/html,alert(1)"><rect/></a>', "alert("),
+    ('<image href="javascript:alert(1)"/>', "alert("),
+    ('<image xlink:href="data:image/svg+xml;base64,PHN2Zy8+"/>', "data:image/svg"),
+    ('<use href="https://evil.example/sprite.svg#a"/>', "evil.example"),
+    ('<rect fill="url(https://evil.example/a.png)"/>', "evil.example"),
+    ('<rect style="fill:url(https://evil.example/a.png)"/>', "evil.example"),
+    ('<rect style="fill:u\\72l(https://evil.example/a.png)"/>', "evil.example"),
+    ('<rect style="width:expression(alert(1))"/>', "alert("),
+    ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
+    ("<style>rect{fill:url(https://evil.example/a.png)}</style>", "evil.example"),
+    ("<style>@font-face{font-family:'F';src:url(https://evil.example/f.woff)}</style>", "evil.example"),
+    ('<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:expression(alert(1))}</style><rect class="a"/>', "alert("),
+    ('<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:#fff}body{fill:#123456}</style><rect class="a"/>', "#123456"),
+    ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
+    ('<style>.a, rect{fill:#abcdef}</style><rect class="a"/>', "#abcdef"),
+    ('<style>.a{fill:#fedcba}</style><rect class="a"/>', "<style"),
+    ('<style>.a .b{fill:#111111}</style><g class="a"><rect class="b"/></g>', "#111111"),
+    ('<style>.a>.b{fill:#222222}</style><g class="a"><rect class="b"/></g>', "#222222"),
+    ('<style>rect.a{fill:#333333}</style><rect class="a"/>', "#333333"),
+    ('<style>.a:first-child{fill:#444444}</style><rect class="a"/>', "#444444"),
+    ('<style>.a[id]{fill:#555555}</style><rect id="r" class="a"/>', "#555555"),
+    ('<style>.a.b *{fill:#666666}</style><g class="a b"><rect/></g>', "#666666"),
+]
+
+SAFE_SVG_CONTENT = [
+    '<use xlink:href="#a"/>',
+    '<image xlink:href="data:image/png;base64,iVBORw0KGgo="/>',
+    '<rect fill="url(#g)" style="fill:url(#g);stroke:#000"/>',
+    "<style>@font-face{font-family:'F';src:url(data:font/woff2;base64,AAAA) format('woff2')}</style>",
+    """<style>
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  src: url('data:font/woff2;charset=utf-8;base64,AAAA') format('woff2');
+  unicode-range: U+2e, U+41-59, U+61-70, U+72-7a, U+4e0a-4e0b, U+1f1e6-1f1ff, U+4??;
+}
+</style>""",
+    '<filter color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>',
+    '<g color-interpolation="sRGB" shape-rendering="crispEdges" text-rendering="geometricPrecision"'
+    ' color-rendering="optimizeQuality" image-rendering="optimizeSpeed" overflow="visible"'
+    ' enable-background="new" pointer-events="none"/>',
+]
+
+INVALID_UNICODE_RANGES = [
+    "U+GG",
+    "U+1234567",
+    "U+0-7F url(https://evil.example/f.woff)",
+    "U+0-7F, expression(alert(1))",
+    "U+0-7F, 0-7F",
+    "U+4?0",
+]
+
+CLASS_STYLESHEET = (
+    ".cls-1 { fill: #b51f24; }  .cls-2 { fill: #80248e; }\n"
+    ".cls-2, .cls-3, .cls-4 { fill: none; stroke: #000; stroke-miterlimit: 10; }"
+)
+
+CLASS_STYLED_ELEMENTS = [
+    ('class="cls-1"', "fill:#b51f24"),
+    ('class="cls-4"', "fill:none;stroke:#000;stroke-miterlimit:10"),
+    ('class="cls-2"', "fill:none;stroke:#000;stroke-miterlimit:10"),
+    ('class="cls-1 cls-3"', "fill:none;stroke:#000;stroke-miterlimit:10"),
+    ('class="cls-1" style="fill:#fff"', "fill:#fff"),
+    ('class="cls-3" style="stroke:#fff"', "fill:none;stroke-miterlimit:10;stroke:#fff"),
+]
+
+COMPOUND_CLASS_STYLESHEET = (
+    ".owner-Stark.sc{fill:#6f8190}.sc{fill:#fffaf0;stroke-width:1.9}"
+    ".border.land,.border.sea{stroke:#3d3226;stroke-width:1.1}.coast,.border.sea{stroke-dasharray:5 3}"
+)
+
+COMPOUND_CLASS_STYLED_ELEMENTS = [
+    ('class="sc owner-Stark"', ' style="fill:#6f8190;stroke-width:1.9"'),
+    ('class="owner-Stark"', ""),
+    ('class="border sea"', ' style="stroke:#3d3226;stroke-width:1.1;stroke-dasharray:5 3"'),
+    ('class="border"', ""),
+    ('class="coast"', ' style="stroke-dasharray:5 3"'),
+    ('class="sc owner-Stark" style="fill:#000"', ' style="stroke-width:1.9;fill:#000"'),
+]
 
 
 def _flag_upload(svg, filename="flag.svg"):
@@ -123,6 +221,128 @@ class TestNationFlagUploadView:
         assert "<script" not in flag.svg
         assert "onclick" not in flag.svg
         assert 'id="r1"' in flag.svg
+
+    @pytest.mark.parametrize("payload, marker", UNSAFE_SVG_PAYLOADS)
+    def test_upload_removes_unsafe_content(
+        self, authenticated_client, draft_variant_for_primary, payload, marker
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f'{SVG_OPEN}<rect id="sentinel"/>{payload}</svg>'),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert marker not in served
+        assert 'id="sentinel"' in served
+
+    @pytest.mark.parametrize("content", SAFE_SVG_CONTENT)
+    def test_upload_keeps_same_document_references(
+        self, authenticated_client, draft_variant_for_primary, content
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f"{SVG_OPEN}{content}</svg>"),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert content in served
+
+    @pytest.mark.parametrize("unicode_range", INVALID_UNICODE_RANGES)
+    def test_upload_drops_font_face_with_invalid_unicode_range(
+        self, authenticated_client, draft_variant_for_primary, unicode_range
+    ):
+        valid = "@font-face{font-family:'A';src:url(data:font/woff2;base64,AAAA) format('woff2');unicode-range:U+0-7F}"
+        invalid = f"@font-face{{font-family:'B';src:url(data:font/woff2;base64,AAAA);unicode-range:{unicode_range}}}"
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f"{SVG_OPEN}<style>{valid}{invalid}</style></svg>"),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f"<style>{valid}</style>" in served
+
+    @pytest.mark.parametrize("attributes, expected_style", CLASS_STYLED_ELEMENTS)
+    def test_upload_inlines_class_rules(
+        self, authenticated_client, draft_variant_for_primary, attributes, expected_style
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f'{SVG_OPEN}<style>{CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f'<rect id="target" style="{expected_style}"/>' in served
+        assert "class=" not in served
+        assert "<style" not in served
+
+    @pytest.mark.parametrize("attributes, expected_attributes", COMPOUND_CLASS_STYLED_ELEMENTS)
+    def test_upload_inlines_compound_class_rules_by_specificity(
+        self, authenticated_client, draft_variant_for_primary, attributes, expected_attributes
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(
+                f'{SVG_OPEN}<style>{COMPOUND_CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f'<rect id="target"{expected_attributes}/>' in served
+        assert "class=" not in served
+        assert "<style" not in served
+
+    def test_upload_keeps_font_faces_and_inlines_class_rules_from_one_stylesheet(
+        self, authenticated_client, draft_variant_for_primary
+    ):
+        font_face = "@font-face{font-family:'F';src:url(data:font/woff2;base64,AAAA) format('woff2')}"
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(
+                f"{SVG_OPEN}<style>.st0{{fill:#FEC50C;}}{font_face}.st1{{fill:#FFFFFF;}}</style>"
+                '<rect id="a" class="st0"/><rect id="b" class="st1"/></svg>'
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f"<style>{font_face}</style>" in served
+        assert '<rect id="a" style="fill:#FEC50C"/>' in served
+        assert '<rect id="b" style="fill:#FFFFFF"/>' in served
+        assert "class=" not in served
+
+    def test_upload_rejects_non_svg_root(self, authenticated_client, draft_variant_for_primary):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload('<html xmlns="http://www.w3.org/1999/xhtml"><body/></html>'),
+            format="multipart",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {"flag": "Flag must be an <svg> element in the SVG namespace."}
+
+    def test_reuploading_a_served_flag_keeps_its_url(
+        self, authenticated_client, draft_variant_for_primary
+    ):
+        url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
+        first = authenticated_client.put(
+            url, _flag_upload(COMMITTED_FLAGS[0].read_text()), format="multipart"
+        )
+        served = authenticated_client.get(first.data["flag_url"]).content.decode()
+
+        second = authenticated_client.put(url, _flag_upload(served), format="multipart")
+
+        assert second.data["flag_url"] == first.data["flag_url"]
 
     def test_delete_flag(self, authenticated_client, draft_variant_for_primary, minimal_flag_svg):
         url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
@@ -243,6 +463,19 @@ class TestNationFlagSvgView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+    @pytest.mark.parametrize("flag_path", COMMITTED_FLAGS, ids=lambda path: f"{path.parent.name}/{path.stem}")
+    def test_committed_flags_keep_their_rendering(
+        self, authenticated_client, unauthenticated_client, svg_rendering_signature, flag_path
+    ):
+        variant = authenticated_client.get(reverse("variant-detail", kwargs={"pk": flag_path.parent.name}))
+        nation = next(nation for nation in variant.data["nations"] if nation["nation_id"] == flag_path.stem)
+
+        served = unauthenticated_client.get(nation["flag_url"])
+
+        assert served.status_code == status.HTTP_200_OK
+        assert svg_rendering_signature(served.content.decode()) == svg_rendering_signature(flag_path.read_text())
+
+
 @pytest.mark.django_db
 class TestNationFlagAdminForm:
     def test_admin_form_accepts_valid_upload(self, draft_variant_for_primary, minimal_flag_svg):
@@ -259,7 +492,7 @@ class TestNationFlagAdminForm:
 
     def test_admin_form_replaces_existing_flag(self, draft_variant_for_primary, minimal_flag_svg):
         nation = draft_variant_for_primary.nations.first()
-        existing = NationFlag.objects.create(nation=nation, svg="<svg/>")
+        existing = NationFlag.objects.create(nation=nation, svg='<svg xmlns="http://www.w3.org/2000/svg"/>')
         original_hash = existing.content_hash
 
         form = NationFlagAdminForm(
@@ -277,6 +510,16 @@ class TestNationFlagAdminForm:
 
         form = NationFlagAdminForm(
             data={"nation": nation.pk}, files={"svg_file": _admin_upload("<svg><g></svg>")}
+        )
+
+        assert not form.is_valid()
+
+    def test_admin_form_rejects_non_svg_root(self, draft_variant_for_primary):
+        nation = draft_variant_for_primary.nations.first()
+
+        form = NationFlagAdminForm(
+            data={"nation": nation.pk},
+            files={"svg_file": _admin_upload('<html xmlns="http://www.w3.org/1999/xhtml"/>')},
         )
 
         assert not form.is_valid()

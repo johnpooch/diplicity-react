@@ -3,7 +3,7 @@ import pytest
 from common.constants import ProvinceType
 from province.models import Province
 from variant.models import Variant
-from variant.utils import DSVG_HIDDEN_LAYERS, DSVG_LAYER_ORDER
+from variant.utils import DSVG_HIDDEN_LAYERS, DSVG_LAYER_ORDER, variant_to_canonical_dict
 
 
 @pytest.fixture
@@ -165,3 +165,13 @@ def dsvg_variant(db):
         parent=france,
     )
     return variant
+
+
+@pytest.fixture
+def classical_dvar(classical_variant):
+    return variant_to_canonical_dict(classical_variant)
+
+
+@pytest.fixture
+def classical_dsvg(classical_variant):
+    return classical_variant.svg.svg

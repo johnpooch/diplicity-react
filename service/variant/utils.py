@@ -435,31 +435,263 @@ def _strip_svg_namespace_prefix(svg):
     return svg
 
 
-_DANGEROUS_URL_PREFIX = re.compile(r"^\s*javascript:", re.IGNORECASE)
-_HREF_LIKE_ATTRS = ("href", "to")
-_DANGEROUS_ELEMENTS = ("script", "foreignObject", "handler")
+XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace"
+
+SVG_ALLOWED_ELEMENTS = frozenset(
+    {
+        "svg", "g", "defs", "style", "title", "desc",
+        "path", "circle", "ellipse", "rect", "line", "polyline", "polygon",
+        "text", "tspan", "textPath", "image", "use", "symbol", "marker",
+        "pattern", "clipPath", "mask", "linearGradient", "radialGradient", "stop",
+        "filter", "feGaussianBlur", "feOffset", "feBlend", "feFlood", "feComposite",
+        "feColorMatrix", "feMerge", "feMergeNode",
+    }
+)
+
+SVG_UNWRAPPED_ELEMENTS = frozenset({"a"})
+
+SVG_PRESENTATION_ATTRIBUTES = frozenset(
+    {
+        "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity",
+        "stroke-miterlimit", "stroke-linecap", "stroke-linejoin", "stroke-dasharray",
+        "stroke-dashoffset", "opacity", "display", "visibility", "overflow", "color",
+        "vector-effect", "paint-order", "pointer-events", "clip-path", "clip-rule", "mask",
+        "filter", "marker-start", "marker-mid", "marker-end", "stop-color", "stop-opacity",
+        "flood-color", "flood-opacity", "color-interpolation", "color-interpolation-filters",
+        "color-rendering", "shape-rendering", "text-rendering", "image-rendering",
+        "enable-background", "font-family", "font-size", "font-weight", "font-style",
+        "letter-spacing", "word-spacing", "text-anchor", "text-decoration", "dominant-baseline",
+        "alignment-baseline", "baseline-shift", "writing-mode",
+    }
+)
+
+SVG_ALLOWED_ATTRIBUTES = SVG_PRESENTATION_ATTRIBUTES | frozenset(
+    {
+        "id", "version", "viewBox", "preserveAspectRatio", "width", "height", "x", "y",
+        "x1", "x2", "y1", "y2", "cx", "cy", "r", "rx", "ry", "fx", "fy", "fr", "dx", "dy",
+        "d", "points", "transform", "rotate", "style", "type",
+        "clipPathUnits", "maskUnits", "maskContentUnits", "filterUnits", "primitiveUnits",
+        "markerWidth", "markerHeight", "markerUnits", "refX", "refY", "orient",
+        "offset", "gradientTransform", "gradientUnits",
+        "spreadMethod", "patternUnits", "patternContentUnits", "patternTransform",
+        "stdDeviation", "in", "in2", "result", "mode", "operator", "values",
+        "k1", "k2", "k3", "k4", "textLength", "lengthAdjust", "startOffset",
+    }
+)
+
+_HREF_ATTRIBUTES = frozenset({"href", f"{{{XLINK_NAMESPACE}}}href"})
+_FRAGMENT_HREF = re.compile(r"#[\w.:-]+\Z")
+_RASTER_DATA_URI = re.compile(r"data:image/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\s]*+\Z", re.IGNORECASE)
+_FRAGMENT_URL = re.compile(r"url\(\s*(['\"]?)#[\w.:-]+\1\s*\)", re.IGNORECASE)
+_UNSAFE_VALUE = re.compile(r"url\(|expression\(|script:|@import|\\", re.IGNORECASE)
+_INSIGNIFICANT_CHARACTERS = re.compile(r"[\x00-\x20]+")
+
+_CSS_STRING = r"(?:'[\w \-]*'|\"[\w \-]*\")"
+_CSS_KEYWORDS = r"[\w\-]+(?:[ \t]+[\w\-]+)*"
+_FONT_DATA_URL = (
+    r"url\(\s*['\"]?data:(?:font/[\w.+-]+|application/(?:x-)?font-[\w.+-]+)(?:;charset=[\w-]+)?"
+    r";base64,[A-Za-z0-9+/=\s]*+['\"]?\s*\)"
+)
+_FONT_SOURCE = rf"{_FONT_DATA_URL}(?:\s*format\(\s*{_CSS_STRING}\s*\))?"
+_UNICODE_RANGE = r"U\+(?:[0-9A-F]{1,6}(?:-[0-9A-F]{1,6})?|(?=[0-9A-F?]{1,6}(?![0-9A-F?]))[0-9A-F]*\?+)"
+_FONT_DESCRIPTOR = (
+    rf"(?:font-family\s*:\s*(?:{_CSS_STRING}|{_CSS_KEYWORDS})"
+    rf"|font-(?:weight|style|stretch|display)\s*:\s*{_CSS_KEYWORDS}"
+    rf"|src\s*:\s*{_FONT_SOURCE}(?:\s*,\s*{_FONT_SOURCE})*"
+    rf"|unicode-range\s*:\s*{_UNICODE_RANGE}(?:\s*,\s*{_UNICODE_RANGE})*)"
+)
+_FONT_FACE_RULE = re.compile(
+    rf"\s*@font-face\s*\{{\s*(?:{_FONT_DESCRIPTOR}\s*;\s*)*(?:{_FONT_DESCRIPTOR}\s*)?\}}\s*",
+    re.IGNORECASE,
+)
+_CLASS_IDENTIFIER = r"-?[A-Za-z_][\w-]*"
+_CLASS_NAME = re.compile(rf"\.({_CLASS_IDENTIFIER})")
+_CLASS_COMPOUND = rf"(?:\.{_CLASS_IDENTIFIER})+"
+_CLASS_RULE = re.compile(rf"\s*({_CLASS_COMPOUND}(?:\s*,\s*{_CLASS_COMPOUND})*)\s*\{{([^{{}}]*)\}}\s*")
+_CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+_CSS_DELIMITER = re.compile(r"[{};]")
+_CSS_PROPERTY = re.compile(r"\s*([\w-]+)\s*:(.*)", re.DOTALL)
+
+_SANITIZER_PARSER = etree.XMLParser(
+    resolve_entities=False,
+    no_network=True,
+    remove_comments=True,
+    remove_pis=True,
+)
+
+
+def _is_safe_attribute_value(value):
+    remainder = _INSIGNIFICANT_CHARACTERS.sub("", _FRAGMENT_URL.sub("", value))
+    return _UNSAFE_VALUE.search(remainder) is None
+
+
+def _is_allowed_href(element_name, value):
+    value = value.strip()
+    if _FRAGMENT_HREF.match(value):
+        return True
+    return element_name == "image" and _RASTER_DATA_URI.match(value) is not None
+
+
+def _is_allowed_attribute(name):
+    if name in _HREF_ATTRIBUTES or name == f"{{{XML_NAMESPACE}}}space":
+        return True
+    return _namespace(name) is None and name in SVG_ALLOWED_ATTRIBUTES
+
+
+def _css_statements(css):
+    statements = []
+    start = 0
+    depth = 0
+    for match in _CSS_DELIMITER.finditer(css):
+        delimiter = match.group()
+        if delimiter == "{":
+            depth += 1
+        elif delimiter == "}":
+            depth -= 1
+            if depth <= 0:
+                statements.append(css[start:match.end()])
+                start = match.end()
+                depth = 0
+        elif depth == 0:
+            statements.append(css[start:match.end()])
+            start = match.end()
+    statements.append(css[start:])
+    return statements
+
+
+def _css_declarations(block):
+    declarations = []
+    for declaration in block.split(";"):
+        match = _CSS_PROPERTY.fullmatch(declaration)
+        if match is not None:
+            declarations.append((match.group(1).lower(), match.group(2).strip()))
+    return declarations
+
+
+def _class_rule(match):
+    selectors = [_CLASS_NAME.findall(selector) for selector in match.group(1).split(",")]
+    declarations = [
+        (name, value)
+        for name, value in _css_declarations(match.group(2))
+        if name in SVG_PRESENTATION_ATTRIBUTES and value and _is_safe_attribute_value(value)
+    ]
+    return selectors, declarations
+
+
+def _sanitize_stylesheet(style, class_rules):
+    kept = []
+    for statement in _css_statements(_CSS_COMMENT.sub("", style.text or "")):
+        if not statement.strip() or _FONT_FACE_RULE.fullmatch(statement):
+            kept.append(statement)
+        elif (match := _CLASS_RULE.fullmatch(statement)) is not None:
+            class_rules.append(_class_rule(match))
+    stylesheet = "".join(kept)
+    if stylesheet.strip():
+        style.text = stylesheet
+    else:
+        _remove_node(style)
+
+
+def _inline_class_styles(element, class_rules):
+    class_names = set(element.attrib.pop("class").split())
+    own_style = element.get("style", "")
+    own_properties = {name for name, _ in _css_declarations(own_style)}
+    matching = sorted(
+        (
+            (len(selector), index, declarations)
+            for index, (selectors, declarations) in enumerate(class_rules)
+            for selector in selectors
+            if class_names.issuperset(selector)
+        ),
+        key=lambda match: match[:2],
+    )
+    class_declarations = {}
+    for _, _, declarations in matching:
+        class_declarations.update(declarations)
+    declarations = [f"{name}:{value}" for name, value in class_declarations.items() if name not in own_properties]
+    if own_style.strip():
+        declarations.append(own_style.strip())
+    if declarations:
+        element.set("style", ";".join(declarations))
+
+
+def _apply_stylesheets(root):
+    class_rules = []
+    for style in list(root.iter(f"{{{SVG_NAMESPACE}}}style")):
+        _sanitize_stylesheet(style, class_rules)
+    for element in root.iter(etree.Element):
+        if "class" in element.attrib:
+            _inline_class_styles(element, class_rules)
+
+
+def _append_text(parent, previous, text):
+    if not text:
+        return
+    if previous is not None:
+        previous.tail = (previous.tail or "") + text
+    else:
+        parent.text = (parent.text or "") + text
+
+
+def _remove_node(node):
+    parent = node.getparent()
+    _append_text(parent, node.getprevious(), node.tail)
+    parent.remove(node)
+
+
+def _unwrap_element(element):
+    parent = element.getparent()
+    index = parent.index(element)
+    _append_text(parent, element.getprevious(), element.text)
+    for offset, child in enumerate(list(element)):
+        parent.insert(index + offset, child)
+    _remove_node(element)
+
+
+def _sanitize_children(element):
+    for child in list(element):
+        if not isinstance(child.tag, str):
+            _remove_node(child)
+            continue
+        name = _local_name(child.tag)
+        if _namespace(child.tag) != SVG_NAMESPACE:
+            _remove_node(child)
+        elif name in SVG_UNWRAPPED_ELEMENTS:
+            _sanitize_children(child)
+            _unwrap_element(child)
+        elif name not in SVG_ALLOWED_ELEMENTS:
+            _remove_node(child)
+        elif name == "style" and len(child):
+            _remove_node(child)
+        else:
+            _sanitize_attributes(child)
+            _sanitize_children(child)
+
+
+def _sanitize_attributes(element):
+    element_name = _local_name(element.tag)
+    for name, value in list(element.attrib.items()):
+        if name == "class":
+            continue
+        if not _is_allowed_attribute(name):
+            del element.attrib[name]
+        elif name in _HREF_ATTRIBUTES:
+            if not _is_allowed_href(element_name, value):
+                del element.attrib[name]
+        elif not _is_safe_attribute_value(value):
+            del element.attrib[name]
 
 
 def sanitize_svg(svg):
-    root = etree.fromstring(svg.encode())
+    root = etree.fromstring(svg.encode(), _SANITIZER_PARSER)
+    if root.tag != f"{{{SVG_NAMESPACE}}}svg":
+        raise ValueError("SVG root element must be <svg> in the SVG namespace.")
 
-    for element in list(root.iter()):
-        if _local_name(element.tag) in _DANGEROUS_ELEMENTS:
-            parent = element.getparent()
-            if parent is not None:
-                parent.remove(element)
+    _sanitize_attributes(root)
+    _sanitize_children(root)
+    _apply_stylesheets(root)
 
-    for element in root.iter():
-        for name in list(element.attrib):
-            local = _local_name(name)
-            if local.lower().startswith("on"):
-                del element.attrib[name]
-                continue
-            if local in _HREF_LIKE_ATTRS:
-                value = element.attrib.get(name, "")
-                if _DANGEROUS_URL_PREFIX.match(value):
-                    del element.attrib[name]
-
+    etree.cleanup_namespaces(root)
     return _strip_svg_namespace_prefix(etree.tostring(root).decode())
 
 
@@ -697,6 +929,9 @@ def validate_dsvg(svg, variant=None):
         root = ElementTree.fromstring(svg)
     except ElementTree.ParseError as exc:
         return [DsvgValidationError("MALFORMED_XML", f"SVG is not well-formed XML: {exc}.")]
+
+    if root.tag != f"{{{SVG_NAMESPACE}}}svg":
+        return [DsvgValidationError("INVALID_ROOT", "Root element must be <svg> in the SVG namespace.")]
 
     errors = []
     layer_elements = [child for child in root if _local_name(child.tag) == "g"]

@@ -1,6 +1,7 @@
 import L from "leaflet";
 import type { Point, ViewBox } from "../InteractiveMap/dsvgParser";
 import type { GestureType } from "../InteractiveMap/mapTelemetry";
+import { sanitizeSvgElement } from "../InteractiveMap/sanitizeSvg";
 import { toLatLng, viewBoxBounds } from "./leafletCoords";
 import type { ProvinceRing } from "./provincePolygons";
 import { focusBounds } from "./focusBounds";
@@ -349,8 +350,7 @@ export class GameMapController {
   }
 
   setOverlay(svg: string): void {
-    const element = new DOMParser().parseFromString(svg, "image/svg+xml")
-      .documentElement as unknown as SVGElement;
+    const element = sanitizeSvgElement(svg);
     const next = L.svgOverlay(element, this.bounds, {
       interactive: false,
       pane: "overlayMap",
@@ -427,8 +427,7 @@ export class GameMapController {
       renderable: this.style.renderable,
       hovered: this.hovered,
     });
-    const element = new DOMParser().parseFromString(svg, "image/svg+xml")
-      .documentElement as unknown as SVGElement;
+    const element = sanitizeSvgElement(svg);
     const next = L.svgOverlay(element, this.bounds, {
       interactive: false,
       pane: "highlightMap",

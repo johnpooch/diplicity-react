@@ -9,23 +9,26 @@ from variant.models import Variant, VariantSvg
 from variant.utils import normalize_dsvg, validate_dsvg
 
 
+EMPTY_SVG = '<svg xmlns="http://www.w3.org/2000/svg"/>'
+
+
 def _upload(svg):
     return SimpleUploadedFile("map.d.svg", svg.encode(), content_type="image/svg+xml")
 
 
 @pytest.mark.django_db
 def test_content_hash_is_computed_on_save(dsvg_variant):
-    variant_svg = VariantSvg.objects.create(variant=dsvg_variant, svg="<svg/>")
+    variant_svg = VariantSvg.objects.create(variant=dsvg_variant, svg=EMPTY_SVG)
 
-    assert variant_svg.content_hash == hashlib.sha256(b"<svg/>").hexdigest()
+    assert variant_svg.content_hash == hashlib.sha256(EMPTY_SVG.encode()).hexdigest()
 
 
 @pytest.mark.django_db
 def test_content_hash_is_recomputed_when_svg_changes(dsvg_variant):
-    variant_svg = VariantSvg.objects.create(variant=dsvg_variant, svg="<svg/>")
+    variant_svg = VariantSvg.objects.create(variant=dsvg_variant, svg=EMPTY_SVG)
     original = variant_svg.content_hash
 
-    variant_svg.svg = "<svg><g/></svg>"
+    variant_svg.svg = '<svg xmlns="http://www.w3.org/2000/svg"><g/></svg>'
     variant_svg.save()
 
     assert variant_svg.content_hash != original
@@ -33,10 +36,10 @@ def test_content_hash_is_recomputed_when_svg_changes(dsvg_variant):
 
 @pytest.mark.django_db
 def test_variant_has_at_most_one_svg(dsvg_variant):
-    VariantSvg.objects.create(variant=dsvg_variant, svg="<svg/>")
+    VariantSvg.objects.create(variant=dsvg_variant, svg=EMPTY_SVG)
 
     with pytest.raises(IntegrityError):
-        VariantSvg.objects.create(variant=dsvg_variant, svg="<svg/>")
+        VariantSvg.objects.create(variant=dsvg_variant, svg=EMPTY_SVG)
 
 
 @pytest.mark.django_db

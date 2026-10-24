@@ -1,5 +1,10 @@
 import copy
+import json
+import re
+from pathlib import Path
+
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from common.constants import PhaseStatus, VariantStatus
 from phase.models import Phase
 from django.urls import reverse
@@ -9,7 +14,7 @@ from rest_framework import status
 
 from adjudicator.serializers import deserialize_variant, VariantValidationError
 from variant.models import Variant, default_phase_progression
-from variant.utils import variant_to_canonical_dict
+from variant.utils import normalize_dsvg, variant_to_canonical_dict
 
 IN_DB_VARIANT_IDS = {
     "classical", "italy-vs-germany", "hundred",
@@ -500,3 +505,159 @@ class TestNationColor:
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
         assert nations_by_id["england"]["color"] == "#2196F3"
         assert nations_by_id["italy"]["color"] == "#4CAF50"
+
+
+COMMITTED_DSVGS = sorted((Path(__file__).resolve().parent / "data" / "svg").glob("*.d.svg"))
+
+UNSAFE_DSVG_PAYLOADS = [
+    ('<a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="java&#x09;script:alert(1)"><rect/></a>', "alert("),
+    ('<animate attributeName="href" values="javascript:alert(1)"/>', "alert("),
+    ('<set attributeName="href" from="javascript:alert(1)"/>', "alert("),
+    ('<rect onclick="alert(1)"/>', "alert("),
+    ("<script>alert(1)</script>", "alert("),
+    ('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>', "alert("),
+    ('<a href="data:text/html,alert(1)"><rect/></a>', "alert("),
+    ('<use href="https://evil.example/sprite.svg#a"/>', "evil.example"),
+    ('<rect style="fill:url(https://evil.example/a.png)"/>', "evil.example"),
+    ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
+    ('<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:expression(alert(1))}</style><rect class="a"/>', "alert("),
+    ('<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:#fff}body{fill:#123456}</style><rect class="a"/>', "#123456"),
+    ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
+]
+
+FONT_FACE_WITH_UNICODE_RANGE = """
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  src: url('data:font/woff2;charset=utf-8;base64,AAAA') format('woff2');
+  unicode-range: U+2e, U+41-59, U+61-70, U+72-7a;
+}
+"""
+
+
+def _variant_upload(dvar, dsvg):
+    return {
+        "dvar": SimpleUploadedFile("upload.dvar.json", json.dumps(dvar).encode(), "application/json"),
+        "dsvg": SimpleUploadedFile("upload.svg", dsvg.encode(), "image/svg+xml"),
+    }
+
+
+def _with_foreground_content(dsvg, content):
+    injected, count = re.subn(
+        r'(<g\b[^>]*\bid="foreground"[^>]*>)', lambda match: match.group(1) + content, dsvg, count=1
+    )
+    assert count == 1
+    return injected
+
+
+def _draft_dvar(dvar, slug):
+    draft = copy.deepcopy(dvar)
+    draft["id"] = slug
+    return draft
+
+
+@pytest.mark.django_db
+class TestVariantListCreateView:
+    @pytest.mark.parametrize("payload, marker", UNSAFE_DSVG_PAYLOADS)
+    def test_create_removes_unsafe_svg_content(
+        self, authenticated_client, classical_dvar, classical_dsvg, payload, marker
+    ):
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(
+                _draft_dvar(classical_dvar, "unsafe-draft"), _with_foreground_content(classical_dsvg, payload)
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert marker not in served
+        assert 'id="foreground"' in served
+
+    def test_create_keeps_font_faces_and_inlines_class_rules(
+        self, authenticated_client, classical_dvar, classical_dsvg
+    ):
+        content = (
+            "<style>.label{text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:3;stroke-linejoin:round}"
+            f".B{{fill:#FFCD00}}.C{{stroke:none}}{FONT_FACE_WITH_UNICODE_RANGE}</style>"
+            '<text id="label-text" class="label">Paris</text>'
+            '<path id="label-path" class="B C label" d="M0 0h1" style="stroke-width:5.448"/>'
+            '<filter id="label-filter" color-interpolation-filters="sRGB" shape-rendering="crispEdges"/>'
+        )
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(
+                _draft_dvar(classical_dvar, "styled-draft"), _with_foreground_content(classical_dsvg, content)
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert f"<style>{FONT_FACE_WITH_UNICODE_RANGE}</style>" in served
+        assert (
+            '<text id="label-text" style="text-anchor:middle;paint-order:stroke;stroke:#fff;'
+            'stroke-width:3;stroke-linejoin:round">Paris</text>'
+        ) in served
+        assert (
+            '<path id="label-path" d="M0 0h1" style="text-anchor:middle;paint-order:stroke;stroke:none;'
+            'stroke-linejoin:round;fill:#FFCD00;stroke-width:5.448"/>'
+        ) in served
+        assert '<filter id="label-filter" color-interpolation-filters="sRGB" shape-rendering="crispEdges"/>' in served
+        assert "class=" not in served
+
+    def test_create_rejects_non_svg_root(self, authenticated_client, classical_dvar):
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(_draft_dvar(classical_dvar, "html-draft"), '<html xmlns="http://www.w3.org/1999/xhtml"/>'),
+            format="multipart",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["dsvg"] == [
+            {"code": "INVALID_ROOT", "message": "Root element must be <svg> in the SVG namespace."}
+        ]
+
+    @pytest.mark.parametrize("dsvg_path", COMMITTED_DSVGS, ids=lambda path: path.name)
+    def test_committed_maps_keep_their_rendering(self, authenticated_client, svg_rendering_signature, dsvg_path):
+        variant_id = dsvg_path.name.removesuffix(".d.svg")
+        dvar = variant_to_canonical_dict(Variant.objects.get(id=variant_id))
+        source = dsvg_path.read_text()
+
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(_draft_dvar(dvar, f"{variant_id}-copy"), source),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert svg_rendering_signature(served) == svg_rendering_signature(normalize_dsvg(source))
+
+
+@pytest.mark.django_db
+class TestVariantDetailView:
+    @pytest.mark.parametrize("payload, marker", UNSAFE_DSVG_PAYLOADS[:3])
+    def test_update_removes_unsafe_svg_content(
+        self, authenticated_client, classical_dvar, classical_dsvg, payload, marker
+    ):
+        dvar = _draft_dvar(classical_dvar, "updated-draft")
+        created = authenticated_client.post(
+            reverse("variant-list"), _variant_upload(dvar, classical_dsvg), format="multipart"
+        )
+        assert created.status_code == status.HTTP_201_CREATED, created.data
+
+        response = authenticated_client.put(
+            reverse("variant-detail", kwargs={"pk": created.data["id"]}),
+            _variant_upload(dvar, _with_foreground_content(classical_dsvg, payload)),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert marker not in served

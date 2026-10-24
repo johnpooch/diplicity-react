@@ -9,6 +9,7 @@ import type {
 } from "../api/generated/endpoints";
 import { useDsvg } from "../hooks/useDsvg";
 import { DiplicityMap } from "./InteractiveMap/mapRenderer";
+import { sanitizeSvg } from "./InteractiveMap/sanitizeSvg";
 import { toRenderState } from "./InteractiveMap/toRenderState";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { GameMapCanvasProps } from "./GameMapCanvas/GameMapCanvas";
@@ -85,12 +86,14 @@ const StaticMap: React.FC<{
     const renderState = toRenderState(variant, phase, [], [], []);
     const rendered = new DiplicityMap(dsvg, variant.unitScaling).render(renderState);
     if (cover) {
-      return rendered.replace(
-        "<svg ",
-        '<svg preserveAspectRatio="xMidYMid slice" width="100%" height="100%" '
+      return sanitizeSvg(
+        rendered.replace(
+          "<svg ",
+          '<svg preserveAspectRatio="xMidYMid slice" width="100%" height="100%" '
+        )
       );
     }
-    return rendered;
+    return sanitizeSvg(rendered);
   }, [dsvg, variant, phase, cover]);
 
   return (
