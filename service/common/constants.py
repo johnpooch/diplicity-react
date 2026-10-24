@@ -172,6 +172,24 @@ class Commitment:
     )
 
 
+class CommitmentEvent:
+    SUBMITTED = "submitted"
+    NMR = "nmr"
+    CIVIL_DISORDER = "civil_disorder"
+
+    KIND_CHOICES = (
+        (SUBMITTED, "Submitted"),
+        (NMR, "NMR"),
+        (CIVIL_DISORDER, "Civil disorder"),
+    )
+
+    POINTS = {
+        SUBMITTED: 1,
+        NMR: -2,
+        CIVIL_DISORDER: -10,
+    }
+
+
 class UserKind:
     HUMAN = "human"
     LLM = "llm"

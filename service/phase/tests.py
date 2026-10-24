@@ -9,7 +9,7 @@ from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency
+from common.constants import CommitmentEvent, PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -17,10 +17,11 @@ from .utils import transform_options, phase_to_canonical_game_state
 from order.models import Order, OrderResolution
 from supply_center.models import SupplyCenter
 from unit.models import Unit
-from member.models import Member
+from member.models import CommitmentEntry, Member
 from nation.models import Nation
 from notification.models import Notification, NotificationDelivery
 from province.models import Province
+from user_profile.models import UserProfile
 from adjudicator.serializers import deserialize_variant, deserialize_game_state
 from variant.utils import variant_to_canonical_dict
 
@@ -4822,6 +4823,185 @@ class TestCivilDisorderAutoConfirm:
         active_ps.save()
 
         assert phase in Phase.objects.filter_due_phases()
+
+
+class TestCommitmentLedger:
+
+    @staticmethod
+    def _rate(phase):
+        phase.phase_states.update(has_possible_orders=True)
+        return phase.game.members.get(nation__name="Italy"), phase.game.members.get(nation__name="Germany")
+
+    @staticmethod
+    def _resolve(phase, adjudication_data):
+        with patch("phase.models.resolve", return_value=adjudication_data):
+            Phase.objects.resolve(phase)
+
+    @staticmethod
+    def _ledger(member):
+        kinds = list(member.commitment_entries.order_by("id").values_list("kind", flat=True))
+        square = Member.objects.with_commitment_square().get(id=member.id).commitment_square
+        total = UserProfile.objects.with_commitment_total().get(user_id=member.user_id).commitment_total
+        return kinds, square, total
+
+    @staticmethod
+    def _add_previous_nmr(phase, member):
+        previous = Phase.objects.create(
+            game=phase.game, variant=phase.variant,
+            season="Fall", year=1900, type=PhaseType.MOVEMENT,
+            ordinal=phase.ordinal - 1, status=PhaseStatus.COMPLETED,
+        )
+        previous.phase_states.create(
+            member=member, has_possible_orders=True, orders_outcome=PhaseState.OrdersOutcome.NMR
+        )
+
+    @pytest.mark.django_db
+    def test_submitted_phase_credits_one_point(self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+
+        assert self._ledger(italy) == ([CommitmentEvent.SUBMITTED], 1, 1)
+        assert self._ledger(germany) == ([CommitmentEvent.SUBMITTED], 1, 1)
+
+    @pytest.mark.django_db
+    def test_nmr_debits_two_points(self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        Order.objects.filter(phase_state__member=italy).delete()
+
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+
+        assert self._ledger(italy) == ([CommitmentEvent.NMR], -2, -2)
+
+    @pytest.mark.django_db
+    def test_entering_civil_disorder_debits_ten_on_top_of_the_nmr(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        self._add_previous_nmr(italy_vs_germany_phase_with_orders, italy)
+        Order.objects.filter(phase_state__member=italy).delete()
+
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+
+        assert self._ledger(italy) == (
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+        )
+
+    @pytest.mark.django_db
+    def test_civil_disorder_is_recorded_when_it_abandons_the_game(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        italy, germany = self._rate(phase)
+        self._add_previous_nmr(phase, italy)
+        phase.game.phases.get(ordinal=phase.ordinal - 1).phase_states.create(
+            member=germany, has_possible_orders=True, orders_outcome=PhaseState.OrdersOutcome.NMR
+        )
+        Order.objects.filter(phase_state__phase=phase).delete()
+
+        self._resolve(phase, mock_adjudication_data_basic)
+
+        phase.game.refresh_from_db()
+        assert phase.game.status == GameStatus.ABANDONED
+        assert self._ledger(italy) == (
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+        )
+        assert self._ledger(germany) == (
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+        )
+
+    @pytest.mark.django_db
+    def test_player_eliminated_as_they_enter_civil_disorder_is_only_debited_the_nmr(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        self._add_previous_nmr(italy_vs_germany_phase_with_orders, italy)
+        Order.objects.filter(phase_state__member=italy).delete()
+        adjudication_data = {
+            **mock_adjudication_data_basic,
+            "units": [u for u in mock_adjudication_data_basic["units"] if u["nation"] != "Italy"],
+            "supply_centers": [
+                sc for sc in mock_adjudication_data_basic["supply_centers"] if sc["nation"] != "Italy"
+            ],
+            "resolutions": [r for r in mock_adjudication_data_basic["resolutions"] if r["province"] != "ven"],
+        }
+
+        self._resolve(italy_vs_germany_phase_with_orders, adjudication_data)
+
+        assert self._ledger(italy) == ([CommitmentEvent.NMR], -2, -2)
+
+    @pytest.mark.django_db
+    def test_player_already_in_civil_disorder_is_not_debited_again(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        Order.objects.filter(phase_state__member=italy).delete()
+        Member.objects.filter(id=italy.id).update(civil_disorder_at=timezone.now())
+
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+
+        assert self._ledger(italy) == ([], 0, 0)
+
+    @pytest.mark.django_db
+    def test_civil_disorder_square_stays_after_the_seat_is_taken_over(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic, tertiary_user
+    ):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        self._add_previous_nmr(italy_vs_germany_phase_with_orders, italy)
+        Order.objects.filter(phase_state__member=italy).delete()
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+        italy.refresh_from_db()
+
+        Member.objects.hand_over_seat(italy, tertiary_user)
+
+        assert self._ledger(italy) == (
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+        )
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("excluded", ["private", "sandbox"])
+    def test_private_and_sandbox_games_are_not_recorded(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic, excluded
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        italy, germany = self._rate(phase)
+        Game.objects.filter(id=phase.game_id).update(**{excluded: True})
+        phase.game.refresh_from_db()
+
+        self._resolve(phase, mock_adjudication_data_basic)
+
+        assert self._ledger(italy) == ([], 0, 0)
+
+    @pytest.mark.django_db
+    def test_bot_players_are_not_recorded(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic, bot_user
+    ):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        Member.objects.filter(id=germany.id).update(user=bot_user)
+
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+
+        assert self._ledger(germany) == ([], 0, 0)
+        assert self._ledger(italy) == ([CommitmentEvent.SUBMITTED], 1, 1)
+
+    @pytest.mark.django_db
+    def test_total_sums_squares_across_games(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic, primary_user
+    ):
+        italy, germany = self._rate(italy_vs_germany_phase_with_orders)
+        other_game = Game.objects.create(
+            variant=italy.game.variant, name="Other Game", status=GameStatus.ACTIVE
+        )
+        other_member = other_game.members.create(user=primary_user, nation=italy.nation)
+        CommitmentEntry.objects.create(member=other_member, kind=CommitmentEvent.NMR)
+        CommitmentEntry.objects.create(member=other_member, kind=CommitmentEvent.CIVIL_DISORDER)
+
+        self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
+
+        assert self._ledger(italy) == ([CommitmentEvent.SUBMITTED], 1, -11)
+        assert self._ledger(other_member) == (
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -11
+        )
 
 
 class TestPhaseDurationByPhaseType:
