@@ -138,11 +138,14 @@ def _movement_orders(board, values, options, rng):
         source = unordered.pop(0)
         source_options = grouped[source]
         hold = next((option for option in source_options if option["order_type"] == OrderType.HOLD), None)
+        unit = our_units.get(board.parent[source])
+        reachable = board.reachable_provinces(unit["province"], unit["type"]) if unit else set()
 
         candidates = [
             option
             for option in source_options
-            if option["order_type"] in (OrderType.MOVE, OrderType.MOVE_VIA_CONVOY)
+            if option["order_type"] == OrderType.MOVE
+            and _destination_of(option, board) in reachable
             and _destination_of(option, board) not in dependencies[source]
         ]
         if hold is not None:
