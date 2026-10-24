@@ -19,6 +19,11 @@ const isFinishedGameStatus = (status: string) =>
 const isUnstartedGameStatus = (status: string) =>
   status === "pending" || status === "mustering";
 
+const formatList = (items: string[]) =>
+  items.length > 1
+    ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`
+    : items.join("");
+
 const getNationPreferencePath = (gameId: string, phaseId?: string) =>
   phaseId
     ? `/game/${gameId}/phase/${phaseId}/nation-preference`
@@ -206,6 +211,7 @@ function formatTimeAgo(djangoDatetime: string): string {
 
 export {
   formatDateTime,
+  formatList,
   formatRemainingTime,
   formatTimeAgo,
   formatTimeLeft,

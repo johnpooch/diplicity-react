@@ -1,15 +1,20 @@
 import React from "react";
-import { Pause } from "lucide-react";
+import { Pause, UserX } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { Nation } from "@/api/generated/endpoints";
+import type { Member, Nation } from "@/api/generated/endpoints";
 import { countPlayableNations } from "@/utils/playableNations";
-import { formatDateTime } from "@/util";
+import { formatDateTime, formatList } from "@/util";
 
 interface GameStatusAlertsProps {
   game: {
     status: string;
     isPaused?: boolean;
     musterDeadline?: string | null;
+    canWithdraw?: boolean;
+    members?: readonly Pick<
+      Member,
+      "nation" | "civilDisorder" | "replaceable"
+    >[];
   };
   variant?: {
     nations: readonly Pick<Nation, "nonPlayable">[];
@@ -27,6 +32,11 @@ export function GameStatusAlerts({
   const nationCount = variant
     ? countPlayableNations(variant.nations)
     : undefined;
+  const civilDisorderNations = game.canWithdraw
+    ? (game.members ?? []).flatMap(m =>
+        m.civilDisorder && m.replaceable && m.nation ? [m.nation] : []
+      )
+    : [];
 
   return (
     <>
@@ -53,6 +63,18 @@ export function GameStatusAlerts({
         <Alert>
           <Pause className="size-4" />
           <AlertDescription>This game is currently paused.</AlertDescription>
+        </Alert>
+      )}
+
+      {civilDisorderNations.length > 0 && (
+        <Alert>
+          <UserX />
+          <AlertDescription>
+            {formatList(civilDisorderNations)}{" "}
+            {civilDisorderNations.length > 1 ? "are" : "is"} in civil disorder.
+            You can find a replacement player, propose a draw, or withdraw.
+            Seats in civil disorder accept draws automatically.
+          </AlertDescription>
         </Alert>
       )}
 

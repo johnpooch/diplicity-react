@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import {
   formatDateTime,
+  formatList,
   formatRemainingTime,
   formatTimeLeft,
   getGameLandingPath,
@@ -13,6 +14,16 @@ describe("isFinishedGameStatus", () => {
     expect(isFinishedGameStatus("abandoned")).toBe(true);
     expect(isFinishedGameStatus("active")).toBe(false);
     expect(isFinishedGameStatus("pending")).toBe(false);
+  });
+});
+
+describe("formatList", () => {
+  it("joins items with commas and a final and", () => {
+    expect(formatList(["England"])).toBe("England");
+    expect(formatList(["England", "France"])).toBe("England and France");
+    expect(formatList(["England", "France", "Italy"])).toBe(
+      "England, France and Italy"
+    );
   });
 });
 

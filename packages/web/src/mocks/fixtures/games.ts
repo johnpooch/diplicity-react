@@ -879,6 +879,41 @@ const buildActiveCivilDisorder = () => {
 
 export const activeGameCivilDisorder = buildActiveCivilDisorder();
 
+const buildActiveOtherCivilDisorder = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "France"
+      ? { ...m, civilDisorder: true, replaceable: true }
+      : m
+  );
+  const phase = makePhase(1801, 5, {
+    season: "Spring",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 36 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game in Spring 1901 where the France player is in civil disorder. The current user (England) is still playing and is told what they can do.",
+    game: makeGame(
+      "active-other-civil-disorder",
+      "Gone Quiet",
+      members,
+      [phase],
+      {
+        canWithdraw: true,
+        orderStatus: "orders_required",
+        memberStatus: [],
+      }
+    ),
+    phases: [phase],
+    ordersByPhase: { 1801: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameOtherCivilDisorder = buildActiveOtherCivilDisorder();
+
 const buildActiveWithdrawnPlayer = () => {
   const members = makeActiveMembers().map(m =>
     m.nation === "France" ? { ...m, withdrawn: true, replaceable: true } : m

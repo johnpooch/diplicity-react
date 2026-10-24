@@ -2,11 +2,7 @@ import { BookOpen, Calendar, Trophy, User } from "lucide-react";
 
 import type { Variant } from "@/api/generated/endpoints";
 import type { SettingsRow } from "@/components/SettingsTable";
-
-const formatList = (items: string[]) =>
-  items.length > 1
-    ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`
-    : items.join("");
+import { formatList } from "@/util";
 
 function buildVictoryRule(variant: Variant): string | null {
   const defaultTarget = variant.victoryConditions.soloVictorySupplyCenters;
