@@ -23,7 +23,7 @@ Two responsibilities: define fields, and define properties for convenient access
 
 **Derive a value other rows already determine; do not store a copy and keep it in sync.** A private channel's `name` is built when it is read from the channel's current members (`derive_channel_name` in `service/channel/serializers.py`), so starting a game, leaving, or a seat changing hands needs no rename step. Store a value only when nothing else can reproduce it.
 
-**Commitment is an append-only log of events.** A `CommitmentEntry` records only the event's kind, and its points come from `CommitmentEvent.POINTS`. A member's square and a player's total are sums over entries, read through `with_commitment_square()` and `with_commitment_total()`. Never store either one, and never edit or delete an entry after it is written.
+**Commitment is an append-only log of events.** A `CommitmentEntry` records only the event's kind, and its points come from `CommitmentEvent.POINTS`. A member's square and a player's total are sums over entries, read through `with_commitment_square()` and `with_commitment_total()`. Never store either one, and never edit or delete an entry after it is written. Write a one-off event through `CommitmentEntry.objects.record()`, which skips private, sandbox and non-human members, so no caller re-implements that gate.
 
 **Do not leave unused domain in the schema for a future feature.** If fields are not used yet, remove them and re-add when the feature lands. Absent beats switched-off scaffolding.
 
