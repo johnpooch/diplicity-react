@@ -1,10 +1,10 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from common.constants import GameStatus, MinReliability, PressType, VariantStatus
+from common.constants import GameStatus, PressType, VariantStatus
 from common.views import resolve_game
 from user_profile.commitment import commitment_allows_requirement
-from user_profile.utils import get_player_stats, tier_allows_min_reliability, user_can_use_bot_opponent
+from user_profile.utils import user_can_use_bot_opponent
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -148,19 +148,6 @@ class IsSpaceAvailable(BasePermission):
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
         return game.members.players().count() < game.variant.nations.filter(non_playable=False).count()
-
-
-class MeetsReliabilityRequirement(BasePermission):
-    message = "Your reliability rating does not meet this game's requirement."
-
-    def has_permission(self, request, view):
-        game = resolve_game(request, view.kwargs.get("game_id"))
-        if game.min_reliability == MinReliability.OPEN:
-            return True
-        if not request.user.is_authenticated:
-            return False
-        tier = get_player_stats(request.user)["reliability_tier"]
-        return tier_allows_min_reliability(tier, game.min_reliability)
 
 
 class MeetsCommitmentRequirement(BasePermission):

@@ -820,11 +820,10 @@ class TestPublicUserProfileRetrieveView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_new_player_reliability_tier(self, authenticated_client, primary_user):
+    def test_new_player_stats(self, authenticated_client, primary_user):
         url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
         response = authenticated_client.get(url)
 
-        assert response.data["reliability_tier"] == "new"
         assert response.data["total_games"] == 0
         assert response.data["solo_wins"] == 0
         assert response.data["draws"] == 0
@@ -882,7 +881,6 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["losses"] == 7
         assert response.data["nmr_rate"] == 0.0
         assert response.data["cd_rate"] == 0.0
-        assert response.data["reliability_tier"] == "reliable"
 
     @pytest.mark.django_db
     def test_nmr_rate_calculation(
@@ -926,7 +924,6 @@ class TestPublicUserProfileRetrieveView:
         response = authenticated_client.get(url)
 
         assert response.data["nmr_rate"] == 0.3
-        assert response.data["reliability_tier"] is None
 
     @pytest.mark.django_db
     def test_cd_rate_calculation(
@@ -970,7 +967,6 @@ class TestPublicUserProfileRetrieveView:
         response = authenticated_client.get(url)
 
         assert response.data["cd_rate"] == 0.2
-        assert response.data["reliability_tier"] is None
 
     @pytest.mark.django_db
     def test_sandbox_games_excluded_from_stats(
@@ -1169,7 +1165,6 @@ class TestPublicUserProfileRetrieveView:
         response = authenticated_client.get(url)
 
         assert response.data["nmr_rate"] == 0.5
-        assert response.data["reliability_tier"] is None
 
     @pytest.mark.django_db
     def test_can_view_other_users_profile(
@@ -1182,33 +1177,6 @@ class TestPublicUserProfileRetrieveView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == secondary_user.profile.name
-
-
-class TestTierAllowsMinReliability:
-
-    @pytest.mark.parametrize(
-        "tier,min_reliability,expected",
-        [
-            ("reliable", "open", True),
-            ("reliable", "reliable_and_new", True),
-            ("reliable", "reliable_only", True),
-            ("new", "open", True),
-            ("new", "reliable_and_new", True),
-            ("new", "reliable_only", False),
-            (None, "open", True),
-            (None, "reliable_and_new", False),
-            (None, "reliable_only", False),
-        ],
-    )
-    def test_tier_allows_min_reliability(self, tier, min_reliability, expected):
-        from user_profile.utils import tier_allows_min_reliability
-
-        assert tier_allows_min_reliability(tier, min_reliability) is expected
-
-    def test_unknown_min_reliability_fails_open(self):
-        from user_profile.utils import tier_allows_min_reliability
-
-        assert tier_allows_min_reliability(None, "something_else") is True
 
 
 RECEIVED = PhaseState.OrdersOutcome.RECEIVED

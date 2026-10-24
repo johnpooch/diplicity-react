@@ -71,7 +71,6 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
         picture: null,
         email: "mock@example.com",
         canCreateBotGames: false,
-        reliabilityTier: null,
         commitment: "high",
       },
     }),
@@ -211,7 +210,6 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
-  minReliability: "open",
   commitmentRequirement: "open",
   commitmentEligibility: "eligible",
   musterRequired: false,
@@ -274,7 +272,6 @@ const mockUserProfile = {
   name: "Mock Player",
   picture: null,
   email: "mock@example.com",
-  reliabilityTier: null as string | null,
   commitment: "high",
 };
 
