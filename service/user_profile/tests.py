@@ -10,7 +10,16 @@ from django.utils import timezone
 from rest_framework import status
 from PIL import Image
 from adjudicator import service as adjudication_service
-from common.constants import Commitment, CommitmentRequirement, GameStatus, PhaseStatus, PhaseType
+from common.constants import (
+    Commitment,
+    CommitmentBand,
+    CommitmentEvent,
+    CommitmentRequirement,
+    CommitmentShade,
+    GameStatus,
+    PhaseStatus,
+    PhaseType,
+)
 from game.models import Game
 from phase.models import Phase, PhaseState
 from user_profile.commitment import (
@@ -21,7 +30,7 @@ from user_profile.commitment import (
 )
 from user_profile.models import UserProfile, UserProfilePicture
 from user_profile.utils import PICTURE_MAX_BYTES, PICTURE_MAX_DIMENSION, PICTURE_SIZE
-from member.models import Member
+from member.models import CommitmentEntry, Member
 from victory.models import Victory
 
 User = get_user_model()
@@ -60,6 +69,109 @@ class TestUserProfileRetrieveView:
         assert response.data["picture"] is None
         assert response.data["name"] == primary_user.profile.name
         assert response.data["email"] == primary_user.email
+
+
+class TestPublicUserProfileCommitment:
+
+    def _retrieve(self, client, user):
+        return client.get(reverse("public-user-profile", kwargs={"user_id": user.id}))
+
+    def _member(self, user, variant, **game_fields):
+        game = Game.objects.create(variant=variant, name="Commitment Game", status=GameStatus.ACTIVE, **game_fields)
+        return game.members.create(user=user)
+
+    def _record(self, member, *kinds):
+        CommitmentEntry.objects.bulk_create([CommitmentEntry(member=member, kind=kind) for kind in kinds])
+
+    @pytest.mark.django_db
+    def test_player_without_games_has_no_squares(self, authenticated_client, secondary_user):
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["commitment_total"] == 0
+        assert response.data["commitment_band"] == CommitmentBand.NEUTRAL
+        assert response.data["commitment_squares"] == []
+
+    @pytest.mark.django_db
+    def test_reports_a_square_per_game_and_their_total(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        played = self._member(secondary_user, classical_variant)
+        self._record(played, *[CommitmentEvent.SUBMITTED] * 6, CommitmentEvent.NMR)
+        abandoned = self._member(secondary_user, classical_variant)
+        self._record(
+            abandoned,
+            CommitmentEvent.SUBMITTED,
+            CommitmentEvent.NMR,
+            CommitmentEvent.NMR,
+            CommitmentEvent.CIVIL_DISORDER,
+        )
+        self._member(secondary_user, classical_variant)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["commitment_total"] == -9
+        assert response.data["commitment_band"] == CommitmentBand.RED
+        assert response.data["commitment_squares"] == [
+            {"submitted": 6, "missed": 1, "events": [], "points": 4, "shade": CommitmentShade.LIGHT_GREEN},
+            {
+                "submitted": 1,
+                "missed": 2,
+                "events": [CommitmentEvent.CIVIL_DISORDER],
+                "points": -13,
+                "shade": CommitmentShade.RED,
+            },
+            {"submitted": 0, "missed": 0, "events": [], "points": 0, "shade": CommitmentShade.GREY},
+        ]
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("excluded", ["private", "sandbox"])
+    def test_unrated_games_have_no_square(self, authenticated_client, secondary_user, classical_variant, excluded):
+        self._member(secondary_user, classical_variant, **{excluded: True})
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["commitment_squares"] == []
+
+
+class TestCommitmentBands:
+
+    @pytest.mark.parametrize(
+        ("total", "band"),
+        [
+            (-21, CommitmentBand.DARK_RED),
+            (-20, CommitmentBand.RED),
+            (-1, CommitmentBand.RED),
+            (0, CommitmentBand.NEUTRAL),
+            (10, CommitmentBand.NEUTRAL),
+            (11, CommitmentBand.LIGHT_GREEN),
+            (49, CommitmentBand.LIGHT_GREEN),
+            (50, CommitmentBand.GREEN),
+            (199, CommitmentBand.GREEN),
+            (200, CommitmentBand.DARK_GREEN),
+        ],
+    )
+    def test_band_for_total(self, total, band):
+        assert CommitmentBand.for_total(total) == band
+
+    @pytest.mark.parametrize(
+        ("points", "shade"),
+        [
+            (-14, CommitmentShade.DARK_RED),
+            (-13, CommitmentShade.RED),
+            (-5, CommitmentShade.RED),
+            (-4, CommitmentShade.LIGHT_RED),
+            (-1, CommitmentShade.LIGHT_RED),
+            (0, CommitmentShade.GREY),
+            (1, CommitmentShade.LIGHT_GREEN),
+            (10, CommitmentShade.LIGHT_GREEN),
+            (11, CommitmentShade.GREEN),
+            (24, CommitmentShade.GREEN),
+            (25, CommitmentShade.DARK_GREEN),
+        ],
+    )
+    def test_shade_for_points(self, points, shade):
+        assert CommitmentShade.for_points(points) == shade
 
 
 class TestUserProfileUpdateView:

@@ -215,6 +215,26 @@ export interface ChannelUpdate {
 }
 
 /**
+ * * `dark_red` - Dark red
+ * `red` - Red
+ * `neutral` - Neutral
+ * `light_green` - Light green
+ * `green` - Green
+ * `dark_green` - Dark green
+ */
+export type CommitmentBandEnum =
+  (typeof CommitmentBandEnum)[keyof typeof CommitmentBandEnum];
+
+export const CommitmentBandEnum = {
+  dark_red: "dark_red",
+  red: "red",
+  neutral: "neutral",
+  light_green: "light_green",
+  green: "green",
+  dark_green: "dark_green",
+} as const;
+
+/**
  * * `eligible` - eligible
  * `committed_locked` - committed_locked
  * `low_locked` - low_locked
@@ -239,6 +259,48 @@ export const CommitmentRequirementEnum = {
   open: "open",
   committed: "committed",
 } as const;
+
+/**
+ * * `submitted` - Submitted
+ * `nmr` - NMR
+ * `civil_disorder` - Civil disorder
+ */
+export type EventsEnum = (typeof EventsEnum)[keyof typeof EventsEnum];
+
+export const EventsEnum = {
+  submitted: "submitted",
+  nmr: "nmr",
+  civil_disorder: "civil_disorder",
+} as const;
+
+/**
+ * * `dark_red` - Dark red
+ * `red` - Red
+ * `light_red` - Light red
+ * `grey` - Grey
+ * `light_green` - Light green
+ * `green` - Green
+ * `dark_green` - Dark green
+ */
+export type ShadeEnum = (typeof ShadeEnum)[keyof typeof ShadeEnum];
+
+export const ShadeEnum = {
+  dark_red: "dark_red",
+  red: "red",
+  light_red: "light_red",
+  grey: "grey",
+  light_green: "light_green",
+  green: "green",
+  dark_green: "dark_green",
+} as const;
+
+export interface CommitmentSquare {
+  readonly submitted: number;
+  readonly missed: number;
+  readonly events: readonly EventsEnum[];
+  readonly points: number;
+  readonly shade: ShadeEnum;
+}
 
 /**
  * * `duration` - Duration
@@ -614,6 +676,9 @@ export interface Member {
   readonly replaceable: boolean;
   readonly removable: boolean;
   readonly nationPreferenceIds: readonly string[];
+  /** @nullable */
+  readonly commitmentTotal: number | null;
+  readonly commitmentBand: CommitmentBandEnum | NullEnum | null;
 }
 
 export interface Victory {
@@ -1257,6 +1322,9 @@ export interface PublicUserProfile {
   readonly nmrRate: number;
   readonly cdRate: number;
   readonly commitment: string;
+  readonly commitmentTotal: number;
+  readonly commitmentBand: CommitmentBandEnum;
+  readonly commitmentSquares: readonly CommitmentSquare[];
 }
 
 export interface Register {

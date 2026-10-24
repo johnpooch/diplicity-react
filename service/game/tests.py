@@ -13,7 +13,7 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentEligibility, CommitmentRequirement, PressType, MemberKind, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
+from common.constants import CommitmentBand, CommitmentEvent, PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentEligibility, CommitmentRequirement, PressType, MemberKind, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
@@ -21,7 +21,7 @@ from province.models import Province
 from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile, UserProfilePicture
 from login.models import AuthUser
-from member.models import Member, NationPreference
+from member.models import CommitmentEntry, Member, NationPreference
 from channel.models import ChannelMessage
 from victory.models import Victory
 from .management.commands.seed_staging import TESTER_EMAIL
@@ -100,6 +100,46 @@ class TestGameRetrieveView:
         assert response.data["can_join"] is False
         assert response.data["can_leave"] is False
         assert response.data["phase_confirmed"] is False
+
+    @pytest.mark.django_db
+    def test_retrieve_game_reports_member_commitment_totals_across_games(
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        primary_user,
+        secondary_user,
+        classical_variant,
+    ):
+        game = game_with_public_channel_and_messages
+        other_game = Game.objects.create(variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE)
+        other_member = other_game.members.create(user=secondary_user)
+        CommitmentEntry.objects.bulk_create(
+            [CommitmentEntry(member=other_member, kind=CommitmentEvent.SUBMITTED) for _ in range(12)]
+        )
+        CommitmentEntry.objects.create(member=game.members.get(user=secondary_user), kind=CommitmentEvent.SUBMITTED)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members = {m["user_id"]: m for m in response.data["members"]}
+        assert members[secondary_user.id]["commitment_total"] == 13
+        assert members[secondary_user.id]["commitment_band"] == CommitmentBand.LIGHT_GREEN
+        assert members[primary_user.id]["commitment_total"] == 0
+        assert members[primary_user.id]["commitment_band"] == CommitmentBand.NEUTRAL
+
+    @pytest.mark.django_db
+    def test_retrieve_game_masks_member_commitment_in_anonymous_game(
+        self, authenticated_client, game_with_public_channel_and_messages, primary_user, secondary_user
+    ):
+        game = game_with_public_channel_and_messages
+        Game.objects.filter(id=game.id).update(anonymous=True)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members = {m["is_current_user"]: m for m in response.data["members"]}
+        assert members[False]["commitment_total"] is None
+        assert members[False]["commitment_band"] is None
+        assert members[True]["commitment_total"] == 0
+        assert members[True]["commitment_band"] == CommitmentBand.NEUTRAL
 
     @pytest.mark.django_db
     def test_retrieve_game_not_found(self, authenticated_client):
@@ -317,6 +357,23 @@ class TestGameRetrieveView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == first.data["total_unread_message_count"] + 1
         assert response["ETag"] != first["ETag"]
+
+    @pytest.mark.django_db
+    def test_retrieve_game_returns_200_after_member_commitment_change(
+        self, authenticated_client, game_with_public_channel_and_messages, secondary_user, classical_variant
+    ):
+        game = game_with_public_channel_and_messages
+        url = reverse(retrieve_viewname, args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        other_game = Game.objects.create(variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE)
+        CommitmentEntry.objects.create(member=other_game.members.create(user=secondary_user), kind=CommitmentEvent.NMR)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        member = next(m for m in response.data["members"] if m["user_id"] == secondary_user.id)
+        assert member["commitment_total"] == -2
+        assert response["ETag"] != etag
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_nation_preference_change(

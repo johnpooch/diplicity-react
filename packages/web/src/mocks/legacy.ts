@@ -43,6 +43,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
   {
@@ -64,6 +66,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
   {
@@ -85,6 +89,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
   {
@@ -106,6 +112,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
   {
@@ -127,6 +135,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
   {
@@ -148,6 +158,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
   {
@@ -169,6 +181,8 @@ export const mockMembers: Member[] = [
     replaceable: false,
     removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
     nationPreferenceIds: [],
   },
 ];

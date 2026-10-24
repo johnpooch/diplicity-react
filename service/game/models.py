@@ -61,7 +61,7 @@ tracer = trace.get_tracer(__name__)
 
 FASTEST_START_MIN_PLAYERS = 3
 
-GAME_RETRIEVE_REPRESENTATION_VERSION = 1
+GAME_RETRIEVE_REPRESENTATION_VERSION = 2
 
 
 class GameQuerySet(models.QuerySet):
@@ -95,12 +95,14 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related("nation", "user__profile__uploaded_picture")
-            .prefetch_related("nation_preferences__nation"),
+            .prefetch_related("nation_preferences__nation")
+            .with_commitment_total(),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation"),
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation")
+            .with_commitment_total(),
         )
 
         phases_prefetch = Prefetch(
@@ -130,12 +132,14 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related("nation__flag", "user__profile__uploaded_picture")
-            .prefetch_related("nation_preferences__nation"),
+            .prefetch_related("nation_preferences__nation")
+            .with_commitment_total(),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
+            .with_commitment_total(),
         )
 
         phases_prefetch = Prefetch("phases", queryset=Phase.objects.defer("options"))
@@ -218,12 +222,14 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related("nation__flag", "user__profile__uploaded_picture")
-            .prefetch_related("nation_preferences__nation"),
+            .prefetch_related("nation_preferences__nation")
+            .with_commitment_total(),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
+            .with_commitment_total(),
         )
 
         return self.select_related("victory", "game_master__profile__uploaded_picture").prefetch_related(
@@ -306,6 +312,7 @@ class GameManager(models.Manager):
         user_ids = {member["user_id"] for member in members} | {game["game_master_id"], user.id}
         profiles = list(
             UserProfile.objects.filter(user_id__in=user_ids - {None})
+            .with_commitment_total()
             .annotate(uploaded_picture_hash=F("uploaded_picture__content_hash"))
             .order_by("id")
             .values()

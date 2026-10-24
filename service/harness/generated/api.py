@@ -52,6 +52,9 @@ class ChannelUpdate(TypedDict):
     title: str
 
 
+type CommitmentBandEnum = Literal['dark_red', 'red', 'neutral', 'light_green', 'green', 'dark_green']
+
+
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
 
 
@@ -104,6 +107,9 @@ class EmailLogin(TypedDict):
     name: str
     access_token: str
     refresh_token: str
+
+
+type EventsEnum = Literal['submitted', 'nmr', 'civil_disorder']
 
 
 class FieldValue(TypedDict):
@@ -198,28 +204,6 @@ type KindEnum = Literal[
     'sandbox',
     'finished',
 ]
-
-
-class Member(TypedDict):
-    id: int
-    user_id: int | None
-    name: str
-    picture: str | None
-    is_current_user: bool
-    is_bot: bool
-    commitment: str | None
-    nation: str | None
-    eliminated: bool
-    kicked: bool
-    is_game_creator: bool
-    is_admin: bool
-    nmr_extensions_remaining: int
-    civil_disorder: bool
-    withdrawn: bool
-    seeking_replacement: bool
-    replaceable: bool
-    removable: bool
-    nation_preference_ids: list[str]
 
 
 type MemberActionKeyEnum = Literal[
@@ -381,20 +365,6 @@ class Province(TypedDict):
     named_coast_ids: list[str]
 
 
-class PublicUserProfile(TypedDict):
-    id: int
-    name: str
-    picture: str | None
-    created_at: str
-    total_games: int
-    solo_wins: int
-    draws: int
-    losses: int
-    nmr_rate: float
-    cd_rate: float
-    commitment: str
-
-
 class Register(TypedDict):
     email: str
     password: str
@@ -405,6 +375,9 @@ type ResultEnum = Literal['solo_victory', 'won_by', 'draw', 'abandoned', 'ongoin
 
 
 type RetreatFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
+
+
+type ShadeEnum = Literal['dark_red', 'red', 'light_red', 'grey', 'light_green', 'green', 'dark_green']
 
 
 type StatusEnum = Literal['pending', 'active', 'processing', 'completed', 'template']
@@ -521,13 +494,6 @@ class Version(TypedDict):
     minimum_client_version: str
 
 
-class Victory(TypedDict):
-    id: int
-    type: str
-    winning_phase_id: int
-    members: list[Member]
-
-
 class VictoryConditions(TypedDict):
     solo_victory_supply_centers: int | None
     game_ends_year: int | None
@@ -588,6 +554,14 @@ class ChannelPreview(TypedDict):
     muted: bool
     unread_message_count: int
     latest_message: ChannelMessage | None
+
+
+class CommitmentSquare(TypedDict):
+    submitted: int
+    missed: int
+    events: list[EventsEnum]
+    points: int
+    shade: ShadeEnum
 
 
 class DrawProposal(TypedDict):
@@ -654,50 +628,28 @@ class GameListCurrentPhase(TypedDict):
     supply_centers: list[GameListSupplyCenter]
 
 
-class GameRetrieve(TypedDict):
-    id: str
+class Member(TypedDict):
+    id: int
+    user_id: int | None
     name: str
-    status: str
-    created_at: str
-    can_join: bool
-    can_leave: bool
-    can_withdraw: bool
-    can_delete: bool
-    can_manage: bool
-    can_create_channel: bool
-    game_master: GameMaster | None
-    game_master_member_id: int | None
-    phases: list[int]
-    current_phase_id: int | None
-    members: list[Member]
-    sandbox: bool
-    victory: Victory | None
-    variant_id: str
-    phase_confirmed: bool
-    order_status: OrderStatusEnum | NullEnum | None
-    member_status: list[MemberStatusEnum] | None
-    movement_phase_duration: str | None
-    retreat_phase_duration: str | None
-    show_short_game_join_warning: bool
-    private: bool
-    anonymous: bool
-    is_paused: bool
-    paused_at: str | None
-    nmr_extensions_allowed: int
-    deadline_mode: str
-    fixed_deadline_time: str | None
-    fixed_deadline_timezone: str | None
-    movement_frequency: str | None
-    retreat_frequency: str | None
-    press_type: str
-    commitment_requirement: str
-    commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
-    muster_required: bool
-    muster_deadline: str | None
-    muster_status: MusterStatusEnum | NullEnum | None
-    total_unread_message_count: int
-    actions: list[GameAction]
-    player_list_actions: list[GameAction]
+    picture: str | None
+    is_current_user: bool
+    is_bot: bool
+    commitment: str | None
+    nation: str | None
+    eliminated: bool
+    kicked: bool
+    is_game_creator: bool
+    is_admin: bool
+    nmr_extensions_remaining: int
+    civil_disorder: bool
+    withdrawn: bool
+    seeking_replacement: bool
+    replaceable: bool
+    removable: bool
+    nation_preference_ids: list[str]
+    commitment_total: int | None
+    commitment_band: CommitmentBandEnum | NullEnum | None
 
 
 class MemberAction(TypedDict):
@@ -782,6 +734,23 @@ class PhaseState(TypedDict):
     max_orders: int | None
 
 
+class PublicUserProfile(TypedDict):
+    id: int
+    name: str
+    picture: str | None
+    created_at: str
+    total_games: int
+    solo_wins: int
+    draws: int
+    losses: int
+    nmr_rate: float
+    cd_rate: float
+    commitment: str
+    commitment_total: int
+    commitment_band: CommitmentBandEnum
+    commitment_squares: list[CommitmentSquare]
+
+
 class VariantProvince(TypedDict):
     id: str
     name: str
@@ -795,6 +764,13 @@ class VariantTemplatePhase(TypedDict):
     year: int
     units: list[VariantTemplateUnit]
     supply_centers: list[VariantTemplateSupplyCenter]
+
+
+class Victory(TypedDict):
+    id: int
+    type: str
+    winning_phase_id: int
+    members: list[Member]
 
 
 class Channel(TypedDict):
@@ -852,6 +828,52 @@ class GameList(TypedDict):
     muster_deadline: str | None
     muster_status: MusterStatusEnum | NullEnum | None
     total_unread_message_count: int
+
+
+class GameRetrieve(TypedDict):
+    id: str
+    name: str
+    status: str
+    created_at: str
+    can_join: bool
+    can_leave: bool
+    can_withdraw: bool
+    can_delete: bool
+    can_manage: bool
+    can_create_channel: bool
+    game_master: GameMaster | None
+    game_master_member_id: int | None
+    phases: list[int]
+    current_phase_id: int | None
+    members: list[Member]
+    sandbox: bool
+    victory: Victory | None
+    variant_id: str
+    phase_confirmed: bool
+    order_status: OrderStatusEnum | NullEnum | None
+    member_status: list[MemberStatusEnum] | None
+    movement_phase_duration: str | None
+    retreat_phase_duration: str | None
+    show_short_game_join_warning: bool
+    private: bool
+    anonymous: bool
+    is_paused: bool
+    paused_at: str | None
+    nmr_extensions_allowed: int
+    deadline_mode: str
+    fixed_deadline_time: str | None
+    fixed_deadline_timezone: str | None
+    movement_frequency: str | None
+    retreat_frequency: str | None
+    press_type: str
+    commitment_requirement: str
+    commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    muster_required: bool
+    muster_deadline: str | None
+    muster_status: MusterStatusEnum | NullEnum | None
+    total_unread_message_count: int
+    actions: list[GameAction]
+    player_list_actions: list[GameAction]
 
 
 class MyGame(TypedDict):

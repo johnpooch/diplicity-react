@@ -2,7 +2,14 @@ from rest_framework import serializers
 from django.db import IntegrityError, transaction
 from drf_spectacular.utils import extend_schema_field
 
-from common.constants import ActionBlockedReason, GameActionKey, GameStatus, MemberActionKey, ParticipationStatus
+from common.constants import (
+    ActionBlockedReason,
+    CommitmentBand,
+    GameActionKey,
+    GameStatus,
+    MemberActionKey,
+    ParticipationStatus,
+)
 from emit import emit
 from user_profile.models import UserProfile
 
@@ -100,6 +107,23 @@ class MemberSerializer(BaseMemberSerializer):
     replaceable = serializers.BooleanField(read_only=True)
     removable = serializers.SerializerMethodField()
     nation_preference_ids = serializers.SerializerMethodField()
+    commitment_total = serializers.SerializerMethodField()
+    commitment_band = serializers.SerializerMethodField()
+
+    def _has_commitment(self, obj):
+        return obj.user is not None and not self._is_masked(obj)
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_commitment_total(self, obj):
+        if not self._has_commitment(obj):
+            return None
+        return obj.commitment_total
+
+    @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES, allow_null=True))
+    def get_commitment_band(self, obj):
+        if not self._has_commitment(obj):
+            return None
+        return CommitmentBand.for_total(obj.commitment_total)
 
     @extend_schema_field(serializers.BooleanField)
     def get_removable(self, obj):

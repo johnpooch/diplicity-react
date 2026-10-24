@@ -25,6 +25,8 @@ Two responsibilities: define fields, and define properties for convenient access
 
 **Commitment is an append-only log of events.** A `CommitmentEntry` records only the event's kind, and its points come from `CommitmentEvent.POINTS`. A member's square and a player's total are sums over entries, read through `with_commitment_square()` and `with_commitment_total()`. Never store either one, and never edit or delete an entry after it is written.
 
+Bands for totals and shades for squares come from `CommitmentBand.for_total()` and `CommitmentShade.for_points()`; clients never derive them. A member's lifetime total is annotated with `Member.objects.with_commitment_total()` wherever members are prefetched in bulk, and any fingerprint of a response that carries it must include it, as `retrieve_fingerprint` in `service/game/models.py` does.
+
 **Do not leave unused domain in the schema for a future feature.** If fields are not used yet, remove them and re-add when the feature lands. Absent beats switched-off scaffolding.
 
 Query optimisation belongs on a custom QuerySet, never in a view:

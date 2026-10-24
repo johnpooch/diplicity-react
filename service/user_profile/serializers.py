@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
+from common.constants import CommitmentBand, CommitmentEvent, CommitmentShade
+from member.models import Member
+
 from .models import UserProfilePicture
 from .utils import get_player_stats, normalise_picture, user_can_use_bot_opponent
 
@@ -44,6 +47,20 @@ class AddableUserSerializer(PictureUrlMixin, serializers.Serializer):
     picture = serializers.SerializerMethodField()
 
 
+class CommitmentSquareSerializer(serializers.Serializer):
+    submitted = serializers.IntegerField(read_only=True, source="commitment_submitted")
+    missed = serializers.IntegerField(read_only=True, source="commitment_missed")
+    events = serializers.ListField(
+        child=serializers.ChoiceField(choices=CommitmentEvent.KIND_CHOICES), read_only=True, source="commitment_events"
+    )
+    points = serializers.IntegerField(read_only=True, source="commitment_square")
+    shade = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.ChoiceField(choices=CommitmentShade.SHADE_CHOICES))
+    def get_shade(self, obj):
+        return CommitmentShade.for_points(obj.commitment_square)
+
+
 class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
@@ -56,6 +73,17 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     nmr_rate = serializers.FloatField(read_only=True)
     cd_rate = serializers.FloatField(read_only=True)
     commitment = serializers.CharField(read_only=True)
+    commitment_total = serializers.IntegerField(read_only=True)
+    commitment_band = serializers.SerializerMethodField()
+    commitment_squares = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES))
+    def get_commitment_band(self, obj):
+        return CommitmentBand.for_total(obj.commitment_total)
+
+    @extend_schema_field(CommitmentSquareSerializer(many=True))
+    def get_commitment_squares(self, obj):
+        return CommitmentSquareSerializer(Member.objects.filter(user=obj.user).commitment_squares(), many=True).data
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

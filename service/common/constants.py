@@ -189,6 +189,76 @@ class CommitmentEvent:
         CIVIL_DISORDER: -10,
     }
 
+    PHASE_KINDS = (SUBMITTED, NMR)
+
+
+class CommitmentBand:
+    DARK_RED = "dark_red"
+    RED = "red"
+    NEUTRAL = "neutral"
+    LIGHT_GREEN = "light_green"
+    GREEN = "green"
+    DARK_GREEN = "dark_green"
+
+    BAND_CHOICES = (
+        (DARK_RED, "Dark red"),
+        (RED, "Red"),
+        (NEUTRAL, "Neutral"),
+        (LIGHT_GREEN, "Light green"),
+        (GREEN, "Green"),
+        (DARK_GREEN, "Dark green"),
+    )
+
+    @classmethod
+    def for_total(cls, total):
+        if total <= -21:
+            return cls.DARK_RED
+        if total <= -1:
+            return cls.RED
+        if total <= 10:
+            return cls.NEUTRAL
+        if total <= 49:
+            return cls.LIGHT_GREEN
+        if total <= 199:
+            return cls.GREEN
+        return cls.DARK_GREEN
+
+
+class CommitmentShade:
+    DARK_RED = "dark_red"
+    RED = "red"
+    LIGHT_RED = "light_red"
+    GREY = "grey"
+    LIGHT_GREEN = "light_green"
+    GREEN = "green"
+    DARK_GREEN = "dark_green"
+
+    SHADE_CHOICES = (
+        (DARK_RED, "Dark red"),
+        (RED, "Red"),
+        (LIGHT_RED, "Light red"),
+        (GREY, "Grey"),
+        (LIGHT_GREEN, "Light green"),
+        (GREEN, "Green"),
+        (DARK_GREEN, "Dark green"),
+    )
+
+    @classmethod
+    def for_points(cls, points):
+        if points <= -14:
+            return cls.DARK_RED
+        if points <= -5:
+            return cls.RED
+        if points <= -1:
+            return cls.LIGHT_RED
+        if points == 0:
+            return cls.GREY
+        if points <= 10:
+            return cls.LIGHT_GREEN
+        if points <= 24:
+            return cls.GREEN
+        return cls.DARK_GREEN
+
 
 class UserKind:
     HUMAN = "human"

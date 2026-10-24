@@ -56,6 +56,8 @@ export const makeMember = (
   replaceable: false,
   removable: false,
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
   nationPreferenceIds: [],
   ...overrides,
 });
@@ -94,5 +96,12 @@ for (const player of players) {
     nmrRate: 0.05,
     cdRate: 0,
     commitment: "high",
+    commitmentTotal: 120,
+    commitmentBand: "green",
+    commitmentSquares: [
+      { submitted: 24, missed: 0, events: [], points: 24, shade: "green" },
+      { submitted: 30, missed: 1, events: [], points: 28, shade: "dark_green" },
+      { submitted: 6, missed: 1, events: [], points: 4, shade: "light_green" },
+    ],
   };
 }
