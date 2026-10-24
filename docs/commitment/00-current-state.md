@@ -337,6 +337,8 @@ Bot seats are negligible: 41 in total over the period. The last column counts NM
 
 **When players enter CD** (last 120 days; 3,173 CD members). "Phase number" is approximated as the count of the game's phases created up to the CD time.
 
+**Erratum.** This table is wrong. It buckets by `civil_disorder_at`, which was backfilled from `updated_at` for every departure before 2026-10-11, so most of these timestamps fall near game start rather than when CD happened. The "others gone" column is wrong for the same reason. Measured from the phase where CD triggered, about a quarter of CDs happen in phases 1–3, not 87%. See the corrected table in [`02-calibration.md`](./02-calibration.md) §3.
+
 | Phase number at CD | CD members | …of which ≥ half the other seats were already gone |
 | --- | --- | --- |
 | 1–3 | 2,769 (87%) | 6 |

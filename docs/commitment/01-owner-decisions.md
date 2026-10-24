@@ -10,7 +10,7 @@ These decisions came out of an interview with the owner, John. They are product 
 
 ## 1. Principles
 
-1. **Restrictions target insincerity, not imperfection.** Most of the problem comes from confused or drive-by players: 42% of `low` players never submitted an order, and 87% of CDs happen in phases 1–3. Serial abandoners are the rest. Sincere players who are still learning should get in.
+1. **Restrictions target insincerity, not imperfection.** Many `low` players are confused or drive-by: 42% of them never submitted an order. Abandonment is different: most CDs happen mid-game, not in the first year ([`02-calibration.md`](./02-calibration.md) §3). Sincere players who are still learning should get in.
 2. **Surface facts and let the community decide.** Prefer clear information plus host control over system enforcement. Keep automatic rules few and simple.
 3. **Every penalty has a visible, easy way back.** Under the current system `low` is effectively a permanent ban (current-state §7.2). That was never intended.
 4. **One robust flow.** No branching onboarding, join paths or game-start paths. Avoid toggles and settings wherever possible.
