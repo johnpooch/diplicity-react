@@ -9,6 +9,7 @@ from procrastinate.contrib.django import app as procrastinate_app
 from rest_framework import status
 
 from common.constants import (
+    CommitmentEvent,
     DeadlineMode,
     GameStatus,
     MemberKind,
@@ -420,6 +421,53 @@ class TestStartIfMustered:
         assert phase.status == PhaseStatus.ACTIVE
         removed_state = phase.phase_states.get(member=removed)
         assert removed_state.orders_confirmed is True
+
+    @pytest.mark.django_db
+    def test_expiry_records_a_muster_no_show_for_each_vacated_seat(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+    ):
+        game = muster_game_factory(private=False)
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        _expire_deadline(game)
+
+        Game.objects.start_if_mustered(game.id)
+
+        removed = game.members.get(user=secondary_user)
+        confirmed = game.members.get(user=primary_user)
+        assert list(removed.commitment_entries.values_list("kind", flat=True)) == [CommitmentEvent.MUSTER_NO_SHOW]
+        assert not confirmed.commitment_entries.exists()
+
+    @pytest.mark.django_db
+    def test_expiry_records_no_commitment_in_a_private_game(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        secondary_user,
+    ):
+        game = muster_game_factory()
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        _expire_deadline(game)
+
+        Game.objects.start_if_mustered(game.id)
+
+        assert not game.members.get(user=secondary_user).commitment_entries.exists()
+
+    @pytest.mark.django_db
+    def test_expiry_records_no_commitment_for_unconfirmed_bots(
+        self, muster_game_factory, in_memory_procrastinate, bot_user
+    ):
+        game = muster_game_factory(private=False, second_user=bot_user)
+        _expire_deadline(game)
+
+        Game.objects.start_if_mustered(game.id)
+
+        assert not game.members.get(user=bot_user).commitment_entries.exists()
 
     @pytest.mark.django_db
     def test_expiry_with_all_confirmed_removes_nobody(

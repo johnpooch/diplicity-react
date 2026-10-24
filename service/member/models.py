@@ -13,6 +13,7 @@ from common.constants import (
     MemberDeparture,
     MemberKind,
     ParticipationStatus,
+    UserKind,
 )
 from common.models import BaseModel
 from emit import emit
@@ -147,6 +148,10 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         with transaction.atomic():
             member.withdrawn_at = timezone.now()
             member.save(update_fields=["withdrawn_at"])
+            CommitmentEntry.objects.record(
+                member,
+                CommitmentEvent.EARLY_WITHDRAWAL if game.in_first_year else CommitmentEvent.LATE_WITHDRAWAL,
+            )
 
             phase = self._lock_active_phase(game)
             if phase is not None:
@@ -380,7 +385,18 @@ class NationPreference(BaseModel):
         return f"{self.member} - {self.rank}. {self.nation.name}"
 
 
+class CommitmentEntryManager(models.Manager):
+    def record(self, member, kind):
+        game = member.game
+        if game.sandbox or game.private:
+            return None
+        if member.user is None or member.user.profile.kind != UserKind.HUMAN:
+            return None
+        return self.create(member=member, kind=kind)
+
+
 class CommitmentEntry(BaseModel):
+    objects = CommitmentEntryManager()
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="commitment_entries")
     kind = models.CharField(max_length=20, choices=CommitmentEvent.KIND_CHOICES)
 
