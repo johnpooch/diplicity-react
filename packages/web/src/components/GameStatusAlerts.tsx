@@ -3,11 +3,13 @@ import { Pause } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Nation } from "@/api/generated/endpoints";
 import { countPlayableNations } from "@/utils/playableNations";
+import { formatDateTime } from "@/util";
 
 interface GameStatusAlertsProps {
   game: {
     status: string;
     isPaused?: boolean;
+    musterDeadline?: string | null;
   };
   variant?: {
     nations: readonly Pick<Nation, "nonPlayable">[];
@@ -37,6 +39,15 @@ export function GameStatusAlerts({
             <div className="shrink-0 w-full sm:w-auto">{action}</div>
           )}
         </div>
+      )}
+
+      {game.status === "mustering" && (
+        <p className="text-sm text-muted-foreground">
+          The game is full and will start once every player confirms their
+          seat.
+          {game.musterDeadline &&
+            ` Unconfirmed seats will be vacated at the deadline (${formatDateTime(game.musterDeadline)}).`}
+        </p>
       )}
 
       {showPausedNotice && game.isPaused && (
