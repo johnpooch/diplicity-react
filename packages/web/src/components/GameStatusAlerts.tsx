@@ -43,8 +43,7 @@ export function GameStatusAlerts({
 
       {game.status === "mustering" && (
         <p className="text-sm text-muted-foreground">
-          The game is full and will start once every player confirms their
-          seat.
+          The game will start once everyone confirms their seat.
           {game.musterDeadline &&
             ` Unconfirmed seats will be vacated at the deadline (${formatDateTime(game.musterDeadline)}).`}
         </p>

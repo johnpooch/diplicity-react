@@ -145,7 +145,7 @@ describe("GameInfoContent paused notice", () => {
 });
 
 describe("GameInfoContent mustering notice", () => {
-  const musterLine = "The game is full and will start once every player confirms their seat.";
+  const musterLine = "The game will start once everyone confirms their seat.";
 
   it("tells players to confirm their seat before the deadline", () => {
     mockUserProfileData.mockReturnValue({ userId: 1 });
@@ -184,7 +184,7 @@ describe("GameInfoContent mustering notice", () => {
     renderGameInfo();
 
     expect(
-      screen.queryByText(/The game is full and will start/)
+      screen.queryByText(/The game will start once everyone confirms/)
     ).not.toBeInTheDocument();
   });
 });
