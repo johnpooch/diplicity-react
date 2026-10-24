@@ -8,9 +8,9 @@ from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind, ResolutionJob, DeadlineWarningJob
+from common.constants import CommitmentEvent, PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType, UserKind, ResolutionJob, DeadlineWarningJob
 from adjudicator.service import resolve
-from member.models import Member
+from member.models import CommitmentEntry, Member
 from order.models import OrderResolution, Order
 from phase.utils import transform_options, build_notification_body, compress_deadline, deadline_warning_offset, format_deadline
 from province.models import Province
@@ -450,6 +450,31 @@ class PhaseManager(models.Manager):
             except Exception:
                 continue
 
+    def _record_commitment(self, phase, civil_disorder_members):
+        if phase.game.sandbox or phase.game.private:
+            return
+
+        civil_disorder_member_ids = {m.id for m in civil_disorder_members}
+        phase_states = phase.phase_states.filter(
+            has_possible_orders=True,
+            orders_outcome__isnull=False,
+            member__user__profile__kind=UserKind.HUMAN,
+        ).select_related("member")
+
+        entries = []
+        for phase_state in phase_states:
+            member = phase_state.member
+            entered_civil_disorder = member.id in civil_disorder_member_ids
+            if member.civil_disorder and not entered_civil_disorder:
+                continue
+            if phase_state.orders_outcome == PhaseState.OrdersOutcome.RECEIVED:
+                entries.append(CommitmentEntry(member=member, kind=CommitmentEvent.SUBMITTED))
+            else:
+                entries.append(CommitmentEntry(member=member, kind=CommitmentEvent.NMR))
+            if entered_civil_disorder:
+                entries.append(CommitmentEntry(member=member, kind=CommitmentEvent.CIVIL_DISORDER))
+        CommitmentEntry.objects.bulk_create(entries)
+
     def _notify_civil_disorder(self, phase, newly_cd_members):
         if not newly_cd_members:
             return
@@ -551,6 +576,7 @@ class PhaseManager(models.Manager):
 
             if phase.game.should_abandon():
                 self._notify_civil_disorder(phase, newly_cd_members)
+                self._record_commitment(phase, newly_cd_members)
                 self._recompute_commitment(phase)
                 phase.game.finish(GameStatus.ABANDONED)
                 phase.refresh_from_db()
@@ -564,6 +590,7 @@ class PhaseManager(models.Manager):
             new_phase = self.create_from_adjudication_data(phase, adjudication_data)
             self._check_eliminations(phase, new_phase)
             self._notify_civil_disorder(phase, surviving_cd_members)
+            self._record_commitment(phase, surviving_cd_members)
             self._recompute_commitment(phase)
 
             victory = Victory.objects.try_create_victory(new_phase)
