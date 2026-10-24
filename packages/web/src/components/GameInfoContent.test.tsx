@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from "vitest";
 
 import { GameInfoContent } from "./GameInfoContent";
 import { mockPendingGames, mockActiveGames, mockMembers } from "@/mocks/legacy";
+import { formatDateTime } from "@/util";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router", async importOriginal => {
@@ -140,6 +141,51 @@ describe("GameInfoContent paused notice", () => {
       screen.getByText("This game is currently paused.")
     ).toBeInTheDocument();
     expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+  });
+});
+
+describe("GameInfoContent mustering notice", () => {
+  const musterLine = "The game will start once everyone confirms their seat.";
+
+  it("tells players to confirm their seat before the deadline", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...pendingGameFor({}),
+      status: "mustering",
+      musterDeadline: "2026-11-02T18:00:00Z",
+    });
+
+    renderGameInfo();
+
+    expect(
+      screen.getByText(
+        `${musterLine} Unconfirmed seats will be vacated at the deadline (${formatDateTime("2026-11-02T18:00:00Z")}).`
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("omits the deadline when the game has none", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue({
+      ...pendingGameFor({}),
+      status: "mustering",
+      musterDeadline: null,
+    });
+
+    renderGameInfo();
+
+    expect(screen.getByText(musterLine)).toBeInTheDocument();
+  });
+
+  it("does not show for a pending game", () => {
+    mockUserProfileData.mockReturnValue({ userId: 1 });
+    mockGameData.mockReturnValue(pendingGameFor({}));
+
+    renderGameInfo();
+
+    expect(
+      screen.queryByText(/The game will start once everyone confirms/)
+    ).not.toBeInTheDocument();
   });
 });
 

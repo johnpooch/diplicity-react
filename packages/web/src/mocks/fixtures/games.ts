@@ -160,17 +160,24 @@ export const pendingGameAlmostFull = makeFixture({
   ),
 });
 
-export const musteringGame = makeFixture({
-  description:
-    "Full public game in mustering: it starts once every player confirms their seat, and unconfirmed seats are vacated at the deadline. The current user has not confirmed yet.",
-  game: makeGame("mustering-game", "Roll Call", makePendingMembers(7), [], {
-    status: "mustering",
-    canLeave: true,
-    musterRequired: true,
-    musterDeadline: futureIso(20 * 60 * 60),
-    musterStatus: "confirmation_required",
-  }),
-});
+const buildMusteringGame = () => {
+  const phase = makePhase(1701, 1, { status: "pending" });
+  return makeFixture({
+    description:
+      "Full public game in mustering: it starts once every player confirms their seat, and unconfirmed seats are vacated at the deadline. The current user has not confirmed yet. Like a real unstarted game it carries its pending first phase, so it opens in the game detail layout.",
+    game: makeGame("mustering-game", "Roll Call", makePendingMembers(7), [phase], {
+      status: "mustering",
+      canLeave: true,
+      currentPhaseId: phase.id,
+      musterRequired: true,
+      musterDeadline: futureIso(20 * 60 * 60),
+      musterStatus: "confirmation_required",
+    }),
+    phases: [phase],
+  });
+};
+
+export const musteringGame = buildMusteringGame();
 
 export const gameMasterGame = makeFixture({
   description:
