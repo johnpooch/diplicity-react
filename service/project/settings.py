@@ -265,8 +265,6 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "com.diplicity.app")
 APPLE_WEB_CLIENT_ID = os.getenv("APPLE_WEB_CLIENT_ID")
 
-SOCIAL_AUTH_PASSWORD = os.getenv("SOCIAL_AUTH_PASSWORD", "default_social_password")
-
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://diplicity.com")
 
 BOT_OPPONENT_ALLOWLIST = [

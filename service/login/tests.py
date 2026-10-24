@@ -1,8 +1,12 @@
+import importlib
 import io
 import json
+from unittest.mock import patch
 
 import pytest
+from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.management import call_command
 from django.urls import reverse
@@ -12,9 +16,12 @@ from google.auth.exceptions import GoogleAuthError
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
+from login.models import AuthUserManager
 from user_profile.models import UserProfile, UserProfilePicture
 
 User = get_user_model()
+
+unusable_passwords_migration = importlib.import_module("login.migrations.0002_unusable_unrecognised_passwords")
 
 
 @pytest.mark.django_db
@@ -168,6 +175,7 @@ class TestGoogleAuthView:
             "iss": "accounts.google.com",
             "aud": "ios-client-id",
             "email": "test@example.com",
+            "email_verified": True,
             "name": "iOS User",
             "picture": "http://example.com/ios_picture.jpg",
         }
@@ -184,7 +192,7 @@ class TestGoogleAuthView:
             username="test@example.com",
             email="test@example.com",
             password="securepass123",
-            is_active=False,
+            is_active=True,
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
@@ -210,7 +218,7 @@ class TestGoogleAuthView:
             username="test@example.com",
             email="test@example.com",
             password="securepass123",
-            is_active=False,
+            is_active=True,
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
@@ -225,6 +233,125 @@ class TestGoogleAuthView:
         )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
+
+    def test_google_linking_unverified_account_discards_registrant_password(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
+        user = User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="securepass123",
+            is_active=False,
+        )
+        UserProfile.objects.create(user=user, name="Original Name")
+
+        response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == user.id
+
+        response = unauthenticated_client.post(
+            reverse("email-login"),
+            {"email": "test@example.com", "password": "securepass123"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Invalid email or password" in str(response.data)
+
+    def test_google_links_to_existing_account_case_insensitively(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
+        user = User.objects.create_user(
+            username="mixedcase",
+            email="Test@Example.com",
+            password="securepass123",
+        )
+        UserProfile.objects.create(user=user, name="Original Name")
+
+        response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == user.id
+        assert User.objects.filter(email__iexact="test@example.com").count() == 1
+
+    def test_new_google_user_has_no_usable_password(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
+        response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert User.objects.get(id=response.data["id"]).has_usable_password() is False
+        response = unauthenticated_client.post(
+            reverse("email-login"),
+            {"email": "test@example.com", "password": "default_social_password"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_concurrent_first_sign_in_returns_the_account_the_other_request_created(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
+        def create_competing_account(name):
+            User.objects.create_user(username="testuser", email="test@example.com", password=None)
+            return "testuser"
+
+        with patch.object(AuthUserManager, "generate_username", side_effect=create_competing_account):
+            response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == User.objects.get(email="test@example.com").id
+        assert User.objects.filter(email="test@example.com").count() == 1
+
+    @pytest.mark.parametrize("email_verified", [False, "false", None])
+    def test_unverified_google_email_rejected(self, unauthenticated_client, mock_google_auth, email_verified):
+        mock_google_auth.return_value = {
+            "iss": "accounts.google.com",
+            "aud": "web-client-id",
+            "email": "test@example.com",
+            "email_verified": email_verified,
+            "name": "Test User",
+        }
+
+        response = unauthenticated_client.post(reverse("auth"), {"id_token": "token"}, format="json")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data["detail"] == "Email address is not verified"
+        assert User.objects.filter(email="test@example.com").exists() is False
+
+    def test_unverified_google_email_does_not_link_existing_account(
+        self, unauthenticated_client, mock_google_auth
+    ):
+        user = User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="securepass123",
+            is_active=False,
+        )
+        mock_google_auth.return_value = {
+            "iss": "accounts.google.com",
+            "aud": "web-client-id",
+            "email": "test@example.com",
+            "email_verified": False,
+            "name": "Test User",
+        }
+
+        response = unauthenticated_client.post(reverse("auth"), {"id_token": "token"}, format="json")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        user.refresh_from_db()
+        assert user.is_active is False
+
+    def test_google_token_without_email_rejected(self, unauthenticated_client, mock_google_auth):
+        mock_google_auth.return_value = {
+            "iss": "accounts.google.com",
+            "aud": "web-client-id",
+            "email_verified": True,
+            "name": "Test User",
+        }
+
+        response = unauthenticated_client.post(reverse("auth"), {"id_token": "token"}, format="json")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data["detail"] == "No email address was provided"
 
     def test_unknown_audience_rejected(self, unauthenticated_client, mock_google_auth):
         mock_google_auth.return_value = {
@@ -422,6 +549,125 @@ class TestAppleAuthView:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert User.objects.filter(email="apple@example.com").exists() is False
+
+    def test_apple_linking_unverified_account_discards_registrant_password(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
+        user = User.objects.create_user(
+            username="apple@example.com",
+            email="apple@example.com",
+            password="securepass123",
+            is_active=False,
+        )
+        UserProfile.objects.create(user=user, name="Original Name")
+
+        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == user.id
+
+        response = unauthenticated_client.post(
+            reverse("email-login"),
+            {"email": "apple@example.com", "password": "securepass123"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_apple_linking_active_account_keeps_password(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
+        user = User.objects.create_user(
+            username="apple@example.com",
+            email="apple@example.com",
+            password="securepass123",
+        )
+        UserProfile.objects.create(user=user, name="Original Name")
+
+        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == user.id
+
+        response = unauthenticated_client.post(
+            reverse("email-login"),
+            {"email": "apple@example.com", "password": "securepass123"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == user.id
+
+    def test_apple_links_to_existing_account_case_insensitively(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
+        user = User.objects.create_user(
+            username="mixedcase",
+            email="Apple@Example.com",
+            password="securepass123",
+        )
+        UserProfile.objects.create(user=user, name="Original Name")
+
+        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == user.id
+        assert User.objects.filter(email__iexact="apple@example.com").count() == 1
+
+    def test_new_apple_user_has_no_usable_password(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
+        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert User.objects.get(id=response.data["id"]).has_usable_password() is False
+
+    @pytest.mark.parametrize("email_verified", ["true", True])
+    def test_verified_apple_email_accepted(
+        self,
+        settings,
+        unauthenticated_client,
+        patch_apple_key,
+        apple_id_token_factory,
+        mock_refresh_token,
+        email_verified,
+    ):
+        settings.APPLE_CLIENT_ID = "com.diplicity.app"
+
+        response = unauthenticated_client.post(
+            reverse("apple-auth"),
+            {"id_token": apple_id_token_factory("com.diplicity.app", email_verified=email_verified)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["email"] == "apple@example.com"
+
+    @pytest.mark.parametrize("email_verified", ["false", False, None])
+    def test_unverified_apple_email_rejected(
+        self, settings, unauthenticated_client, patch_apple_key, apple_id_token_factory, email_verified
+    ):
+        settings.APPLE_CLIENT_ID = "com.diplicity.app"
+
+        response = unauthenticated_client.post(
+            reverse("apple-auth"),
+            {"id_token": apple_id_token_factory("com.diplicity.app", email_verified=email_verified)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data["detail"] == "Email address is not verified"
+        assert User.objects.filter(email="apple@example.com").exists() is False
+
+    def test_apple_token_without_email_rejected(
+        self, settings, unauthenticated_client, patch_apple_key, apple_id_token_factory
+    ):
+        settings.APPLE_CLIENT_ID = "com.diplicity.app"
+
+        response = unauthenticated_client.post(
+            reverse("apple-auth"),
+            {"id_token": apple_id_token_factory("com.diplicity.app", email=None)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data["detail"] == "No email address was provided"
 
 
     def test_apple_login_shares_the_social_login_limit(
@@ -679,6 +925,26 @@ class TestRegisterView:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "password" in response.data
+
+    @pytest.mark.parametrize(
+        "password, message",
+        [
+            ("password123", "This password is too common."),
+            ("83920571", "This password is entirely numeric."),
+            ("newplayer@example", "The password is too similar to the email address."),
+        ],
+    )
+    def test_weak_password_returns_400(self, unauthenticated_client, mock_send_email, password, message):
+        response = unauthenticated_client.post(
+            reverse("register"),
+            {"email": "newplayer@example.com", "password": password, "display_name": "New Player"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert message in response.data["password"]
+        assert User.objects.filter(email="newplayer@example.com").exists() is False
+        mock_send_email.assert_not_called()
 
     def test_registration_sends_verification_email(self, unauthenticated_client, mock_send_email):
         url = reverse("register")
@@ -994,6 +1260,27 @@ class TestPasswordResetConfirmView:
         assert user.check_password("oldpass123")
 
 
+    def test_weak_password_returns_400(self, unauthenticated_client):
+        user = User.objects.create_user(
+            username="resetuser",
+            email="reset@example.com",
+            password="oldpass123",
+            is_active=True,
+        )
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        response = unauthenticated_client.post(
+            reverse("password-reset-confirm"),
+            {"uid": uid, "token": token, "new_password": "password123", "confirm_password": "password123"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "This password is too common." in response.data["new_password"]
+        user.refresh_from_db()
+        assert user.check_password("oldpass123")
+
     def test_password_reset_confirm_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
         payload = {
             "uid": "baduid",
@@ -1093,3 +1380,52 @@ class TestCreateTestUserCommand:
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+class TestMakeUnrecognisedPasswordsUnusableMigration:
+    def test_raw_text_password_becomes_unusable(self):
+        user = User.objects.create(
+            username="socialuser", email="social@example.com", password="default_social_password"
+        )
+
+        unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
+
+        user.refresh_from_db()
+        assert user.has_usable_password() is False
+        assert user.check_password("default_social_password") is False
+
+    def test_hashed_password_is_unchanged(self):
+        user = User.objects.create_user(username="hasheduser", email="hashed@example.com", password="securepass123")
+        encoded = user.password
+
+        unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
+
+        user.refresh_from_db()
+        assert user.password == encoded
+        assert user.check_password("securepass123") is True
+
+    def test_unusable_password_is_unchanged(self):
+        user = User.objects.create_user(username="unusableuser", email="unusable@example.com", password=None)
+        encoded = user.password
+
+        unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
+
+        user.refresh_from_db()
+        assert user.password == encoded
+
+    def test_password_changed_after_the_scan_is_kept(self, monkeypatch):
+        user = User.objects.create(
+            username="socialuser", email="social@example.com", password="default_social_password"
+        )
+
+        def reset_password_during_scan(password):
+            User.objects.filter(id=user.id).update(password=make_password("newpass456"))
+            return False
+
+        monkeypatch.setattr(unusable_passwords_migration, "_is_recognised_hash", reset_password_during_scan)
+
+        unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
+
+        user.refresh_from_db()
+        assert user.check_password("newpass456") is True

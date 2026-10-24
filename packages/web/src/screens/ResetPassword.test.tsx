@@ -64,6 +64,22 @@ describe("ResetPassword", () => {
     expect(await screen.findByText("Password reset!")).toBeInTheDocument();
   });
 
+  it("keeps the form open with the server's password validation error", async () => {
+    mockMutateAsync.mockRejectedValue({
+      response: { data: { newPassword: ["This password is too common."] } },
+    });
+
+    renderResetPassword();
+    await submitPassword("password123");
+
+    expect(
+      await screen.findByText("This password is too common.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /reset password/i })
+    ).toBeInTheDocument();
+  });
+
   it("keeps the form open and tells the user to wait when rate limited", async () => {
     mockMutateAsync.mockRejectedValue(rateLimitedError());
     const toastErrorSpy = vi.spyOn(toast, "error");
@@ -80,7 +96,9 @@ describe("ResetPassword", () => {
   });
 
   it("shows the invalid link state for other failures", async () => {
-    mockMutateAsync.mockRejectedValue(new Error("400"));
+    mockMutateAsync.mockRejectedValue({
+      response: { data: { nonFieldErrors: ["Invalid or expired reset link."] } },
+    });
 
     renderResetPassword();
     await submitPassword("strongpass123");

@@ -34,6 +34,7 @@ def mock_google_auth(settings):
             "iss": "accounts.google.com",
             "aud": "web-client-id",
             "email": "test@example.com",
+            "email_verified": True,
             "name": "Test User",
             "picture": "http://example.com/picture.jpg",
         }
@@ -49,6 +50,7 @@ def mock_google_auth_without_picture(settings):
             "iss": "accounts.google.com",
             "aud": "web-client-id",
             "email": "test@example.com",
+            "email_verified": True,
             "name": "Test User",
         }
         yield mock
@@ -63,6 +65,7 @@ def mock_google_auth_without_name(settings):
             "iss": "accounts.google.com",
             "aud": "web-client-id",
             "email": "test@example.com",
+            "email_verified": True,
             "picture": "http://example.com/picture.jpg",
         }
         yield mock
@@ -138,7 +141,7 @@ def patch_apple_key(apple_keypair):
 def apple_id_token_factory(apple_keypair):
     private_pem, _ = apple_keypair
 
-    def make_token(audience):
+    def make_token(audience, **claims):
         now = int(time.time())
         return jwt.encode(
             {
@@ -146,8 +149,10 @@ def apple_id_token_factory(apple_keypair):
                 "aud": audience,
                 "sub": "001234.apple-user-id.5678",
                 "email": "apple@example.com",
+                "email_verified": "true",
                 "iat": now,
                 "exp": now + 600,
+                **claims,
             },
             private_pem,
             algorithm="RS256",

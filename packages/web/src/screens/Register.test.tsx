@@ -96,6 +96,31 @@ describe("Register", () => {
     expect(mockMutateAsync).not.toHaveBeenCalled();
   });
 
+  it("shows the server's password validation error", async () => {
+    mockMutateAsync.mockRejectedValue({
+      response: { data: { password: ["This password is too common."] } },
+    });
+
+    renderRegister();
+
+    await userEvent.type(screen.getByLabelText(/email/i), "new@example.com");
+    await userEvent.type(screen.getByLabelText(/^password$/i), "password123");
+    await userEvent.type(
+      screen.getByLabelText(/confirm password/i),
+      "password123"
+    );
+    await userEvent.type(
+      screen.getByLabelText(/display name/i),
+      "New Player"
+    );
+    await userEvent.click(screen.getByRole("button", { name: /register/i }));
+
+    expect(
+      await screen.findByText("This password is too common.")
+    ).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it("tells the user to wait when registration is rate limited", async () => {
     mockMutateAsync.mockRejectedValue(rateLimitedError());
     const toastErrorSpy = vi.spyOn(toast, "error");

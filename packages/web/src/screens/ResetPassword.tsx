@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +33,10 @@ const resetPasswordSchema = z
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
+const newPasswordErrorMessage = (error: unknown) =>
+  (error as AxiosError<{ newPassword?: string[] }>).response?.data
+    ?.newPassword?.[0];
+
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const uid = searchParams.get("uid");
@@ -60,6 +65,11 @@ const ResetPassword: React.FC = () => {
     } catch (error) {
       if (isRateLimitedError(error)) {
         toast.error(RATE_LIMITED_MESSAGE);
+        return;
+      }
+      const passwordError = newPasswordErrorMessage(error);
+      if (passwordError) {
+        form.setError("newPassword", { message: passwordError });
         return;
       }
       setStatus("error");
