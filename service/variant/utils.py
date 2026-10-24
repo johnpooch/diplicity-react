@@ -450,26 +450,32 @@ SVG_ALLOWED_ELEMENTS = frozenset(
 
 SVG_UNWRAPPED_ELEMENTS = frozenset({"a"})
 
-SVG_ALLOWED_ATTRIBUTES = frozenset(
+SVG_PRESENTATION_ATTRIBUTES = frozenset(
+    {
+        "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity",
+        "stroke-miterlimit", "stroke-linecap", "stroke-linejoin", "stroke-dasharray",
+        "stroke-dashoffset", "opacity", "display", "visibility", "overflow", "color",
+        "vector-effect", "paint-order", "pointer-events", "clip-path", "clip-rule", "mask",
+        "filter", "marker-start", "marker-mid", "marker-end", "stop-color", "stop-opacity",
+        "flood-color", "flood-opacity", "color-interpolation", "color-interpolation-filters",
+        "color-rendering", "shape-rendering", "text-rendering", "image-rendering",
+        "enable-background", "font-family", "font-size", "font-weight", "font-style",
+        "letter-spacing", "word-spacing", "text-anchor", "text-decoration", "dominant-baseline",
+        "alignment-baseline", "baseline-shift", "writing-mode",
+    }
+)
+
+SVG_ALLOWED_ATTRIBUTES = SVG_PRESENTATION_ATTRIBUTES | frozenset(
     {
         "id", "version", "viewBox", "preserveAspectRatio", "width", "height", "x", "y",
         "x1", "x2", "y1", "y2", "cx", "cy", "r", "rx", "ry", "fx", "fy", "fr", "dx", "dy",
         "d", "points", "transform", "rotate", "style", "type",
-        "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity",
-        "stroke-miterlimit", "stroke-linecap", "stroke-linejoin", "stroke-dasharray",
-        "stroke-dashoffset", "opacity", "display", "visibility", "color", "vector-effect",
-        "paint-order", "clip-path", "clip-rule", "clipPathUnits", "mask", "maskUnits",
-        "maskContentUnits", "filter", "filterUnits", "primitiveUnits",
-        "marker-start", "marker-mid", "marker-end", "markerWidth", "markerHeight",
-        "markerUnits", "refX", "refY", "orient",
-        "offset", "stop-color", "stop-opacity", "gradientTransform", "gradientUnits",
+        "clipPathUnits", "maskUnits", "maskContentUnits", "filterUnits", "primitiveUnits",
+        "markerWidth", "markerHeight", "markerUnits", "refX", "refY", "orient",
+        "offset", "gradientTransform", "gradientUnits",
         "spreadMethod", "patternUnits", "patternContentUnits", "patternTransform",
         "stdDeviation", "in", "in2", "result", "mode", "operator", "values",
-        "k1", "k2", "k3", "k4", "flood-color", "flood-opacity",
-        "font-family", "font-size", "font-weight", "font-style", "letter-spacing",
-        "word-spacing", "text-anchor", "text-decoration", "dominant-baseline",
-        "alignment-baseline", "baseline-shift", "writing-mode", "textLength",
-        "lengthAdjust", "startOffset",
+        "k1", "k2", "k3", "k4", "textLength", "lengthAdjust", "startOffset",
     }
 )
 
@@ -487,15 +493,21 @@ _FONT_DATA_URL = (
     r";base64,[A-Za-z0-9+/=\s]*+['\"]?\s*\)"
 )
 _FONT_SOURCE = rf"{_FONT_DATA_URL}(?:\s*format\(\s*{_CSS_STRING}\s*\))?"
+_UNICODE_RANGE = r"U\+(?:[0-9A-F]{1,6}(?:-[0-9A-F]{1,6})?|(?=[0-9A-F?]{1,6}(?![0-9A-F?]))[0-9A-F]*\?+)"
 _FONT_DESCRIPTOR = (
     rf"(?:font-family\s*:\s*(?:{_CSS_STRING}|{_CSS_KEYWORDS})"
     rf"|font-(?:weight|style|stretch|display)\s*:\s*{_CSS_KEYWORDS}"
-    rf"|src\s*:\s*{_FONT_SOURCE}(?:\s*,\s*{_FONT_SOURCE})*)"
+    rf"|src\s*:\s*{_FONT_SOURCE}(?:\s*,\s*{_FONT_SOURCE})*"
+    rf"|unicode-range\s*:\s*{_UNICODE_RANGE}(?:\s*,\s*{_UNICODE_RANGE})*)"
 )
-_FONT_FACE_STYLESHEET = re.compile(
-    rf"\s*(?:@font-face\s*\{{\s*(?:{_FONT_DESCRIPTOR}\s*;\s*)*(?:{_FONT_DESCRIPTOR}\s*)?\}}\s*)*",
+_FONT_FACE_RULE = re.compile(
+    rf"\s*@font-face\s*\{{\s*(?:{_FONT_DESCRIPTOR}\s*;\s*)*(?:{_FONT_DESCRIPTOR}\s*)?\}}\s*",
     re.IGNORECASE,
 )
+_CLASS_RULE = re.compile(r"\s*(\.-?[A-Za-z_][\w-]*(?:\s*,\s*\.-?[A-Za-z_][\w-]*)*)\s*\{([^{}]*)\}\s*")
+_CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+_CSS_DELIMITER = re.compile(r"[{};]")
+_CSS_PROPERTY = re.compile(r"\s*([\w-]+)\s*:(.*)", re.DOTALL)
 
 _SANITIZER_PARSER = etree.XMLParser(
     resolve_entities=False,
@@ -523,8 +535,82 @@ def _is_allowed_attribute(name):
     return _namespace(name) is None and name in SVG_ALLOWED_ATTRIBUTES
 
 
-def _is_font_face_stylesheet(css):
-    return _FONT_FACE_STYLESHEET.fullmatch(css or "") is not None
+def _css_statements(css):
+    statements = []
+    start = 0
+    depth = 0
+    for match in _CSS_DELIMITER.finditer(css):
+        delimiter = match.group()
+        if delimiter == "{":
+            depth += 1
+        elif delimiter == "}":
+            depth -= 1
+            if depth <= 0:
+                statements.append(css[start:match.end()])
+                start = match.end()
+                depth = 0
+        elif depth == 0:
+            statements.append(css[start:match.end()])
+            start = match.end()
+    statements.append(css[start:])
+    return statements
+
+
+def _css_declarations(block):
+    declarations = []
+    for declaration in block.split(";"):
+        match = _CSS_PROPERTY.fullmatch(declaration)
+        if match is not None:
+            declarations.append((match.group(1).lower(), match.group(2).strip()))
+    return declarations
+
+
+def _class_rule(match):
+    class_names = [selector.strip()[1:] for selector in match.group(1).split(",")]
+    declarations = [
+        (name, value)
+        for name, value in _css_declarations(match.group(2))
+        if name in SVG_PRESENTATION_ATTRIBUTES and value and _is_safe_attribute_value(value)
+    ]
+    return class_names, declarations
+
+
+def _sanitize_stylesheet(style, class_rules):
+    kept = []
+    for statement in _css_statements(_CSS_COMMENT.sub("", style.text or "")):
+        if not statement.strip() or _FONT_FACE_RULE.fullmatch(statement):
+            kept.append(statement)
+        elif (match := _CLASS_RULE.fullmatch(statement)) is not None:
+            class_rules.append(_class_rule(match))
+    stylesheet = "".join(kept)
+    if stylesheet.strip():
+        style.text = stylesheet
+    else:
+        _remove_node(style)
+
+
+def _inline_class_styles(element, class_rules):
+    class_names = set(element.attrib.pop("class").split())
+    own_style = element.get("style", "")
+    own_properties = {name for name, _ in _css_declarations(own_style)}
+    class_declarations = {}
+    for rule_class_names, declarations in class_rules:
+        if class_names.intersection(rule_class_names):
+            class_declarations.update(declarations)
+    declarations = [f"{name}:{value}" for name, value in class_declarations.items() if name not in own_properties]
+    if own_style.strip():
+        declarations.append(own_style.strip())
+    if declarations:
+        element.set("style", ";".join(declarations))
+
+
+def _apply_stylesheets(root):
+    class_rules = []
+    for style in list(root.iter(f"{{{SVG_NAMESPACE}}}style")):
+        _sanitize_stylesheet(style, class_rules)
+    for element in root.iter(etree.Element):
+        if "class" in element.attrib:
+            _inline_class_styles(element, class_rules)
 
 
 def _append_text(parent, previous, text):
@@ -564,7 +650,7 @@ def _sanitize_children(element):
             _unwrap_element(child)
         elif name not in SVG_ALLOWED_ELEMENTS:
             _remove_node(child)
-        elif name == "style" and (len(child) or not _is_font_face_stylesheet(child.text)):
+        elif name == "style" and len(child):
             _remove_node(child)
         else:
             _sanitize_attributes(child)
@@ -574,6 +660,8 @@ def _sanitize_children(element):
 def _sanitize_attributes(element):
     element_name = _local_name(element.tag)
     for name, value in list(element.attrib.items()):
+        if name == "class":
+            continue
         if not _is_allowed_attribute(name):
             del element.attrib[name]
         elif name in _HREF_ATTRIBUTES:
@@ -590,6 +678,7 @@ def sanitize_svg(svg):
 
     _sanitize_attributes(root)
     _sanitize_children(root)
+    _apply_stylesheets(root)
 
     etree.cleanup_namespaces(root)
     return _strip_svg_namespace_prefix(etree.tostring(root).decode())

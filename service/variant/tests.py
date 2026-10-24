@@ -520,7 +520,23 @@ UNSAFE_DSVG_PAYLOADS = [
     ('<use href="https://evil.example/sprite.svg#a"/>', "evil.example"),
     ('<rect style="fill:url(https://evil.example/a.png)"/>', "evil.example"),
     ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
+    ('<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:expression(alert(1))}</style><rect class="a"/>', "alert("),
+    ('<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:#fff}body{fill:#123456}</style><rect class="a"/>', "#123456"),
+    ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
 ]
+
+FONT_FACE_WITH_UNICODE_RANGE = """
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  src: url('data:font/woff2;charset=utf-8;base64,AAAA') format('woff2');
+  unicode-range: U+2e, U+41-59, U+61-70, U+72-7a;
+}
+"""
 
 
 def _variant_upload(dvar, dsvg):
@@ -562,6 +578,38 @@ class TestVariantListCreateView:
         served = authenticated_client.get(response.data["svg_url"]).content.decode()
         assert marker not in served
         assert 'id="foreground"' in served
+
+    def test_create_keeps_font_faces_and_inlines_class_rules(
+        self, authenticated_client, classical_dvar, classical_dsvg
+    ):
+        content = (
+            "<style>.label{text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:3;stroke-linejoin:round}"
+            f".B{{fill:#FFCD00}}.C{{stroke:none}}{FONT_FACE_WITH_UNICODE_RANGE}</style>"
+            '<text id="label-text" class="label">Paris</text>'
+            '<path id="label-path" class="B C label" d="M0 0h1" style="stroke-width:5.448"/>'
+            '<filter id="label-filter" color-interpolation-filters="sRGB" shape-rendering="crispEdges"/>'
+        )
+        response = authenticated_client.post(
+            reverse("variant-list"),
+            _variant_upload(
+                _draft_dvar(classical_dvar, "styled-draft"), _with_foreground_content(classical_dsvg, content)
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+        served = authenticated_client.get(response.data["svg_url"]).content.decode()
+        assert f"<style>{FONT_FACE_WITH_UNICODE_RANGE}</style>" in served
+        assert (
+            '<text id="label-text" style="text-anchor:middle;paint-order:stroke;stroke:#fff;'
+            'stroke-width:3;stroke-linejoin:round">Paris</text>'
+        ) in served
+        assert (
+            '<path id="label-path" d="M0 0h1" style="text-anchor:middle;paint-order:stroke;stroke:none;'
+            'stroke-linejoin:round;fill:#FFCD00;stroke-width:5.448"/>'
+        ) in served
+        assert '<filter id="label-filter" color-interpolation-filters="sRGB" shape-rendering="crispEdges"/>' in served
+        assert "class=" not in served
 
     def test_create_rejects_non_svg_root(self, authenticated_client, classical_dvar):
         response = authenticated_client.post(

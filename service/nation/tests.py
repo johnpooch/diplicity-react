@@ -35,6 +35,14 @@ UNSAFE_SVG_PAYLOADS = [
     ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
     ("<style>rect{fill:url(https://evil.example/a.png)}</style>", "evil.example"),
     ("<style>@font-face{font-family:'F';src:url(https://evil.example/f.woff)}</style>", "evil.example"),
+    ('<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:expression(alert(1))}</style><rect class="a"/>', "alert("),
+    ('<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>', "evil.example"),
+    ('<style>.a{fill:#fff}body{fill:#123456}</style><rect class="a"/>', "#123456"),
+    ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
+    ('<style>.a, rect{fill:#abcdef}</style><rect class="a"/>', "#abcdef"),
+    ('<style>.a{fill:#fedcba}</style><rect class="a"/>', "<style"),
 ]
 
 SAFE_SVG_CONTENT = [
@@ -42,6 +50,42 @@ SAFE_SVG_CONTENT = [
     '<image xlink:href="data:image/png;base64,iVBORw0KGgo="/>',
     '<rect fill="url(#g)" style="fill:url(#g);stroke:#000"/>',
     "<style>@font-face{font-family:'F';src:url(data:font/woff2;base64,AAAA) format('woff2')}</style>",
+    """<style>
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  src: url('data:font/woff2;charset=utf-8;base64,AAAA') format('woff2');
+  unicode-range: U+2e, U+41-59, U+61-70, U+72-7a, U+4e0a-4e0b, U+1f1e6-1f1ff, U+4??;
+}
+</style>""",
+    '<filter color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>',
+    '<g color-interpolation="sRGB" shape-rendering="crispEdges" text-rendering="geometricPrecision"'
+    ' color-rendering="optimizeQuality" image-rendering="optimizeSpeed" overflow="visible"'
+    ' enable-background="new" pointer-events="none"/>',
+]
+
+INVALID_UNICODE_RANGES = [
+    "U+GG",
+    "U+1234567",
+    "U+0-7F url(https://evil.example/f.woff)",
+    "U+0-7F, expression(alert(1))",
+    "U+0-7F, 0-7F",
+    "U+4?0",
+]
+
+CLASS_STYLESHEET = (
+    ".cls-1 { fill: #b51f24; }  .cls-2 { fill: #80248e; }\n"
+    ".cls-2, .cls-3, .cls-4 { fill: none; stroke: #000; stroke-miterlimit: 10; }"
+)
+
+CLASS_STYLED_ELEMENTS = [
+    ('class="cls-1"', "fill:#b51f24"),
+    ('class="cls-4"', "fill:none;stroke:#000;stroke-miterlimit:10"),
+    ('class="cls-2"', "fill:none;stroke:#000;stroke-miterlimit:10"),
+    ('class="cls-1 cls-3"', "fill:none;stroke:#000;stroke-miterlimit:10"),
+    ('class="cls-1" style="fill:#fff"', "fill:#fff"),
+    ('class="cls-3" style="stroke:#fff"', "fill:none;stroke-miterlimit:10;stroke:#fff"),
 ]
 
 
@@ -186,6 +230,58 @@ class TestNationFlagUploadView:
 
         served = authenticated_client.get(response.data["flag_url"]).content.decode()
         assert content in served
+
+    @pytest.mark.parametrize("unicode_range", INVALID_UNICODE_RANGES)
+    def test_upload_drops_font_face_with_invalid_unicode_range(
+        self, authenticated_client, draft_variant_for_primary, unicode_range
+    ):
+        valid = "@font-face{font-family:'A';src:url(data:font/woff2;base64,AAAA) format('woff2');unicode-range:U+0-7F}"
+        invalid = f"@font-face{{font-family:'B';src:url(data:font/woff2;base64,AAAA);unicode-range:{unicode_range}}}"
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f"{SVG_OPEN}<style>{valid}{invalid}</style></svg>"),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f"<style>{valid}</style>" in served
+
+    @pytest.mark.parametrize("attributes, expected_style", CLASS_STYLED_ELEMENTS)
+    def test_upload_inlines_class_rules(
+        self, authenticated_client, draft_variant_for_primary, attributes, expected_style
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(f'{SVG_OPEN}<style>{CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f'<rect id="target" style="{expected_style}"/>' in served
+        assert "class=" not in served
+        assert "<style" not in served
+
+    def test_upload_keeps_font_faces_and_inlines_class_rules_from_one_stylesheet(
+        self, authenticated_client, draft_variant_for_primary
+    ):
+        font_face = "@font-face{font-family:'F';src:url(data:font/woff2;base64,AAAA) format('woff2')}"
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(
+                f"{SVG_OPEN}<style>.st0{{fill:#FEC50C;}}{font_face}.st1{{fill:#FFFFFF;}}</style>"
+                '<rect id="a" class="st0"/><rect id="b" class="st1"/></svg>'
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f"<style>{font_face}</style>" in served
+        assert '<rect id="a" style="fill:#FEC50C"/>' in served
+        assert '<rect id="b" style="fill:#FFFFFF"/>' in served
+        assert "class=" not in served
 
     def test_upload_rejects_non_svg_root(self, authenticated_client, draft_variant_for_primary):
         response = authenticated_client.put(
