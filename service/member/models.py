@@ -1,10 +1,13 @@
 from django.apps import apps
 from django.db import models, transaction
+from django.db.models import Case, Sum, Value, When
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from common.constants import (
     ActionBlockedReason,
     CommitmentEligibility,
+    CommitmentEvent,
     GameStatus,
     MemberActionKey,
     MemberDeparture,
@@ -15,6 +18,18 @@ from common.models import BaseModel
 from emit import emit
 
 User = get_user_model()
+
+
+def commitment_points(kind_lookup):
+    return Coalesce(
+        Sum(
+            Case(
+                *[When(**{kind_lookup: kind}, then=Value(points)) for kind, points in CommitmentEvent.POINTS.items()],
+                output_field=models.IntegerField(),
+            )
+        ),
+        0,
+    )
 
 
 class MemberQuerySet(models.QuerySet):
@@ -33,6 +48,9 @@ class MemberQuerySet(models.QuerySet):
 
     def holding_seat(self):
         return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
+
+    def with_commitment_square(self):
+        return self.annotate(commitment_square=commitment_points("commitment_entries__kind"))
 
     def with_detail_data(self):
         Phase = apps.get_model("phase", "Phase")
@@ -360,3 +378,11 @@ class NationPreference(BaseModel):
 
     def __str__(self):
         return f"{self.member} - {self.rank}. {self.nation.name}"
+
+
+class CommitmentEntry(BaseModel):
+    member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="commitment_entries")
+    kind = models.CharField(max_length=20, choices=CommitmentEvent.KIND_CHOICES)
+
+    def __str__(self):
+        return f"{self.member} - {self.kind}"

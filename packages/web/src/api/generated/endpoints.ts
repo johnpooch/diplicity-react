@@ -481,20 +481,6 @@ export const PressTypeEnum = {
   no_press: "no_press",
 } as const;
 
-/**
- * * `open` - Open
- * `reliable_and_new` - Reliable + New Players
- * `reliable_only` - Reliable only
- */
-export type MinReliabilityEnum =
-  (typeof MinReliabilityEnum)[keyof typeof MinReliabilityEnum];
-
-export const MinReliabilityEnum = {
-  open: "open",
-  reliable_and_new: "reliable_and_new",
-  reliable_only: "reliable_only",
-} as const;
-
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -520,7 +506,6 @@ export interface GameCreate {
    */
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
-  minReliability?: MinReliabilityEnum;
   commitmentRequirement?: CommitmentRequirementEnum;
   musterRequired?: boolean;
 }
@@ -694,7 +679,6 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
-  readonly minReliability: string;
   readonly commitmentRequirement: string;
   readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
   readonly musterRequired: boolean;
@@ -758,7 +742,6 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
-  readonly minReliability: string;
   readonly commitmentRequirement: string;
   readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
   readonly musterRequired: boolean;
@@ -1173,8 +1156,6 @@ export interface PatchedUserProfile {
   readonly picture?: string | null;
   readonly email?: string;
   readonly canCreateBotGames?: boolean;
-  /** @nullable */
-  readonly reliabilityTier?: string | null;
   readonly commitment?: string;
 }
 
@@ -1275,8 +1256,6 @@ export interface PublicUserProfile {
   readonly losses: number;
   readonly nmrRate: number;
   readonly cdRate: number;
-  /** @nullable */
-  readonly reliabilityTier: string | null;
   readonly commitment: string;
 }
 
@@ -1318,8 +1297,6 @@ export interface UserProfile {
   readonly picture: string | null;
   readonly email: string;
   readonly canCreateBotGames: boolean;
-  /** @nullable */
-  readonly reliabilityTier: string | null;
   readonly commitment: string;
 }
 

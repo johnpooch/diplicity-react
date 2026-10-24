@@ -33,7 +33,6 @@ from common.constants import (
     GameActionKey,
     GameStatus,
     MemberKind,
-    MinReliability,
     MovementPhaseDuration,
     MusterJob,
     MusterReminderJob,
@@ -665,11 +664,6 @@ class Game(BaseModel):
         max_length=20,
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
-    )
-    min_reliability = models.CharField(
-        max_length=20,
-        choices=MinReliability.MIN_RELIABILITY_CHOICES,
-        default=MinReliability.OPEN,
     )
     commitment_requirement = models.CharField(
         max_length=20,

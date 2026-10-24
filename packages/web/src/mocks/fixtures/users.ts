@@ -12,7 +12,6 @@ export const currentUserProfile: UserProfile = {
   picture: null,
   email: "mock.player@example.com",
   canCreateBotGames: true,
-  reliabilityTier: "reliable",
   commitment: "high",
 };
 
@@ -94,7 +93,6 @@ for (const player of players) {
     losses: 6,
     nmrRate: 0.05,
     cdRate: 0,
-    reliabilityTier: "reliable",
     commitment: "high",
   };
 }

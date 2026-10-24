@@ -128,7 +128,6 @@ export const makeGame = (
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
-    minReliability: "open",
     commitmentRequirement: "open",
     commitmentEligibility: "eligible",
     musterRequired: false,

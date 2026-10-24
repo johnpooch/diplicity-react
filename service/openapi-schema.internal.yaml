@@ -3078,10 +3078,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/PressTypeEnum'
           default: full_press
-        min_reliability:
-          allOf:
-          - $ref: '#/components/schemas/MinReliabilityEnum'
-          default: open
         commitment_requirement:
           allOf:
           - $ref: '#/components/schemas/CommitmentRequirementEnum'
@@ -3265,9 +3261,6 @@ components:
         press_type:
           type: string
           readOnly: true
-        min_reliability:
-          type: string
-          readOnly: true
         commitment_requirement:
           type: string
           readOnly: true
@@ -3315,7 +3308,6 @@ components:
       - is_paused
       - member_status
       - members
-      - min_reliability
       - movement_frequency
       - movement_phase_duration
       - muster_deadline
@@ -3594,9 +3586,6 @@ components:
         press_type:
           type: string
           readOnly: true
-        min_reliability:
-          type: string
-          readOnly: true
         commitment_requirement:
           type: string
           readOnly: true
@@ -3655,7 +3644,6 @@ components:
       - is_paused
       - member_status
       - members
-      - min_reliability
       - movement_frequency
       - movement_phase_duration
       - muster_deadline
@@ -3983,16 +3971,6 @@ components:
       description: |-
         * `nmr` - nmr
         * `civil_disorder` - civil_disorder
-    MinReliabilityEnum:
-      enum:
-      - open
-      - reliable_and_new
-      - reliable_only
-      type: string
-      description: |-
-        * `open` - Open
-        * `reliable_and_new` - Reliable + New Players
-        * `reliable_only` - Reliable only
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -4543,10 +4521,6 @@ components:
         can_create_bot_games:
           type: boolean
           readOnly: true
-        reliability_tier:
-          type: string
-          readOnly: true
-          nullable: true
         commitment:
           type: string
           readOnly: true
@@ -4751,10 +4725,6 @@ components:
           type: number
           format: double
           readOnly: true
-        reliability_tier:
-          type: string
-          readOnly: true
-          nullable: true
         commitment:
           type: string
           readOnly: true
@@ -4768,7 +4738,6 @@ components:
       - name
       - nmr_rate
       - picture
-      - reliability_tier
       - solo_wins
       - total_games
     Register:
@@ -4959,10 +4928,6 @@ components:
         can_create_bot_games:
           type: boolean
           readOnly: true
-        reliability_tier:
-          type: string
-          readOnly: true
-          nullable: true
         commitment:
           type: string
           readOnly: true
@@ -4973,7 +4938,6 @@ components:
       - id
       - name
       - picture
-      - reliability_tier
       - user_id
     UserProfilePicture:
       type: object

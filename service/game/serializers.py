@@ -6,7 +6,7 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import ActionBlockedReason, Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameActionKey, MemberDeparture, MemberKind, MinReliability, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import ActionBlockedReason, Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameActionKey, MemberDeparture, MemberKind, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from channel.policies import can_create_channel
 from unit.models import Unit
@@ -110,7 +110,6 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
-    min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
     muster_required = serializers.BooleanField(read_only=True)
@@ -340,7 +339,6 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
-    min_reliability = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
     commitment_eligibility = serializers.SerializerMethodField()
     muster_required = serializers.BooleanField(read_only=True)
@@ -581,10 +579,6 @@ class GameCreateSerializer(serializers.Serializer):
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
     )
-    min_reliability = serializers.ChoiceField(
-        choices=MinReliability.MIN_RELIABILITY_CHOICES,
-        default=MinReliability.OPEN,
-    )
     commitment_requirement = serializers.ChoiceField(
         choices=CommitmentRequirement.COMMITMENT_REQUIREMENT_CHOICES,
         default=CommitmentRequirement.OPEN,
@@ -700,7 +694,6 @@ class GameCreateSerializer(serializers.Serializer):
                 retreat_frequency=validated_data.get("retreat_frequency"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
-                min_reliability=validated_data["min_reliability"],
                 commitment_requirement=validated_data["commitment_requirement"],
                 muster_required=validated_data["muster_required"],
             )

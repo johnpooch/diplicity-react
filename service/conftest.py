@@ -11,6 +11,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from PIL import Image
+from lxml import etree
 
 from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMember, ChannelMessage
@@ -36,6 +37,7 @@ from phase.models import Phase
 from province.models import Province
 from user_profile.models import UserProfile, UserProfilePicture
 from variant.models import Variant
+from variant.utils import SVG_NAMESPACE, XLINK_NAMESPACE, XML_NAMESPACE
 from victory.models import Victory
 
 User = get_user_model()
@@ -133,6 +135,32 @@ def make_image():
         return image
 
     return _make
+
+
+@pytest.fixture
+def svg_rendering_signature():
+    attribute_namespaces = {None, SVG_NAMESPACE, XLINK_NAMESPACE, XML_NAMESPACE}
+
+    def _signature(svg):
+        rows = []
+
+        def _visit(element):
+            name = etree.QName(element)
+            if name.namespace != SVG_NAMESPACE or name.localname == "metadata":
+                return
+            attributes = sorted(
+                (key, value)
+                for key, value in element.attrib.items()
+                if etree.QName(key).namespace in attribute_namespaces
+            )
+            rows.append((name.localname, attributes, (element.text or "").strip(), (element.tail or "").strip()))
+            for child in element.iterchildren(tag=etree.Element):
+                _visit(child)
+
+        _visit(etree.fromstring(svg.encode()))
+        return rows
+
+    return _signature
 
 
 @pytest.fixture

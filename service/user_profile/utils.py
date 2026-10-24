@@ -13,9 +13,7 @@ from victory.models import Victory
 
 User = get_user_model()
 
-RELIABILITY_GAME_WINDOW = 10
-RELIABLE_NMR_THRESHOLD = 0.1
-RELIABLE_CD_THRESHOLD = 0.1
+RECENT_GAME_WINDOW = 10
 
 PICTURE_MAX_BYTES = 5 * 1024 * 1024
 PICTURE_MAX_DIMENSION = 8192
@@ -91,7 +89,7 @@ def get_player_stats(user):
     draws = completed_members.filter(drew=True).count()
     losses = total_games - solo_wins - draws
 
-    last_n_members = list(completed_members[:RELIABILITY_GAME_WINDOW])
+    last_n_members = list(completed_members[:RECENT_GAME_WINDOW])
     last_n_member_ids = [m.id for m in last_n_members]
 
     phase_states_with_orders = PhaseState.objects.filter(
@@ -108,13 +106,6 @@ def get_player_stats(user):
     cd_count = sum(1 for m in last_n_members if m.civil_disorder)
     cd_rate = cd_count / len(last_n_members) if last_n_members else 0.0
 
-    if total_games < RELIABILITY_GAME_WINDOW:
-        reliability_tier = "new"
-    elif nmr_rate <= RELIABLE_NMR_THRESHOLD and cd_rate <= RELIABLE_CD_THRESHOLD:
-        reliability_tier = "reliable"
-    else:
-        reliability_tier = None
-
     return {
         "total_games": total_games,
         "solo_wins": solo_wins,
@@ -122,7 +113,6 @@ def get_player_stats(user):
         "losses": losses,
         "nmr_rate": round(nmr_rate, 4),
         "cd_rate": round(cd_rate, 4),
-        "reliability_tier": reliability_tier,
     }
 
 
@@ -130,13 +120,3 @@ def user_can_use_bot_opponent(user):
     if user is None or not user.email:
         return False
     return user.email.lower() in settings.BOT_OPPONENT_ALLOWLIST
-
-
-def tier_allows_min_reliability(reliability_tier, min_reliability):
-    if min_reliability == "open":
-        return True
-    if min_reliability == "reliable_and_new":
-        return reliability_tier in ("reliable", "new")
-    if min_reliability == "reliable_only":
-        return reliability_tier == "reliable"
-    return True

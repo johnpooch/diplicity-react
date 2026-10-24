@@ -17,7 +17,6 @@ vi.mock("@/api/generated/endpoints", () => ({
       losses: 11,
       nmrRate: 0.125,
       cdRate: 0,
-      reliabilityTier: "reliable",
       commitment: "high",
     },
   }),

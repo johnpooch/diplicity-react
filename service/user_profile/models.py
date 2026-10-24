@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from common.constants import Commitment, UserKind
 from common.models import BaseModel
+from member.models import commitment_points
 
 
 class UserProfileQuerySet(models.QuerySet):
@@ -20,6 +21,9 @@ class UserProfileQuerySet(models.QuerySet):
             .order_by("name")
         )
 
+    def with_commitment_total(self):
+        return self.annotate(commitment_total=commitment_points("user__members__commitment_entries__kind"))
+
 
 class UserProfileManager(models.Manager):
     def get_queryset(self):
@@ -30,6 +34,9 @@ class UserProfileManager(models.Manager):
 
     def addable_to_game(self, game):
         return self.get_queryset().addable_to_game(game)
+
+    def with_commitment_total(self):
+        return self.get_queryset().with_commitment_total()
 
 
 class UserProfile(BaseModel):

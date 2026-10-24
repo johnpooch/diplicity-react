@@ -158,18 +158,6 @@ class PressType:
     )
 
 
-class MinReliability:
-    OPEN = "open"
-    RELIABLE_AND_NEW = "reliable_and_new"
-    RELIABLE_ONLY = "reliable_only"
-
-    MIN_RELIABILITY_CHOICES = (
-        (OPEN, "Open"),
-        (RELIABLE_AND_NEW, "Reliable + New Players"),
-        (RELIABLE_ONLY, "Reliable only"),
-    )
-
-
 class Commitment:
     HIGH = "high"
     MEDIUM = "medium"
@@ -182,6 +170,24 @@ class Commitment:
         (LOW, "Low"),
         (UNDEFINED, "New"),
     )
+
+
+class CommitmentEvent:
+    SUBMITTED = "submitted"
+    NMR = "nmr"
+    CIVIL_DISORDER = "civil_disorder"
+
+    KIND_CHOICES = (
+        (SUBMITTED, "Submitted"),
+        (NMR, "NMR"),
+        (CIVIL_DISORDER, "Civil disorder"),
+    )
+
+    POINTS = {
+        SUBMITTED: 1,
+        NMR: -2,
+        CIVIL_DISORDER: -10,
+    }
 
 
 class UserKind:

@@ -64,12 +64,11 @@ vi.mock("@/components/GameDropdownMenu", () => ({
 
 const pendingGameCanJoin = mockPendingGames.find((g) => g.canJoin)!;
 const pendingGameCanLeave = mockPendingGames.find((g) => !g.canJoin && g.canLeave)!;
-const pendingGameReliabilityRequired = {
+const pendingGameCannotJoin = {
   ...mockPendingGames.find((g) => g.canJoin)!,
-  id: "game-reliability-test",
+  id: "game-cannot-join-test",
   canJoin: false,
   canLeave: false,
-  minReliability: "reliable_only" as const,
 };
 const pendingGameCanManage = {
   ...mockPendingGames.find((g) => !g.canJoin && g.canLeave)!,
@@ -124,18 +123,16 @@ describe("GameInfoScreen", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows disabled 'Join game' button with reliability message for a pending game with reliability requirement the user cannot join", () => {
+    it("shows no 'Join game' button for a pending game the user cannot join", () => {
       mockUseGameRetrieveSuspense.mockReturnValue({
-        data: pendingGameReliabilityRequired,
+        data: pendingGameCannotJoin,
       });
-      renderGameInfo(pendingGameReliabilityRequired.id);
+      renderGameInfo(pendingGameCannotJoin.id);
 
       const content = screen.getByTestId("game-info-content");
-      const joinButton = within(content).getByRole("button", { name: /join game/i });
-      expect(joinButton).toBeDisabled();
       expect(
-        within(content).getByText(/your reliability is too low to join this game/i)
-      ).toBeInTheDocument();
+        within(content).queryByRole("button", { name: /join game/i })
+      ).not.toBeInTheDocument();
     });
 
     it("shows 'Add AI player' for a pending game the user manages", async () => {
