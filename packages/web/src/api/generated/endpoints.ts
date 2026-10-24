@@ -612,6 +612,8 @@ export interface Member {
   readonly withdrawn: boolean;
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
+  /** @nullable */
+  readonly seatConfirmed: boolean | null;
   readonly removable: boolean;
   readonly nationPreferenceIds: readonly string[];
 }

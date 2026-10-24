@@ -1581,6 +1581,85 @@ def _create_game_via_api(client, variant_id, **overrides):
     return Game.objects.get(id=response.data["id"])
 
 
+class TestSeatConfirmedSerialization:
+
+    def _seat_confirmed_by_user_id(self, client, game):
+        response = client.get(reverse(retrieve_viewname, args=[game.id]))
+        assert response.status_code == status.HTTP_200_OK
+        return {m["user_id"]: m["seat_confirmed"] for m in response.data["members"]}
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_reflects_each_human_confirmation(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game = _create_game_via_api(
+            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=True
+        )
+        join_response = authenticated_client_for_secondary_user.post(reverse(join_viewname, args=[game.id]))
+        assert join_response.status_code == status.HTTP_201_CREATED
+        muster_response = authenticated_client_for_secondary_user.post(reverse("game-muster", args=[game.id]))
+        assert muster_response.status_code == status.HTTP_200_OK
+
+        seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
+
+        assert seat_confirmed == {primary_user.id: False, secondary_user.id: True}
+
+    @pytest.mark.django_db
+    def test_bot_seat_is_confirmed_while_mustering(
+        self, allowlisted_client, italy_vs_germany_variant, primary_user, bot_user, in_memory_procrastinate
+    ):
+        game = _create_game_via_api(
+            allowlisted_client, italy_vs_germany_variant.id, private=True, muster_required=True
+        )
+        seat_response = allowlisted_client.post(
+            reverse(seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+        )
+        assert seat_response.status_code == status.HTTP_201_CREATED
+
+        seat_confirmed = self._seat_confirmed_by_user_id(allowlisted_client, game)
+
+        assert seat_confirmed == {primary_user.id: False, bot_user.id: True}
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_is_null_before_mustering(
+        self, authenticated_client, italy_vs_germany_variant, primary_user, in_memory_procrastinate
+    ):
+        game = _create_game_via_api(
+            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=True
+        )
+
+        seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
+
+        assert seat_confirmed == {primary_user.id: None}
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_is_null_in_an_active_game(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game = _create_game_via_api(
+            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=False
+        )
+        authenticated_client_for_secondary_user.post(reverse(join_viewname, args=[game.id]))
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+        seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
+
+        assert seat_confirmed == {primary_user.id: None, secondary_user.id: None}
+
+
 class TestSeatMember:
 
     @pytest.mark.django_db

@@ -218,6 +218,7 @@ class Member(TypedDict):
     withdrawn: bool
     seeking_replacement: bool
     replaceable: bool
+    seat_confirmed: bool | None
     removable: bool
     nation_preference_ids: list[str]
 

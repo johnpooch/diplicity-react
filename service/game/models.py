@@ -1143,7 +1143,7 @@ class Game(BaseModel):
         )
         if current_member is None:
             return None
-        if current_member.is_bot or current_member.mustered_at is not None:
+        if current_member.seat_confirmed:
             return MusterStatus.CONFIRMED
         return MusterStatus.CONFIRMATION_REQUIRED
 
