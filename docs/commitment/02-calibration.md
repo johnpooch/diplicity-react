@@ -8,6 +8,8 @@ The owner accepted the *shape* of the model in `01` §2.3, not its values. This 
 
 Every production figure comes from read-only queries run on 2026-10-24 (SQL in [Appendix B](#appendix-b-production-queries)). The raw rows were pulled into local files and the replay ran locally in Python. Figures for events production has never recorded, muster no-shows and bot games, are **modelled** and labelled as such. Anything not checked is marked **(unverified)**.
 
+> **Superseded in part.** The owner later dropped the recovery boost and the seat-takeover multiplier (`01` §7). Every event is now worth a fixed number of points, so a total is a plain sum and §8's argument for a chronological total no longer applies. The analysis below is left as it ran; the "No boost, ×1" row in §9 shows the effect of the change.
+
 ---
 
 ## 1. Summary
@@ -22,8 +24,8 @@ Every production figure comes from read-only queries run on 2026-10-24 (SQL in [
 | Early withdrawal (in the game's first year) | **−1** | −3 |
 | Late withdrawal | **0** | 0 |
 | Muster no-show | **−1** (modelled) | −1 |
-| Recovery boost, while the total is below zero | **×2** on submitted phases | ×2 |
-| Seat takeover | **×2** on submitted phases in a taken-over seat, not stacked with the boost | not set |
+| Recovery boost, while the total is below zero | **×2** on submitted phases (later dropped) | ×2 |
+| Seat takeover | **×2** on submitted phases in a taken-over seat, not stacked with the boost (later dropped) | not set |
 | Bot-game cap | **+10** | ~+10 |
 
 **Colour bands for totals:** ≤−21 · −20 to −1 · 0 to 10 · 11 to 49 · 50 to 199 · ≥200 (§2.7).

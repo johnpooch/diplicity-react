@@ -62,13 +62,7 @@ Rules that follow from this:
   - Bot games count fully only while the player's total is below a small positive cap (illustratively about +10). Above the cap they contribute nothing.
   - The square still appears on the grid, with a note that the cap was reached.
   - This cap is the main anti-farming mechanism.
-- **Recovery boost.** While a player's total is negative, each submitted phase counts extra (illustratively double).
-  - Recovery should be easy but not trivial. The target is roughly one quick bot game.
-  - Bots confirm as soon as all humans have confirmed, so a bot game takes minutes, not weeks.
-  - Example: a player abandons in 1901 and drops to about −14. One bot game brings them back to a small positive total.
-- **Seat takeover earns a commitment multiplier.**
-  - Taking over a vacant seat is behaviour to encourage.
-  - A separate "karma" score was considered and rejected as overkill while takeover is the only good deed tracked.
+- **Every event is worth a fixed number of points.** There is no recovery boost and no seat-takeover multiplier (§7). A player's total is a plain sum of their events, regardless of the order they happened in.
 
 ### 2.5 Named tiers are retired
 - `high` / `medium` / `low` / `undefined` and the `committed` game option are replaced by the numeric total.
@@ -150,6 +144,11 @@ Rules that follow from this:
 - **Forgiveness**, the self-service reset from the epic (§12). Bot-game recovery replaces it, and a reset would wipe a player's good history along with the bad.
 - **Weighting by phase length.**
 - **Language and chattiness as join criteria.** Out of scope.
+- **Recovery boost and seat-takeover multiplier.**
+  - Both were part of the original model: submitted phases would count double while a player's total was negative, or in a seat they had taken over.
+  - The calibration study found the boost barely changes the distribution of totals (`02-calibration.md` §9), and takeover multipliers covered only 122 seats (§2.6).
+  - Both make a total depend on the order of events, which forces a stored running total.
+  - Recovery speed also no longer affects who can join a game.
 
 ---
 
@@ -165,7 +164,7 @@ Rules that follow from this:
 
 ## 9. Still open
 
-1. **Point values, bot cap and recovery multiplier.** Calibrate with a data study of historical production data, for example run by a Claude Code instance. The aim is values that produce a sensible distribution of totals and of the colour bands.
+1. **Point values and bot cap.** Calibrate with a data study of historical production data, for example run by a Claude Code instance. The aim is values that produce a sensible distribution of totals and of the colour bands.
 2. **Migration.**
    - How to build grids and totals from existing history.
    - How to treat games currently excluded from scoring by the old rules (CDs erased by takeover or removal).
