@@ -109,7 +109,7 @@ class EmailLogin(TypedDict):
     refresh_token: str
 
 
-type EventsEnum = Literal['submitted', 'nmr', 'civil_disorder']
+type EventsEnum = Literal['submitted', 'nmr', 'civil_disorder', 'early_withdrawal', 'late_withdrawal', 'muster_no_show']
 
 
 class FieldValue(TypedDict):
@@ -646,6 +646,7 @@ class Member(TypedDict):
     withdrawn: bool
     seeking_replacement: bool
     replaceable: bool
+    seat_confirmed: bool | None
     removable: bool
     nation_preference_ids: list[str]
     commitment_total: int | None

@@ -52,6 +52,17 @@ const makePendingMembers = (
     );
 };
 
+const makeMusteringMembers = (
+  count: number,
+  confirmedUserIds: number[],
+  includeCurrentUser = true
+): Member[] =>
+  makePendingMembers(count, includeCurrentUser).map(member => ({
+    ...member,
+    seatConfirmed:
+      member.userId !== null && confirmedUserIds.includes(member.userId),
+  }));
+
 export const pendingGameNoPlayers = makeFixture({
   description:
     "Pending public game with zero members. The current user can join it.",
@@ -165,14 +176,20 @@ const buildMusteringGame = () => {
   return makeFixture({
     description:
       "Full public game in mustering: it starts once every player confirms their seat, and unconfirmed seats are vacated at the deadline. The current user has not confirmed yet. Like a real unstarted game it carries its pending first phase, so it opens in the game detail layout.",
-    game: makeGame("mustering-game", "Roll Call", makePendingMembers(7), [phase], {
-      status: "mustering",
-      canLeave: true,
-      currentPhaseId: phase.id,
-      musterRequired: true,
-      musterDeadline: futureIso(20 * 60 * 60),
-      musterStatus: "confirmation_required",
-    }),
+    game: makeGame(
+      "mustering-game",
+      "Roll Call",
+      makeMusteringMembers(7, [2, 3, 5, 6]),
+      [phase],
+      {
+        status: "mustering",
+        canLeave: true,
+        currentPhaseId: phase.id,
+        musterRequired: true,
+        musterDeadline: futureIso(20 * 60 * 60),
+        musterStatus: "confirmation_required",
+      }
+    ),
     phases: [phase],
   });
 };
@@ -1095,7 +1112,7 @@ export const musteringGameConfirmed = makeFixture({
   game: makeGame(
     "mustering-confirmed",
     "Ready and Waiting",
-    makePendingMembers(7),
+    makeMusteringMembers(7, [1, 2, 4, 5]),
     [],
     {
       status: "mustering",
@@ -1113,7 +1130,7 @@ export const gameMasterMustering = makeFixture({
   game: makeGame(
     "game-master-mustering",
     "The Gathering",
-    makePendingMembers(7, false),
+    makeMusteringMembers(7, [2, 4, 7], false),
     [],
     {
       status: "mustering",

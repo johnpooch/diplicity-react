@@ -28,6 +28,7 @@ from procrastinate.contrib.django import app as procrastinate_app
 from common.constants import (
     Commitment,
     CommitmentEligibility,
+    CommitmentEvent,
     CommitmentRequirement,
     DeadlineMode,
     GameActionKey,
@@ -48,7 +49,7 @@ from common.models import BaseModel
 from emit import emit
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, deadline_warning_offset, FREQUENCY_INTERVALS
-from member.models import Member, NationPreference
+from member.models import CommitmentEntry, Member, NationPreference
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
@@ -511,6 +512,7 @@ class GameManager(models.Manager):
 
             for member in unmustered:
                 Member.objects.remove(member)
+                CommitmentEntry.objects.record(member, CommitmentEvent.MUSTER_NO_SHOW)
 
             if unmustered_user_ids:
                 emit(
@@ -746,6 +748,13 @@ class Game(BaseModel):
                 return phases[-1] if phases else None
 
             return self.phases.order_by("ordinal", "id").last()
+
+    @property
+    def in_first_year(self):
+        current_phase = self.current_phase
+        if current_phase is None:
+            return False
+        return current_phase.year == self.phases.order_by("ordinal", "id").first().year
 
     @property
     def movement_phase_duration_seconds(self):
@@ -1141,7 +1150,7 @@ class Game(BaseModel):
         )
         if current_member is None:
             return None
-        if current_member.is_bot or current_member.mustered_at is not None:
+        if current_member.seat_confirmed:
             return MusterStatus.CONFIRMED
         return MusterStatus.CONFIRMATION_REQUIRED
 

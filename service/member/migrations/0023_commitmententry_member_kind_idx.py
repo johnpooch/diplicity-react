@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("member", "0021_commitmententry"),
+        ("member", "0022_commitmententry_departure_kinds"),
     ]
 
     operations = [

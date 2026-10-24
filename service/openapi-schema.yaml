@@ -2938,11 +2938,17 @@ components:
       - submitted
       - nmr
       - civil_disorder
+      - early_withdrawal
+      - late_withdrawal
+      - muster_no_show
       type: string
       description: |-
         * `submitted` - Submitted
         * `nmr` - NMR
         * `civil_disorder` - Civil disorder
+        * `early_withdrawal` - Early withdrawal
+        * `late_withdrawal` - Late withdrawal
+        * `muster_no_show` - Muster no-show
     FCMDevice:
       type: object
       properties:
@@ -3833,6 +3839,10 @@ components:
         replaceable:
           type: boolean
           readOnly: true
+        seatConfirmed:
+          type: boolean
+          readOnly: true
+          nullable: true
         removable:
           type: boolean
           readOnly: true
@@ -3870,6 +3880,7 @@ components:
       - picture
       - removable
       - replaceable
+      - seatConfirmed
       - seekingReplacement
       - userId
       - withdrawn

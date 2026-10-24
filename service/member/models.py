@@ -16,6 +16,7 @@ from common.constants import (
     MemberDeparture,
     MemberKind,
     ParticipationStatus,
+    UserKind,
 )
 from common.models import BaseModel
 from emit import emit
@@ -187,6 +188,10 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         with transaction.atomic():
             member.withdrawn_at = timezone.now()
             member.save(update_fields=["withdrawn_at"])
+            CommitmentEntry.objects.record(
+                member,
+                CommitmentEvent.EARLY_WITHDRAWAL if game.in_first_year else CommitmentEvent.LATE_WITHDRAWAL,
+            )
 
             phase = self._lock_active_phase(game)
             if phase is not None:
@@ -344,13 +349,19 @@ class Member(BaseModel):
             return ParticipationStatus.ELIMINATED
         if self.civil_disorder:
             return ParticipationStatus.CIVIL_DISORDER
-        if self.game.status == GameStatus.MUSTERING:
-            if self.mustered_at is None and not self.is_bot:
-                return ParticipationStatus.SEAT_UNCONFIRMED
+        if self.seat_confirmed is True:
             return ParticipationStatus.SEAT_CONFIRMED
+        if self.seat_confirmed is False:
+            return ParticipationStatus.SEAT_UNCONFIRMED
         if self.game.status == GameStatus.PENDING:
             return ParticipationStatus.JOINED
         return ParticipationStatus.PLAYING
+
+    @property
+    def seat_confirmed(self):
+        if self.is_game_master or self.game.status != GameStatus.MUSTERING:
+            return None
+        return self.mustered_at is not None or self.is_bot
 
     @property
     def is_bot(self):
@@ -426,7 +437,18 @@ class NationPreference(BaseModel):
         return f"{self.member} - {self.rank}. {self.nation.name}"
 
 
+class CommitmentEntryManager(models.Manager):
+    def record(self, member, kind):
+        game = member.game
+        if game.sandbox or game.private:
+            return None
+        if member.user is None or member.user.profile.kind != UserKind.HUMAN:
+            return None
+        return self.create(member=member, kind=kind)
+
+
 class CommitmentEntry(BaseModel):
+    objects = CommitmentEntryManager()
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="commitment_entries")
     kind = models.CharField(max_length=20, choices=CommitmentEvent.KIND_CHOICES)
 

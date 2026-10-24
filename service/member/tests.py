@@ -18,7 +18,7 @@ from order.models import Order
 from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile
 from victory.models import Victory
-from common.constants import Commitment, CommitmentRequirement, GameStatus, MemberKind, OrderType, PhaseStatus, UserKind
+from common.constants import Commitment, CommitmentEvent, CommitmentRequirement, GameStatus, MemberKind, OrderType, PhaseStatus, UserKind
 
 User = get_user_model()
 
@@ -1581,6 +1581,85 @@ def _create_game_via_api(client, variant_id, **overrides):
     return Game.objects.get(id=response.data["id"])
 
 
+class TestSeatConfirmedSerialization:
+
+    def _seat_confirmed_by_user_id(self, client, game):
+        response = client.get(reverse(retrieve_viewname, args=[game.id]))
+        assert response.status_code == status.HTTP_200_OK
+        return {m["user_id"]: m["seat_confirmed"] for m in response.data["members"]}
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_reflects_each_human_confirmation(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game = _create_game_via_api(
+            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=True
+        )
+        join_response = authenticated_client_for_secondary_user.post(reverse(join_viewname, args=[game.id]))
+        assert join_response.status_code == status.HTTP_201_CREATED
+        muster_response = authenticated_client_for_secondary_user.post(reverse("game-muster", args=[game.id]))
+        assert muster_response.status_code == status.HTTP_200_OK
+
+        seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
+
+        assert seat_confirmed == {primary_user.id: False, secondary_user.id: True}
+
+    @pytest.mark.django_db
+    def test_bot_seat_is_confirmed_while_mustering(
+        self, allowlisted_client, italy_vs_germany_variant, primary_user, bot_user, in_memory_procrastinate
+    ):
+        game = _create_game_via_api(
+            allowlisted_client, italy_vs_germany_variant.id, private=True, muster_required=True
+        )
+        seat_response = allowlisted_client.post(
+            reverse(seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
+        )
+        assert seat_response.status_code == status.HTTP_201_CREATED
+
+        seat_confirmed = self._seat_confirmed_by_user_id(allowlisted_client, game)
+
+        assert seat_confirmed == {primary_user.id: False, bot_user.id: True}
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_is_null_before_mustering(
+        self, authenticated_client, italy_vs_germany_variant, primary_user, in_memory_procrastinate
+    ):
+        game = _create_game_via_api(
+            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=True
+        )
+
+        seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
+
+        assert seat_confirmed == {primary_user.id: None}
+
+    @pytest.mark.django_db
+    def test_seat_confirmed_is_null_in_an_active_game(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game = _create_game_via_api(
+            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=False
+        )
+        authenticated_client_for_secondary_user.post(reverse(join_viewname, args=[game.id]))
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+        seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
+
+        assert seat_confirmed == {primary_user.id: None, secondary_user.id: None}
+
+
 class TestSeatMember:
 
     @pytest.mark.django_db
@@ -2198,6 +2277,69 @@ class TestMemberWithdrawView:
         assert phase.status == PhaseStatus.COMPLETED
         assert phase.phase_states.get(member=member).orders_outcome is None
         assert phase.phase_states.exclude(member=member).filter(orders_outcome__isnull=False).exists()
+
+    @staticmethod
+    def _advance_to(game, season, year):
+        phase = game.current_phase
+        Phase.objects.filter(id=phase.id).update(status=PhaseStatus.COMPLETED)
+        Phase.objects.create(
+            game=game,
+            variant=game.variant,
+            season=season,
+            year=year,
+            type=phase.type,
+            status=PhaseStatus.ACTIVE,
+            ordinal=phase.ordinal + 1,
+        )
+
+    @pytest.mark.django_db
+    def test_withdrawal_in_the_first_phase_records_an_early_withdrawal(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        _withdraw(game, member)
+
+        assert list(member.commitment_entries.values_list("kind", flat=True)) == [CommitmentEvent.EARLY_WITHDRAWAL]
+
+    @pytest.mark.django_db
+    def test_withdrawal_later_in_the_first_year_records_an_early_withdrawal(self, active_game_factory):
+        game = active_game_factory()
+        first_year = game.current_phase.year
+        self._advance_to(game, "Fall", first_year)
+        member = _non_admin_player(game)
+
+        _withdraw(game, member)
+
+        assert list(member.commitment_entries.values_list("kind", flat=True)) == [CommitmentEvent.EARLY_WITHDRAWAL]
+
+    @pytest.mark.django_db
+    def test_withdrawal_after_the_first_year_records_a_late_withdrawal(self, active_game_factory):
+        game = active_game_factory()
+        self._advance_to(game, "Spring", game.current_phase.year + 1)
+        member = _non_admin_player(game)
+
+        _withdraw(game, member)
+
+        assert list(member.commitment_entries.values_list("kind", flat=True)) == [CommitmentEvent.LATE_WITHDRAWAL]
+
+    @pytest.mark.django_db
+    def test_withdrawal_records_no_commitment_in_a_private_game(self, active_game_factory):
+        game = active_game_factory()
+        Game.objects.filter(id=game.id).update(private=True)
+        member = _non_admin_player(game)
+
+        _withdraw(game, member)
+
+        assert not member.commitment_entries.exists()
+
+    @pytest.mark.django_db
+    def test_withdrawal_affects_only_the_withdrawing_players_commitment(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        _withdraw(game, member)
+
+        assert not Member.objects.filter(game=game, commitment_entries__isnull=False).exclude(id=member.id).exists()
 
     @pytest.mark.django_db
     def test_withdraw_is_allowed_in_a_paused_game(self, active_game_factory):

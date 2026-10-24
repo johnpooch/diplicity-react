@@ -111,6 +111,7 @@ const baseMember = {
   civilDisorder: false,
   withdrawn: false,
   removable: false,
+  seatConfirmed: null,
   nationPreferenceIds: [],
 };
 
@@ -1070,6 +1071,69 @@ describe("PlayerInfoContent", () => {
 
     expect(
       screen.queryByRole("link", { name: /assign nations/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows each player's seat confirmation while mustering", async () => {
+    const user = userEvent.setup();
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "mustering",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "pending" }],
+      members: [
+        {
+          ...baseMember,
+          id: 1,
+          name: "Alice",
+          nation: null,
+          seatConfirmed: true,
+        },
+        {
+          ...baseMember,
+          id: 2,
+          name: "Bob",
+          isCurrentUser: false,
+          nation: null,
+          seatConfirmed: false,
+        },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByLabelText("Seat confirmed")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Waiting for this player to confirm")
+    ).toBeInTheDocument();
+
+    await user.hover(
+      screen.getByLabelText("Waiting for this player to confirm")
+    );
+    await screen.findByRole("tooltip", {
+      name: "Waiting for this player to confirm",
+    });
+  });
+
+  it.each([
+    ["pending", null],
+    ["active", "England"],
+  ])("does not show seat confirmation for a %s game", (status, nation) => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status,
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: status === "pending" ? "pending" : "active" }],
+      members: [{ ...baseMember, nation }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByLabelText("Seat confirmed")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Waiting for this player to confirm")
     ).not.toBeInTheDocument();
   });
 });

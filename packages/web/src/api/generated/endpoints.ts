@@ -264,6 +264,9 @@ export const CommitmentRequirementEnum = {
  * * `submitted` - Submitted
  * `nmr` - NMR
  * `civil_disorder` - Civil disorder
+ * `early_withdrawal` - Early withdrawal
+ * `late_withdrawal` - Late withdrawal
+ * `muster_no_show` - Muster no-show
  */
 export type EventsEnum = (typeof EventsEnum)[keyof typeof EventsEnum];
 
@@ -271,6 +274,9 @@ export const EventsEnum = {
   submitted: "submitted",
   nmr: "nmr",
   civil_disorder: "civil_disorder",
+  early_withdrawal: "early_withdrawal",
+  late_withdrawal: "late_withdrawal",
+  muster_no_show: "muster_no_show",
 } as const;
 
 /**
@@ -674,6 +680,8 @@ export interface Member {
   readonly withdrawn: boolean;
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
+  /** @nullable */
+  readonly seatConfirmed: boolean | null;
   readonly removable: boolean;
   readonly nationPreferenceIds: readonly string[];
   /** @nullable */

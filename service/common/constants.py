@@ -176,17 +176,26 @@ class CommitmentEvent:
     SUBMITTED = "submitted"
     NMR = "nmr"
     CIVIL_DISORDER = "civil_disorder"
+    EARLY_WITHDRAWAL = "early_withdrawal"
+    LATE_WITHDRAWAL = "late_withdrawal"
+    MUSTER_NO_SHOW = "muster_no_show"
 
     KIND_CHOICES = (
         (SUBMITTED, "Submitted"),
         (NMR, "NMR"),
         (CIVIL_DISORDER, "Civil disorder"),
+        (EARLY_WITHDRAWAL, "Early withdrawal"),
+        (LATE_WITHDRAWAL, "Late withdrawal"),
+        (MUSTER_NO_SHOW, "Muster no-show"),
     )
 
     POINTS = {
         SUBMITTED: 1,
         NMR: -2,
         CIVIL_DISORDER: -10,
+        EARLY_WITHDRAWAL: -1,
+        LATE_WITHDRAWAL: 0,
+        MUSTER_NO_SHOW: -1,
     }
 
     PHASE_KINDS = (SUBMITTED, NMR)

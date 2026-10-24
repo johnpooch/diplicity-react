@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import {
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
+  CircleDashed,
   Handshake,
   LogOut,
   Star,
@@ -371,6 +373,40 @@ export const PlayerInfoContent: React.FC = () => {
                   >
                     <LogOut className="size-3" />
                   </span>
+                )}
+                {member.seatConfirmed !== null && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          "inline-flex size-5 shrink-0 items-center justify-center rounded-full",
+                          member.seatConfirmed
+                            ? "bg-green-600 text-white"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                        aria-label={
+                          member.seatConfirmed
+                            ? "Seat confirmed"
+                            : "Waiting for this player to confirm"
+                        }
+                        tabIndex={0}
+                        onPointerDown={event => event.stopPropagation()}
+                        onClick={event => event.stopPropagation()}
+                        onKeyDown={event => event.stopPropagation()}
+                      >
+                        {member.seatConfirmed ? (
+                          <CheckCircle2 className="size-3" />
+                        ) : (
+                          <CircleDashed className="size-3" />
+                        )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {member.seatConfirmed
+                        ? "Seat confirmed"
+                        : "Waiting for this player to confirm"}
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             )}

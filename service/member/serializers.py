@@ -105,6 +105,7 @@ class MemberSerializer(BaseMemberSerializer):
     withdrawn = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
+    seat_confirmed = serializers.BooleanField(read_only=True, allow_null=True)
     removable = serializers.SerializerMethodField()
     nation_preference_ids = serializers.SerializerMethodField()
     commitment_total = serializers.SerializerMethodField()
