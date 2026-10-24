@@ -93,6 +93,41 @@ class TestSelectOrders:
             "named_coast": None,
         }]
 
+    def test_never_moves_to_a_province_that_needs_a_convoy(self):
+        fixture = _movement_fixture(
+            phase={"season": "Fall", "year": 1901, "type": "Movement"},
+            nation="Turkey",
+            units=[
+                {"type": "Army", "nation": "Turkey", "province": "ank"},
+                {"type": "Fleet", "nation": "Turkey", "province": "bla"},
+            ],
+            supply_centers=[
+                {"nation": "Turkey", "province": "ank"},
+                {"nation": "Russia", "province": "sev"},
+                {"nation": "Russia", "province": "mos"},
+                {"nation": "Russia", "province": "war"},
+                {"nation": "Russia", "province": "stp"},
+            ],
+            order_options=[
+                {"source": "ank", "order_type": "Hold"},
+                {"source": "ank", "order_type": "Move", "target": "con"},
+                {"source": "ank", "order_type": "Move", "target": "arm"},
+                {"source": "ank", "order_type": "Move", "target": "sev"},
+                {"source": "ank", "order_type": "MoveViaConvoy", "target": "sev"},
+                {"source": "bla", "order_type": "Hold"},
+                {"source": "bla", "order_type": "Move", "target": "rum"},
+                {"source": "bla", "order_type": "Convoy", "aux": "ank", "target": "sev"},
+            ],
+        )
+        context = fixture_to_context(fixture)
+
+        for seed in range(20):
+            orders = select_orders(context, rng=random.Random(seed))
+
+            army_order = next(order for order in orders if order["source"] == "ank")
+            assert army_order["order_type"] != OrderType.MOVE_VIA_CONVOY
+            assert army_order["target"] != "sev"
+
     def test_empty_adjacencies_still_covers_every_source(self):
         context = fixture_to_context(_movement_fixture())
         for province in context["provinces"]:
