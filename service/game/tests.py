@@ -974,7 +974,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 12
+        assert query_count == 14
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -1015,7 +1015,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 12
+        assert query_count == 14
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -1084,7 +1084,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 12
+        assert query_count == 14
 
 
     @pytest.mark.django_db
@@ -1181,6 +1181,27 @@ class TestGameCurrentPhase:
 
 
 class TestGameListView:
+
+    @pytest.mark.django_db
+    def test_list_games_reports_a_players_total_on_every_seat(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        games = [
+            Game.objects.create(variant=classical_variant, name=f"Seat {i}", status=GameStatus.ACTIVE) for i in range(2)
+        ]
+        seats = [game.members.create(user=secondary_user) for game in games]
+        CommitmentEntry.objects.create(member=seats[0], kind=CommitmentEvent.SUBMITTED)
+        CommitmentEntry.objects.create(member=seats[1], kind=CommitmentEvent.NMR)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        totals = [
+            member["commitment_total"]
+            for game in response.data["results"]
+            if game["id"] in {g.id for g in games}
+            for member in game["members"]
+        ]
+        assert totals == [-1, -1]
 
     @pytest.mark.django_db
     def test_list_games_success(self, authenticated_client, pending_game_created_by_primary_user):
@@ -2039,7 +2060,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 9
+        assert query_count == 10
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -2080,7 +2101,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 9
+        assert query_count == 10
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -2131,7 +2152,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 9
+        assert query_count == 10
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -2181,7 +2202,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 9
+        assert query_count == 10
 
     @pytest.mark.django_db
     def test_list_games_hydrates_units_for_current_phase_only(
@@ -2252,10 +2273,10 @@ class TestGameListViewQueryPerformance:
     @pytest.mark.parametrize(
         ("client_name", "params", "expected_query_count"),
         [
-            ("authenticated", {}, 9),
-            ("authenticated", {"mine": "true"}, 9),
-            ("authenticated", {"sandbox": "true"}, 9),
-            ("unauthenticated", {}, 8),
+            ("authenticated", {}, 10),
+            ("authenticated", {"mine": "true"}, 10),
+            ("authenticated", {"sandbox": "true"}, 10),
+            ("unauthenticated", {}, 9),
         ],
     )
     def test_list_games_query_count_is_constant_as_games_and_phases_grow(
@@ -3143,7 +3164,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -3162,7 +3183,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
 
 class TestGamePrivateFiltering:
@@ -3715,7 +3736,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 56
+        assert query_count == 57
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -3736,7 +3757,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 56
+        assert query_count == 57
 
 
 class TestSandboxGameFiltering:
@@ -5629,6 +5650,19 @@ class TestMyGamesCurrentView:
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [mine.id])]
+
+    @pytest.mark.django_db
+    def test_my_games_current_does_not_read_the_commitment_ledger(
+        self, authenticated_client, my_game_factory, primary_user
+    ):
+        game = my_game_factory()
+        CommitmentEntry.objects.create(member=game.members.get(user=primary_user), kind=CommitmentEvent.SUBMITTED)
+
+        with CaptureQueriesContext(connection) as queries:
+            response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not [query for query in queries if CommitmentEntry._meta.db_table in query["sql"]]
 
     @pytest.mark.django_db
     def test_my_games_current_places_sandbox_game_in_sandbox(self, authenticated_client, sandbox_game_factory):

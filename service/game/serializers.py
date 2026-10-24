@@ -710,7 +710,9 @@ class GameCreateSerializer(serializers.Serializer):
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")
 
-        return Game.objects.all().with_related_data().get(id=game.id)
+        game = Game.objects.all().with_related_data().get(id=game.id)
+        Game.objects.hydrate_member_commitment_totals([game])
+        return game
 
     def to_representation(self, instance):
         return GameRetrieveSerializer(instance, context=self.context).data
@@ -736,7 +738,9 @@ class GameCreateSandboxSerializer(serializers.Serializer):
             variant=variant,
         )
 
-        return Game.objects.all().with_related_data().get(id=game.id)
+        game = Game.objects.all().with_related_data().get(id=game.id)
+        Game.objects.hydrate_member_commitment_totals([game])
+        return game
 
     def to_representation(self, instance):
         return GameRetrieveSerializer(instance, context=self.context).data
@@ -772,7 +776,9 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
 
             game.start(current_phase=game._created_phase, members=created_members)
 
-        return Game.objects.all().with_related_data().get(id=game.id)
+        game = Game.objects.all().with_related_data().get(id=game.id)
+        Game.objects.hydrate_member_commitment_totals([game])
+        return game
 
     def to_representation(self, instance):
         return GameRetrieveSerializer(instance, context=self.context).data

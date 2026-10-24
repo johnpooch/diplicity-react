@@ -48,6 +48,7 @@ class GameRetrieveView(PrecomputedConditionalGetMixin, generics.RetrieveAPIView)
         )
         game = get_object_or_404(queryset, id=self.kwargs.get("game_id"))
         Game.objects.hydrate_retrieve_phases([game])
+        Game.objects.hydrate_member_commitment_totals([game])
         return game
 
 
@@ -77,6 +78,7 @@ class GameListView(generics.ListAPIView):
         page = super().paginate_queryset(queryset)
         Game.objects.hydrate_list_phases(page)
         Game.objects.hydrate_total_unread_counts(page, self.request.user)
+        Game.objects.hydrate_member_commitment_totals(page)
         return page
 
 
@@ -145,6 +147,7 @@ class GameFindSimilarView(generics.GenericAPIView):
             )
         )
         Game.objects.hydrate_list_phases(candidates[:1])
+        Game.objects.hydrate_member_commitment_totals(candidates[:1])
         match_data = GameListSerializer(candidates[0], context={"request": request}).data
         return Response({"game": match_data})
 

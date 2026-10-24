@@ -95,14 +95,12 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related("nation", "user__profile__uploaded_picture")
-            .prefetch_related("nation_preferences__nation")
-            .with_commitment_total(),
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation")
-            .with_commitment_total(),
+            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation"),
         )
 
         phases_prefetch = Prefetch(
@@ -132,14 +130,12 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related("nation__flag", "user__profile__uploaded_picture")
-            .prefetch_related("nation_preferences__nation")
-            .with_commitment_total(),
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
-            .with_commitment_total(),
         )
 
         phases_prefetch = Prefetch("phases", queryset=Phase.objects.defer("options"))
@@ -222,14 +218,12 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related("nation__flag", "user__profile__uploaded_picture")
-            .prefetch_related("nation_preferences__nation")
-            .with_commitment_total(),
+            .prefetch_related("nation_preferences__nation"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
-            .with_commitment_total(),
         )
 
         return self.select_related("victory", "game_master__profile__uploaded_picture").prefetch_related(
@@ -294,6 +288,11 @@ class GameManager(models.Manager):
         for game in games_without_counts:
             game.total_unread_message_count = counts.get(game.id, 0)
 
+    def hydrate_member_commitment_totals(self, games):
+        members = [member for game in games for member in game.members.all()]
+        members += [member for game in games if hasattr(game, "victory") for member in game.victory.members.all()]
+        Member.objects.hydrate_commitment_totals(members)
+
     def hydrate_retrieve_phases(self, games):
         phases, current_phases, latest_completed_phases = self._latest_phases(games)
         self._prefetch_for_phases(
@@ -312,7 +311,6 @@ class GameManager(models.Manager):
         user_ids = {member["user_id"] for member in members} | {game["game_master_id"], user.id}
         profiles = list(
             UserProfile.objects.filter(user_id__in=user_ids - {None})
-            .with_commitment_total()
             .annotate(uploaded_picture_hash=F("uploaded_picture__content_hash"))
             .order_by("id")
             .values()
@@ -346,6 +344,7 @@ class GameManager(models.Manager):
             phase_states,
             nation_preferences,
             victory_members,
+            sorted(Member.objects.commitment_totals(user_ids - {None}).items()),
         ]
         canonical = json.dumps(projection, sort_keys=True, default=str)
         return hashlib.sha256(canonical.encode()).hexdigest()[:32]
@@ -396,6 +395,7 @@ class GameManager(models.Manager):
             return None
         game = self.with_list_data().get(pk=fastest.pk)
         self.hydrate_list_phases([game])
+        self.hydrate_member_commitment_totals([game])
         return game
 
     def arm_muster(self, game):
