@@ -27,6 +27,7 @@ docker compose up   # frontend :5173, API :8000, DB :5432
 - Always use `service/.venv/bin/python` — system `python3` is 3.11, Django 6 requires 3.12+. The hook prepends the venv to `PATH`.
 - **SQLite is not viable** — some migrations use Postgres-only SQL. Use the native cluster.
 - `DJANGO_DEBUG=True` alone is sufficient to start the service against the local DB.
+- With `DJANGO_DEBUG` off, settings refuse to load unless `DJANGO_SECRET_KEY` is set. The hook exports a local development key. Anything that runs Django with debug off outside a Railway service (image build steps, codegen) must pass its own throwaway key, never a real one.
 - Without credentials, Firebase push (`FIREBASE_PROJECT_ID`) and Google OAuth (`GOOGLE_CLIENT_ID`) are disabled.
 - `railway` commands and `/prod-query` require Railway hosts allowlisted. In Claude Code on the web: set **Network access** to **Custom**, add `*.railway.com` and `*.railway.app`, and tick "Also include default list of common package managers".
 

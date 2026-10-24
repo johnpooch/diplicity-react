@@ -12,6 +12,8 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      - DJANGO_SECRET_KEY=codegen-only
     networks:
       - diplicity-network
     depends_on:
