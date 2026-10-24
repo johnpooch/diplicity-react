@@ -3346,3 +3346,4 @@ class TestMemberRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
         assert query_count == 7
+

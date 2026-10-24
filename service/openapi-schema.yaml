@@ -2688,6 +2688,22 @@ components:
       required:
       - id
       - title
+    CommitmentBandEnum:
+      enum:
+      - dark_red
+      - red
+      - neutral
+      - light_green
+      - green
+      - dark_green
+      type: string
+      description: |-
+        * `dark_red` - Dark red
+        * `red` - Red
+        * `neutral` - Neutral
+        * `light_green` - Light green
+        * `green` - Green
+        * `dark_green` - Dark green
     CommitmentEligibilityEnum:
       enum:
       - eligible
@@ -2706,6 +2722,33 @@ components:
       description: |-
         * `open` - Open
         * `committed` - Committed
+    CommitmentSquare:
+      type: object
+      properties:
+        submitted:
+          type: integer
+          readOnly: true
+        missed:
+          type: integer
+          readOnly: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEnum'
+          readOnly: true
+        points:
+          type: integer
+          readOnly: true
+        shade:
+          allOf:
+          - $ref: '#/components/schemas/ShadeEnum'
+          readOnly: true
+      required:
+      - events
+      - missed
+      - points
+      - shade
+      - submitted
     DeadlineModeEnum:
       enum:
       - duration
@@ -2890,6 +2933,22 @@ components:
       - name
       - password
       - refreshToken
+    EventsEnum:
+      enum:
+      - submitted
+      - nmr
+      - civil_disorder
+      - early_withdrawal
+      - late_withdrawal
+      - muster_no_show
+      type: string
+      description: |-
+        * `submitted` - Submitted
+        * `nmr` - NMR
+        * `civil_disorder` - Civil disorder
+        * `early_withdrawal` - Early withdrawal
+        * `late_withdrawal` - Late withdrawal
+        * `muster_no_show` - Muster no-show
     FCMDevice:
       type: object
       properties:
@@ -3792,9 +3851,21 @@ components:
           items:
             type: string
           readOnly: true
+        commitmentTotal:
+          type: integer
+          nullable: true
+          readOnly: true
+        commitmentBand:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/CommitmentBandEnum'
+          - $ref: '#/components/schemas/NullEnum'
       required:
       - civilDisorder
       - commitment
+      - commitmentBand
+      - commitmentTotal
       - eliminated
       - id
       - isAdmin
@@ -4733,9 +4804,24 @@ components:
         commitment:
           type: string
           readOnly: true
+        commitmentTotal:
+          type: integer
+          readOnly: true
+        commitmentBand:
+          allOf:
+          - $ref: '#/components/schemas/CommitmentBandEnum'
+          readOnly: true
+        commitmentSquares:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommitmentSquare'
+          readOnly: true
       required:
       - cdRate
       - commitment
+      - commitmentBand
+      - commitmentSquares
+      - commitmentTotal
       - createdAt
       - draws
       - id
@@ -4789,6 +4875,24 @@ components:
         * `daily` - Daily
         * `every_2_days` - Every 2 days
         * `weekly` - Weekly
+    ShadeEnum:
+      enum:
+      - dark_red
+      - red
+      - light_red
+      - grey
+      - light_green
+      - green
+      - dark_green
+      type: string
+      description: |-
+        * `dark_red` - Dark red
+        * `red` - Red
+        * `light_red` - Light red
+        * `grey` - Grey
+        * `light_green` - Light green
+        * `green` - Green
+        * `dark_green` - Dark green
     StatusEnum:
       enum:
       - pending

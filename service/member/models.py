@@ -1,6 +1,9 @@
+from functools import cached_property
+
 from django.apps import apps
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import models, transaction
-from django.db.models import Case, Sum, Value, When
+from django.db.models import Case, Count, Q, Sum, Value, When
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -53,6 +56,27 @@ class MemberQuerySet(models.QuerySet):
     def with_commitment_square(self):
         return self.annotate(commitment_square=commitment_points("commitment_entries__kind"))
 
+    def commitment_squares(self):
+        return (
+            self.players()
+            .filter(game__private=False, game__sandbox=False)
+            .with_commitment_square()
+            .annotate(
+                commitment_submitted=Count(
+                    "commitment_entries", filter=Q(commitment_entries__kind=CommitmentEvent.SUBMITTED)
+                ),
+                commitment_missed=Count("commitment_entries", filter=Q(commitment_entries__kind=CommitmentEvent.NMR)),
+                commitment_events=ArrayAgg(
+                    "commitment_entries__kind",
+                    filter=Q(commitment_entries__isnull=False)
+                    & ~Q(commitment_entries__kind__in=CommitmentEvent.PHASE_KINDS),
+                    distinct=True,
+                    default=Value([]),
+                ),
+            )
+            .order_by("created_at", "id")
+        )
+
     def with_detail_data(self):
         Phase = apps.get_model("phase", "Phase")
         return self.select_related(
@@ -68,6 +92,22 @@ class MemberQuerySet(models.QuerySet):
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
+
+    def commitment_totals(self, user_ids):
+        return dict(
+            CommitmentEntry.objects.filter(member__user_id__in=user_ids)
+            .order_by()
+            .values_list("member__user_id")
+            .annotate(total=commitment_points("kind"))
+        )
+
+    def hydrate_commitment_totals(self, members):
+        members = [member for member in members if "commitment_total" not in member.__dict__]
+        if not members:
+            return
+        totals = self.commitment_totals({member.user_id for member in members} - {None})
+        for member in members:
+            member.commitment_total = totals.get(member.user_id, 0)
 
     def hand_over_seat(self, member, user):
         ChannelMember = apps.get_model("channel", "ChannelMember")
@@ -233,6 +273,12 @@ class Member(BaseModel):
                 name="member_unique_game_master_per_game",
             ),
         ]
+
+    @cached_property
+    def commitment_total(self):
+        return CommitmentEntry.objects.filter(member__user_id=self.user_id).aggregate(
+            total=commitment_points("kind")
+        )["total"]
 
     @property
     def is_game_master(self):
@@ -405,6 +451,11 @@ class CommitmentEntry(BaseModel):
     objects = CommitmentEntryManager()
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="commitment_entries")
     kind = models.CharField(max_length=20, choices=CommitmentEvent.KIND_CHOICES)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["member", "kind"], name="commitment_member_kind_idx"),
+        ]
 
     def __str__(self):
         return f"{self.member} - {self.kind}"

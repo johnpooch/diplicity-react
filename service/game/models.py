@@ -62,7 +62,7 @@ tracer = trace.get_tracer(__name__)
 
 FASTEST_START_MIN_PLAYERS = 3
 
-GAME_RETRIEVE_REPRESENTATION_VERSION = 1
+GAME_RETRIEVE_REPRESENTATION_VERSION = 2
 
 
 class GameQuerySet(models.QuerySet):
@@ -289,6 +289,11 @@ class GameManager(models.Manager):
         for game in games_without_counts:
             game.total_unread_message_count = counts.get(game.id, 0)
 
+    def hydrate_member_commitment_totals(self, games):
+        members = [member for game in games for member in game.members.all()]
+        members += [member for game in games if hasattr(game, "victory") for member in game.victory.members.all()]
+        Member.objects.hydrate_commitment_totals(members)
+
     def hydrate_retrieve_phases(self, games):
         phases, current_phases, latest_completed_phases = self._latest_phases(games)
         self._prefetch_for_phases(
@@ -340,6 +345,7 @@ class GameManager(models.Manager):
             phase_states,
             nation_preferences,
             victory_members,
+            sorted(Member.objects.commitment_totals(user_ids - {None}).items()),
         ]
         canonical = json.dumps(projection, sort_keys=True, default=str)
         return hashlib.sha256(canonical.encode()).hexdigest()[:32]
@@ -390,6 +396,7 @@ class GameManager(models.Manager):
             return None
         game = self.with_list_data().get(pk=fastest.pk)
         self.hydrate_list_phases([game])
+        self.hydrate_member_commitment_totals([game])
         return game
 
     def arm_muster(self, game):

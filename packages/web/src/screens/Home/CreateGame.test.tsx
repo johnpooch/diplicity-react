@@ -72,6 +72,8 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
         email: "mock@example.com",
         canCreateBotGames: false,
         commitment: "high",
+        commitmentTotal: 120,
+        commitmentBand: "green",
       },
     }),
     useGameCreate: vi.fn(),
@@ -176,6 +178,8 @@ const matchedGame: GameList = {
       seatConfirmed: null,
     removable: false,
     commitment: "high",
+    commitmentTotal: 120,
+    commitmentBand: "green",
       nationPreferenceIds: [],
     },
     {
@@ -198,6 +202,8 @@ const matchedGame: GameList = {
       seatConfirmed: null,
     removable: false,
     commitment: "high",
+    commitmentTotal: 120,
+    commitmentBand: "green",
       nationPreferenceIds: [],
     },
   ],
@@ -275,6 +281,8 @@ const mockUserProfile = {
   picture: null,
   email: "mock@example.com",
   commitment: "high",
+  commitmentTotal: 120,
+  commitmentBand: "green",
 };
 
 describe("CreateGame — find-similar intervention", () => {
