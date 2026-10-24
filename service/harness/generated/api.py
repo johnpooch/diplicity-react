@@ -256,9 +256,6 @@ class MemberNationPreference(TypedDict):
 type MemberStatusEnum = Literal['nmr', 'civil_disorder']
 
 
-type MinReliabilityEnum = Literal['open', 'reliable_and_new', 'reliable_only']
-
-
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
@@ -361,7 +358,6 @@ class PatchedUserProfile(TypedDict):
     picture: NotRequired[str | None]
     email: NotRequired[str]
     can_create_bot_games: NotRequired[bool]
-    reliability_tier: NotRequired[str | None]
     commitment: NotRequired[str]
 
 
@@ -396,7 +392,6 @@ class PublicUserProfile(TypedDict):
     losses: int
     nmr_rate: float
     cd_rate: float
-    reliability_tier: str | None
     commitment: str
 
 
@@ -465,7 +460,6 @@ class UserProfile(TypedDict):
     picture: str | None
     email: str
     can_create_bot_games: bool
-    reliability_tier: str | None
     commitment: str
 
 
@@ -642,7 +636,6 @@ class GameCreate(TypedDict):
     retreat_frequency: NotRequired[RetreatFrequencyEnum | NullEnum | None]
     nmr_extensions_allowed: NotRequired[int]
     press_type: NotRequired[PressTypeEnum]
-    min_reliability: NotRequired[MinReliabilityEnum]
     commitment_requirement: NotRequired[CommitmentRequirementEnum]
     muster_required: NotRequired[bool]
 
@@ -697,7 +690,6 @@ class GameRetrieve(TypedDict):
     movement_frequency: str | None
     retreat_frequency: str | None
     press_type: str
-    min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
     muster_required: bool
@@ -854,7 +846,6 @@ class GameList(TypedDict):
     movement_frequency: str | None
     retreat_frequency: str | None
     press_type: str
-    min_reliability: str
     commitment_requirement: str
     commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
     muster_required: bool

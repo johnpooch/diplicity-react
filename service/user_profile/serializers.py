@@ -18,18 +18,11 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     picture = serializers.SerializerMethodField()
     email = serializers.CharField(source="user.email", read_only=True)
     can_create_bot_games = serializers.SerializerMethodField()
-    reliability_tier = serializers.CharField(read_only=True, allow_null=True)
     commitment = serializers.CharField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_create_bot_games(self, obj):
         return user_can_use_bot_opponent(obj.user)
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        stats = get_player_stats(instance.user)
-        data["reliability_tier"] = stats.get("reliability_tier")
-        return data
 
     def validate_name(self, value):
         value = value.strip()
@@ -62,7 +55,6 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     losses = serializers.IntegerField(read_only=True)
     nmr_rate = serializers.FloatField(read_only=True)
     cd_rate = serializers.FloatField(read_only=True)
-    reliability_tier = serializers.CharField(read_only=True, allow_null=True)
     commitment = serializers.CharField(read_only=True)
 
     def to_representation(self, instance):
