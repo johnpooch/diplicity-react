@@ -23,7 +23,10 @@ Query: $ARGUMENTS
    Key schema notes:
    - `game_game.status` values: `active`, `staging`, `pending`, `completed`, `abandoned`
    - `phase_phase.completed_at` is always NULL — use `status = 'completed'` instead
-   - `phase_phase.updated_at` is unreliable — use `scheduled_resolution` for time-bucketing
+   - `phase_phase.updated_at` is unreliable — batch operations reset it, clustering historical data in recent weeks. Use `scheduled_resolution` for time-bucketing
+   - `phase_phase.started_at` is always NULL
+   - Filter on `phase_phase.scheduled_resolution IS NOT NULL` when bucketing by it — manual-resolution games have no deadline, and their phases are a biased pocket (few rated seats, very high NMR), not a random sample
+   - `phase_phase.scheduled_resolution` is when resolution was scheduled, not when it happened. Phases resolve early once everyone confirms, so it mis-times many completed phases, and the bias runs one way: low-NMR phases land in the wrong bucket
 
 2. **Write the SQL** to `/tmp/prod-query.sql`. Always write to a file — never inline SQL in the curl command (shell escaping corrupts queries):
    ```bash

@@ -16,7 +16,6 @@ env:
   POSTGRES_SERVICE_ID: 6ae5f2bc-1398-4ad2-a08f-2151ca1024f2
   WORKER_SERVICE_ID: 54286c74-c5c3-4bcc-95b4-817cb3eeefa8
   PGWEB_SERVICE_ID: 9474ccf0-c647-4076-852f-3cd513f19096
-  METABASE_SERVICE_ID: 1223c548-4370-4933-9129-c26144c0a209
 
 jobs:
   deploy-staging:
@@ -316,12 +315,12 @@ jobs:
           ENV_ID: ${{ steps.create_env.outputs.env_id }}
         run: |
           # Staging is a fork of production, so it inherits the worker plus the
-          # pgweb and metabase tooling. All three hold a DB connection and
-          # crash-loop when the schema is dropped under them during the clone.
-          # The worker is redeployed after the clone (staging needs it); pgweb
-          # and metabase are never redeployed (staging does not use them), so
-          # stopping them here removes both the crash noise and their compute
-          # cost for the rest of the environment's life.
+          # pgweb tooling. Both hold a DB connection and crash-loop when the
+          # schema is dropped under them during the clone. The worker is
+          # redeployed after the clone (staging needs it); pgweb is never
+          # redeployed (staging does not use it), so stopping it here removes
+          # both the crash noise and its compute cost for the rest of the
+          # environment's life.
           if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
             echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to stop production deployments."
             exit 1
@@ -386,7 +385,6 @@ jobs:
 
           wait_and_stop "$WORKER_SERVICE_ID" "diplicity-worker"
           wait_and_stop "$PGWEB_SERVICE_ID" "pgweb"
-          wait_and_stop "$METABASE_SERVICE_ID" "metabase"
 
           echo "Waiting 15s for connections to be released..."
           sleep 15
