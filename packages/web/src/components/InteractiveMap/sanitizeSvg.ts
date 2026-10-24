@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 
 const HREF_ATTRIBUTES = new Set(["href", "xlink:href"]);
 const RASTER_DATA_URI = /^data:image\/(png|jpeg|gif|webp);base64,/i;
-const UNSAFE_STYLESHEET = /@import|expression\s*\(|javascript:|url\s*\(\s*['"]?(?!data:|#)/i;
+const UNSAFE_STYLESHEET = /@import|expression\s*\(|javascript:|url\s*\((?!\s*['"]?(?:data:|#))/i;
 
 const purifier = DOMPurify(window);
 

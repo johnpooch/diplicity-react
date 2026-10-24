@@ -43,6 +43,12 @@ UNSAFE_SVG_PAYLOADS = [
     ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
     ('<style>.a, rect{fill:#abcdef}</style><rect class="a"/>', "#abcdef"),
     ('<style>.a{fill:#fedcba}</style><rect class="a"/>', "<style"),
+    ('<style>.a .b{fill:#111111}</style><g class="a"><rect class="b"/></g>', "#111111"),
+    ('<style>.a>.b{fill:#222222}</style><g class="a"><rect class="b"/></g>', "#222222"),
+    ('<style>rect.a{fill:#333333}</style><rect class="a"/>', "#333333"),
+    ('<style>.a:first-child{fill:#444444}</style><rect class="a"/>', "#444444"),
+    ('<style>.a[id]{fill:#555555}</style><rect id="r" class="a"/>', "#555555"),
+    ('<style>.a.b *{fill:#666666}</style><g class="a b"><rect/></g>', "#666666"),
 ]
 
 SAFE_SVG_CONTENT = [
@@ -86,6 +92,20 @@ CLASS_STYLED_ELEMENTS = [
     ('class="cls-1 cls-3"', "fill:none;stroke:#000;stroke-miterlimit:10"),
     ('class="cls-1" style="fill:#fff"', "fill:#fff"),
     ('class="cls-3" style="stroke:#fff"', "fill:none;stroke-miterlimit:10;stroke:#fff"),
+]
+
+COMPOUND_CLASS_STYLESHEET = (
+    ".owner-Stark.sc{fill:#6f8190}.sc{fill:#fffaf0;stroke-width:1.9}"
+    ".border.land,.border.sea{stroke:#3d3226;stroke-width:1.1}.coast,.border.sea{stroke-dasharray:5 3}"
+)
+
+COMPOUND_CLASS_STYLED_ELEMENTS = [
+    ('class="sc owner-Stark"', ' style="fill:#6f8190;stroke-width:1.9"'),
+    ('class="owner-Stark"', ""),
+    ('class="border sea"', ' style="stroke:#3d3226;stroke-width:1.1;stroke-dasharray:5 3"'),
+    ('class="border"', ""),
+    ('class="coast"', ' style="stroke-dasharray:5 3"'),
+    ('class="sc owner-Stark" style="fill:#000"', ' style="stroke-width:1.9;fill:#000"'),
 ]
 
 
@@ -260,6 +280,24 @@ class TestNationFlagUploadView:
 
         served = authenticated_client.get(response.data["flag_url"]).content.decode()
         assert f'<rect id="target" style="{expected_style}"/>' in served
+        assert "class=" not in served
+        assert "<style" not in served
+
+    @pytest.mark.parametrize("attributes, expected_attributes", COMPOUND_CLASS_STYLED_ELEMENTS)
+    def test_upload_inlines_compound_class_rules_by_specificity(
+        self, authenticated_client, draft_variant_for_primary, attributes, expected_attributes
+    ):
+        response = authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            _flag_upload(
+                f'{SVG_OPEN}<style>{COMPOUND_CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'
+            ),
+            format="multipart",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        served = authenticated_client.get(response.data["flag_url"]).content.decode()
+        assert f'<rect id="target"{expected_attributes}/>' in served
         assert "class=" not in served
         assert "<style" not in served
 

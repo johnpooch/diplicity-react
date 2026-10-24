@@ -504,7 +504,10 @@ _FONT_FACE_RULE = re.compile(
     rf"\s*@font-face\s*\{{\s*(?:{_FONT_DESCRIPTOR}\s*;\s*)*(?:{_FONT_DESCRIPTOR}\s*)?\}}\s*",
     re.IGNORECASE,
 )
-_CLASS_RULE = re.compile(r"\s*(\.-?[A-Za-z_][\w-]*(?:\s*,\s*\.-?[A-Za-z_][\w-]*)*)\s*\{([^{}]*)\}\s*")
+_CLASS_IDENTIFIER = r"-?[A-Za-z_][\w-]*"
+_CLASS_NAME = re.compile(rf"\.({_CLASS_IDENTIFIER})")
+_CLASS_COMPOUND = rf"(?:\.{_CLASS_IDENTIFIER})+"
+_CLASS_RULE = re.compile(rf"\s*({_CLASS_COMPOUND}(?:\s*,\s*{_CLASS_COMPOUND})*)\s*\{{([^{{}}]*)\}}\s*")
 _CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 _CSS_DELIMITER = re.compile(r"[{};]")
 _CSS_PROPERTY = re.compile(r"\s*([\w-]+)\s*:(.*)", re.DOTALL)
@@ -566,13 +569,13 @@ def _css_declarations(block):
 
 
 def _class_rule(match):
-    class_names = [selector.strip()[1:] for selector in match.group(1).split(",")]
+    selectors = [_CLASS_NAME.findall(selector) for selector in match.group(1).split(",")]
     declarations = [
         (name, value)
         for name, value in _css_declarations(match.group(2))
         if name in SVG_PRESENTATION_ATTRIBUTES and value and _is_safe_attribute_value(value)
     ]
-    return class_names, declarations
+    return selectors, declarations
 
 
 def _sanitize_stylesheet(style, class_rules):
@@ -593,10 +596,18 @@ def _inline_class_styles(element, class_rules):
     class_names = set(element.attrib.pop("class").split())
     own_style = element.get("style", "")
     own_properties = {name for name, _ in _css_declarations(own_style)}
+    matching = sorted(
+        (
+            (len(selector), index, declarations)
+            for index, (selectors, declarations) in enumerate(class_rules)
+            for selector in selectors
+            if class_names.issuperset(selector)
+        ),
+        key=lambda match: match[:2],
+    )
     class_declarations = {}
-    for rule_class_names, declarations in class_rules:
-        if class_names.intersection(rule_class_names):
-            class_declarations.update(declarations)
+    for _, _, declarations in matching:
+        class_declarations.update(declarations)
     declarations = [f"{name}:{value}" for name, value in class_declarations.items() if name not in own_properties]
     if own_style.strip():
         declarations.append(own_style.strip())

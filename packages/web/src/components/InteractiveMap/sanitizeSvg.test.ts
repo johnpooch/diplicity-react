@@ -77,6 +77,33 @@ describe("sanitizeSvg", () => {
     );
   });
 
+  test.each([
+    ["url(data:font/woff2;base64,AAAA)"],
+    ["url('data:font/woff2;base64,AAAA')"],
+    ['url("data:font/woff2;base64,AAAA")'],
+    ["url( 'data:font/woff2;base64,AAAA' )"],
+  ])("keeps @font-face with a %s source", (source) => {
+    const stylesheet = `@font-face{font-family:'F';src:${source} format('woff2')}`;
+
+    expect(sanitizeSvg(wrap(`<style>${stylesheet}</style>`))).toContain(
+      stylesheet
+    );
+  });
+
+  test.each([
+    ["url(https://example.com/f.woff2)"],
+    ["url('https://example.com/f.woff2')"],
+    ['url("https://example.com/f.woff2")'],
+    ["url( 'https://example.com/f.woff2')"],
+  ])("empties @font-face with a %s source", (source) => {
+    const clean = sanitizeSvg(
+      wrap(`<style>@font-face{font-family:'F';src:${source}}</style>`)
+    );
+
+    expect(clean).not.toContain("example.com");
+    expect(clean).not.toContain("@font-face");
+  });
+
   test("leaves the rendered classical board unchanged", () => {
     const board = new DiplicityMap(CLASSICAL_DSVG).render({
       nationColors: { England: "#2196F3", France: "#80DEEA" },
