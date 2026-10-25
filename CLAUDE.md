@@ -9,7 +9,7 @@ When asserting something about this codebase, cite the file and line you read it
 ## Project layout
 
 - `packages/web/` — React + TypeScript frontend. Conventions in `.claude/rules/frontend.md`. That rule loads automatically when you read a frontend file; **read it explicitly before writing a new component from scratch.**
-- `service/` — Django REST API + PostgreSQL. Conventions in `.claude/rules/backend/` (hub: `index.md`).
+- `service/` — Django REST API + PostgreSQL. Conventions in `.claude/rules/backend.md`; codegen, notification copy and OTA releases in `.claude/rules/backend/`.
 - `packages/design-playground/` — prototyping app with its own `CLAUDE.md` that overrides this one.
 
 ## Environment
@@ -86,7 +86,7 @@ npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render
 - **Do not add comments or docstrings**, including in tests. Do not annotate assertions to explain their values. The only exception is DRF view docstrings, which are extracted for OpenAPI.
 - **Never suppress lint or type violations** — no `eslint-disable`, `@ts-ignore`, `# noqa`, `pytest.mark.skip`. The only exception is the mutation-in-`useEffect` pattern documented in `.claude/rules/frontend.md`.
 - **Write tests alongside features**, not as an afterthought.
-- **Absent beats dormant scaffolding.** Do not leave unused domain, apps, or wire fields “for later” — remove them and re-add when the feature is real. Backend detail in `.claude/rules/backend/`.
+- **Absent beats dormant scaffolding.** Do not leave unused domain, apps, or wire fields “for later” — remove them and re-add when the feature is real. Backend detail in `.claude/rules/backend.md`.
 
 ## GitHub workflow
 

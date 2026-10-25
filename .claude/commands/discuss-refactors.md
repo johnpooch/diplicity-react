@@ -35,7 +35,7 @@ Read every file that contains a match so you have full comment context (multi-li
 Read:
 
 - @CLAUDE.md
-- Relevant files under `.claude/rules/` (especially `.claude/rules/backend/` for `service/**`, `.claude/rules/frontend.md` for `packages/web/**`)
+- Relevant files under `.claude/rules/` (especially `.claude/rules/backend.md` for `service/**`, `.claude/rules/frontend.md` for `packages/web/**`)
 
 ## Discussion format
 
