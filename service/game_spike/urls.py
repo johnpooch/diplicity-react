@@ -1,0 +1,21 @@
+from django.urls import path
+
+from . import views
+
+app_name = "game_spike"
+
+urlpatterns = [
+    path("game/", views.GameCreateView.as_view(), name="game-create"),
+    path("sandbox-game/", views.GameCreateSandboxView.as_view(), name="sandbox-game-create"),
+    path("game/<str:game_id>/", views.GameRetrieveView.as_view(), name="game-retrieve"),
+    path("game/<str:game_id>/delete/", views.GameDeleteView.as_view(), name="game-delete"),
+    path("game/<str:game_id>/clone-to-sandbox/", views.GameCloneToSandboxView.as_view(), name="game-clone-to-sandbox"),
+    path("game/<str:game_id>/pause/", views.GamePauseView.as_view(), name="game-pause"),
+    path("game/<str:game_id>/unpause/", views.GameUnpauseView.as_view(), name="game-unpause"),
+    path("game/<str:game_id>/extend-deadline/", views.GameExtendDeadlineView.as_view(), name="game-extend-deadline"),
+    path("games/", views.GameListView.as_view(), name="game-list"),
+    path("games/mine/current/", views.MyGamesCurrentView.as_view(), name="my-games-current"),
+    path("games/mine/finished/", views.MyGamesFinishedView.as_view(), name="my-games-finished"),
+    path("games/find-similar/", views.GameFindSimilarView.as_view(), name="game-find-similar"),
+    path("games/fastest/", views.GameFastestView.as_view(), name="game-fastest"),
+]

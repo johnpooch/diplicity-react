@@ -6,7 +6,7 @@ from django.apps import apps
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import conditional_page
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.response import Response
 
 from common.constants import PhaseStatus
@@ -190,3 +190,93 @@ class CompletedPhaseCacheMixin:
         response["ETag"] = etag
         response["Cache-Control"] = f"private, max-age={COMPLETED_PHASE_MAX_AGE}"
         return response
+
+
+class LoaderMixin:
+    output_serializer_class = None
+
+    def get_serializer_class(self):
+        return self.output_serializer_class
+
+    def get_loader(self):
+        return self.output_serializer_class.loader(self.request.user)
+
+    def get_queryset(self):
+        if self.queryset is not None:
+            return super().get_queryset()
+        return self.get_loader().get_queryset()
+
+    def render_instance(self, instance, status_code=status.HTTP_200_OK):
+        instance = self.get_loader().load(instance.pk)
+        return Response(self.get_serializer(instance).data, status=status_code)
+
+
+class LoadedRetrieveView(LoaderMixin, generics.RetrieveAPIView):
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_loader().hydrate([self.get_object()])[0]
+        return Response(self.get_serializer(instance).data)
+
+
+class LoadedListView(LoaderMixin, generics.ListAPIView):
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        rows = self.get_loader().hydrate(page if page is not None else queryset)
+        data = self.get_serializer(rows, many=True).data
+        if page is not None:
+            return self.get_paginated_response(data)
+        return Response(data)
+
+
+class LoadedFirstView(LoaderMixin, generics.GenericAPIView):
+    result_key = None
+
+    def get(self, request, *args, **kwargs):
+        instance = self.filter_queryset(self.get_queryset()).first()
+        data = None
+        if instance is not None:
+            data = self.get_serializer(self.get_loader().hydrate([instance])[0]).data
+        return Response({self.result_key: data})
+
+
+class CommandMixin(LoaderMixin):
+    command = None
+    input_serializer_class = None
+
+    def get_target(self):
+        if (self.lookup_url_kwarg or self.lookup_field) not in self.kwargs:
+            return None
+        return self.get_object()
+
+    def run_command(self):
+        target = self.get_target()
+        data = {}
+        if self.input_serializer_class is not None:
+            serializer = self.input_serializer_class(data=self.request.data, context=self.get_serializer_context())
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+        return self.command(actor=self.request.user, **data)(target)
+
+
+class CommandCreateView(CommandMixin, generics.GenericAPIView):
+
+    def post(self, request, *args, **kwargs):
+        return self.render_instance(self.run_command(), status.HTTP_201_CREATED)
+
+
+class CommandUpdateView(CommandMixin, generics.GenericAPIView):
+
+    def put(self, request, *args, **kwargs):
+        return self.render_instance(self.run_command())
+
+    def patch(self, request, *args, **kwargs):
+        return self.render_instance(self.run_command())
+
+
+class CommandDestroyView(CommandMixin, generics.GenericAPIView):
+
+    def delete(self, request, *args, **kwargs):
+        self.run_command()
+        return Response(status=status.HTTP_204_NO_CONTENT)

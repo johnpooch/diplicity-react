@@ -39,6 +39,7 @@ urlpatterns = [
     path("", include("health.urls")),
     path("", include("draw_proposal.urls")),
     path("", include("blog.urls")),
+    path("spike/", include("game_spike.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",

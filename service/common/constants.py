@@ -381,6 +381,49 @@ class ActionBlockedReason:
     )
 
 
+class DeniedReason:
+    ALREADY_MEMBER = "already_member"
+    GAME_MASTER_CANNOT_JOIN = "game_master_cannot_join"
+    GAME_NOT_PENDING = "game_not_pending"
+    GAME_NOT_MUSTERING = "game_not_mustering"
+    GAME_NOT_ACTIVE = "game_not_active"
+    GAME_STARTED = "game_started"
+    GAME_PAUSED = "game_paused"
+    GAME_NOT_PAUSED = "game_not_paused"
+    NO_SCHEDULED_RESOLUTION = "no_scheduled_resolution"
+    NOT_GAME_MANAGER = "not_game_manager"
+    NOT_GAME_MASTER = "not_game_master"
+    NOT_PLAYER = "not_player"
+    NOT_PARTICIPANT = "not_participant"
+    SANDBOX_GAME = "sandbox_game"
+    SEAT_CONFIRMED = "seat_confirmed"
+    SEAT_VACATED = "seat_vacated"
+
+
+class OrderStatus:
+    ORDERS_REQUIRED = "orders_required"
+    ORDERS_SUBMITTED = "orders_submitted"
+    ORDERS_NOT_CONFIRMED = "orders_not_confirmed"
+    NO_ORDERS_REQUIRED = "no_orders_required"
+
+    STATUS_CHOICES = (
+        (ORDERS_REQUIRED, "Orders required"),
+        (ORDERS_SUBMITTED, "Orders submitted"),
+        (ORDERS_NOT_CONFIRMED, "Orders not confirmed"),
+        (NO_ORDERS_REQUIRED, "No orders required"),
+    )
+
+
+class MemberStatus:
+    NMR = "nmr"
+    CIVIL_DISORDER = "civil_disorder"
+
+    STATUS_CHOICES = (
+        (NMR, "NMR"),
+        (CIVIL_DISORDER, "Civil disorder"),
+    )
+
+
 class ParticipationStatus:
     GAME_MASTER = "game_master"
     REPLACED = "replaced"

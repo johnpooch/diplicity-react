@@ -6,7 +6,9 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -32,6 +34,7 @@ from game import models
 from game.models import Game
 from member.models import Member
 from nation.models import Nation
+from notification.models import Notification
 from order.models import OrderResolution
 from phase.models import Phase
 from province.models import Province
@@ -2025,6 +2028,25 @@ def mock_immediate_on_commit():
 
     with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
         yield
+
+
+@pytest.fixture
+def query_count(db):
+    def _count(request):
+        with CaptureQueriesContext(connection) as context:
+            request()
+        return len(context.captured_queries)
+
+    return _count
+
+
+@pytest.fixture
+def assert_notification(db):
+    def _assert(recipient, event_type, sent=True):
+        exists = Notification.objects.filter(recipient=recipient, event_type=event_type).exists()
+        assert exists is sent, f"{event_type} notification to {recipient}: expected sent={sent}"
+
+    return _assert
 
 
 @pytest.fixture

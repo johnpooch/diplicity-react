@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     "agent",
     "harness",
     "dumbbot",
+    "game_spike",
     "drf_spectacular",
 ]
 
@@ -331,6 +332,7 @@ if _FIREBASE_PROJECT_ID:
 
 SPECTACULAR_SETTINGS = {
     "CAMELIZE_NAMES": True,
+    "PREPROCESSING_HOOKS": ["game_spike.openapi.exclude_spike_endpoints"],
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
         "drf_spectacular.hooks.postprocess_schema_enums",
