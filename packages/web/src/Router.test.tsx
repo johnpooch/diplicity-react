@@ -1,6 +1,13 @@
 import React, { Suspense } from "react";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, matchRoutes } from "react-router";
+import { act, render, screen } from "@testing-library/react";
+import {
+  MemoryRouter,
+  Route,
+  RouterProvider,
+  Routes,
+  createMemoryRouter,
+  matchRoutes,
+} from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { LoaderFunctionArgs } from "react-router";
@@ -9,6 +16,7 @@ import {
   createAuthenticatedRoutes,
   createUnauthenticatedRoutes,
 } from "./Router";
+import { deepLinkStorage } from "./deepLink";
 
 const mockUseIsMobile = vi.fn();
 
@@ -32,6 +40,18 @@ vi.mock("./screens", () => ({
   Variants: {},
   Tutorial: {},
   Blog: {},
+}));
+
+vi.mock("./screens/Login", () => ({
+  Login: () => <div data-testid="login-screen" />,
+}));
+
+vi.mock("./screens/VerifyEmail", () => ({
+  VerifyEmail: () => <div data-testid="verify-email-screen" />,
+}));
+
+vi.mock("./screens/ResetPassword", () => ({
+  ResetPassword: () => <div data-testid="reset-password-screen" />,
 }));
 
 const mockGameStatus = vi.fn();
@@ -122,5 +142,41 @@ describe("blog routes", () => {
     const matches = matchRoutes([...routes], "/blog/spring-1901-update");
     expect(matches?.map(match => match.route.path)).toEqual(["/blog", ":slug"]);
     expect(matches?.at(-1)?.params.slug).toBe("spring-1901-update");
+  });
+});
+
+describe("createUnauthenticatedRoutes", () => {
+  beforeEach(() => {
+    deepLinkStorage.consumePendingPath();
+  });
+
+  const renderLoggedOut = () => {
+    const router = createMemoryRouter(createUnauthenticatedRoutes());
+    render(<RouterProvider router={router} />);
+    return router;
+  };
+
+  it.each([
+    ["/verify-email?uid=MQ&token=abc", "verify-email-screen"],
+    ["/reset-password?uid=MQ&token=abc", "reset-password-screen"],
+  ])("opens the emailed link %s while logged out", async (path, testId) => {
+    const router = renderLoggedOut();
+    await screen.findByTestId("login-screen");
+
+    act(() => deepLinkStorage.setPendingPath(path));
+
+    expect(await screen.findByTestId(testId)).toBeTruthy();
+    expect(router.state.location.search).toBe("?uid=MQ&token=abc");
+    expect(deepLinkStorage.getPendingPath()).toBeNull();
+  });
+
+  it("keeps other deep links pending until the user signs in", async () => {
+    renderLoggedOut();
+    await screen.findByTestId("login-screen");
+
+    act(() => deepLinkStorage.setPendingPath("/game/game-1"));
+
+    expect(screen.getByTestId("login-screen")).toBeTruthy();
+    expect(deepLinkStorage.getPendingPath()).toBe("/game/game-1");
   });
 });

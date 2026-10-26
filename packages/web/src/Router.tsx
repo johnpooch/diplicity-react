@@ -83,6 +83,16 @@ const AuthenticatedRoot: React.FC = () => {
   return <Outlet />;
 };
 
+const EMAIL_LINK_PATHS = ["/verify-email", "/reset-password"];
+
+const isEmailLinkPath = (path: string) =>
+  EMAIL_LINK_PATHS.includes(new URL(path, "https://diplicity.com").pathname);
+
+const UnauthenticatedRoot: React.FC = () => {
+  useDeepLink(isEmailLinkPath);
+  return <Outlet />;
+};
+
 const DesktopGameIndex: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
@@ -411,28 +421,33 @@ export const createAuthenticatedRoutes = (
 
 export const createUnauthenticatedRoutes = (): RouteObject[] => [
   {
-    path: "/",
-    element: <Login />,
-  },
-  {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path: "/forgot-password",
-    element: <ForgotPassword />,
-  },
-  {
-    path: "/check-email",
-    element: <CheckEmail />,
-  },
-  {
-    path: "/verify-email",
-    element: <VerifyEmail />,
-  },
-  {
-    path: "/reset-password",
-    element: <ResetPassword />,
+    element: <UnauthenticatedRoot />,
+    children: [
+      {
+        path: "/",
+        element: <Login />,
+      },
+      {
+        path: "/register",
+        element: <Register />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "/check-email",
+        element: <CheckEmail />,
+      },
+      {
+        path: "/verify-email",
+        element: <VerifyEmail />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPassword />,
+      },
+    ],
   },
   ...blogRoutes,
   {

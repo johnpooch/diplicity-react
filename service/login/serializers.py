@@ -31,7 +31,7 @@ class EmailLoginSerializer(serializers.Serializer):
             raise exceptions.AuthenticationFailed("Invalid email or password.")
         if not user.is_active:
             raise exceptions.AuthenticationFailed(
-                "Account not verified. Please check your email for a verification link."
+                "Account not verified. Please check your email for a verification link, or reset your password to verify your account."
             )
         refresh = RefreshToken.for_user(user)
         user.access_token = str(refresh.access_token)
@@ -138,7 +138,7 @@ class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(write_only=True)
 
     def create(self, validated_data):
-        user = User.objects.filter(email__iexact=validated_data["email"], is_active=True).first()
+        user = User.objects.filter(email__iexact=validated_data["email"]).first()
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
@@ -205,5 +205,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = validated_data["uid"]
         user.set_password(validated_data["new_password"])
-        user.save(update_fields=["password"])
+        user.is_active = True
+        user.save(update_fields=["password", "is_active"])
         return user
