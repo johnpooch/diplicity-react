@@ -74,7 +74,11 @@ export const toRenderState = (
 
   const orderStates: OrderState[] = orders.map((order) => {
     const target = orderTargetId(order);
-    const aux = order.aux?.id || undefined;
+    const isSupportHold =
+      order.orderType === "Support" &&
+      !!order.aux &&
+      order.aux.id === order.target?.id;
+    const aux = isSupportHold ? target : order.aux?.id || undefined;
     return {
       type: order.orderType,
       nation: order.nation.name,

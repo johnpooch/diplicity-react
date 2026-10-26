@@ -344,8 +344,6 @@ class Order(BaseModel):
 
     @property
     def _support_target_display_name(self):
-        if self.aux_id == self.target_id:
-            return self._aux_display_name
         coast = self._resolved_target_coast
         if coast:
             return coast.name
@@ -420,6 +418,8 @@ class Order(BaseModel):
         elif (
             step == OrderCreationStep.COMPLETED and self.order_type == OrderType.SUPPORT
         ):
+            if self.aux_id == self.target_id:
+                return f"{source_name} will support {self._aux_display_name} to hold"
             return f"{source_name} will support {self._aux_display_name} to {self._support_target_display_name}"
         elif (
             step == OrderCreationStep.COMPLETED and self.order_type == OrderType.CONVOY
