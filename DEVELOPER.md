@@ -121,13 +121,18 @@ DM **Johnpooch** on the [Diplicity Hub Discord](https://discord.gg/2TkZbBRPW) if
 
 ## Deploying a PR to staging
 
-Every PR can be deployed to an isolated environment with a copy of the production database:
+Staging is one shared backend at https://diplicity-react-staging.up.railway.app, with seeded data and no production data or secrets:
 
 1. Open the PR against `main`.
 2. Add the `deploy-to-staging` label.
-3. A GitHub Actions workflow comments on the PR with the frontend preview URL and the backend URL.
+3. GitHub Actions builds the PR's commit into a GHCR image, deploys Django and then the worker, and checks that the test account has seeded games.
+4. The workflow comments on the PR with the branch, commit, frontend preview, backend and run links.
 
-Google OAuth is not configured for staging — use email/password login. The environment is torn down automatically when the PR closes or merges.
+The label stays on the PR that holds staging. Pushing to that PR redeploys it; pushing to another PR does nothing. Labelling another PR moves staging there, removes the label from the previous holder and comments on the displaced PR. Fork PRs cannot deploy to staging.
+
+A push to `main` takes staging back and removes the label from every open PR. Closing or merging the holder deploys another labelled open PR if there is one, otherwise `main`. Closing another PR does nothing. Requests share a deployment queue and resolve the target from current labels when they start, so the latest request wins. Run the **PR Staging Environment** workflow manually to recover staging to `main`.
+
+Every deploy resets the staging database before migrations, then seeds it at startup. A restart does not reset it. Failed migrations or seeding fail the deployment and may leave staging broken until the next successful deploy. A failed image build leaves the running backend unchanged. Google OAuth is not configured for staging — use email/password login. Netlify previews use this shared backend and pre-fill the test login.
 
 Staging also seeds a test account, `test-user@example.com` / `password`, with games in every state worth testing: pending, joinable, active at each order status, retreat and adjustment phases, civil disorder (yours and another player's), eliminated, paused, draw proposed, solo win, solo loss, draw, and abandoned. The seed is `python manage.py seed_staging` (see `service/game/management/commands/seed_staging.py`). It refuses to run unless `DJANGO_DEBUG=True` or `ENVIRONMENT=staging`, so you can also run it locally with `docker compose exec service python manage.py seed_staging`. Each run deletes the games it seeded last time and seeds them again.
 

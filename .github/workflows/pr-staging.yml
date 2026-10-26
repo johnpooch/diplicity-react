@@ -1,627 +1,259 @@
 name: PR Staging Environment
+run-name: >-
+  Staging ${{ github.event_name }} ${{ github.event.action || 'deploy' }} ${{ github.event.pull_request.number || 0 }}
+  ${{ github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.label.name == 'deploy-to-staging' ||
+       (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'deploy-to-staging'))) }}
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    types: [labeled, closed]
+    types: [labeled, synchronize, closed]
+  workflow_dispatch:
 
-permissions:
-  issues: write
-  pull-requests: write
-
-env:
-  RAILWAY_API_ENDPOINT: https://backboard.railway.app/graphql/v2
-  PROJECT_ID: 39039c2c-4f5d-4a37-8c0d-f8e4279fce61
-  PROD_ENV_ID: 0372f6a0-88ab-4a58-b472-16789135ad71
-  DJANGO_SERVICE_ID: 5f342326-a52a-4c40-8bc1-910588628f8a
-  POSTGRES_SERVICE_ID: 6ae5f2bc-1398-4ad2-a08f-2151ca1024f2
-  WORKER_SERVICE_ID: 54286c74-c5c3-4bcc-95b4-817cb3eeefa8
-  PGWEB_SERVICE_ID: 9474ccf0-c647-4076-852f-3cd513f19096
+permissions: {}
 
 jobs:
+  skip-fork:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - run: echo 'Skipping fork PR; staging credentials are not available to forks.'
+
   deploy-staging:
-    if: github.event.action == 'labeled' && github.event.label.name == 'deploy-to-staging'
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       ((github.event.action == 'labeled' && github.event.label.name == 'deploy-to-staging') ||
+        (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'deploy-to-staging'))))
     runs-on: ubuntu-latest
+    timeout-minutes: 35
+    concurrency:
+      group: staging
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+      pull-requests: write
     env:
-      RAILWAY_ACCOUNT_TOKEN: ${{ secrets.RAILWAY_ACCOUNT_TOKEN }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+      RAILWAY_API_ENDPOINT: https://backboard.railway.app/graphql/v2
+      STAGING_ENV_ID: 3082daa9-9287-4eef-9439-162ab737beb8
+      PROD_ENV_ID: 0372f6a0-88ab-4a58-b472-16789135ad71
+      DJANGO_SERVICE_ID: 5f342326-a52a-4c40-8bc1-910588628f8a
+      WORKER_SERVICE_ID: 54286c74-c5c3-4bcc-95b4-817cb3eeefa8
+      STAGING_URL: https://diplicity-react-staging.up.railway.app
     steps:
-      - name: Remove label immediately
-        continue-on-error: true
+      - name: Check out workflow helpers
+        id: helpers
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve staging target and ownership
+        id: target
         uses: actions/github-script@v9
         with:
           script: |
-            await github.rest.issues.removeLabel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              name: 'deploy-to-staging'
-            });
+            const resolveTarget = require('./.github/scripts/staging-target.cjs');
+            await resolveTarget({ github, context, core });
 
-      - name: Tear down other staging environments
-        continue-on-error: true
+      - name: Check out deployment commit
+        id: checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        id: registry
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          GHCR_USER: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USER" --password-stdin
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: 'false'
+        with:
+          context: service/
+          file: service/Dockerfile
+          target: production
+          build-args: GIT_SHA=${{ steps.target.outputs.sha }}
+          cache-from: type=gha,scope=staging
+          cache-to: type=gha,mode=max,scope=staging
+          tags: ghcr.io/johnpooch/diplicity-service:${{ steps.target.outputs.sha }}
+          push: true
+
+      - name: Verify public image access
+        id: visibility
+        env:
+          COMMIT_SHA: ${{ steps.target.outputs.sha }}
         run: |
-          # Keep a single staging environment at a time: delete every other
-          # staging-pr-* environment before deploying this PR. Never touches
-          # production or the current PR's own environment.
-          KEEP_NAME="staging-pr-${PR_NUMBER}"
+          set -euo pipefail
+          if ! REGISTRY_TOKEN=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+            'https://ghcr.io/token?scope=repository:johnpooch/diplicity-service:pull&service=ghcr.io' \
+            | jq -er '.token | select(type == "string" and length > 0)'); then
+            echo 'John must make ghcr.io/johnpooch/diplicity-service public in GitHub package settings before staging can deploy.' >&2
+            exit 1
+          fi
+          echo "::add-mask::$REGISTRY_TOKEN"
+          if ! curl --fail --silent --show-error --head --connect-timeout 10 --max-time 30 \
+            -H "Authorization: Bearer $REGISTRY_TOKEN" \
+            -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+            "https://ghcr.io/v2/johnpooch/diplicity-service/manifests/$COMMIT_SHA" > /dev/null; then
+            echo 'The image is not publicly pullable. John must check GitHub package visibility; Railway has not been changed.' >&2
+            exit 1
+          fi
 
-          QUERY_PAYLOAD=$(jq -n --arg projectId "$PROJECT_ID" \
-            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
+      - name: Deploy Django, then worker
+        id: railway
+        timeout-minutes: 20
+        env:
+          RAILWAY_ACCOUNT_TOKEN: ${{ secrets.RAILWAY_ACCOUNT_TOKEN }}
+          COMMIT_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$STAGING_ENV_ID" = "$PROD_ENV_ID" ] || [ "$STAGING_ENV_ID" != '3082daa9-9287-4eef-9439-162ab737beb8' ]; then
+            echo 'Refusing to change an environment other than staging.' >&2
+            exit 1
+          fi
 
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$QUERY_PAYLOAD")
-
-          echo "$RESULT" | jq -r '.data.project.environments.edges[].node | "\(.id) \(.name)"' | while read -r EID ENAME; do
-            case "$ENAME" in
-              staging-pr-*) ;;
-              *) continue ;;
-            esac
-            if [ "$EID" = "$PROD_ENV_ID" ] || [ "$ENAME" = "$KEEP_NAME" ]; then
-              continue
+          railway_api() {
+            local response
+            response=$(curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+              -H 'Content-Type: application/json' \
+              --data "$(jq -n --arg query "$1" --argjson variables "$2" '{query: $query, variables: $variables}')" \
+              "$RAILWAY_API_ENDPOINT") || return 1
+            if ! jq -e '(.errors // [] | length) == 0 and .data != null' <<< "$response" > /dev/null; then
+              jq '.errors // "Missing GraphQL data"' <<< "$response" >&2
+              return 1
             fi
-            echo "Deleting stale staging environment: $ENAME ($EID)"
-            DEL_PAYLOAD=$(jq -n --arg envId "$EID" \
-              '{query: "mutation($id: String!) { environmentDelete(id: $id) }", variables: {id: $envId}}')
-            curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$DEL_PAYLOAD" > /dev/null
-          done
-          echo "Teardown of other staging environments complete."
+            printf '%s\n' "$response"
+          }
 
-      - name: Find or create staging environment
-        id: create_env
-        run: |
-          ENV_NAME="staging-pr-${PR_NUMBER}"
-
-          # Check if environment already exists
-          QUERY_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
-
-          QUERY_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$QUERY_PAYLOAD")
-
-          EXISTING_ID=$(echo "$QUERY_RESULT" | jq -r ".data.project.environments.edges[] | select(.node.name == \"$ENV_NAME\") | .node.id")
-
-          if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
-            echo "Reusing existing environment: $EXISTING_ID ($ENV_NAME)"
-            echo "env_id=$EXISTING_ID" >> "$GITHUB_OUTPUT"
-            echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
-            echo "created=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "No existing environment found, creating new one..."
-          CREATE_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg name "$ENV_NAME" \
-            --arg sourceId "$PROD_ENV_ID" \
-            '{
-              query: "mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }",
-              variables: { input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId } }
-            }')
-
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$CREATE_PAYLOAD")
-
-          echo "API response: $RESULT"
-          ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
-
-          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
-            echo "ERROR: Failed to create environment"
-            echo "$RESULT" | jq .
-            exit 1
-          fi
-
-          echo "Created environment: $ENV_ID ($ENV_NAME)"
-          echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
-          echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
-          echo "created=true" >> "$GITHUB_OUTPUT"
-
-      - name: Disable auto-deploy on staging services
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-        run: |
-          # Forked service instances inherit auto-deploy on main, so every push
-          # to main redeploys all staging environments and overwrites the PR
-          # code. Turn it off so this environment stays pinned to the PR's SHA.
-          if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
-            echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to change production auto-deploy."
-            exit 1
-          fi
-
-          for SVC in "$DJANGO_SERVICE_ID" "$WORKER_SERVICE_ID"; do
-            PAYLOAD=$(jq -n \
-              --arg projectId "$PROJECT_ID" \
-              --arg envId "$ENV_ID" \
-              --arg serviceId "$SVC" \
-              '{
-                query: "mutation($input: ServiceInstanceAutoDeployUpdateInput!) { serviceInstanceAutoDeployUpdate(input: $input) { enabled } }",
-                variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, enabled: false } }
-              }')
-            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD")
-            echo "Auto-deploy update for $SVC: $RESULT"
-          done
-
-      - name: Get or create staging domain
-        id: domain
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-        run: |
-          # First check if domain already exists for this service+environment
-          QUERY_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$DJANGO_SERVICE_ID" \
-            '{query: ("query { domains(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") { serviceDomains { domain } } }")}')
-
-          QUERY_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$QUERY_PAYLOAD")
-
-          echo "Domain query response: $QUERY_RESULT"
-          EXISTING_DOMAIN=$(echo "$QUERY_RESULT" | jq -r '.data.domains.serviceDomains[0].domain // empty')
-
-          if [ -n "$EXISTING_DOMAIN" ]; then
-            echo "Reusing existing domain: $EXISTING_DOMAIN"
-            echo "domain=$EXISTING_DOMAIN" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "No existing domain found, creating new one..."
-          sleep 5
-
-          CREATE_PAYLOAD=$(jq -n \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$DJANGO_SERVICE_ID" \
-            '{
-              query: "mutation($input: ServiceDomainCreateInput!) { serviceDomainCreate(input: $input) { domain } }",
-              variables: { input: { environmentId: $envId, serviceId: $serviceId, targetPort: 8000 } }
-            }')
-
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$CREATE_PAYLOAD")
-
-          echo "API response: $RESULT"
-          DOMAIN=$(echo "$RESULT" | jq -r '.data.serviceDomainCreate.domain')
-          echo "Generated domain: $DOMAIN"
-          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
-
-      - name: Install PostgreSQL 17 client
-        run: |
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-          sudo apt-get update && sudo apt-get install -y postgresql-client-17
-
-      - name: Wait for staging Postgres to be ready
-        id: wait_postgres
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-        run: |
-          echo "Waiting for staging Postgres to provision..."
-          VARS_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$POSTGRES_SERVICE_ID" \
-            '{query: ("{ variables(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") }")}')
-
-          for i in $(seq 1 30); do
-            VARS=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$VARS_PAYLOAD" | jq -r '.data.variables')
-
-            DB_URL=$(echo "$VARS" | jq -r '.DATABASE_PUBLIC_URL // empty')
-            if [ -n "$DB_URL" ] && [ "$DB_URL" != "null" ]; then
-              echo "Staging Postgres is ready."
-              echo "staging_db_url=$DB_URL" >> "$GITHUB_OUTPUT"
-              exit 0
+          IMAGE="ghcr.io/johnpooch/diplicity-service:$COMMIT_SHA"
+          DEADLINE=$((SECONDS + 900))
+          for SERVICE_ID in "$DJANGO_SERVICE_ID" "$WORKER_SERVICE_ID"; do
+            if [ "$SERVICE_ID" = "$DJANGO_SERVICE_ID" ]; then
+              SERVICE_NAME=Django
+            else
+              SERVICE_NAME=worker
             fi
+            echo "failure_step=Deploy $SERVICE_NAME" >> "$GITHUB_OUTPUT"
+            VARIABLES=$(jq -n --arg environmentId "$STAGING_ENV_ID" --arg serviceId "$SERVICE_ID" \
+              '{environmentId: $environmentId, serviceId: $serviceId}')
+            UPDATE_VARIABLES=$(jq --arg image "$IMAGE" '. + {input: {source: {image: $image, repo: null}}}' <<< "$VARIABLES")
+            railway_api 'mutation($environmentId: String!, $serviceId: String!, $input: ServiceInstanceUpdateInput!) {
+              serviceInstanceUpdate(environmentId: $environmentId, serviceId: $serviceId, input: $input)
+            }' "$UPDATE_VARIABLES" | jq -e '.data.serviceInstanceUpdate == true'
 
-            echo "Attempt $i/30: Postgres not ready yet, waiting 10s..."
-            sleep 10
-          done
+            INSTANCE=$(railway_api 'query($environmentId: String!, $serviceId: String!) {
+              serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {
+                source { image repo }
+                service { repoTriggers { edges { node { id environmentId } } } }
+              }
+            }' "$VARIABLES")
+            jq -e --arg image "$IMAGE" '.data.serviceInstance.source | .image == $image and .repo == null' <<< "$INSTANCE"
 
-          echo "ERROR: Staging Postgres did not become ready in time."
-          exit 1
+            while read -r TRIGGER_ID; do
+              railway_api 'mutation($id: String!) { deploymentTriggerDelete(id: $id) }' \
+                "$(jq -n --arg id "$TRIGGER_ID" '{id: $id}')" | jq -e '.data.deploymentTriggerDelete == true'
+            done < <(jq -r --arg environmentId "$STAGING_ENV_ID" \
+              '.data.serviceInstance.service.repoTriggers.edges[].node | select(.environmentId == $environmentId) | .id' <<< "$INSTANCE")
 
-      - name: Stop staging Django service
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-        run: |
-          if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
-            echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to stop production deployments."
-            exit 1
-          fi
+            DEPLOYMENT_ID=$(railway_api 'mutation($environmentId: String!, $serviceId: String!) {
+              serviceInstanceDeployV2(environmentId: $environmentId, serviceId: $serviceId)
+            }' "$VARIABLES" | jq -er '.data.serviceInstanceDeployV2 | select(type == "string" and length > 0)')
+            echo "$SERVICE_NAME deployment: $DEPLOYMENT_ID"
 
-          LIST_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$DJANGO_SERVICE_ID" \
-            '{
-              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status } } } }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
-            }')
-
-          # Railway refuses to stop a deployment that is still building, so wait
-          # for the forked Django deployment to finish and reach SUCCESS, then
-          # stop it. Once stopped it stays down until the explicit deploy step,
-          # so the clone runs against an idle database.
-          echo "Waiting for the staging Django deployment to become stoppable..."
-          for i in $(seq 1 60); do
-            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$LIST_PAYLOAD")
-            STATUS=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.status // empty')
-            DEP_ID=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.id // empty')
-
-            case "$STATUS" in
-              SUCCESS)
-                echo "Deployment $DEP_ID is running. Stopping it..."
-                STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
-                  '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
-                STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-                  -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d "$STOP_PAYLOAD")
-                echo "Stop response: $STOP_RESULT"
-                if [ "$(echo "$STOP_RESULT" | jq -r '.data.deploymentStop // empty')" = "true" ]; then
-                  echo "Django deployment stopped."
-                  STOPPED=true
-                  break
-                fi
-                echo "Attempt $i/60: stop not accepted yet, retrying in 10s..."
-                ;;
-              CRASHED|FAILED|REMOVED|REMOVING|SKIPPED|SLEEPING)
-                echo "Deployment status is $STATUS — Django is not running, nothing to stop."
-                STOPPED=true
-                break
-                ;;
-              "")
-                echo "Attempt $i/60: no Django deployment yet, waiting 10s..."
-                ;;
-              *)
-                echo "Attempt $i/60: deployment status is $STATUS, waiting 10s..."
-                ;;
-            esac
-            sleep 10
-          done
-
-          if [ "$STOPPED" != "true" ]; then
-            echo "ERROR: Django deployment never reached a stoppable state — aborting before the clone."
-            exit 1
-          fi
-
-          echo "Waiting 20s for the container to terminate and release connections..."
-          sleep 20
-
-      - name: Stop services not needed during the clone
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-        run: |
-          # Staging is a fork of production, so it inherits the worker plus the
-          # pgweb tooling. Both hold a DB connection and crash-loop when the
-          # schema is dropped under them during the clone. The worker is
-          # redeployed after the clone (staging needs it); pgweb is never
-          # redeployed (staging does not use it), so stopping it here removes
-          # both the crash noise and its compute cost for the rest of the
-          # environment's life.
-          if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
-            echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to stop production deployments."
-            exit 1
-          fi
-
-          # Wait for a service's latest deployment to reach a stoppable state and
-          # stop it. Railway refuses to stop a deployment that is still building,
-          # so we poll until it is SUCCESS (then stop) or already down. Best-effort:
-          # a service being discarded should never fail the deploy.
-          wait_and_stop() {
-            local SERVICE_ID="$1" SERVICE_NAME="$2"
-            local LIST_PAYLOAD RESULT STATUS DEP_ID STOP_PAYLOAD STOP_RESULT
-            LIST_PAYLOAD=$(jq -n \
-              --arg projectId "$PROJECT_ID" \
-              --arg envId "$ENV_ID" \
-              --arg serviceId "$SERVICE_ID" \
-              '{
-                query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status } } } }",
-                variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
-              }')
-
-            echo "Stopping $SERVICE_NAME before the clone..."
-            for i in $(seq 1 60); do
-              RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-                -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-                -H "Content-Type: application/json" \
-                -d "$LIST_PAYLOAD")
-              STATUS=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.status // empty')
-              DEP_ID=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.id // empty')
-
+            STATUS=''
+            while [ "$SECONDS" -lt "$DEADLINE" ]; do
+              STATUS=$(railway_api 'query($id: String!) { deployment(id: $id) { status } }' \
+                "$(jq -n --arg id "$DEPLOYMENT_ID" '{id: $id}')" \
+                | jq -er '.data.deployment.status | select(type == "string" and length > 0)')
+              echo "$SERVICE_NAME deployment $DEPLOYMENT_ID: $STATUS"
               case "$STATUS" in
-                SUCCESS)
-                  STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
-                    '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
-                  STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-                    -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-                    -H "Content-Type: application/json" \
-                    -d "$STOP_PAYLOAD")
-                  echo "$SERVICE_NAME stop response: $STOP_RESULT"
-                  if [ "$(echo "$STOP_RESULT" | jq -r '.data.deploymentStop // empty')" = "true" ]; then
-                    echo "$SERVICE_NAME stopped."
-                    return 0
-                  fi
-                  echo "Attempt $i/60: $SERVICE_NAME stop not accepted yet, retrying in 10s..."
-                  ;;
-                CRASHED|FAILED|REMOVED|REMOVING|SKIPPED|SLEEPING)
-                  echo "$SERVICE_NAME status is $STATUS — not running, nothing to stop."
-                  return 0
-                  ;;
-                "")
-                  echo "Attempt $i/60: no $SERVICE_NAME deployment yet, waiting 10s..."
-                  ;;
-                *)
-                  echo "Attempt $i/60: $SERVICE_NAME status is $STATUS, waiting 10s..."
-                  ;;
+                SUCCESS) break ;;
+                FAILED|CRASHED|REMOVED|SKIPPED) exit 1 ;;
               esac
-              sleep 10
+              sleep 5
             done
-            echo "WARNING: $SERVICE_NAME did not reach a stoppable state in time; continuing."
-            return 0
-          }
-
-          wait_and_stop "$WORKER_SERVICE_ID" "diplicity-worker"
-          wait_and_stop "$PGWEB_SERVICE_ID" "pgweb"
-
-          echo "Waiting 15s for connections to be released..."
-          sleep 15
-
-      - name: Restore database from production
-        env:
-          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-          STAGING_DB_URL: ${{ steps.wait_postgres.outputs.staging_db_url }}
-        run: |
-          PG_BIN="/usr/lib/postgresql/17/bin"
-          echo "Using pg_dump/pg_restore version: $($PG_BIN/pg_dump --version)"
-
-          wipe_staging_db() {
-            echo "Terminating leftover connections to staging database..."
-            psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
-              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
-            echo "Wiping staging database for clean restore..."
-            psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-          }
-
-          $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
-          wipe_staging_db
-          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists --jobs=4 -d "$STAGING_DB_URL" dump.pgdata
-          rm dump.pgdata
-
-          echo "Deleting production push device tokens..."
-          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "TRUNCATE fcm_django_fcmdevice;"
-
-          echo "Database restore complete."
-
-      - name: Configure staging environment variables
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
-        run: |
-          PREVIEW_URL="https://deploy-preview-${PR_NUMBER}--diplicity-react.netlify.app"
-
-          PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$DJANGO_SERVICE_ID" \
-            --arg cors "${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost" \
-            --arg hosts "$STAGING_DOMAIN" \
-            --arg csrf "https://${STAGING_DOMAIN}" \
-            '{
-              query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging", SEED_STAGING_DATA: "True", FIREBASE_PROJECT_ID: "" }, skipDeploys: true } }
-            }')
-
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
-
-          echo "API response: $RESULT"
-          if ! echo "$RESULT" | jq -e '.data.variableCollectionUpsert' > /dev/null; then
-            echo "ERROR: failed to configure diplicity-react variables."
-            exit 1
-          fi
-
-          WORKER_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$WORKER_SERVICE_ID" \
-            '{
-              query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { FIREBASE_PROJECT_ID: "" }, skipDeploys: true } }
-            }')
-
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$WORKER_PAYLOAD")
-
-          echo "API response: $RESULT"
-          if ! echo "$RESULT" | jq -e '.data.variableCollectionUpsert' > /dev/null; then
-            echo "ERROR: failed to configure diplicity-worker variables."
-            exit 1
-          fi
-
-          echo "Environment variables configured."
-
-      - name: Deploy PR branch to staging
-        env:
-          ENV_ID: ${{ steps.create_env.outputs.env_id }}
-        run: |
-          deploy_service() {
-            local SERVICE_ID="$1" SERVICE_NAME="$2"
-            local PAYLOAD RESULT
-            PAYLOAD=$(jq -n \
-              --arg envId "$ENV_ID" \
-              --arg serviceId "$SERVICE_ID" \
-              --arg sha "$COMMIT_SHA" \
-              '{
-                query: "mutation($envId: String!, $serviceId: String!, $sha: String) { serviceInstanceDeployV2(environmentId: $envId, serviceId: $serviceId, commitSha: $sha) }",
-                variables: { envId: $envId, serviceId: $serviceId, sha: $sha }
-              }')
-            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD")
-            echo "$SERVICE_NAME deploy triggered: $RESULT"
-          }
-
-          # Deploy Django first: its migrations install the Procrastinate schema
-          # the worker needs, and SEED_STAGING_DATA makes its entrypoint seed the
-          # test user and games before Gunicorn starts. Deploy the worker only
-          # once Django is up.
-          deploy_service "$DJANGO_SERVICE_ID" "diplicity-react"
-
-          STATUS_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$DJANGO_SERVICE_ID" \
-            '{
-              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { status } } } }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
-            }')
-
-          # Let the new deployment register as the latest before polling, so we
-          # don't read the previous (now-stopped) deployment's status.
-          sleep 20
-
-          echo "Waiting for diplicity-react to migrate and reach SUCCESS..."
-          DJANGO_OK=false
-          for i in $(seq 1 40); do
-            STATUS=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$STATUS_PAYLOAD" | jq -r '.data.deployments.edges[0].node.status // empty')
-            case "$STATUS" in
-              SUCCESS)
-                echo "diplicity-react is up."
-                DJANGO_OK=true
-                break
-                ;;
-              CRASHED|FAILED)
-                echo "diplicity-react deployment is $STATUS — skipping worker deploy."
-                break
-                ;;
-              *)
-                echo "Attempt $i/40: diplicity-react status is '${STATUS:-pending}', waiting 15s..."
-                sleep 15
-                ;;
-            esac
+            if [ "$STATUS" != SUCCESS ]; then
+              echo "Timed out waiting for $SERVICE_NAME deployment $DEPLOYMENT_ID." >&2
+              exit 1
+            fi
           done
 
-          if [ "$DJANGO_OK" = "true" ]; then
-            deploy_service "$WORKER_SERVICE_ID" "diplicity-worker"
-          else
-            echo "WARNING: diplicity-react did not reach SUCCESS; worker not deployed."
-          fi
+      - name: Smoke test seeded staging
+        id: smoke
+        run: |
+          set -euo pipefail
+          ACCESS_TOKEN=$(curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"test-user@example.com","password":"password"}' \
+            "$STAGING_URL/auth/email-login/" | jq -er '.accessToken | select(type == "string" and length > 0)')
+          echo "::add-mask::$ACCESS_TOKEN"
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "$STAGING_URL/games/?mine=true" | jq -e '.count | type == "number" and . > 0'
 
-      - name: Comment on PR with staging URL
-        env:
-          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+      - name: Comment on deployed PR
+        id: comment
+        if: steps.target.outputs.pr != ''
         uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+          COMMIT_SHA: ${{ steps.target.outputs.sha }}
         with:
           script: |
-            const stagingDomain = process.env.STAGING_DOMAIN;
-            const stagingUrl = `https://${stagingDomain}`;
-            const previewUrl = `https://deploy-preview-${context.payload.pull_request.number}--diplicity-react.netlify.app`;
-
-            const dataLine = 'The staging backend has a live copy of the production database, with migrations from this PR applied.';
-
             await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
+              ...context.repo,
+              issue_number: Number(process.env.PR_NUMBER),
               body: [
-                '## Staging Environment Deployed',
+                `Staging now runs \`${process.env.BRANCH}\` at \`${process.env.COMMIT_SHA.slice(0, 7)}\`.`,
                 '',
-                `**Frontend preview:** ${previewUrl}`,
-                `**Staging backend:** ${stagingUrl}`,
+                `Backend: ${process.env.STAGING_URL}`,
+                `Frontend preview: https://deploy-preview-${process.env.PR_NUMBER}--diplicity-react.netlify.app`,
+                `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
                 '',
-                dataLine,
-                'Use email/password login to test (Google OAuth is not configured for staging).',
-                '',
-                'Log in as `test-user@example.com` / `password` to find seeded games in every state (pending, active, finished, civil disorder, draws, solo wins and more). The seed runs on the backend at startup, so the games appear once the backend is ready.',
-                '',
-                'The frontend preview derives its backend URL from the PR number at build time.',
-                'Refresh the preview page once the staging backend is ready.',
-                'To redeploy, add the `deploy-to-staging` label again.',
-              ].join('\n')
+                'Data is reset to the seed on every deploy. Log in with `test-user@example.com` / `password` (email/password only).',
+                'The `deploy-to-staging` label stays on this PR; pushing another commit redeploys it.',
+              ].join('\n'),
             });
 
-  teardown-staging:
-    if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    env:
-      RAILWAY_ACCOUNT_TOKEN: ${{ secrets.RAILWAY_ACCOUNT_TOKEN }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-    steps:
-      - name: Find and delete staging environment
-        id: teardown
-        run: |
-          ENV_NAME="staging-pr-${PR_NUMBER}"
-
-          PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
-
-          echo "Querying environments..."
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
-
-          echo "API response: $RESULT"
-          ENV_ID=$(echo "$RESULT" | jq -r ".data.project.environments.edges[] | select(.node.name == \"$ENV_NAME\") | .node.id")
-          echo "Found ENV_ID: '$ENV_ID'"
-
-          if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
-            DELETE_PAYLOAD=$(jq -n \
-              --arg envId "$ENV_ID" \
-              '{query: ("mutation { environmentDelete(id: \"" + $envId + "\") }")}')
-
-            DELETE_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$DELETE_PAYLOAD")
-            echo "Delete response: $DELETE_RESULT"
-            echo "Staging environment $ENV_NAME torn down."
-            echo "deleted=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No staging environment found for this PR."
-            echo "deleted=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Comment on PR
-        if: steps.teardown.outputs.deleted == 'true'
+      - name: Comment on failed deployment
+        if: failure() && steps.target.outputs.pr != ''
         uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr }}
+          FAILED_STEP: ${{ steps.railway.outcome == 'failure' && steps.railway.outputs.failure_step || '' }}
+          STEP_RESULTS: ${{ toJSON(steps) }}
         with:
           script: |
+            const failed = Object.entries(JSON.parse(process.env.STEP_RESULTS)).find(([, step]) => step.outcome === 'failure');
+            const names = { target: 'Resolve staging target and ownership', checkout: 'Check out deployment commit', buildx: 'Set up Docker Buildx', registry: 'Log in to GHCR', build: 'Build and push image', visibility: 'Verify public image access', smoke: 'Smoke test seeded staging', comment: 'Comment on deployed PR' };
+            const step = process.env.FAILED_STEP || names[failed?.[0]] || 'Resolve staging target and ownership';
             await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: '## Staging Environment Torn Down\n\nThe staging environment for this PR has been removed.'
+              ...context.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: [
+                `Staging deployment failed at **${step}**.`,
+                `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                '',
+                'Staging may be broken until the next successful deploy, because the database reset happens before migrations.',
+              ].join('\n'),
             });
