@@ -9,7 +9,7 @@ from common.constants import DeadlineMode, GameStatus, PhaseStatus
 from game.models import Game
 from province.models import Province
 from agent import tasks
-from integration.utils import run_due_resolution_jobs
+from integration.utils import muster, run_due_resolution_jobs
 from agent.fallback import first_legal_options
 from agent.orders import option_to_selected
 from harness.adapter import orders_to_options
@@ -42,6 +42,7 @@ def _create_bot_game(client, variant_id):
         reverse("game-member-create", args=[game.id]), {"user_id": bot_user.id}, format="json"
     )
     assert add_response.status_code == status.HTTP_201_CREATED
+    muster(game.id, client)
 
     game.refresh_from_db()
     return game, bot_user
