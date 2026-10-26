@@ -43,4 +43,30 @@ describe("splitRenderedSvg", () => {
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"></svg>'
     );
   });
+
+  it("moves text province names out of the base into the labels layer", () => {
+    const board = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50" fill="#000">',
+      '<g id="background"><rect/></g>',
+      '<g id="province-names"><text x="1" y="2">Paris</text><g><text>Kiel</text></g><path d="M0 0"/></g>',
+      '<g id="borders"><path/></g>',
+      '<g id="units"><g><circle/></g></g>',
+      "</svg>",
+    ].join("\n");
+    const { base, labels, overlay } = splitRenderedSvg(board, viewBox);
+    expect(base).not.toContain("<text");
+    expect(base).toContain('<g id="province-names"><path d="M0 0"/></g>');
+    expect(base).toContain('id="borders"');
+    expect(labels).toBe(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50" fill="#000"><text x="1" y="2">Paris</text><g><text>Kiel</text></g></svg>'
+    );
+    expect(overlay).not.toContain("<text");
+  });
+
+  it("yields an empty labels layer when the board has no names layer", () => {
+    const { labels } = splitRenderedSvg(SAMPLE, viewBox);
+    expect(labels).toBe(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"></svg>'
+    );
+  });
 });

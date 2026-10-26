@@ -90,6 +90,7 @@ export class GameMapController {
 
   private baseLayer: L.ImageOverlay | null = null;
   private highlightLayer: L.SVGOverlay | null = null;
+  private labelsLayer: L.SVGOverlay | null = null;
   private overlayLayer: L.SVGOverlay | null = null;
   private readonly hitLayer: L.LayerGroup;
   private readonly polygonsByProvince = new Map<string, L.Polygon[]>();
@@ -152,6 +153,10 @@ export class GameMapController {
     const highlightPane = this.map.createPane("highlightMap");
     highlightPane.style.zIndex = "350";
     highlightPane.style.pointerEvents = "none";
+    const labelsPane = this.map.createPane("labelsMap");
+    labelsPane.style.zIndex = "400";
+    labelsPane.style.pointerEvents = "none";
+    labelsPane.style.visibility = "hidden";
     const overlayPane = this.map.createPane("overlayMap");
     overlayPane.style.zIndex = "450";
     overlayPane.style.pointerEvents = "none";
@@ -324,6 +329,7 @@ export class GameMapController {
     this.baseLayer = next;
     if (!this.baseReady) {
       this.baseReady = true;
+      this.map.getPane("labelsMap")!.style.visibility = "";
       this.map.getPane("overlayMap")!.style.visibility = "";
       if (this.options.forceCompositeOnBase) {
         this.nudgeComposite();
@@ -347,6 +353,18 @@ export class GameMapController {
       this.compositeRaf = null;
       pane.style.visibility = "";
     });
+  }
+
+  setLabels(svg: string): void {
+    const element = sanitizeSvgElement(svg);
+    const next = L.svgOverlay(element, this.bounds, {
+      interactive: false,
+      pane: "labelsMap",
+    }).addTo(this.map);
+    if (this.labelsLayer) {
+      this.map.removeLayer(this.labelsLayer);
+    }
+    this.labelsLayer = next;
   }
 
   setOverlay(svg: string): void {
