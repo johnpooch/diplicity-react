@@ -1160,8 +1160,8 @@ paths:
   /game/{game_id}/phase/{phase_id}/revert/:
     put:
       operationId: game_phase_revert_update
-      description: Revert a sandbox game to this phase, deleting every later phase
-        and this phase's orders.
+      description: Revert a sandbox game to this phase, deleting every later phase.
+        This phase's orders are kept and their results cleared.
       parameters:
       - in: path
         name: game_id
@@ -1186,8 +1186,8 @@ paths:
           description: ''
     patch:
       operationId: game_phase_revert_partial_update
-      description: Revert a sandbox game to this phase, deleting every later phase
-        and this phase's orders.
+      description: Revert a sandbox game to this phase, deleting every later phase.
+        This phase's orders are kept and their results cleared.
       parameters:
       - in: path
         name: game_id

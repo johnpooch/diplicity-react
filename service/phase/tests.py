@@ -14,6 +14,7 @@ from common.constants import (
     PhaseStatus,
     PhaseType,
     OrderType,
+    OrderResolutionStatus,
     UnitType,
     GameStatus,
     DeadlineMode,
@@ -1640,8 +1641,6 @@ class TestPhaseReversion:
         for phase_state in phase1.phase_states.all():
             assert phase_state.orders_confirmed is False
 
-        assert phase1.phase_states.first().orders.count() == 0
-
     @pytest.mark.django_db
     def test_revert_to_phase_deletes_related_objects(self, game_with_three_phases):
         game = game_with_three_phases
@@ -1719,7 +1718,10 @@ class TestPhaseReversion:
         phase3.refresh_from_db()
         assert phase3.status == PhaseStatus.ACTIVE
 
-        assert Order.objects.filter(phase_state__phase=phase3).count() == 0
+        assert (
+            Order.objects.filter(phase_state__phase=phase3).count()
+            == phase3_orders_count
+        )
 
     @pytest.mark.django_db
     def test_revert_to_phase_recalculates_scheduled_resolution(
@@ -1741,23 +1743,6 @@ class TestPhaseReversion:
             (phase1.scheduled_resolution - expected_resolution).total_seconds()
         )
         assert time_diff < 2
-
-    @pytest.mark.django_db
-    def test_revert_to_phase_clears_orders(self, game_with_three_phases):
-        game = game_with_three_phases
-        phase1 = game.phases.get(ordinal=1)
-
-        phase1.status = PhaseStatus.ACTIVE
-        phase1.save()
-
-        phase_state = phase1.phase_states.first()
-
-        initial_orders_count = phase_state.orders.count()
-        assert initial_orders_count > 0
-
-        phase1.revert_to_this_phase()
-
-        assert phase_state.orders.count() == 0
 
     @pytest.mark.django_db
     def test_revert_to_phase_resets_phase_state_flags(self, game_with_three_phases):
@@ -1847,7 +1832,7 @@ class TestPhaseRevertView:
         assert [p["id"] for p in phases_response.data] == [phase1.id]
 
     @pytest.mark.django_db
-    def test_revert_clears_orders_of_reverted_phase(
+    def test_revert_keeps_orders_of_reverted_phase(
         self, authenticated_client, sandbox_game_with_three_phases
     ):
         game = sandbox_game_with_three_phases
@@ -1861,7 +1846,42 @@ class TestPhaseRevertView:
             reverse("order-list", args=[game.id, phase1.id])
         )
         assert orders_response.status_code == status.HTTP_200_OK
-        assert orders_response.data == []
+        assert [
+            (order["source"]["id"], order["order_type"], order["resolution"])
+            for order in orders_response.data
+        ] == [("ven", OrderType.HOLD, None)]
+
+    @pytest.mark.django_db
+    def test_revert_removes_implicit_orders_of_reverted_phase(
+        self,
+        authenticated_client,
+        sandbox_game_with_three_phases,
+        italy_vs_germany_rome_province,
+    ):
+        game = sandbox_game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        implicit_order = phase1.phase_states.get(
+            member__nation__name="Italy"
+        ).orders.create(
+            source=italy_vs_germany_rome_province,
+            order_type=OrderType.HOLD,
+            is_implicit=True,
+        )
+        OrderResolution.objects.create(
+            order=implicit_order, status=OrderResolutionStatus.BOUNCED
+        )
+
+        authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase1.id])
+        )
+
+        orders_response = authenticated_client.get(
+            reverse("order-list", args=[game.id, phase1.id])
+        )
+        assert [
+            (order["source"]["id"], order["is_implicit"])
+            for order in orders_response.data
+        ] == [("ven", False)]
 
     @pytest.mark.django_db
     def test_revert_to_middle_phase_keeps_earlier_phases(
