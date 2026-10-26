@@ -5,6 +5,9 @@ from common.constants import GameStatus
 
 class DrawProposalQuerySet(models.QuerySet):
     def visible_to(self, actor):
+        return self
+
+    def in_started_games(self):
         return self.filter(game__status__in=(GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED))
 
     def active(self):

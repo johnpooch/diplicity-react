@@ -11,20 +11,33 @@ def select_for_update(instance):
     return type(instance)._default_manager.select_for_update().get(pk=instance.pk)
 
 
+MAX_PROPERTY_LOCKS = 3
+
+
 def lock_rows(model, value, paths):
     target = value if isinstance(value, models.Model) else model._default_manager.get(pk=value)
     related = {}
     for path in paths:
         row = reduce(getattr, path.split("."), target)
-        if row is not None:
-            related[path] = select_for_update(row)
+        related[path] = None if row is None else select_for_update(row)
     target = select_for_update(target)
     for path, row in related.items():
         *parents, attribute = path.split(".")
         parent = reduce(getattr, parents, target)
-        if not isinstance(getattr(type(parent), attribute, None), property):
+        if isinstance(getattr(type(parent), attribute, None), property):
+            confirm_property_lock(parent, attribute, row)
+        elif row is not None:
             setattr(parent, attribute, row)
     return target
+
+
+def confirm_property_lock(parent, attribute, row):
+    for _ in range(MAX_PROPERTY_LOCKS):
+        current = getattr(parent, attribute)
+        if current == row:
+            return
+        row = None if current is None else select_for_update(current)
+    raise RuntimeError(f"{attribute} kept changing while it was being locked")
 
 
 def command(requires=None, only_if=None, locks=()):

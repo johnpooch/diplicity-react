@@ -1,4 +1,3 @@
-from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 
 from common.views import (
@@ -18,10 +17,10 @@ class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, LoaderList
     serializer_class = DrawProposalOutputSerializer
 
     def get_queryset(self):
-        return super().get_queryset().for_game(self.get_game()).order_by("-created_at")
+        proposals = super().get_queryset().for_game(self.get_game())
+        return proposals.in_started_games().order_by("-created_at")
 
 
-@extend_schema(request=DrawProposalOutputSerializer)
 class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, CreateActionView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DrawProposalOutputSerializer
@@ -30,7 +29,6 @@ class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, CreateAc
         return DrawProposal.objects.propose(self.get_game(), self.request.user)
 
 
-@extend_schema(responses=VoteDrawProposalInputSerializer)
 class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, ActionView):
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["put", "patch", "options"]

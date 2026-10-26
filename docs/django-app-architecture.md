@@ -66,7 +66,7 @@ The code below is the shared code in full. It differs from the throwaway example
 
 1. `lock_rows` now locks the related rows before the target. This keeps a consistent parent-before-child lock order.
 2. `lock_rows` accepts a target instance of a model other than the manager's own.
-3. `lock_rows` accepts a property path, such as `current_phase`, which it locks without re-attaching.
+3. `lock_rows` accepts a property path, such as `current_phase`. It locks the row, and once the target is locked it re-reads the property until it names the row it holds.
 4. The conversion of `Refused` into an HTTP error has moved into a `RefusalMixin`.
 5. `ActionView` serves `POST`, `PUT`, `PATCH` and `DELETE`, limited per view by `http_method_names`, and does not scope its lookup with `visible_to`.
 6. `CreateActionView` extends `CreateAPIView`, so the schema publishes its 201.
@@ -92,7 +92,7 @@ def scoped(queryset, actor):
 
 The actor is the user performing an operation: `request.user` in a view, and `SYSTEM` when the system performs it, such as in a task or a command called by another command. `SYSTEM` looks like an authenticated non-staff user with no primary key, so checks written against users behave predictably for it. `scoped` is how loaders and views apply `visible_to`, and it lets `SYSTEM` see every row.
 
-The actor is always a user, even in game-scoped apps where the rules are about a `Member`. Checks and commands that need the acting member find it from the actor, the same way `CurrentGameMemberMixin` does. One actor type keeps `visible_to`, `Actions` and `SYSTEM` uniform across apps.
+The actor is always a user, even in game-scoped apps where the rules are about a `Member`. Checks and commands that need the acting member find it with `game.members.seat_of(actor)`: the actor's player member that holds a seat and is playing it, or `None`. Policies and command bodies use the same lookup, so a policy never approves one member while the body acts as another. One actor type keeps `visible_to`, `Actions` and `SYSTEM` uniform across apps.
 
 ### Checks and decisions
 
@@ -191,20 +191,33 @@ def select_for_update(instance):
     return type(instance)._default_manager.select_for_update().get(pk=instance.pk)
 
 
+MAX_PROPERTY_LOCKS = 3
+
+
 def lock_rows(model, value, paths):
     target = value if isinstance(value, models.Model) else model._default_manager.get(pk=value)
     related = {}
     for path in paths:
         row = reduce(getattr, path.split("."), target)
-        if row is not None:
-            related[path] = select_for_update(row)
+        related[path] = None if row is None else select_for_update(row)
     target = select_for_update(target)
     for path, row in related.items():
         *parents, attribute = path.split(".")
         parent = reduce(getattr, parents, target)
-        if not isinstance(getattr(type(parent), attribute, None), property):
+        if isinstance(getattr(type(parent), attribute, None), property):
+            confirm_property_lock(parent, attribute, row)
+        elif row is not None:
             setattr(parent, attribute, row)
     return target
+
+
+def confirm_property_lock(parent, attribute, row):
+    for _ in range(MAX_PROPERTY_LOCKS):
+        current = getattr(parent, attribute)
+        if current == row:
+            return
+        row = None if current is None else select_for_update(current)
+    raise RuntimeError(f"{attribute} kept changing while it was being locked")
 
 
 def command(requires=None, only_if=None, locks=()):
@@ -247,7 +260,7 @@ Inside one transaction the decorator does four things in order:
 
 Checking after locking means two concurrent requests cannot both pass a policy that only one of them should pass.
 
-`locks` names paths from the target, such as `"book"`, `"book.author"` or `"current_phase"`. Those rows are locked before the target. A foreign key path is re-attached to the locked target, so the policy and the body read the locked row. A property path, such as `Game.current_phase`, cannot be assigned, so its row is locked but not re-attached. Reading the property again queries the row, and because the row is locked, that read sees its committed state and nothing else can change it until the transaction ends. A path is resolved before the target is locked, so if a property names a different row by the time the lock is taken (a phase resolves and the next one starts), the command holds the old row's lock and reads the new row. List a parent path before its child.
+`locks` names paths from the target, such as `"book"`, `"book.author"` or `"current_phase"`. Those rows are locked before the target. A foreign key path is re-attached to the locked target, so the policy and the body read the locked row. A property path, such as `Game.current_phase`, cannot be assigned, so its row is locked but not re-attached, and reading the property again queries the row. A path is resolved before anything is locked, so a property can name a different row by the time the lock is taken: a phase resolves and the next one starts. After the target is locked, `confirm_property_lock` re-reads each property path and compares it with the row it locked. If the property names a different row, it locks that row and checks again, up to `MAX_PROPERTY_LOCKS` times, and then raises. When it returns, the property names a row the command holds, so the policy and the body read the locked row. Every path's first lock still comes before the target. Only a replacement row, locked because the property moved, comes after it. List a parent path before its child.
 
 The target is normally an instance of the manager's model. A command may take an instance of another model as its target when the operation creates a row belonging to it, for example a command on the draw proposal manager that proposes a draw in a phase. Passing that target as a primary key does not work, because a bare key is looked up on the manager's model.
 
@@ -466,6 +479,15 @@ class ActionSchema(AutoSchema):
     def get_request_serializer(self):
         return self.view.input_serializer_class
 
+    def _get_request_for_media_type(self, serializer, direction="request"):
+        if self.method != "PATCH":
+            return super()._get_request_for_media_type(serializer, direction)
+        self.method = "PUT"
+        try:
+            return super()._get_request_for_media_type(serializer, direction)
+        finally:
+            self.method = "PATCH"
+
 
 class ActionMixin(RefusalMixin, LoaderMixin):
     schema = ActionSchema()
@@ -508,7 +530,7 @@ class CreateActionView(ActionMixin, generics.CreateAPIView):
 
 `RefusalMixin` turns a `Refused` raised anywhere in the request into a 403 with the reason as its `code`. Every refusal answers 403, whether the rule is about the actor's relationship to a row or the row's state, because both are now checks. A 400 means only that the input serializer rejected the request body.
 
-`ActionView` looks up the target with DRF's generic lookup through the view's queryset. It does not apply `visible_to`; a view whose rows must stay hidden scopes its own `get_queryset`, as described in the placement rules. It validates the body with `input_serializer_class`, passes the validated values to `perform` as keyword arguments, and responds with the result loaded through the output serializer's loader. It serves `POST` by default. A view that serves other methods declares them with `http_method_names`: `PUT` and `PATCH` respond like `POST`, and `DELETE` responds 204 with no body. `ActionSchema` makes the OpenAPI request body the input serializer and the response the output serializer. `CreateActionView` is the same without a target, and responds 201.
+`ActionView` looks up the target with DRF's generic lookup through the view's queryset. It does not apply `visible_to`; a view whose rows must stay hidden scopes its own `get_queryset`, as described in the placement rules. It validates the body with `input_serializer_class`, passes the validated values to `perform` as keyword arguments, and responds with the result loaded through the output serializer's loader. It serves `POST` by default. A view that serves other methods declares them with `http_method_names`: `PUT` and `PATCH` respond like `POST`, and `DELETE` responds 204 with no body. `ActionSchema` makes the OpenAPI request body the input serializer and the response the output serializer. An action validates its whole input whatever the method, so `ActionSchema` publishes the full input serializer for `PATCH` too, where drf-spectacular would otherwise publish a partial one. `CreateActionView` is the same without a target, and responds 201.
 
 ## The parts of an app
 
@@ -669,7 +691,7 @@ class Hold(BaseModel):
 
 A QuerySet method returns a QuerySet and is named for the rows it describes, such as `open()` or `on_shelf()`, not for the screen that uses it. QuerySets never write.
 
-Every QuerySet defines `visible_to(actor)`, which returns the rows the actor may know exist. When every row is visible to anyone who can reach the endpoint, it returns `self`. It is defined anyway, so that loaders, and views whose rows must stay hidden, can always call it.
+Every QuerySet defines `visible_to(actor)`, which returns the rows the actor may know exist. When every row is visible to anyone who can reach the endpoint, it returns `self`. `visible_to` is about the actor: a filter that does not depend on who is asking, such as the game's status, is a named QuerySet method that the view applies. It is defined anyway, so that loaders, and views whose rows must stay hidden, can always call it.
 
 Managers are built with `Manager.from_queryset`, so QuerySet methods are available on `Model.objects` without hand-written pass-through methods.
 
@@ -856,6 +878,8 @@ Checks used only by `only_if` have no reason, because nobody sees their failure.
 A check reads properties of the instance and the actor. Avoid queries inside a check: checks used by `Actions` run for every row of a list response, and properties reading prefetched relations keep that cheap. Checks used only by commands may query when they need to, because they run once, under the lock.
 
 Every check keeps the signature `check(self, instance, actor)`, even when it does not read the actor, because that is the interface `Check.decide` calls.
+
+A check never assumes that another check has passed. It returns a decision for any target it can be given, even when an earlier check in the same policy would refuse first, so a check is safe to reorder, reuse or call on its own. `HasNoPendingProposalCheck` answers for a game with no current phase rather than relying on `IsCurrentPhaseActiveCheck` to have run.
 
 A check lives in the app that owns the data it queries beyond its target. `HasNoPendingProposalCheck` takes a game but queries draw proposals, so it lives in `draw_proposal`: the phase and game apps must not know about draw proposals. A check that reads only phase state lives in `phase/checks.py`. A check that starts from the game, such as `IsCurrentPhaseActiveCheck`, lives in `game/checks.py`, and so do the shared policies built from those checks.
 
@@ -1411,8 +1435,8 @@ Tests are written alongside the code, and the shared classes are tested through 
 A conversion changes the code's structure, not what the API does. Shipped mobile builds depend on the current API, so a converted app keeps its URLs, URL names, HTTP methods, request and response bodies, and OpenAPI schema. Status codes of refusals may change, because every refusal now answers 403. Clients treat refusals as generic errors, so this is accepted. The rules that follow are:
 
 1. The app's existing endpoint tests pass. Three kinds of change to them are allowed: updating calls to internal methods to the new command names, changing the expected status of a refusal to 403, and moving test setup that the new policies would refuse onto factories.
-2. Regenerating the OpenAPI schemas (`docker compose up codegen`, configured as described in `.claude/rules/backend/codegen.md`) produces no diff, and `npx tsc -b --noEmit` passes in `packages/web`.
-3. Converted write endpoints are action views, and they keep the existing schema. The view declares the existing endpoint's methods with `http_method_names`. Where the published schema differs from what `ActionSchema` describes, such as a request body on a create endpoint that takes no input, or a response component the endpoint does not really return, the view keeps the published schema with `@extend_schema`.
+2. Regenerating the OpenAPI schemas (`docker compose up codegen`, configured as described in `.claude/rules/backend/codegen.md`) produces no diff beyond the wire changes listed under rule 3, and `npx tsc -b --noEmit` passes in `packages/web`.
+3. Converted write endpoints are action views, and the view declares the existing endpoint's methods with `http_method_names`. `ActionSchema` describes each endpoint as it behaves. Where that differs from the published schema, such as a request body on a create endpoint that takes no input, or a response component the endpoint does not really return, do not copy the wrong contract with `@extend_schema`. List the difference as a wire change when converting, and decide it then.
 4. Existing serializer component names are kept with `extend_schema_serializer(component_name=...)`.
 5. Every caller of the app's old internal methods in other apps is updated in the same change.
 6. Only the shared classes the app uses are added.
@@ -1430,7 +1454,7 @@ The app exposes four endpoints under `games/<game_id>/draw-proposals/`:
 3. Vote, `PUT` and `PATCH` to `<proposal_id>/vote/`. These publish `DrawVoteUpdate` as both the request and the response schema, although the response body is actually a `DrawProposal`.
 4. Cancel, `DELETE` to `<proposal_id>/cancel/`, returning 204.
 
-The generated frontend client depends on these operation ids and the component names `DrawProposal`, `DrawVoteUpdate`, `DrawVoteMember` and `MyVote`, so all four stay as they are, including the inaccurate vote response schema.
+The generated frontend client depends on these operation ids and the component names `DrawProposal`, `DrawVoteUpdate`, `DrawVoteMember` and `MyVote`, so the names stay as they are. The published contracts that do not match the endpoints are wire changes under rule 3: create's request body, vote's response and the partial `PATCH` vote body.
 
 Today the rules are split across three places:
 
@@ -1456,13 +1480,13 @@ One notification test creates two proposals in the same phase through `create_pr
 
 ### Intended shape
 
-The actor is the user, as everywhere else. The acting member is the game's member whose user is the actor, found the same way `CurrentGameMemberMixin` finds it.
+The actor is the user, as everywhere else. The acting member is `game.members.seat_of(actor)`, the actor's player member that holds a seat and is playing it.
 
 The game-level rules that are permission classes today become checks shared by every draw proposal command. These are an active game, not a sandbox, an active current phase, and the actor being an active player. Each check reads the game through `game_of(instance)`, so the same checks work whether the target is the game or a proposal. They are grouped into one shared policy that each command's policy lists first. They live in the game app, as `game/checks.py` and `game/policies.py`, new modules alongside the unconverted game code.
 
-`IsActiveGamePlayer` currently has one message per way of failing. As checks, it splits into one check per reason, for example one for not being a player in the game and one for having no seat that is still active. The implementer picks the split and the reason codes.
+`IsActiveGamePlayer` currently has one message per way of failing. As checks, it splits into two, both built on `seat_of`. `IsGamePlayerCheck` refuses with `not_player` when the actor plays no seat in the game: they are not a member, are the game master, or have left their seat through removal, replacement, civil disorder or withdrawal. `IsActivePlayerCheck` refuses with `inactive_player` when the seat they play has been eliminated.
 
-Reads have no policy. The list endpoint's rule that the game is active or finished becomes part of `DrawProposalQuerySet.visible_to`, filtering on the game's status. A list for a game in any other state is then empty rather than a 403. Games in those states have no phases, and so no proposals, so this changes nothing in practice.
+Reads have no policy. Draw proposals are visible to anyone who can reach the endpoint, so `DrawProposalQuerySet.visible_to` returns `self`. The list endpoint's rule that the game is active or finished becomes the named QuerySet method `in_started_games()`, which the list view applies. A list for a game in any other state is then empty rather than a 403. Games in those states have no phases, and so no proposals, so this changes nothing in practice.
 
 Proposed commands on the draw proposal manager:
 
@@ -1480,4 +1504,4 @@ The serializer's sandbox validation duplicates `IsNotSandboxGame`, and both beco
 
 The current `with_related_data` becomes the `DrawProposalLoader` queryset, and the list, create and vote responses all go through it. The count fields become model properties over the prefetched votes. `my_vote` needs the requesting user. It becomes a hydrator, or stays a serializer method reading prefetched votes and the member from the serializer context; the implementer should choose whichever keeps the schema and the query count test unchanged.
 
-The list is a `LoaderListView`, create is a `CreateActionView`, and vote and cancel are `ActionView`s. Vote declares `http_method_names = ["put", "patch", "options"]` and cancel `["delete", "options"]`. Both look the proposal up with `lookup_url_kwarg = "proposal_id"` in a queryset filtered to the URL's game. `permission_classes = [IsAuthenticated]` is every view's only permission, and each `perform` calls one command. The create view keeps its published `DrawProposal` request body, and the vote view its published `DrawVoteUpdate` response, with `@extend_schema`. The output and vote serializers keep their published component names.
+The list is a `LoaderListView`, create is a `CreateActionView`, and vote and cancel are `ActionView`s. Vote declares `http_method_names = ["put", "patch", "options"]` and cancel `["delete", "options"]`. Both look the proposal up with `lookup_url_kwarg = "proposal_id"` in a queryset filtered to the URL's game. `permission_classes = [IsAuthenticated]` is every view's only permission, and each `perform` calls one command. `ActionSchema` describes create as taking no body and vote as returning a `DrawProposal`, with `DrawVoteUpdate` required for both `PUT` and `PATCH`. These are the wire changes promotion would make. The output and vote serializers keep their published component names.

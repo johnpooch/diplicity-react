@@ -83,6 +83,15 @@ class ActionSchema(AutoSchema):
     def get_request_serializer(self):
         return self.view.input_serializer_class
 
+    def _get_request_for_media_type(self, serializer, direction="request"):
+        if self.method != "PATCH":
+            return super()._get_request_for_media_type(serializer, direction)
+        self.method = "PUT"
+        try:
+            return super()._get_request_for_media_type(serializer, direction)
+        finally:
+            self.method = "PATCH"
+
 
 class ActionMixin(RefusalMixin, LoaderMixin):
     schema = ActionSchema()

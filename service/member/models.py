@@ -53,6 +53,12 @@ class MemberQuerySet(models.QuerySet):
     def holding_seat(self):
         return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
 
+    def seat_of(self, user):
+        if user.pk is None:
+            return None
+        occupied = self.players().holding_seat().exclude(pk__in=self.vacant())
+        return occupied.filter(user_id=user.pk).first()
+
     def with_commitment_square(self):
         return self.annotate(commitment_square=commitment_points("commitment_entries__kind"))
 

@@ -19,15 +19,15 @@ class IsGamePlayerCheck(Check):
     reason = "not_player"
 
     def check(self, instance, actor):
-        return game_of(instance).members.players().filter(user_id=actor.pk).exists()
+        return game_of(instance).members.seat_of(actor) is not None
 
 
 class IsActivePlayerCheck(Check):
     reason = "inactive_player"
 
     def check(self, instance, actor):
-        members = game_of(instance).members.players().filter(user_id=actor.pk)
-        return any(not member.eliminated and member.occupied for member in members)
+        member = game_of(instance).members.seat_of(actor)
+        return member is not None and not member.eliminated
 
 
 class IsNotSandboxGameCheck(Check):

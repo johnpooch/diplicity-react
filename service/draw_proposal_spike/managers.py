@@ -13,7 +13,7 @@ class DrawProposalManager(Manager.from_queryset(DrawProposalQuerySet)):
     def propose(self, game, actor):
         proposal = self.create(
             game=game,
-            created_by=game.members.filter(user=actor).first(),
+            created_by=game.members.seat_of(actor),
             phase=game.current_phase,
         )
         proposal.create_initial_votes()
@@ -23,7 +23,8 @@ class DrawProposalManager(Manager.from_queryset(DrawProposalQuerySet)):
 
     @command(requires=CanVotePolicy, locks=["phase"])
     def vote(self, proposal, actor, accepted):
-        proposal.votes.get(member__user=actor).cast(accepted)
+        voter = proposal.game.members.seat_of(actor)
+        proposal.votes.get(member=voter).cast(accepted)
         if proposal.status == DrawProposalStatus.REJECTED:
             emit(
                 "draw_proposal_rejected",

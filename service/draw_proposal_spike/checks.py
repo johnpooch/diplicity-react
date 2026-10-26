@@ -6,22 +6,27 @@ class HasNoActiveProposalCheck(Check):
     reason = "already_proposed"
 
     def check(self, game, actor):
-        proposals = game.current_phase.spike_draw_proposals.active()
-        return not proposals.filter(created_by__user_id=actor.pk).exists()
+        phase = game.current_phase
+        member = game.members.seat_of(actor)
+        if phase is None or member is None:
+            return True
+        return not phase.spike_draw_proposals.active().filter(created_by=member).exists()
 
 
 class HasNoPendingProposalCheck(Check):
     reason = "proposal_pending"
 
     def check(self, game, actor):
-        return not game.current_phase.spike_draw_proposals.pending().exists()
+        phase = game.current_phase
+        return phase is None or not phase.spike_draw_proposals.pending().exists()
 
 
 class IsProposerCheck(Check):
     reason = "not_proposer"
 
     def check(self, proposal, actor):
-        return proposal.created_by.user_id == actor.pk
+        member = proposal.game.members.seat_of(actor)
+        return member is not None and proposal.created_by_id == member.pk
 
 
 class IsPendingCheck(Check):
@@ -40,12 +45,15 @@ class HasVoteCheck(Check):
     reason = "no_vote"
 
     def check(self, proposal, actor):
-        return proposal.votes.filter(member__user_id=actor.pk).exists()
+        member = proposal.game.members.seat_of(actor)
+        return member is not None and proposal.votes.filter(member=member).exists()
 
 
 class HasNotVotedCheck(Check):
     reason = "already_voted"
 
     def check(self, proposal, actor):
-        votes = proposal.votes.filter(member__user_id=actor.pk)
-        return not votes.filter(accepted__isnull=False).exists()
+        member = proposal.game.members.seat_of(actor)
+        if member is None:
+            return True
+        return not proposal.votes.filter(member=member, accepted__isnull=False).exists()
