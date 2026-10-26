@@ -13,6 +13,8 @@ class DrawProposalLoader(Loader):
         "created_by__nation",
         "phase",
     ).prefetch_related(
-        Prefetch("game__phases", queryset=Phase.objects.only("id", "game_id", "ordinal")),
+        Prefetch(
+            "game__phases", queryset=Phase.objects.only("id", "game_id", "ordinal")
+        ),
         "votes",
     )

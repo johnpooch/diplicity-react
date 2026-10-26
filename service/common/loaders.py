@@ -11,7 +11,10 @@ class Loader:
     @classmethod
     def get_queryset(cls, actor):
         return scoped(cls.queryset.all(), actor).prefetch_related(
-            *(Prefetch(lookup, queryset=loader.get_queryset(actor)) for lookup, loader in cls.nested.items())
+            *(
+                Prefetch(lookup, queryset=loader.get_queryset(actor))
+                for lookup, loader in cls.nested.items()
+            )
         )
 
     @classmethod
@@ -20,7 +23,14 @@ class Loader:
         for hydrator in cls.hydrators:
             hydrator.hydrate(instances, actor)
         for lookup, loader in cls.nested.items():
-            loader.hydrate([child for instance in instances for child in getattr(instance, lookup).all()], actor)
+            loader.hydrate(
+                [
+                    child
+                    for instance in instances
+                    for child in getattr(instance, lookup).all()
+                ],
+                actor,
+            )
         return instances
 
     @classmethod

@@ -1,5 +1,6 @@
 from common.checks import Check
-from draw_proposal.constants import DrawProposalStatus
+
+from .constants import DrawProposalStatus
 
 
 class HasNoActiveProposalCheck(Check):
@@ -10,7 +11,7 @@ class HasNoActiveProposalCheck(Check):
         member = game.members.seat_of(actor)
         if phase is None or member is None:
             return True
-        return not phase.spike_draw_proposals.active().filter(created_by=member).exists()
+        return not phase.draw_proposals.active().filter(created_by=member).exists()
 
 
 class HasNoPendingProposalCheck(Check):
@@ -18,7 +19,7 @@ class HasNoPendingProposalCheck(Check):
 
     def check(self, game, actor):
         phase = game.current_phase
-        return phase is None or not phase.spike_draw_proposals.pending().exists()
+        return phase is None or not phase.draw_proposals.pending().exists()
 
 
 class IsProposerCheck(Check):

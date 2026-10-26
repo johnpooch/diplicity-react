@@ -1,30 +1,26 @@
 from django.urls import path
-from .views import (
-    DrawProposalListView,
-    DrawProposalCreateView,
-    DrawProposalVoteView,
-    DrawProposalCancelView,
-)
+
+from . import views
 
 urlpatterns = [
     path(
         "games/<str:game_id>/draw-proposals/",
-        DrawProposalListView.as_view(),
+        views.DrawProposalListView.as_view(),
         name="draw-proposal-list",
     ),
     path(
         "games/<str:game_id>/draw-proposals/create/",
-        DrawProposalCreateView.as_view(),
+        views.DrawProposalCreateView.as_view(),
         name="draw-proposal-create",
     ),
     path(
         "games/<str:game_id>/draw-proposals/<int:proposal_id>/vote/",
-        DrawProposalVoteView.as_view(),
+        views.DrawProposalVoteView.as_view(),
         name="draw-proposal-vote",
     ),
     path(
         "games/<str:game_id>/draw-proposals/<int:proposal_id>/cancel/",
-        DrawProposalCancelView.as_view(),
+        views.DrawProposalCancelView.as_view(),
         name="draw-proposal-cancel",
     ),
 ]

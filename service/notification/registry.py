@@ -1,6 +1,5 @@
 from django.conf import settings
 
-from draw_proposal.models import DrawProposal
 from notification.models import NotificationDelivery
 from notification.utils import build_push_tag
 
@@ -102,7 +101,7 @@ class NotificationSpec:
 
     def expired_draw_proposals_clause(self, phase):
         proposals = (
-            DrawProposal.objects.pending_for_phase(phase)
+            phase.draw_proposals.pending()
             .select_related("created_by__nation")
             .order_by("created_at")
         )

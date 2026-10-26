@@ -1,10 +1,15 @@
 from django.db.models import Manager
 
 from common.commands import command
-from draw_proposal.constants import DrawProposalStatus
 from emit import emit
 
-from .policies import CanCancelPolicy, CanProposePolicy, CanVotePolicy, ReadyToConcludePolicy
+from .constants import DrawProposalStatus
+from .policies import (
+    CanCancelPolicy,
+    CanProposePolicy,
+    CanVotePolicy,
+    ReadyToConcludePolicy,
+)
 from .querysets import DrawProposalQuerySet
 
 
@@ -44,15 +49,17 @@ class DrawProposalManager(Manager.from_queryset(DrawProposalQuerySet)):
 
     @command(only_if=ReadyToConcludePolicy, locks=["phase"])
     def conclude(self, proposal):
-        victory = proposal.game.finish_with_draw(proposal.phase, proposal.included_members)
+        victory = proposal.game.finish_with_draw(
+            proposal.phase, proposal.included_members
+        )
         proposal.game.emit_game_ended()
         return victory
 
     @command()
     def release_member(self, phase, member):
-        for proposal in phase.spike_draw_proposals.pending().filter(created_by=member):
+        for proposal in phase.draw_proposals.pending().filter(created_by=member):
             proposal.cancel()
-        for proposal in phase.spike_draw_proposals.pending().exclude(created_by=member):
+        for proposal in phase.draw_proposals.pending().exclude(created_by=member):
             for vote in proposal.votes.filter(member=member):
                 vote.release()
             self.conclude(proposal)

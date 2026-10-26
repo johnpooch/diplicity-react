@@ -76,7 +76,9 @@ class LoaderListView(LoaderMixin, generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
-        instances = self.get_loader().hydrate(queryset if page is None else page, request.user)
+        instances = self.get_loader().hydrate(
+            queryset if page is None else page, request.user
+        )
         data = self.get_serializer(instances, many=True).data
         return Response(data) if page is None else self.get_paginated_response(data)
 

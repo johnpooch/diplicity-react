@@ -1,12 +1,11 @@
-from django.db import transaction
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema_field
-from emit import emit
-from .models import DrawProposal
-from .constants import DrawProposalStatus
-from common.permissions import IsCurrentPhaseActive
+
+from common.serializers import OutputSerializer
 from member.serializers import BaseMemberSerializer
-from phase.models import Phase
+
+from .loaders import DrawProposalLoader
+from .models import DrawProposal
 
 
 class DrawVoteMemberSerializer(BaseMemberSerializer):
@@ -18,35 +17,41 @@ class MyVoteSerializer(serializers.Serializer):
     accepted = serializers.BooleanField(read_only=True, allow_null=True)
 
 
-class DrawProposalSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    created_by = DrawVoteMemberSerializer(read_only=True)
-    status = serializers.CharField(read_only=True)
-    accepted_count = serializers.SerializerMethodField()
-    rejected_count = serializers.SerializerMethodField()
-    pending_count = serializers.SerializerMethodField()
-    total_votes = serializers.SerializerMethodField()
-    included_member_ids = serializers.SerializerMethodField()
+@extend_schema_serializer(component_name="DrawVoteUpdate")
+class VoteDrawProposalInputSerializer(serializers.Serializer):
+    accepted = serializers.BooleanField(required=True)
+
+
+@extend_schema_serializer(component_name="DrawProposal")
+class DrawProposalOutputSerializer(OutputSerializer):
+    created_by = DrawVoteMemberSerializer()
+    status = serializers.CharField()
+    accepted_count = serializers.IntegerField()
+    rejected_count = serializers.IntegerField()
+    pending_count = serializers.IntegerField()
+    total_votes = serializers.IntegerField()
+    included_member_ids = serializers.ListField(child=serializers.IntegerField())
     my_vote = serializers.SerializerMethodField()
-    phase_id = serializers.IntegerField(source="phase.id", read_only=True)
-    phase_name = serializers.CharField(source="phase.name", read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
+    phase_id = serializers.IntegerField(source="phase.id")
+    phase_name = serializers.CharField(source="phase.name")
 
-    def get_accepted_count(self, obj) -> int:
-        return sum(1 for v in obj.votes.all() if v.included and v.accepted is True)
-
-    def get_rejected_count(self, obj) -> int:
-        return sum(1 for v in obj.votes.all() if v.accepted is False)
-
-    def get_pending_count(self, obj) -> int:
-        return sum(1 for v in obj.votes.all() if v.accepted is None)
-
-    def get_total_votes(self, obj) -> int:
-        return sum(1 for v in obj.votes.all() if v.included)
-
-    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
-    def get_included_member_ids(self, obj):
-        return [v.member_id for v in obj.votes.all() if v.included]
+    class Meta:
+        model = DrawProposal
+        loader = DrawProposalLoader
+        fields = (
+            "id",
+            "created_by",
+            "status",
+            "accepted_count",
+            "rejected_count",
+            "pending_count",
+            "total_votes",
+            "included_member_ids",
+            "my_vote",
+            "phase_id",
+            "phase_name",
+            "created_at",
+        )
 
     @extend_schema_field(MyVoteSerializer(allow_null=True))
     def get_my_vote(self, obj):
@@ -57,99 +62,3 @@ class DrawProposalSerializer(serializers.Serializer):
             if vote.member_id == current_member.id:
                 return {"included": vote.included, "accepted": vote.accepted}
         return None
-
-    def validate(self, attrs):
-        game = self.context["game"]
-        current_member = self.context["current_game_member"]
-
-        if game.sandbox:
-            raise serializers.ValidationError(
-                "Draw proposals are not allowed in sandbox games."
-            )
-
-        existing_proposal = (
-            DrawProposal.objects.active()
-            .filter(
-                game=game,
-                created_by=current_member,
-                phase=game.current_phase,
-            )
-            .first()
-        )
-
-        if existing_proposal:
-            raise serializers.ValidationError(
-                "You already have an active draw proposal for this phase."
-            )
-
-        return attrs
-
-    def create(self, validated_data):
-        game = self.context["game"]
-        current_member = self.context["current_game_member"]
-
-        with transaction.atomic():
-            if Phase.objects.lock_if_active(game.current_phase.id) is None:
-                raise serializers.ValidationError(IsCurrentPhaseActive.message)
-            if DrawProposal.objects.pending_for_phase(game.current_phase).exists():
-                raise serializers.ValidationError(
-                    "There is already a pending draw proposal for this phase."
-                )
-            return DrawProposal.objects.create_proposal(
-                game=game,
-                created_by=current_member,
-            )
-
-
-class DrawVoteUpdateSerializer(serializers.Serializer):
-    accepted = serializers.BooleanField(required=True)
-
-    def validate(self, attrs):
-        proposal = self.instance
-        current_member = self.context["current_game_member"]
-
-        if proposal.status != DrawProposalStatus.PENDING:
-            raise serializers.ValidationError(
-                "Cannot vote on a proposal that is not pending."
-            )
-
-        vote = proposal.votes.filter(member=current_member).first()
-        if not vote:
-            raise serializers.ValidationError(
-                "No vote record found for your membership."
-            )
-
-        if vote.accepted is not None:
-            raise serializers.ValidationError(
-                "You have already voted on this proposal."
-            )
-
-        return attrs
-
-    def update(self, instance, validated_data):
-        current_member = self.context["current_game_member"]
-
-        vote = instance.votes.filter(member=current_member).first()
-        vote.accepted = validated_data["accepted"]
-        vote.save()
-
-        try:
-            del instance._prefetched_objects_cache
-        except AttributeError:
-            pass
-
-        if instance.status == DrawProposalStatus.ACCEPTED:
-            instance.process_acceptance()
-        elif instance.status == DrawProposalStatus.REJECTED:
-            emit(
-                "draw_proposal_rejected",
-                game=instance.game,
-                phase=instance.phase,
-                actor=current_member.user,
-                nation_name=instance.created_by.nation.name,
-                recipients=[
-                    v.member.user_id for v in instance.votes.all() if v.included
-                ],
-            )
-
-        return instance

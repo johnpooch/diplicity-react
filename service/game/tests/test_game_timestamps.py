@@ -292,7 +292,7 @@ class TestGameFinishedAtDraw:
         )
 
         before = timezone.now()
-        proposal.process_acceptance()
+        DrawProposal.objects.conclude(proposal)
         after = timezone.now()
 
         game.refresh_from_db()

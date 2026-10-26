@@ -15,7 +15,11 @@ MAX_PROPERTY_LOCKS = 3
 
 
 def lock_rows(model, value, paths):
-    target = value if isinstance(value, models.Model) else model._default_manager.get(pk=value)
+    target = (
+        value
+        if isinstance(value, models.Model)
+        else model._default_manager.get(pk=value)
+    )
     related = {}
     for path in paths:
         row = reduce(getattr, path.split("."), target)
@@ -53,7 +57,9 @@ def command(requires=None, only_if=None, locks=()):
             with transaction.atomic():
                 instance = None
                 if target_name is not None:
-                    instance = lock_rows(manager.model, arguments.arguments[target_name], locks)
+                    instance = lock_rows(
+                        manager.model, arguments.arguments[target_name], locks
+                    )
                     arguments.arguments[target_name] = instance
                 if only_if is not None and not only_if.decide(instance, actor):
                     return None

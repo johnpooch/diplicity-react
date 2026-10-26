@@ -1435,8 +1435,8 @@ Tests are written alongside the code, and the shared classes are tested through 
 A conversion changes the code's structure, not what the API does. Shipped mobile builds depend on the current API, so a converted app keeps its URLs, URL names, HTTP methods, request and response bodies, and OpenAPI schema. Status codes of refusals may change, because every refusal now answers 403. Clients treat refusals as generic errors, so this is accepted. The rules that follow are:
 
 1. The app's existing endpoint tests pass. Three kinds of change to them are allowed: updating calls to internal methods to the new command names, changing the expected status of a refusal to 403, and moving test setup that the new policies would refuse onto factories.
-2. Regenerating the OpenAPI schemas (`docker compose up codegen`, configured as described in `.claude/rules/backend/codegen.md`) produces no diff beyond the wire changes listed under rule 3, and `npx tsc -b --noEmit` passes in `packages/web`.
-3. Converted write endpoints are action views, and the view declares the existing endpoint's methods with `http_method_names`. `ActionSchema` describes each endpoint as it behaves. Where that differs from the published schema, such as a request body on a create endpoint that takes no input, or a response component the endpoint does not really return, do not copy the wrong contract with `@extend_schema`. List the difference as a wire change when converting, and decide it then.
+2. Regenerating the OpenAPI schemas (`docker compose up codegen`, configured as described in `.claude/rules/backend/codegen.md`) produces no diff, and `npx tsc -b --noEmit` passes in `packages/web`.
+3. Converted write endpoints are action views, and the view declares the existing endpoint's methods with `http_method_names`. `ActionSchema` describes each endpoint as it behaves. Where that differs from the published schema, such as a request body on a create endpoint that takes no input, or a response component the endpoint does not really return, do not copy the wrong contract with `@extend_schema`. List the difference as a wire change when converting, and decide it then. To keep the published contract, which shipped clients depend on, pin it on the view with `@extend_schema`, or with `extend_schema_view` when the methods differ, and say on the PR that it is a kept legacy contract.
 4. Existing serializer component names are kept with `extend_schema_serializer(component_name=...)`.
 5. Every caller of the app's old internal methods in other apps is updated in the same change.
 6. Only the shared classes the app uses are added.
@@ -1454,7 +1454,7 @@ The app exposes four endpoints under `games/<game_id>/draw-proposals/`:
 3. Vote, `PUT` and `PATCH` to `<proposal_id>/vote/`. These publish `DrawVoteUpdate` as both the request and the response schema, although the response body is actually a `DrawProposal`.
 4. Cancel, `DELETE` to `<proposal_id>/cancel/`, returning 204.
 
-The generated frontend client depends on these operation ids and the component names `DrawProposal`, `DrawVoteUpdate`, `DrawVoteMember` and `MyVote`, so the names stay as they are. The published contracts that do not match the endpoints are wire changes under rule 3: create's request body, vote's response and the partial `PATCH` vote body.
+The generated frontend client depends on these operation ids and the component names `DrawProposal`, `DrawVoteUpdate`, `DrawVoteMember` and `MyVote`, so the names stay as they are. Three published contracts do not match the endpoints: create's request body, vote's response and the partial `PATCH` vote body. Under rule 3 the conversion keeps all three, so the schema does not change.
 
 Today the rules are split across three places:
 
@@ -1473,7 +1473,7 @@ The list response is computed from prefetched votes, and a test asserts that the
 The app's internal methods are used elsewhere, and each of these callers moves to the new commands in the same change:
 
 1. The member app's withdrawal calls `apply_withdrawal(member, phase)` inside its own transaction, after locking the active phase.
-2. The notification registry calls `pending_for_phase`, which stays as a QuerySet method.
+2. The notification registry calls `pending_for_phase`, which becomes `phase.draw_proposals.pending()`.
 3. Tests in the member, notification and game apps, and the `seed_staging` management command, call `create_proposal(game=..., created_by=member)` and `process_acceptance()` directly.
 
 One notification test creates two proposals in the same phase through `create_proposal`. The propose policy refuses the second one, so that test's setup moves to `draw_proposal_factory`.
@@ -1504,4 +1504,4 @@ The serializer's sandbox validation duplicates `IsNotSandboxGame`, and both beco
 
 The current `with_related_data` becomes the `DrawProposalLoader` queryset, and the list, create and vote responses all go through it. The count fields become model properties over the prefetched votes. `my_vote` needs the requesting user. It becomes a hydrator, or stays a serializer method reading prefetched votes and the member from the serializer context; the implementer should choose whichever keeps the schema and the query count test unchanged.
 
-The list is a `LoaderListView`, create is a `CreateActionView`, and vote and cancel are `ActionView`s. Vote declares `http_method_names = ["put", "patch", "options"]` and cancel `["delete", "options"]`. Both look the proposal up with `lookup_url_kwarg = "proposal_id"` in a queryset filtered to the URL's game. `permission_classes = [IsAuthenticated]` is every view's only permission, and each `perform` calls one command. `ActionSchema` describes create as taking no body and vote as returning a `DrawProposal`, with `DrawVoteUpdate` required for both `PUT` and `PATCH`. These are the wire changes promotion would make. The output and vote serializers keep their published component names.
+The list is a `LoaderListView`, create is a `CreateActionView`, and vote and cancel are `ActionView`s. Vote declares `http_method_names = ["put", "patch", "options"]` and cancel `["delete", "options"]`. Both look the proposal up with `lookup_url_kwarg = "proposal_id"` in a queryset filtered to the URL's game. `permission_classes = [IsAuthenticated]` is every view's only permission, and each `perform` calls one command. The output and vote serializers keep their published component names. The create view keeps its published `DrawProposal` request body with `@extend_schema`. The vote view keeps its published `DrawVoteUpdate` response and partial `PatchedDrawVoteUpdate` `PATCH` body with `extend_schema_view`, although an action requires `accepted` on both methods.

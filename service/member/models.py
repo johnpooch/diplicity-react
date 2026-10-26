@@ -221,7 +221,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             if phase is not None:
                 self._vacate_phase(member, phase, orders_confirmed=True)
                 Phase.objects.arm_resolution(phase)
-                DrawProposal.objects.apply_withdrawal(member, phase)
+                DrawProposal.objects.release_member(phase, member)
 
             game.refresh_from_db(fields=["status"])
             if game.status == GameStatus.ACTIVE:
