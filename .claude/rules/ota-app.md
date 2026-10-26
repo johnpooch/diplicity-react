@@ -12,8 +12,7 @@ paths:
 # OTA updates in the app
 
 `@capgo/capacitor-updater` is configured under `plugins.CapacitorUpdater` in
-`packages/web/capacitor.config.ts` and talks to the endpoint in `service/update/`. The service side
-is covered by `.claude/rules/backend/ota-releases.md`.
+`packages/web/capacitor.config.ts` and talks to the endpoint in `service/update/`.
 
 ## The update URL is resolved at sync time, not build time
 

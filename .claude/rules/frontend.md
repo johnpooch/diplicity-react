@@ -56,7 +56,7 @@ This is the **only** sanctioned `eslint-disable` in the codebase.
 
 ### Polling
 
-Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` or `PrecomputedConditionalGetMixin` — see `.claude/rules/backend/views.md`. The precomputed variant also skips building the response, and it is allowed only when tests cover every response input. The browser/WebView revalidates with `If-None-Match` and receives an empty 304 when nothing changed; client code needs nothing extra. Do not add cache-busting query params or `Cache-Control` request headers to a polled request — both defeat revalidation.
+Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` or `PrecomputedConditionalGetMixin`. The precomputed variant also skips building the response, and it is allowed only when tests cover every response input. The browser/WebView revalidates with `If-None-Match` and receives an empty 304 when nothing changed; client code needs nothing extra. Do not add cache-busting query params or `Cache-Control` request headers to a polled request — both defeat revalidation.
 
 Otherwise, minimise `useEffect` — prefer derived state and event handlers. See `docs/frontend/react-use-effect-minimizer.md`.
 

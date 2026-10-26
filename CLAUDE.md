@@ -1,16 +1,9 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repository.
-
-## Evidence-based claims
-
-When asserting something about this codebase, cite the file and line you read it from. If you have not verified something, say so rather than inferring it.
-
 ## Project layout
 
 - `packages/web/` — React + TypeScript frontend. Conventions in `.claude/rules/frontend.md`. That rule loads automatically when you read a frontend file; **read it explicitly before writing a new component from scratch.**
-- `service/` — Django REST API + PostgreSQL. Conventions in `.claude/rules/backend/` (hub: `index.md`).
-- `packages/design-playground/` — prototyping app with its own `CLAUDE.md` that overrides this one.
+- `service/` — Django REST API + PostgreSQL.
 
 ## Environment
 
@@ -48,7 +41,11 @@ camelCase is applied by `CamelCaseJSONRenderer` at *render* time, so `response.d
 
 Never hand-edit `service/harness/generated/api.py` or `packages/web/src/api/generated/` — both are regenerated.
 
-After codegen, run `npx tsc -b --noEmit` in `packages/web`. See `.claude/rules/backend/codegen.md` for the environment config required to reproduce committed output byte-for-byte.
+After codegen, run `npx tsc -b --noEmit` in `packages/web`.
+
+To reproduce the committed output, run codegen with `DJANGO_DEBUG` off and `FIREBASE_PROJECT_ID` set. Without Firebase the schema drops `/devices/` and `FCMDevice`; never commit that removal. A throwaway project ID and a locally generated RSA key in `FIREBASE_PRIVATE_KEY` satisfy the guard without contacting Google.
+
+Serializer class names become component and type names, so renaming a serializer is a codegen change.
 
 ## Tests
 
@@ -57,51 +54,70 @@ python -m pytest <file> -v          # single file — preferred while iterating
 python -m pytest -n auto --reuse-db # full suite
 ```
 
-## Evals (`service/`)
-
-```bash
-python manage.py run_evals --limit 1   # quick smoke run
-```
-
-**Permission policy:** running a single epoch (the default — one pass over the dataset) is fine without asking. Do **not** run multiple epochs unless the user explicitly asks — that multiplies model calls and cost. For multiple epochs, invoke `inspect_ai.eval(..., epochs=N)` directly; the command exposes no `--epochs` flag.
-
-`dump_phase` turns a live game phase into eval raw material:
-
-```bash
-python manage.py dump_phase --game <id> --out phase_dumps
-cd packages/web
-npx vite-node scripts/render-phase.mjs ../../service/phase_dumps/<prefix>_render.json /tmp/board.png
-```
-
-## Design playground boundary
-
-`packages/design-playground/` prototypes screens before we build them, deploys independently, and ships to no users. Its own `CLAUDE.md` overrides this file — read it before working there. Two rules bind from this side:
-
-- **`packages/web` must never import from the playground.** The dependency direction is one-way; prototype code is rewritten into the app, not promoted out of it.
-- **Design gallery screens belong in the playground, not the app.** Do not add fixture-driven component galleries to `packages/web`.
-
 ## Always
 
 - **Follow existing patterns.** New code should be indistinguishable from existing code in style and structure. Raise deviations as a discussion; do not silently deviate.
-- **Do not add comments or docstrings**, including in tests. Do not annotate assertions to explain their values. The only exception is DRF view docstrings, which are extracted for OpenAPI.
+- **Do not add comments or docstrings**, including in tests. Do not annotate assertions to explain their values.
 - **Never suppress lint or type violations** — no `eslint-disable`, `@ts-ignore`, `# noqa`, `pytest.mark.skip`. The only exception is the mutation-in-`useEffect` pattern documented in `.claude/rules/frontend.md`.
 - **Write tests alongside features**, not as an afterthought.
-- **Absent beats dormant scaffolding.** Do not leave unused domain, apps, or wire fields “for later” — remove them and re-add when the feature is real. Backend detail in `.claude/rules/backend/`.
+- **Absent beats dormant scaffolding.** Do not leave unused domain, apps, or wire fields “for later” — remove them and re-add when the feature is real.
 
-## GitHub workflow
+## Backend
 
-Soft WIP limits: **5 open PRs**, **10 open issues**. A bot warns when exceeded — check the count before opening a new PR.
+### Architecture
 
-Issues have three sections (enforced by the `create-issue` skill): **Goal** (always), **Context** (when useful), **Approach** (when discussed). No acceptance criteria or implementation checklists.
+`docs/django-app-architecture.md` is the target shape for every app in `service/`. New apps and converted apps follow it. An unconverted app keeps its existing patterns until it is converted as a whole; do not convert part of an app inside an unrelated change.
 
-**PR screenshots are a completion criterion, not optional polish.** If a PR changes anything visible in the web app — new screens, layout, styling, copy, empty or error states — you MUST embed screenshots of the changed component in the PR description, so the reviewer sees what changed without pulling the branch. Use the `screenshots` skill for the workflow.
+- Writes go through commands: manager methods decorated with `@command`, which own the transaction, row locks and policy check. The command body runs side effects in order: model write methods, timers, events, follow-on commands.
+- Rules are checks, each a single predicate with a reason code, grouped into policies. A policy may list another policy. DRF permission classes only answer questions about the user alone, so a converted view's `permission_classes` is usually `IsAuthenticated`.
+- A check lives in the app that owns the data it queries beyond the target.
+- Use `requires` for operations a person asks for and `only_if` for system-triggered and follow-on commands. A follow-on command guards itself, so callers call it without a condition.
+- Lock parents before children. Every draw proposal write locks the phase before any proposal.
+- Reads go through loaders. Serializers do not query; a value that needs its own query per page is a hydrator.
+- Views declare a loader or call one command.
+- A policy refusal answers 403. Use `visible_to` to answer 404 only where hiding that a row exists matters.
+- Test commands through endpoints for status codes and bodies, and by calling the manager directly for system-triggered commands, `only_if` skipping, and calls from other apps. Build states the commands would refuse with factories.
 
-**Never commit screenshots.** Write them outside the working tree (`/tmp/shots/`) and upload them as GitHub attachments — do not add image files to the repo or reference them via `raw.githubusercontent.com`. `screenshots/` and `shots/` are gitignored; if you find committed screenshots, remove them.
+### Shipped clients
 
-**The `Screenshot Diff` workflow captures every screen automatically.** On each PR touching `packages/web`, it renders the merge base and the PR head against the MSW mocks at mobile and desktop, compares them, and comments with a before/head/difference image for each screen that changed. The screen matrix is expanded from the game fixtures by `packages/web/scripts/screenshot-diff/manifest.mjs`, so a new fixture gains coverage without editing the manifest, and images are published to Netlify rather than committed. This does not replace the rule above: the workflow shows what moved, the PR description still states what the reviewer should look at.
+The iOS and Android apps are Capacitor builds that bake in their own web bundle, so a backend change cannot update them.
 
-## Maintaining this document
+- Never delete a URL path that shipped. In August 2026, moving `/game/<id>/join/` broke joining for every app user. Keep the old path serving the same view through a subclass with `@extend_schema(exclude=True)`, a `-legacy` URL name, and a test that requests the literal path rather than `reverse()`.
+- Renaming a URL path or its `name=`, or changing a status code or response shape, is a wire change. List every one in the PR description.
+- Responses served through `CompletedPhaseCacheMixin` stay cached on clients for up to a week, so clients must tolerate the previous shape for that long.
+- A GET the client polls mixes in `ConditionalGetMixin`. A polled response must not contain values that change on their own between polls, such as a countdown or the server time.
 
-When you establish a convention or make an architectural decision, update this file or the relevant file in `.claude/rules/` in the same session — do not park lasting guidance only in a walkthrough ledger.
+### Deploys and storage
 
-**Guidance states rules, never inventories.** Do not write out a list or table of what exists in the codebase — classes, fixtures, endpoints, components, settings. Claude reads the code; a copy in a guidance document only goes stale and is wrong the moment someone adds a class without updating it. Say which file to read instead. Illustrative examples of a pattern are fine; an enumeration meant to be exhaustive is not.
+- Deploys overlap: the previous release serves until the new one passes `/health/`, and the new one migrates first. Add schema before code reads it. Dropping a field takes two deploys: remove it from state with `SeparateDatabaseAndState` (giving a `NOT NULL` column a database default), then drop the column in a later deploy.
+- Add an index to a live table with `AddIndexConcurrently` in a migration with `atomic = False`.
+- Store uploads in Postgres, never on the filesystem. The container filesystem is ephemeral, and a mounted volume stops Railway overlapping deploys.
+
+### Domain
+
+- A `Member` is a participant, not necessarily a player: a game master holds a member row with no nation. Anything that means a player goes through `players()`.
+- Seat mechanics key off `Member.vacant` and `Member.occupied`, never the departure fields directly. A replaced member is not vacant; exclude it with `not_replaced()`. Civil disorder is permanent.
+- Commitment is an append-only log. Never store a square or total, never edit an entry, and write events through `CommitmentEntry.objects.record()`.
+- There is no email notification channel. Player notifications are push only; email is only sent for verification and password reset.
+
+### Notification copy
+
+- The title is the game name. An event that needs naming goes in the body's first clause.
+- A body must stand on its own, and a repeat must not be byte-identical, because a newer push replaces the older one.
+- Calls to action are `get_link()`, never prose.
+- No placeholder strings such as `"N/A"` or `"Unknown"`; omit a clause whose data is missing.
+- Put people into copy only through the actor-rendering helper, which holds the anonymity check.
+
+### Logging
+
+`logger.error` creates a Sentry event against a small monthly quota, so log expected outcomes at `warning` or below. Use `%`-style arguments, never f-strings, so Sentry groups events by template.
+
+### OTA releases
+
+- `release_bundle` never defaults `--minimum-native-version`. Serving a bundle that needs native APIs the installed binary lacks is the failure the design prevents.
+- Any workflow that writes bundles keeps its guard to run only on `main`.
+- boto3 is pinned to one minor line on purpose: a wider range conflicts with `inspect-ai`'s `botocore` pin and fails CI's `pip install`.
+
+### Tests
+
+Each app has one `tests.py`. Check the root `service/conftest.py` before adding a fixture.
