@@ -3,7 +3,7 @@
   publish = "dist"
 
 [context.deploy-preview]
-  command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging-pr-${REVIEW_ID}.up.railway.app npm run build"
+  command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging.up.railway.app VITE_PREFILL_TEST_USER=true npm run build"
 
 # Redirect www to apex so Apple Sign In's postMessage targetOrigin (https://diplicity.com)
 # always matches the page the user is actually on.
