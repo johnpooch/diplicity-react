@@ -512,7 +512,7 @@ def test_other_users_draft_hidden_from_list(authenticated_client, user_factory):
 
 
 @pytest.mark.django_db
-def test_other_users_draft_returns_404_on_detail(authenticated_client, user_factory):
+def test_any_user_can_retrieve_other_users_draft(authenticated_client, user_factory):
     owner = user_factory()
     draft_variant = Variant.objects.create(
         id="vis-draft",
@@ -524,7 +524,41 @@ def test_other_users_draft_returns_404_on_detail(authenticated_client, user_fact
     response = authenticated_client.get(
         reverse("variant-detail", kwargs={"pk": draft_variant.id})
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_any_user_can_retrieve_archived_variant(authenticated_client):
+    archived_variant = Variant.objects.create(
+        id="vis-archived",
+        name="Visibility Archived",
+        description="",
+        status=VariantStatus.ARCHIVED,
+    )
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": archived_variant.id})
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_non_owner_cannot_delete_other_users_draft(authenticated_client, user_factory):
+    owner = user_factory()
+    draft_variant = Variant.objects.create(
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
+    )
+    response = authenticated_client.delete(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    retrieved = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+    assert retrieved.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db
