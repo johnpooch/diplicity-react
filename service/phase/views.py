@@ -124,7 +124,7 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
 
 @extend_schema(request=None, responses={200: PhaseListSerializer})
 class PhaseRevertView(SelectedGameMixin, SelectedPhaseMixin, generics.UpdateAPIView):
-    """Revert a sandbox game to this phase, deleting every later phase and this phase's orders."""
+    """Revert a sandbox game to this phase, deleting every later phase. This phase's orders are kept and their results cleared."""
 
     permission_classes = [
         permissions.IsAuthenticated,

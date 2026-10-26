@@ -1099,7 +1099,9 @@ class Phase(BaseModel):
 
         self.game.phases.filter(ordinal__gt=self.ordinal).delete()
 
-        Order.objects.filter(phase_state__phase=self).delete()
+        orders = Order.objects.filter(phase_state__phase=self)
+        orders.filter(is_implicit=True).delete()
+        OrderResolution.objects.filter(order__in=orders).delete()
 
         self.status = PhaseStatus.ACTIVE
         self.scheduled_resolution = self.game.get_scheduled_resolution(self.type)

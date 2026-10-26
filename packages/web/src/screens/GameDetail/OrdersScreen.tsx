@@ -476,8 +476,7 @@ const RevertPhaseButton: React.FC<RevertPhaseButtonProps> = ({ gameId, phase }) 
           <AlertDialogHeader>
             <AlertDialogTitle>Revert to {phase.name}</AlertDialogTitle>
             <AlertDialogDescription>
-              All later phases will be permanently deleted and this phase's orders
-              will be cleared.
+              All later phases will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

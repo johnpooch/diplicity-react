@@ -7518,7 +7518,7 @@ export function useGamePhaseRetrieveSuspense<
 }
 
 /**
- * Revert a sandbox game to this phase, deleting every later phase and this phase's orders.
+ * Revert a sandbox game to this phase, deleting every later phase. This phase's orders are kept and their results cleared.
  */
 export const gamePhaseRevertUpdate = (
   gameId: string,
@@ -7598,7 +7598,7 @@ export const useGamePhaseRevertUpdate = <TError = unknown, TContext = unknown>(
 };
 
 /**
- * Revert a sandbox game to this phase, deleting every later phase and this phase's orders.
+ * Revert a sandbox game to this phase, deleting every later phase. This phase's orders are kept and their results cleared.
  */
 export const gamePhaseRevertPartialUpdate = (
   gameId: string,
