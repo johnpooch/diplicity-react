@@ -3,10 +3,10 @@ import { act, render, screen } from "@testing-library/react";
 import {
   MemoryRouter,
   Route,
-  RouterProvider,
   Routes,
-  createMemoryRouter,
   matchRoutes,
+  useLocation,
+  useRoutes,
 } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -150,23 +150,32 @@ describe("createUnauthenticatedRoutes", () => {
     deepLinkStorage.consumePendingPath();
   });
 
-  const renderLoggedOut = () => {
-    const router = createMemoryRouter(createUnauthenticatedRoutes());
-    render(<RouterProvider router={router} />);
-    return router;
+  const LoggedOutRoutes: React.FC = () => useRoutes(createUnauthenticatedRoutes());
+
+  const CurrentLocation: React.FC = () => {
+    const location = useLocation();
+    return <div data-testid="location">{location.pathname + location.search}</div>;
   };
+
+  const renderLoggedOut = () =>
+    render(
+      <MemoryRouter>
+        <LoggedOutRoutes />
+        <CurrentLocation />
+      </MemoryRouter>
+    );
 
   it.each([
     ["/verify-email?uid=MQ&token=abc", "verify-email-screen"],
     ["/reset-password?uid=MQ&token=abc", "reset-password-screen"],
   ])("opens the emailed link %s while logged out", async (path, testId) => {
-    const router = renderLoggedOut();
+    renderLoggedOut();
     await screen.findByTestId("login-screen");
 
     act(() => deepLinkStorage.setPendingPath(path));
 
     expect(await screen.findByTestId(testId)).toBeTruthy();
-    expect(router.state.location.search).toBe("?uid=MQ&token=abc");
+    expect(screen.getByTestId("location").textContent).toBe(path);
     expect(deepLinkStorage.getPendingPath()).toBeNull();
   });
 
