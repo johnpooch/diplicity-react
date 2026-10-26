@@ -44,13 +44,10 @@ def default_phase_progression():
 class VariantQuerySet(models.QuerySet):
 
     def visible_to(self, user):
-        if not user.is_authenticated:
-            return self.filter(status=VariantStatus.PUBLISHED)
-        return self.filter(
-            Q(status=VariantStatus.PUBLISHED)
-            | Q(status=VariantStatus.DRAFT, owner=user)
-            | Q(games__members__user=user)
-        ).distinct()
+        visible = Q(status=VariantStatus.PUBLISHED) | Q(games__isnull=False)
+        if user.is_authenticated:
+            visible |= Q(status=VariantStatus.DRAFT, owner=user)
+        return self.filter(visible).distinct()
 
     def with_related_data(self):
         from nation.models import Nation

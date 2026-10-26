@@ -583,6 +583,43 @@ def test_member_of_draft_variant_game_can_retrieve_variant(
     assert response.status_code == status.HTTP_200_OK
 
 
+@pytest.mark.django_db
+def test_non_member_can_retrieve_draft_variant_used_by_game(
+    user_factory, authenticated_client_factory, game_factory
+):
+    owner = user_factory()
+    invitee_client = authenticated_client_factory(user_factory())
+    draft_variant = Variant.objects.create(
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
+    )
+    game_factory(variant=draft_variant, private=True)
+    response = invitee_client.get(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_non_member_can_retrieve_archived_variant_used_by_game(
+    authenticated_client, game_factory
+):
+    archived_variant = Variant.objects.create(
+        id="vis-archived",
+        name="Visibility Archived",
+        description="",
+        status=VariantStatus.ARCHIVED,
+    )
+    game_factory(variant=archived_variant)
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": archived_variant.id})
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
 class TestNationColor:
 
     @pytest.mark.django_db
