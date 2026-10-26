@@ -5,7 +5,11 @@ from django.db.models import Count, Max
 
 from .models import Channel, ChannelEvent
 from .policies import can_mute_channel, can_rename_channel
-from .serializers import ChannelEventSerializer, ChannelMemberSerializer, derive_channel_name
+from .serializers import (
+    ChannelEventSerializer,
+    ChannelMemberSerializer,
+    derive_channel_name,
+)
 
 CHANNEL_LIST_REPRESENTATION_VERSION = 3
 
@@ -37,7 +41,9 @@ def channel_list_fingerprint(request, game, member):
         .select_related("phase")
         .order_by("channel_id", "created_at", "id")
     )
-    members = game.members.select_related("user__profile__uploaded_picture", "nation__flag").order_by("id")
+    members = game.members.select_related(
+        "user__profile__uploaded_picture", "nation__flag"
+    ).order_by("id")
     context = {"request": request, "game": game}
     return _digest(
         [
@@ -60,7 +66,12 @@ def channel_list_fingerprint(request, game, member):
                 ]
                 for channel in channels
             ],
-            list(zip([event.channel_id for event in events], ChannelEventSerializer(events, many=True).data)),
+            list(
+                zip(
+                    [event.channel_id for event in events],
+                    ChannelEventSerializer(events, many=True).data,
+                )
+            ),
             ChannelMemberSerializer(members, many=True, context=context).data,
         ]
     )

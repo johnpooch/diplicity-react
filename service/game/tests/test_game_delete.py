@@ -11,7 +11,9 @@ delete_viewname = "game-delete"
 class TestGameDeleteView:
 
     @pytest.mark.django_db
-    def test_delete_sandbox_game_as_creator(self, authenticated_client, sandbox_game_factory):
+    def test_delete_sandbox_game_as_creator(
+        self, authenticated_client, sandbox_game_factory
+    ):
         game = sandbox_game_factory()
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
@@ -70,7 +72,9 @@ class TestGameDeleteView:
         game = sandbox_game_factory()
         url = reverse(delete_viewname, args=[game.id])
 
-        assert authenticated_client.delete(url).status_code == status.HTTP_204_NO_CONTENT
+        assert (
+            authenticated_client.delete(url).status_code == status.HTTP_204_NO_CONTENT
+        )
         assert authenticated_client.delete(url).status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
@@ -83,7 +87,9 @@ class TestGameDeleteView:
 class TestDeleteIfEmptyPending:
 
     @pytest.mark.django_db
-    def test_pending_game_with_no_members_is_deleted(self, base_pending_game_for_primary_user):
+    def test_pending_game_with_no_members_is_deleted(
+        self, base_pending_game_for_primary_user
+    ):
         game = base_pending_game_for_primary_user
         game_id = game.id
 
@@ -93,7 +99,9 @@ class TestDeleteIfEmptyPending:
         assert not Game.objects.filter(id=game_id).exists()
 
     @pytest.mark.django_db
-    def test_pending_game_with_members_is_not_deleted(self, pending_game_created_by_primary_user):
+    def test_pending_game_with_members_is_not_deleted(
+        self, pending_game_created_by_primary_user
+    ):
         game = pending_game_created_by_primary_user
 
         result = game.delete_if_empty_pending()
@@ -102,7 +110,9 @@ class TestDeleteIfEmptyPending:
         assert Game.objects.filter(id=game.id).exists()
 
     @pytest.mark.django_db
-    def test_active_game_with_no_members_is_not_deleted(self, base_pending_game_for_primary_user):
+    def test_active_game_with_no_members_is_not_deleted(
+        self, base_pending_game_for_primary_user
+    ):
         game = base_pending_game_for_primary_user
         game.status = GameStatus.ACTIVE
         game.save()

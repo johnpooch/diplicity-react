@@ -10,6 +10,7 @@ here belongs to exactly one of Order, Check, State, or View. No
 behavior beyond the trivial identity accessor `source_province` on
 Order subclasses.
 """
+
 from __future__ import annotations
 
 # === Imports ===
@@ -314,6 +315,7 @@ class SupportMoveSupportedCanReachCheck(Check):
         if not convoy_fleet_locs:
             return False
         from .convoy import convoy_path_exists
+
         return convoy_path_exists(
             state, source_parent, target_parent, convoy_fleet_locs
         )
@@ -424,12 +426,12 @@ class ConvoyFleetReachesEndpointsCheck(Check):
     def check(cls, state: "StateView", order: Order) -> bool:
         assert isinstance(order, ConvoyOrder)
         from .convoy import fleet_reaches_coast
+
         variant = state.variant()
         source = variant.parent_of(order.army_source)
         target = variant.parent_of(order.army_target)
-        return (
-            fleet_reaches_coast(state, order.source, source)
-            and fleet_reaches_coast(state, order.source, target)
+        return fleet_reaches_coast(state, order.source, source) and fleet_reaches_coast(
+            state, order.source, target
         )
 
 
@@ -1141,8 +1143,7 @@ class NationView:
         and an unfiltered path lookup, and the unfiltered (raw-graph)
         path is always at least as short."""
         units = tuple(
-            u for u in self._state.units
-            if u.nation == self._nation and not u.dislodged
+            u for u in self._state.units if u.nation == self._nation and not u.dislodged
         )
         if not self.home_supply_centers():
             return tuple(
@@ -1153,10 +1154,12 @@ class NationView:
             )
         distances = self._distance_from_home()
         variant = self._state.variant
+
         def unit_distance(unit: Unit) -> int:
             if unit.location in distances:
                 return distances[unit.location]
             return distances.get(variant.parent_of(unit.location), 0)
+
         return tuple(
             sorted(
                 units,

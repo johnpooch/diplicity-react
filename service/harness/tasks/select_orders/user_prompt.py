@@ -46,7 +46,9 @@ def user_prompt(context: Context) -> str:
                 f"{names.get(adjacency['to'], adjacency['to'])}({ALLOWS_LABEL[tuple(adjacency['allows'])]})"
                 for adjacency in province["adjacencies"]
             )
-            lines.append(f"  {province['name']} ({province['id']}, {province['type']}){supply_center} -> {adjacencies}")
+            lines.append(
+                f"  {province['name']} ({province['id']}, {province['type']}){supply_center} -> {adjacencies}"
+            )
 
     if context["units"]:
         lines.append("")
@@ -55,7 +57,9 @@ def user_prompt(context: Context) -> str:
             mine = " [yours]" if unit["nation"] == nation else ""
             dislodged = " [DISLODGED]" if unit["dislodged"] else ""
             province = names.get(unit["province"], unit["province"])
-            lines.append(f"  {unit['type']} {province} — {unit['nation']}{mine}{dislodged}")
+            lines.append(
+                f"  {unit['type']} {province} — {unit['nation']}{mine}{dislodged}"
+            )
 
     if context["supply_centers"]:
         lines.append("")

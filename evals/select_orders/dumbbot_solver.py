@@ -14,7 +14,9 @@ def dumbbot_solver():
         context = state.metadata["context"]
         orders = dumbbot_select_orders(context, rng=random.Random(state.epoch))
         choices = [{"option_id": option_id(order)} for order in orders]
-        state.output = ModelOutput.from_content(model="dumbbot", content=json.dumps({"choices": choices}))
+        state.output = ModelOutput.from_content(
+            model="dumbbot", content=json.dumps({"choices": choices})
+        )
         return state
 
     return solve

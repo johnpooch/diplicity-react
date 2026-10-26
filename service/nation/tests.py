@@ -11,8 +11,11 @@ from nation.admin import NationFlagAdminForm
 from nation.models import NationFlag
 from nation.utils import FLAG_MAX_BYTES
 
-
-COMMITTED_FLAGS = sorted((Path(__file__).resolve().parent.parent / "variant" / "data" / "flags").glob("*/*.svg"))
+COMMITTED_FLAGS = sorted(
+    (Path(__file__).resolve().parent.parent / "variant" / "data" / "flags").glob(
+        "*/*.svg"
+    )
+)
 
 SVG_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 
@@ -22,8 +25,14 @@ UNSAFE_SVG_PAYLOADS = [
     ('<set attributeName="href" from="javascript:alert(1)"/>', "alert("),
     ('<rect onclick="alert(1)" onmouseover="alert(2)"/>', "alert("),
     ("<script>alert(1)</script>", "alert("),
-    ('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>', "alert("),
-    ('<html:script xmlns:html="http://www.w3.org/1999/xhtml">alert(1)</html:script>', "alert("),
+    (
+        '<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>',
+        "alert(",
+    ),
+    (
+        '<html:script xmlns:html="http://www.w3.org/1999/xhtml">alert(1)</html:script>',
+        "alert(",
+    ),
     ('<a href="data:text/html,alert(1)"><rect/></a>', "alert("),
     ('<image href="javascript:alert(1)"/>', "alert("),
     ('<image xlink:href="data:image/svg+xml;base64,PHN2Zy8+"/>', "data:image/svg"),
@@ -34,11 +43,23 @@ UNSAFE_SVG_PAYLOADS = [
     ('<rect style="width:expression(alert(1))"/>', "alert("),
     ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
     ("<style>rect{fill:url(https://evil.example/a.png)}</style>", "evil.example"),
-    ("<style>@font-face{font-family:'F';src:url(https://evil.example/f.woff)}</style>", "evil.example"),
-    ('<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
-    ('<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    (
+        "<style>@font-face{font-family:'F';src:url(https://evil.example/f.woff)}</style>",
+        "evil.example",
+    ),
+    (
+        '<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>',
+        "evil.example",
+    ),
+    (
+        '<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>',
+        "evil.example",
+    ),
     ('<style>.a{fill:expression(alert(1))}</style><rect class="a"/>', "alert("),
-    ('<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>', "evil.example"),
+    (
+        '<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>',
+        "evil.example",
+    ),
     ('<style>.a{fill:#fff}body{fill:#123456}</style><rect class="a"/>', "#123456"),
     ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
     ('<style>.a, rect{fill:#abcdef}</style><rect class="a"/>', "#abcdef"),
@@ -102,7 +123,10 @@ COMPOUND_CLASS_STYLESHEET = (
 COMPOUND_CLASS_STYLED_ELEMENTS = [
     ('class="sc owner-Stark"', ' style="fill:#6f8190;stroke-width:1.9"'),
     ('class="owner-Stark"', ""),
-    ('class="border sea"', ' style="stroke:#3d3226;stroke-width:1.1;stroke-dasharray:5 3"'),
+    (
+        'class="border sea"',
+        ' style="stroke:#3d3226;stroke-width:1.1;stroke-dasharray:5 3"',
+    ),
     ('class="border"', ""),
     ('class="coast"', ' style="stroke-dasharray:5 3"'),
     ('class="sc owner-Stark" style="fill:#000"', ' style="stroke-width:1.9;fill:#000"'),
@@ -123,14 +147,21 @@ class TestNationFlagUploadView:
         self, unauthenticated_client, draft_variant_for_primary, minimal_flag_svg
     ):
         response = unauthenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(minimal_flag_svg),
             format="multipart",
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_upload_to_published_variant_forbidden(
-        self, authenticated_client, classical_variant, classical_england_nation, minimal_flag_svg
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        minimal_flag_svg,
     ):
         response = authenticated_client.put(
             reverse(
@@ -149,7 +180,10 @@ class TestNationFlagUploadView:
         self, authenticated_client, draft_variant_for_secondary, minimal_flag_svg
     ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "secondary-draft", "nation_id": "greens"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "secondary-draft", "nation_id": "greens"},
+            ),
             _flag_upload(minimal_flag_svg),
             format="multipart",
         )
@@ -159,7 +193,10 @@ class TestNationFlagUploadView:
         self, authenticated_client, draft_variant_for_primary, minimal_flag_svg
     ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(minimal_flag_svg),
             format="multipart",
         )
@@ -173,10 +210,16 @@ class TestNationFlagUploadView:
     def test_upload_replaces_existing_flag(
         self, authenticated_client, draft_variant_for_primary, minimal_flag_svg
     ):
-        url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
-        first = authenticated_client.put(url, _flag_upload(minimal_flag_svg), format="multipart")
+        url = reverse(
+            "nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}
+        )
+        first = authenticated_client.put(
+            url, _flag_upload(minimal_flag_svg), format="multipart"
+        )
         second_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 5"/>'
-        second = authenticated_client.put(url, _flag_upload(second_svg), format="multipart")
+        second = authenticated_client.put(
+            url, _flag_upload(second_svg), format="multipart"
+        )
         assert first.status_code == second.status_code == status.HTTP_200_OK
         assert first.data["flag_url"] != second.data["flag_url"]
         assert (
@@ -186,31 +229,48 @@ class TestNationFlagUploadView:
             == 1
         )
 
-    def test_upload_rejects_oversize(self, authenticated_client, draft_variant_for_primary):
-        huge = '<svg xmlns="http://www.w3.org/2000/svg">' + ("<rect/>" * 50000) + "</svg>"
+    def test_upload_rejects_oversize(
+        self, authenticated_client, draft_variant_for_primary
+    ):
+        huge = (
+            '<svg xmlns="http://www.w3.org/2000/svg">' + ("<rect/>" * 50000) + "</svg>"
+        )
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(huge),
             format="multipart",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_upload_rejects_malformed_svg(self, authenticated_client, draft_variant_for_primary):
+    def test_upload_rejects_malformed_svg(
+        self, authenticated_client, draft_variant_for_primary
+    ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload("<svg><rect"),
             format="multipart",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_upload_sanitizes_scripts(self, authenticated_client, draft_variant_for_primary):
+    def test_upload_sanitizes_scripts(
+        self, authenticated_client, draft_variant_for_primary
+    ):
         svg = (
             '<svg xmlns="http://www.w3.org/2000/svg">'
             '<script>alert(1)</script><rect id="r1" onclick="x"/>'
             "</svg>"
         )
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(svg),
             format="multipart",
         )
@@ -227,7 +287,10 @@ class TestNationFlagUploadView:
         self, authenticated_client, draft_variant_for_primary, payload, marker
     ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(f'{SVG_OPEN}<rect id="sentinel"/>{payload}</svg>'),
             format="multipart",
         )
@@ -242,7 +305,10 @@ class TestNationFlagUploadView:
         self, authenticated_client, draft_variant_for_primary, content
     ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(f"{SVG_OPEN}{content}</svg>"),
             format="multipart",
         )
@@ -258,7 +324,10 @@ class TestNationFlagUploadView:
         valid = "@font-face{font-family:'A';src:url(data:font/woff2;base64,AAAA) format('woff2');unicode-range:U+0-7F}"
         invalid = f"@font-face{{font-family:'B';src:url(data:font/woff2;base64,AAAA);unicode-range:{unicode_range}}}"
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(f"{SVG_OPEN}<style>{valid}{invalid}</style></svg>"),
             format="multipart",
         )
@@ -269,11 +338,20 @@ class TestNationFlagUploadView:
 
     @pytest.mark.parametrize("attributes, expected_style", CLASS_STYLED_ELEMENTS)
     def test_upload_inlines_class_rules(
-        self, authenticated_client, draft_variant_for_primary, attributes, expected_style
+        self,
+        authenticated_client,
+        draft_variant_for_primary,
+        attributes,
+        expected_style,
     ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
-            _flag_upload(f'{SVG_OPEN}<style>{CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
+            _flag_upload(
+                f'{SVG_OPEN}<style>{CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'
+            ),
             format="multipart",
         )
         assert response.status_code == status.HTTP_200_OK
@@ -283,12 +361,21 @@ class TestNationFlagUploadView:
         assert "class=" not in served
         assert "<style" not in served
 
-    @pytest.mark.parametrize("attributes, expected_attributes", COMPOUND_CLASS_STYLED_ELEMENTS)
+    @pytest.mark.parametrize(
+        "attributes, expected_attributes", COMPOUND_CLASS_STYLED_ELEMENTS
+    )
     def test_upload_inlines_compound_class_rules_by_specificity(
-        self, authenticated_client, draft_variant_for_primary, attributes, expected_attributes
+        self,
+        authenticated_client,
+        draft_variant_for_primary,
+        attributes,
+        expected_attributes,
     ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(
                 f'{SVG_OPEN}<style>{COMPOUND_CLASS_STYLESHEET}</style><rect id="target" {attributes}/></svg>'
             ),
@@ -306,7 +393,10 @@ class TestNationFlagUploadView:
     ):
         font_face = "@font-face{font-family:'F';src:url(data:font/woff2;base64,AAAA) format('woff2')}"
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(
                 f"{SVG_OPEN}<style>.st0{{fill:#FEC50C;}}{font_face}.st1{{fill:#FFFFFF;}}</style>"
                 '<rect id="a" class="st0"/><rect id="b" class="st1"/></svg>'
@@ -321,20 +411,29 @@ class TestNationFlagUploadView:
         assert '<rect id="b" style="fill:#FFFFFF"/>' in served
         assert "class=" not in served
 
-    def test_upload_rejects_non_svg_root(self, authenticated_client, draft_variant_for_primary):
+    def test_upload_rejects_non_svg_root(
+        self, authenticated_client, draft_variant_for_primary
+    ):
         response = authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload('<html xmlns="http://www.w3.org/1999/xhtml"><body/></html>'),
             format="multipart",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data == {"flag": "Flag must be an <svg> element in the SVG namespace."}
+        assert response.data == {
+            "flag": "Flag must be an <svg> element in the SVG namespace."
+        }
 
     def test_reuploading_a_served_flag_keeps_its_url(
         self, authenticated_client, draft_variant_for_primary
     ):
-        url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
+        url = reverse(
+            "nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}
+        )
         first = authenticated_client.put(
             url, _flag_upload(COMMITTED_FLAGS[0].read_text()), format="multipart"
         )
@@ -344,9 +443,15 @@ class TestNationFlagUploadView:
 
         assert second.data["flag_url"] == first.data["flag_url"]
 
-    def test_delete_flag(self, authenticated_client, draft_variant_for_primary, minimal_flag_svg):
-        url = reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"})
-        authenticated_client.put(url, _flag_upload(minimal_flag_svg), format="multipart")
+    def test_delete_flag(
+        self, authenticated_client, draft_variant_for_primary, minimal_flag_svg
+    ):
+        url = reverse(
+            "nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}
+        )
+        authenticated_client.put(
+            url, _flag_upload(minimal_flag_svg), format="multipart"
+        )
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not NationFlag.objects.filter(
@@ -358,7 +463,8 @@ class TestNationFlagUploadView:
     ):
         response = authenticated_client.put(
             reverse(
-                "nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "nonexistent"}
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "nonexistent"},
             ),
             _flag_upload(minimal_flag_svg),
             format="multipart",
@@ -373,7 +479,10 @@ class TestNationFlagUploadView:
         etag = before["ETag"]
 
         authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+            reverse(
+                "nation-flag",
+                kwargs={"variant_id": "primary-draft", "nation_id": "reds"},
+            ),
             _flag_upload(minimal_flag_svg),
             format="multipart",
         )
@@ -413,7 +522,9 @@ class TestNationFlagSvgView:
         assert "immutable" in response["Cache-Control"]
         assert "max-age=31536000" in response["Cache-Control"]
 
-    def test_gzip_encoded_when_client_accepts(self, unauthenticated_client, draft_variant_for_primary):
+    def test_gzip_encoded_when_client_accepts(
+        self, unauthenticated_client, draft_variant_for_primary
+    ):
         stripes = "".join(
             f'<rect y="{i}" width="10" height="1" fill="#ff0000"/>' for i in range(10)
         )
@@ -462,37 +573,59 @@ class TestNationFlagSvgView:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-
-    @pytest.mark.parametrize("flag_path", COMMITTED_FLAGS, ids=lambda path: f"{path.parent.name}/{path.stem}")
+    @pytest.mark.parametrize(
+        "flag_path", COMMITTED_FLAGS, ids=lambda path: f"{path.parent.name}/{path.stem}"
+    )
     def test_committed_flags_keep_their_rendering(
-        self, authenticated_client, unauthenticated_client, svg_rendering_signature, flag_path
+        self,
+        authenticated_client,
+        unauthenticated_client,
+        svg_rendering_signature,
+        flag_path,
     ):
-        variant = authenticated_client.get(reverse("variant-detail", kwargs={"pk": flag_path.parent.name}))
-        nation = next(nation for nation in variant.data["nations"] if nation["nation_id"] == flag_path.stem)
+        variant = authenticated_client.get(
+            reverse("variant-detail", kwargs={"pk": flag_path.parent.name})
+        )
+        nation = next(
+            nation
+            for nation in variant.data["nations"]
+            if nation["nation_id"] == flag_path.stem
+        )
 
         served = unauthenticated_client.get(nation["flag_url"])
 
         assert served.status_code == status.HTTP_200_OK
-        assert svg_rendering_signature(served.content.decode()) == svg_rendering_signature(flag_path.read_text())
+        assert svg_rendering_signature(
+            served.content.decode()
+        ) == svg_rendering_signature(flag_path.read_text())
 
 
 @pytest.mark.django_db
 class TestNationFlagAdminForm:
-    def test_admin_form_accepts_valid_upload(self, draft_variant_for_primary, minimal_flag_svg):
+    def test_admin_form_accepts_valid_upload(
+        self, draft_variant_for_primary, minimal_flag_svg
+    ):
         nation = draft_variant_for_primary.nations.first()
 
         form = NationFlagAdminForm(
-            data={"nation": nation.pk}, files={"svg_file": _admin_upload(minimal_flag_svg)}
+            data={"nation": nation.pk},
+            files={"svg_file": _admin_upload(minimal_flag_svg)},
         )
 
         assert form.is_valid(), form.errors
         instance = form.save()
         assert instance.nation == nation
-        assert instance.content_hash == hashlib.sha256(instance.svg.encode()).hexdigest()
+        assert (
+            instance.content_hash == hashlib.sha256(instance.svg.encode()).hexdigest()
+        )
 
-    def test_admin_form_replaces_existing_flag(self, draft_variant_for_primary, minimal_flag_svg):
+    def test_admin_form_replaces_existing_flag(
+        self, draft_variant_for_primary, minimal_flag_svg
+    ):
         nation = draft_variant_for_primary.nations.first()
-        existing = NationFlag.objects.create(nation=nation, svg='<svg xmlns="http://www.w3.org/2000/svg"/>')
+        existing = NationFlag.objects.create(
+            nation=nation, svg='<svg xmlns="http://www.w3.org/2000/svg"/>'
+        )
         original_hash = existing.content_hash
 
         form = NationFlagAdminForm(
@@ -509,7 +642,8 @@ class TestNationFlagAdminForm:
         nation = draft_variant_for_primary.nations.first()
 
         form = NationFlagAdminForm(
-            data={"nation": nation.pk}, files={"svg_file": _admin_upload("<svg><g></svg>")}
+            data={"nation": nation.pk},
+            files={"svg_file": _admin_upload("<svg><g></svg>")},
         )
 
         assert not form.is_valid()
@@ -519,7 +653,11 @@ class TestNationFlagAdminForm:
 
         form = NationFlagAdminForm(
             data={"nation": nation.pk},
-            files={"svg_file": _admin_upload('<html xmlns="http://www.w3.org/1999/xhtml"/>')},
+            files={
+                "svg_file": _admin_upload(
+                    '<html xmlns="http://www.w3.org/1999/xhtml"/>'
+                )
+            },
         )
 
         assert not form.is_valid()

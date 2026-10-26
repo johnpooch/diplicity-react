@@ -19,7 +19,9 @@ def revert_spring_season_to_year(apps, schema_editor):
 
     try:
         hundred_variant = Variant.objects.get(id="hundred")
-        Phase.objects.filter(variant=hundred_variant, season="Spring").update(season="Year")
+        Phase.objects.filter(variant=hundred_variant, season="Spring").update(
+            season="Year"
+        )
     except Variant.DoesNotExist:
         pass
 

@@ -3,7 +3,11 @@ from pathlib import Path
 
 from adjudicator import adjudicate
 from adjudicator.options import get_options
-from adjudicator.serializers import deserialize_game_state, deserialize_variant, serialize_options
+from adjudicator.serializers import (
+    deserialize_game_state,
+    deserialize_variant,
+    serialize_options,
+)
 
 from engine.exceptions import UnknownVariantError
 

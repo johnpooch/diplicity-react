@@ -66,6 +66,7 @@ cycle-breaker methods following the same pattern. The
 Decision-graph substrate accommodates them without further
 architectural change.
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -93,7 +94,6 @@ from .types import (
     SupportHoldOrder,
     SupportMoveOrder,
 )
-
 
 # === Decision kind constants ===
 
@@ -217,9 +217,7 @@ class _Solver:
             illegal = resolutions[i].status == Status.ILLEGAL
             if isinstance(order, (SupportHoldOrder, SupportMoveOrder)):
                 if not illegal:
-                    self._add_decision(
-                        _SUPPORT_CUT, i, self._support_cut_deps(i)
-                    )
+                    self._add_decision(_SUPPORT_CUT, i, self._support_cut_deps(i))
                 self._add_decision(
                     _HOLD_STRENGTH, i, self._hold_strength_deps(i, illegal)
                 )
@@ -242,9 +240,7 @@ class _Solver:
                             i,
                             self._convoy_path_intact_deps(i),
                         )
-                    self._add_decision(
-                        _MOVE_STATUS, i, self._move_status_deps(i)
-                    )
+                    self._add_decision(_MOVE_STATUS, i, self._move_status_deps(i))
                 self._add_decision(
                     _HOLD_STRENGTH, i, self._hold_strength_deps(i, illegal)
                 )
@@ -434,9 +430,7 @@ class _Solver:
             parents.add(variant.parent_of(order.source))
         return parents
 
-    def _matched_convoy_fleet_locations(
-        self, move_index: int
-    ) -> Tuple[str, ...]:
+    def _matched_convoy_fleet_locations(self, move_index: int) -> Tuple[str, ...]:
         """Fleet locations (not parents) of matched, non-ILLEGAL
         ConvoyOrders corresponding to the given convoyed Move. The
         locations are passed to convoy_path_exists, which normalises via
@@ -653,9 +647,7 @@ class _Solver:
             active += 1
         return 1 + active
 
-    def _compute_move_status(
-        self, i: int
-    ) -> Optional[Tuple[str, str, Optional[str]]]:
+    def _compute_move_status(self, i: int) -> Optional[Tuple[str, str, Optional[str]]]:
         parsed = self._parsed
         variant = self._variant
         resolutions = self._initial_resolutions
@@ -960,9 +952,7 @@ class _Solver:
                     return False
         return True
 
-    def _cycle_optimistic_attack(
-        self, i: int, cycle_set: Set[int]
-    ) -> Optional[int]:
+    def _cycle_optimistic_attack(self, i: int, cycle_set: Set[int]) -> Optional[int]:
         """Compute ATTACK_STRENGTH[i] under the assumption that every
         defender that is itself a member of `cycle_set` succeeds and
         vacates. Returns None when a non-cycle dependency is still
@@ -998,7 +988,10 @@ class _Solver:
                 continue
             if self._dec_value((_SUPPORT_CUT, k)) != Status.OK:
                 continue
-            if defender_nation is not None and self._parsed[k].nation == defender_nation:
+            if (
+                defender_nation is not None
+                and self._parsed[k].nation == defender_nation
+            ):
                 continue
             active += 1
         return 1 + active
@@ -1048,9 +1041,7 @@ class _Solver:
         stack from the cycle's entry point onward."""
         WHITE, GRAY, BLACK = 0, 1, 2
         color: Dict[_Key, int] = {
-            key: WHITE
-            for key, d in self._decisions.items()
-            if d.value is None
+            key: WHITE for key, d in self._decisions.items() if d.value is None
         }
         for start in list(color):
             if color[start] != WHITE:
@@ -1073,9 +1064,7 @@ class _Solver:
                 if color[neighbour] == GRAY:
                     return self._extract_cycle(neighbour, stack)
                 color[neighbour] = GRAY
-                stack.append(
-                    (neighbour, deque(self._unresolved_deps(neighbour)))
-                )
+                stack.append((neighbour, deque(self._unresolved_deps(neighbour))))
         return None
 
     def _unresolved_deps(self, key: _Key) -> List[_Key]:
@@ -1085,10 +1074,7 @@ class _Solver:
         node cannot complete a cycle of unresolved values) and to
         keep the search tight."""
         decision = self._decisions[key]
-        return [
-            d for d in decision.dependencies
-            if self._decisions[d].value is None
-        ]
+        return [d for d in decision.dependencies if self._decisions[d].value is None]
 
     def _extract_cycle(
         self,
@@ -1209,9 +1195,7 @@ class _Solver:
         ]
         if not unresolved:
             return
-        formatted = ", ".join(
-            f"{kind}[{subject}]" for (kind, subject), _ in unresolved
-        )
+        formatted = ", ".join(f"{kind}[{subject}]" for (kind, subject), _ in unresolved)
         raise RuntimeError(
             "Strength-and-cut solver terminated with unresolved decisions: "
             f"{formatted}. This indicates a bug in the decision graph "
@@ -1255,9 +1239,7 @@ class _Solver:
 # narrow exception on Order; until then, these stay as functions.
 
 
-def _matching_attack_supports(
-    state: StateView, move_index: int
-) -> Tuple[int, ...]:
+def _matching_attack_supports(state: StateView, move_index: int) -> Tuple[int, ...]:
     """Indices of SupportMoveOrders matched to the given Move."""
     parsed = state.parsed_orders()
     resolutions = state.resolutions()
@@ -1284,9 +1266,7 @@ def _matching_attack_supports(
     return tuple(results)
 
 
-def _matching_hold_supports(
-    state: StateView, supported_index: int
-) -> Tuple[int, ...]:
+def _matching_hold_supports(state: StateView, supported_index: int) -> Tuple[int, ...]:
     """Indices of SupportHoldOrders matched to the unit at
     parsed_orders[supported_index]'s source province."""
     parsed = state.parsed_orders()
@@ -1308,9 +1288,7 @@ def _matching_hold_supports(
     return tuple(results)
 
 
-def _head_to_head_opponent_index(
-    state: StateView, move_index: int
-) -> Optional[int]:
+def _head_to_head_opponent_index(state: StateView, move_index: int) -> Optional[int]:
     """Index of the opposing MoveOrder forming a head-to-head pair with
     parsed_orders[move_index], or None. Two Moves are head-to-head when
     each targets the other's source parent and neither is ILLEGAL — *and
@@ -1342,9 +1320,7 @@ def _head_to_head_opponent_index(
     return None
 
 
-def _defender_order_index(
-    state: StateView, attacker_index: int
-) -> Optional[int]:
+def _defender_order_index(state: StateView, attacker_index: int) -> Optional[int]:
     """Index of the Movement-phase order at the attacker's target parent
     (the unit being attacked), or None. Returned regardless of order
     type — the caller checks whether that unit is moving away. Convoy

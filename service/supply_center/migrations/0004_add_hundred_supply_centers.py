@@ -11,18 +11,34 @@ def add_hundred_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     hundred_variant = Variant.objects.get(id="hundred")
-    template_phase = Phase.objects.get(game=None, variant=hundred_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=hundred_variant, status="template"
+    )
 
-    supply_centers_data = [{'nation': 'England', 'province': 'guy'}, {'nation': 'England', 'province': 'nom'}, {'nation': 'France', 'province': 'orl'}, {'nation': 'France', 'province': 'tou'}, {'nation': 'England', 'province': 'cal'}, {'nation': 'Burgundy', 'province': 'dij'}, {'nation': 'England', 'province': 'lon'}, {'nation': 'England', 'province': 'dev'}, {'nation': 'Burgundy', 'province': 'hol'}, {'nation': 'Burgundy', 'province': 'lux'}, {'nation': 'Burgundy', 'province': 'fla'}, {'nation': 'France', 'province': 'dau'}, {'nation': 'France', 'province': 'par'}]
+    supply_centers_data = [
+        {"nation": "England", "province": "guy"},
+        {"nation": "England", "province": "nom"},
+        {"nation": "France", "province": "orl"},
+        {"nation": "France", "province": "tou"},
+        {"nation": "England", "province": "cal"},
+        {"nation": "Burgundy", "province": "dij"},
+        {"nation": "England", "province": "lon"},
+        {"nation": "England", "province": "dev"},
+        {"nation": "Burgundy", "province": "hol"},
+        {"nation": "Burgundy", "province": "lux"},
+        {"nation": "Burgundy", "province": "fla"},
+        {"nation": "France", "province": "dau"},
+        {"nation": "France", "province": "par"},
+    ]
 
     for sc_data in supply_centers_data:
         nation = Nation.objects.get(variant=hundred_variant, name=sc_data["nation"])
-        province = Province.objects.get(variant=hundred_variant, province_id=sc_data["province"])
+        province = Province.objects.get(
+            variant=hundred_variant, province_id=sc_data["province"]
+        )
 
         SupplyCenter.objects.create(
-            nation=nation,
-            province=province,
-            phase=template_phase
+            nation=nation, province=province, phase=template_phase
         )
 
 
@@ -32,7 +48,9 @@ def remove_hundred_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     hundred_variant = Variant.objects.get(id="hundred")
-    template_phase = Phase.objects.get(game=None, variant=hundred_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=hundred_variant, status="template"
+    )
     SupplyCenter.objects.filter(phase=template_phase).delete()
 
 

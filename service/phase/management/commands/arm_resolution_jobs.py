@@ -8,4 +8,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         armed = Phase.objects.backfill_resolution_jobs()
-        self.stdout.write(self.style.SUCCESS(f"Armed resolution jobs for {armed} phases."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Armed resolution jobs for {armed} phases.")
+        )

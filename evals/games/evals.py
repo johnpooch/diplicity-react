@@ -27,9 +27,17 @@ def model_player(model: Model) -> Policy:
     async def turn(here: dict) -> dict:
         context = fixture_to_context(here)
         system, user = system_prompt(context), user_prompt(context)
-        answer = {"system": system, "user": user, "completion": None, "reasoning": None, "problem": None}
+        answer = {
+            "system": system,
+            "user": user,
+            "completion": None,
+            "reasoning": None,
+            "problem": None,
+        }
         try:
-            output = await model.generate([ChatMessageSystem(content=system), ChatMessageUser(content=user)])
+            output = await model.generate(
+                [ChatMessageSystem(content=system), ChatMessageUser(content=user)]
+            )
         except Exception as e:
             return {"orders": [], **answer, "problem": f"model call failed: {e}"}
         answer["completion"] = output.completion
@@ -48,10 +56,18 @@ def model_player(model: Model) -> Policy:
 def game_solver():
     async def solve(state, generate):
         nation, seed = state.metadata["nation"], state.metadata["seed"]
-        game = await play({**dumbbot_seats(seed), nation: model_player(get_model())}, nation)
+        game = await play(
+            {**dumbbot_seats(seed), nation: model_player(get_model())}, nation
+        )
         paired = await play(dumbbot_seats(seed), nation)
         state.store.set(GAME_STORE_KEY, game["phases"])
-        state.metadata.update({"centres": game["centres"], "end": game["end"], "paired_centres": paired["centres"]})
+        state.metadata.update(
+            {
+                "centres": game["centres"],
+                "end": game["end"],
+                "paired_centres": paired["centres"],
+            }
+        )
         return state
 
     return solve
@@ -69,6 +85,11 @@ def game_sample(nation: str, seed: int) -> Sample:
 @task
 def play_game(nation: str, first_seed: int = 0, games: int = 1):
     return Task(
-        dataset=MemoryDataset([game_sample(nation, seed) for seed in range(first_seed, first_seed + games)]),
+        dataset=MemoryDataset(
+            [
+                game_sample(nation, seed)
+                for seed in range(first_seed, first_seed + games)
+            ]
+        ),
         solver=game_solver(),
     )

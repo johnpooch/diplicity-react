@@ -1,10 +1,10 @@
 from django.db import migrations
 
 UPDATED_COLORS = {
-    'Britain': '#2198F5',
-    'China': '#F33F35',
-    'Holland': '#F56B26',
-    'Japan': '#4CAF50',
+    "Britain": "#2198F5",
+    "China": "#F33F35",
+    "Holland": "#F56B26",
+    "Japan": "#4CAF50",
 }
 
 
@@ -23,7 +23,7 @@ def revert_canton_nation_colors(apps, schema_editor):
 
     canton_variant = Variant.objects.get(id="canton")
     for name in UPDATED_COLORS:
-        Nation.objects.filter(variant=canton_variant, name=name).update(color='#808080')
+        Nation.objects.filter(variant=canton_variant, name=name).update(color="#808080")
 
 
 class Migration(migrations.Migration):

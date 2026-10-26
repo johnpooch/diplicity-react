@@ -10,7 +10,6 @@ from lxml import etree
 
 from common.constants import ProvinceType
 
-
 SCHEMA_VERSION = 1
 
 DVAR_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "variant.schema.yaml"
@@ -46,7 +45,9 @@ def validate_dvar(dvar):
             message=error.message,
             path=_format_jsonschema_path(error),
         )
-        for error in sorted(_dvar_validator().iter_errors(dvar), key=lambda e: e.absolute_path)
+        for error in sorted(
+            _dvar_validator().iter_errors(dvar), key=lambda e: e.absolute_path
+        )
     ]
     if errors:
         return errors
@@ -128,7 +129,9 @@ def _validate_dvar_references(dvar):
 def _validate_dvar_victory_conditions(dvar):
     errors = []
     nation_ids = {nation["id"] for nation in dvar["nations"]}
-    non_playable_ids = {nation["id"] for nation in dvar["nations"] if nation.get("non_playable", False)}
+    non_playable_ids = {
+        nation["id"] for nation in dvar["nations"] if nation.get("non_playable", False)
+    }
     has_default = False
     overridden = set()
 
@@ -187,10 +190,9 @@ def _validate_dvar_adjacencies(dvar):
         for adjacency in coast.get("adjacencies", []):
             edges[(coast["id"], adjacency["to"])] = adjacency["pass"]
 
-    location_ids = (
-        {province["id"] for province in dvar["provinces"]}
-        | {coast["id"] for coast in dvar.get("namedCoasts", [])}
-    )
+    location_ids = {province["id"] for province in dvar["provinces"]} | {
+        coast["id"] for coast in dvar.get("namedCoasts", [])
+    }
 
     for (source, target), pass_kind in edges.items():
         if target not in location_ids:
@@ -297,7 +299,12 @@ def variant_to_canonical_dict(variant):
         "adjudicationModifiers": variant.adjudication_modifiers,
         "phaseProgression": variant.phase_progression,
         "nations": [
-            {"id": nation.nation_id, "name": nation.name, "color": nation.color, "non_playable": nation.non_playable}
+            {
+                "id": nation.nation_id,
+                "name": nation.name,
+                "color": nation.color,
+                "non_playable": nation.non_playable,
+            }
             for nation in nations
         ],
         "provinces": canonical_provinces,
@@ -383,7 +390,9 @@ def normalize_dsvg(svg):
     root = etree.fromstring(svg.encode())
 
     foreign_elements = [
-        element for element in root.iter() if _namespace(element.tag) not in (None, SVG_NAMESPACE)
+        element
+        for element in root.iter()
+        if _namespace(element.tag) not in (None, SVG_NAMESPACE)
     ]
     for element in foreign_elements:
         parent = element.getparent()
@@ -396,7 +405,10 @@ def normalize_dsvg(svg):
     for element in root.iter():
         for name in list(element.attrib):
             attribute_namespace = _namespace(name)
-            if attribute_namespace is not None and attribute_namespace not in _ALLOWED_ATTRIBUTE_NAMESPACES:
+            if (
+                attribute_namespace is not None
+                and attribute_namespace not in _ALLOWED_ATTRIBUTE_NAMESPACES
+            ):
                 del element.attrib[name]
             elif attribute_namespace is None and name.startswith("data-"):
                 del element.attrib[name]
@@ -439,12 +451,41 @@ XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace"
 
 SVG_ALLOWED_ELEMENTS = frozenset(
     {
-        "svg", "g", "defs", "style", "title", "desc",
-        "path", "circle", "ellipse", "rect", "line", "polyline", "polygon",
-        "text", "tspan", "textPath", "image", "use", "symbol", "marker",
-        "pattern", "clipPath", "mask", "linearGradient", "radialGradient", "stop",
-        "filter", "feGaussianBlur", "feOffset", "feBlend", "feFlood", "feComposite",
-        "feColorMatrix", "feMerge", "feMergeNode",
+        "svg",
+        "g",
+        "defs",
+        "style",
+        "title",
+        "desc",
+        "path",
+        "circle",
+        "ellipse",
+        "rect",
+        "line",
+        "polyline",
+        "polygon",
+        "text",
+        "tspan",
+        "textPath",
+        "image",
+        "use",
+        "symbol",
+        "marker",
+        "pattern",
+        "clipPath",
+        "mask",
+        "linearGradient",
+        "radialGradient",
+        "stop",
+        "filter",
+        "feGaussianBlur",
+        "feOffset",
+        "feBlend",
+        "feFlood",
+        "feComposite",
+        "feColorMatrix",
+        "feMerge",
+        "feMergeNode",
     }
 )
 
@@ -452,36 +493,128 @@ SVG_UNWRAPPED_ELEMENTS = frozenset({"a"})
 
 SVG_PRESENTATION_ATTRIBUTES = frozenset(
     {
-        "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity",
-        "stroke-miterlimit", "stroke-linecap", "stroke-linejoin", "stroke-dasharray",
-        "stroke-dashoffset", "opacity", "display", "visibility", "overflow", "color",
-        "vector-effect", "paint-order", "pointer-events", "clip-path", "clip-rule", "mask",
-        "filter", "marker-start", "marker-mid", "marker-end", "stop-color", "stop-opacity",
-        "flood-color", "flood-opacity", "color-interpolation", "color-interpolation-filters",
-        "color-rendering", "shape-rendering", "text-rendering", "image-rendering",
-        "enable-background", "font-family", "font-size", "font-weight", "font-style",
-        "letter-spacing", "word-spacing", "text-anchor", "text-decoration", "dominant-baseline",
-        "alignment-baseline", "baseline-shift", "writing-mode",
+        "fill",
+        "fill-opacity",
+        "fill-rule",
+        "stroke",
+        "stroke-width",
+        "stroke-opacity",
+        "stroke-miterlimit",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "opacity",
+        "display",
+        "visibility",
+        "overflow",
+        "color",
+        "vector-effect",
+        "paint-order",
+        "pointer-events",
+        "clip-path",
+        "clip-rule",
+        "mask",
+        "filter",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
+        "stop-color",
+        "stop-opacity",
+        "flood-color",
+        "flood-opacity",
+        "color-interpolation",
+        "color-interpolation-filters",
+        "color-rendering",
+        "shape-rendering",
+        "text-rendering",
+        "image-rendering",
+        "enable-background",
+        "font-family",
+        "font-size",
+        "font-weight",
+        "font-style",
+        "letter-spacing",
+        "word-spacing",
+        "text-anchor",
+        "text-decoration",
+        "dominant-baseline",
+        "alignment-baseline",
+        "baseline-shift",
+        "writing-mode",
     }
 )
 
 SVG_ALLOWED_ATTRIBUTES = SVG_PRESENTATION_ATTRIBUTES | frozenset(
     {
-        "id", "version", "viewBox", "preserveAspectRatio", "width", "height", "x", "y",
-        "x1", "x2", "y1", "y2", "cx", "cy", "r", "rx", "ry", "fx", "fy", "fr", "dx", "dy",
-        "d", "points", "transform", "rotate", "style", "type",
-        "clipPathUnits", "maskUnits", "maskContentUnits", "filterUnits", "primitiveUnits",
-        "markerWidth", "markerHeight", "markerUnits", "refX", "refY", "orient",
-        "offset", "gradientTransform", "gradientUnits",
-        "spreadMethod", "patternUnits", "patternContentUnits", "patternTransform",
-        "stdDeviation", "in", "in2", "result", "mode", "operator", "values",
-        "k1", "k2", "k3", "k4", "textLength", "lengthAdjust", "startOffset",
+        "id",
+        "version",
+        "viewBox",
+        "preserveAspectRatio",
+        "width",
+        "height",
+        "x",
+        "y",
+        "x1",
+        "x2",
+        "y1",
+        "y2",
+        "cx",
+        "cy",
+        "r",
+        "rx",
+        "ry",
+        "fx",
+        "fy",
+        "fr",
+        "dx",
+        "dy",
+        "d",
+        "points",
+        "transform",
+        "rotate",
+        "style",
+        "type",
+        "clipPathUnits",
+        "maskUnits",
+        "maskContentUnits",
+        "filterUnits",
+        "primitiveUnits",
+        "markerWidth",
+        "markerHeight",
+        "markerUnits",
+        "refX",
+        "refY",
+        "orient",
+        "offset",
+        "gradientTransform",
+        "gradientUnits",
+        "spreadMethod",
+        "patternUnits",
+        "patternContentUnits",
+        "patternTransform",
+        "stdDeviation",
+        "in",
+        "in2",
+        "result",
+        "mode",
+        "operator",
+        "values",
+        "k1",
+        "k2",
+        "k3",
+        "k4",
+        "textLength",
+        "lengthAdjust",
+        "startOffset",
     }
 )
 
 _HREF_ATTRIBUTES = frozenset({"href", f"{{{XLINK_NAMESPACE}}}href"})
 _FRAGMENT_HREF = re.compile(r"#[\w.:-]+\Z")
-_RASTER_DATA_URI = re.compile(r"data:image/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\s]*+\Z", re.IGNORECASE)
+_RASTER_DATA_URI = re.compile(
+    r"data:image/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\s]*+\Z", re.IGNORECASE
+)
 _FRAGMENT_URL = re.compile(r"url\(\s*(['\"]?)#[\w.:-]+\1\s*\)", re.IGNORECASE)
 _UNSAFE_VALUE = re.compile(r"url\(|expression\(|script:|@import|\\", re.IGNORECASE)
 _INSIGNIFICANT_CHARACTERS = re.compile(r"[\x00-\x20]+")
@@ -507,7 +640,9 @@ _FONT_FACE_RULE = re.compile(
 _CLASS_IDENTIFIER = r"-?[A-Za-z_][\w-]*"
 _CLASS_NAME = re.compile(rf"\.({_CLASS_IDENTIFIER})")
 _CLASS_COMPOUND = rf"(?:\.{_CLASS_IDENTIFIER})+"
-_CLASS_RULE = re.compile(rf"\s*({_CLASS_COMPOUND}(?:\s*,\s*{_CLASS_COMPOUND})*)\s*\{{([^{{}}]*)\}}\s*")
+_CLASS_RULE = re.compile(
+    rf"\s*({_CLASS_COMPOUND}(?:\s*,\s*{_CLASS_COMPOUND})*)\s*\{{([^{{}}]*)\}}\s*"
+)
 _CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 _CSS_DELIMITER = re.compile(r"[{};]")
 _CSS_PROPERTY = re.compile(r"\s*([\w-]+)\s*:(.*)", re.DOTALL)
@@ -549,11 +684,11 @@ def _css_statements(css):
         elif delimiter == "}":
             depth -= 1
             if depth <= 0:
-                statements.append(css[start:match.end()])
+                statements.append(css[start : match.end()])
                 start = match.end()
                 depth = 0
         elif depth == 0:
-            statements.append(css[start:match.end()])
+            statements.append(css[start : match.end()])
             start = match.end()
     statements.append(css[start:])
     return statements
@@ -569,11 +704,15 @@ def _css_declarations(block):
 
 
 def _class_rule(match):
-    selectors = [_CLASS_NAME.findall(selector) for selector in match.group(1).split(",")]
+    selectors = [
+        _CLASS_NAME.findall(selector) for selector in match.group(1).split(",")
+    ]
     declarations = [
         (name, value)
         for name, value in _css_declarations(match.group(2))
-        if name in SVG_PRESENTATION_ATTRIBUTES and value and _is_safe_attribute_value(value)
+        if name in SVG_PRESENTATION_ATTRIBUTES
+        and value
+        and _is_safe_attribute_value(value)
     ]
     return selectors, declarations
 
@@ -608,7 +747,11 @@ def _inline_class_styles(element, class_rules):
     class_declarations = {}
     for _, _, declarations in matching:
         class_declarations.update(declarations)
-    declarations = [f"{name}:{value}" for name, value in class_declarations.items() if name not in own_properties]
+    declarations = [
+        f"{name}:{value}"
+        for name, value in class_declarations.items()
+        if name not in own_properties
+    ]
     if own_style.strip():
         declarations.append(own_style.strip())
     if declarations:
@@ -795,7 +938,9 @@ def convert_godip_dsvg(svg):
             continue
         if local != "g":
             if local not in _GODIP_IGNORED_ELEMENTS:
-                warnings.append(f"Dropped unrecognized top-level <{local}> element (id={child_id!r}).")
+                warnings.append(
+                    f"Dropped unrecognized top-level <{local}> element (id={child_id!r})."
+                )
             continue
         if child_id in GODIP_LAYER_TARGETS:
             godip_layers[GODIP_LAYER_TARGETS[child_id]] = child
@@ -928,10 +1073,16 @@ def validate_dsvg(svg, variant=None):
     try:
         root = ElementTree.fromstring(svg)
     except ElementTree.ParseError as exc:
-        return [DsvgValidationError("MALFORMED_XML", f"SVG is not well-formed XML: {exc}.")]
+        return [
+            DsvgValidationError("MALFORMED_XML", f"SVG is not well-formed XML: {exc}.")
+        ]
 
     if root.tag != f"{{{SVG_NAMESPACE}}}svg":
-        return [DsvgValidationError("INVALID_ROOT", "Root element must be <svg> in the SVG namespace.")]
+        return [
+            DsvgValidationError(
+                "INVALID_ROOT", "Root element must be <svg> in the SVG namespace."
+            )
+        ]
 
     errors = []
     layer_elements = [child for child in root if _local_name(child.tag) == "g"]
@@ -939,12 +1090,18 @@ def validate_dsvg(svg, variant=None):
 
     for layer in DSVG_LAYER_ORDER:
         if layer not in layer_ids:
-            errors.append(DsvgValidationError("MISSING_LAYER", f"Required layer '{layer}' is missing."))
+            errors.append(
+                DsvgValidationError(
+                    "MISSING_LAYER", f"Required layer '{layer}' is missing."
+                )
+            )
 
     for layer_id in layer_ids:
         if layer_id not in DSVG_LAYER_ORDER:
             errors.append(
-                DsvgValidationError("UNEXPECTED_LAYER", f"Unexpected top-level layer '{layer_id}'.")
+                DsvgValidationError(
+                    "UNEXPECTED_LAYER", f"Unexpected top-level layer '{layer_id}'."
+                )
             )
 
     present = [layer_id for layer_id in layer_ids if layer_id in DSVG_LAYER_ORDER]
@@ -953,7 +1110,9 @@ def validate_dsvg(svg, variant=None):
         errors.append(
             DsvgValidationError(
                 "LAYER_OUT_OF_ORDER",
-                "Layers must appear in this order: " + ", ".join(DSVG_LAYER_ORDER) + ".",
+                "Layers must appear in this order: "
+                + ", ".join(DSVG_LAYER_ORDER)
+                + ".",
             )
         )
 
@@ -963,7 +1122,8 @@ def validate_dsvg(svg, variant=None):
         if element is not None and not _is_hidden(element):
             errors.append(
                 DsvgValidationError(
-                    "LAYER_NOT_HIDDEN", f"Layer '{layer_id}' must be hidden with display:none."
+                    "LAYER_NOT_HIDDEN",
+                    f"Layer '{layer_id}' must be hidden with display:none.",
                 )
             )
 
@@ -973,7 +1133,8 @@ def validate_dsvg(svg, variant=None):
             if _local_name(element.tag) == "path" and not element.get("id"):
                 errors.append(
                     DsvgValidationError(
-                        "PROVINCE_MISSING_ID", "A path in the 'provinces' layer is missing an id."
+                        "PROVINCE_MISSING_ID",
+                        "A path in the 'provinces' layer is missing an id.",
                     )
                 )
 
@@ -1021,7 +1182,9 @@ def validate_dsvg(svg, variant=None):
             if _local_name(element.tag) == "path" and element.get("id")
         }
         variant_province_ids = set(
-            variant.provinces.filter(parent__isnull=True).values_list("province_id", flat=True)
+            variant.provinces.filter(parent__isnull=True).values_list(
+                "province_id", flat=True
+            )
         )
         for province_id in sorted(svg_province_ids - variant_province_ids):
             errors.append(
@@ -1045,7 +1208,9 @@ def validate_dsvg(svg, variant=None):
             if _local_name(element.tag) == "path" and element.get("id")
         }
         variant_named_coast_ids = set(
-            variant.provinces.filter(parent__isnull=False).values_list("province_id", flat=True)
+            variant.provinces.filter(parent__isnull=False).values_list(
+                "province_id", flat=True
+            )
         )
         for named_coast_id in sorted(svg_named_coast_ids - variant_named_coast_ids):
             errors.append(
@@ -1069,7 +1234,9 @@ def validate_dsvg(svg, variant=None):
             for element in unit_positions_layer.iter()
             if _local_name(element.tag) == "circle" and element.get("id")
         }
-        variant_position_ids = set(variant.provinces.values_list("province_id", flat=True))
+        variant_position_ids = set(
+            variant.provinces.values_list("province_id", flat=True)
+        )
         for position_id in sorted(svg_unit_position_ids - variant_position_ids):
             errors.append(
                 DsvgValidationError(
@@ -1212,9 +1379,7 @@ def validate_safe_replacement(variant, dvar):
     old_provinces = {
         province.province_id: province for province in variant.provinces.all()
     }
-    new_province_parent_by_id = {
-        province["id"]: None for province in dvar["provinces"]
-    }
+    new_province_parent_by_id = {province["id"]: None for province in dvar["provinces"]}
     for coast in dvar.get("namedCoasts", []):
         new_province_parent_by_id[coast["id"]] = coast["parentProvince"]
     new_province_sc_by_id = {
@@ -1243,7 +1408,10 @@ def validate_safe_replacement(variant, dvar):
         .distinct()
     )
     for province_id in sorted(province_ids_with_units):
-        if province_id not in new_province_parent_by_id or province_id not in old_provinces:
+        if (
+            province_id not in new_province_parent_by_id
+            or province_id not in old_provinces
+        ):
             continue
         old_parent_id = (
             old_provinces[province_id].parent.province_id
@@ -1317,7 +1485,9 @@ def apply_safe_replacement(variant, dvar, dsvg_text):
         nation.save()
     nation_by_id = {nation.nation_id: nation for nation in variant.nations.all()}
 
-    province_by_id = {province.province_id: province for province in variant.provinces.all()}
+    province_by_id = {
+        province.province_id: province for province in variant.provinces.all()
+    }
     for payload in dvar["provinces"]:
         province = province_by_id[payload["id"]]
         province.name = payload["name"]
@@ -1403,7 +1573,9 @@ def _build_variant_children(variant, dvar):
         for nation in dvar["nations"]
     ]
     Nation.objects.bulk_create(nations_to_create)
-    nation_by_id = {nation.nation_id: nation for nation in Nation.objects.filter(variant=variant)}
+    nation_by_id = {
+        nation.nation_id: nation for nation in Nation.objects.filter(variant=variant)
+    }
 
     parents_to_create = [
         Province(
@@ -1418,7 +1590,10 @@ def _build_variant_children(variant, dvar):
         for province in dvar["provinces"]
     ]
     Province.objects.bulk_create(parents_to_create)
-    province_by_id = {province.province_id: province for province in Province.objects.filter(variant=variant)}
+    province_by_id = {
+        province.province_id: province
+        for province in Province.objects.filter(variant=variant)
+    }
 
     coasts_to_create = [
         Province(
@@ -1433,7 +1608,10 @@ def _build_variant_children(variant, dvar):
         for coast in dvar.get("namedCoasts", [])
     ]
     Province.objects.bulk_create(coasts_to_create)
-    province_by_id = {province.province_id: province for province in Province.objects.filter(variant=variant)}
+    province_by_id = {
+        province.province_id: province
+        for province in Province.objects.filter(variant=variant)
+    }
 
     initial = dvar["initialState"]
     template_phase = Phase.objects.create(

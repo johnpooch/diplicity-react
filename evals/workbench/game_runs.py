@@ -49,7 +49,11 @@ def answer(phase: dict, nation: str) -> dict | None:
 
 def failed_phases(sample: EvalSample) -> int:
     nation = sample.metadata["nation"]
-    return sum(1 for phase in game_phases(sample) if (given := answer(phase, nation)) is not None and given["problem"])
+    return sum(
+        1
+        for phase in game_phases(sample)
+        if (given := answer(phase, nation)) is not None and given["problem"]
+    )
 
 
 def mean(values: list[float]) -> float | None:
@@ -71,7 +75,9 @@ def orphaned_feedback(feedback_dir: Path, seeds: dict[str, set[int]]) -> list[di
             except FeedbackError as e:
                 problem = str(e)
         if problem is not None:
-            orphans.append({"path": str(path.relative_to(feedback_dir.parent)), "problem": problem})
+            orphans.append(
+                {"path": str(path.relative_to(feedback_dir.parent)), "problem": problem}
+            )
     return orphans
 
 

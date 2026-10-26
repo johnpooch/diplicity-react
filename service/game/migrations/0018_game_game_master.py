@@ -8,14 +8,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0017_backfill_created_by'),
+        ("game", "0017_backfill_created_by"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='game',
-            name='game_master',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='game_master_games', to=settings.AUTH_USER_MODEL),
+            model_name="game",
+            name="game_master",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="game_master_games",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

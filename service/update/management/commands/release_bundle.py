@@ -8,7 +8,12 @@ from django.db import transaction
 from common.constants import BundlePlatform
 from update.models import Bundle
 from update.storage import upload_bundle
-from update.utils import is_numeric_version, parse_version, sha256_checksum, write_bundle_zip
+from update.utils import (
+    is_numeric_version,
+    parse_version,
+    sha256_checksum,
+    write_bundle_zip,
+)
 
 PLATFORMS = [BundlePlatform.IOS, BundlePlatform.ANDROID]
 
@@ -29,8 +34,16 @@ class Command(BaseCommand):
     help = "Zip a built web bundle, upload it to bundle storage and register it for over-the-air delivery."
 
     def add_arguments(self, parser):
-        parser.add_argument("--dist", required=True, help="path to the built packages/web dist directory")
-        parser.add_argument("--bundle-version", required=True, help="version to publish the bundle under")
+        parser.add_argument(
+            "--dist",
+            required=True,
+            help="path to the built packages/web dist directory",
+        )
+        parser.add_argument(
+            "--bundle-version",
+            required=True,
+            help="version to publish the bundle under",
+        )
         parser.add_argument(
             "--minimum-native-version",
             required=True,
@@ -52,30 +65,48 @@ class Command(BaseCommand):
 
         missing = [name for name in STORAGE_SETTINGS if not getattr(settings, name)]
         if missing:
-            raise CommandError(f"bundle storage is not configured: {', '.join(missing)}")
+            raise CommandError(
+                f"bundle storage is not configured: {', '.join(missing)}"
+            )
 
         if not (dist / "index.html").is_file():
             raise CommandError(f"'{dist}' is not a built web bundle: no index.html")
 
         for label, value, field_name in (
             ("bundle version", version, "version"),
-            ("minimum native version", minimum_native_version, "minimum_native_version"),
+            (
+                "minimum native version",
+                minimum_native_version,
+                "minimum_native_version",
+            ),
         ):
             if not is_numeric_version(value):
                 raise CommandError(f"{label} '{value}' is not a dotted numeric version")
             max_length = Bundle._meta.get_field(field_name).max_length
             if len(value) > max_length:
-                raise CommandError(f"{label} '{value}' is longer than {max_length} characters")
+                raise CommandError(
+                    f"{label} '{value}' is longer than {max_length} characters"
+                )
 
         if parse_version(version) <= parse_version(minimum_native_version):
             raise CommandError(
                 f"bundle version '{version}' must be newer than minimum native version '{minimum_native_version}'"
             )
 
-        published = Bundle.objects.filter(platform__in=platforms).values_list("platform", "version")
-        taken = sorted({platform for platform, other in published if parse_version(other) == parse_version(version)})
+        published = Bundle.objects.filter(platform__in=platforms).values_list(
+            "platform", "version"
+        )
+        taken = sorted(
+            {
+                platform
+                for platform, other in published
+                if parse_version(other) == parse_version(version)
+            }
+        )
         if taken:
-            raise CommandError(f"version '{version}' is already published for {', '.join(taken)}")
+            raise CommandError(
+                f"version '{version}' is already published for {', '.join(taken)}"
+            )
 
         with tempfile.TemporaryDirectory() as directory:
             archive = write_bundle_zip(dist, Path(directory) / f"bundle-{version}.zip")

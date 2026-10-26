@@ -51,8 +51,14 @@ class AgentTaskManager(models.Manager):
     def reconcile(self):
         now = timezone.now()
         stalled = self.filter(
-            models.Q(status=AgentTaskStatus.PENDING, created_at__lt=now - PENDING_RECONCILE_AFTER)
-            | models.Q(status=AgentTaskStatus.RUNNING, started_at__lt=now - RUNNING_RECONCILE_AFTER)
+            models.Q(
+                status=AgentTaskStatus.PENDING,
+                created_at__lt=now - PENDING_RECONCILE_AFTER,
+            )
+            | models.Q(
+                status=AgentTaskStatus.RUNNING,
+                started_at__lt=now - RUNNING_RECONCILE_AFTER,
+            )
         )
         tasks = list(stalled)
         for task in tasks:
@@ -69,7 +75,9 @@ class AgentTask(BaseModel):
         choices=AgentTaskStatus.STATUS_CHOICES,
         default=AgentTaskStatus.PENDING,
     )
-    member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="agent_tasks")
+    member = models.ForeignKey(
+        "member.Member", on_delete=models.CASCADE, related_name="agent_tasks"
+    )
     phase = models.ForeignKey(
         "phase.Phase",
         on_delete=models.CASCADE,

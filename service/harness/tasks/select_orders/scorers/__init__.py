@@ -1,8 +1,14 @@
-from harness.tasks.select_orders.scorers.coherence import convoy_coherence, support_coherence
+from harness.tasks.select_orders.scorers.coherence import (
+    convoy_coherence,
+    support_coherence,
+)
 from harness.tasks.select_orders.scorers.coverage import coverage
 from harness.tasks.select_orders.scorers.deduplication import deduplication
 from harness.tasks.select_orders.scorers.legality import legality
-from harness.tasks.select_orders.scorers.quality import quality_avoidance, quality_strong
+from harness.tasks.select_orders.scorers.quality import (
+    quality_avoidance,
+    quality_strong,
+)
 
 __all__ = [
     "convoy_coherence",

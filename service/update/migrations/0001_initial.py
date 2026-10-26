@@ -13,18 +13,36 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Bundle",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("version", models.CharField(max_length=32)),
-                ("platform", models.CharField(choices=[("ios", "iOS"), ("android", "Android")], max_length=16)),
+                (
+                    "platform",
+                    models.CharField(
+                        choices=[("ios", "iOS"), ("android", "Android")], max_length=16
+                    ),
+                ),
                 ("checksum", models.CharField(blank=True, max_length=64)),
                 ("object_key", models.CharField(max_length=255)),
                 ("minimum_native_version", models.CharField(max_length=32)),
                 ("active", models.BooleanField(default=True)),
             ],
             options={
-                "indexes": [models.Index(fields=["platform", "active"], name="update_bund_platfor_477fcb_idx")],
+                "indexes": [
+                    models.Index(
+                        fields=["platform", "active"],
+                        name="update_bund_platfor_477fcb_idx",
+                    )
+                ],
                 "unique_together": {("platform", "version")},
             },
         ),

@@ -9,19 +9,48 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('phase', '0001_initial'),
-        ('nation', '0001_initial'),
-        ('province', '0001_initial'),
+        ("phase", "0001_initial"),
+        ("nation", "0001_initial"),
+        ("province", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SupplyCenter',
+            name="SupplyCenter",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='supply_centers', to='nation.nation')),
-                ('phase', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='supply_centers', to='phase.phase')),
-                ('province', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='supply_centers', to='province.province')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "nation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="supply_centers",
+                        to="nation.nation",
+                    ),
+                ),
+                (
+                    "phase",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="supply_centers",
+                        to="phase.phase",
+                    ),
+                ),
+                (
+                    "province",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="supply_centers",
+                        to="province.province",
+                    ),
+                ),
             ],
         ),
     ]

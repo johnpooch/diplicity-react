@@ -14,7 +14,12 @@ class Migration(migrations.Migration):
             model_name="userprofile",
             name="commitment",
             field=models.CharField(
-                choices=[("high", "High"), ("medium", "Medium"), ("low", "Low"), ("undefined", "New")],
+                choices=[
+                    ("high", "High"),
+                    ("medium", "Medium"),
+                    ("low", "Low"),
+                    ("undefined", "New"),
+                ],
                 default="undefined",
                 max_length=20,
             ),

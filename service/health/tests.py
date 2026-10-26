@@ -11,7 +11,9 @@ from health.tasks import JOB_RETENTION_HOURS, purge_old_jobs
 
 class TestPurgeOldJobs:
     def test_deletes_finished_jobs_beyond_retention_window(self):
-        with patch.object(app.job_manager, "delete_old_jobs", new_callable=AsyncMock) as mock_delete:
+        with patch.object(
+            app.job_manager, "delete_old_jobs", new_callable=AsyncMock
+        ) as mock_delete:
             asyncio.run(purge_old_jobs(timestamp=0))
         mock_delete.assert_awaited_once_with(
             nb_hours=JOB_RETENTION_HOURS,
@@ -23,14 +25,20 @@ class TestHealthCheckView:
     """Test the health check endpoint functionality."""
 
     @pytest.mark.django_db
-    def test_health_check_answers_railway_healthcheck_host(self, unauthenticated_client):
-        response = unauthenticated_client.get(reverse("health-check"), HTTP_HOST="healthcheck.railway.app")
+    def test_health_check_answers_railway_healthcheck_host(
+        self, unauthenticated_client
+    ):
+        response = unauthenticated_client.get(
+            reverse("health-check"), HTTP_HOST="healthcheck.railway.app"
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response.content == b"ok"
 
     @pytest.mark.django_db
     def test_health_check_rejects_unknown_host(self, unauthenticated_client):
-        response = unauthenticated_client.get(reverse("health-check"), HTTP_HOST="attacker.example.com")
+        response = unauthenticated_client.get(
+            reverse("health-check"), HTTP_HOST="attacker.example.com"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db

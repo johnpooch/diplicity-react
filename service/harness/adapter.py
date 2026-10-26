@@ -96,7 +96,9 @@ def _lookup(variant: ApiVariant) -> dict[str, ApiVariantProvince]:
     return {province["id"]: province for province in variant["provinces"]}
 
 
-def _resolve(lookup: dict[str, ApiVariantProvince], province_id: str) -> ApiVariantProvince:
+def _resolve(
+    lookup: dict[str, ApiVariantProvince], province_id: str
+) -> ApiVariantProvince:
     province = lookup.get(province_id)
     if province is None:
         raise FixtureError(f"unknown province '{province_id}'")
@@ -119,7 +121,10 @@ def fixture_to_data(fixture: SelectOrdersFixture) -> ApiData:
         if supply_center["nation"] not in nations:
             nations.append(supply_center["nation"])
 
-    members = [_member(index, nation, nation == fixture["nation"]) for index, nation in enumerate(nations)]
+    members = [
+        _member(index, nation, nation == fixture["nation"])
+        for index, nation in enumerate(nations)
+    ]
 
     api_units: list[ApiUnit] = [
         {
@@ -150,11 +155,23 @@ def fixture_to_data(fixture: SelectOrdersFixture) -> ApiData:
             {
                 "source": _field(source["id"], source["name"]),
                 "order_type": _field(option["order_type"]),
-                "target": (None if target_id is None else _field(target_id, _resolve(lookup, target_id)["name"])),
-                "aux": (None if aux_id is None else _field(aux_id, _resolve(lookup, aux_id)["name"])),
+                "target": (
+                    None
+                    if target_id is None
+                    else _field(target_id, _resolve(lookup, target_id)["name"])
+                ),
+                "aux": (
+                    None
+                    if aux_id is None
+                    else _field(aux_id, _resolve(lookup, aux_id)["name"])
+                ),
                 "unit_type": _field(option.get("unit_type")),
                 "named_coast": (
-                    None if named_coast_id is None else _field(named_coast_id, _resolve(lookup, named_coast_id)["name"])
+                    None
+                    if named_coast_id is None
+                    else _field(
+                        named_coast_id, _resolve(lookup, named_coast_id)["name"]
+                    )
                 ),
             }
         )
@@ -205,18 +222,28 @@ def orders_to_options(orders: list[FlatOrderOption]) -> list[OrderOption]:
                 "order_type": order_type["id"],
                 "target": None if option["target"] is None else option["target"]["id"],
                 "aux": None if option["aux"] is None else option["aux"]["id"],
-                "unit_type": None if option["unit_type"] is None else option["unit_type"]["id"],
-                "named_coast": (None if option["named_coast"] is None else option["named_coast"]["id"]),
+                "unit_type": (
+                    None if option["unit_type"] is None else option["unit_type"]["id"]
+                ),
+                "named_coast": (
+                    None
+                    if option["named_coast"] is None
+                    else option["named_coast"]["id"]
+                ),
             }
         )
     return options
 
 
-def data_to_fixture(data: ApiData, *, fixture_id: str, notes: str = "") -> SelectOrdersFixture:
+def data_to_fixture(
+    data: ApiData, *, fixture_id: str, notes: str = ""
+) -> SelectOrdersFixture:
     game = data["game"]
     phase = data["phase"]
 
-    current = next((member for member in game["members"] if member["is_current_user"]), None)
+    current = next(
+        (member for member in game["members"] if member["is_current_user"]), None
+    )
     if current is None or not current["nation"]:
         raise FixtureError("api data has no current-user nation")
 
@@ -311,7 +338,10 @@ def _context(data: ApiData) -> Context:
         for unit in phase["units"]
     ]
 
-    owners = {center["province"]["id"]: center["nation"]["name"] for center in phase["supply_centers"]}
+    owners = {
+        center["province"]["id"]: center["nation"]["name"]
+        for center in phase["supply_centers"]
+    }
     supply_centers: list[SupplyCenter] = [
         {"nation": owners.get(province["id"]), "province": province["id"]}
         for province in variant["provinces"]
@@ -333,7 +363,8 @@ def _context(data: ApiData) -> Context:
             "private": channel["private"],
             "messages": [
                 {
-                    "sender": ((message["sender"].get("nation") or {}).get("name")) or "user",
+                    "sender": ((message["sender"].get("nation") or {}).get("name"))
+                    or "user",
                     "body": message["body"],
                 }
                 for message in channel["messages"]

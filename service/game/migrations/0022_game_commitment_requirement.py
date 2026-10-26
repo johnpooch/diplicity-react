@@ -14,7 +14,9 @@ class Migration(migrations.Migration):
             model_name="game",
             name="commitment_requirement",
             field=models.CharField(
-                choices=[("open", "Open"), ("committed", "Committed")], default="open", max_length=20
+                choices=[("open", "Open"), ("committed", "Committed")],
+                default="open",
+                max_length=20,
             ),
         ),
     ]

@@ -1,19 +1,26 @@
 from django.db import migrations
 
-
 CORRECTED_HUNDRED_PHASE_PROGRESSION = {
     "seasons": ["Year"],
     "transitions": [
-        {"from": {"season": "Year", "type": "Movement"},
-         "to": {"season": "Year", "type": "Retreat", "yearDelta": 0}},
-        {"from": {"season": "Year", "type": "Retreat"},
-         "to": {"season": "Year", "type": "Movement", "yearDelta": 5},
-         "condition": {"yearMod": 10, "yearModValue": 5}},
-        {"from": {"season": "Year", "type": "Retreat"},
-         "to": {"season": "Year", "type": "Adjustment", "yearDelta": 0},
-         "condition": {"yearMod": 10, "yearModValue": 0}},
-        {"from": {"season": "Year", "type": "Adjustment"},
-         "to": {"season": "Year", "type": "Movement", "yearDelta": 5}},
+        {
+            "from": {"season": "Year", "type": "Movement"},
+            "to": {"season": "Year", "type": "Retreat", "yearDelta": 0},
+        },
+        {
+            "from": {"season": "Year", "type": "Retreat"},
+            "to": {"season": "Year", "type": "Movement", "yearDelta": 5},
+            "condition": {"yearMod": 10, "yearModValue": 5},
+        },
+        {
+            "from": {"season": "Year", "type": "Retreat"},
+            "to": {"season": "Year", "type": "Adjustment", "yearDelta": 0},
+            "condition": {"yearMod": 10, "yearModValue": 0},
+        },
+        {
+            "from": {"season": "Year", "type": "Adjustment"},
+            "to": {"season": "Year", "type": "Movement", "yearDelta": 5},
+        },
     ],
 }
 
@@ -21,12 +28,18 @@ CORRECTED_HUNDRED_PHASE_PROGRESSION = {
 PREVIOUS_HUNDRED_PHASE_PROGRESSION = {
     "seasons": ["Year"],
     "transitions": [
-        {"from": {"season": "Year", "type": "Movement"},
-         "to": {"season": "Year", "type": "Retreat", "yearDelta": 0}},
-        {"from": {"season": "Year", "type": "Retreat"},
-         "to": {"season": "Year", "type": "Adjustment", "yearDelta": 0}},
-        {"from": {"season": "Year", "type": "Adjustment"},
-         "to": {"season": "Year", "type": "Movement", "yearDelta": 5}},
+        {
+            "from": {"season": "Year", "type": "Movement"},
+            "to": {"season": "Year", "type": "Retreat", "yearDelta": 0},
+        },
+        {
+            "from": {"season": "Year", "type": "Retreat"},
+            "to": {"season": "Year", "type": "Adjustment", "yearDelta": 0},
+        },
+        {
+            "from": {"season": "Year", "type": "Adjustment"},
+            "to": {"season": "Year", "type": "Movement", "yearDelta": 5},
+        },
     ],
 }
 

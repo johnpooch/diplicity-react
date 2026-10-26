@@ -22,7 +22,11 @@ def add_classical_nations(apps, schema_editor):
     ]
 
     for nation_data in nations_data:
-        Nation.objects.create(name=nation_data["name"], color=nation_data["color"], variant=classical_variant)
+        Nation.objects.create(
+            name=nation_data["name"],
+            color=nation_data["color"],
+            variant=classical_variant,
+        )
 
 
 def remove_classical_nations(apps, schema_editor):

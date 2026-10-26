@@ -3,7 +3,6 @@ from pathlib import Path
 
 from django.db import migrations
 
-
 FLAGS_DIR = Path(__file__).resolve().parent.parent.parent / "variant" / "data" / "flags"
 BUNDLED_VARIANT_IDS = ["classical", "canton", "vietnam-war", "italy-vs-germany"]
 

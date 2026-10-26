@@ -15,18 +15,30 @@ class Board:
     def __init__(self, context: Context, nation: str):
         self.nation = nation
         provinces = context["provinces"]
-        self.parent = {province["id"]: province["parent_id"] or province["id"] for province in provinces}
-        self.adjacencies = {province["id"]: province["adjacencies"] for province in provinces}
-        self.province_ids = [province["id"] for province in provinces if province["parent_id"] is None]
+        self.parent = {
+            province["id"]: province["parent_id"] or province["id"]
+            for province in provinces
+        }
+        self.adjacencies = {
+            province["id"]: province["adjacencies"] for province in provinces
+        }
+        self.province_ids = [
+            province["id"] for province in provinces if province["parent_id"] is None
+        ]
 
-        coast_parents = {province["parent_id"] for province in provinces if province["parent_id"]}
+        coast_parents = {
+            province["parent_id"] for province in provinces if province["parent_id"]
+        }
         self.placements = set()
         for province in provinces:
             if province["type"] in (ProvinceType.LAND, ProvinceType.COASTAL):
                 self.placements.add((UnitType.ARMY, province["id"]))
             if province["type"] in (ProvinceType.SEA, ProvinceType.NAMED_COAST):
                 self.placements.add((UnitType.FLEET, province["id"]))
-            if province["type"] == ProvinceType.COASTAL and province["id"] not in coast_parents:
+            if (
+                province["type"] == ProvinceType.COASTAL
+                and province["id"] not in coast_parents
+            ):
                 self.placements.add((UnitType.FLEET, province["id"]))
 
         self.movers_into = {province_id: set() for province_id in self.province_ids}
@@ -40,13 +52,17 @@ class Board:
                     if key in self.placements:
                         self.movers_into[destination].add(key)
 
-        self.standing_units = [unit for unit in context["units"] if not unit["dislodged"]]
+        self.standing_units = [
+            unit for unit in context["units"] if not unit["dislodged"]
+        ]
         self.dislodged_units = [unit for unit in context["units"] if unit["dislodged"]]
 
         adjacent_units = {province_id: {} for province_id in self.province_ids}
         for unit in self.standing_units:
             for destination in self.reachable_provinces(unit["province"], unit["type"]):
-                adjacent_units[destination].setdefault(unit["nation"], set()).add(unit["province"])
+                adjacent_units[destination].setdefault(unit["nation"], set()).add(
+                    unit["province"]
+                )
 
         self.strength = {}
         self.competition = {}
@@ -59,10 +75,14 @@ class Board:
             )
 
         center_counts = Counter(
-            center["nation"] for center in context["supply_centers"] if center["nation"] is not None
+            center["nation"]
+            for center in context["supply_centers"]
+            if center["nation"] is not None
         )
         sizes = {
-            owner: SIZE_SQUARE_COEFFICIENT * count**2 + SIZE_COEFFICIENT * count + SIZE_CONSTANT
+            owner: SIZE_SQUARE_COEFFICIENT * count**2
+            + SIZE_COEFFICIENT * count
+            + SIZE_CONSTANT
             for owner, count in center_counts.items()
         }
 
@@ -85,7 +105,10 @@ class Board:
     def reachable_provinces(self, location, unit_type):
         destinations = set()
         for adjacency in self.adjacencies.get(location, []):
-            if any(ALLOWS_TO_UNIT_TYPE[allowed] == unit_type for allowed in adjacency["allows"]):
+            if any(
+                ALLOWS_TO_UNIT_TYPE[allowed] == unit_type
+                for allowed in adjacency["allows"]
+            ):
                 parent = self.parent.get(adjacency["to"])
                 if parent is not None:
                     destinations.add(parent)

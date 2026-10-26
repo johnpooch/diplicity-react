@@ -11,18 +11,36 @@ def add_vietnam_war_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     vietnam_war_variant = Variant.objects.get(id="vietnam-war")
-    template_phase = Phase.objects.get(game=None, variant=vietnam_war_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=vietnam_war_variant, status="template"
+    )
 
-    supply_centers_data = [{'nation': 'Thailand', 'province': 'pat'}, {'nation': 'Laos', 'province': 'nah'}, {'nation': 'Laos', 'province': 'vie'}, {'nation': 'North Vietnam', 'province': 'han'}, {'nation': 'North Vietnam', 'province': 'thn'}, {'nation': 'Cambodia', 'province': 'pre'}, {'nation': 'Cambodia', 'province': 'meo'}, {'nation': 'Thailand', 'province': 'ban'}, {'nation': 'Thailand', 'province': 'loe'}, {'nation': 'South Vietnam', 'province': 'eas'}, {'nation': 'South Vietnam', 'province': 'sag'}, {'nation': 'Laos', 'province': 'pak'}, {'nation': 'North Vietnam', 'province': 'thh'}, {'nation': 'South Vietnam', 'province': 'cam'}, {'nation': 'Cambodia', 'province': 'ang'}]
+    supply_centers_data = [
+        {"nation": "Thailand", "province": "pat"},
+        {"nation": "Laos", "province": "nah"},
+        {"nation": "Laos", "province": "vie"},
+        {"nation": "North Vietnam", "province": "han"},
+        {"nation": "North Vietnam", "province": "thn"},
+        {"nation": "Cambodia", "province": "pre"},
+        {"nation": "Cambodia", "province": "meo"},
+        {"nation": "Thailand", "province": "ban"},
+        {"nation": "Thailand", "province": "loe"},
+        {"nation": "South Vietnam", "province": "eas"},
+        {"nation": "South Vietnam", "province": "sag"},
+        {"nation": "Laos", "province": "pak"},
+        {"nation": "North Vietnam", "province": "thh"},
+        {"nation": "South Vietnam", "province": "cam"},
+        {"nation": "Cambodia", "province": "ang"},
+    ]
 
     for sc_data in supply_centers_data:
         nation = Nation.objects.get(variant=vietnam_war_variant, name=sc_data["nation"])
-        province = Province.objects.get(variant=vietnam_war_variant, province_id=sc_data["province"])
+        province = Province.objects.get(
+            variant=vietnam_war_variant, province_id=sc_data["province"]
+        )
 
         SupplyCenter.objects.create(
-            nation=nation,
-            province=province,
-            phase=template_phase
+            nation=nation, province=province, phase=template_phase
         )
 
 
@@ -32,7 +50,9 @@ def remove_vietnam_war_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     vietnam_war_variant = Variant.objects.get(id="vietnam-war")
-    template_phase = Phase.objects.get(game=None, variant=vietnam_war_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=vietnam_war_variant, status="template"
+    )
     SupplyCenter.objects.filter(phase=template_phase).delete()
 
 

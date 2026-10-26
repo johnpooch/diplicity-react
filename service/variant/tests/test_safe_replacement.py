@@ -23,7 +23,9 @@ def published_variant(db, classical_variant, primary_user):
     base_dvar = variant_to_canonical_dict(classical_variant)
     base_dvar["id"] = "safe-replace-test"
     dvar = copy.deepcopy(base_dvar)
-    variant = create_variant_from_dvar(dvar, owner=primary_user, status=VariantStatus.PUBLISHED)
+    variant = create_variant_from_dvar(
+        dvar, owner=primary_user, status=VariantStatus.PUBLISHED
+    )
     VariantSvg.objects.create(variant=variant, svg=classical_variant.svg.svg)
     return variant
 
@@ -110,7 +112,8 @@ def test_validate_rejects_added_province(published_variant, published_variant_dv
 def test_validate_rejects_removed_province(published_variant, published_variant_dvar):
     bad = copy.deepcopy(published_variant_dvar)
     removed_id = next(
-        province["id"] for province in bad["provinces"]
+        province["id"]
+        for province in bad["provinces"]
         if province["type"] == "sea" and not province["supplyCenter"]
     )
     bad["provinces"] = [
@@ -118,7 +121,8 @@ def test_validate_rejects_removed_province(published_variant, published_variant_
     ]
     for province in bad["provinces"]:
         province["adjacencies"] = [
-            adjacency for adjacency in province.get("adjacencies", [])
+            adjacency
+            for adjacency in province.get("adjacencies", [])
             if adjacency["to"] != removed_id
         ]
     errors = validate_safe_replacement(published_variant, bad)
@@ -147,9 +151,9 @@ def test_validate_rejects_supply_center_removal_when_active_sc_exists(
 def test_validate_rejects_parent_change_when_units_exist(
     published_variant, published_variant_dvar, sandbox_game_on_published
 ):
-    template_named_coast = (
-        published_variant.provinces.filter(parent__isnull=False).first()
-    )
+    template_named_coast = published_variant.provinces.filter(
+        parent__isnull=False
+    ).first()
     assert template_named_coast is not None
     Unit.objects.filter(phase__game=sandbox_game_on_published).first()
     unit = Unit.objects.filter(phase__game=sandbox_game_on_published).first()
@@ -157,7 +161,9 @@ def test_validate_rejects_parent_change_when_units_exist(
     unit.save()
 
     new_parent_province = (
-        published_variant.provinces.exclude(province_id=template_named_coast.parent.province_id)
+        published_variant.provinces.exclude(
+            province_id=template_named_coast.parent.province_id
+        )
         .filter(parent__isnull=True)
         .first()
     )
@@ -181,14 +187,21 @@ def test_validate_accepts_adjacency_change(
             break
     errors = validate_safe_replacement(published_variant, modified)
     adjacency_errors = [
-        error for error in errors
+        error
+        for error in errors
         if error.code in ("ASYMMETRIC_ADJACENCY", "INCONSISTENT_ADJACENCY")
     ]
     nation_or_province_errors = [
-        error for error in errors
-        if error.code in (
-            "NATION_ADDED", "NATION_REMOVED", "PROVINCE_ADDED", "PROVINCE_REMOVED",
-            "PARENT_CHANGED", "SUPPLY_CENTER_REMOVED",
+        error
+        for error in errors
+        if error.code
+        in (
+            "NATION_ADDED",
+            "NATION_REMOVED",
+            "PROVINCE_ADDED",
+            "PROVINCE_REMOVED",
+            "PARENT_CHANGED",
+            "SUPPLY_CENTER_REMOVED",
         )
     ]
     assert nation_or_province_errors == []
@@ -200,15 +213,21 @@ def test_apply_preserves_pks(
     published_variant, published_variant_dvar, published_variant_dsvg
 ):
     nation_pks_before = dict(published_variant.nations.values_list("nation_id", "id"))
-    province_pks_before = dict(published_variant.provinces.values_list("province_id", "id"))
+    province_pks_before = dict(
+        published_variant.provinces.values_list("province_id", "id")
+    )
 
-    apply_safe_replacement(published_variant, published_variant_dvar, published_variant_dsvg)
+    apply_safe_replacement(
+        published_variant, published_variant_dvar, published_variant_dsvg
+    )
 
     nation_pks_after = dict(
         Nation.objects.filter(variant=published_variant).values_list("nation_id", "id")
     )
     province_pks_after = dict(
-        Province.objects.filter(variant=published_variant).values_list("province_id", "id")
+        Province.objects.filter(variant=published_variant).values_list(
+            "province_id", "id"
+        )
     )
     assert nation_pks_after == nation_pks_before
     assert province_pks_after == province_pks_before
@@ -216,20 +235,32 @@ def test_apply_preserves_pks(
 
 @pytest.mark.django_db
 def test_apply_preserves_game_data(
-    published_variant, published_variant_dvar, published_variant_dsvg,
+    published_variant,
+    published_variant_dvar,
+    published_variant_dsvg,
     sandbox_game_on_published,
 ):
     game = sandbox_game_on_published
     game_phase_ids = list(game.phases.values_list("id", flat=True))
     unit_ids = list(Unit.objects.filter(phase__game=game).values_list("id", flat=True))
-    sc_ids = list(SupplyCenter.objects.filter(phase__game=game).values_list("id", flat=True))
+    sc_ids = list(
+        SupplyCenter.objects.filter(phase__game=game).values_list("id", flat=True)
+    )
     member_ids = list(game.members.values_list("id", flat=True))
 
-    apply_safe_replacement(published_variant, published_variant_dvar, published_variant_dsvg)
+    apply_safe_replacement(
+        published_variant, published_variant_dvar, published_variant_dsvg
+    )
 
     assert list(game.phases.values_list("id", flat=True)) == game_phase_ids
-    assert list(Unit.objects.filter(phase__game=game).values_list("id", flat=True)) == unit_ids
-    assert list(SupplyCenter.objects.filter(phase__game=game).values_list("id", flat=True)) == sc_ids
+    assert (
+        list(Unit.objects.filter(phase__game=game).values_list("id", flat=True))
+        == unit_ids
+    )
+    assert (
+        list(SupplyCenter.objects.filter(phase__game=game).values_list("id", flat=True))
+        == sc_ids
+    )
     assert list(game.members.values_list("id", flat=True)) == member_ids
 
 
@@ -238,10 +269,10 @@ def test_apply_regenerates_template_phase(
     published_variant, published_variant_dvar, published_variant_dsvg
 ):
     template_phase_id_before = published_variant.template_phase.id
-    apply_safe_replacement(published_variant, published_variant_dvar, published_variant_dsvg)
-    refreshed_template = Phase.objects.get(
-        variant=published_variant, game__isnull=True
+    apply_safe_replacement(
+        published_variant, published_variant_dvar, published_variant_dsvg
     )
+    refreshed_template = Phase.objects.get(variant=published_variant, game__isnull=True)
     assert refreshed_template.id != template_phase_id_before
     assert refreshed_template.units.exists()
     assert refreshed_template.supply_centers.exists()
@@ -256,7 +287,9 @@ def test_apply_preserves_flags(
     NationFlag.objects.create(nation=nation, svg=flag_svg)
     flag_hash_before = nation.flag.content_hash
 
-    apply_safe_replacement(published_variant, published_variant_dvar, published_variant_dsvg)
+    apply_safe_replacement(
+        published_variant, published_variant_dvar, published_variant_dsvg
+    )
 
     refreshed_flag = NationFlag.objects.get(nation=nation)
     assert refreshed_flag.content_hash == flag_hash_before
@@ -267,7 +300,9 @@ def test_apply_replaces_svg(
     published_variant, published_variant_dvar, published_variant_dsvg
 ):
     new_dsvg = published_variant_dsvg.replace(
-        '<g id="background"', '<g id="background"><rect id="marker" width="1" height="1"/>', 1
+        '<g id="background"',
+        '<g id="background"><rect id="marker" width="1" height="1"/>',
+        1,
     )
     hash_before = published_variant.svg.content_hash
     apply_safe_replacement(published_variant, published_variant_dvar, new_dsvg)

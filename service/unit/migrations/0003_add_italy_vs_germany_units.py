@@ -12,7 +12,9 @@ def add_italy_vs_germany_units(apps, schema_editor):
 
     # Get the Italy vs Germany variant and template phase
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")
-    template_phase = Phase.objects.get(game=None, variant=italy_germany_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=italy_germany_variant, status="template"
+    )
 
     # Italy vs Germany units data
     units_data = [
@@ -27,8 +29,12 @@ def add_italy_vs_germany_units(apps, schema_editor):
     # Create units
     for unit_data in units_data:
         # Get the nation and province objects
-        nation = Nation.objects.get(name=unit_data["nation"], variant=italy_germany_variant)
-        province = Province.objects.get(province_id=unit_data["province"], variant=italy_germany_variant)
+        nation = Nation.objects.get(
+            name=unit_data["nation"], variant=italy_germany_variant
+        )
+        province = Province.objects.get(
+            province_id=unit_data["province"], variant=italy_germany_variant
+        )
 
         Unit.objects.create(
             phase=template_phase,
@@ -45,7 +51,9 @@ def remove_italy_vs_germany_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")
-    template_phase = Phase.objects.get(game=None, variant=italy_germany_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=italy_germany_variant, status="template"
+    )
     Unit.objects.filter(phase=template_phase).delete()
 
 

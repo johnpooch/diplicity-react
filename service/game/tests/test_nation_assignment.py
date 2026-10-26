@@ -22,7 +22,9 @@ def fake_member(member_id, preferences=(), nation=None):
         nation=nation,
         nation_id=nation.id if nation else None,
         nation_preferences=SimpleNamespace(
-            all=lambda: [SimpleNamespace(nation_id=nation_id) for nation_id in preferences]
+            all=lambda: [
+                SimpleNamespace(nation_id=nation_id) for nation_id in preferences
+            ]
         ),
     )
 
@@ -76,7 +78,9 @@ class TestAssignNations:
         members = [fake_member(i, preferences=["england"]) for i in range(1, 5)]
         first = assign_nations(42, members, nations)
         second = assign_nations(42, members, nations)
-        assert {m: n.id for m, n in first.items()} == {m: n.id for m, n in second.items()}
+        assert {m: n.id for m, n in first.items()} == {
+            m: n.id for m, n in second.items()
+        }
 
     def test_pinned_nation_honoured_and_removed_from_pool(self):
         nations = [fake_nation(n) for n in ["england", "france"]]
@@ -106,7 +110,10 @@ class TestGameStartAssignment:
 
     @pytest.mark.django_db
     def test_pinning_six_of_seven_forces_the_seventh(
-        self, pending_game_with_game_master_factory, user_factory, adjudication_data_classical
+        self,
+        pending_game_with_game_master_factory,
+        user_factory,
+        adjudication_data_classical,
     ):
         game = pending_game_with_game_master_factory()
         members = self._fill_game(game, user_factory)
@@ -114,7 +121,9 @@ class TestGameStartAssignment:
         for member, nation in zip(members[:6], nations[:6]):
             Member.objects.assign_nation(member, nation)
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start()
 
         game.refresh_from_db()
@@ -124,16 +133,23 @@ class TestGameStartAssignment:
 
     @pytest.mark.django_db
     def test_preferences_applied_on_start(
-        self, pending_game_with_game_master_factory, user_factory, adjudication_data_classical
+        self,
+        pending_game_with_game_master_factory,
+        user_factory,
+        adjudication_data_classical,
     ):
         game = pending_game_with_game_master_factory()
         members = self._fill_game(game, user_factory)
         nations = {n.nation_id: n for n in game.variant.nations.all()}
         Member.objects.set_nation_preferences(members[0], [nations["turkey"]])
-        for member, nation_id in zip(members[1:], ["austria", "england", "france", "germany", "italy", "russia"]):
+        for member, nation_id in zip(
+            members[1:], ["austria", "england", "france", "germany", "italy", "russia"]
+        ):
             Member.objects.assign_nation(member, nations[nation_id])
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start()
 
         first = game.members.get(id=members[0].id)
@@ -141,21 +157,29 @@ class TestGameStartAssignment:
 
     @pytest.mark.django_db
     def test_preference_rows_kept_after_start(
-        self, pending_game_with_game_master_factory, user_factory, adjudication_data_classical
+        self,
+        pending_game_with_game_master_factory,
+        user_factory,
+        adjudication_data_classical,
     ):
         game = pending_game_with_game_master_factory()
         members = self._fill_game(game, user_factory)
         nations = list(game.variant.nations.all())
         Member.objects.set_nation_preferences(members[0], nations[:3])
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start()
 
         assert members[0].nation_preferences.count() == 3
 
     @pytest.mark.django_db
     def test_start_query_count_with_preferences(
-        self, pending_game_with_game_master_factory, user_factory, adjudication_data_classical
+        self,
+        pending_game_with_game_master_factory,
+        user_factory,
+        adjudication_data_classical,
     ):
         game = pending_game_with_game_master_factory()
         members = self._fill_game(game, user_factory)
@@ -165,7 +189,9 @@ class TestGameStartAssignment:
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            with patch.object(
+                adjudication_service, "start", return_value=adjudication_data_classical
+            ):
                 game.start()
         query_count = len(connection.queries)
         assert query_count == 21

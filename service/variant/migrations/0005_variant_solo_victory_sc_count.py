@@ -28,5 +28,7 @@ class Migration(migrations.Migration):
             name="solo_victory_sc_count",
             field=models.IntegerField(default=18),
         ),
-        migrations.RunPython(populate_solo_victory_sc_counts, migrations.RunPython.noop),
+        migrations.RunPython(
+            populate_solo_victory_sc_counts, migrations.RunPython.noop
+        ),
     ]

@@ -1,6 +1,5 @@
 from django.db import migrations
 
-
 BUILD_ANYWHERE_MODIFIER = "allow-builds-in-non-home-centers"
 
 

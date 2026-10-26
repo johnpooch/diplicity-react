@@ -11,18 +11,67 @@ def add_youngstown_redux_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     youngstown_redux_variant = Variant.objects.get(id="youngstown-redux")
-    template_phase = Phase.objects.get(game=None, variant=youngstown_redux_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=youngstown_redux_variant, status="template"
+    )
 
-    supply_centers_data = [{'nation': 'Austria', 'province': 'vnn'}, {'nation': 'Austria', 'province': 'bud'}, {'nation': 'China', 'province': 'sha'}, {'nation': 'Japan', 'province': 'tok'}, {'nation': 'Germany', 'province': 'ber'}, {'nation': 'Germany', 'province': 'mun'}, {'nation': 'Russia', 'province': 'mos'}, {'nation': 'France', 'province': 'bre'}, {'nation': 'France', 'province': 'sai'}, {'nation': 'France', 'province': 'par'}, {'nation': 'Turkey', 'province': 'con'}, {'nation': 'Germany', 'province': 'col'}, {'nation': 'India', 'province': 'bom'}, {'nation': 'India', 'province': 'del'}, {'nation': 'Russia', 'province': 'sev'}, {'nation': 'China', 'province': 'wuh'}, {'nation': 'India', 'province': 'mad'}, {'nation': 'Austria', 'province': 'tes'}, {'nation': 'Britain', 'province': 'edi'}, {'nation': 'Japan', 'province': 'osa'}, {'nation': 'Japan', 'province': 'kyo'}, {'nation': 'Italy', 'province': 'nap'}, {'nation': 'Italy', 'province': 'mog'}, {'nation': 'France', 'province': 'mar'}, {'nation': 'Turkey', 'province': 'mec'}, {'nation': 'Austria', 'province': 'sar'}, {'nation': 'Britain', 'province': 'sig'}, {'nation': 'Japan', 'province': 'sap'}, {'nation': 'India', 'province': 'cal'}, {'nation': 'Russia', 'province': 'stp'}, {'nation': 'Russia', 'province': 'vla'}, {'nation': 'Turkey', 'province': 'ank'}, {'nation': 'Britain', 'province': 'lie'}, {'nation': 'China', 'province': 'pek'}, {'nation': 'China', 'province': 'gua'}, {'nation': 'Italy', 'province': 'rom'}, {'nation': 'Germany', 'province': 'tsi'}, {'nation': 'Germany', 'province': 'kie'}, {'nation': 'Russia', 'province': 'oms'}, {'nation': 'Turkey', 'province': 'bag'}, {'nation': 'Britain', 'province': 'lon'}, {'nation': 'Britain', 'province': 'ade'}, {'nation': 'Italy', 'province': 'mil'}, {'nation': 'Russia', 'province': 'war'}]
+    supply_centers_data = [
+        {"nation": "Austria", "province": "vnn"},
+        {"nation": "Austria", "province": "bud"},
+        {"nation": "China", "province": "sha"},
+        {"nation": "Japan", "province": "tok"},
+        {"nation": "Germany", "province": "ber"},
+        {"nation": "Germany", "province": "mun"},
+        {"nation": "Russia", "province": "mos"},
+        {"nation": "France", "province": "bre"},
+        {"nation": "France", "province": "sai"},
+        {"nation": "France", "province": "par"},
+        {"nation": "Turkey", "province": "con"},
+        {"nation": "Germany", "province": "col"},
+        {"nation": "India", "province": "bom"},
+        {"nation": "India", "province": "del"},
+        {"nation": "Russia", "province": "sev"},
+        {"nation": "China", "province": "wuh"},
+        {"nation": "India", "province": "mad"},
+        {"nation": "Austria", "province": "tes"},
+        {"nation": "Britain", "province": "edi"},
+        {"nation": "Japan", "province": "osa"},
+        {"nation": "Japan", "province": "kyo"},
+        {"nation": "Italy", "province": "nap"},
+        {"nation": "Italy", "province": "mog"},
+        {"nation": "France", "province": "mar"},
+        {"nation": "Turkey", "province": "mec"},
+        {"nation": "Austria", "province": "sar"},
+        {"nation": "Britain", "province": "sig"},
+        {"nation": "Japan", "province": "sap"},
+        {"nation": "India", "province": "cal"},
+        {"nation": "Russia", "province": "stp"},
+        {"nation": "Russia", "province": "vla"},
+        {"nation": "Turkey", "province": "ank"},
+        {"nation": "Britain", "province": "lie"},
+        {"nation": "China", "province": "pek"},
+        {"nation": "China", "province": "gua"},
+        {"nation": "Italy", "province": "rom"},
+        {"nation": "Germany", "province": "tsi"},
+        {"nation": "Germany", "province": "kie"},
+        {"nation": "Russia", "province": "oms"},
+        {"nation": "Turkey", "province": "bag"},
+        {"nation": "Britain", "province": "lon"},
+        {"nation": "Britain", "province": "ade"},
+        {"nation": "Italy", "province": "mil"},
+        {"nation": "Russia", "province": "war"},
+    ]
 
     for sc_data in supply_centers_data:
-        nation = Nation.objects.get(variant=youngstown_redux_variant, name=sc_data["nation"])
-        province = Province.objects.get(variant=youngstown_redux_variant, province_id=sc_data["province"])
+        nation = Nation.objects.get(
+            variant=youngstown_redux_variant, name=sc_data["nation"]
+        )
+        province = Province.objects.get(
+            variant=youngstown_redux_variant, province_id=sc_data["province"]
+        )
 
         SupplyCenter.objects.create(
-            nation=nation,
-            province=province,
-            phase=template_phase
+            nation=nation, province=province, phase=template_phase
         )
 
 
@@ -32,7 +81,9 @@ def remove_youngstown_redux_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     youngstown_redux_variant = Variant.objects.get(id="youngstown-redux")
-    template_phase = Phase.objects.get(game=None, variant=youngstown_redux_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=youngstown_redux_variant, status="template"
+    )
     SupplyCenter.objects.filter(phase=template_phase).delete()
 
 

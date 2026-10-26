@@ -111,7 +111,9 @@ def system_prompt(context: Context, overrides: dict[str, str] | None = None) -> 
         [
             _render(parts, "system.role"),
             _render(parts, "system.principles"),
-            _render(parts, _task_part(context), {"max_orders": context.get("max_orders")}),
+            _render(
+                parts, _task_part(context), {"max_orders": context.get("max_orders")}
+            ),
             _render(parts, "system.format"),
         ]
     )
@@ -121,7 +123,9 @@ def render_part(part: str, values: dict | None = None) -> str:
     return _render(DEFAULT_PARTS, part, values)
 
 
-def user_sections(context: Context, overrides: dict[str, str] | None = None) -> dict[str, str]:
+def user_sections(
+    context: Context, overrides: dict[str, str] | None = None
+) -> dict[str, str]:
     parts = _parts(overrides)
     data = prompt_data(context)
 
@@ -133,7 +137,8 @@ def user_sections(context: Context, overrides: dict[str, str] | None = None) -> 
         {
             **province,
             "adjacencies": ", ".join(
-                _render(parts, "user.board.adjacency", adjacency) for adjacency in province["adjacencies"]
+                _render(parts, "user.board.adjacency", adjacency)
+                for adjacency in province["adjacencies"]
             ),
         }
         for province in data["board"]
@@ -144,7 +149,10 @@ def user_sections(context: Context, overrides: dict[str, str] | None = None) -> 
         options.append(_render(parts, "user.options.empty"))
     for province in data["options"]:
         options.append(_render(parts, "user.options.province", province))
-        options.extend(_render(parts, "user.options.line", option) for option in province["options"])
+        options.extend(
+            _render(parts, "user.options.line", option)
+            for option in province["options"]
+        )
 
     sections = {
         "intro": "\n".join(intro),

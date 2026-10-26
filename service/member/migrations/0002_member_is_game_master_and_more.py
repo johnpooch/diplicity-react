@@ -6,17 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('member', '0001_initial'),
+        ("member", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='member',
-            name='is_game_master',
+            model_name="member",
+            name="is_game_master",
             field=models.BooleanField(default=False),
         ),
         migrations.AddConstraint(
-            model_name='member',
-            constraint=models.UniqueConstraint(condition=models.Q(('is_game_master', True)), fields=('game',), name='unique_game_master_per_game'),
+            model_name="member",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("is_game_master", True)),
+                fields=("game",),
+                name="unique_game_master_per_game",
+            ),
         ),
     ]

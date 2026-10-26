@@ -6,12 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('order', '0001_initial'),
+        ("order", "0001_initial"),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='order',
-            constraint=models.UniqueConstraint(fields=('phase_state', 'source'), name='unique_order_per_province_per_phase'),
+            model_name="order",
+            constraint=models.UniqueConstraint(
+                fields=("phase_state", "source"),
+                name="unique_order_per_province_per_phase",
+            ),
         ),
     ]

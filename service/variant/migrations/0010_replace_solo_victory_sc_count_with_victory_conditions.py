@@ -19,7 +19,9 @@ def reverse_victory_conditions(apps, schema_editor):
     Variant = apps.get_model("variant", "Variant")
     variants = list(Variant.objects.all())
     for variant in variants:
-        variant.solo_victory_sc_count = variant.victory_conditions["soloVictorySupplyCenters"]
+        variant.solo_victory_sc_count = variant.victory_conditions[
+            "soloVictorySupplyCenters"
+        ]
     Variant.objects.bulk_update(variants, ["solo_victory_sc_count"])
 
 

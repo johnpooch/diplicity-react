@@ -13,7 +13,14 @@ class EmitContext:
 
 
 def build_context(
-    event_type, game=None, phase=None, actor=None, channel=None, message=None, draw_proposal=None, **payload
+    event_type,
+    game=None,
+    phase=None,
+    actor=None,
+    channel=None,
+    message=None,
+    draw_proposal=None,
+    **payload
 ):
     if message is not None:
         game = message.channel.game

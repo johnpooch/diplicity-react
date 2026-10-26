@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('variant', '0013_convert_victory_conditions_to_list'),
-        ('variant', '0014_backfill_variant_svgs'),
+        ("variant", "0013_convert_victory_conditions_to_list"),
+        ("variant", "0014_backfill_variant_svgs"),
     ]
 
-    operations = [
-    ]
+    operations = []

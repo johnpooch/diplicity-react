@@ -6,18 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0009_add_fixed_deadline_fields'),
+        ("game", "0009_add_fixed_deadline_fields"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='game',
-            name='anonymous',
+            model_name="game",
+            name="anonymous",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='game',
-            name='deadline_mode',
-            field=models.CharField(choices=[('duration', 'Duration'), ('fixed_time', 'Fixed Time')], default='fixed_time', max_length=20),
+            model_name="game",
+            name="deadline_mode",
+            field=models.CharField(
+                choices=[("duration", "Duration"), ("fixed_time", "Fixed Time")],
+                default="fixed_time",
+                max_length=20,
+            ),
         ),
     ]

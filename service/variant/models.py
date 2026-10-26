@@ -17,16 +17,26 @@ def default_phase_progression():
     return {
         "seasons": ["Spring", "Fall"],
         "transitions": [
-            {"from": {"season": "Spring", "type": "Movement"},
-             "to": {"season": "Spring", "type": "Retreat", "yearDelta": 0}},
-            {"from": {"season": "Spring", "type": "Retreat"},
-             "to": {"season": "Fall", "type": "Movement", "yearDelta": 0}},
-            {"from": {"season": "Fall", "type": "Movement"},
-             "to": {"season": "Fall", "type": "Retreat", "yearDelta": 0}},
-            {"from": {"season": "Fall", "type": "Retreat"},
-             "to": {"season": "Fall", "type": "Adjustment", "yearDelta": 0}},
-            {"from": {"season": "Fall", "type": "Adjustment"},
-             "to": {"season": "Spring", "type": "Movement", "yearDelta": 1}},
+            {
+                "from": {"season": "Spring", "type": "Movement"},
+                "to": {"season": "Spring", "type": "Retreat", "yearDelta": 0},
+            },
+            {
+                "from": {"season": "Spring", "type": "Retreat"},
+                "to": {"season": "Fall", "type": "Movement", "yearDelta": 0},
+            },
+            {
+                "from": {"season": "Fall", "type": "Movement"},
+                "to": {"season": "Fall", "type": "Retreat", "yearDelta": 0},
+            },
+            {
+                "from": {"season": "Fall", "type": "Retreat"},
+                "to": {"season": "Fall", "type": "Adjustment", "yearDelta": 0},
+            },
+            {
+                "from": {"season": "Fall", "type": "Adjustment"},
+                "to": {"season": "Spring", "type": "Movement", "yearDelta": 1},
+            },
         ],
     }
 
@@ -44,9 +54,12 @@ class VariantQuerySet(models.QuerySet):
 
     def with_related_data(self):
         from nation.models import Nation
+
         template_phase_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
+            queryset=Phase.objects.filter(
+                game=None, status=PhaseStatus.TEMPLATE
+            ).prefetch_related(
                 "units__nation__flag",
                 "units__province__parent",
                 "units__province__named_coasts",
@@ -58,23 +71,29 @@ class VariantQuerySet(models.QuerySet):
             ),
             to_attr="template_phases",
         )
-        nations_prefetch = Prefetch("nations", queryset=Nation.objects.select_related("flag"))
+        nations_prefetch = Prefetch(
+            "nations", queryset=Nation.objects.select_related("flag")
+        )
 
-        return self.select_related("svg", "owner").defer("svg__svg").prefetch_related(
-            # Variant data with optimized template phase
-            "provinces__parent",
-            "provinces__named_coasts",
-            nations_prefetch,
-            template_phase_prefetch,
+        return (
+            self.select_related("svg", "owner")
+            .defer("svg__svg")
+            .prefetch_related(
+                # Variant data with optimized template phase
+                "provinces__parent",
+                "provinces__named_coasts",
+                nations_prefetch,
+                template_phase_prefetch,
+            )
         )
 
     def with_game_creation_data(self):
         from nation.models import Nation
+
         template_phase_prefetch = Prefetch(
             "phases",
             queryset=Phase.objects.filter(
-                game=None,
-                status=PhaseStatus.TEMPLATE
+                game=None, status=PhaseStatus.TEMPLATE
             ).prefetch_related(
                 "units__nation__flag",
                 "units__province",
@@ -83,7 +102,9 @@ class VariantQuerySet(models.QuerySet):
             ),
             to_attr="template_phases",
         )
-        nations_prefetch = Prefetch("nations", queryset=Nation.objects.select_related("flag"))
+        nations_prefetch = Prefetch(
+            "nations", queryset=Nation.objects.select_related("flag")
+        )
 
         return self.prefetch_related(
             nations_prefetch,
@@ -137,7 +158,7 @@ class Variant(BaseModel):
         if self.owner_id is not None:
             prefix = f"{self.owner_id}-"
             if self.id.startswith(prefix):
-                return self.id[len(prefix):]
+                return self.id[len(prefix) :]
         return self.id
 
     @property
@@ -164,7 +185,9 @@ class Variant(BaseModel):
         if hasattr(self, "template_phases"):
             return self.template_phases[0] if self.template_phases else None
 
-        return self.phases.filter(game__isnull=True, status=PhaseStatus.TEMPLATE).first()
+        return self.phases.filter(
+            game__isnull=True, status=PhaseStatus.TEMPLATE
+        ).first()
 
     def solo_victory_supply_centers_for(self, nation_id):
         default = None
@@ -179,7 +202,9 @@ class Variant(BaseModel):
 
 
 class VariantSvg(BaseModel):
-    variant = models.OneToOneField(Variant, on_delete=models.CASCADE, related_name="svg")
+    variant = models.OneToOneField(
+        Variant, on_delete=models.CASCADE, related_name="svg"
+    )
     svg = models.TextField()
     content_hash = models.CharField(max_length=64, editable=False)
 

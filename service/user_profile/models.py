@@ -22,7 +22,11 @@ class UserProfileQuerySet(models.QuerySet):
         )
 
     def with_commitment_total(self):
-        return self.annotate(commitment_total=commitment_points("user__members__commitment_entries__kind"))
+        return self.annotate(
+            commitment_total=commitment_points(
+                "user__members__commitment_entries__kind"
+            )
+        )
 
 
 class UserProfileManager(models.Manager):

@@ -9,26 +9,69 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('phase', '0001_initial'),
-        ('nation', '0001_initial'),
-        ('province', '0001_initial'),
+        ("phase", "0001_initial"),
+        ("nation", "0001_initial"),
+        ("province", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Unit',
+            name="Unit",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('type', models.CharField(choices=[('Army', 'Army'), ('Fleet', 'Fleet')], max_length=10)),
-                ('dislodged_by', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='dislodges', to='unit.unit')),
-                ('nation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='units', to='nation.nation')),
-                ('phase', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='units', to='phase.phase')),
-                ('province', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='units', to='province.province')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[("Army", "Army"), ("Fleet", "Fleet")], max_length=10
+                    ),
+                ),
+                (
+                    "dislodged_by",
+                    models.OneToOneField(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="dislodges",
+                        to="unit.unit",
+                    ),
+                ),
+                (
+                    "nation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="units",
+                        to="nation.nation",
+                    ),
+                ),
+                (
+                    "phase",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="units",
+                        to="phase.phase",
+                    ),
+                ),
+                (
+                    "province",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="units",
+                        to="province.province",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

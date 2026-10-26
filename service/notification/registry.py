@@ -17,6 +17,7 @@ def register(event_type):
         cls.event_type = event_type
         REGISTRY[event_type] = cls
         return cls
+
     return decorator
 
 
@@ -101,9 +102,14 @@ class NotificationSpec:
 
     def expired_draw_proposals_clause(self, phase):
         proposals = (
-            DrawProposal.objects.pending_for_phase(phase).select_related("created_by__nation").order_by("created_at")
+            DrawProposal.objects.pending_for_phase(phase)
+            .select_related("created_by__nation")
+            .order_by("created_at")
         )
-        names = [self.player_name(nation=proposal.created_by.nation.name) for proposal in proposals]
+        names = [
+            self.player_name(nation=proposal.created_by.nation.name)
+            for proposal in proposals
+        ]
         if not names:
             return ""
         if len(names) == 1:
@@ -191,7 +197,10 @@ class GameDrawSpec(NotificationSpec):
         return self.context.game.seated_member_user_ids()
 
     def get_body(self):
-        names = join_names(self.player_name(name=member.name) for member in self.context.game.winner_members())
+        names = join_names(
+            self.player_name(name=member.name)
+            for member in self.context.game.winner_members()
+        )
         return f"The game has ended in a draw between {names}. Well played!"
 
 
@@ -207,12 +216,19 @@ class GameSoloWinSpec(NotificationSpec):
 @register("game_solo_loss")
 class GameSoloLossSpec(NotificationSpec):
     def get_audience(self):
-        return self.context.game.seated_member_user_ids() - self.context.game.winner_user_ids()
+        return (
+            self.context.game.seated_member_user_ids()
+            - self.context.game.winner_user_ids()
+        )
 
     def get_body(self):
         winners = self.context.game.winner_members()
-        winner_clause = f" for {self.player_name(name=winners[0].name)}" if winners else ""
-        return f"The game has ended in a solo win{winner_clause}. Better luck next time!"
+        winner_clause = (
+            f" for {self.player_name(name=winners[0].name)}" if winners else ""
+        )
+        return (
+            f"The game has ended in a solo win{winner_clause}. Better luck next time!"
+        )
 
 
 @register("phase_resolved")
@@ -238,7 +254,9 @@ class PhaseResolvedEarlySpec(NotificationSpec):
 @register("game_deleted")
 class GameDeletedSpec(NotificationSpec):
     exclude_actor = True
-    no_link_reason = "The game is deleted before the event is emitted, so no view of it remains."
+    no_link_reason = (
+        "The game is deleted before the event is emitted, so no view of it remains."
+    )
 
     def get_title(self):
         return self.context.payload["game_name"]

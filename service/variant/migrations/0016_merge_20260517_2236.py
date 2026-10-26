@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('variant', '0015_correct_hundred_phase_progression'),
-        ('variant', '0015_merge_20260517_1923'),
+        ("variant", "0015_correct_hundred_phase_progression"),
+        ("variant", "0015_merge_20260517_1923"),
     ]
 
-    operations = [
-    ]
+    operations = []

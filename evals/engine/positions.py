@@ -15,9 +15,16 @@ ARMY = "Army"
 class Board:
     def __init__(self, variant: dict):
         self.variant = variant
-        self.nation_ids = {nation["name"]: nation["id"] for nation in variant["nations"]}
-        self.nation_names = {nation["id"]: nation["name"] for nation in variant["nations"]}
-        self.parents = {coast["id"]: coast["parentProvince"] for coast in variant.get("namedCoasts", [])}
+        self.nation_ids = {
+            nation["name"]: nation["id"] for nation in variant["nations"]
+        }
+        self.nation_names = {
+            nation["id"]: nation["name"] for nation in variant["nations"]
+        }
+        self.parents = {
+            coast["id"]: coast["parentProvince"]
+            for coast in variant.get("namedCoasts", [])
+        }
 
     def parent(self, location: str) -> str:
         return self.parents.get(location, location)
@@ -25,9 +32,15 @@ class Board:
     def coasts(self, province: str) -> set[str]:
         return {coast for coast, parent in self.parents.items() if parent == province}
 
-    def game_state(self, phase, units, supply_centers, contested_provinces=(), orders=None) -> dict:
+    def game_state(
+        self, phase, units, supply_centers, contested_provinces=(), orders=None
+    ) -> dict:
         return {
-            "phase": {"season": phase["season"], "year": phase["year"], "type": phase["type"]},
+            "phase": {
+                "season": phase["season"],
+                "year": phase["year"],
+                "type": phase["type"],
+            },
             "units": [
                 {
                     "nation": self.nation_ids[unit["nation"]],
@@ -39,7 +52,10 @@ class Board:
                 for unit in units
             ],
             "supplyCenters": [
-                {"nation": self.nation_ids[center["nation"]], "province": center["province"]}
+                {
+                    "nation": self.nation_ids[center["nation"]],
+                    "province": center["province"],
+                }
                 for center in supply_centers
             ],
             "orders": self.raw_orders(phase["type"], orders or {}),
@@ -48,8 +64,14 @@ class Board:
 
     def options_by_nation(self, state: dict) -> dict[str, list[dict]]:
         retreat = state["phase"]["type"] == RETREAT
-        nation_at = {unit["location"]: unit["nation"] for unit in state["units"] if unit["dislodged"] == retreat}
-        owners = {center["province"]: center["nation"] for center in state["supplyCenters"]}
+        nation_at = {
+            unit["location"]: unit["nation"]
+            for unit in state["units"]
+            if unit["dislodged"] == retreat
+        }
+        owners = {
+            center["province"]: center["nation"] for center in state["supplyCenters"]
+        }
         by_nation: dict[str, list[dict]] = {}
         builds: dict[tuple[str, str], dict[str, set[str]]] = {}
         for option in legal_options(self.variant, state):
@@ -60,16 +82,26 @@ class Board:
                     by_type = builds.setdefault((owner, self.parent(source)), {})
                     by_type.setdefault(option["unitType"] or ARMY, set()).add(source)
                 continue
-            nation = nation_at.get(source) if retreat else nation_at.get(source, owners.get(self.parent(source)))
+            nation = (
+                nation_at.get(source)
+                if retreat
+                else nation_at.get(source, owners.get(self.parent(source)))
+            )
             if nation is None:
                 continue
-            by_nation.setdefault(self.nation_names[nation], []).append(self._option(option, retreat))
+            by_nation.setdefault(self.nation_names[nation], []).append(
+                self._option(option, retreat)
+            )
         for (owner, province), by_type in builds.items():
-            by_nation.setdefault(self.nation_names[owner], []).extend(self._builds(province, by_type))
+            by_nation.setdefault(self.nation_names[owner], []).extend(
+                self._builds(province, by_type)
+            )
         return by_nation
 
     def _option(self, option, retreat):
-        order_type = MOVE if retreat and option["orderType"] == RETREAT else option["orderType"]
+        order_type = (
+            MOVE if retreat and option["orderType"] == RETREAT else option["orderType"]
+        )
         result = {"source": self.parent(option["source"]), "order_type": order_type}
         if order_type in (MOVE, MOVE_VIA_CONVOY):
             result["target"] = self.parent(option["target"])
@@ -84,16 +116,33 @@ class Board:
         fleet_coasts = sorted(by_type.get(FLEET, set()) & self.coasts(province))
         if len(fleet_coasts) == 1:
             coast = fleet_coasts[0]
-            unit_types = [unit_type for unit_type in (ARMY, FLEET) if unit_type in by_type]
-            return [{"source": coast, "order_type": BUILD, "unit_type": unit_type} for unit_type in unit_types]
+            unit_types = [
+                unit_type for unit_type in (ARMY, FLEET) if unit_type in by_type
+            ]
+            return [
+                {"source": coast, "order_type": BUILD, "unit_type": unit_type}
+                for unit_type in unit_types
+            ]
         if fleet_coasts:
-            army = [{"source": province, "order_type": BUILD, "unit_type": ARMY}] if ARMY in by_type else []
+            army = (
+                [{"source": province, "order_type": BUILD, "unit_type": ARMY}]
+                if ARMY in by_type
+                else []
+            )
             fleets = [
-                {"source": province, "order_type": BUILD, "unit_type": FLEET, "named_coast": coast}
+                {
+                    "source": province,
+                    "order_type": BUILD,
+                    "unit_type": FLEET,
+                    "named_coast": coast,
+                }
                 for coast in fleet_coasts
             ]
             return army + fleets
-        return [{"source": province, "order_type": BUILD, "unit_type": unit_type} for unit_type in sorted(by_type)]
+        return [
+            {"source": province, "order_type": BUILD, "unit_type": unit_type}
+            for unit_type in sorted(by_type)
+        ]
 
     def raw_orders(self, phase_type, orders_by_nation) -> list[dict]:
         return [
@@ -128,12 +177,21 @@ class Board:
             "viaConvoy": via_convoy,
         }
 
-    def outcome(self, state: dict, orders_by_nation: dict[str, list[dict]]) -> tuple[dict, dict]:
+    def outcome(
+        self, state: dict, orders_by_nation: dict[str, list[dict]]
+    ) -> tuple[dict, dict]:
         orders = self.raw_orders(state["phase"]["type"], orders_by_nation)
         resolved, following = resolve(self.variant, {**state, "orders": orders})
-        results = {self.parent(resolution["province"]): resolution["code"] for resolution in resolved["resolutions"]}
+        results = {
+            self.parent(resolution["province"]): resolution["code"]
+            for resolution in resolved["resolutions"]
+        }
         resolutions = [
-            {"nation": nation, "source": option["source"], "result": results[self.parent(option["source"])]}
+            {
+                "nation": nation,
+                "source": option["source"],
+                "result": results[self.parent(option["source"])],
+            }
             for nation, options in sorted(orders_by_nation.items())
             for option in options
             if self.parent(option["source"]) in results
@@ -153,7 +211,11 @@ class Board:
                     "nation": self.nation_names[unit["nation"]],
                     "province": unit["location"],
                     **({"dislodged": True} if unit["dislodged"] else {}),
-                    **({"dislodged_from": unit["dislodgedFrom"]} if unit.get("dislodgedFrom") else {}),
+                    **(
+                        {"dislodged_from": unit["dislodgedFrom"]}
+                        if unit.get("dislodgedFrom")
+                        else {}
+                    ),
                 }
                 for unit in units
             ),
@@ -163,7 +225,10 @@ class Board:
     def fixture_supply_centers(self, supply_centers) -> list[dict]:
         return sorted(
             (
-                {"nation": self.nation_names[center["nation"]], "province": center["province"]}
+                {
+                    "nation": self.nation_names[center["nation"]],
+                    "province": center["province"],
+                }
                 for center in supply_centers
             ),
             key=lambda center: center["province"],

@@ -1,6 +1,5 @@
 from django.db import migrations
 
-
 CHUNK_SIZE = 500
 
 
@@ -64,8 +63,12 @@ def forward(apps, schema_editor):
 
 
 def reverse(apps, schema_editor):
-    schema_editor.execute("UPDATE game_game SET finished_at = NULL WHERE finished_at IS NOT NULL")
-    schema_editor.execute("UPDATE game_game SET started_at = NULL WHERE started_at IS NOT NULL")
+    schema_editor.execute(
+        "UPDATE game_game SET finished_at = NULL WHERE finished_at IS NOT NULL"
+    )
+    schema_editor.execute(
+        "UPDATE game_game SET started_at = NULL WHERE started_at IS NOT NULL"
+    )
     print("Reversed: cleared started_at and finished_at for all games", flush=True)
 
 

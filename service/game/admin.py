@@ -9,9 +9,18 @@ from common.constants import PhaseStatus
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
     list_display = (
-        "id", "name", "variant", "status", "current_phase", "view_phases",
-        "private", "deadline_mode", "movement_phase_duration", "retreat_phase_duration",
-        "fixed_deadline_time", "movement_frequency"
+        "id",
+        "name",
+        "variant",
+        "status",
+        "current_phase",
+        "view_phases",
+        "private",
+        "deadline_mode",
+        "movement_phase_duration",
+        "retreat_phase_duration",
+        "fixed_deadline_time",
+        "movement_frequency",
     )
     list_filter = ("status", "private", "variant", "deadline_mode")
     search_fields = ("name", "id")
@@ -29,6 +38,7 @@ class GameAdmin(admin.ModelAdmin):
         if phase:
             return f"{phase.name} (#{phase.ordinal})"
         return "-"
+
     current_phase.short_description = "Current Phase"
 
     def view_phases(self, obj):
@@ -37,7 +47,8 @@ class GameAdmin(admin.ModelAdmin):
         count = len(phases)
         if count == 0:
             return "-"
-        
+
         url = reverse("admin:phase_phase_changelist") + f"?game__id__exact={obj.id}"
         return format_html('<a href="{}">{} phases</a>', url, count)
+
     view_phases.short_description = "Phases"

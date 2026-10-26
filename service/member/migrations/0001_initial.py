@@ -11,27 +11,68 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('nation', '0001_initial'),
-        ('game', '0001_initial'),
+        ("nation", "0001_initial"),
+        ("game", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Member',
+            name="Member",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('won', models.BooleanField(default=False)),
-                ('drew', models.BooleanField(default=False)),
-                ('eliminated', models.BooleanField(default=False)),
-                ('kicked', models.BooleanField(default=False)),
-                ('game', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='members', to='game.game')),
-                ('nation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='members', to='nation.nation')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='members', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("won", models.BooleanField(default=False)),
+                ("drew", models.BooleanField(default=False)),
+                ("eliminated", models.BooleanField(default=False)),
+                ("kicked", models.BooleanField(default=False)),
+                (
+                    "game",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="members",
+                        to="game.game",
+                    ),
+                ),
+                (
+                    "nation",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="members",
+                        to="nation.nation",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="members",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'indexes': [models.Index(fields=['game', 'user'], name='member_memb_game_id_10911a_idx'), models.Index(fields=['user'], name='member_memb_user_id_ce8dc4_idx'), models.Index(fields=['game'], name='member_memb_game_id_4cf98e_idx')],
+                "indexes": [
+                    models.Index(
+                        fields=["game", "user"], name="member_memb_game_id_10911a_idx"
+                    ),
+                    models.Index(
+                        fields=["user"], name="member_memb_user_id_ce8dc4_idx"
+                    ),
+                    models.Index(
+                        fields=["game"], name="member_memb_game_id_4cf98e_idx"
+                    ),
+                ],
             },
         ),
     ]

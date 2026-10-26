@@ -14,7 +14,9 @@ class Migration(migrations.Migration):
     operations = [
         AddIndexConcurrently(
             model_name="phase",
-            index=models.Index(fields=["game", "-ordinal", "-id"], name="phase_latest_idx"),
+            index=models.Index(
+                fields=["game", "-ordinal", "-id"], name="phase_latest_idx"
+            ),
         ),
         AddIndexConcurrently(
             model_name="phase",

@@ -14,11 +14,26 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--eval-set", default=settings.EVALS_EVAL_SET)
-        parser.add_argument("--fixture", default=None, help="build only this fixture of the eval set")
-        parser.add_argument("--variant", action="append", choices=sorted(VARIANTS), help="build only these variants")
-        parser.add_argument("--season", default=None, help="build only fixtures in this season, e.g. Spring")
-        parser.add_argument("--year", type=int, default=None, help="build only fixtures in this year")
-        parser.add_argument("--out", default=None, help="directory to write to; defaults to prompts/")
+        parser.add_argument(
+            "--fixture", default=None, help="build only this fixture of the eval set"
+        )
+        parser.add_argument(
+            "--variant",
+            action="append",
+            choices=sorted(VARIANTS),
+            help="build only these variants",
+        )
+        parser.add_argument(
+            "--season",
+            default=None,
+            help="build only fixtures in this season, e.g. Spring",
+        )
+        parser.add_argument(
+            "--year", type=int, default=None, help="build only fixtures in this year"
+        )
+        parser.add_argument(
+            "--out", default=None, help="directory to write to; defaults to prompts/"
+        )
 
     def handle(self, *args, **options):
         try:
@@ -45,7 +60,11 @@ class Command(BaseCommand):
                 except PromptError as e:
                     raise CommandError(f"{fixture['id']} {variant}: {e}") from e
                 files[out / fixture["id"] / f"{variant}.txt"] = text
-        edited = [str(path) for path, text in files.items() if path.exists() and path.read_text() != text]
+        edited = [
+            str(path)
+            for path, text in files.items()
+            if path.exists() and path.read_text() != text
+        ]
         if edited:
             raise CommandError(f"refusing to overwrite {edited}")
         for path, text in files.items():

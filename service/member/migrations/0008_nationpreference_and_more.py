@@ -18,7 +18,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="NationPreference",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("rank", models.PositiveSmallIntegerField()),
@@ -39,14 +47,18 @@ class Migration(migrations.Migration):
             model_name="nationpreference",
             name="member",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, related_name="nation_preferences", to="member.member"
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="nation_preferences",
+                to="member.member",
             ),
         ),
         migrations.AddField(
             model_name="nationpreference",
             name="nation",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, related_name="member_preferences", to="nation.nation"
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="member_preferences",
+                to="nation.nation",
             ),
         ),
         migrations.AlterUniqueTogether(

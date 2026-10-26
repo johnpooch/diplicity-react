@@ -11,11 +11,25 @@ def sort_by_province(supply_centers):
     return sorted(supply_centers, key=lambda x: x["province"])
 
 
-def create_order(phase_state, source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+def create_order(
+    phase_state,
+    source,
+    order_type,
+    target=None,
+    aux=None,
+    unit_type=None,
+    named_coast=None,
+):
     source = phase_state.phase.variant.provinces.get(province_id=source)
-    target = phase_state.phase.variant.provinces.get(province_id=target) if target else None
+    target = (
+        phase_state.phase.variant.provinces.get(province_id=target) if target else None
+    )
     aux = phase_state.phase.variant.provinces.get(province_id=aux) if aux else None
-    named_coast = phase_state.phase.variant.provinces.get(province_id=named_coast) if named_coast else None
+    named_coast = (
+        phase_state.phase.variant.provinces.get(province_id=named_coast)
+        if named_coast
+        else None
+    )
     phase_state.orders.create(
         source=source,
         order_type=order_type,
@@ -28,12 +42,16 @@ def create_order(phase_state, source, order_type, target=None, aux=None, unit_ty
 
 def create_unit(phase_state, province, unit_type):
     province = phase_state.phase.variant.provinces.get(province_id=province)
-    phase_state.phase.units.create(province=province, type=unit_type, nation=phase_state.member.nation)
+    phase_state.phase.units.create(
+        province=province, type=unit_type, nation=phase_state.member.nation
+    )
 
 
 def create_supply_center(phase_state, province):
     province = phase_state.phase.variant.provinces.get(province_id=province)
-    phase_state.phase.supply_centers.create(province=province, nation=phase_state.member.nation)
+    phase_state.phase.supply_centers.create(
+        province=province, nation=phase_state.member.nation
+    )
 
 
 def setup_classical_opening(phase, members_by_nation):
@@ -113,12 +131,23 @@ def setup_classical_opening(phase, members_by_nation):
 
 class TestAdjudicationService:
     @pytest.mark.django_db
-    def test_start_classical(self, classical_variant, classical_england_nation, classical_edinburgh_province):
-        game = Game.objects.create(variant=classical_variant, name="Test Game", status=GameStatus.ACTIVE)
-        phase = Phase.objects.create(
-            variant=classical_variant, game=game, year=1901, season="Spring", type="Movement", ordinal=1
+    def test_start_classical(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province
+    ):
+        game = Game.objects.create(
+            variant=classical_variant, name="Test Game", status=GameStatus.ACTIVE
         )
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase = Phase.objects.create(
+            variant=classical_variant,
+            game=game,
+            year=1901,
+            season="Spring",
+            type="Movement",
+            ordinal=1,
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
         phase.units.create(
             nation=classical_england_nation,
             province=classical_edinburgh_province,
@@ -167,8 +196,12 @@ class TestAdjudicationService:
 
         All orders are resolved successfully.
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ven")
         create_supply_center(phase_state_italy, "rom")
@@ -216,12 +249,48 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "pru", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "tri",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "nap",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "ion",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Germany",
+                    "province": "den",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "pru",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "ruh",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -248,8 +317,12 @@ class TestAdjudicationService:
 
         Units are in resolved positions with no orders.
         """
-        phase_state_italy = phase_spring_1901_retreat.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_retreat.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_retreat.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_retreat.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ven")
         create_supply_center(phase_state_italy, "rom")
@@ -286,12 +359,48 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "pru", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "tri",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "nap",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "ion",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Germany",
+                    "province": "den",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "pru",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "ruh",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -315,8 +424,12 @@ class TestAdjudicationService:
         Fleet Denmark holds.
         Army Ruhr holds.
         """
-        phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_fall_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_fall_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ven")
         create_supply_center(phase_state_italy, "rom")
@@ -334,7 +447,9 @@ class TestAdjudicationService:
         create_unit(phase_state_germany, "pru", "Army")
         create_unit(phase_state_germany, "ruh", "Army")
 
-        create_order(phase_state_italy, "ion", OrderType.CONVOY, aux="nap", target="gre")
+        create_order(
+            phase_state_italy, "ion", OrderType.CONVOY, aux="nap", target="gre"
+        )
         create_order(phase_state_italy, "nap", OrderType.MOVE, "gre")
         create_order(phase_state_italy, "tri", OrderType.HOLD)
 
@@ -374,12 +489,48 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "war", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "tri",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "gre",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "ion",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Germany",
+                    "province": "den",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "war",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "ruh",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -404,8 +555,12 @@ class TestAdjudicationService:
         """
         Fall 1901 retreat phase with no orders following the movement phase.
         """
-        phase_state_italy = phase_fall_1901_retreat.phase_states.create(member=member_italy)
-        phase_state_germany = phase_fall_1901_retreat.phase_states.create(member=member_germany)
+        phase_state_italy = phase_fall_1901_retreat.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_fall_1901_retreat.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ven")
         create_supply_center(phase_state_italy, "rom")
@@ -448,12 +603,48 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "war", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "tri",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "gre",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "ion",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Germany",
+                    "province": "den",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "war",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "ruh",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -472,8 +663,12 @@ class TestAdjudicationService:
         Italy builds an army and a fleet.
         Germany builds an army and a fleet.
         """
-        phase_state_italy = phase_fall_1901_adjustment.phase_states.create(member=member_italy)
-        phase_state_germany = phase_fall_1901_adjustment.phase_states.create(member=member_germany)
+        phase_state_italy = phase_fall_1901_adjustment.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_fall_1901_adjustment.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "rom")
         create_supply_center(phase_state_italy, "ven")
@@ -524,16 +719,76 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "war", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "tri",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "gre",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "ion",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "rom",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "nap",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Germany",
+                    "province": "den",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "war",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "ruh",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "ber",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Fleet",
+                    "nation": "Germany",
+                    "province": "kie",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -562,8 +817,12 @@ class TestAdjudicationService:
 
         The German army in Kiel should be dislodged by the Italian attack.
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_italy, "mun")
@@ -593,9 +852,27 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "kie", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "mun", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": True, "dislodged_by": "ber"},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "kie",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "mun",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "kie",
+                    "dislodged": True,
+                    "dislodged_by": "ber",
+                },
             ]
         )
 
@@ -622,8 +899,12 @@ class TestAdjudicationService:
 
         Both units should bounce and remain in their original positions.
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_germany, "kie")
@@ -649,8 +930,20 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "ber", "dislodged": False, "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "ber",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
+                {
+                    "type": "Army",
+                    "nation": "Germany",
+                    "province": "kie",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -674,20 +967,43 @@ class TestAdjudicationService:
         classical_turkey_nation,
         user_factory,
     ):
-        game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Classical Test Game",
+            status=GameStatus.ACTIVE,
+        )
 
         members_by_nation = {
-            "England": Member.objects.create(nation=classical_england_nation, user=user_factory(), game=game),
-            "France": Member.objects.create(nation=classical_france_nation, user=user_factory(), game=game),
-            "Germany": Member.objects.create(nation=classical_germany_nation, user=user_factory(), game=game),
-            "Italy": Member.objects.create(nation=classical_italy_nation, user=user_factory(), game=game),
-            "Austria": Member.objects.create(nation=classical_austria_nation, user=user_factory(), game=game),
-            "Russia": Member.objects.create(nation=classical_russia_nation, user=user_factory(), game=game),
-            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=user_factory(), game=game),
+            "England": Member.objects.create(
+                nation=classical_england_nation, user=user_factory(), game=game
+            ),
+            "France": Member.objects.create(
+                nation=classical_france_nation, user=user_factory(), game=game
+            ),
+            "Germany": Member.objects.create(
+                nation=classical_germany_nation, user=user_factory(), game=game
+            ),
+            "Italy": Member.objects.create(
+                nation=classical_italy_nation, user=user_factory(), game=game
+            ),
+            "Austria": Member.objects.create(
+                nation=classical_austria_nation, user=user_factory(), game=game
+            ),
+            "Russia": Member.objects.create(
+                nation=classical_russia_nation, user=user_factory(), game=game
+            ),
+            "Turkey": Member.objects.create(
+                nation=classical_turkey_nation, user=user_factory(), game=game
+            ),
         }
 
         phase = Phase.objects.create(
-            game=game, variant=classical_variant, season="Spring", year=1901, type="Movement", ordinal=1
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
         )
 
         setup_classical_opening(phase, members_by_nation)
@@ -713,11 +1029,15 @@ class TestAdjudicationService:
         assert data["type"] == "Movement"
 
         # Check that order resolutions are correct
-        mun_bounce_result = next((r for r in data["resolutions"] if r["province"] == "mun"), None)
+        mun_bounce_result = next(
+            (r for r in data["resolutions"] if r["province"] == "mun"), None
+        )
         assert mun_bounce_result["result"] == "ErrBounce"
         assert mun_bounce_result["by"] == "par"
 
-        par_bounce_result = next((r for r in data["resolutions"] if r["province"] == "par"), None)
+        par_bounce_result = next(
+            (r for r in data["resolutions"] if r["province"] == "par"), None
+        )
         assert par_bounce_result["result"] == "ErrBounce"
         assert par_bounce_result["by"] == "mun"
 
@@ -734,20 +1054,43 @@ class TestAdjudicationService:
         classical_turkey_nation,
         user_factory,
     ):
-        game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Classical Test Game",
+            status=GameStatus.ACTIVE,
+        )
 
         members_by_nation = {
-            "England": Member.objects.create(nation=classical_england_nation, user=user_factory(), game=game),
-            "France": Member.objects.create(nation=classical_france_nation, user=user_factory(), game=game),
-            "Germany": Member.objects.create(nation=classical_germany_nation, user=user_factory(), game=game),
-            "Italy": Member.objects.create(nation=classical_italy_nation, user=user_factory(), game=game),
-            "Austria": Member.objects.create(nation=classical_austria_nation, user=user_factory(), game=game),
-            "Russia": Member.objects.create(nation=classical_russia_nation, user=user_factory(), game=game),
-            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=user_factory(), game=game),
+            "England": Member.objects.create(
+                nation=classical_england_nation, user=user_factory(), game=game
+            ),
+            "France": Member.objects.create(
+                nation=classical_france_nation, user=user_factory(), game=game
+            ),
+            "Germany": Member.objects.create(
+                nation=classical_germany_nation, user=user_factory(), game=game
+            ),
+            "Italy": Member.objects.create(
+                nation=classical_italy_nation, user=user_factory(), game=game
+            ),
+            "Austria": Member.objects.create(
+                nation=classical_austria_nation, user=user_factory(), game=game
+            ),
+            "Russia": Member.objects.create(
+                nation=classical_russia_nation, user=user_factory(), game=game
+            ),
+            "Turkey": Member.objects.create(
+                nation=classical_turkey_nation, user=user_factory(), game=game
+            ),
         }
 
         phase = Phase.objects.create(
-            game=game, variant=classical_variant, season="Fall", year=1901, type="Adjustment", ordinal=3
+            game=game,
+            variant=classical_variant,
+            season="Fall",
+            year=1901,
+            type="Adjustment",
+            ordinal=3,
         )
 
         setup_classical_opening(phase, members_by_nation)
@@ -766,7 +1109,9 @@ class TestAdjudicationService:
         assert data["type"] == "Movement"
 
         # Check that order resolutions are correct
-        stp_build_result = next((r for r in data["resolutions"] if r["province"] == "stp"), None)
+        stp_build_result = next(
+            (r for r in data["resolutions"] if r["province"] == "stp"), None
+        )
         assert stp_build_result["result"] == "OK"
         assert stp_build_result["by"] == None
 
@@ -783,20 +1128,43 @@ class TestAdjudicationService:
         classical_turkey_nation,
         user_factory,
     ):
-        game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Classical Test Game",
+            status=GameStatus.ACTIVE,
+        )
 
         members_by_nation = {
-            "England": Member.objects.create(nation=classical_england_nation, user=user_factory(), game=game),
-            "France": Member.objects.create(nation=classical_france_nation, user=user_factory(), game=game),
-            "Germany": Member.objects.create(nation=classical_germany_nation, user=user_factory(), game=game),
-            "Italy": Member.objects.create(nation=classical_italy_nation, user=user_factory(), game=game),
-            "Austria": Member.objects.create(nation=classical_austria_nation, user=user_factory(), game=game),
-            "Russia": Member.objects.create(nation=classical_russia_nation, user=user_factory(), game=game),
-            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=user_factory(), game=game),
+            "England": Member.objects.create(
+                nation=classical_england_nation, user=user_factory(), game=game
+            ),
+            "France": Member.objects.create(
+                nation=classical_france_nation, user=user_factory(), game=game
+            ),
+            "Germany": Member.objects.create(
+                nation=classical_germany_nation, user=user_factory(), game=game
+            ),
+            "Italy": Member.objects.create(
+                nation=classical_italy_nation, user=user_factory(), game=game
+            ),
+            "Austria": Member.objects.create(
+                nation=classical_austria_nation, user=user_factory(), game=game
+            ),
+            "Russia": Member.objects.create(
+                nation=classical_russia_nation, user=user_factory(), game=game
+            ),
+            "Turkey": Member.objects.create(
+                nation=classical_turkey_nation, user=user_factory(), game=game
+            ),
         }
 
         phase = Phase.objects.create(
-            game=game, variant=classical_variant, season="Fall", year=1901, type="Adjustment", ordinal=3
+            game=game,
+            variant=classical_variant,
+            season="Fall",
+            year=1901,
+            type="Adjustment",
+            ordinal=3,
         )
 
         setup_classical_opening(phase, members_by_nation)
@@ -806,7 +1174,13 @@ class TestAdjudicationService:
 
         russia_state = phase.phase_states.get(member=members_by_nation["Russia"])
 
-        create_order(russia_state, "stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/nc")
+        create_order(
+            russia_state,
+            "stp",
+            OrderType.BUILD,
+            unit_type="Fleet",
+            named_coast="stp/nc",
+        )
 
         data = adjudication_service.resolve(phase)
 
@@ -815,7 +1189,9 @@ class TestAdjudicationService:
         assert data["type"] == "Movement"
 
         # Check that order resolutions are correct
-        stp_build_result = next((r for r in data["resolutions"] if r["province"] == "stp"), None)
+        stp_build_result = next(
+            (r for r in data["resolutions"] if r["province"] == "stp"), None
+        )
         assert stp_build_result["result"] == "OK"
         assert stp_build_result["by"] == None
 
@@ -831,11 +1207,15 @@ class TestAdjudicationService:
 
         Italian Fleet in Mid Atlantic moves to Spain South Coast
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
 
         create_unit(phase_state_italy, "mid", "Fleet")
 
-        create_order(phase_state_italy, "mid", OrderType.MOVE, "spa", named_coast="spa/nc")
+        create_order(
+            phase_state_italy, "mid", OrderType.MOVE, "spa", named_coast="spa/nc"
+        )
 
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
@@ -847,7 +1227,13 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Fleet", "nation": "Italy", "province": "spa/nc", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Fleet",
+                    "nation": "Italy",
+                    "province": "spa/nc",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -869,7 +1255,9 @@ class TestAdjudicationService:
 
         Italian Fleet in Mid Atlantic moves to Spain South Coast
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
 
         create_unit(phase_state_italy, "mar", "Army")
 
@@ -885,7 +1273,13 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "spa", "dislodged": False, "dislodged_by": None},
+                {
+                    "type": "Army",
+                    "nation": "Italy",
+                    "province": "spa",
+                    "dislodged": False,
+                    "dislodged_by": None,
+                },
             ]
         )
 
@@ -910,8 +1304,12 @@ class TestAdjudicationService:
         dislodge. The army never sails and the convoy never happens, and the
         two failures are reported apart from an ordinary bounce.
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_unit(phase_state_italy, "hol", "Army")
         create_unit(phase_state_italy, "nth", "Fleet")
@@ -920,10 +1318,14 @@ class TestAdjudicationService:
         create_unit(phase_state_germany, "ska", "Fleet")
 
         create_order(phase_state_italy, "hol", OrderType.MOVE_VIA_CONVOY, "lon")
-        create_order(phase_state_italy, "nth", OrderType.CONVOY, aux="hol", target="lon")
+        create_order(
+            phase_state_italy, "nth", OrderType.CONVOY, aux="hol", target="lon"
+        )
 
         create_order(phase_state_germany, "nrg", OrderType.MOVE, "nth")
-        create_order(phase_state_germany, "ska", OrderType.SUPPORT, aux="nrg", target="nth")
+        create_order(
+            phase_state_germany, "ska", OrderType.SUPPORT, aux="nrg", target="nth"
+        )
 
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
@@ -947,8 +1349,12 @@ class TestAdjudicationService:
         ordered to hold, so the support is rejected for its own reason rather
         than as a generic illegal order.
         """
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_unit(phase_state_italy, "ber", "Army")
         create_unit(phase_state_italy, "mun", "Army")
@@ -956,7 +1362,9 @@ class TestAdjudicationService:
         create_unit(phase_state_germany, "kie", "Army")
 
         create_order(phase_state_italy, "ber", OrderType.HOLD)
-        create_order(phase_state_italy, "mun", OrderType.SUPPORT, aux="ber", target="kie")
+        create_order(
+            phase_state_italy, "mun", OrderType.SUPPORT, aux="ber", target="kie"
+        )
 
         create_order(phase_state_germany, "kie", OrderType.HOLD)
 
@@ -984,8 +1392,12 @@ class TestAdjudicationService:
         member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_italy, "mun")
@@ -1019,8 +1431,12 @@ class TestAdjudicationService:
         member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
-        phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_fall_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_fall_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         # Italy: 1 unit at ven, owns ven + rom (both Italy home SCs). rom is empty.
         create_supply_center(phase_state_italy, "ven")
@@ -1051,8 +1467,12 @@ class TestAdjudicationService:
         member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_italy, "mun")
@@ -1084,8 +1504,12 @@ class TestAdjudicationService:
         member_germany.removed_at = timezone.now()
         member_germany.save()
 
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_italy, "mun")
@@ -1117,8 +1541,12 @@ class TestAdjudicationService:
         member_germany.withdrawn_at = timezone.now()
         member_germany.save()
 
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_italy, "mun")
@@ -1234,7 +1662,9 @@ class TestAdjudicationService:
         nation_germany.non_playable = True
         nation_germany.save()
 
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
 
         create_supply_center(phase_state_italy, "ber")
         create_supply_center(phase_state_italy, "mun")
@@ -1242,8 +1672,12 @@ class TestAdjudicationService:
         create_unit(phase_state_italy, "mun", "Army")
 
         kiel = variant.provinces.get(province_id="kie")
-        phase_spring_1901_movement.supply_centers.create(province=kiel, nation=nation_germany)
-        phase_spring_1901_movement.units.create(province=kiel, type=UnitType.FLEET, nation=nation_germany)
+        phase_spring_1901_movement.supply_centers.create(
+            province=kiel, nation=nation_germany
+        )
+        phase_spring_1901_movement.units.create(
+            province=kiel, type=UnitType.FLEET, nation=nation_germany
+        )
 
         create_order(phase_state_italy, "ber", OrderType.MOVE, "kie")
         create_order(phase_state_italy, "mun", OrderType.SUPPORT, "kie", "ber")
@@ -1269,8 +1703,12 @@ class TestAdjudicationService:
         member_germany.civil_disorder_at = timezone.now()
         member_germany.save()
 
-        phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_fall_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_fall_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ven")
         create_unit(phase_state_italy, "ven", "Army")
@@ -1332,8 +1770,12 @@ class TestContestedProvinces:
         member_italy,
         member_germany,
     ):
-        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_italy, "ven")
         create_supply_center(phase_state_germany, "mun")
@@ -1366,8 +1808,12 @@ class TestContestedProvinces:
         phase_spring_1901_retreat.contested_provinces = ["ruh"]
         phase_spring_1901_retreat.save()
 
-        phase_state_italy = phase_spring_1901_retreat.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_retreat.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_retreat.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_retreat.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_germany, "mun")
         create_unit(phase_state_italy, "boh", "Army")
@@ -1386,7 +1832,9 @@ class TestContestedProvinces:
 
         data = adjudication_service.resolve(phase_spring_1901_retreat)
 
-        munich_resolution = next(r for r in data["resolutions"] if r["province"] == "mun")
+        munich_resolution = next(
+            r for r in data["resolutions"] if r["province"] == "mun"
+        )
         assert munich_resolution["result"] == OrderResolutionStatus.ILLEGAL_MOVE
         assert not any(u["province"] == "ruh" for u in data["units"])
 
@@ -1397,8 +1845,12 @@ class TestContestedProvinces:
         member_italy,
         member_germany,
     ):
-        phase_state_italy = phase_spring_1901_retreat.phase_states.create(member=member_italy)
-        phase_state_germany = phase_spring_1901_retreat.phase_states.create(member=member_germany)
+        phase_state_italy = phase_spring_1901_retreat.phase_states.create(
+            member=member_italy
+        )
+        phase_state_germany = phase_spring_1901_retreat.phase_states.create(
+            member=member_germany
+        )
 
         create_supply_center(phase_state_germany, "mun")
         create_unit(phase_state_italy, "boh", "Army")
@@ -1417,6 +1869,10 @@ class TestContestedProvinces:
 
         data = adjudication_service.resolve(phase_spring_1901_retreat)
 
-        munich_resolution = next(r for r in data["resolutions"] if r["province"] == "mun")
+        munich_resolution = next(
+            r for r in data["resolutions"] if r["province"] == "mun"
+        )
         assert munich_resolution["result"] == OrderResolutionStatus.SUCCEEDED
-        assert any(u["province"] == "ruh" and u["nation"] == "Germany" for u in data["units"])
+        assert any(
+            u["province"] == "ruh" and u["nation"] == "Germany" for u in data["units"]
+        )

@@ -9,21 +9,23 @@ def populate_dislodged_field(apps, schema_editor):
     This is now also done in 0005, but kept here for idempotency
     in case this migration was already applied in some environments.
     """
-    Unit = apps.get_model('unit', 'Unit')
+    Unit = apps.get_model("unit", "Unit")
     Unit.objects.filter(dislodged_by__isnull=False).update(dislodged=True)
 
 
 def reverse_populate_dislodged_field(apps, schema_editor):
-    Unit = apps.get_model('unit', 'Unit')
+    Unit = apps.get_model("unit", "Unit")
     Unit.objects.all().update(dislodged=False)
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('unit', '0005_unit_dislodged_unit_dislodged_by_requires_dislodged'),
+        ("unit", "0005_unit_dislodged_unit_dislodged_by_requires_dislodged"),
     ]
 
     operations = [
-        migrations.RunPython(populate_dislodged_field, reverse_populate_dislodged_field),
+        migrations.RunPython(
+            populate_dislodged_field, reverse_populate_dislodged_field
+        ),
     ]

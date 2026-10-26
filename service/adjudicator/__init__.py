@@ -9,11 +9,12 @@ from .serializers import (
     serialize_game_state as _serialize_game_state,
 )
 
-
 __all__ = ["adjudicate"]
 
 
-def adjudicate(variant: Dict[str, Any], game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
+def adjudicate(
+    variant: Dict[str, Any], game_state: Dict[str, Any]
+) -> List[Dict[str, Any]]:
     parsed_variant = _deserialize_variant(variant)
     state = _deserialize_game_state(game_state, parsed_variant)
     new_states = _Engine().adjudicate(state)

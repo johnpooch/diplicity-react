@@ -9,7 +9,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--game", required=True, help="game id")
-        parser.add_argument("--nation", required=True, help="nation of the bot member to re-plan")
+        parser.add_argument(
+            "--nation", required=True, help="nation of the bot member to re-plan"
+        )
 
     def handle(self, *args, **options):
         game = Game.objects.filter(id=options["game"]).first()
@@ -23,11 +25,17 @@ class Command(BaseCommand):
             .first()
         )
         if member is None:
-            raise CommandError(f"game '{game.id}' has no member for nation '{options['nation']}'")
+            raise CommandError(
+                f"game '{game.id}' has no member for nation '{options['nation']}'"
+            )
 
         try:
             replan(member)
         except ReplanError as e:
             raise CommandError(str(e))
 
-        self.stdout.write(self.style.SUCCESS(f"Queued a re-plan for {member.nation.name} in '{game.id}'."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Queued a re-plan for {member.nation.name} in '{game.id}'."
+            )
+        )

@@ -67,11 +67,15 @@ class DrawProposalSerializer(serializers.Serializer):
                 "Draw proposals are not allowed in sandbox games."
             )
 
-        existing_proposal = DrawProposal.objects.active().filter(
-            game=game,
-            created_by=current_member,
-            phase=game.current_phase,
-        ).first()
+        existing_proposal = (
+            DrawProposal.objects.active()
+            .filter(
+                game=game,
+                created_by=current_member,
+                phase=game.current_phase,
+            )
+            .first()
+        )
 
         if existing_proposal:
             raise serializers.ValidationError(
@@ -143,7 +147,9 @@ class DrawVoteUpdateSerializer(serializers.Serializer):
                 phase=instance.phase,
                 actor=current_member.user,
                 nation_name=instance.created_by.nation.name,
-                recipients=[v.member.user_id for v in instance.votes.all() if v.included],
+                recipients=[
+                    v.member.user_id for v in instance.votes.all() if v.included
+                ],
             )
 
         return instance

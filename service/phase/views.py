@@ -10,7 +10,12 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
-from common.views import CompletedPhaseCacheMixin, SelectedGameMixin, SelectedPhaseMixin, CurrentGameMemberMixin
+from common.views import (
+    CompletedPhaseCacheMixin,
+    SelectedGameMixin,
+    SelectedPhaseMixin,
+    CurrentGameMemberMixin,
+)
 from rest_framework.response import Response
 from .models import Phase
 from .serializers import (
@@ -23,7 +28,9 @@ from .serializers import (
 tracer = trace.get_tracer(__name__)
 
 
-class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+class PhaseStateUpdateView(
+    SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView
+):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
@@ -63,18 +70,31 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
 
     def get_queryset(self):
         game = self.get_game()
-        return Phase.objects.filter(game=game).only(
-            'id', 'ordinal', 'season', 'year', 'type', 'status', 'game_id', 'variant_id'
-        ).order_by('ordinal')
+        return (
+            Phase.objects.filter(game=game)
+            .only(
+                "id",
+                "ordinal",
+                "season",
+                "year",
+                "type",
+                "status",
+                "game_id",
+                "variant_id",
+            )
+            .order_by("ordinal")
+        )
 
 
-class PhaseRetrieveView(CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.RetrieveAPIView):
+class PhaseRetrieveView(
+    CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.RetrieveAPIView
+):
     """Retrieve a phase with its units, supply centers and province ownership."""
 
     permission_classes = [permissions.AllowAny]
     serializer_class = PhaseRetrieveSerializer
-    lookup_field = 'id'
-    lookup_url_kwarg = 'phase_id'
+    lookup_field = "id"
+    lookup_url_kwarg = "phase_id"
     completed_phase_etag_salt = "phase"
 
     def get_queryset(self):

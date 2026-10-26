@@ -6,13 +6,27 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('order', '0004_order_named_coast'),
+        ("order", "0004_order_named_coast"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='orderresolution',
-            name='status',
-            field=models.CharField(choices=[('OK', 'Succeeded'), ('ErrIllegalMove', 'Illegal move'), ('ErrIllegalDestination', 'Illegal destination'), ('ErrBounce', 'Bounced'), ('ErrInvalidSupporteeOrder', 'Invalid support order'), ('ErrIllegalSupportDestination', 'Illegal support destination'), ('ErrInvalidDestination', 'Invalid destination'), ('ErrMissingSupportUnit', 'Missing support unit'), ('ErrMissingUnit', 'Missing unit'), ('ErrSupportBroken', 'Support broken')], max_length=30),
+            model_name="orderresolution",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("OK", "Succeeded"),
+                    ("ErrIllegalMove", "Illegal move"),
+                    ("ErrIllegalDestination", "Illegal destination"),
+                    ("ErrBounce", "Bounced"),
+                    ("ErrInvalidSupporteeOrder", "Invalid support order"),
+                    ("ErrIllegalSupportDestination", "Illegal support destination"),
+                    ("ErrInvalidDestination", "Invalid destination"),
+                    ("ErrMissingSupportUnit", "Missing support unit"),
+                    ("ErrMissingUnit", "Missing unit"),
+                    ("ErrSupportBroken", "Support broken"),
+                ],
+                max_length=30,
+            ),
         ),
     ]

@@ -33,7 +33,11 @@ if SENTRY_DSN:
         ],
         traces_sampler=traces_sampler,
         send_default_pii=False,
-        environment="development" if os.getenv("DJANGO_DEBUG", "False") == "True" else "production",
+        environment=(
+            "development"
+            if os.getenv("DJANGO_DEBUG", "False") == "True"
+            else "production"
+        ),
     )
 
 
@@ -47,13 +51,17 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if not DEBUG:
-        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is not True.")
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is not True."
+        )
     SECRET_KEY = "django-insecure-local-development-only"
 
 RAILWAY_HEALTHCHECK_HOST = "healthcheck.railway.app"
 
 ALLOWED_HOSTS = [
-    *os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(","),
+    *os.getenv(
+        "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50"
+    ).split(","),
     RAILWAY_HEALTHCHECK_HOST,
 ]
 
@@ -135,7 +143,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = os.getenv(
-    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost,https://localhost"
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost,https://localhost",
 ).split(",")
 
 CORS_ALLOW_HEADERS = [
@@ -158,7 +167,9 @@ ROOT_URLCONF = "project.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # Add this line to include the templates directory
+        "DIRS": [
+            BASE_DIR / "templates"
+        ],  # Add this line to include the templates directory
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -179,7 +190,9 @@ WSGI_APPLICATION = "project.wsgi.application"
 
 
 if "DATABASE_CONNECTION_STRING" in os.environ:
-    DATABASES = {"default": dj_database_url.parse(os.getenv("DATABASE_CONNECTION_STRING") or "")}
+    DATABASES = {
+        "default": dj_database_url.parse(os.getenv("DATABASE_CONNECTION_STRING") or "")
+    }
 elif "DATABASE_URL" in os.environ:
     db_url = os.getenv("DATABASE_URL")
     DATABASES = {
@@ -220,7 +233,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-PASSWORD_RESET_TIMEOUT = 3600  # 1 hour (used for email verification and password reset tokens)
+PASSWORD_RESET_TIMEOUT = (
+    3600  # 1 hour (used for email verification and password reset tokens)
+)
 
 
 # Internationalization
@@ -324,7 +339,9 @@ if _FIREBASE_PROJECT_ID:
         "client_id": os.getenv("FIREBASE_CLIENT_ID"),
         "auth_uri": os.getenv("FIREBASE_AUTH_URI"),
         "token_uri": os.getenv("FIREBASE_TOKEN_URI"),
-        "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
+        "auth_provider_x509_cert_url": os.getenv(
+            "FIREBASE_AUTH_PROVIDER_X509_CERT_URL"
+        ),
         "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
     }
     FIREBASE_APP = initialize_app(credentials.Certificate(firebase_credentials))

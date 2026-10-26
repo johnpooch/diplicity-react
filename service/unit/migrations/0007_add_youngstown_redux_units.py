@@ -11,19 +11,70 @@ def add_youngstown_redux_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     youngstown_redux_variant = Variant.objects.get(id="youngstown-redux")
-    template_phase = Phase.objects.get(game=None, variant=youngstown_redux_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=youngstown_redux_variant, status="template"
+    )
 
-    units_data = [{'type': 'Fleet', 'nation': 'Russia', 'province': 'vla'}, {'type': 'Fleet', 'nation': 'Italy', 'province': 'mog'}, {'type': 'Army', 'nation': 'Austria', 'province': 'bud'}, {'type': 'Fleet', 'nation': 'Britain', 'province': 'sig'}, {'type': 'Fleet', 'nation': 'Turkey', 'province': 'ank'}, {'type': 'Fleet', 'nation': 'Britain', 'province': 'edi'}, {'type': 'Army', 'nation': 'France', 'province': 'par'}, {'type': 'Fleet', 'nation': 'China', 'province': 'sha'}, {'type': 'Fleet', 'nation': 'France', 'province': 'sai'}, {'type': 'Fleet', 'nation': 'Britain', 'province': 'lon'}, {'type': 'Army', 'nation': 'Russia', 'province': 'oms'}, {'type': 'Fleet', 'nation': 'Japan', 'province': 'tok'}, {'type': 'Army', 'nation': 'India', 'province': 'del'}, {'type': 'Fleet', 'nation': 'Russia', 'province': 'sev'}, {'type': 'Fleet', 'nation': 'Japan', 'province': 'osa'}, {'type': 'Army', 'nation': 'France', 'province': 'mar'}, {'type': 'Army', 'nation': 'Russia', 'province': 'mos'}, {'type': 'Fleet', 'nation': 'Russia', 'province': 'stp/sc'}, {'type': 'Army', 'nation': 'China', 'province': 'pek'}, {'type': 'Army', 'nation': 'Austria', 'province': 'tes'}, {'type': 'Army', 'nation': 'China', 'province': 'wuh'}, {'type': 'Army', 'nation': 'Turkey', 'province': 'bag'}, {'type': 'Fleet', 'nation': 'Germany', 'province': 'kie'}, {'type': 'Fleet', 'nation': 'Italy', 'province': 'nap'}, {'type': 'Army', 'nation': 'Italy', 'province': 'mil'}, {'type': 'Army', 'nation': 'Germany', 'province': 'mun'}, {'type': 'Army', 'nation': 'Germany', 'province': 'col'}, {'type': 'Army', 'nation': 'Turkey', 'province': 'mec'}, {'type': 'Army', 'nation': 'Italy', 'province': 'rom'}, {'type': 'Army', 'nation': 'India', 'province': 'cal'}, {'type': 'Fleet', 'nation': 'Britain', 'province': 'lie'}, {'type': 'Fleet', 'nation': 'Germany', 'province': 'tsi'}, {'type': 'Fleet', 'nation': 'India', 'province': 'bom'}, {'type': 'Army', 'nation': 'Russia', 'province': 'war'}, {'type': 'Fleet', 'nation': 'France', 'province': 'bre'}, {'type': 'Fleet', 'nation': 'Britain', 'province': 'ade'}, {'type': 'Army', 'nation': 'China', 'province': 'gua'}, {'type': 'Fleet', 'nation': 'Japan', 'province': 'sap'}, {'type': 'Fleet', 'nation': 'India', 'province': 'mad'}, {'type': 'Army', 'nation': 'Austria', 'province': 'vnn'}, {'type': 'Army', 'nation': 'Turkey', 'province': 'con'}, {'type': 'Army', 'nation': 'Germany', 'province': 'ber'}, {'type': 'Fleet', 'nation': 'Austria', 'province': 'sar'}, {'type': 'Army', 'nation': 'Japan', 'province': 'kyo'}]
+    units_data = [
+        {"type": "Fleet", "nation": "Russia", "province": "vla"},
+        {"type": "Fleet", "nation": "Italy", "province": "mog"},
+        {"type": "Army", "nation": "Austria", "province": "bud"},
+        {"type": "Fleet", "nation": "Britain", "province": "sig"},
+        {"type": "Fleet", "nation": "Turkey", "province": "ank"},
+        {"type": "Fleet", "nation": "Britain", "province": "edi"},
+        {"type": "Army", "nation": "France", "province": "par"},
+        {"type": "Fleet", "nation": "China", "province": "sha"},
+        {"type": "Fleet", "nation": "France", "province": "sai"},
+        {"type": "Fleet", "nation": "Britain", "province": "lon"},
+        {"type": "Army", "nation": "Russia", "province": "oms"},
+        {"type": "Fleet", "nation": "Japan", "province": "tok"},
+        {"type": "Army", "nation": "India", "province": "del"},
+        {"type": "Fleet", "nation": "Russia", "province": "sev"},
+        {"type": "Fleet", "nation": "Japan", "province": "osa"},
+        {"type": "Army", "nation": "France", "province": "mar"},
+        {"type": "Army", "nation": "Russia", "province": "mos"},
+        {"type": "Fleet", "nation": "Russia", "province": "stp/sc"},
+        {"type": "Army", "nation": "China", "province": "pek"},
+        {"type": "Army", "nation": "Austria", "province": "tes"},
+        {"type": "Army", "nation": "China", "province": "wuh"},
+        {"type": "Army", "nation": "Turkey", "province": "bag"},
+        {"type": "Fleet", "nation": "Germany", "province": "kie"},
+        {"type": "Fleet", "nation": "Italy", "province": "nap"},
+        {"type": "Army", "nation": "Italy", "province": "mil"},
+        {"type": "Army", "nation": "Germany", "province": "mun"},
+        {"type": "Army", "nation": "Germany", "province": "col"},
+        {"type": "Army", "nation": "Turkey", "province": "mec"},
+        {"type": "Army", "nation": "Italy", "province": "rom"},
+        {"type": "Army", "nation": "India", "province": "cal"},
+        {"type": "Fleet", "nation": "Britain", "province": "lie"},
+        {"type": "Fleet", "nation": "Germany", "province": "tsi"},
+        {"type": "Fleet", "nation": "India", "province": "bom"},
+        {"type": "Army", "nation": "Russia", "province": "war"},
+        {"type": "Fleet", "nation": "France", "province": "bre"},
+        {"type": "Fleet", "nation": "Britain", "province": "ade"},
+        {"type": "Army", "nation": "China", "province": "gua"},
+        {"type": "Fleet", "nation": "Japan", "province": "sap"},
+        {"type": "Fleet", "nation": "India", "province": "mad"},
+        {"type": "Army", "nation": "Austria", "province": "vnn"},
+        {"type": "Army", "nation": "Turkey", "province": "con"},
+        {"type": "Army", "nation": "Germany", "province": "ber"},
+        {"type": "Fleet", "nation": "Austria", "province": "sar"},
+        {"type": "Army", "nation": "Japan", "province": "kyo"},
+    ]
 
     for unit_data in units_data:
-        nation = Nation.objects.get(variant=youngstown_redux_variant, name=unit_data["nation"])
-        province = Province.objects.get(variant=youngstown_redux_variant, province_id=unit_data["province"])
+        nation = Nation.objects.get(
+            variant=youngstown_redux_variant, name=unit_data["nation"]
+        )
+        province = Province.objects.get(
+            variant=youngstown_redux_variant, province_id=unit_data["province"]
+        )
 
         Unit.objects.create(
             nation=nation,
             province=province,
             phase=template_phase,
-            type=unit_data["type"]
+            type=unit_data["type"],
         )
 
 
@@ -33,7 +84,9 @@ def remove_youngstown_redux_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     youngstown_redux_variant = Variant.objects.get(id="youngstown-redux")
-    template_phase = Phase.objects.get(game=None, variant=youngstown_redux_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=youngstown_redux_variant, status="template"
+    )
     Unit.objects.filter(phase=template_phase).delete()
 
 

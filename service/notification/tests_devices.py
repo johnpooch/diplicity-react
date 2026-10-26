@@ -143,7 +143,9 @@ class TestDeactivateStaleDevicesCommand:
         assert ios_device.active is True
 
     @pytest.mark.django_db
-    def test_leaves_already_inactive_devices_untouched(self, primary_user, fcm_device_factory):
+    def test_leaves_already_inactive_devices_untouched(
+        self, primary_user, fcm_device_factory
+    ):
         from django.core.management import call_command
 
         active_device = fcm_device_factory(primary_user, "android", "active-token")

@@ -35,7 +35,7 @@ def remove_variant_svgs(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('variant', '0013_variantsvg'),
+        ("variant", "0013_variantsvg"),
     ]
 
     operations = [

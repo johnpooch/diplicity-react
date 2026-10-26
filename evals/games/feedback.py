@@ -41,10 +41,19 @@ def feedback_path(directory: Path, run: str, seed: int) -> Path:
 
 
 def validate_feedback(feedback: dict, path: Path) -> dict:
-    error = next(iter(sorted(_VALIDATOR.iter_errors(feedback), key=lambda e: list(e.absolute_path))), None)
+    error = next(
+        iter(
+            sorted(
+                _VALIDATOR.iter_errors(feedback), key=lambda e: list(e.absolute_path)
+            )
+        ),
+        None,
+    )
     if error is not None:
         location = ".".join(str(part) for part in error.absolute_path) or "<root>"
-        raise FeedbackError(f"feedback '{path}' violates schema at {location}: {error.message}")
+        raise FeedbackError(
+            f"feedback '{path}' violates schema at {location}: {error.message}"
+        )
     return feedback
 
 
@@ -58,12 +67,16 @@ def read_feedback(path: Path) -> dict | None:
     return validate_feedback(feedback, path)
 
 
-def write_note(path: Path, nation: str, phase_keys: set[str], key: str | None, note: str) -> dict:
+def write_note(
+    path: Path, nation: str, phase_keys: set[str], key: str | None, note: str
+) -> dict:
     if key is not None and key not in phase_keys:
         raise FeedbackError(f"the game has no phase '{key}'")
     feedback = read_feedback(path) or {"nation": nation}
     if feedback["nation"] != nation:
-        raise FeedbackError(f"feedback '{path}' is for {feedback['nation']}, not {nation}")
+        raise FeedbackError(
+            f"feedback '{path}' is for {feedback['nation']}, not {nation}"
+        )
     overall = feedback.get("overall")
     phases = dict(feedback.get("phases", {}))
     if key is None:
@@ -73,7 +86,11 @@ def write_note(path: Path, nation: str, phase_keys: set[str], key: str | None, n
     updated = {"nation": nation}
     if overall and overall.strip():
         updated["overall"] = overall
-    kept = {phase: phases[phase] for phase in sorted(phases, key=_chronological) if phases[phase].strip()}
+    kept = {
+        phase: phases[phase]
+        for phase in sorted(phases, key=_chronological)
+        if phases[phase].strip()
+    }
     if kept:
         updated["phases"] = kept
     if len(updated) == 1:

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('variant', '0008_add_canton_variant'),
+        ("variant", "0008_add_canton_variant"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='variant',
-            name='adjudication_modifiers',
+            model_name="variant",
+            name="adjudication_modifiers",
             field=models.JSONField(default=list),
         ),
     ]

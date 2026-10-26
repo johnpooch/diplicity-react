@@ -9,7 +9,7 @@ def add_hundred_variant(apps, schema_editor):
         id="hundred",
         name="Hundred",
         description="""The Hundred Years' War was a series of conflicts from 1337 to 1453, waged between the English House of Plantagenet and the French House of Valois, over the Kingdom of France.""",
-        author="Andy Schwarz"
+        author="Andy Schwarz",
     )
 
 
