@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     "health",
     "victory",
     "draw_proposal",
+    "draw_proposal_spike",
     "email_service",
     "inference",
     "agent",

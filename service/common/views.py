@@ -7,10 +7,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import conditional_page
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from common.constants import PhaseStatus
 from common.etag import if_none_match
+from common.policies import Refused
 
 Phase = apps.get_model("phase", "Phase")
 Game = apps.get_model("game", "Game")
@@ -50,6 +52,13 @@ def resolve_phase(request, game_id, phase_id):
     if key not in cache:
         cache[key] = get_object_or_404(Phase.objects.defer("options"), id=phase_id, game_id=game_id)
     return cache[key]
+
+
+class RefusalMixin:
+    def handle_exception(self, exc):
+        if isinstance(exc, Refused):
+            exc = PermissionDenied({"code": exc.decision.reason})
+        return super().handle_exception(exc)
 
 
 class SelectedGameMixin:

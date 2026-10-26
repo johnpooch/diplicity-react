@@ -1,0 +1,56 @@
+from django.db.models import Manager
+
+from common.commands import command
+from common.constants import GameStatus
+from emit import emit
+
+from .policies import CanCancelPolicy, CanProposePolicy, CanVotePolicy, ReadyToConcludePolicy
+from .querysets import DrawProposalQuerySet
+
+
+class DrawProposalManager(Manager.from_queryset(DrawProposalQuerySet)):
+    @command(requires=CanProposePolicy)
+    def propose(self, phase, actor):
+        proposal = self.create(game=phase.game, created_by=phase.game.members.filter(user=actor).first(), phase=phase)
+        proposal.create_votes()
+        emit("draw_proposal", draw_proposal=proposal)
+        self.conclude(proposal)
+        return proposal
+
+    @command(requires=CanVotePolicy, locks=["phase"])
+    def vote(self, proposal, actor, accepted):
+        proposal.votes.get(member__user=actor).cast(accepted)
+        if accepted:
+            self.conclude(proposal)
+        else:
+            emit(
+                "draw_proposal_rejected",
+                game=proposal.game,
+                phase=proposal.phase,
+                actor=actor,
+                nation_name=proposal.created_by.nation.name,
+                recipients=[member.user_id for member in proposal.included_members],
+            )
+        return proposal
+
+    @command(requires=CanCancelPolicy, locks=["phase"])
+    def cancel(self, proposal, actor):
+        proposal.cancel()
+        return proposal
+
+    @command(only_if=ReadyToConcludePolicy, locks=["phase"])
+    def conclude(self, proposal):
+        victory = proposal.record_victory()
+        proposal.game.finish(GameStatus.COMPLETED)
+        proposal.game.emit_game_ended()
+        return victory
+
+    @command()
+    def withdraw(self, phase, member):
+        for proposal in phase.spike_draw_proposals.pending().filter(created_by=member):
+            proposal.cancel()
+        for proposal in phase.spike_draw_proposals.pending().exclude(created_by=member):
+            for vote in proposal.votes.filter(member=member):
+                vote.release()
+            self.conclude(proposal)
+        return phase
