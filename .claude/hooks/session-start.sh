@@ -6,7 +6,8 @@ set -euo pipefail
 # Prepares the container so the full local (non-Docker) dev workflow is ready
 # the moment a session starts:
 #   - Python 3.12 virtualenv + backend dependencies (service/.venv)
-#   - Native PostgreSQL cluster started, with the `diplicity` database created
+#   - PostgreSQL 17 (installed from apt.postgresql.org) replacing the image's 16
+#     cluster, started, with the `diplicity` database created
 #     and migrated (SQLite is NOT viable — some migrations use Postgres-only
 #     raw SQL such as `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`)
 #   - Frontend npm dependencies (packages/web)
@@ -43,7 +44,39 @@ else
 fi
 
 ###############################################################################
-# 2. PostgreSQL: start the native cluster and ensure role + database exist.
+# 2. PostgreSQL 17 (matches production and docker-compose): install it from
+#    apt.postgresql.org, which must be in the network egress allowlist, and
+#    replace the image's PostgreSQL 16 cluster with a 17 cluster on port 5432.
+#    /migration-check restores production dumps into this cluster.
+###############################################################################
+if [ ! -x /usr/lib/postgresql/17/bin/postgres ]; then
+  log "Installing PostgreSQL 17"
+  install -d /usr/share/postgresql-common/pgdg
+  if curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+       https://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc; then
+    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list
+    { apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -q postgresql-17; } >/dev/null 2>&1 \
+      || log "WARNING: PostgreSQL 17 install failed — falling back to the existing cluster."
+  else
+    log "WARNING: apt.postgresql.org not reachable — add it to the network egress allowlist for PostgreSQL 17."
+  fi
+fi
+if [ -x /usr/lib/postgresql/17/bin/postgres ] && command -v pg_lsclusters >/dev/null 2>&1; then
+  pg_lsclusters -h | awk '$1 != 17 {print $1, $2}' | while read -r ver name; do
+    log "Dropping PostgreSQL $ver/$name cluster in favour of 17"
+    pg_dropcluster --stop "$ver" "$name"
+  done
+  if ! pg_lsclusters -h | awk '$1 == 17 && $2 == "main"' | grep -q .; then
+    pg_createcluster 17 main --port 5432 >/dev/null
+  elif [ "$(pg_lsclusters -h | awk '$1 == 17 && $2 == "main" {print $3}')" != 5432 ]; then
+    pg_ctlcluster 17 main stop >/dev/null 2>&1 || true
+    pg_conftool 17 main set port 5432
+  fi
+fi
+
+###############################################################################
+# 3. PostgreSQL: start the native cluster and ensure role + database exist.
 ###############################################################################
 PG_READY=false
 if command -v pg_ctlcluster >/dev/null 2>&1; then
@@ -74,7 +107,7 @@ else
 fi
 
 ###############################################################################
-# 3. Apply migrations to the local dev database (so `runserver` works too).
+# 4. Apply migrations to the local dev database (so `runserver` works too).
 ###############################################################################
 if [ "$PG_READY" = true ] && [ -x "$VENV_DIR/bin/python" ]; then
   log "Applying database migrations"
@@ -88,7 +121,7 @@ if [ "$PG_READY" = true ] && [ -x "$VENV_DIR/bin/python" ]; then
 fi
 
 ###############################################################################
-# 4. Frontend: npm dependencies.
+# 5. Frontend: npm dependencies.
 ###############################################################################
 if [ -f "$PROJECT_DIR/packages/web/package.json" ]; then
   log "Installing frontend dependencies"
@@ -96,7 +129,7 @@ if [ -f "$PROJECT_DIR/packages/web/package.json" ]; then
 fi
 
 ###############################################################################
-# 5. Railway CLI for production access.
+# 6. Railway CLI for production access.
 #    The CLI authenticates from $RAILWAY_API_TOKEN, but every railway command
 #    reaches production via Railway's hosts (e.g. backboard.railway.com), which
 #    must be in the environment's network egress allowlist, otherwise commands
@@ -131,7 +164,7 @@ else
 fi
 
 ###############################################################################
-# 6. pgweb: production database query access over HTTPS.
+# 7. pgweb: production database query access over HTTPS.
 #    The cloud environment's network policy blocks non-standard ports (22, 59667),
 #    so `railway ssh` and `railway run` cannot reach the production database.
 #    pgweb is deployed as a Railway service and exposes a REST API over port 443.
@@ -144,7 +177,7 @@ else
 fi
 
 ###############################################################################
-# 7. GitHub CLI (gh). Authenticates automatically from $GH_TOKEN (set in the
+# 8. GitHub CLI (gh). Authenticates automatically from $GH_TOKEN (set in the
 #    cloud environment config). The mcp__github__* tools cover most GitHub
 #    workflows; gh adds shell-driven access (gh api, gh pr, gh issue, gh label).
 #    Without GH_TOKEN it is left uninstalled, since it would be unauthenticated.
@@ -169,7 +202,7 @@ else
 fi
 
 ###############################################################################
-# 8. Persist session environment: venv on PATH + local DB config, so that
+# 9. Persist session environment: venv on PATH + local DB config, so that
 #    `python`, `pytest`, and `manage.py` work without per-command env setup.
 ###############################################################################
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
