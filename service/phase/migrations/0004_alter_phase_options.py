@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('phase', '0003_add_italy_vs_germany_template_phase'),
+        ("phase", "0003_add_italy_vs_germany_template_phase"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='phase',
-            options={'ordering': ['ordinal']},
+            name="phase",
+            options={"ordering": ["ordinal"]},
         ),
     ]

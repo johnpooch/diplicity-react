@@ -4,7 +4,13 @@ from .models import Order, OrderResolution
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ["phase_state", "order_type", "source_name", "target_name", "aux_name"]
+    list_display = [
+        "phase_state",
+        "order_type",
+        "source_name",
+        "target_name",
+        "aux_name",
+    ]
 
     def source_name(self, obj):
         return obj.source.name if obj.source else "-"

@@ -15,16 +15,24 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("snapshot", help="path to the snapshot JSON")
-        parser.add_argument("--phase", type=int, action="append", help="phase id to harvest; repeatable")
-        parser.add_argument("--nation", action="append", help="eval nation to harvest; repeatable")
-        parser.add_argument("--out", default=str(FIXTURES_DIR), help="directory to write fixtures into")
+        parser.add_argument(
+            "--phase", type=int, action="append", help="phase id to harvest; repeatable"
+        )
+        parser.add_argument(
+            "--nation", action="append", help="eval nation to harvest; repeatable"
+        )
+        parser.add_argument(
+            "--out", default=str(FIXTURES_DIR), help="directory to write fixtures into"
+        )
 
     def handle(self, *args, **options):
         try:
             snapshot = read_snapshot(Path(options["snapshot"]))
         except HarvestError as e:
             raise CommandError(str(e)) from e
-        harvest = Harvest(snapshot, harvested_at=datetime.now(UTC).isoformat(timespec="seconds"))
+        harvest = Harvest(
+            snapshot, harvested_at=datetime.now(UTC).isoformat(timespec="seconds")
+        )
         out = Path(options["out"])
         out.mkdir(parents=True, exist_ok=True)
         written = 0

@@ -57,7 +57,9 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return [AllowAny()]
 
     def get_queryset(self):
-        return Variant.objects.filter(status=VariantStatus.PUBLISHED).with_related_data()
+        return Variant.objects.filter(
+            status=VariantStatus.PUBLISHED
+        ).with_related_data()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -139,14 +141,18 @@ class VariantDvarDownloadView(generics.GenericAPIView):
         dvar = variant_to_canonical_dict(variant)
         body = json.dumps(dvar, indent=2)
         response = HttpResponse(body, content_type="application/json")
-        response["Content-Disposition"] = f'attachment; filename="{variant.id}.dvar.json"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="{variant.id}.dvar.json"'
+        )
         return response
 
 
 class VariantSvgView(View):
     def get(self, request, variant_id, content_hash):
         try:
-            variant_svg = VariantSvg.objects.get(variant_id=variant_id, content_hash=content_hash)
+            variant_svg = VariantSvg.objects.get(
+                variant_id=variant_id, content_hash=content_hash
+            )
         except VariantSvg.DoesNotExist:
             return HttpResponseNotFound()
 

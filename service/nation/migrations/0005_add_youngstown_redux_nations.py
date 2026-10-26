@@ -9,13 +9,24 @@ def add_youngstown_redux_nations(apps, schema_editor):
 
     youngstown_redux_variant = Variant.objects.get(id="youngstown-redux")
 
-    nations_data = [{'name': 'Turkey', 'color': '#FFC107'}, {'name': 'Austria', 'color': '#F44336'}, {'name': 'Britain', 'color': '#2196F3'}, {'name': 'China', 'color': '#9C27B0'}, {'name': 'Japan', 'color': '#FFD700'}, {'name': 'Italy', 'color': '#4CAF50'}, {'name': 'Germany', 'color': '#795548'}, {'name': 'India', 'color': '#FF9800'}, {'name': 'Russia', 'color': '#F5F5F5'}, {'name': 'France', 'color': '#80DEEA'}]
+    nations_data = [
+        {"name": "Turkey", "color": "#FFC107"},
+        {"name": "Austria", "color": "#F44336"},
+        {"name": "Britain", "color": "#2196F3"},
+        {"name": "China", "color": "#9C27B0"},
+        {"name": "Japan", "color": "#FFD700"},
+        {"name": "Italy", "color": "#4CAF50"},
+        {"name": "Germany", "color": "#795548"},
+        {"name": "India", "color": "#FF9800"},
+        {"name": "Russia", "color": "#F5F5F5"},
+        {"name": "France", "color": "#80DEEA"},
+    ]
 
     for nation_data in nations_data:
         Nation.objects.create(
             name=nation_data["name"],
             color=nation_data["color"],
-            variant=youngstown_redux_variant
+            variant=youngstown_redux_variant,
         )
 
 

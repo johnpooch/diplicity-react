@@ -14,7 +14,13 @@ from game.models import Game
 
 
 @pytest.fixture
-def bot_game_factory(db, primary_user, bot_user, italy_vs_germany_variant, adjudication_data_italy_vs_germany):
+def bot_game_factory(
+    db,
+    primary_user,
+    bot_user,
+    italy_vs_germany_variant,
+    adjudication_data_italy_vs_germany,
+):
     def _create():
         game = Game.objects.create_from_template(
             italy_vs_germany_variant,
@@ -27,7 +33,9 @@ def bot_game_factory(db, primary_user, bot_user, italy_vs_germany_variant, adjud
         game.members.create(user=bot_user)
 
         with patch.object(
-            adjudication_service, "start", return_value=adjudication_data_italy_vs_germany
+            adjudication_service,
+            "start",
+            return_value=adjudication_data_italy_vs_germany,
         ):
             game.start()
 
@@ -64,7 +72,11 @@ def _create_history(channel, senders, count):
     base = timezone.now() - timedelta(days=1)
     messages = ChannelMessage.objects.bulk_create(
         [
-            ChannelMessage(channel=channel, sender=senders[index % len(senders)], body=f"Message {index}")
+            ChannelMessage(
+                channel=channel,
+                sender=senders[index % len(senders)],
+                body=f"Message {index}",
+            )
             for index in range(count)
         ]
     )
@@ -89,14 +101,20 @@ def bot_game_with_channel_history(bot_public_channel_factory, bot_user):
     _create_history(private_channel, [bot_member, human_member], 150)
     _create_history(hidden_channel, [human_member], 3)
     ChannelEvent.objects.create_for_channels(
-        "phase_resolved", [public_channel, private_channel, empty_channel], phase=game.current_phase
+        "phase_resolved",
+        [public_channel, private_channel, empty_channel],
+        phase=game.current_phase,
     )
     ChannelEvent.objects.create_for_channels(
-        "channel_renamed", [private_channel], payload={"nation": "Italy", "name": "Allies"}
+        "channel_renamed",
+        [private_channel],
+        payload={"nation": "Italy", "name": "Allies"},
     )
     ChannelEvent.objects.create_for_channels("game_start", [public_channel])
 
     legacy_client = APIClient(SERVER_NAME=bot_request_host())
     legacy_client.force_authenticate(user=bot_user)
-    legacy_channels = list(legacy_client.get(reverse("channel-list", args=[game.id])).data)
+    legacy_channels = list(
+        legacy_client.get(reverse("channel-list", args=[game.id])).data
+    )
     return game, legacy_channels

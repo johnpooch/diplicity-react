@@ -1,7 +1,12 @@
 from django.db import migrations, models
 from procrastinate.contrib.django import app as procrastinate_app
 
-from common.constants import DeadlineMode, DeadlineWarningJob, PhaseType, duration_to_seconds
+from common.constants import (
+    DeadlineMode,
+    DeadlineWarningJob,
+    PhaseType,
+    duration_to_seconds,
+)
 from phase.utils import FREQUENCY_INTERVALS, deadline_warning_offset
 
 
@@ -15,7 +20,9 @@ def _duration_seconds(game, phase_type):
         return int(interval.total_seconds()) if interval else None
     if phase_type == PhaseType.MOVEMENT:
         return duration_to_seconds(game.movement_phase_duration)
-    return duration_to_seconds(game.retreat_phase_duration or game.movement_phase_duration)
+    return duration_to_seconds(
+        game.retreat_phase_duration or game.movement_phase_duration
+    )
 
 
 def arm_warning_jobs(apps, schema_editor):

@@ -25,7 +25,11 @@ class TestSendDeadlineWarning:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
                 {
                     "nation": classical_france_nation,
                     "has_possible_orders": True,
@@ -34,8 +38,16 @@ class TestSendDeadlineWarning:
                 },
             ],
         )
-        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
-        phase.units.create(type=UnitType.ARMY, nation=classical_france_nation, province=classical_paris_province)
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_france_nation,
+            province=classical_paris_province,
+        )
 
         with patch("phase.models.emit") as mock_emit:
             result = Phase.objects.send_deadline_warning(phase.id)
@@ -45,11 +57,17 @@ class TestSendDeadlineWarning:
         assert mock_emit.call_args.kwargs["recipients"] == [secondary_user.id]
 
     @pytest.mark.django_db
-    def test_eliminated_player_not_reminded(self, phase_factory, classical_england_nation):
+    def test_eliminated_player_not_reminded(
+        self, phase_factory, classical_england_nation
+    ):
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": False, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": False,
+                    "orders_confirmed": False,
+                },
             ],
         )
 
@@ -61,7 +79,11 @@ class TestSendDeadlineWarning:
 
     @pytest.mark.django_db
     def test_fixed_time_game_reminds_players_with_orders(
-        self, phase_factory, classical_variant, classical_england_nation, classical_edinburgh_province
+        self,
+        phase_factory,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
     ):
         from game.models import Game
 
@@ -75,10 +97,18 @@ class TestSendDeadlineWarning:
             game=game,
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
             ],
         )
-        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
 
         with patch("phase.models.emit") as mock_emit:
             result = Phase.objects.send_deadline_warning(phase.id)
@@ -107,10 +137,18 @@ class TestSendDeadlineWarning:
             status=phase_status,
             scheduled_resolution=timezone.now() + deadline_offset,
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
             ],
         )
-        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
 
         with patch("phase.models.emit") as mock_emit:
             result = Phase.objects.send_deadline_warning(phase.id)
@@ -125,10 +163,18 @@ class TestSendDeadlineWarning:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
             ],
         )
-        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
         phase.game.paused_at = timezone.now()
         phase.game.save()
 
@@ -153,10 +199,18 @@ class TestSendDeadlineWarning:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
             ],
         )
-        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
 
         with patch("phase.models.emit") as mock_emit:
             first = Phase.objects.send_deadline_warning(phase.id)
@@ -179,7 +233,11 @@ class TestSendDeadlineWarning:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
                 {
                     "nation": classical_france_nation,
                     "has_possible_orders": True,
@@ -188,8 +246,16 @@ class TestSendDeadlineWarning:
                 },
             ],
         )
-        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
-        phase.units.create(type=UnitType.ARMY, nation=classical_france_nation, province=classical_paris_province)
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_france_nation,
+            province=classical_paris_province,
+        )
 
         def emit_then_fail(*args, **kwargs):
             if mock_emit.call_count > 1:
@@ -201,4 +267,6 @@ class TestSendDeadlineWarning:
                 Phase.objects.send_deadline_warning(phase.id)
 
         assert not Notification.objects.filter(event_type="deadline_warning").exists()
-        assert list(phase.phase_states.values_list("deadline_warning_sent_for", flat=True)) == [None, None]
+        assert list(
+            phase.phase_states.values_list("deadline_warning_sent_for", flat=True)
+        ) == [None, None]

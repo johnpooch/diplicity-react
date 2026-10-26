@@ -31,7 +31,10 @@ def prompt_data(context: Context) -> dict:
         },
         "players": (
             [
-                {"nation": member["nation"], "is_current_user": member["is_current_user"]}
+                {
+                    "nation": member["nation"],
+                    "is_current_user": member["is_current_user"],
+                }
                 for member in context["members"]
             ]
             if len(context["members"]) > 1
@@ -76,9 +79,15 @@ def prompt_data(context: Context) -> dict:
                 "id": source_id,
                 "name": names.get(source_id, source_id),
                 "options": [
-                    {"id": option_id(option), "description": describe_option(option, context)} for option in options
+                    {
+                        "id": option_id(option),
+                        "description": describe_option(option, context),
+                    }
+                    for option in options
                 ],
             }
-            for source_id, options in group_options_by_source(context["order_options"]).items()
+            for source_id, options in group_options_by_source(
+                context["order_options"]
+            ).items()
         ],
     }

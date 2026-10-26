@@ -12,7 +12,9 @@ def add_classical_units(apps, schema_editor):
 
     # Get the classical variant and template phase
     classical_variant = Variant.objects.get(id="classical")
-    template_phase = Phase.objects.get(game=None, variant=classical_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=classical_variant, status="template"
+    )
 
     # Classical units data
     units_data = [
@@ -44,7 +46,9 @@ def add_classical_units(apps, schema_editor):
     for unit_data in units_data:
         # Get the nation and province objects
         nation = Nation.objects.get(name=unit_data["nation"], variant=classical_variant)
-        province = Province.objects.get(province_id=unit_data["province"], variant=classical_variant)
+        province = Province.objects.get(
+            province_id=unit_data["province"], variant=classical_variant
+        )
 
         Unit.objects.create(
             phase=template_phase,
@@ -61,7 +65,9 @@ def remove_classical_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     classical_variant = Variant.objects.get(id="classical")
-    template_phase = Phase.objects.get(game=None, variant=classical_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=classical_variant, status="template"
+    )
     Unit.objects.filter(phase=template_phase).delete()
 
 

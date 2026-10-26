@@ -7,7 +7,6 @@ from common.constants import DeadlineMode, GameStatus, PhaseStatus
 from game.models import Game
 from phase.models import PhaseState
 
-
 LIST_URL = reverse("game-list")
 
 
@@ -128,7 +127,9 @@ def test_order_status_null_when_not_a_member(
         variant=classical_variant,
         status=GameStatus.ACTIVE,
     )
-    other_member = game.members.create(user=secondary_user, nation=classical_france_nation)
+    other_member = game.members.create(
+        user=secondary_user, nation=classical_france_nation
+    )
     phase = game.phases.create(
         variant=classical_variant,
         season="Spring",
@@ -273,7 +274,9 @@ def test_order_status_null_for_sandbox_game(
         status=PhaseStatus.ACTIVE,
         ordinal=1,
     )
-    phase.phase_states.create(member=member, has_possible_orders=True, orders_confirmed=False)
+    phase.phase_states.create(
+        member=member, has_possible_orders=True, orders_confirmed=False
+    )
 
     response = authenticated_client.get(LIST_URL + "?mine=1")
     assert response.status_code == status.HTTP_200_OK

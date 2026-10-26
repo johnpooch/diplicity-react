@@ -7,10 +7,38 @@ from drf_spectacular.utils import extend_schema
 
 from .models import Member
 from channel.models import Channel
-from .serializers import MemberCreateSerializer, MemberDetailSerializer, MemberJoinSerializer, MemberNationAssignSerializer, MemberNationPreferenceSerializer, MemberReplaceSerializer, MemberSerializer, MemberWithdrawSerializer
+from .serializers import (
+    MemberCreateSerializer,
+    MemberDetailSerializer,
+    MemberJoinSerializer,
+    MemberNationAssignSerializer,
+    MemberNationPreferenceSerializer,
+    MemberReplaceSerializer,
+    MemberSerializer,
+    MemberWithdrawSerializer,
+)
 from common.serializers import EmptySerializer
 from common.constants import GameStatus
-from common.permissions import CanUseBotOpponent, IsActiveGame, IsActiveGamePlayer, IsGameMaster, IsGamePlayer, IsGameManager, IsMusteringGame, IsNotSandboxGame, IsUnmusteredMember, IsPendingGame, IsPendingOrActiveGame, IsPendingOrMusteringGame, IsNotGamePlayer, IsNotGameMaster, IsRemovableMember, IsReplaceableMember, IsSpaceAvailable, MeetsCommitmentRequirement
+from common.permissions import (
+    CanUseBotOpponent,
+    IsActiveGame,
+    IsActiveGamePlayer,
+    IsGameMaster,
+    IsGamePlayer,
+    IsGameManager,
+    IsMusteringGame,
+    IsNotSandboxGame,
+    IsUnmusteredMember,
+    IsPendingGame,
+    IsPendingOrActiveGame,
+    IsPendingOrMusteringGame,
+    IsNotGamePlayer,
+    IsNotGameMaster,
+    IsRemovableMember,
+    IsReplaceableMember,
+    IsSpaceAvailable,
+    MeetsCommitmentRequirement,
+)
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
@@ -19,13 +47,26 @@ from game.models import Game
 @extend_schema(responses={201: MemberSerializer})
 class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
     serializer_class = MemberCreateSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, IsSpaceAvailable, CanUseBotOpponent]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingGame,
+        IsGameManager,
+        IsSpaceAvailable,
+        CanUseBotOpponent,
+    ]
 
 
 @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
 class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
     serializer_class = MemberJoinSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGamePlayer, IsNotGameMaster, IsSpaceAvailable, MeetsCommitmentRequirement]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingGame,
+        IsNotGamePlayer,
+        IsNotGameMaster,
+        IsSpaceAvailable,
+        MeetsCommitmentRequirement,
+    ]
 
 
 @extend_schema(exclude=True)
@@ -61,7 +102,11 @@ class MemberRetrieveView(generics.RetrieveAPIView):
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingOrMusteringGame, IsGamePlayer]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingOrMusteringGame,
+        IsGamePlayer,
+    ]
 
     def get_object(self):
         game = self.get_game()
@@ -81,13 +126,22 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingOrActiveGame, IsGameManager, IsRemovableMember]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingOrActiveGame,
+        IsGameManager,
+        IsRemovableMember,
+    ]
 
     def get_object(self):
         game = self.get_game()
-        member = get_object_or_404(Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"])
+        member = get_object_or_404(
+            Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"]
+        )
         if member.user == self.request.user:
-            self.permission_denied(self.request, message="Cannot kick yourself from the game.")
+            self.permission_denied(
+                self.request, message="Cannot kick yourself from the game."
+            )
         return member
 
     def perform_destroy(self, instance):
@@ -200,7 +254,9 @@ class MemberNationAssignView(SelectedGameMixin, generics.GenericAPIView):
 
     def get_object(self):
         game = self.get_game()
-        return get_object_or_404(Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"])
+        return get_object_or_404(
+            Member.objects.not_replaced(), game=game, id=self.kwargs["member_id"]
+        )
 
     @extend_schema(responses={200: MemberSerializer})
     def put(self, request, *args, **kwargs):

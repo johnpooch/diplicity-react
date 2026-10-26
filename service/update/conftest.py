@@ -63,5 +63,7 @@ def bundle_uploads(monkeypatch):
                     }
                 )
 
-    monkeypatch.setattr("update.storage.boto3.client", lambda *args, **kwargs: StubClient())
+    monkeypatch.setattr(
+        "update.storage.boto3.client", lambda *args, **kwargs: StubClient()
+    )
     return uploads

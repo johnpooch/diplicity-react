@@ -38,7 +38,9 @@ class GameRetrieveView(PrecomputedConditionalGetMixin, generics.RetrieveAPIView)
     serializer_class = GameRetrieveSerializer
 
     def get_fingerprint(self):
-        return Game.objects.retrieve_fingerprint(self.kwargs.get("game_id"), self.request)
+        return Game.objects.retrieve_fingerprint(
+            self.kwargs.get("game_id"), self.request
+        )
 
     def get_object(self):
         queryset = (
@@ -60,13 +62,12 @@ class GameListView(generics.ListAPIView):
     pagination_class = StandardPageNumberPagination
 
     def get_queryset(self):
-        queryset = (
-            Game.objects.all()
-            .with_list_data()
-            .order_by("-created_at")
-        )
+        queryset = Game.objects.all().with_list_data().order_by("-created_at")
 
-        if "sandbox" not in self.request.query_params and "mine" not in self.request.query_params:
+        if (
+            "sandbox" not in self.request.query_params
+            and "mine" not in self.request.query_params
+        ):
             queryset = queryset.filter(sandbox=False)
 
         if not self.request.user.is_authenticated:
@@ -142,13 +143,16 @@ class GameFindSimilarView(generics.GenericAPIView):
 
         candidates.sort(
             key=lambda g: (
-                g.variant.nations.filter(non_playable=False).count() - g.members.count(),
+                g.variant.nations.filter(non_playable=False).count()
+                - g.members.count(),
                 -g.created_at.timestamp(),
             )
         )
         Game.objects.hydrate_list_phases(candidates[:1])
         Game.objects.hydrate_member_commitment_totals(candidates[:1])
-        match_data = GameListSerializer(candidates[0], context={"request": request}).data
+        match_data = GameListSerializer(
+            candidates[0], context={"request": request}
+        ).data
         return Response({"game": match_data})
 
 
@@ -160,7 +164,11 @@ class GameFastestView(generics.GenericAPIView):
     def get(self, request):
         """Return the joinable game closest to starting whose movement phases last 24 hours or longer."""
         game = Game.objects.fastest_start(request.user)
-        game_data = GameListSerializer(game, context={"request": request}).data if game else None
+        game_data = (
+            GameListSerializer(game, context={"request": request}).data
+            if game
+            else None
+        )
         return Response({"game": game_data})
 
 
@@ -210,7 +218,12 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
             game_name = game.name
             game.delete()
         if is_game_master_delete:
-            emit("game_deleted", recipients=user_ids, game_name=game_name, actor=self.request.user)
+            emit(
+                "game_deleted",
+                recipients=user_ids,
+                game_name=game_name,
+                actor=self.request.user,
+            )
 
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):

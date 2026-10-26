@@ -6,7 +6,11 @@ RINGS = 3
 
 
 def _note(board: Board, province: dict) -> str:
-    parts = [province["type"], board.supply_centre_note(province["id"]), board.occupancy(province["id"])]
+    parts = [
+        province["type"],
+        board.supply_centre_note(province["id"]),
+        board.occupancy(province["id"]),
+    ]
     return "; ".join(part for part in parts if part)
 
 
@@ -14,7 +18,9 @@ def build(context: Context) -> str:
     board = Board(context)
     sections = user_sections(context)
     distances = board.distances(board.own_units(), RINGS)
-    lines = ["Provinces by distance from your nearest unit (armies count a convoy as one move):"]
+    lines = [
+        "Provinces by distance from your nearest unit (armies count a convoy as one move):"
+    ]
     for ring in range(1, RINGS + 1):
         provinces = [
             province
@@ -24,7 +30,10 @@ def build(context: Context) -> str:
         if not provinces:
             continue
         lines.append(f"  {plural(ring, 'move')}:")
-        lines.extend(f"    {province['name']} ({province['id']}) [{_note(board, province)}]" for province in provinces)
+        lines.extend(
+            f"    {province['name']} ({province['id']}) [{_note(board, province)}]"
+            for province in provinces
+        )
     return "\n\n".join(
         [
             sections["intro"],

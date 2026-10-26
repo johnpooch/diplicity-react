@@ -103,7 +103,9 @@ class TestPrecomputedConditionalGetMixin:
     def test_permissions_run_before_a_matching_etag_is_answered(self):
         handler = Mock(return_value=Response({"channels": []}))
 
-        response = _get(_precomputed_view("abc", handler, (permissions.IsAuthenticated,)), '"abc"')
+        response = _get(
+            _precomputed_view("abc", handler, (permissions.IsAuthenticated,)), '"abc"'
+        )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         handler.assert_not_called()

@@ -15,7 +15,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--nation", required=True)
-        parser.add_argument("--games", type=int, default=1, help="games to play; each one is billed")
+        parser.add_argument(
+            "--games", type=int, default=1, help="games to play; each one is billed"
+        )
         parser.add_argument("--first-seed", type=int, default=0)
         parser.add_argument("--model", default=settings.EVALS_MODEL)
 

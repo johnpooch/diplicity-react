@@ -4,15 +4,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('order', '0005_alter_orderresolution_status'),
+        ("order", "0005_alter_orderresolution_status"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AddField(
-                    model_name='order',
-                    name='is_implicit',
+                    model_name="order",
+                    name="is_implicit",
                     field=models.BooleanField(default=False),
                 ),
             ],

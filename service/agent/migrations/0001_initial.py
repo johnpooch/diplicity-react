@@ -18,13 +18,26 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AgentTask",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "kind",
                     models.CharField(
-                        choices=[("plan", "Plan"), ("finalize", "Finalize"), ("reply", "Reply")], max_length=20
+                        choices=[
+                            ("plan", "Plan"),
+                            ("finalize", "Finalize"),
+                            ("reply", "Reply"),
+                        ],
+                        max_length=20,
                     ),
                 ),
                 (
@@ -47,7 +60,9 @@ class Migration(migrations.Migration):
                 (
                     "member",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, related_name="agent_tasks", to="member.member"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="agent_tasks",
+                        to="member.member",
                     ),
                 ),
                 (

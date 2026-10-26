@@ -6,6 +6,7 @@ def register(event_type):
         cls.event_type = event_type
         REGISTRY[event_type] = cls
         return cls
+
     return decorator
 
 
@@ -140,4 +141,6 @@ class ChannelRenamedEvent(ChannelEventSpec):
         return {"nation": context.payload["nation"], "name": context.payload["name"]}
 
     def render(self, event):
-        return f"{event.payload['nation']} renamed the channel to {event.payload['name']}"
+        return (
+            f"{event.payload['nation']} renamed the channel to {event.payload['name']}"
+        )

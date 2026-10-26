@@ -28,7 +28,9 @@ from harness.tasks.select_orders.scorers import (
 )
 
 
-def _option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+def _option(
+    source, order_type, target=None, aux=None, unit_type=None, named_coast=None
+):
     return {
         "source": source,
         "order_type": order_type,
@@ -47,7 +49,10 @@ def _completion(choices):
     return json.dumps(
         {
             "reasoning": "because",
-            "choices": [{"source_id": source, "option_index": index} for source, index in choices],
+            "choices": [
+                {"source_id": source, "option_index": index}
+                for source, index in choices
+            ],
         }
     )
 
@@ -99,7 +104,9 @@ class TestParseCompletion:
 
     def test_fenced_completion_parses(self):
         completion = f"```json\n{_completion([('lon', 0)])}\n```"
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("lon", OrderType.HOLD)]
+        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [
+            _option("lon", OrderType.HOLD)
+        ]
 
     def test_invalid_json_raises(self):
         with pytest.raises(ParsingError):
@@ -111,11 +118,15 @@ class TestParseCompletion:
 
     def test_missing_choices_raises(self):
         with pytest.raises(ParsingError):
-            parse_completion(json.dumps({"reasoning": "no choices"}), _context(STRUCTURE_OPTIONS))
+            parse_completion(
+                json.dumps({"reasoning": "no choices"}), _context(STRUCTURE_OPTIONS)
+            )
 
     def test_out_of_range_index_is_skipped(self):
         completion = _completion([("lon", 99), ("par", 0)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("par", OrderType.HOLD)]
+        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [
+            _option("par", OrderType.HOLD)
+        ]
 
     def test_negative_index_is_skipped(self):
         completion = _completion([("lon", -1)])
@@ -131,7 +142,9 @@ class TestParseCompletion:
 
     def test_unknown_source_is_ignored(self):
         completion = _completion([("mos", 0), ("lon", 0)])
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("lon", OrderType.HOLD)]
+        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [
+            _option("lon", OrderType.HOLD)
+        ]
 
     def test_last_choice_per_source_wins(self):
         completion = _completion([("lon", 0), ("lon", 1)])
@@ -143,7 +156,9 @@ class TestParseCompletion:
 class TestLegality:
 
     def test_valid_selection_is_correct(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS
+        )
         assert _run(legality, state).value == CORRECT
 
     def test_invalid_json_is_incorrect(self):
@@ -154,11 +169,16 @@ class TestLegality:
 class TestDeduplication:
 
     def test_distinct_provinces_are_correct(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS
+        )
         assert _run(deduplication, state).value == CORRECT
 
     def test_repeated_choices_for_one_province_collapse_to_one(self):
-        state = _state(_completion([("lon", 0), ("lon", 1), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion([("lon", 0), ("lon", 1), ("par", 0), ("ber", 0)]),
+            STRUCTURE_OPTIONS,
+        )
         assert _run(deduplication, state).value == CORRECT
         assert _run(coverage, state).value == CORRECT
 
@@ -166,7 +186,9 @@ class TestDeduplication:
 class TestCoverage:
 
     def test_all_provinces_covered_is_correct(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion([("lon", 0), ("par", 0), ("ber", 0)]), STRUCTURE_OPTIONS
+        )
         assert _run(coverage, state).value == CORRECT
 
     def test_missing_province_is_incorrect(self):
@@ -174,7 +196,9 @@ class TestCoverage:
         assert _run(coverage, state).value == INCORRECT
 
     def test_out_of_range_pick_does_not_count_as_coverage(self):
-        state = _state(_completion([("lon", 0), ("par", 0), ("ber", 99)]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion([("lon", 0), ("par", 0), ("ber", 99)]), STRUCTURE_OPTIONS
+        )
         assert _run(coverage, state).value == INCORRECT
 
     def test_max_orders_exact_count_is_correct(self):
@@ -182,7 +206,9 @@ class TestCoverage:
         assert _run(coverage, state).value == CORRECT
 
     def test_max_orders_over_selection_is_incorrect(self):
-        state = _state(_completion([("lon", 0), ("par", 0)]), STRUCTURE_OPTIONS, max_orders=1)
+        state = _state(
+            _completion([("lon", 0), ("par", 0)]), STRUCTURE_OPTIONS, max_orders=1
+        )
         assert _run(coverage, state).value == INCORRECT
 
     def test_max_orders_no_selection_is_incorrect(self):
@@ -256,7 +282,10 @@ class TestConvoyCoherence:
 class TestParseReply:
 
     def test_message_is_returned_stripped(self):
-        assert parse_reply(json.dumps({"reasoning": "r", "message": "  Hello.  "})) == "Hello."
+        assert (
+            parse_reply(json.dumps({"reasoning": "r", "message": "  Hello.  "}))
+            == "Hello."
+        )
 
     def test_empty_message_returns_none(self):
         assert parse_reply(json.dumps({"reasoning": "r", "message": "   "})) is None
@@ -277,7 +306,14 @@ class TestReplyUserPrompt:
             "phase": {"season": "Spring", "year": 1901, "type": "Movement"},
             "max_orders": None,
             "provinces": [],
-            "units": [{"type": "Army", "nation": "England", "province": "lon", "dislodged": False}],
+            "units": [
+                {
+                    "type": "Army",
+                    "nation": "England",
+                    "province": "lon",
+                    "dislodged": False,
+                }
+            ],
             "supply_centers": [{"nation": "England", "province": "lon"}],
             "order_options": [],
             "channels": [
@@ -312,14 +348,24 @@ class TestDataToFixture:
             "phase": {"season": "Fall", "year": 1903, "type": "Movement"},
             "units": [
                 {"type": "Army", "nation": "Germany", "province": "mun"},
-                {"type": "Army", "nation": "France", "province": "bur", "dislodged": True},
+                {
+                    "type": "Army",
+                    "nation": "France",
+                    "province": "bur",
+                    "dislodged": True,
+                },
             ],
             "supply_centers": [
                 {"nation": "Germany", "province": "mun"},
                 {"nation": "Germany", "province": "kie"},
             ],
             "order_options": [
-                {"source": "kie", "order_type": "Support", "target": "mun", "aux": "mun"},
+                {
+                    "source": "kie",
+                    "order_type": "Support",
+                    "target": "mun",
+                    "aux": "mun",
+                },
                 {"source": "mun", "order_type": "Hold", "target": "mun"},
                 {"source": "mun", "order_type": "Move", "target": "ruh"},
             ],
@@ -382,16 +428,28 @@ class TestQualityScorers:
         return state
 
     def test_selecting_good_order_is_strong_correct(self):
-        assert _run(quality_strong, self._state(_quality_fixture(), [("lon", 0)])).value == CORRECT
+        assert (
+            _run(quality_strong, self._state(_quality_fixture(), [("lon", 0)])).value
+            == CORRECT
+        )
 
     def test_missing_good_order_is_strong_incorrect(self):
-        assert _run(quality_strong, self._state(_quality_fixture(), [("lon", 1)])).value == INCORRECT
+        assert (
+            _run(quality_strong, self._state(_quality_fixture(), [("lon", 1)])).value
+            == INCORRECT
+        )
 
     def test_selecting_bad_order_is_avoidance_incorrect(self):
-        assert _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 1)])).value == INCORRECT
+        assert (
+            _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 1)])).value
+            == INCORRECT
+        )
 
     def test_avoiding_bad_order_is_avoidance_correct(self):
-        assert _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 0)])).value == CORRECT
+        assert (
+            _run(quality_avoidance, self._state(_quality_fixture(), [("lon", 0)])).value
+            == CORRECT
+        )
 
     def test_fixture_without_ranked_options_is_unscored(self):
         state = self._state(_quality_fixture(ranked=False), [("lon", 0)])
@@ -406,14 +464,19 @@ class TestQualityMetricAggregation:
         return Sample(
             id=fixture["id"],
             input="ignored",
-            metadata={"context": fixture_to_context(fixture), "ranked_options": fixture.get("ranked_options")},
+            metadata={
+                "context": fixture_to_context(fixture),
+                "ranked_options": fixture.get("ranked_options"),
+            },
         )
 
     def test_accuracy_covers_ranked_samples_and_skips_the_rest(self, tmp_path):
         good_pick = _completion([("lon", 0)])
         model = get_model(
             "mockllm/model",
-            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content("mockllm/model", good_pick),
+            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content(
+                "mockllm/model", good_pick
+            ),
         )
         dataset = MemoryDataset(
             [
@@ -421,10 +484,16 @@ class TestQualityMetricAggregation:
                 self._sample(_quality_fixture("unranked", ranked=False)),
             ]
         )
-        task = Task(dataset=dataset, solver=generate(), scorer=[quality_strong(), quality_avoidance()])
+        task = Task(
+            dataset=dataset,
+            solver=generate(),
+            scorer=[quality_strong(), quality_avoidance()],
+        )
         log = inspect_eval(task, model=model, display="none", log_dir=str(tmp_path))[0]
 
-        metrics = {score.name: score.metrics["accuracy"].value for score in log.results.scores}
+        metrics = {
+            score.name: score.metrics["accuracy"].value for score in log.results.scores
+        }
         assert metrics["quality_strong"] == 1.0
         assert metrics["quality_avoidance"] == 1.0
 
@@ -457,7 +526,12 @@ class TestOpeningLedger:
             ],
             "supply_centers": [{"nation": "Germany", "province": "kie"}],
             "order_options": [
-                {"source": "kie", "order_type": "Support", "target": "mun", "aux": "mun"},
+                {
+                    "source": "kie",
+                    "order_type": "Support",
+                    "target": "mun",
+                    "aux": "mun",
+                },
                 {"source": "kie", "order_type": "Hold", "target": "kie"},
                 {"source": "mun", "order_type": "Hold", "target": "mun"},
                 {"source": "mun", "order_type": "Move", "target": "ruh"},
@@ -466,7 +540,11 @@ class TestOpeningLedger:
 
     def test_tallies_joint_sets_and_flags_holds(self):
         context = fixture_to_context(self._hold_fixture())
-        completions = [_completion([("lon", 0)]), _completion([("lon", 0)]), _completion([("lon", 1)])]
+        completions = [
+            _completion([("lon", 0)]),
+            _completion([("lon", 0)]),
+            _completion([("lon", 1)]),
+        ]
         ledger = ledger_for_nation(context, completions)
 
         assert ledger["samples"] == 3
@@ -491,18 +569,27 @@ class TestOpeningLedger:
             "units": [{"type": "Fleet", "nation": "Austria", "province": "tri"}],
             "supply_centers": [{"nation": "Austria", "province": "tri"}],
             "order_options": [
-                {"source": "tri", "order_type": "Support", "target": "ven", "aux": "ven"},
+                {
+                    "source": "tri",
+                    "order_type": "Support",
+                    "target": "ven",
+                    "aux": "ven",
+                },
                 {"source": "tri", "order_type": "Hold", "target": "tri"},
             ],
         }
         context = fixture_to_context(fixture)
-        flags = ledger_for_nation(context, [_completion([("tri", 0)])])["order_sets"][0]["flags"]
+        flags = ledger_for_nation(context, [_completion([("tri", 0)])])["order_sets"][
+            0
+        ]["flags"]
         assert "support_foreign:ven" in flags
         assert not any(flag.startswith("dangling_support:") for flag in flags)
 
     def test_counts_unparseable_completions(self):
         context = fixture_to_context(self._hold_fixture())
-        ledger = ledger_for_nation(context, ["not json at all", _completion([("lon", 0)])])
+        ledger = ledger_for_nation(
+            context, ["not json at all", _completion([("lon", 0)])]
+        )
         assert ledger["unparseable"] == 1
         assert ledger["samples"] == 2
 
@@ -525,7 +612,9 @@ class TestOpeningLedger:
             ],
         }
         context = fixture_to_context(fixture)
-        flags = ledger_for_nation(context, [_completion([("edi", 0), ("lon", 0)])])["order_sets"][0]["flags"]
+        flags = ledger_for_nation(context, [_completion([("edi", 0), ("lon", 0)])])[
+            "order_sets"
+        ][0]["flags"]
         assert "self_bounce:nth" in flags
 
     def test_flags_no_orders(self):
@@ -550,17 +639,26 @@ class TestOpeningLedger:
             "order_options": [
                 {"source": "lon", "order_type": "Move", "target": "nth"},
                 {"source": "lon", "order_type": "Hold", "target": "lon"},
-                {"source": "edi", "order_type": "Support", "target": "nth", "aux": "lon"},
+                {
+                    "source": "edi",
+                    "order_type": "Support",
+                    "target": "nth",
+                    "aux": "lon",
+                },
                 {"source": "edi", "order_type": "Hold", "target": "edi"},
             ],
         }
 
     def test_flags_uncontestable_support(self):
         context = fixture_to_context(self._uncontestable_fixture())
-        flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])["order_sets"][0]["flags"]
+        flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])[
+            "order_sets"
+        ][0]["flags"]
         assert "uncontestable_support:nth" in flags
 
     def test_contested_support_is_not_flagged_uncontestable(self):
         context = fixture_to_context(self._uncontestable_fixture(with_enemy=True))
-        flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])["order_sets"][0]["flags"]
+        flags = ledger_for_nation(context, [_completion([("lon", 0), ("edi", 0)])])[
+            "order_sets"
+        ][0]["flags"]
         assert not any(flag.startswith("uncontestable_support") for flag in flags)

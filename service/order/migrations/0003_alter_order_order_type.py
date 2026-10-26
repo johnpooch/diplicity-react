@@ -6,13 +6,26 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('order', '0002_add_unique_constraint_phase_state_source'),
+        ("order", "0002_add_unique_constraint_phase_state_source"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='order',
-            name='order_type',
-            field=models.CharField(blank=True, choices=[('Move', 'Move'), ('MoveViaConvoy', 'Move via Convoy'), ('Hold', 'Hold'), ('Support', 'Support'), ('Convoy', 'Convoy'), ('Build', 'Build'), ('Disband', 'Disband')], max_length=50, null=True),
+            model_name="order",
+            name="order_type",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("Move", "Move"),
+                    ("MoveViaConvoy", "Move via Convoy"),
+                    ("Hold", "Hold"),
+                    ("Support", "Support"),
+                    ("Convoy", "Convoy"),
+                    ("Build", "Build"),
+                    ("Disband", "Disband"),
+                ],
+                max_length=50,
+                null=True,
+            ),
         ),
     ]

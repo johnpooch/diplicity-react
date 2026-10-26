@@ -45,7 +45,8 @@ def test_uncompressed_when_client_does_not_accept_gzip(client):
     variant_svg = VariantSvg.objects.get(variant_id="classical")
 
     response = client.get(
-        _url("classical", variant_svg.content_hash), headers={"Accept-Encoding": "identity"}
+        _url("classical", variant_svg.content_hash),
+        headers={"Accept-Encoding": "identity"},
     )
 
     assert "Content-Encoding" not in response

@@ -6,19 +6,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('province', '0006_set_named_coasts_italy_vs_germany'),
+        ("province", "0006_set_named_coasts_italy_vs_germany"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='province',
-            name='parent',
+            model_name="province",
+            name="parent",
             field=models.ForeignKey(
                 null=True,
                 blank=True,
                 on_delete=models.PROTECT,
-                related_name='named_coasts',
-                to='province.province'
+                related_name="named_coasts",
+                to="province.province",
             ),
         ),
     ]

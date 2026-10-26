@@ -9,7 +9,11 @@ def build(context: Context) -> str:
     board = Board(context)
     sections = user_sections(context)
     near_units = board.near_foreign_units(NEAR)
-    rest = [unit for unit in board.foreign_units() if not any(unit is near for near in near_units)]
+    rest = [
+        unit
+        for unit in board.foreign_units()
+        if not any(unit is near for near in near_units)
+    ]
 
     local = [
         "Board near your units (provinces within two moves) (adjacency: A=army only, F=fleet only, AF=both):",

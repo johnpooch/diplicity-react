@@ -20,7 +20,9 @@ from .utils import (
 
 
 class VictoryConditionsSerializer(serializers.Serializer):
-    solo_victory_supply_centers = serializers.IntegerField(source="soloVictorySupplyCenters", allow_null=True)
+    solo_victory_supply_centers = serializers.IntegerField(
+        source="soloVictorySupplyCenters", allow_null=True
+    )
     game_ends_year = serializers.IntegerField(source="gameEndsYear", allow_null=True)
     draw_after_year = serializers.IntegerField(source="drawAfterYear", allow_null=True)
 
@@ -103,7 +105,9 @@ class VariantSerializer(serializers.Serializer):
     owner_id = serializers.IntegerField(read_only=True, allow_null=True)
     owner_username = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
-    victory_conditions = VictoryConditionsSerializer(source="victory_conditions_summary")
+    victory_conditions = VictoryConditionsSerializer(
+        source="victory_conditions_summary"
+    )
     svg_url = serializers.SerializerMethodField()
     nations = VariantNationSerializer(many=True)
     provinces = VariantProvinceSerializer(many=True)
@@ -128,7 +132,10 @@ class VariantSerializer(serializers.Serializer):
         request = self.context.get("request")
         if request is None or not request.user.is_authenticated:
             return False
-        return variant.status == VariantStatus.DRAFT and variant.owner_id == request.user.id
+        return (
+            variant.status == VariantStatus.DRAFT
+            and variant.owner_id == request.user.id
+        )
 
 
 class VariantWriteSerializer(serializers.Serializer):
@@ -143,7 +150,9 @@ class VariantWriteSerializer(serializers.Serializer):
         try:
             return json.loads(text)
         except json.JSONDecodeError as exc:
-            raise serializers.ValidationError({"dvar": f"DVAR is not valid JSON: {exc}."})
+            raise serializers.ValidationError(
+                {"dvar": f"DVAR is not valid JSON: {exc}."}
+            )
 
     def _parse_dsvg(self, upload):
         try:
@@ -153,7 +162,9 @@ class VariantWriteSerializer(serializers.Serializer):
         try:
             return normalize_dsvg(text)
         except etree.XMLSyntaxError as exc:
-            raise serializers.ValidationError({"dsvg": f"DSVG could not be parsed: {exc}."})
+            raise serializers.ValidationError(
+                {"dsvg": f"DSVG could not be parsed: {exc}."}
+            )
 
     def _validate_dvar_payload(self, dvar, allow_existing_id=None, owner=None):
         errors = validate_dvar(dvar)
@@ -161,7 +172,11 @@ class VariantWriteSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {
                     "dvar": [
-                        {"code": error.code, "message": error.message, "path": error.path}
+                        {
+                            "code": error.code,
+                            "message": error.message,
+                            "path": error.path,
+                        }
                         for error in errors
                     ]
                 }
@@ -184,7 +199,9 @@ class VariantWriteSerializer(serializers.Serializer):
                     ]
                 }
             )
-        VariantSvg.objects.update_or_create(variant=variant, defaults={"svg": dsvg_text})
+        VariantSvg.objects.update_or_create(
+            variant=variant, defaults={"svg": dsvg_text}
+        )
 
     def create(self, validated_data):
         dvar = self._parse_dvar(validated_data["dvar"])
@@ -193,7 +210,9 @@ class VariantWriteSerializer(serializers.Serializer):
         self._validate_dvar_payload(dvar, owner=user)
         try:
             with transaction.atomic():
-                variant = create_variant_from_dvar(dvar, owner=user, status=VariantStatus.DRAFT)
+                variant = create_variant_from_dvar(
+                    dvar, owner=user, status=VariantStatus.DRAFT
+                )
                 self._save_dsvg(variant, dsvg_text)
         except IntegrityError as exc:
             raise serializers.ValidationError({"dvar": str(exc)}) from exc
@@ -206,7 +225,9 @@ class VariantWriteSerializer(serializers.Serializer):
         self._validate_dvar_payload(dvar, allow_existing_id=instance.id, owner=user)
         if dvar["id"] != instance.slug:
             raise serializers.ValidationError(
-                {"dvar": f"DVAR id '{dvar['id']}' does not match variant id '{instance.slug}'."}
+                {
+                    "dvar": f"DVAR id '{dvar['id']}' does not match variant id '{instance.slug}'."
+                }
             )
         with transaction.atomic():
             variant = update_variant_from_dvar(instance, dvar)

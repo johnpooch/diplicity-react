@@ -85,7 +85,9 @@ def test_unit_position_circle_without_visible_radius_is_reported():
 
 
 def test_valid_province_and_named_coast_paths_pass(make_dsvg):
-    errors = validate_dsvg(make_dsvg(province_ids=["fra", "ger"], named_coast_ids=["stp/nc"]))
+    errors = validate_dsvg(
+        make_dsvg(province_ids=["fra", "ger"], named_coast_ids=["stp/nc"])
+    )
 
     assert errors == []
 

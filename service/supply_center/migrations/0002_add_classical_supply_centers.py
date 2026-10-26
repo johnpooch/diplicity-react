@@ -12,7 +12,9 @@ def add_classical_supply_centers(apps, schema_editor):
 
     # Get the classical variant and template phase
     classical_variant = Variant.objects.get(id="classical")
-    template_phase = Phase.objects.get(game=None, variant=classical_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=classical_variant, status="template"
+    )
 
     # Classical supply centers data
     supply_centers_data = [
@@ -44,7 +46,9 @@ def add_classical_supply_centers(apps, schema_editor):
     for sc_data in supply_centers_data:
         # Get the nation and province objects
         nation = Nation.objects.get(name=sc_data["nation"], variant=classical_variant)
-        province = Province.objects.get(province_id=sc_data["province"], variant=classical_variant)
+        province = Province.objects.get(
+            province_id=sc_data["province"], variant=classical_variant
+        )
 
         SupplyCenter.objects.create(
             phase=template_phase,
@@ -59,7 +63,9 @@ def remove_classical_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     classical_variant = Variant.objects.get(id="classical")
-    template_phase = Phase.objects.get(game=None, variant=classical_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=classical_variant, status="template"
+    )
     SupplyCenter.objects.filter(phase=template_phase).delete()
 
 

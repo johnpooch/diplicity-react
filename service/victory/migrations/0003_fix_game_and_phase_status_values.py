@@ -47,8 +47,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(
-            fix_status_values,
-            reverse_code=migrations.RunPython.noop
-        ),
+        migrations.RunPython(fix_status_values, reverse_code=migrations.RunPython.noop),
     ]

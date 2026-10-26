@@ -6,7 +6,9 @@ from notification.models import Notification, NotificationDelivery
 
 
 def _deliver_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "notification.deliver"]
+    return [
+        j for j in connector.jobs.values() if j["task_name"] == "notification.deliver"
+    ]
 
 
 def _push(event_type):
@@ -15,7 +17,13 @@ def _push(event_type):
     )
 
 
-def _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=False):
+def _build_game_state(
+    game_factory,
+    member_factory,
+    user_factory,
+    classical_variant,
+    with_game_master=False,
+):
     game_master = user_factory() if with_game_master else None
     game = game_factory(variant=classical_variant, game_master=game_master)
     active_one = member_factory(game=game, user=user_factory())
@@ -31,19 +39,36 @@ def _build_game_state(game_factory, member_factory, user_factory, classical_vari
 class TestEmitDispatch:
     @pytest.mark.django_db
     def test_push_type_creates_notification_rows_for_resolved_recipients_and_defers_delivery(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+        self,
+        game_factory,
+        member_factory,
+        user_factory,
+        classical_variant,
+        in_memory_procrastinate,
     ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=True)
+        state = _build_game_state(
+            game_factory,
+            member_factory,
+            user_factory,
+            classical_variant,
+            with_game_master=True,
+        )
         emit.emit("game_start", game=state["game"])
 
         member_ids = state["game"].seated_member_user_ids()
-        notifications = Notification.objects.filter(event_type="game_start", recipient_id__in=member_ids)
+        notifications = Notification.objects.filter(
+            event_type="game_start", recipient_id__in=member_ids
+        )
         assert set(notifications.values_list("recipient_id", flat=True)) == {
             state["active_one"].user_id,
             state["active_two"].user_id,
             state["game_master"].id,
         }
-        delivery = _push("game_start").filter(notification__recipient_id__in=member_ids).first()
+        delivery = (
+            _push("game_start")
+            .filter(notification__recipient_id__in=member_ids)
+            .first()
+        )
         assert delivery.heading == state["game"].name
         assert "The game has started" in delivery.body
         assert delivery.data["game_id"] == str(state["game"].id)
@@ -52,9 +77,16 @@ class TestEmitDispatch:
 
     @pytest.mark.django_db
     def test_push_only_type_creates_notification_row(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+        self,
+        game_factory,
+        member_factory,
+        user_factory,
+        classical_variant,
+        in_memory_procrastinate,
     ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant)
+        state = _build_game_state(
+            game_factory, member_factory, user_factory, classical_variant
+        )
         emit.emit(
             "elimination",
             game=state["game"],
@@ -68,9 +100,16 @@ class TestEmitDispatch:
 
     @pytest.mark.django_db
     def test_no_notification_or_job_created_when_there_are_no_recipients(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+        self,
+        game_factory,
+        member_factory,
+        user_factory,
+        classical_variant,
+        in_memory_procrastinate,
     ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant)
+        state = _build_game_state(
+            game_factory, member_factory, user_factory, classical_variant
+        )
         emit.emit("elimination", game=state["game"], recipients=[])
 
         assert not Notification.objects.filter(event_type="elimination").exists()
@@ -78,7 +117,12 @@ class TestEmitDispatch:
 
     @pytest.mark.django_db
     def test_no_notification_or_job_created_for_sandbox_games(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+        self,
+        game_factory,
+        member_factory,
+        user_factory,
+        classical_variant,
+        in_memory_procrastinate,
     ):
         game = game_factory(variant=classical_variant, sandbox=True)
         member = member_factory(game=game, user=user_factory())
@@ -92,22 +136,47 @@ class TestEmitDispatch:
 
     @pytest.mark.django_db
     def test_manager_is_named_in_copy_and_absent_deadline_is_omitted(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+        self,
+        game_factory,
+        member_factory,
+        user_factory,
+        classical_variant,
+        in_memory_procrastinate,
     ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant, with_game_master=True)
+        state = _build_game_state(
+            game_factory,
+            member_factory,
+            user_factory,
+            classical_variant,
+            with_game_master=True,
+        )
         actor = state["active_one"].user
         emit.emit("game_resumed", game=state["game"], actor=actor)
 
         delivery = _push("game_resumed").first()
-        assert delivery.body == f"The game has been resumed by the Game Master ({actor.profile.name})."
+        assert (
+            delivery.body
+            == f"The game has been resumed by the Game Master ({actor.profile.name})."
+        )
 
     @pytest.mark.django_db
     def test_channel_event_type_creates_channel_event_on_public_channels(
-        self, game_factory, member_factory, user_factory, classical_variant, in_memory_procrastinate
+        self,
+        game_factory,
+        member_factory,
+        user_factory,
+        classical_variant,
+        in_memory_procrastinate,
     ):
-        state = _build_game_state(game_factory, member_factory, user_factory, classical_variant)
-        public = Channel.objects.create(game=state["game"], name="Public Press", private=False)
-        private = Channel.objects.create(game=state["game"], name="Secret", private=True)
+        state = _build_game_state(
+            game_factory, member_factory, user_factory, classical_variant
+        )
+        public = Channel.objects.create(
+            game=state["game"], name="Public Press", private=False
+        )
+        private = Channel.objects.create(
+            game=state["game"], name="Secret", private=True
+        )
 
         emit.emit("game_start", game=state["game"])
 

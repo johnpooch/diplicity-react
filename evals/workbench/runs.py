@@ -42,8 +42,15 @@ def _header(path: Path, log: EvalLog) -> dict:
 
 
 def list_runs(logs_dir: Path, task: str = MODEL_TASK) -> list[dict]:
-    headers = [_header(path, _read(str(path), path.stat().st_mtime, True)) for path in _paths(logs_dir)]
-    return [header for header in headers if header["task"] == task and header["status"] == SUCCESS]
+    headers = [
+        _header(path, _read(str(path), path.stat().st_mtime, True))
+        for path in _paths(logs_dir)
+    ]
+    return [
+        header
+        for header in headers
+        if header["task"] == task and header["status"] == SUCCESS
+    ]
 
 
 def run_samples(logs_dir: Path, name: str) -> list[EvalSample]:
@@ -51,7 +58,9 @@ def run_samples(logs_dir: Path, name: str) -> list[EvalSample]:
     return _read(str(path), path.stat().st_mtime, False).samples or []
 
 
-def read_run(logs_dir: Path, name: str, task: str = MODEL_TASK) -> tuple[dict, list[EvalSample]]:
+def read_run(
+    logs_dir: Path, name: str, task: str = MODEL_TASK
+) -> tuple[dict, list[EvalSample]]:
     headers = {header["name"]: header for header in list_runs(logs_dir, task)}
     if name not in headers:
         raise RunError(f"unknown run '{name}'")
@@ -84,7 +93,11 @@ def sample_reasoning(sample: EvalSample) -> str | None:
 
 
 def sample_prompts(sample: EvalSample) -> dict[str, str]:
-    return {message.role: message.text for message in sample.input if message.role in ("system", "user")}
+    return {
+        message.role: message.text
+        for message in sample.input
+        if message.role in ("system", "user")
+    }
 
 
 def distinct_order_sets(samples: list[EvalSample]) -> list[dict]:
@@ -93,7 +106,9 @@ def distinct_order_sets(samples: list[EvalSample]) -> list[dict]:
         orders = sample_orders(sample)
         if orders is None:
             continue
-        entry = produced.setdefault(tuple(orders), {"orders": orders, "epochs": [], "reasonings": []})
+        entry = produced.setdefault(
+            tuple(orders), {"orders": orders, "epochs": [], "reasonings": []}
+        )
         entry["epochs"].append(sample.epoch)
         reasoning = sample_reasoning(sample)
         if reasoning:
@@ -103,14 +118,22 @@ def distinct_order_sets(samples: list[EvalSample]) -> list[dict]:
 
 def unusable_answers(samples: list[EvalSample]) -> list[dict]:
     return [
-        {"epoch": sample.epoch, "problem": problem, "completion": sample.output.completion}
+        {
+            "epoch": sample.epoch,
+            "problem": problem,
+            "completion": sample.output.completion,
+        }
         for sample in sorted(samples, key=lambda sample: sample.epoch)
         if (problem := sample_problem(sample)) is not None
     ]
 
 
 def unlabelled_order_sets(fixture: Fixture, order_sets: list[dict]) -> list[dict]:
-    return [entry for entry in order_sets if order_set_label(fixture, entry["orders"]) is None]
+    return [
+        entry
+        for entry in order_sets
+        if order_set_label(fixture, entry["orders"]) is None
+    ]
 
 
 def score(reasonable: int, answers: int) -> float | None:
@@ -119,7 +142,10 @@ def score(reasonable: int, answers: int) -> float | None:
 
 def _tokens(samples: list[EvalSample], *fields: str) -> int:
     return sum(
-        getattr(usage, field) or 0 for sample in samples for usage in sample.model_usage.values() for field in fields
+        getattr(usage, field) or 0
+        for sample in samples
+        for usage in sample.model_usage.values()
+        for field in fields
     )
 
 
@@ -138,7 +164,12 @@ def summarise(fixture: Fixture, samples: list[EvalSample]) -> dict:
         "unmarked": answered[None],
         "order_sets": len(order_sets),
         "new": len(unlabelled_order_sets(fixture, order_sets)),
-        "input_tokens": _tokens(samples, "input_tokens", "input_tokens_cache_write", "input_tokens_cache_read"),
+        "input_tokens": _tokens(
+            samples,
+            "input_tokens",
+            "input_tokens_cache_write",
+            "input_tokens_cache_read",
+        ),
         "output_tokens": _tokens(samples, "output_tokens"),
         "score": score(answered[REASONABLE], usable),
     }

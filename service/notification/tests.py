@@ -56,7 +56,9 @@ def _push(event_type):
 
 
 def _deliver_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "notification.deliver"]
+    return [
+        j for j in connector.jobs.values() if j["task_name"] == "notification.deliver"
+    ]
 
 
 def _rendered_push(**overrides):
@@ -85,7 +87,10 @@ def _push_delivery(user, status=NotificationDelivery.Status.PENDING):
 
 def _fcm_result(registration_ids, rejections=None, deactivated=None):
     rejections = rejections or {}
-    responses = [SimpleNamespace(exception=rejections.get(registration_id)) for registration_id in registration_ids]
+    responses = [
+        SimpleNamespace(exception=rejections.get(registration_id))
+        for registration_id in registration_ids
+    ]
     return FirebaseResponseDict(
         response=SimpleNamespace(
             responses=responses,
@@ -98,7 +103,9 @@ def _fcm_result(registration_ids, rejections=None, deactivated=None):
 
 
 def _backdate(delivery, age):
-    NotificationDelivery.objects.filter(id=delivery.id).update(created_at=timezone.now() - age)
+    NotificationDelivery.objects.filter(id=delivery.id).update(
+        created_at=timezone.now() - age
+    )
 
 
 class _StubSpec:
@@ -132,11 +139,15 @@ def assert_notification(recipient, event_type, **expected):
     assert qs.exists(), f"No {event_type} notification found for {recipient}"
     notification = qs.latest("created_at")
     delivery = _push(event_type).filter(notification=notification).first()
-    assert delivery is not None, f"No push delivery found for {event_type} notification to {recipient}"
+    assert (
+        delivery is not None
+    ), f"No push delivery found for {event_type} notification to {recipient}"
     field_map = {"title": "heading"}
     for field, value in expected.items():
         attr = field_map.get(field, field)
-        assert getattr(delivery, attr) == value, f"{field}: {getattr(delivery, attr)!r} != {value!r}"
+        assert (
+            getattr(delivery, attr) == value
+        ), f"{field}: {getattr(delivery, attr)!r} != {value!r}"
     return delivery
 
 
@@ -215,10 +226,18 @@ def emit_game(db, game_factory, member_factory, user_factory, classical_variant)
         game = game_factory(variant=classical_variant, game_master=game_master)
         active_one = member_factory(game=game, user=user_factory())
         active_two = member_factory(game=game, user=user_factory())
-        eliminated = member_factory(game=game, user=user_factory(), eliminated_at=timezone.now())
-        kicked = member_factory(game=game, user=user_factory(), removed_at=timezone.now())
-        civil = member_factory(game=game, user=user_factory(), civil_disorder_at=timezone.now())
-        withdrawn = member_factory(game=game, user=user_factory(), withdrawn_at=timezone.now())
+        eliminated = member_factory(
+            game=game, user=user_factory(), eliminated_at=timezone.now()
+        )
+        kicked = member_factory(
+            game=game, user=user_factory(), removed_at=timezone.now()
+        )
+        civil = member_factory(
+            game=game, user=user_factory(), civil_disorder_at=timezone.now()
+        )
+        withdrawn = member_factory(
+            game=game, user=user_factory(), withdrawn_at=timezone.now()
+        )
         replaced = member_factory(game=game, user=user_factory())
         replacement = Member.objects.hand_over_seat(replaced, user_factory())
         return {
@@ -285,7 +304,9 @@ class TestRegistry:
         assert spec.no_link_reason or spec.get_link() is not None
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("event_type", sorted(set(NOTIFICATION_REGISTRY) - {"game_deleted"}))
+    @pytest.mark.parametrize(
+        "event_type", sorted(set(NOTIFICATION_REGISTRY) - {"game_deleted"})
+    )
     def test_every_spec_is_titled_with_the_game_name(self, active_game, event_type):
         channel = Channel.objects.create(game=active_game, name="Global", private=False)
         context = build_context(
@@ -294,11 +315,16 @@ class TestRegistry:
             phase=active_game.current_phase,
             channel=channel,
         )
-        assert NOTIFICATION_REGISTRY[event_type](context).get_title() == active_game.name
+        assert (
+            NOTIFICATION_REGISTRY[event_type](context).get_title() == active_game.name
+        )
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(
-        "event_type", sorted(set(NOTIFICATION_REGISTRY) - {"channel_message", "game_admin_reassigned"})
+        "event_type",
+        sorted(
+            set(NOTIFICATION_REGISTRY) - {"channel_message", "game_admin_reassigned"}
+        ),
     )
     def test_every_spec_outside_chat_is_tagged_per_game(self, active_game, event_type):
         channel = Channel.objects.create(game=active_game, name="Global", private=False)
@@ -308,12 +334,19 @@ class TestRegistry:
             phase=active_game.current_phase,
             channel=channel,
         )
-        assert NOTIFICATION_REGISTRY[event_type](context).get_tag() == f"game-{active_game.id}"
+        assert (
+            NOTIFICATION_REGISTRY[event_type](context).get_tag()
+            == f"game-{active_game.id}"
+        )
 
     @pytest.mark.django_db
-    def test_game_admin_reassigned_survives_the_resolution_push_it_is_emitted_with(self, active_game):
+    def test_game_admin_reassigned_survives_the_resolution_push_it_is_emitted_with(
+        self, active_game
+    ):
         admin_tag = render_push("game_admin_reassigned", game=active_game)["tag"]
-        resolution_tag = render_push("phase_resolved", phase=active_game.current_phase)["tag"]
+        resolution_tag = render_push("phase_resolved", phase=active_game.current_phase)[
+            "tag"
+        ]
         assert admin_tag != resolution_tag
 
     def test_game_deleted_is_the_only_declared_link_exception(self):
@@ -328,7 +361,9 @@ class TestRegistry:
 class TestNotificationLinks:
     @pytest.mark.django_db
     def test_civil_disorder_links_to_player_info(self, active_game):
-        rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
+        rendered = render_push(
+            "civil_disorder", game=active_game, nation_names=["England"]
+        )
         assert rendered["link"] == (
             f"{settings.FRONTEND_URL}/game/{active_game.id}"
             f"/phase/{active_game.current_phase.id}/player-info"
@@ -336,7 +371,9 @@ class TestNotificationLinks:
 
     @pytest.mark.django_db
     def test_withdrawal_links_to_player_info(self, active_game, primary_user):
-        rendered = render_push("withdrawal", game=active_game, actor=primary_user, nation_name="England")
+        rendered = render_push(
+            "withdrawal", game=active_game, actor=primary_user, nation_name="England"
+        )
         assert rendered["link"] == (
             f"{settings.FRONTEND_URL}/game/{active_game.id}"
             f"/phase/{active_game.current_phase.id}/player-info"
@@ -344,7 +381,9 @@ class TestNotificationLinks:
 
     @pytest.mark.django_db
     def test_civil_disorder_push_data_carries_the_link(self, active_game):
-        rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
+        rendered = render_push(
+            "civil_disorder", game=active_game, nation_names=["England"]
+        )
         assert rendered["data"] == {
             "game_id": str(active_game.id),
             "link": rendered["link"],
@@ -358,7 +397,9 @@ class TestNotificationLinks:
 
     @pytest.mark.django_db
     def test_game_deleted_renders_no_link(self, primary_user):
-        rendered = render_push("game_deleted", recipients=[primary_user.id], game_name="Gone")
+        rendered = render_push(
+            "game_deleted", recipients=[primary_user.id], game_name="Gone"
+        )
         assert rendered["link"] is None
         assert rendered["data"] is None
 
@@ -366,22 +407,33 @@ class TestNotificationLinks:
 class TestNotificationCopy:
     @pytest.mark.django_db
     def test_civil_disorder_names_one_nation_in_the_singular(self, active_game):
-        rendered = render_push("civil_disorder", game=active_game, nation_names=["England"])
+        rendered = render_push(
+            "civil_disorder", game=active_game, nation_names=["England"]
+        )
         assert rendered["heading"] == active_game.name
         assert rendered["body"] == "England has entered civil disorder."
 
     @pytest.mark.django_db
     def test_civil_disorder_names_several_nations_in_the_plural(self, active_game):
         rendered = render_push(
-            "civil_disorder", game=active_game, nation_names=["England", "France", "Italy"]
+            "civil_disorder",
+            game=active_game,
+            nation_names=["England", "France", "Italy"],
         )
-        assert rendered["body"] == "England, France and Italy have entered civil disorder."
+        assert (
+            rendered["body"] == "England, France and Italy have entered civil disorder."
+        )
 
     @pytest.mark.django_db
     def test_withdrawal_names_the_withdrawn_nation(self, active_game, primary_user):
-        rendered = render_push("withdrawal", game=active_game, actor=primary_user, nation_name="England")
+        rendered = render_push(
+            "withdrawal", game=active_game, actor=primary_user, nation_name="England"
+        )
         assert rendered["heading"] == active_game.name
-        assert rendered["body"] == "England has withdrawn from the game. The seat is open for another player to take."
+        assert (
+            rendered["body"]
+            == "England has withdrawn from the game. The seat is open for another player to take."
+        )
 
     @pytest.mark.django_db
     def test_seat_filled_names_the_nation_in_the_body(self, active_game):
@@ -393,37 +445,61 @@ class TestNotificationCopy:
     def test_removed_from_game_names_the_manager(self, active_game):
         rendered = render_push("removed_from_game", game=active_game)
         assert rendered["heading"] == active_game.name
-        assert rendered["body"] == "You have been removed from this game by the game creator."
+        assert (
+            rendered["body"]
+            == "You have been removed from this game by the game creator."
+        )
 
     @pytest.mark.django_db
-    def test_draw_proposal_states_the_event_without_a_call_to_action(self, active_game, primary_user):
+    def test_draw_proposal_states_the_event_without_a_call_to_action(
+        self, active_game, primary_user
+    ):
         rendered = render_push(
-            "draw_proposal", game=active_game, phase=active_game.current_phase, actor=primary_user
+            "draw_proposal",
+            game=active_game,
+            phase=active_game.current_phase,
+            actor=primary_user,
         )
         assert rendered["body"] == f"{primary_user.profile.name} has proposed a draw."
 
     @pytest.mark.django_db
-    def test_nmr_extension_used_omits_the_deadline_when_none_is_scheduled(self, active_game, primary_user):
-        rendered = render_push("nmr_extension_used", phase=active_game.current_phase, actor=primary_user)
-        assert rendered["body"] == "An automatic extension has been used on your behalf (0 remaining)."
+    def test_nmr_extension_used_omits_the_deadline_when_none_is_scheduled(
+        self, active_game, primary_user
+    ):
+        rendered = render_push(
+            "nmr_extension_used", phase=active_game.current_phase, actor=primary_user
+        )
+        assert (
+            rendered["body"]
+            == "An automatic extension has been used on your behalf (0 remaining)."
+        )
 
     @pytest.mark.django_db
-    def test_nmr_extension_applied_states_the_new_deadline_when_one_is_scheduled(self, active_game):
+    def test_nmr_extension_applied_states_the_new_deadline_when_one_is_scheduled(
+        self, active_game
+    ):
         phase = active_game.current_phase
         phase.scheduled_resolution = timezone.now() + timedelta(hours=1)
         phase.save()
 
         rendered = render_push("nmr_extension_applied", phase=phase)
-        assert rendered["body"].startswith("An automatic extension has been used. The new deadline is ")
+        assert rendered["body"].startswith(
+            "An automatic extension has been used. The new deadline is "
+        )
 
     @pytest.mark.django_db
     def test_solo_loss_omits_the_winner_when_there_is_none(self, active_game):
         rendered = render_push("game_solo_loss", game=active_game)
-        assert rendered["body"] == "The game has ended in a solo win. Better luck next time!"
+        assert (
+            rendered["body"]
+            == "The game has ended in a solo win. Better luck next time!"
+        )
 
 
 class TestActiveResolver:
-    def test_civil_disorder_excludes_eliminated_kicked_replaced_civil_and_includes_game_master(self, emit_game):
+    def test_civil_disorder_excludes_eliminated_kicked_replaced_civil_and_includes_game_master(
+        self, emit_game
+    ):
         state = emit_game(with_game_master=True)
         result = resolve_recipients("civil_disorder", game=state["game"])
         assert result == {
@@ -448,7 +524,9 @@ class TestSeatedResolver:
         "event_type",
         ["game_start", "game_draw", "phase_resolved", "phase_resolved_early"],
     )
-    def test_includes_eliminated_but_not_civil_disorder_kicked_or_replaced(self, emit_game, event_type):
+    def test_includes_eliminated_but_not_civil_disorder_kicked_or_replaced(
+        self, emit_game, event_type
+    ):
         state = emit_game(with_game_master=True)
         result = resolve_recipients(event_type, game=state["game"])
         assert result == {
@@ -475,7 +553,9 @@ class TestSeatedResolver:
             "withdrawal",
         ],
     )
-    def test_kicked_civil_disorder_withdrawn_and_replaced_members_are_not_notified(self, emit_game, event_type):
+    def test_kicked_civil_disorder_withdrawn_and_replaced_members_are_not_notified(
+        self, emit_game, event_type
+    ):
         state = emit_game(with_game_master=True)
         result = resolve_recipients(
             event_type, game=state["game"], actor=state["active_one"].user
@@ -532,7 +612,9 @@ class TestSeatedExceptActorResolver:
 
 class TestActiveExceptActorResolver:
     @pytest.mark.django_db
-    def test_draw_proposal_excludes_eliminated_kicked_replaced_civil_disorder_and_actor(self, emit_game):
+    def test_draw_proposal_excludes_eliminated_kicked_replaced_civil_disorder_and_actor(
+        self, emit_game
+    ):
         state = emit_game(with_game_master=True)
         phase = Phase.objects.create(
             game=state["game"],
@@ -605,7 +687,9 @@ class TestActorResolver:
     def test_nmr_extension_used_targets_only_the_actor(self, emit_game):
         state = emit_game(with_game_master=True)
         actor = state["active_one"].user
-        result = resolve_recipients("nmr_extension_used", game=state["game"], actor=actor)
+        result = resolve_recipients(
+            "nmr_extension_used", game=state["game"], actor=actor
+        )
         assert result == {actor.id}
 
 
@@ -646,27 +730,43 @@ class TestExplicitResolvers:
 class TestChannelMessageResolver:
     def test_public_channel_notifies_all_game_members_except_sender(self, emit_game):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
+        channel = Channel.objects.create(
+            game=state["game"], name="Global", private=False
+        )
         sender = state["active_one"]
-        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=sender, body="hi"
+        )
         result = resolve_recipients("channel_message", message=message)
         assert sender.user_id not in result
         assert state["active_two"].user_id in result
         assert state["eliminated"].user_id in result
 
-    def test_private_channel_notifies_only_channel_members_except_sender(self, emit_game):
+    def test_private_channel_notifies_only_channel_members_except_sender(
+        self, emit_game
+    ):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Private", private=True)
+        channel = Channel.objects.create(
+            game=state["game"], name="Private", private=True
+        )
         sender = state["active_one"]
         channel.members.set([sender, state["active_two"]])
-        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=sender, body="hi"
+        )
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
 
-    def test_public_channel_does_not_notify_kicked_civil_disorder_withdrawn_or_replaced_members(self, emit_game):
+    def test_public_channel_does_not_notify_kicked_civil_disorder_withdrawn_or_replaced_members(
+        self, emit_game
+    ):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
-        message = ChannelMessage.objects.create(channel=channel, sender=state["active_one"], body="hi")
+        channel = Channel.objects.create(
+            game=state["game"], name="Global", private=False
+        )
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=state["active_one"], body="hi"
+        )
         result = resolve_recipients("channel_message", message=message)
         assert state["kicked"].user_id not in result
         assert state["civil"].user_id not in result
@@ -676,32 +776,44 @@ class TestChannelMessageResolver:
 
     def test_private_channel_does_not_notify_a_civil_disorder_member(self, emit_game):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Private", private=True)
+        channel = Channel.objects.create(
+            game=state["game"], name="Private", private=True
+        )
         sender = state["active_one"]
         channel.members.set([sender, state["civil"], state["active_two"]])
-        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=sender, body="hi"
+        )
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["active_two"].user_id}
 
     def test_private_channel_does_not_notify_a_replaced_member(self, emit_game):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Private", private=True)
+        channel = Channel.objects.create(
+            game=state["game"], name="Private", private=True
+        )
         sender = state["active_one"]
         channel.members.set([sender, state["replaced"], state["replacement"]])
-        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=sender, body="hi"
+        )
         result = resolve_recipients("channel_message", message=message)
         assert result == {state["replacement"].user_id}
 
     def test_muted_channel_member_is_not_notified(self, emit_game):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
+        channel = Channel.objects.create(
+            game=state["game"], name="Global", private=False
+        )
         sender = state["active_one"]
         ChannelMember.objects.create(
             channel=channel,
             member=state["active_two"],
             muted_indefinitely=True,
         )
-        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=sender, body="hi"
+        )
 
         result = resolve_recipients("channel_message", message=message)
 
@@ -710,14 +822,18 @@ class TestChannelMessageResolver:
 
     def test_expired_channel_mute_does_not_suppress_notification(self, emit_game):
         state = emit_game()
-        channel = Channel.objects.create(game=state["game"], name="Global", private=False)
+        channel = Channel.objects.create(
+            game=state["game"], name="Global", private=False
+        )
         sender = state["active_one"]
         ChannelMember.objects.create(
             channel=channel,
             member=state["active_two"],
             muted_until=timezone.now() - timedelta(minutes=1),
         )
-        message = ChannelMessage.objects.create(channel=channel, sender=sender, body="hi")
+        message = ChannelMessage.objects.create(
+            channel=channel, sender=sender, body="hi"
+        )
 
         result = resolve_recipients("channel_message", message=message)
 
@@ -725,32 +841,42 @@ class TestChannelMessageResolver:
 
 
 @pytest.mark.django_db
-def test_channel_message_notification_uses_display_name(active_game, in_memory_procrastinate):
+def test_channel_message_notification_uses_display_name(
+    active_game, in_memory_procrastinate
+):
     sender_member = active_game.members.first()
     recipient_member = active_game.members.exclude(id=sender_member.id).first()
-    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+    channel = Channel.objects.create(
+        game=active_game, name="Global Press", private=False
+    )
 
     _send_channel_message(channel, sender_member, "Hello everyone")
 
     notification = assert_notification(recipient_member.user, "channel_message")
     expected_prefix = f"{sender_member.name}: "
-    assert notification.body.startswith(expected_prefix), (
-        f"Expected notification body to start with display name '{expected_prefix}', got: '{notification.body}'"
-    )
-    assert notification.body.split(": ", 1)[0] != sender_member.user.username, (
-        f"Notification body should not use username '{sender_member.user.username}' as the sender prefix"
-    )
+    assert notification.body.startswith(
+        expected_prefix
+    ), f"Expected notification body to start with display name '{expected_prefix}', got: '{notification.body}'"
+    assert (
+        notification.body.split(": ", 1)[0] != sender_member.user.username
+    ), f"Notification body should not use username '{sender_member.user.username}' as the sender prefix"
 
 
 @pytest.mark.django_db
-def test_channel_message_notification_is_tagged_with_the_channel(active_game, in_memory_procrastinate):
+def test_channel_message_notification_is_tagged_with_the_channel(
+    active_game, in_memory_procrastinate
+):
     sender_member = active_game.members.first()
     recipient_member = active_game.members.exclude(id=sender_member.id).first()
-    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+    channel = Channel.objects.create(
+        game=active_game, name="Global Press", private=False
+    )
 
     _send_channel_message(channel, sender_member, "Hello everyone")
 
-    assert_notification(recipient_member.user, "channel_message", tag=f"channel-{channel.id}")
+    assert_notification(
+        recipient_member.user, "channel_message", tag=f"channel-{channel.id}"
+    )
 
 
 @pytest.mark.django_db
@@ -774,26 +900,36 @@ def test_channel_message_notifications_in_different_channels_are_tagged_apart(
 
 
 @pytest.mark.django_db
-def test_channel_message_notification_deleted_user(active_game, in_memory_procrastinate):
+def test_channel_message_notification_deleted_user(
+    active_game, in_memory_procrastinate
+):
     sender_member = active_game.members.first()
     recipient_member = active_game.members.exclude(id=sender_member.id).first()
-    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+    channel = Channel.objects.create(
+        game=active_game, name="Global Press", private=False
+    )
 
     sender_member.user = None
     sender_member.save()
 
     _send_channel_message(channel, sender_member, "Ghost message")
 
-    assert_notification(recipient_member.user, "channel_message", body="Deleted User: Ghost message")
+    assert_notification(
+        recipient_member.user, "channel_message", body="Deleted User: Ghost message"
+    )
 
 
 @pytest.mark.django_db
-def test_channel_message_notification_masks_sender_in_anonymous_game(active_game, in_memory_procrastinate):
+def test_channel_message_notification_masks_sender_in_anonymous_game(
+    active_game, in_memory_procrastinate
+):
     active_game.anonymous = True
     active_game.save()
     sender_member = active_game.members.first()
     recipient_member = active_game.members.exclude(id=sender_member.id).first()
-    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+    channel = Channel.objects.create(
+        game=active_game, name="Global Press", private=False
+    )
 
     _send_channel_message(channel, sender_member, "Hello everyone")
 
@@ -814,7 +950,9 @@ class TestDrawProposalNotification:
         game, italy, germany = draw_notification_game_factory()
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
-        notification = assert_notification(secondary_user, "draw_proposal", title=game.name)
+        notification = assert_notification(
+            secondary_user, "draw_proposal", title=game.name
+        )
         assert italy.name in notification.body
 
     @pytest.mark.django_db
@@ -844,7 +982,9 @@ class TestDrawProposalNotification:
         game, italy, germany = draw_notification_game_factory()
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
-        assert not Notification.objects.filter(recipient=primary_user, event_type="draw_proposal").exists()
+        assert not Notification.objects.filter(
+            recipient=primary_user, event_type="draw_proposal"
+        ).exists()
 
     @pytest.mark.django_db
     def test_eliminated_member_not_notified(
@@ -858,7 +998,9 @@ class TestDrawProposalNotification:
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
-        assert not Notification.objects.filter(recipient=tertiary_user, event_type="draw_proposal").exists()
+        assert not Notification.objects.filter(
+            recipient=tertiary_user, event_type="draw_proposal"
+        ).exists()
 
     @pytest.mark.django_db
     def test_civil_disorder_member_not_notified(
@@ -872,7 +1014,9 @@ class TestDrawProposalNotification:
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
-        assert not Notification.objects.filter(recipient=tertiary_user, event_type="draw_proposal").exists()
+        assert not Notification.objects.filter(
+            recipient=tertiary_user, event_type="draw_proposal"
+        ).exists()
 
     @pytest.mark.django_db
     def test_kicked_member_not_notified(
@@ -886,8 +1030,9 @@ class TestDrawProposalNotification:
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
-        assert not Notification.objects.filter(recipient=tertiary_user, event_type="draw_proposal").exists()
-
+        assert not Notification.objects.filter(
+            recipient=tertiary_user, event_type="draw_proposal"
+        ).exists()
 
     @pytest.mark.django_db
     def test_rejection_names_the_proposer_nation_and_links_to_proposals(
@@ -907,8 +1052,13 @@ class TestDrawProposalNotification:
             nation_name=italy.nation.name,
         )
 
-        assert rendered["body"] == f"The draw proposal from {italy.nation.name} has been rejected."
-        assert rendered["link"].endswith(f"/phase/{game.current_phase.id}/draw-proposals")
+        assert (
+            rendered["body"]
+            == f"The draw proposal from {italy.nation.name} has been rejected."
+        )
+        assert rendered["link"].endswith(
+            f"/phase/{game.current_phase.id}/draw-proposals"
+        )
 
     @pytest.mark.django_db
     def test_rejection_excludes_the_voter(
@@ -988,7 +1138,9 @@ class TestDrawProposalNotification:
 
         Phase.objects._emit_phase_resolved(phase)
 
-        assert_notification(primary_user, "phase_resolved", body=f"{phase.name} has been resolved.")
+        assert_notification(
+            primary_user, "phase_resolved", body=f"{phase.name} has been resolved."
+        )
 
 
 class TestGameEndNotifications:
@@ -1075,7 +1227,9 @@ class TestPhaseResolvedNotification:
         primary_user,
         in_memory_procrastinate,
     ):
-        phase = self._make_active_phase(classical_variant, timezone.now() + timedelta(hours=12), primary_user)
+        phase = self._make_active_phase(
+            classical_variant, timezone.now() + timedelta(hours=12), primary_user
+        )
 
         Phase.objects._emit_phase_resolved(phase)
 
@@ -1092,11 +1246,15 @@ class TestPhaseResolvedNotification:
         primary_user,
         in_memory_procrastinate,
     ):
-        phase = self._make_active_phase(classical_variant, timezone.now() - timedelta(minutes=1), primary_user)
+        phase = self._make_active_phase(
+            classical_variant, timezone.now() - timedelta(minutes=1), primary_user
+        )
 
         Phase.objects._emit_phase_resolved(phase)
 
-        assert_notification(primary_user, "phase_resolved", body=f"{phase.name} has been resolved.")
+        assert_notification(
+            primary_user, "phase_resolved", body=f"{phase.name} has been resolved."
+        )
 
     @pytest.mark.django_db
     def test_game_ending_phase_without_deadline_sends_phase_resolved(
@@ -1191,16 +1349,24 @@ class TestEnteredCivilDisorderNotification:
 
 class TestNotificationDeliveryBroadcast:
     @pytest.mark.django_db
-    def test_creates_pending_row_per_recipient(self, user_factory, in_memory_procrastinate):
+    def test_creates_pending_row_per_recipient(
+        self, user_factory, in_memory_procrastinate
+    ):
         one, two = user_factory(), user_factory()
         notifications = Notification.objects.bulk_create(
-            [Notification(recipient_id=u.id, event_type="phase_resolved") for u in (one, two)]
+            [
+                Notification(recipient_id=u.id, event_type="phase_resolved")
+                for u in (one, two)
+            ]
         )
 
         NotificationDelivery.objects.broadcast(
             notifications,
             _StubSpec(
-                _rendered_push(body="Spring 1901 has been resolved.", link="https://example.test/game/1")
+                _rendered_push(
+                    body="Spring 1901 has been resolved.",
+                    link="https://example.test/game/1",
+                )
             ),
         )
 
@@ -1212,24 +1378,35 @@ class TestNotificationDeliveryBroadcast:
             assert delivery.link == "https://example.test/game/1"
 
     @pytest.mark.django_db
-    def test_defers_single_batched_deliver_job(self, user_factory, in_memory_procrastinate):
+    def test_defers_single_batched_deliver_job(
+        self, user_factory, in_memory_procrastinate
+    ):
         one, two = user_factory(), user_factory()
         notifications = Notification.objects.bulk_create(
-            [Notification(recipient_id=u.id, event_type="game_start") for u in (one, two)]
+            [
+                Notification(recipient_id=u.id, event_type="game_start")
+                for u in (one, two)
+            ]
         )
 
-        NotificationDelivery.objects.broadcast(notifications, _StubSpec(_rendered_push()))
+        NotificationDelivery.objects.broadcast(
+            notifications, _StubSpec(_rendered_push())
+        )
 
         jobs = _deliver_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
         assert set(jobs[0]["args"]["delivery_ids"]) == set(
-            NotificationDelivery.objects.filter(notification__in=notifications).values_list("id", flat=True)
+            NotificationDelivery.objects.filter(
+                notification__in=notifications
+            ).values_list("id", flat=True)
         )
 
 
 class TestCreateFromEvent:
     @pytest.mark.django_db
-    def test_empty_recipients_is_noop(self, game_factory, classical_variant, in_memory_procrastinate):
+    def test_empty_recipients_is_noop(
+        self, game_factory, classical_variant, in_memory_procrastinate
+    ):
         game = game_factory(variant=classical_variant)
 
         created = Notification.objects.create_from_event(
@@ -1248,7 +1425,8 @@ class TestCreateFromEvent:
         game = game_factory(variant=classical_variant)
 
         Notification.objects.create_from_event(
-            "elimination", build_context("elimination", game=game, recipients=[one.id, None])
+            "elimination",
+            build_context("elimination", game=game, recipients=[one.id, None]),
         )
 
         assert Notification.objects.filter(event_type="elimination").count() == 1
@@ -1256,12 +1434,16 @@ class TestCreateFromEvent:
 
 class TestNotificationDeliver:
     @pytest.mark.django_db
-    def test_marks_recipients_sent(self, user_factory, mock_send_notification_to_users, in_memory_procrastinate):
+    def test_marks_recipients_sent(
+        self, user_factory, mock_send_notification_to_users, in_memory_procrastinate
+    ):
         one = user_factory()
         notifications = Notification.objects.bulk_create(
             [Notification(recipient_id=one.id, event_type="game_start")]
         )
-        NotificationDelivery.objects.broadcast(notifications, _StubSpec(_rendered_push()))
+        NotificationDelivery.objects.broadcast(
+            notifications, _StubSpec(_rendered_push())
+        )
         deliveries = NotificationDelivery.objects.filter(notification__in=notifications)
 
         deliver(delivery_ids=[d.id for d in deliveries])
@@ -1276,7 +1458,10 @@ class TestNotificationDeliver:
     ):
         one, two = user_factory(), user_factory()
         notifications = Notification.objects.bulk_create(
-            [Notification(recipient_id=u.id, event_type="game_start") for u in (one, two)]
+            [
+                Notification(recipient_id=u.id, event_type="game_start")
+                for u in (one, two)
+            ]
         )
         NotificationDelivery.objects.broadcast(
             notifications, _StubSpec(_rendered_push(data={"game_id": "1"}))
@@ -1298,7 +1483,9 @@ class TestNotificationDeliver:
         notifications = Notification.objects.bulk_create(
             [Notification(recipient_id=one.id, event_type="channel_message")]
         )
-        NotificationDelivery.objects.broadcast(notifications, _StubSpec(_rendered_push(tag="channel-7")))
+        NotificationDelivery.objects.broadcast(
+            notifications, _StubSpec(_rendered_push(tag="channel-7"))
+        )
         deliveries = NotificationDelivery.objects.filter(notification__in=notifications)
 
         deliver(delivery_ids=[d.id for d in deliveries])
@@ -1306,14 +1493,20 @@ class TestNotificationDeliver:
         assert mock_send_notification_to_users.call_args.kwargs["tag"] == "channel-7"
 
     @pytest.mark.django_db
-    def test_missing_ids_is_noop(self, mock_send_notification_to_users, in_memory_procrastinate):
+    def test_missing_ids_is_noop(
+        self, mock_send_notification_to_users, in_memory_procrastinate
+    ):
         deliver(delivery_ids=[9999])
 
         mock_send_notification_to_users.assert_not_called()
 
     @pytest.mark.django_db
-    def test_already_sent_delivery_is_not_resent(self, user_factory, mock_send_notification_to_users):
-        delivery = _push_delivery(user_factory(), status=NotificationDelivery.Status.SENT)
+    def test_already_sent_delivery_is_not_resent(
+        self, user_factory, mock_send_notification_to_users
+    ):
+        delivery = _push_delivery(
+            user_factory(), status=NotificationDelivery.Status.SENT
+        )
 
         deliver(delivery_ids=[delivery.id])
 
@@ -1404,7 +1597,9 @@ class TestNotificationDeliver:
         one, two = user_factory(), user_factory()
         first = _push_delivery(one)
         second = _push_delivery(two)
-        mock_send_notification_to_users.side_effect = RuntimeError("firebase unreachable")
+        mock_send_notification_to_users.side_effect = RuntimeError(
+            "firebase unreachable"
+        )
 
         deliver(delivery_ids=[first.id, second.id])
 
@@ -1430,7 +1625,9 @@ class TestNotificationDeliver:
 class TestSendNotificationToUsers:
     @pytest.mark.django_db
     @override_settings(FIREBASE_APP=None)
-    def test_reports_every_user_as_failed_when_firebase_is_not_configured(self, user_factory):
+    def test_reports_every_user_as_failed_when_firebase_is_not_configured(
+        self, user_factory
+    ):
         one, two = user_factory(), user_factory()
 
         results = send_notification_to_users(
@@ -1460,19 +1657,28 @@ class TestPushResultsByUser:
         assert results == {1: None}
 
     def test_user_without_an_active_device_is_reported_as_failed(self):
-        results = push_results_by_user([1, 2], {1: ["token-1"]}, _fcm_result(["token-1"]))
+        results = push_results_by_user(
+            [1, 2], {1: ["token-1"]}, _fcm_result(["token-1"])
+        )
 
         assert results == {1: None, 2: NO_ACTIVE_DEVICE_ERROR}
 
     def test_user_whose_only_token_fcm_rejected_carries_the_rejection_reason(self):
-        result = _fcm_result(["token-1"], {"token-1": Exception("Requested entity was not found")})
+        result = _fcm_result(
+            ["token-1"], {"token-1": Exception("Requested entity was not found")}
+        )
 
         results = push_results_by_user([1], {1: ["token-1"]}, result)
 
         assert results == {1: "Requested entity was not found"}
 
-    def test_user_with_one_accepted_token_is_dispatched_despite_another_being_rejected(self):
-        result = _fcm_result(["token-1", "token-2"], {"token-1": Exception("Requested entity was not found")})
+    def test_user_with_one_accepted_token_is_dispatched_despite_another_being_rejected(
+        self,
+    ):
+        result = _fcm_result(
+            ["token-1", "token-2"],
+            {"token-1": Exception("Requested entity was not found")},
+        )
 
         results = push_results_by_user([1], {1: ["token-1", "token-2"]}, result)
 
@@ -1487,7 +1693,9 @@ class TestPushResultsByUser:
             },
         )
 
-        results = push_results_by_user([1, 2], {1: ["token-1", "token-2"], 2: ["token-3"]}, result)
+        results = push_results_by_user(
+            [1, 2], {1: ["token-1", "token-2"], 2: ["token-3"]}, result
+        )
 
         assert results == {1: "Requested entity was not found", 2: None}
 
@@ -1495,7 +1703,9 @@ class TestPushResultsByUser:
 class TestUnexpectedRejections:
     def test_rejection_of_a_deactivated_token_is_expected(self):
         result = _fcm_result(
-            ["token-1"], {"token-1": Exception("NotRegistered")}, deactivated=["token-1"]
+            ["token-1"],
+            {"token-1": Exception("NotRegistered")},
+            deactivated=["token-1"],
         )
 
         assert unexpected_rejections(result) == []
@@ -1515,11 +1725,15 @@ class TestNotificationPrune:
     @pytest.mark.django_db
     def test_prunes_rows_older_than_cutoff(self, user_factory, in_memory_procrastinate):
         one = user_factory()
-        old = Notification.objects.bulk_create([Notification(recipient_id=one.id, event_type="game_start")])[0]
+        old = Notification.objects.bulk_create(
+            [Notification(recipient_id=one.id, event_type="game_start")]
+        )[0]
         Notification.objects.filter(id=old.id).update(
             created_at=timezone.now() - timedelta(days=PRUNE_AFTER_DAYS + 1)
         )
-        recent = Notification.objects.bulk_create([Notification(recipient_id=one.id, event_type="game_start")])[0]
+        recent = Notification.objects.bulk_create(
+            [Notification(recipient_id=one.id, event_type="game_start")]
+        )[0]
 
         prune(timestamp=0)
 
@@ -1534,7 +1748,9 @@ class TestBuildPushMessage:
             message = build_push_message("Game", "Started", "game_start")
 
         assert message.android.ttl == PUSH_TTL
-        assert message.apns.headers["apns-expiration"] == str(int((now + PUSH_TTL).timestamp()))
+        assert message.apns.headers["apns-expiration"] == str(
+            int((now + PUSH_TTL).timestamp())
+        )
         assert message.webpush.headers["TTL"] == str(int(PUSH_TTL.total_seconds()))
 
     def test_adds_event_type_to_data_without_mutating_the_delivery_payload(self):
@@ -1546,7 +1762,9 @@ class TestBuildPushMessage:
         assert data == {"game_id": "1"}
 
     def test_collapses_on_the_tag_across_every_transport(self):
-        message = build_push_message("Game", "Hello", "channel_message", tag="channel-7")
+        message = build_push_message(
+            "Game", "Hello", "channel_message", tag="channel-7"
+        )
 
         assert message.android.notification.tag == "channel-7"
         assert message.android.collapse_key == "channel-7"
@@ -1567,13 +1785,15 @@ class TestBuildPushMessage:
         one = build_push_message("Game", "Started", "game_start", tag="game-a")
         two = build_push_message("Game", "Started", "game_start", tag="game-b")
 
-        assert one.apns.headers["apns-collapse-id"] != two.apns.headers["apns-collapse-id"]
+        assert (
+            one.apns.headers["apns-collapse-id"] != two.apns.headers["apns-collapse-id"]
+        )
         assert one.webpush.headers["Topic"] != two.webpush.headers["Topic"]
 
     def test_push_tag_keeps_a_tag_that_fits(self):
-        assert build_push_tag("game-the-assault-of-the-adroit-advertisement-65162925") == (
+        assert build_push_tag(
             "game-the-assault-of-the-adroit-advertisement-65162925"
-        )
+        ) == ("game-the-assault-of-the-adroit-advertisement-65162925")
 
     def test_push_tag_shortens_a_tag_that_does_not_fit(self):
         tag = "game-the-contest-of-the-contumacious-comb-mirror-reality-ffd02c0a"
@@ -1583,7 +1803,9 @@ class TestBuildPushMessage:
         assert build_push_tag(tag) != build_push_tag(f"{tag}-admin")
 
     def test_webpush_topic_fits_the_header_limit(self):
-        topic = build_webpush_topic("game-the-assault-of-the-adroit-advertisement-65162925")
+        topic = build_webpush_topic(
+            "game-the-assault-of-the-adroit-advertisement-65162925"
+        )
 
         assert len(topic) <= 32
         assert re.fullmatch(r"[A-Za-z0-9_-]+", topic)

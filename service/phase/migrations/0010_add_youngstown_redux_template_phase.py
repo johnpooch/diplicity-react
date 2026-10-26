@@ -25,7 +25,9 @@ def remove_youngstown_redux_template_phase(apps, schema_editor):
     Phase = apps.get_model("phase", "Phase")
 
     youngstown_redux_variant = Variant.objects.get(id="youngstown-redux")
-    Phase.objects.filter(game=None, variant=youngstown_redux_variant, status="template").delete()
+    Phase.objects.filter(
+        game=None, variant=youngstown_redux_variant, status="template"
+    ).delete()
 
 
 class Migration(migrations.Migration):

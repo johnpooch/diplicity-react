@@ -66,7 +66,9 @@ class GoogleAuthSerializer(serializers.Serializer):
 
 class AppleAuthSerializer(serializers.Serializer):
     id_token = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    first_name = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
     last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     id = serializers.IntegerField(read_only=True)
@@ -82,8 +84,12 @@ class AppleAuthSerializer(serializers.Serializer):
             first_name=validated_data.get("first_name"),
             last_name=validated_data.get("last_name"),
         )
-        profile, profile_created = UserProfile.objects.get_or_create(user=user, defaults={"name": name})
-        if not profile_created and (validated_data.get("first_name") or validated_data.get("last_name")):
+        profile, profile_created = UserProfile.objects.get_or_create(
+            user=user, defaults={"name": name}
+        )
+        if not profile_created and (
+            validated_data.get("first_name") or validated_data.get("last_name")
+        ):
             profile.name = name
             profile.save(update_fields=["name"])
         refresh = RefreshToken.for_user(user)

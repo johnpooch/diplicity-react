@@ -92,9 +92,13 @@ def primary_user(django_db_setup, django_db_blocker):
 def secondary_user(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         secondary_user = User.objects.create_user(
-            username="secondaryuser", email="secondary@example.com", password="testpass123"
+            username="secondaryuser",
+            email="secondary@example.com",
+            password="testpass123",
         )
-        UserProfile.objects.create(user=secondary_user, name="Secondary User", picture="")
+        UserProfile.objects.create(
+            user=secondary_user, name="Secondary User", picture=""
+        )
         return secondary_user
 
 
@@ -120,7 +124,9 @@ def user_factory(db):
             email = f"{username}@example.com"
         if name is None:
             name = f"Test User {count}"
-        user = User.objects.create_user(username=username, email=email, password="testpass123")
+        user = User.objects.create_user(
+            username=username, email=email, password="testpass123"
+        )
         UserProfile.objects.create(user=user, name=name)
         return user
 
@@ -153,7 +159,14 @@ def svg_rendering_signature():
                 for key, value in element.attrib.items()
                 if etree.QName(key).namespace in attribute_namespaces
             )
-            rows.append((name.localname, attributes, (element.text or "").strip(), (element.tail or "").strip()))
+            rows.append(
+                (
+                    name.localname,
+                    attributes,
+                    (element.text or "").strip(),
+                    (element.tail or "").strip(),
+                )
+            )
             for child in element.iterchildren(tag=etree.Element):
                 _visit(child)
 
@@ -318,7 +331,9 @@ def classical_wales_province(django_db_setup, django_db_blocker, classical_varia
 
 
 @pytest.fixture(scope="session")
-def classical_english_channel_province(django_db_setup, django_db_blocker, classical_variant):
+def classical_english_channel_province(
+    django_db_setup, django_db_blocker, classical_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="eng", variant=classical_variant)
 
@@ -372,7 +387,9 @@ def classical_vienna_province(django_db_setup, django_db_blocker, classical_vari
 
 
 @pytest.fixture(scope="session")
-def classical_sevastopol_province(django_db_setup, django_db_blocker, classical_variant):
+def classical_sevastopol_province(
+    django_db_setup, django_db_blocker, classical_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="sev", variant=classical_variant)
 
@@ -420,91 +437,121 @@ def italy_vs_germany_variant(django_db_setup, django_db_blocker):
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_italy_nation(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_italy_nation(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Nation.objects.get(name="Italy", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_germany_nation(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_germany_nation(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Nation.objects.get(name="Germany", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_venice_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_venice_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="ven", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_rome_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_rome_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="rom", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_greece_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_greece_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="gre", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_warsaw_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_warsaw_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="war", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_naples_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_naples_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="nap", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_trieste_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_trieste_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="tri", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_kiel_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_kiel_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="kie", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_berlin_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_berlin_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="ber", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_munich_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_munich_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="mun", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_ionian_sea_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_ionian_sea_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="ion", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_denmark_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_denmark_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="den", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_prussia_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_prussia_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="pru", variant=italy_vs_germany_variant)
 
 
 @pytest.fixture(scope="session")
-def italy_vs_germany_ruhr_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+def italy_vs_germany_ruhr_province(
+    django_db_setup, django_db_blocker, italy_vs_germany_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="ruh", variant=italy_vs_germany_variant)
 
@@ -570,13 +617,17 @@ def hundred_dijon_province(django_db_setup, django_db_blocker, hundred_variant):
 
 
 @pytest.fixture(scope="session")
-def hundred_bristol_channel_province(django_db_setup, django_db_blocker, hundred_variant):
+def hundred_bristol_channel_province(
+    django_db_setup, django_db_blocker, hundred_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="brs", variant=hundred_variant)
 
 
 @pytest.fixture(scope="session")
-def hundred_strait_of_dover_province(django_db_setup, django_db_blocker, hundred_variant):
+def hundred_strait_of_dover_province(
+    django_db_setup, django_db_blocker, hundred_variant
+):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="str", variant=hundred_variant)
 
@@ -607,7 +658,9 @@ def game_factory(db):
         if status is None:
             status = GameStatus.ACTIVE
 
-        variant_solo_victory_sc_count = kwargs.pop("variant__solo_victory_sc_count", None)
+        variant_solo_victory_sc_count = kwargs.pop(
+            "variant__solo_victory_sc_count", None
+        )
         if variant_solo_victory_sc_count is not None:
             variant.victory_conditions = [
                 {
@@ -685,7 +738,11 @@ def phase_factory(db, classical_variant, primary_user, user_factory):
                 if not member:
                     user = config.get("user")
                     if user is None:
-                        user = primary_user if not game.members.filter(user=primary_user).exists() else user_factory()
+                        user = (
+                            primary_user
+                            if not game.members.filter(user=primary_user).exists()
+                            else user_factory()
+                        )
                     member = Member.objects.create(
                         nation=nation,
                         user=user,
@@ -720,10 +777,14 @@ def member_factory(db):
                 email=f"test{Member.objects.count()}@example.com",
                 password="testpass123",
             )
-            UserProfile.objects.get_or_create(user=user, defaults={"name": f"Test User {user.id}"})
+            UserProfile.objects.get_or_create(
+                user=user, defaults={"name": f"Test User {user.id}"}
+            )
 
         if nation is None:
-            available_nations = game.variant.nations.exclude(id__in=game.members.values_list("nation_id", flat=True))
+            available_nations = game.variant.nations.exclude(
+                id__in=game.members.values_list("nation_id", flat=True)
+            )
             nation = available_nations.first()
 
         return Member.objects.create(
@@ -794,7 +855,11 @@ def victory_factory(db):
 
 @pytest.fixture
 def game_with_phase_history_factory(
-    db, classical_variant, primary_user, classical_england_nation, classical_edinburgh_province
+    db,
+    classical_variant,
+    primary_user,
+    classical_england_nation,
+    classical_edinburgh_province,
 ):
     def _create(phase_count, last_status=PhaseStatus.ACTIVE, **kwargs):
         game = Game.objects.create(
@@ -815,9 +880,13 @@ def game_with_phase_history_factory(
             )
             phase.phase_states.create(member=member, has_possible_orders=True)
             phase.units.create(
-                type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province
+                type=UnitType.FLEET,
+                nation=classical_england_nation,
+                province=classical_edinburgh_province,
             )
-            phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=classical_edinburgh_province
+            )
         return game
 
     return _create
@@ -825,7 +894,13 @@ def game_with_phase_history_factory(
 
 @pytest.fixture
 def draw_proposal_factory(db, member_factory):
-    def _create(game=None, created_by=None, phase=None, included_member_ids=None, cancelled_at=None):
+    def _create(
+        game=None,
+        created_by=None,
+        phase=None,
+        included_member_ids=None,
+        cancelled_at=None,
+    ):
         if game is None:
             variant = Variant.objects.first()
             game = Game.objects.create(
@@ -855,7 +930,9 @@ def draw_proposal_factory(db, member_factory):
             cancelled_at=cancelled_at,
         )
 
-        all_active_members = list(game.members.holding_seat().filter(eliminated_at__isnull=True))
+        all_active_members = list(
+            game.members.holding_seat().filter(eliminated_at__isnull=True)
+        )
 
         if included_member_ids is None:
             included_member_ids = [created_by.id]
@@ -899,7 +976,9 @@ def pending_game_factory(db, primary_user, classical_variant):
 
 
 @pytest.fixture
-def active_game_factory(db, primary_user, classical_variant, adjudication_data_classical):
+def active_game_factory(
+    db, primary_user, classical_variant, adjudication_data_classical
+):
     def _create(creator=None, nmr_extensions_allowed=0):
         if creator is None:
             creator = primary_user
@@ -915,11 +994,15 @@ def active_game_factory(db, primary_user, classical_variant, adjudication_data_c
         game.members.create(user=creator)
 
         for i in range(game.variant.nations.count() - 1):
-            other_user = User.objects.create_user(f"player{i}@test.com", password="testpass")
+            other_user = User.objects.create_user(
+                f"player{i}@test.com", password="testpass"
+            )
             UserProfile.objects.create(user=other_user, name=f"Player {i}")
             game.members.create(user=other_user)
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start()
 
         return game
@@ -928,8 +1011,16 @@ def active_game_factory(db, primary_user, classical_variant, adjudication_data_c
 
 
 @pytest.fixture
-def fixed_deadline_game_factory(db, primary_user, classical_variant, adjudication_data_classical):
-    def _create(creator=None, target_time=None, timezone_name=None, movement_frequency=None, retreat_frequency=None):
+def fixed_deadline_game_factory(
+    db, primary_user, classical_variant, adjudication_data_classical
+):
+    def _create(
+        creator=None,
+        target_time=None,
+        timezone_name=None,
+        movement_frequency=None,
+        retreat_frequency=None,
+    ):
         if creator is None:
             creator = primary_user
         if target_time is None:
@@ -955,11 +1046,15 @@ def fixed_deadline_game_factory(db, primary_user, classical_variant, adjudicatio
         game.members.create(user=creator)
 
         for i in range(game.variant.nations.count() - 1):
-            other_user = User.objects.create_user(f"fixed_player{i}@test.com", password="testpass")
+            other_user = User.objects.create_user(
+                f"fixed_player{i}@test.com", password="testpass"
+            )
             UserProfile.objects.create(user=other_user, name=f"Fixed Player {i}")
             game.members.create(user=other_user)
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start()
 
         return game
@@ -968,7 +1063,9 @@ def fixed_deadline_game_factory(db, primary_user, classical_variant, adjudicatio
 
 
 @pytest.fixture
-def sandbox_game_factory(db, primary_user, classical_variant, base_active_phase, sample_options):
+def sandbox_game_factory(
+    db, primary_user, classical_variant, base_active_phase, sample_options
+):
     def _create(user=None):
         if user is None:
             user = primary_user
@@ -1004,7 +1101,9 @@ def base_active_game_for_primary_user(db, classical_variant):
 
 
 @pytest.fixture
-def active_game_created_by_primary_user(db, primary_user, base_active_game_for_primary_user, base_active_phase):
+def active_game_created_by_primary_user(
+    db, primary_user, base_active_game_for_primary_user, base_active_phase
+):
     base_active_phase(base_active_game_for_primary_user)
     base_active_game_for_primary_user.created_by = primary_user
     base_active_game_for_primary_user.admin = primary_user
@@ -1025,8 +1124,14 @@ def base_active_phase(db, classical_england_nation, classical_edinburgh_province
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
         return phase
 
     return _create_phase
@@ -1042,7 +1147,9 @@ def base_active_game_for_secondary_user(db, classical_variant):
 
 
 @pytest.fixture
-def active_game_created_by_secondary_user(db, secondary_user, base_active_game_for_secondary_user, base_active_phase):
+def active_game_created_by_secondary_user(
+    db, secondary_user, base_active_game_for_secondary_user, base_active_phase
+):
     base_active_phase(base_active_game_for_secondary_user)
     base_active_game_for_secondary_user.created_by = secondary_user
     base_active_game_for_secondary_user.admin = secondary_user
@@ -1061,7 +1168,9 @@ def active_game_with_phase_state(
     classical_edinburgh_province,
 ):
     phase = base_active_phase(base_active_game_for_primary_user)
-    member = base_active_game_for_primary_user.members.create(user=primary_user, nation=classical_england_nation)
+    member = base_active_game_for_primary_user.members.create(
+        user=primary_user, nation=classical_england_nation
+    )
     phase.phase_states.create(member=member, has_possible_orders=True)
     return base_active_game_for_primary_user
 
@@ -1092,7 +1201,9 @@ def active_retreat_game_with_dislodged_unit(
         ordinal=1,
     )
     phase.units.create(
-        type=UnitType.ARMY, nation=classical_france_nation, province=classical_london_province
+        type=UnitType.ARMY,
+        nation=classical_france_nation,
+        province=classical_london_province,
     )
     phase.units.create(
         type=UnitType.ARMY,
@@ -1101,14 +1212,18 @@ def active_retreat_game_with_dislodged_unit(
         dislodged=True,
         dislodged_from=classical_wales_province,
     )
-    phase.supply_centers.create(nation=classical_france_nation, province=classical_london_province)
+    phase.supply_centers.create(
+        nation=classical_france_nation, province=classical_london_province
+    )
     member = game.members.create(user=primary_user, nation=classical_england_nation)
     phase.phase_states.create(member=member, has_possible_orders=True)
     return game
 
 
 @pytest.fixture
-def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, classical_england_nation):
+def active_game_with_confirmed_phase_state(
+    db, active_game_with_phase_state, classical_england_nation
+):
     phase_state = active_game_with_phase_state.current_phase.phase_states.first()
     phase_state.orders_confirmed = True
     phase_state.save()
@@ -1116,16 +1231,22 @@ def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, cla
 
 
 @pytest.fixture
-def active_game_with_eliminated_member(db, active_game_with_phase_state, secondary_user, classical_france_nation):
+def active_game_with_eliminated_member(
+    db, active_game_with_phase_state, secondary_user, classical_france_nation
+):
     member = active_game_with_phase_state.members.create(
-        user=secondary_user, eliminated_at=timezone.now(), nation=classical_france_nation
+        user=secondary_user,
+        eliminated_at=timezone.now(),
+        nation=classical_france_nation,
     )
     active_game_with_phase_state.current_phase.phase_states.create(member=member)
     return active_game_with_phase_state
 
 
 @pytest.fixture
-def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_user, classical_france_nation):
+def active_game_with_kicked_member(
+    db, active_game_with_phase_state, secondary_user, classical_france_nation
+):
     member = active_game_with_phase_state.members.create(
         user=secondary_user, removed_at=timezone.now(), nation=classical_france_nation
     )
@@ -1145,8 +1266,14 @@ def base_pending_phase(db, classical_england_nation, classical_edinburgh_provinc
             status=PhaseStatus.PENDING,
             ordinal=0,
         )
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
         return phase
 
     return _create_phase
@@ -1198,24 +1325,32 @@ def pending_game_created_by_secondary_user(
     base_pending_game_for_secondary_user.created_by = secondary_user
     base_pending_game_for_secondary_user.admin = secondary_user
     base_pending_game_for_secondary_user.save()
-    base_pending_game_for_secondary_user.channels.create(name="Public Press", private=False)
+    base_pending_game_for_secondary_user.channels.create(
+        name="Public Press", private=False
+    )
     base_pending_game_for_secondary_user.seat(secondary_user)
     return base_pending_game_for_secondary_user
 
 
 @pytest.fixture
-def pending_game_created_by_secondary_user_joined_by_primary(db, primary_user, pending_game_created_by_secondary_user):
+def pending_game_created_by_secondary_user_joined_by_primary(
+    db, primary_user, pending_game_created_by_secondary_user
+):
     pending_game_created_by_secondary_user.members.create(user=primary_user)
     return pending_game_created_by_secondary_user
 
 
 @pytest.fixture
-def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for_primary_user, base_pending_phase):
+def pending_game_created_by_primary_user(
+    db, primary_user, base_pending_game_for_primary_user, base_pending_phase
+):
     base_pending_phase(base_pending_game_for_primary_user)
     base_pending_game_for_primary_user.created_by = primary_user
     base_pending_game_for_primary_user.admin = primary_user
     base_pending_game_for_primary_user.save()
-    base_pending_game_for_primary_user.channels.create(name="Public Press", private=False)
+    base_pending_game_for_primary_user.channels.create(
+        name="Public Press", private=False
+    )
     base_pending_game_for_primary_user.seat(primary_user)
     return base_pending_game_for_primary_user
 
@@ -1230,7 +1365,11 @@ def active_game_with_phase_options(db, active_game_with_phase_state, sample_opti
 
 @pytest.fixture
 def sandbox_game_with_phase_options(
-    db, primary_user, base_active_game_for_primary_user, base_active_phase, sample_options
+    db,
+    primary_user,
+    base_active_game_for_primary_user,
+    base_active_phase,
+    sample_options,
 ):
     base_active_game_for_primary_user.sandbox = True
     base_active_game_for_primary_user.save()
@@ -1238,7 +1377,9 @@ def sandbox_game_with_phase_options(
     phase.options = sample_options
     phase.save()
     for nation in base_active_game_for_primary_user.variant.nations.all():
-        member = base_active_game_for_primary_user.members.create(user=primary_user, nation=nation, sandbox=True)
+        member = base_active_game_for_primary_user.members.create(
+            user=primary_user, nation=nation, sandbox=True
+        )
         phase.phase_states.create(member=member)
     return base_active_game_for_primary_user
 
@@ -1270,11 +1411,21 @@ def active_game(
         ordinal=1,
     )
 
-    phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
-    phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+    phase.units.create(
+        type=UnitType.FLEET,
+        nation=classical_england_nation,
+        province=classical_edinburgh_province,
+    )
+    phase.supply_centers.create(
+        nation=classical_england_nation, province=classical_edinburgh_province
+    )
 
-    primary_member = game.members.create(user=primary_user, nation=classical_england_nation)
-    secondary_member = game.members.create(user=secondary_user, nation=classical_france_nation)
+    primary_member = game.members.create(
+        user=primary_user, nation=classical_england_nation
+    )
+    secondary_member = game.members.create(
+        user=secondary_user, nation=classical_france_nation
+    )
     phase.phase_states.create(member=primary_member)
     phase.phase_states.create(member=secondary_member)
 
@@ -1366,7 +1517,9 @@ def game_with_many_phase_states(primary_user, classical_variant):
 
         province_id = province_ids.get(nation.name)
         if province_id:
-            province = Province.objects.get(province_id=province_id, variant=classical_variant)
+            province = Province.objects.get(
+                province_id=province_id, variant=classical_variant
+            )
             phase.units.create(type=UnitType.ARMY, nation=nation, province=province)
 
     phase.options = {
@@ -1419,35 +1572,53 @@ def retreat_phase(db):
 
 @pytest.fixture
 def active_game_with_private_channel(db, active_game_with_phase_state):
-    private_channel = Channel.objects.create(game=active_game_with_phase_state, name="Private Channel", private=True)
+    private_channel = Channel.objects.create(
+        game=active_game_with_phase_state, name="Private Channel", private=True
+    )
     private_channel.members.add(active_game_with_phase_state.members.first())
     return active_game_with_phase_state
 
 
 @pytest.fixture
 def active_game_with_public_channel(db, active_game_with_phase_state):
-    Channel.objects.create(game=active_game_with_phase_state, name="Public Channel", private=False)
+    Channel.objects.create(
+        game=active_game_with_phase_state, name="Public Channel", private=False
+    )
     return active_game_with_phase_state
 
 
 @pytest.fixture
-def active_game_with_channels(db, active_game_with_phase_state, secondary_user, classical_france_nation):
+def active_game_with_channels(
+    db, active_game_with_phase_state, secondary_user, classical_france_nation
+):
     private_member_channel = Channel.objects.create(
         game=active_game_with_phase_state, name="Private Member", private=True
     )
     private_member_channel.members.add(active_game_with_phase_state.members.first())
     ChannelMessage.objects.create(
-        channel=private_member_channel, sender=active_game_with_phase_state.members.first(), body="Test message"
+        channel=private_member_channel,
+        sender=active_game_with_phase_state.members.first(),
+        body="Test message",
     )
-    Channel.objects.create(game=active_game_with_phase_state, name="Private Non-Member", private=True)
-    Channel.objects.create(game=active_game_with_phase_state, name="Public Channel", private=False)
-    active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+    Channel.objects.create(
+        game=active_game_with_phase_state, name="Private Non-Member", private=True
+    )
+    Channel.objects.create(
+        game=active_game_with_phase_state, name="Public Channel", private=False
+    )
+    active_game_with_phase_state.members.create(
+        user=secondary_user, nation=classical_france_nation
+    )
     return active_game_with_phase_state
 
 
 @pytest.fixture
 def game_with_two_members(
-    db, active_game_with_phase_state, secondary_user, classical_england_nation, classical_france_nation
+    db,
+    active_game_with_phase_state,
+    secondary_user,
+    classical_england_nation,
+    classical_france_nation,
 ):
     game = active_game_with_phase_state
     game.members.first().nation = classical_england_nation
@@ -1465,18 +1636,28 @@ def sandbox_game_with_channel(sandbox_game_factory):
 
 
 @pytest.fixture
-def game_with_public_channel_and_messages(db, active_game_with_phase_state, secondary_user, classical_france_nation):
+def game_with_public_channel_and_messages(
+    db, active_game_with_phase_state, secondary_user, classical_france_nation
+):
     game = active_game_with_phase_state
     primary_member = game.members.first()
-    secondary_member = game.members.create(user=secondary_user, nation=classical_france_nation)
+    secondary_member = game.members.create(
+        user=secondary_user, nation=classical_france_nation
+    )
 
-    public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+    public_channel = Channel.objects.create(
+        game=game, name="Public Press", private=False
+    )
 
     ChannelMember.objects.create(member=primary_member, channel=public_channel)
     ChannelMember.objects.create(member=secondary_member, channel=public_channel)
 
-    ChannelMessage.objects.create(channel=public_channel, sender=secondary_member, body="Message 1")
-    ChannelMessage.objects.create(channel=public_channel, sender=secondary_member, body="Message 2")
+    ChannelMessage.objects.create(
+        channel=public_channel, sender=secondary_member, body="Message 1"
+    )
+    ChannelMessage.objects.create(
+        channel=public_channel, sender=secondary_member, body="Message 2"
+    )
 
     return game
 
@@ -1484,8 +1665,12 @@ def game_with_public_channel_and_messages(db, active_game_with_phase_state, seco
 @pytest.fixture
 def channel_with_messages_factory(db):
     def _create(reader, sender, last_read_at, read=0, unread=0, own_unread=0):
-        channel = Channel.objects.create(game=reader.game, name=f"Channel {Channel.objects.count()}", private=True)
-        ChannelMember.objects.create(member=reader, channel=channel, last_read_at=last_read_at)
+        channel = Channel.objects.create(
+            game=reader.game, name=f"Channel {Channel.objects.count()}", private=True
+        )
+        ChannelMember.objects.create(
+            member=reader, channel=channel, last_read_at=last_read_at
+        )
         ChannelMember.objects.create(member=sender, channel=channel)
         for author, created_at, count in [
             (sender, last_read_at - timedelta(minutes=1), read),
@@ -1493,8 +1678,12 @@ def channel_with_messages_factory(db):
             (reader, last_read_at + timedelta(minutes=1), own_unread),
         ]:
             for _ in range(count):
-                message = ChannelMessage.objects.create(channel=channel, sender=author, body="Message")
-                ChannelMessage.objects.filter(id=message.id).update(created_at=created_at)
+                message = ChannelMessage.objects.create(
+                    channel=channel, sender=author, body="Message"
+                )
+                ChannelMessage.objects.filter(id=message.id).update(
+                    created_at=created_at
+                )
         return channel
 
     return _create
@@ -1507,22 +1696,36 @@ def channel_with_messages_factory(db):
 
 @pytest.fixture
 def italy_vs_germany_active_game(italy_vs_germany_variant):
-    return Game.objects.create(variant=italy_vs_germany_variant, name="Test Game", status=GameStatus.ACTIVE)
+    return Game.objects.create(
+        variant=italy_vs_germany_variant, name="Test Game", status=GameStatus.ACTIVE
+    )
 
 
 @pytest.fixture
-def member_italy(italy_vs_germany_variant, italy_vs_germany_italy_nation, primary_user, italy_vs_germany_active_game):
+def member_italy(
+    italy_vs_germany_variant,
+    italy_vs_germany_italy_nation,
+    primary_user,
+    italy_vs_germany_active_game,
+):
     return Member.objects.create(
-        nation=italy_vs_germany_italy_nation, user=primary_user, game=italy_vs_germany_active_game
+        nation=italy_vs_germany_italy_nation,
+        user=primary_user,
+        game=italy_vs_germany_active_game,
     )
 
 
 @pytest.fixture
 def member_germany(
-    italy_vs_germany_variant, italy_vs_germany_germany_nation, secondary_user, italy_vs_germany_active_game
+    italy_vs_germany_variant,
+    italy_vs_germany_germany_nation,
+    secondary_user,
+    italy_vs_germany_active_game,
 ):
     return Member.objects.create(
-        nation=italy_vs_germany_germany_nation, user=secondary_user, game=italy_vs_germany_active_game
+        nation=italy_vs_germany_germany_nation,
+        user=secondary_user,
+        game=italy_vs_germany_active_game,
     )
 
 
@@ -1634,32 +1837,58 @@ def italy_vs_germany_phase_with_orders(
     phase_state_italy = phase.phase_states.create(member=member_italy)
     phase_state_germany = phase.phase_states.create(member=member_germany)
 
-    phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-    phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-    phase.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
-
-    phase.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
-    phase.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
-    phase.supply_centers.create(province=italy_vs_germany_munich_province, nation=italy_vs_germany_germany_nation)
-
-    phase.units.create(
-        province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+    phase.supply_centers.create(
+        province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation
     )
-    phase.units.create(
-        province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+    phase.supply_centers.create(
+        province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
     )
-    phase.units.create(
-        province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation
+    phase.supply_centers.create(
+        province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation
     )
 
+    phase.supply_centers.create(
+        province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
+    )
+    phase.supply_centers.create(
+        province=italy_vs_germany_berlin_province,
+        nation=italy_vs_germany_germany_nation,
+    )
+    phase.supply_centers.create(
+        province=italy_vs_germany_munich_province,
+        nation=italy_vs_germany_germany_nation,
+    )
+
     phase.units.create(
-        province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_venice_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase.units.create(
-        province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_rome_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase.units.create(
-        province=italy_vs_germany_munich_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_naples_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_italy_nation,
+    )
+
+    phase.units.create(
+        province=italy_vs_germany_kiel_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_germany_nation,
+    )
+    phase.units.create(
+        province=italy_vs_germany_berlin_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
+    )
+    phase.units.create(
+        province=italy_vs_germany_munich_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
     )
 
     phase_state_italy.orders.create(
@@ -1723,30 +1952,56 @@ def game_with_three_phases(
     phase_state_italy_1 = phase1.phase_states.create(member=member_italy)
     phase_state_germany_1 = phase1.phase_states.create(member=member_germany)
 
-    phase1.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-    phase1.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-    phase1.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
-    phase1.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
-    phase1.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
-    phase1.supply_centers.create(province=italy_vs_germany_munich_province, nation=italy_vs_germany_germany_nation)
+    phase1.supply_centers.create(
+        province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation
+    )
+    phase1.supply_centers.create(
+        province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+    )
+    phase1.supply_centers.create(
+        province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation
+    )
+    phase1.supply_centers.create(
+        province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
+    )
+    phase1.supply_centers.create(
+        province=italy_vs_germany_berlin_province,
+        nation=italy_vs_germany_germany_nation,
+    )
+    phase1.supply_centers.create(
+        province=italy_vs_germany_munich_province,
+        nation=italy_vs_germany_germany_nation,
+    )
 
     phase1.units.create(
-        province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_venice_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase1.units.create(
-        province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_rome_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase1.units.create(
-        province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_naples_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_italy_nation,
     )
     phase1.units.create(
-        province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_kiel_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_germany_nation,
     )
     phase1.units.create(
-        province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_berlin_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
     )
     phase1.units.create(
-        province=italy_vs_germany_munich_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_munich_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
     )
 
     order1 = phase_state_italy_1.orders.create(
@@ -1774,30 +2029,56 @@ def game_with_three_phases(
     phase_state_italy_2 = phase2.phase_states.create(member=member_italy)
     phase_state_germany_2 = phase2.phase_states.create(member=member_germany)
 
-    phase2.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-    phase2.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-    phase2.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
-    phase2.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
-    phase2.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
-    phase2.supply_centers.create(province=italy_vs_germany_munich_province, nation=italy_vs_germany_germany_nation)
+    phase2.supply_centers.create(
+        province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation
+    )
+    phase2.supply_centers.create(
+        province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+    )
+    phase2.supply_centers.create(
+        province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation
+    )
+    phase2.supply_centers.create(
+        province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
+    )
+    phase2.supply_centers.create(
+        province=italy_vs_germany_berlin_province,
+        nation=italy_vs_germany_germany_nation,
+    )
+    phase2.supply_centers.create(
+        province=italy_vs_germany_munich_province,
+        nation=italy_vs_germany_germany_nation,
+    )
 
     phase2.units.create(
-        province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_venice_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase2.units.create(
-        province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_rome_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase2.units.create(
-        province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_naples_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_italy_nation,
     )
     phase2.units.create(
-        province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_kiel_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_germany_nation,
     )
     phase2.units.create(
-        province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_berlin_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
     )
     phase2.units.create(
-        province=italy_vs_germany_munich_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_munich_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
     )
 
     order3 = phase_state_italy_2.orders.create(
@@ -1816,29 +2097,54 @@ def game_with_three_phases(
         status=PhaseStatus.ACTIVE,
     )
 
-    phase_state_italy_3 = phase3.phase_states.create(member=member_italy, orders_confirmed=True)
-    phase_state_germany_3 = phase3.phase_states.create(member=member_germany, orders_confirmed=False)
+    phase_state_italy_3 = phase3.phase_states.create(
+        member=member_italy, orders_confirmed=True
+    )
+    phase_state_germany_3 = phase3.phase_states.create(
+        member=member_germany, orders_confirmed=False
+    )
 
-    phase3.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-    phase3.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-    phase3.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
-    phase3.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
-    phase3.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
+    phase3.supply_centers.create(
+        province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation
+    )
+    phase3.supply_centers.create(
+        province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+    )
+    phase3.supply_centers.create(
+        province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation
+    )
+    phase3.supply_centers.create(
+        province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
+    )
+    phase3.supply_centers.create(
+        province=italy_vs_germany_berlin_province,
+        nation=italy_vs_germany_germany_nation,
+    )
 
     phase3.units.create(
-        province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_venice_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase3.units.create(
-        province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_rome_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_italy_nation,
     )
     phase3.units.create(
-        province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation
+        province=italy_vs_germany_naples_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_italy_nation,
     )
     phase3.units.create(
-        province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_kiel_province,
+        type=UnitType.FLEET,
+        nation=italy_vs_germany_germany_nation,
     )
     phase3.units.create(
-        province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+        province=italy_vs_germany_berlin_province,
+        type=UnitType.ARMY,
+        nation=italy_vs_germany_germany_nation,
     )
 
     phase_state_italy_3.orders.create(
@@ -1877,8 +2183,12 @@ def deadline_warning_game_factory(
             deadline_mode=deadline_mode,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
-        germany = game.members.create(nation=italy_vs_germany_germany_nation, user=secondary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
+        germany = game.members.create(
+            nation=italy_vs_germany_germany_nation, user=secondary_user
+        )
         phase = Phase.objects.create(
             game=game,
             variant=italy_vs_germany_variant,
@@ -1903,10 +2213,14 @@ def add_italy_germany_units(
 ):
     def _add(phase):
         phase.units.create(
-            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
         )
         phase.units.create(
-            province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
         )
 
     return _add
@@ -1927,8 +2241,12 @@ def elimination_game_factory(
             variant=italy_vs_germany_variant,
             status=GameStatus.ACTIVE,
         )
-        italy = game.members.create(user=primary_user, nation=italy_vs_germany_italy_nation)
-        germany = game.members.create(user=secondary_user, nation=italy_vs_germany_germany_nation)
+        italy = game.members.create(
+            user=primary_user, nation=italy_vs_germany_italy_nation
+        )
+        germany = game.members.create(
+            user=secondary_user, nation=italy_vs_germany_germany_nation
+        )
         return game, italy, germany
 
     return _create
@@ -1958,8 +2276,12 @@ def draw_notification_game_factory(
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        italy = game.members.create(user=primary_user, nation=italy_vs_germany_italy_nation)
-        germany = game.members.create(user=secondary_user, nation=italy_vs_germany_germany_nation)
+        italy = game.members.create(
+            user=primary_user, nation=italy_vs_germany_italy_nation
+        )
+        germany = game.members.create(
+            user=secondary_user, nation=italy_vs_germany_germany_nation
+        )
         phase.phase_states.create(member=italy, has_possible_orders=True)
         phase.phase_states.create(member=germany, has_possible_orders=True)
         return game, italy, germany
@@ -1991,8 +2313,12 @@ def end_game_notification_game_factory(
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        italy = game.members.create(user=primary_user, nation=italy_vs_germany_italy_nation)
-        germany = game.members.create(user=secondary_user, nation=italy_vs_germany_germany_nation)
+        italy = game.members.create(
+            user=primary_user, nation=italy_vs_germany_italy_nation
+        )
+        germany = game.members.create(
+            user=secondary_user, nation=italy_vs_germany_germany_nation
+        )
         return game, phase, italy, germany
 
     return _create
@@ -2013,7 +2339,9 @@ def mock_send_notification_to_users():
     with patch(
         "notification.utils.send_notification_to_users", side_effect=_delivered
     ) as mock_fn, patch.object(
-        notification_tasks.deliver, "defer", side_effect=lambda **kwargs: notification_tasks.deliver(**kwargs)
+        notification_tasks.deliver,
+        "defer",
+        side_effect=lambda **kwargs: notification_tasks.deliver(**kwargs),
     ):
         yield mock_fn
 
@@ -2048,7 +2376,10 @@ def sample_options():
         "England": {
             "bud": {
                 "Next": {
-                    "Hold": {"Next": {"bud": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                    "Hold": {
+                        "Next": {"bud": {"Next": {}, "Type": "SrcProvince"}},
+                        "Type": "OrderType",
+                    },
                     "Move": {
                         "Next": {
                             "bud": {
@@ -2068,8 +2399,18 @@ def sample_options():
                         "Next": {
                             "bud": {
                                 "Next": {
-                                    "sev": {"Next": {"rum": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
-                                    "tri": {"Next": {"tri": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
+                                    "sev": {
+                                        "Next": {
+                                            "rum": {"Next": {}, "Type": "Province"}
+                                        },
+                                        "Type": "Province",
+                                    },
+                                    "tri": {
+                                        "Next": {
+                                            "tri": {"Next": {}, "Type": "Province"}
+                                        },
+                                        "Type": "Province",
+                                    },
                                     "vie": {
                                         "Next": {
                                             "gal": {"Next": {}, "Type": "Province"},
@@ -2089,7 +2430,10 @@ def sample_options():
             },
             "tri": {
                 "Next": {
-                    "Hold": {"Next": {"tri": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                    "Hold": {
+                        "Next": {"tri": {"Next": {}, "Type": "SrcProvince"}},
+                        "Type": "OrderType",
+                    },
                     "Move": {
                         "Next": {
                             "tri": {
@@ -2115,7 +2459,12 @@ def godip_options_simple_hold():
     return {
         "England": {
             "lon": {
-                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Next": {
+                    "Hold": {
+                        "Next": {"lon": {"Next": {}, "Type": "SrcProvince"}},
+                        "Type": "OrderType",
+                    }
+                },
                 "Type": "Province",
             }
         }
@@ -2127,7 +2476,12 @@ def godip_options_england_london_hold():
     return {
         "England": {
             "lon": {
-                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Next": {
+                    "Hold": {
+                        "Next": {"lon": {"Next": {}, "Type": "SrcProvince"}},
+                        "Type": "OrderType",
+                    }
+                },
                 "Type": "Province",
             }
         },
@@ -2140,13 +2494,23 @@ def godip_options_england_france_both_hold():
     return {
         "England": {
             "lon": {
-                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Next": {
+                    "Hold": {
+                        "Next": {"lon": {"Next": {}, "Type": "SrcProvince"}},
+                        "Type": "OrderType",
+                    }
+                },
                 "Type": "Province",
             }
         },
         "France": {
             "par": {
-                "Next": {"Hold": {"Next": {"par": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Next": {
+                    "Hold": {
+                        "Next": {"par": {"Next": {}, "Type": "SrcProvince"}},
+                        "Type": "OrderType",
+                    }
+                },
                 "Type": "Province",
             }
         },
@@ -2155,14 +2519,22 @@ def godip_options_england_france_both_hold():
 
 @pytest.fixture
 def adjudication_data_classical():
-    data_path = Path(__file__).parent / "game" / "tests" / "data" / "start_classical.json"
+    data_path = (
+        Path(__file__).parent / "game" / "tests" / "data" / "start_classical.json"
+    )
     with open(data_path) as f:
         return json.load(f)
 
 
 @pytest.fixture
 def adjudication_data_italy_vs_germany():
-    data_path = Path(__file__).parent / "game" / "tests" / "data" / "start_italy_vs_germany.json"
+    data_path = (
+        Path(__file__).parent
+        / "game"
+        / "tests"
+        / "data"
+        / "start_italy_vs_germany.json"
+    )
     with open(data_path) as f:
         return json.load(f)
 
@@ -2183,12 +2555,48 @@ def mock_adjudication_data_basic():
             {"province": "mun", "nation": "Germany"},
         ],
         "units": [
-            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "ven",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "rom",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Italy",
+                "province": "nap",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Germany",
+                "province": "kie",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "ber",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "mun",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
         ],
         "resolutions": [
             {"province": "ven", "result": "OK", "by": None},
@@ -2211,10 +2619,34 @@ def mock_adjudication_data_with_dislodged_unit():
             {"province": "kie", "nation": "Germany"},
         ],
         "units": [
-            {"type": "Army", "nation": "Italy", "province": "kie", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": True, "dislodged_by": "ven"},
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "kie",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "rom",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Italy",
+                "province": "nap",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "kie",
+                "dislodged": True,
+                "dislodged_by": "ven",
+            },
         ],
         "resolutions": [
             {"province": "ven", "result": "OK", "by": None},
@@ -2239,12 +2671,48 @@ def mock_adjudication_data_with_failed_implicit_hold():
             {"province": "mun", "nation": "Germany"},
         ],
         "units": [
-            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "ven",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "rom",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Italy",
+                "province": "nap",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Germany",
+                "province": "kie",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "ber",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "mun",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
         ],
         "resolutions": [
             {"province": "ven", "result": "OK", "by": None},
@@ -2270,12 +2738,48 @@ def mock_adjudication_data_with_dislodged_implicit_hold():
             {"province": "mun", "nation": "Germany"},
         ],
         "units": [
-            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": True, "dislodged_by": "ven"},
-            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "ven",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Italy",
+                "province": "rom",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Italy",
+                "province": "nap",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Fleet",
+                "nation": "Germany",
+                "province": "kie",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "ber",
+                "dislodged": True,
+                "dislodged_by": "ven",
+            },
+            {
+                "type": "Army",
+                "nation": "Germany",
+                "province": "mun",
+                "dislodged": False,
+                "dislodged_by": None,
+            },
         ],
         "resolutions": [
             {"province": "ven", "result": "OK", "by": None},
@@ -2286,7 +2790,9 @@ def mock_adjudication_data_with_dislodged_implicit_hold():
 
 
 @pytest.fixture
-def pending_game_with_game_master_factory(db, primary_user, classical_variant, base_pending_phase):
+def pending_game_with_game_master_factory(
+    db, primary_user, classical_variant, base_pending_phase
+):
     def _create(game_master=None):
         if game_master is None:
             game_master = primary_user
@@ -2307,7 +2813,9 @@ def pending_game_with_game_master_factory(db, primary_user, classical_variant, b
 
 
 @pytest.fixture
-def active_game_with_game_master_factory(db, primary_user, classical_variant, adjudication_data_classical):
+def active_game_with_game_master_factory(
+    db, primary_user, classical_variant, adjudication_data_classical
+):
     def _create(game_master=None):
         if game_master is None:
             game_master = primary_user
@@ -2325,11 +2833,15 @@ def active_game_with_game_master_factory(db, primary_user, classical_variant, ad
         game.seat(game_master, kind=MemberKind.GAME_MASTER)
 
         for i in range(game.variant.nations.count()):
-            other_user = User.objects.create_user(f"gm_player{i}@test.com", password="testpass")
+            other_user = User.objects.create_user(
+                f"gm_player{i}@test.com", password="testpass"
+            )
             UserProfile.objects.create(user=other_user, name=f"GM Player {i}")
             game.members.create(user=other_user)
 
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start()
 
         return game

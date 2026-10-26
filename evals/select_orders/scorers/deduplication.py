@@ -1,4 +1,12 @@
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    accuracy,
+    scorer,
+    stderr,
+)
 
 from select_orders.scorers._resolve import resolve_orders
 

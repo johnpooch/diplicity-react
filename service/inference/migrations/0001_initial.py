@@ -18,7 +18,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Inference",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("task", models.CharField(max_length=100)),
@@ -37,7 +45,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "provider",
-                    models.CharField(choices=[("anthropic", "Anthropic")], default="anthropic", max_length=20),
+                    models.CharField(
+                        choices=[("anthropic", "Anthropic")],
+                        default="anthropic",
+                        max_length=20,
+                    ),
                 ),
                 ("model", models.CharField(max_length=255)),
                 ("system", models.TextField(blank=True)),

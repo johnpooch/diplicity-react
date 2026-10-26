@@ -25,7 +25,9 @@ def remove_vietnam_war_template_phase(apps, schema_editor):
     Phase = apps.get_model("phase", "Phase")
 
     vietnam_war_variant = Variant.objects.get(id="vietnam-war")
-    Phase.objects.filter(game=None, variant=vietnam_war_variant, status="template").delete()
+    Phase.objects.filter(
+        game=None, variant=vietnam_war_variant, status="template"
+    ).delete()
 
 
 class Migration(migrations.Migration):

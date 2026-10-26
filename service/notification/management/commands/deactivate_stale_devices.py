@@ -13,9 +13,9 @@ class Command(BaseCommand):
             .values_list("latest_id", flat=True)
         )
 
-        stale_devices = FCMDevice.objects.filter(active=True, user__isnull=False).exclude(
-            id__in=list(latest_active_ids)
-        )
+        stale_devices = FCMDevice.objects.filter(
+            active=True, user__isnull=False
+        ).exclude(id__in=list(latest_active_ids))
         count = stale_devices.count()
         stale_devices.deactivate(
             reason="stale_duplicate_token_cleanup",

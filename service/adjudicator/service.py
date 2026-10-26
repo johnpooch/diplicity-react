@@ -16,6 +16,7 @@ Both functions emit the legacy godip-style dict so downstream consumers
 (`Game.start`, `create_from_adjudication_data`, `transform_options`) keep
 working unchanged.
 """
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -57,13 +58,17 @@ def start(phase) -> Dict[str, Any]:
             "year": state.phase.year,
             "type": state.phase.type,
             "options": godip_options,
-            "supply_centers": _build_supply_centers(state.supply_centers, nation_name_by_id),
+            "supply_centers": _build_supply_centers(
+                state.supply_centers, nation_name_by_id
+            ),
             "units": _build_units([], state.units, variant, nation_name_by_id),
             "resolutions": [],
         }
 
 
-def _should_skip(phase_type, options, units, supply_centers, skip_nations, nation_name_by_id, variant):
+def _should_skip(
+    phase_type, options, units, supply_centers, skip_nations, nation_name_by_id, variant
+):
     if phase_type == Phase.MOVEMENT:
         return False
     if not options:
@@ -108,10 +113,7 @@ def resolve(phase) -> Dict[str, Any]:
         state, variant = _build_state(phase)
         nation_name_by_id = {nation.id: nation.name for nation in variant.nations}
         vacant_nations = set(
-            phase.game.members
-            .players()
-            .vacant()
-            .values_list("nation__name", flat=True)
+            phase.game.members.players().vacant().values_list("nation__name", flat=True)
         )
         non_playable_nations = {n.name for n in variant.nations if n.non_playable}
         skip_nations = vacant_nations | non_playable_nations
@@ -131,7 +133,15 @@ def resolve(phase) -> Dict[str, Any]:
         next_options = get_options(next_state) if len(states) > 1 else []
         _skip_count = 0
         _MAX_SKIP = 10
-        while len(states) > 1 and _should_skip(next_state.phase.type, next_options, next_state.units, next_state.supply_centers, skip_nations, nation_name_by_id, next_state.variant):
+        while len(states) > 1 and _should_skip(
+            next_state.phase.type,
+            next_options,
+            next_state.units,
+            next_state.supply_centers,
+            skip_nations,
+            nation_name_by_id,
+            next_state.variant,
+        ):
             _skip_count += 1
             if _skip_count >= _MAX_SKIP:
                 logger.error(
@@ -163,8 +173,12 @@ def resolve(phase) -> Dict[str, Any]:
             "supply_centers": _build_supply_centers(
                 next_state.supply_centers, nation_name_by_id
             ),
-            "units": _build_units(state.units, next_state.units, variant, nation_name_by_id),
-            "resolutions": _build_resolutions(state.orders, resolved.resolutions, variant),
+            "units": _build_units(
+                state.units, next_state.units, variant, nation_name_by_id
+            ),
+            "resolutions": _build_resolutions(
+                state.orders, resolved.resolutions, variant
+            ),
             "contested_provinces": list(next_state.contested_provinces),
         }
 
@@ -247,7 +261,9 @@ def _build_resolutions(orders, resolutions, variant: Variant) -> List[Dict[str, 
         if order.source is not None:
             orders_by_source_parent.setdefault(variant.parent_of(order.source), order)
         if order.order_type in ("Move", "MoveViaConvoy") and order.target is not None:
-            moves_by_target_parent.setdefault(variant.parent_of(order.target), []).append(order)
+            moves_by_target_parent.setdefault(
+                variant.parent_of(order.target), []
+            ).append(order)
 
     resolutions_out: List[Dict[str, Any]] = []
     for resolution in resolutions or []:

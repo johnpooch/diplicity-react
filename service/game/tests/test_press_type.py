@@ -4,7 +4,6 @@ from rest_framework import status
 from common.constants import GameStatus, PressType
 from game.models import Game
 
-
 retrieve_viewname = "game-retrieve"
 list_viewname = "game-list"
 create_viewname = "game-create"
@@ -13,7 +12,9 @@ create_viewname = "game-create"
 class TestPressTypeCreate:
 
     @pytest.mark.django_db
-    def test_create_game_with_no_press_persists_value(self, authenticated_client, classical_variant):
+    def test_create_game_with_no_press_persists_value(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "No Press Test Game",
@@ -30,7 +31,9 @@ class TestPressTypeCreate:
         assert game.press_type == PressType.NO_PRESS
 
     @pytest.mark.django_db
-    def test_create_game_defaults_to_full_press(self, authenticated_client, classical_variant):
+    def test_create_game_defaults_to_full_press(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Default Press Test Game",
@@ -43,7 +46,9 @@ class TestPressTypeCreate:
         assert response.data["press_type"] == PressType.FULL_PRESS
 
     @pytest.mark.django_db
-    def test_create_game_with_full_press_persists_value(self, authenticated_client, classical_variant):
+    def test_create_game_with_full_press_persists_value(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Full Press Test Game",
@@ -61,7 +66,12 @@ class TestPressTypeRetrieve:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_press_type(
-        self, authenticated_client, db, classical_variant, primary_user, base_pending_phase
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        base_pending_phase,
     ):
         game = Game.objects.create(
             name="Press Retrieve Test Game",
@@ -93,7 +103,12 @@ class TestPressTypeList:
 
     @pytest.mark.django_db
     def test_list_games_returns_press_type(
-        self, authenticated_client, db, classical_variant, primary_user, base_pending_phase
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        base_pending_phase,
     ):
         game = Game.objects.create(
             name="Press List Test Game",
@@ -108,6 +123,10 @@ class TestPressTypeList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data["results"] if isinstance(response.data, dict) else response.data
+        results = (
+            response.data["results"]
+            if isinstance(response.data, dict)
+            else response.data
+        )
         game_data = next(g for g in results if g["id"] == game.id)
         assert game_data["press_type"] == PressType.NO_PRESS

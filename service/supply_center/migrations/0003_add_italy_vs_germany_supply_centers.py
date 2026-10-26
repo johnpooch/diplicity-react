@@ -12,7 +12,9 @@ def add_italy_vs_germany_supply_centers(apps, schema_editor):
 
     # Get the Italy vs Germany variant and template phase
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")
-    template_phase = Phase.objects.get(game=None, variant=italy_germany_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=italy_germany_variant, status="template"
+    )
 
     # Italy vs Germany supply centers data
     supply_centers_data = [
@@ -27,9 +29,13 @@ def add_italy_vs_germany_supply_centers(apps, schema_editor):
     # Create supply centers
     for sc_data in supply_centers_data:
         # Get the nation and province objects
-        nation = Nation.objects.get(name=sc_data["nation"], variant=italy_germany_variant)
-        province = Province.objects.get(province_id=sc_data["province"], variant=italy_germany_variant)
-        
+        nation = Nation.objects.get(
+            name=sc_data["nation"], variant=italy_germany_variant
+        )
+        province = Province.objects.get(
+            province_id=sc_data["province"], variant=italy_germany_variant
+        )
+
         SupplyCenter.objects.create(
             phase=template_phase,
             nation=nation,
@@ -43,7 +49,9 @@ def remove_italy_vs_germany_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")
-    template_phase = Phase.objects.get(game=None, variant=italy_germany_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=italy_germany_variant, status="template"
+    )
     SupplyCenter.objects.filter(phase=template_phase).delete()
 
 

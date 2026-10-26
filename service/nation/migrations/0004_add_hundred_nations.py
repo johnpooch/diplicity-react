@@ -9,13 +9,17 @@ def add_hundred_nations(apps, schema_editor):
 
     hundred_variant = Variant.objects.get(id="hundred")
 
-    nations_data = [{'name': 'England', 'color': '#2196F3'}, {'name': 'Burgundy', 'color': '#808080'}, {'name': 'France', 'color': '#80DEEA'}]
+    nations_data = [
+        {"name": "England", "color": "#2196F3"},
+        {"name": "Burgundy", "color": "#808080"},
+        {"name": "France", "color": "#80DEEA"},
+    ]
 
     for nation_data in nations_data:
         Nation.objects.create(
             name=nation_data["name"],
             color=nation_data["color"],
-            variant=hundred_variant
+            variant=hundred_variant,
         )
 
 

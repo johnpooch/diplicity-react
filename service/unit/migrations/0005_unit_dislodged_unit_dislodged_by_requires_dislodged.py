@@ -5,20 +5,20 @@ from django.db import migrations, models
 
 def populate_dislodged_before_constraint(apps, schema_editor):
     """Populate dislodged field before adding constraint"""
-    Unit = apps.get_model('unit', 'Unit')
+    Unit = apps.get_model("unit", "Unit")
     Unit.objects.filter(dislodged_by__isnull=False).update(dislodged=True)
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('unit', '0004_add_hundred_units'),
+        ("unit", "0004_add_hundred_units"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='unit',
-            name='dislodged',
+            model_name="unit",
+            name="dislodged",
             field=models.BooleanField(default=False),
         ),
         # Populate the field BEFORE adding the constraint
@@ -27,7 +27,14 @@ class Migration(migrations.Migration):
             reverse_code=migrations.RunPython.noop,
         ),
         migrations.AddConstraint(
-            model_name='unit',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('dislodged', False), ('dislodged_by__isnull', True)), ('dislodged', True), _connector='OR'), name='dislodged_by_requires_dislodged'),
+            model_name="unit",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    models.Q(("dislodged", False), ("dislodged_by__isnull", True)),
+                    ("dislodged", True),
+                    _connector="OR",
+                ),
+                name="dislodged_by_requires_dislodged",
+            ),
         ),
     ]

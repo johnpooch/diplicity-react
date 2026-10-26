@@ -13,14 +13,21 @@ from login.utils import APPLE_ISSUER
 
 @pytest.fixture(autouse=True)
 def throttle_cache(settings):
-    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "throttle"}}
+    settings.CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "throttle",
+        }
+    }
     cache.clear()
 
 
 @pytest.fixture
 def throttle_limit(settings):
     def _limit(scope):
-        return int(settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][scope].split("/")[0])
+        return int(
+            settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][scope].split("/")[0]
+        )
 
     return _limit
 

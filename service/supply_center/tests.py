@@ -145,11 +145,15 @@ class TestSupplyCenterAdminQueryPerformance:
                 )
 
                 phase.supply_centers.create(
-                    nation=classical_england_nation if j == 0 else classical_france_nation,
+                    nation=(
+                        classical_england_nation if j == 0 else classical_france_nation
+                    ),
                     province=classical_edinburgh_province,
                 )
                 phase.supply_centers.create(
-                    nation=classical_france_nation if j == 0 else classical_england_nation,
+                    nation=(
+                        classical_france_nation if j == 0 else classical_england_nation
+                    ),
                     province=classical_paris_province,
                 )
                 phase.supply_centers.create(

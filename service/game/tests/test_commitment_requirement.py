@@ -51,7 +51,12 @@ class TestGameCreateCommitmentRequirement:
     @pytest.mark.django_db
     @pytest.mark.parametrize("commitment", [Commitment.MEDIUM, Commitment.UNDEFINED])
     def test_non_high_creator_cannot_require_committed(
-        self, authenticated_client, primary_user, classical_variant, set_commitment, commitment
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        set_commitment,
+        commitment,
     ):
         set_commitment(primary_user, commitment)
         url = reverse(create_viewname)
@@ -109,9 +114,7 @@ class TestGameCreateCommitmentRequirement:
     ):
         set_commitment(primary_user, Commitment.LOW)
         url = reverse(create_viewname)
-        payload = create_payload(
-            classical_variant.id, private=True, game_master=True
-        )
+        payload = create_payload(classical_variant.id, private=True, game_master=True)
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -139,7 +142,9 @@ class TestCommitmentRequirementSerializerExposure:
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["commitment_requirement"] == CommitmentRequirement.COMMITTED
+        assert (
+            response.data["commitment_requirement"] == CommitmentRequirement.COMMITTED
+        )
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(

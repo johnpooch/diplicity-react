@@ -31,4 +31,6 @@ def purge_stale_sandbox_games(timestamp: int):
     count = stale.count()
     if count:
         stale.delete()
-        logger.info(f"Purged {count} sandbox games idle for more than {SANDBOX_RETENTION_DAYS}d")
+        logger.info(
+            f"Purged {count} sandbox games idle for more than {SANDBOX_RETENTION_DAYS}d"
+        )

@@ -22,12 +22,47 @@ def test_can_rename_private_channel():
 @pytest.mark.parametrize(
     ("private", "member", "is_channel_member", "sandbox", "press_type", "status"),
     [
-        (False, SimpleNamespace(left_seat=False), True, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
+        (
+            False,
+            SimpleNamespace(left_seat=False),
+            True,
+            False,
+            PressType.FULL_PRESS,
+            GameStatus.ACTIVE,
+        ),
         (True, None, False, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(left_seat=False), False, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(left_seat=True), True, False, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(left_seat=False), True, True, PressType.FULL_PRESS, GameStatus.ACTIVE),
-        (True, SimpleNamespace(left_seat=False), True, False, PressType.NO_PRESS, GameStatus.ACTIVE),
+        (
+            True,
+            SimpleNamespace(left_seat=False),
+            False,
+            False,
+            PressType.FULL_PRESS,
+            GameStatus.ACTIVE,
+        ),
+        (
+            True,
+            SimpleNamespace(left_seat=True),
+            True,
+            False,
+            PressType.FULL_PRESS,
+            GameStatus.ACTIVE,
+        ),
+        (
+            True,
+            SimpleNamespace(left_seat=False),
+            True,
+            True,
+            PressType.FULL_PRESS,
+            GameStatus.ACTIVE,
+        ),
+        (
+            True,
+            SimpleNamespace(left_seat=False),
+            True,
+            False,
+            PressType.NO_PRESS,
+            GameStatus.ACTIVE,
+        ),
     ],
 )
 def test_cannot_rename_channel_when_not_permitted(

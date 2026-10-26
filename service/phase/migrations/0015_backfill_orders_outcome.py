@@ -29,14 +29,16 @@ def backfill_orders_outcome(apps, schema_editor):
 
 
 def reverse_backfill(apps, schema_editor):
-    schema_editor.execute("UPDATE phase_phasestate SET orders_outcome = NULL WHERE orders_outcome IS NOT NULL")
+    schema_editor.execute(
+        "UPDATE phase_phasestate SET orders_outcome = NULL WHERE orders_outcome IS NOT NULL"
+    )
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('phase', '0014_phasestate_orders_outcome'),
-        ('order', '0006_add_is_implicit_to_order'),
+        ("phase", "0014_phasestate_orders_outcome"),
+        ("order", "0006_add_is_implicit_to_order"),
     ]
 
     operations = [

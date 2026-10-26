@@ -6,7 +6,25 @@ from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import ActionBlockedReason, Commitment, CommitmentEligibility, CommitmentRequirement, DeadlineMode, GameActionKey, MemberDeparture, MemberKind, MovementPhaseDuration, MusterStatus, MyGameResult, MyGamesSection, MyGameStateKind, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import (
+    ActionBlockedReason,
+    Commitment,
+    CommitmentEligibility,
+    CommitmentRequirement,
+    DeadlineMode,
+    GameActionKey,
+    MemberDeparture,
+    MemberKind,
+    MovementPhaseDuration,
+    MusterStatus,
+    MyGameResult,
+    MyGamesSection,
+    MyGameStateKind,
+    PhaseFrequency,
+    PhaseStatus,
+    PressType,
+    VariantStatus,
+)
 from member.serializers import MemberSerializer
 from channel.policies import can_create_channel
 from unit.models import Unit
@@ -70,7 +88,9 @@ class GameListCurrentPhaseSerializer(serializers.Serializer):
     type = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
     scheduled_resolution = serializers.DateTimeField(read_only=True, allow_null=True)
-    remaining_time = serializers.IntegerField(source="remaining_time_seconds", read_only=True)
+    remaining_time = serializers.IntegerField(
+        source="remaining_time_seconds", read_only=True
+    )
     units = GameListUnitSerializer(many=True, read_only=True)
     supply_centers = GameListSupplyCenterSerializer(many=True, read_only=True)
 
@@ -154,21 +174,25 @@ class GameListSerializer(serializers.Serializer):
             return False
         return obj.can_manage(user)
 
-    @extend_schema_field(serializers.ChoiceField(
-        choices=[
-            CommitmentEligibility.ELIGIBLE,
-            CommitmentEligibility.COMMITTED_LOCKED,
-            CommitmentEligibility.LOW_LOCKED,
-        ],
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=[
+                CommitmentEligibility.ELIGIBLE,
+                CommitmentEligibility.COMMITTED_LOCKED,
+                CommitmentEligibility.LOW_LOCKED,
+            ],
+            allow_null=True,
+        )
+    )
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
 
-    @extend_schema_field(serializers.ChoiceField(
-        choices=[MusterStatus.CONFIRMATION_REQUIRED, MusterStatus.CONFIRMED],
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=[MusterStatus.CONFIRMATION_REQUIRED, MusterStatus.CONFIRMED],
+            allow_null=True,
+        )
+    )
     def get_muster_status(self, obj):
         return obj.muster_status(self.context["request"].user)
 
@@ -194,10 +218,17 @@ class GameListSerializer(serializers.Serializer):
                 return False
             return obj.phase_confirmed(user)
 
-    @extend_schema_field(serializers.ChoiceField(
-        choices=["orders_required", "orders_submitted", "orders_not_confirmed", "no_orders_required"],
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=[
+                "orders_required",
+                "orders_submitted",
+                "orders_not_confirmed",
+                "no_orders_required",
+            ],
+            allow_null=True,
+        )
+    )
     def get_order_status(self, obj):
         if obj.sandbox:
             return None
@@ -222,10 +253,12 @@ class GameListSerializer(serializers.Serializer):
                 return "orders_not_confirmed"
         return None
 
-    @extend_schema_field(serializers.ListField(
-        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ListField(
+            child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+            allow_null=True,
+        )
+    )
     def get_member_status(self, obj):
         if obj.sandbox:
             return None
@@ -255,9 +288,13 @@ class GameListSerializer(serializers.Serializer):
 class MyGameStateSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=MyGameStateKind.KIND_CHOICES, read_only=True)
     deadline = serializers.DateTimeField(read_only=True, allow_null=True)
-    result = serializers.ChoiceField(choices=MyGameResult.RESULT_CHOICES, read_only=True, allow_null=True)
+    result = serializers.ChoiceField(
+        choices=MyGameResult.RESULT_CHOICES, read_only=True, allow_null=True
+    )
     winner = serializers.CharField(read_only=True, allow_null=True)
-    departure = serializers.ChoiceField(choices=MemberDeparture.DEPARTURE_CHOICES, read_only=True, allow_null=True)
+    departure = serializers.ChoiceField(
+        choices=MemberDeparture.DEPARTURE_CHOICES, read_only=True, allow_null=True
+    )
 
 
 class MyGameSeatsSerializer(serializers.Serializer):
@@ -280,7 +317,9 @@ class MyGameSerializer(serializers.Serializer):
 
 
 class MyGamesSectionSerializer(serializers.Serializer):
-    key = serializers.ChoiceField(choices=MyGamesSection.SECTION_CHOICES, read_only=True)
+    key = serializers.ChoiceField(
+        choices=MyGamesSection.SECTION_CHOICES, read_only=True
+    )
     games = MyGameSerializer(many=True, read_only=True)
 
 
@@ -348,21 +387,25 @@ class GameRetrieveSerializer(serializers.Serializer):
     actions = serializers.SerializerMethodField()
     player_list_actions = serializers.SerializerMethodField()
 
-    @extend_schema_field(serializers.ChoiceField(
-        choices=[
-            CommitmentEligibility.ELIGIBLE,
-            CommitmentEligibility.COMMITTED_LOCKED,
-            CommitmentEligibility.LOW_LOCKED,
-        ],
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=[
+                CommitmentEligibility.ELIGIBLE,
+                CommitmentEligibility.COMMITTED_LOCKED,
+                CommitmentEligibility.LOW_LOCKED,
+            ],
+            allow_null=True,
+        )
+    )
     def get_commitment_eligibility(self, obj):
         return obj.commitment_eligibility(self.context["request"].user)
 
-    @extend_schema_field(serializers.ChoiceField(
-        choices=[MusterStatus.CONFIRMATION_REQUIRED, MusterStatus.CONFIRMED],
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=[MusterStatus.CONFIRMATION_REQUIRED, MusterStatus.CONFIRMED],
+            allow_null=True,
+        )
+    )
     def get_muster_status(self, obj):
         return obj.muster_status(self.context["request"].user)
 
@@ -373,15 +416,23 @@ class GameRetrieveSerializer(serializers.Serializer):
         annotated = getattr(obj, "game_master_member_id", None)
         if annotated is not None:
             return annotated
-        return Member.objects.filter(game=obj, kind=MemberKind.GAME_MASTER).values_list("id", flat=True).first()
+        return (
+            Member.objects.filter(game=obj, kind=MemberKind.GAME_MASTER)
+            .values_list("id", flat=True)
+            .first()
+        )
 
     @extend_schema_field(GameActionSerializer(many=True))
     def get_actions(self, obj):
-        return GameActionSerializer(obj.actions_for(self.context["request"].user), many=True).data
+        return GameActionSerializer(
+            obj.actions_for(self.context["request"].user), many=True
+        ).data
 
     @extend_schema_field(GameActionSerializer(many=True))
     def get_player_list_actions(self, obj):
-        return GameActionSerializer(obj.player_list_actions_for(self.context["request"].user), many=True).data
+        return GameActionSerializer(
+            obj.player_list_actions_for(self.context["request"].user), many=True
+        ).data
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):
@@ -450,7 +501,12 @@ class GameRetrieveSerializer(serializers.Serializer):
         if not user.is_authenticated:
             return False
         member = next(
-            (member for member in obj.members.all() if member.user_id == user.id and not member.left_seat), None
+            (
+                member
+                for member in obj.members.all()
+                if member.user_id == user.id and not member.left_seat
+            ),
+            None,
         )
         return can_create_channel(obj, member)
 
@@ -471,10 +527,17 @@ class GameRetrieveSerializer(serializers.Serializer):
                 return False
             return obj.phase_confirmed(user)
 
-    @extend_schema_field(serializers.ChoiceField(
-        choices=["orders_required", "orders_submitted", "orders_not_confirmed", "no_orders_required"],
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=[
+                "orders_required",
+                "orders_submitted",
+                "orders_not_confirmed",
+                "no_orders_required",
+            ],
+            allow_null=True,
+        )
+    )
     def get_order_status(self, obj):
         if obj.sandbox:
             return None
@@ -499,10 +562,12 @@ class GameRetrieveSerializer(serializers.Serializer):
                 return "orders_not_confirmed"
         return None
 
-    @extend_schema_field(serializers.ListField(
-        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
-        allow_null=True,
-    ))
+    @extend_schema_field(
+        serializers.ListField(
+            child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+            allow_null=True,
+        )
+    )
     def get_member_status(self, obj):
         if obj.sandbox:
             return None
@@ -540,7 +605,8 @@ class GameCreateSerializer(serializers.Serializer):
     name = serializers.CharField()
     variant_id = serializers.CharField()
     movement_phase_duration = serializers.ChoiceField(
-        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+        default=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
     retreat_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
@@ -555,8 +621,12 @@ class GameCreateSerializer(serializers.Serializer):
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
         default=DeadlineMode.FIXED_TIME,
     )
-    fixed_deadline_time = serializers.TimeField(required=False, allow_null=True, default=None)
-    fixed_deadline_timezone = serializers.CharField(required=False, allow_null=True, default=None, max_length=50)
+    fixed_deadline_time = serializers.TimeField(
+        required=False, allow_null=True, default=None
+    )
+    fixed_deadline_timezone = serializers.CharField(
+        required=False, allow_null=True, default=None, max_length=50
+    )
     movement_frequency = serializers.ChoiceField(
         choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
         required=False,
@@ -612,7 +682,9 @@ class GameCreateSerializer(serializers.Serializer):
                 )
             if variant.owner_id is None or variant.owner_id != request.user.id:
                 raise serializers.ValidationError(
-                    {"variant_id": "You can only create games with your own draft variants."}
+                    {
+                        "variant_id": "You can only create games with your own draft variants."
+                    }
                 )
 
         if attrs.get("game_master") and not attrs.get("private"):
@@ -625,31 +697,41 @@ class GameCreateSerializer(serializers.Serializer):
             commitment = request.user.profile.commitment
             if commitment == Commitment.LOW and not attrs.get("private"):
                 raise serializers.ValidationError(
-                    {"commitment_requirement": "Your commitment rating does not allow creating public games."}
+                    {
+                        "commitment_requirement": "Your commitment rating does not allow creating public games."
+                    }
                 )
             if (
                 attrs["commitment_requirement"] == CommitmentRequirement.COMMITTED
                 and commitment != Commitment.HIGH
             ):
                 raise serializers.ValidationError(
-                    {"commitment_requirement": "Only players with high commitment can require committed players."}
+                    {
+                        "commitment_requirement": "Only players with high commitment can require committed players."
+                    }
                 )
 
         deadline_mode = attrs["deadline_mode"]
 
         if deadline_mode == DeadlineMode.FIXED_TIME:
             if not attrs.get("fixed_deadline_time"):
-                raise serializers.ValidationError({
-                    "fixed_deadline_time": "Required when deadline_mode is 'fixed_time'."
-                })
+                raise serializers.ValidationError(
+                    {
+                        "fixed_deadline_time": "Required when deadline_mode is 'fixed_time'."
+                    }
+                )
             if not attrs.get("fixed_deadline_timezone"):
-                raise serializers.ValidationError({
-                    "fixed_deadline_timezone": "Required when deadline_mode is 'fixed_time'."
-                })
+                raise serializers.ValidationError(
+                    {
+                        "fixed_deadline_timezone": "Required when deadline_mode is 'fixed_time'."
+                    }
+                )
             if not attrs.get("movement_frequency"):
-                raise serializers.ValidationError({
-                    "movement_frequency": "Required when deadline_mode is 'fixed_time'."
-                })
+                raise serializers.ValidationError(
+                    {
+                        "movement_frequency": "Required when deadline_mode is 'fixed_time'."
+                    }
+                )
             attrs["movement_phase_duration"] = None
             attrs["retreat_phase_duration"] = None
         else:
@@ -658,11 +740,19 @@ class GameCreateSerializer(serializers.Serializer):
             attrs["movement_frequency"] = None
             attrs["retreat_frequency"] = None
             if not attrs.get("private"):
-                private_only_error = "Short phase durations are only available in private games."
+                private_only_error = (
+                    "Short phase durations are only available in private games."
+                )
                 errors = {}
-                if attrs.get("movement_phase_duration") in MovementPhaseDuration.PRIVATE_ONLY_DURATIONS:
+                if (
+                    attrs.get("movement_phase_duration")
+                    in MovementPhaseDuration.PRIVATE_ONLY_DURATIONS
+                ):
                     errors["movement_phase_duration"] = private_only_error
-                if attrs.get("retreat_phase_duration") in MovementPhaseDuration.PRIVATE_ONLY_DURATIONS:
+                if (
+                    attrs.get("retreat_phase_duration")
+                    in MovementPhaseDuration.PRIVATE_ONLY_DURATIONS
+                ):
                     errors["retreat_phase_duration"] = private_only_error
                 if errors:
                     raise serializers.ValidationError(errors)
@@ -671,7 +761,9 @@ class GameCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
+        variant = Variant.objects.with_game_creation_data().get(
+            id=validated_data["variant_id"]
+        )
 
         with_game_master = validated_data["game_master"]
 
@@ -729,7 +821,9 @@ class GameCreateSandboxSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
+        variant = Variant.objects.with_game_creation_data().get(
+            id=validated_data["variant_id"]
+        )
 
         game = Game.objects.create_sandbox(
             user=request.user,
@@ -755,10 +849,11 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
         user = request.user
 
         with transaction.atomic():
-            user_sandboxes = Game.objects.filter(
-                sandbox=True,
-                members__user=user
-            ).distinct().order_by("created_at")
+            user_sandboxes = (
+                Game.objects.filter(sandbox=True, members__user=user)
+                .distinct()
+                .order_by("created_at")
+            )
 
             if user_sandboxes.count() >= 3:
                 oldest_sandbox = user_sandboxes.first()
@@ -769,8 +864,12 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
                 name=f"{source_game.name} (Sandbox)",
             )
 
-            nations_list = [n for n in source_game.variant.nations.all() if not n.non_playable]
-            members_to_create = [Member(game=game, user=user, sandbox=True) for _ in nations_list]
+            nations_list = [
+                n for n in source_game.variant.nations.all() if not n.non_playable
+            ]
+            members_to_create = [
+                Member(game=game, user=user, sandbox=True) for _ in nations_list
+            ]
             created_members = Member.objects.bulk_create(members_to_create)
 
             game.start(current_phase=game._created_phase, members=created_members)
@@ -824,10 +923,14 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         if "duration" not in attrs:
             raise serializers.ValidationError({"duration": ["This field is required."]})
         if self.instance.is_paused:
-            raise serializers.ValidationError("Cannot extend deadline while game is paused")
+            raise serializers.ValidationError(
+                "Cannot extend deadline while game is paused"
+            )
         current_phase = self.instance.current_phase
         if not current_phase or not current_phase.scheduled_resolution:
-            raise serializers.ValidationError("No active phase with a scheduled resolution")
+            raise serializers.ValidationError(
+                "No active phase with a scheduled resolution"
+            )
         return attrs
 
     def update(self, instance, validated_data):

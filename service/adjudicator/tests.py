@@ -8,6 +8,7 @@ Organised into sections by what they cover:
   - Strength resolver     (was tests_resolution.py)
   - Convoy path-finding   (was tests_convoy.py)
 """
+
 from __future__ import annotations
 
 import copy
@@ -64,14 +65,16 @@ from .types import (
     SupportMoveOrder,
 )
 
-
 # === v2 wrappers for the wire-format DATC DSL ==========================
 #
 # The DATC tests below (was tests.py) call module-level `adjudicate` and
 # `get_options` against dict-shaped variant/state. These wrappers route
 # them through the v2 Engine.
 
-def adjudicate(variant_dict: Dict[str, Any], state_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+def adjudicate(
+    variant_dict: Dict[str, Any], state_dict: Dict[str, Any]
+) -> List[Dict[str, Any]]:
     variant = deserialize_variant(variant_dict)
     state = deserialize_game_state(state_dict, variant)
     result = Engine().adjudicate(state)
@@ -82,11 +85,10 @@ def get_options(variant_dict: Dict[str, Any], state_dict: Dict[str, Any]):
     raise NotImplementedError("get_options is out of scope for the v2 engine")
 
 
-
-
 # ======================================================================
 # DATC compliance (wire-format DSL)
 # ======================================================================
+
 
 def _datc_classical_phase_progression() -> Dict[str, Any]:
     return {
@@ -535,8 +537,12 @@ def _datc_classical_variant() -> Dict[str, Any]:
         _datc_named_coast(
             "stp/sc", "St. Petersburg (SC)", "stp", adjacency_index.get("stp/sc", [])
         ),
-        _datc_named_coast("spa/nc", "Spain (NC)", "spa", adjacency_index.get("spa/nc", [])),
-        _datc_named_coast("spa/sc", "Spain (SC)", "spa", adjacency_index.get("spa/sc", [])),
+        _datc_named_coast(
+            "spa/nc", "Spain (NC)", "spa", adjacency_index.get("spa/nc", [])
+        ),
+        _datc_named_coast(
+            "spa/sc", "Spain (SC)", "spa", adjacency_index.get("spa/sc", [])
+        ),
         _datc_named_coast(
             "bul/ec", "Bulgaria (EC)", "bul", adjacency_index.get("bul/ec", [])
         ),
@@ -551,9 +557,7 @@ def _datc_classical_variant() -> Dict[str, Any]:
         "name": "Classical",
         "description": "The original game of Diplomacy.",
         "author": "Allan B. Calhamer",
-        "victoryConditions": [
-            {"type": "supply-center-majority", "supplyCenters": 18}
-        ],
+        "victoryConditions": [{"type": "supply-center-majority", "supplyCenters": 18}],
         "phaseProgression": _datc_classical_phase_progression(),
         "nations": [
             {"id": "austria", "name": "Austria", "color": "#F44336"},
@@ -704,7 +708,9 @@ class _DatcStateBuilder:
         return copy.deepcopy(self._state)
 
 
-def _datc_adjudicate_one(variant: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+def _datc_adjudicate_one(
+    variant: Dict[str, Any], state: Dict[str, Any]
+) -> Dict[str, Any]:
     result = adjudicate(variant, state)
     assert result, "adjudicate returned an empty list"
     return result[0]
@@ -745,9 +751,7 @@ def _datc_resolution_for(state: Dict[str, Any], province: str) -> Optional[str]:
     return None
 
 
-def _datc_resolution_reason_for(
-    state: Dict[str, Any], province: str
-) -> Optional[str]:
+def _datc_resolution_reason_for(state: Dict[str, Any], province: str) -> Optional[str]:
     for r in state.get("resolutions") or []:
         if r["province"] == province:
             return r.get("reason")
@@ -1536,8 +1540,7 @@ def test_d_8_failed_convoy_cannot_receive_hold_support():
     # origin; ser and bul are occupied; aeg and ion are sea provinces
     # that an army cannot reach.
     assert not any(
-        u["location"] == "gre" and u["nation"] == "turkey"
-        for u in result["units"]
+        u["location"] == "gre" and u["nation"] == "turkey" for u in result["units"]
     )
     assert _datc_resolution_for(result, "bul") == "ILLEGAL"
     assert _datc_resolution_for(result, "gre") == "BOUNCE"
@@ -1781,8 +1784,7 @@ def test_d_18_surviving_unit_will_sustain_support():
     # province is blocked: bla is the attacker's origin; con and smy
     # are occupied by units that held their ground.
     assert not any(
-        u["location"] == "ank" and u["nation"] == "turkey"
-        for u in result["units"]
+        u["location"] == "ank" and u["nation"] == "turkey" for u in result["units"]
     )
     assert _datc_resolution_for(result, "ank") == "BOUNCE"
 
@@ -1813,8 +1815,7 @@ def test_d_19_even_when_surviving_is_in_alternative_way():
     # parent province, con is held by the russian fleet that supported
     # the attack), and arm is not fleet-reachable from ank.
     assert not any(
-        u["location"] == "ank" and u["nation"] == "turkey"
-        for u in result["units"]
+        u["location"] == "ank" and u["nation"] == "turkey" for u in result["units"]
     )
     assert _datc_resolution_for(result, "bla") == "OK"
     assert _datc_resolution_for(result, "ank") == "BOUNCE"
@@ -2182,8 +2183,7 @@ def test_d_34_support_targeting_own_province_not_allowed():
     # and lvn are all occupied (the lvn attack bounced against
     # germany's stronger move, so russia A lvn stayed put).
     assert not any(
-        u["location"] == "pru" and u["nation"] == "italy"
-        for u in result["units"]
+        u["location"] == "pru" and u["nation"] == "italy" for u in result["units"]
     )
     assert _datc_resolution_for(result, "pru") == "ILLEGAL"
 
@@ -3216,8 +3216,7 @@ def test_f_21_dads_army_convoy():
     # the convoyed lvp->cly move fails when NAO is dislodged), the
     # english fleet is auto-disbanded.
     assert not any(
-        u["location"] == "nao" and u["nation"] == "england"
-        for u in result["units"]
+        u["location"] == "nao" and u["nation"] == "england" for u in result["units"]
     )
     assert _datc_has_unit(result, "france", "Fleet", "nao")
 
@@ -3654,8 +3653,7 @@ def test_g_10_swapped_or_an_head_to_head_battle():
     # province is blocked: nwy is the attacker's origin; den and fin
     # are occupied by the supporting english fleets.
     assert not any(
-        u["location"] == "swe" and u["nation"] == "russia"
-        for u in result["units"]
+        u["location"] == "swe" and u["nation"] == "russia" for u in result["units"]
     )
     assert _datc_resolution_for(result, "swe") == "BOUNCE"
     assert _datc_resolution_for(result, "nrg") == "BOUNCE"
@@ -3772,8 +3770,7 @@ def test_g_14_bounce_by_convoy_to_adjacent_province():
     # den and fin are occupied by the supporting english fleets.
     assert _datc_has_unit(result, "england", "Army", "swe")
     assert not any(
-        u["location"] == "swe" and u["nation"] == "russia"
-        for u in result["units"]
+        u["location"] == "swe" and u["nation"] == "russia" for u in result["units"]
     )
     assert _datc_resolution_for(result, "nrg") == "BOUNCE"
 
@@ -4214,7 +4211,9 @@ def test_b_14_building_with_unspecified_coast():
         .with_unit("russia", "Army", "mos")
         .with_supply_center("russia", "mos")
         .with_supply_center("russia", "stp")
-        .with_order("russia", source=None, order_type="Build", target="stp", unit_type="Fleet")
+        .with_order(
+            "russia", source=None, order_type="Build", target="stp", unit_type="Fleet"
+        )
         .build()
     )
 
@@ -4750,15 +4749,9 @@ def test_j_1_too_many_disband_orders():
         .with_unit("france", "Army", "par")
         .with_unit("france", "Army", "pic")
         .with_supply_center("france", "par")
-        .with_order(
-            "france", source="lyo", order_type="Disband"
-        )
-        .with_order(
-            "france", source="pic", order_type="Disband"
-        )
-        .with_order(
-            "france", source="par", order_type="Disband"
-        )
+        .with_order("france", source="lyo", order_type="Disband")
+        .with_order("france", source="pic", order_type="Disband")
+        .with_order("france", source="par", order_type="Disband")
         .build()
     )
 
@@ -5068,12 +5061,25 @@ def test_j_14_civil_disorder_same_distance_same_type_breaks_alphabetically():
 
 def _france_eighteen_centers() -> List[str]:
     return [
-        "par", "mar", "bre", "bel", "por", "spa", "hol", "den",
-        "swe", "nwy", "lon", "edi", "lvp", "mun", "kie", "ber",
-        "tun", "rom",
+        "par",
+        "mar",
+        "bre",
+        "bel",
+        "por",
+        "spa",
+        "hol",
+        "den",
+        "swe",
+        "nwy",
+        "lon",
+        "edi",
+        "lvp",
+        "mun",
+        "kie",
+        "ber",
+        "tun",
+        "rom",
     ]
-
-
 
 
 # ======================================================================
@@ -5191,9 +5197,7 @@ def make_variant(
         "far": _province(
             "far", ProvinceType.COASTAL, sc=False, adj=edges.get("far", ())
         ),
-        "sea": _province(
-            "sea", ProvinceType.SEA, sc=False, adj=edges.get("sea", ())
-        ),
+        "sea": _province("sea", ProvinceType.SEA, sc=False, adj=edges.get("sea", ())),
     }
     named_coasts = {
         "mlc/nc": _named_coast("mlc/nc", "mlc", edges.get("mlc/nc", ())),
@@ -5569,8 +5573,11 @@ def test_dislodged_unit_with_no_legal_retreat_is_auto_disbanded():
         orders=[
             RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
             RawOrder(
-                nation=NORTH, source="rhs", order_type="Support",
-                aux="lhs", target="mid",
+                nation=NORTH,
+                source="rhs",
+                order_type="Support",
+                aux="lhs",
+                target="mid",
             ),
             RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
             RawOrder(nation=SOUTH, source="iso", order_type="Hold"),
@@ -5609,8 +5616,11 @@ def test_dislodged_unit_with_legal_retreat_is_carried_forward():
         orders=[
             RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
             RawOrder(
-                nation=NORTH, source="rhs", order_type="Support",
-                aux="lhs", target="mid",
+                nation=NORTH,
+                source="rhs",
+                order_type="Support",
+                aux="lhs",
+                target="mid",
             ),
             RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
         ],
@@ -5653,16 +5663,25 @@ def test_dislodgement_by_convoyed_attacker_does_not_block_retreat_to_origin():
         ],
         orders=[
             RawOrder(
-                nation=NORTH, source="lhs", order_type="Move",
-                target="mid", via_convoy=True,
+                nation=NORTH,
+                source="lhs",
+                order_type="Move",
+                target="mid",
+                via_convoy=True,
             ),
             RawOrder(
-                nation=NORTH, source="sea", order_type="Convoy",
-                aux="lhs", target="mid",
+                nation=NORTH,
+                source="sea",
+                order_type="Convoy",
+                aux="lhs",
+                target="mid",
             ),
             RawOrder(
-                nation=NORTH, source="rhs", order_type="Support",
-                aux="lhs", target="mid",
+                nation=NORTH,
+                source="rhs",
+                order_type="Support",
+                aux="lhs",
+                target="mid",
             ),
             RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
         ],
@@ -5711,8 +5730,11 @@ def test_dislodgement_by_adjacent_attacker_blocks_retreat_to_origin():
         orders=[
             RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
             RawOrder(
-                nation=NORTH, source="rhs", order_type="Support",
-                aux="lhs", target="mid",
+                nation=NORTH,
+                source="rhs",
+                order_type="Support",
+                aux="lhs",
+                target="mid",
             ),
             RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
         ],
@@ -7731,9 +7753,7 @@ def test_engine_silently_drops_cross_phase_movement_order_type():
         phase_type=Phase.MOVEMENT,
         units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
         orders=[
-            RawOrder(
-                nation=NORTH, source="lhs", order_type="Retreat", target="mid"
-            ),
+            RawOrder(nation=NORTH, source="lhs", order_type="Retreat", target="mid"),
         ],
     )
 
@@ -7765,6 +7785,7 @@ def test_engine_silently_drops_cross_phase_adjustment_order_type():
 # ======================================================================
 # Phase resolvers
 # ======================================================================
+
 
 def _c2_movement_state(units, orders) -> State:
     """Spring 1901 Movement-phase state on the standard test variant."""
@@ -7982,15 +8003,9 @@ def _c2_make_chain_variant() -> Variant:
         "b": _c2_province(
             "b", ProvinceType.LAND, sc=True, home=SOUTH, adj=edges.get("b", ())
         ),
-        "sea1": _c2_province(
-            "sea1", ProvinceType.SEA, adj=edges.get("sea1", ())
-        ),
-        "sea2": _c2_province(
-            "sea2", ProvinceType.SEA, adj=edges.get("sea2", ())
-        ),
-        "sea3": _c2_province(
-            "sea3", ProvinceType.SEA, adj=edges.get("sea3", ())
-        ),
+        "sea1": _c2_province("sea1", ProvinceType.SEA, adj=edges.get("sea1", ())),
+        "sea2": _c2_province("sea2", ProvinceType.SEA, adj=edges.get("sea2", ())),
+        "sea3": _c2_province("sea3", ProvinceType.SEA, adj=edges.get("sea3", ())),
     }
     progression = PhaseProgression(
         seasons=("Spring",),
@@ -8151,7 +8166,9 @@ def test_convoyed_move_with_no_convoy_orders_is_illegal():
     result = Engine().adjudicate(state)
 
     assert _c2_resolution(result, "lhs") == Status.ILLEGAL
-    assert _c2_failure_reason(result, "lhs") == "The unit can't reach the target province."
+    assert (
+        _c2_failure_reason(result, "lhs") == "The unit can't reach the target province."
+    )
     assert _c2_unit_at(result, "lhs") is not None
 
 
@@ -8181,7 +8198,9 @@ def test_convoyed_move_with_path_not_existing_is_illegal():
     result = Engine().adjudicate(state)
 
     assert _c2_resolution(result, "a") == Status.ILLEGAL
-    assert _c2_failure_reason(result, "a") == "The unit can't reach the target province."
+    assert (
+        _c2_failure_reason(result, "a") == "The unit can't reach the target province."
+    )
     assert _c2_resolution(result, "sea3") == Status.OK
 
     adj = _c2_adjudicate_to_completion(state)
@@ -8584,7 +8603,9 @@ def test_head_to_head_stronger_side_wins():
         target="b",
         unit_type=Unit.ARMY,
     )
-    blue_attack = MoveOrder(nation=RES_BLUE, source="b", target="a", unit_type=Unit.ARMY)
+    blue_attack = MoveOrder(
+        nation=RES_BLUE, source="b", target="a", unit_type=Unit.ARMY
+    )
     view = _res_state_view(
         [red_attack, red_support, blue_attack],
         initial_resolutions=(
@@ -8749,9 +8770,7 @@ def test_disrupted_convoy_via_fleet_dislodgement():
     # Army a→b via fleet at s1. Blue fleet at c attacks s1, supported
     # by fleet at d. Attack=2, hold=1 → F1 dislodged, path broken,
     # convoyed Move bounces with the disruption reason.
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -8759,9 +8778,7 @@ def test_disrupted_convoy_via_fleet_dislodgement():
         army_target="b",
         unit_type=Unit.FLEET,
     )
-    attacker = MoveOrder(
-        nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET
-    )
+    attacker = MoveOrder(nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET)
     support = SupportMoveOrder(
         nation=RES_BLUE,
         source="d",
@@ -8790,9 +8807,7 @@ def test_disrupted_convoy_via_fleet_dislodgement():
 def test_convoy_with_redundant_path_survives_partial_disruption():
     # Two matched convoys for a→b (one each via s1 and s2). Blue
     # dislodges F1 at s1; F2 at s2 still provides a path. Move OK.
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy1 = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -8807,9 +8822,7 @@ def test_convoy_with_redundant_path_survives_partial_disruption():
         army_target="b",
         unit_type=Unit.FLEET,
     )
-    attacker = MoveOrder(
-        nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET
-    )
+    attacker = MoveOrder(nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET)
     support = SupportMoveOrder(
         nation=RES_BLUE,
         source="d",
@@ -8837,9 +8850,7 @@ def test_convoy_with_redundant_path_survives_partial_disruption():
 def test_convoy_where_all_paths_are_broken():
     # Two matched convoys (s1, s2) for a→b. Both fleets dislodged by
     # supported attacks. No surviving path; Move BOUNCE.
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy1 = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -8915,9 +8926,7 @@ def test_unsupported_attack_on_convoy_fleet_bounces_and_convoy_holds():
     # Army a→b via fleet at s1. Blue c→s1 has no support: attack 1 vs
     # hold 1 → BOUNCE. F1 alive, convoy intact, Move OK. Distinguishes
     # "attacked but not dislodged" from "dislodged".
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -8925,9 +8934,7 @@ def test_unsupported_attack_on_convoy_fleet_bounces_and_convoy_holds():
         army_target="b",
         unit_type=Unit.FLEET,
     )
-    attacker = MoveOrder(
-        nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET
-    )
+    attacker = MoveOrder(nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET)
     view = _res_convoy_state_view(
         [convoyed, convoy, attacker],
         initial_resolutions=(
@@ -8948,9 +8955,7 @@ def test_convoyed_swap_does_not_form_head_to_head():
     # convoyed move passes over rather than colliding (DATC 6.G), so
     # both succeed. With h2h excluded, the pair resolves as a 2-move
     # exchange via the clean-cycle path.
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -8958,9 +8963,7 @@ def test_convoyed_swap_does_not_form_head_to_head():
         army_target="b",
         unit_type=Unit.FLEET,
     )
-    direct = MoveOrder(
-        nation=RES_BLUE, source="b", target="a", unit_type=Unit.ARMY
-    )
+    direct = MoveOrder(nation=RES_BLUE, source="b", target="a", unit_type=Unit.ARMY)
     view = _res_convoy_state_view(
         [convoyed, convoy, direct],
         initial_resolutions=(
@@ -8981,9 +8984,7 @@ def test_convoyed_move_uses_standard_attacker_vs_hold_path():
     # hold 1 → BOUNCE with the strength-based reason, NOT the
     # convoy-disruption reason. Confirms the convoyed move enters the
     # standard hold-strength comparison once the path is intact.
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -9069,9 +9070,7 @@ def test_szykman_does_not_fire_on_simple_convoy_disruption():
     # the outcome), once with the Szykman handler swapped for a
     # tripwire that fails the test if invoked. If Szykman never
     # fires, both runs produce the same result.
-    convoyed = MoveOrder(
-        nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY
-    )
+    convoyed = MoveOrder(nation=RES_RED, source="a", target="b", unit_type=Unit.ARMY)
     convoy = ConvoyOrder(
         nation=RES_RED,
         source="s1",
@@ -9079,9 +9078,7 @@ def test_szykman_does_not_fire_on_simple_convoy_disruption():
         army_target="b",
         unit_type=Unit.FLEET,
     )
-    attacker = MoveOrder(
-        nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET
-    )
+    attacker = MoveOrder(nation=RES_BLUE, source="c", target="s1", unit_type=Unit.FLEET)
     support = SupportMoveOrder(
         nation=RES_BLUE,
         source="d",
@@ -9231,19 +9228,23 @@ def test_szykman_handles_multi_convoy_paradox():
     k_m3 = (_MOVE_STATUS, 3)
     solver._decisions = {
         k_c0: _Decision(
-            kind=_CONVOY_PATH_INTACT, subject=0,
+            kind=_CONVOY_PATH_INTACT,
+            subject=0,
             dependencies=frozenset({k_m2}),
         ),
         k_m2: _Decision(
-            kind=_MOVE_STATUS, subject=2,
+            kind=_MOVE_STATUS,
+            subject=2,
             dependencies=frozenset({k_c1}),
         ),
         k_c1: _Decision(
-            kind=_CONVOY_PATH_INTACT, subject=1,
+            kind=_CONVOY_PATH_INTACT,
+            subject=1,
             dependencies=frozenset({k_m3}),
         ),
         k_m3: _Decision(
-            kind=_MOVE_STATUS, subject=3,
+            kind=_MOVE_STATUS,
+            subject=3,
             dependencies=frozenset({k_c0}),
         ),
     }
@@ -9319,6 +9320,7 @@ def test_convoyed_move_into_rotational_cycle_resolves():
 # ======================================================================
 # Convoy path-finding
 # ======================================================================
+
 
 def _cv_movement_state(units, orders, contested: Iterable[str] = ()) -> State:
     """Build a minimal Spring 1901 Movement-phase state on the standard
@@ -9838,9 +9840,7 @@ def test_path_blocked_when_only_sea_is_not_in_convoying_set():
 def test_path_through_three_fleet_chain():
     state = _cv_path_state(_cv_three_sea_chain_map())
 
-    assert (
-        convoy_path_exists(state, "a", "b", ["sea1", "sea2", "sea3"]) is True
-    )
+    assert convoy_path_exists(state, "a", "b", ["sea1", "sea2", "sea3"]) is True
 
 
 def test_path_broken_when_middle_fleet_missing():
@@ -9877,8 +9877,6 @@ def test_path_through_two_fleet_chain_succeeds():
     state = _cv_path_state(_cv_two_sea_chain_map())
 
     assert convoy_path_exists(state, "a", "b", ["sea1", "sea2"]) is True
-
-
 
 
 # ======================================================================
@@ -9920,9 +9918,7 @@ def _option_to_wire_orders(option: OrderOption, state: State) -> List[RawOrder]:
     variant = state.variant
     if option.order_type == "Build":
         sc_parent = variant.parent_of(option.source)
-        sc = next(
-            (sc for sc in state.supply_centers if sc.province == sc_parent), None
-        )
+        sc = next((sc for sc in state.supply_centers if sc.province == sc_parent), None)
         nation = sc.nation if sc else ""
     else:
         unit = _unit_at_any(state, option.source)
@@ -10347,7 +10343,8 @@ def test_options_movement_army_emits_move_via_convoy_alongside_move():
     )
     options = get_options(state)
     via_convoy = {
-        o.target for o in options
+        o.target
+        for o in options
         if o.order_type == "MoveViaConvoy" and o.source == "lhs"
     }
     # All coastal targets reachable via the sea fleet — including the
@@ -10382,8 +10379,7 @@ def test_options_movement_no_move_via_convoy_for_fleet_units():
     )
     options = get_options(state)
     fleet_via_convoy = [
-        o for o in options
-        if o.order_type == "MoveViaConvoy" and o.source == "sea"
+        o for o in options if o.order_type == "MoveViaConvoy" and o.source == "sea"
     ]
     assert fleet_via_convoy == []
 
@@ -10621,9 +10617,7 @@ def test_options_movement_support_of_unit_on_named_coast_uses_parent_in_path():
     support_holds_from_iso = [
         o
         for o in options
-        if o.order_type == "Support"
-        and o.source == "iso"
-        and o.target == o.aux
+        if o.order_type == "Support" and o.source == "iso" and o.target == o.aux
     ]
     assert any(o.aux == "mlc" for o in support_holds_from_iso)
     assert not any(o.aux == "mlc/nc" for o in support_holds_from_iso)
@@ -10662,9 +10656,7 @@ def test_options_movement_support_changes_when_supported_unit_moves_coasts():
     sh = [
         o
         for o in options_without
-        if o.order_type == "Support"
-        and o.source == "iso"
-        and o.aux == "mlc"
+        if o.order_type == "Support" and o.source == "iso" and o.aux == "mlc"
     ]
     assert sh == [], "SupportHold mlc should disappear without a unit there"
 
@@ -11075,9 +11067,7 @@ def test_options_adjustment_build_excludes_occupied_sc():
         ],
     )
     options = get_options(state)
-    build_sources = {
-        o.source for o in options if o.order_type == "Build"
-    }
+    build_sources = {o.source for o in options if o.order_type == "Build"}
     assert "lhs" not in build_sources
     assert "ldd" in build_sources
 
@@ -11202,8 +11192,7 @@ def test_options_adjustment_no_disbands_when_no_surplus():
 
 def _with_non_playable_south(variant: Variant) -> Variant:
     nations = tuple(
-        replace(n, non_playable=True) if n.id == SOUTH else n
-        for n in variant.nations
+        replace(n, non_playable=True) if n.id == SOUTH else n for n in variant.nations
     )
     return replace(variant, nations=nations)
 
@@ -11576,4 +11565,3 @@ def test_dislodged_convoying_fleet_disrupts_convoyed_move():
         _datc_resolution_reason_for(result, "nth")
         == "The convoying fleet was dislodged."
     )
-

@@ -31,7 +31,9 @@ class TestVersionRetrieveView:
         assert isinstance(response.data["minimum_client_version"], str)
 
     @pytest.mark.django_db
-    def test_retrieve_minimum_client_version_reflects_setting(self, unauthenticated_client):
+    def test_retrieve_minimum_client_version_reflects_setting(
+        self, unauthenticated_client
+    ):
         url = reverse("version-retrieve")
         with override_settings(MINIMUM_CLIENT_VERSION="1.6.0"):
             response = unauthenticated_client.get(url)
@@ -39,7 +41,9 @@ class TestVersionRetrieveView:
         assert response.data["minimum_client_version"] == "1.6.0"
 
     @pytest.mark.django_db
-    def test_retrieve_minimum_client_version_defaults_to_gate_disabled(self, unauthenticated_client):
+    def test_retrieve_minimum_client_version_defaults_to_gate_disabled(
+        self, unauthenticated_client
+    ):
         url = reverse("version-retrieve")
         response = unauthenticated_client.get(url)
         assert response.data["minimum_client_version"] == "0.0.0"

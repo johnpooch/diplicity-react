@@ -23,7 +23,9 @@ def deliver(delivery_ids):
     )
     if not deliveries:
         return
-    fresh = NotificationDelivery.objects.expire_stale(deliveries, timedelta(hours=DELIVER_MAX_AGE_HOURS))
+    fresh = NotificationDelivery.objects.expire_stale(
+        deliveries, timedelta(hours=DELIVER_MAX_AGE_HOURS)
+    )
     if not fresh:
         return
     try:
@@ -32,14 +34,22 @@ def deliver(delivery_ids):
         errors = {d.notification.recipient_id: str(e) for d in fresh}
     for delivery in fresh:
         error = errors.get(delivery.notification.recipient_id, NO_RECIPIENT_ERROR)
-        delivery.status = NotificationDelivery.Status.FAILED if error else NotificationDelivery.Status.SENT
+        delivery.status = (
+            NotificationDelivery.Status.FAILED
+            if error
+            else NotificationDelivery.Status.SENT
+        )
         delivery.error = error
     NotificationDelivery.objects.bulk_update(fresh, ["status", "error"])
 
 
 def _send_push(deliveries):
     first = deliveries[0]
-    recipient_ids = [d.notification.recipient_id for d in deliveries if d.notification.recipient_id is not None]
+    recipient_ids = [
+        d.notification.recipient_id
+        for d in deliveries
+        if d.notification.recipient_id is not None
+    ]
     return notification_utils.send_notification_to_users(
         user_ids=recipient_ids,
         title=first.heading,

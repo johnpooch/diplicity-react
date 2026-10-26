@@ -47,7 +47,9 @@ def seed_roster(apps, schema_editor):
 
 def remove_roster(apps, schema_editor):
     User = apps.get_model("auth", "User")
-    User.objects.filter(email__in=[f"{bot['slug']}@{BOT_EMAIL_DOMAIN}" for bot in ROSTER]).delete()
+    User.objects.filter(
+        email__in=[f"{bot['slug']}@{BOT_EMAIL_DOMAIN}" for bot in ROSTER]
+    ).delete()
 
 
 class Migration(migrations.Migration):

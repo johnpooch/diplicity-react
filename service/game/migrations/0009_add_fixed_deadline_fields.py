@@ -6,38 +6,62 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0008_add_paused_at'),
+        ("game", "0008_add_paused_at"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='game',
-            name='deadline_mode',
-            field=models.CharField(choices=[('duration', 'Duration'), ('fixed_time', 'Fixed Time')], default='duration', max_length=20),
+            model_name="game",
+            name="deadline_mode",
+            field=models.CharField(
+                choices=[("duration", "Duration"), ("fixed_time", "Fixed Time")],
+                default="duration",
+                max_length=20,
+            ),
         ),
         migrations.AddField(
-            model_name='game',
-            name='fixed_deadline_time',
+            model_name="game",
+            name="fixed_deadline_time",
             field=models.TimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='game',
-            name='fixed_deadline_timezone',
+            model_name="game",
+            name="fixed_deadline_timezone",
             field=models.CharField(blank=True, max_length=50, null=True),
         ),
         migrations.AddField(
-            model_name='game',
-            name='movement_frequency',
-            field=models.CharField(blank=True, choices=[('hourly', 'Hourly'), ('daily', 'Daily'), ('every_2_days', 'Every 2 days'), ('weekly', 'Weekly')], max_length=20, null=True),
+            model_name="game",
+            name="movement_frequency",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("hourly", "Hourly"),
+                    ("daily", "Daily"),
+                    ("every_2_days", "Every 2 days"),
+                    ("weekly", "Weekly"),
+                ],
+                max_length=20,
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='game',
-            name='nmr_extensions_allowed',
+            model_name="game",
+            name="nmr_extensions_allowed",
             field=models.PositiveSmallIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='game',
-            name='retreat_frequency',
-            field=models.CharField(blank=True, choices=[('hourly', 'Hourly'), ('daily', 'Daily'), ('every_2_days', 'Every 2 days'), ('weekly', 'Weekly')], max_length=20, null=True),
+            model_name="game",
+            name="retreat_frequency",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("hourly", "Hourly"),
+                    ("daily", "Daily"),
+                    ("every_2_days", "Every 2 days"),
+                    ("weekly", "Weekly"),
+                ],
+                max_length=20,
+                null=True,
+            ),
         ),
     ]

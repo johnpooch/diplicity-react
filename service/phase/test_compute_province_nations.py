@@ -4,7 +4,9 @@ from phase.utils import compute_province_nations
 from common.constants import ProvinceType
 
 
-def _make_province(province_id, ptype, supply_center=False, parent=None, adjacencies=None):
+def _make_province(
+    province_id, ptype, supply_center=False, parent=None, adjacencies=None
+):
     p = MagicMock()
     p.province_id = province_id
     p.type = ptype
@@ -42,11 +44,15 @@ class TestComputeProvinceNations:
 
     def test_excludes_sea_provinces(self):
         sea_province = _make_province("nth", ProvinceType.SEA)
-        sc_province = _make_province("lon", ProvinceType.COASTAL, supply_center=True, adjacencies=[{"to": "nth"}])
+        sc_province = _make_province(
+            "lon", ProvinceType.COASTAL, supply_center=True, adjacencies=[{"to": "nth"}]
+        )
         nation = _make_nation("england", "England")
         sc = _make_sc("lon", "England", sc_province, nation)
 
-        result = compute_province_nations([sc], [sea_province, sc_province], [], [nation])
+        result = compute_province_nations(
+            [sc], [sea_province, sc_province], [], [nation]
+        )
 
         assert "nth" not in result
 
@@ -65,7 +71,9 @@ class TestComputeProvinceNations:
         sc_province = _make_province("lon", ProvinceType.COASTAL, supply_center=True)
         nation = _make_nation("england", "England")
         sc = _make_sc("lon", "England", sc_province, nation)
-        non_sc = _make_province("wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}])
+        non_sc = _make_province(
+            "wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}]
+        )
 
         result = compute_province_nations([sc], [sc_province, non_sc], [], [nation])
 
@@ -75,7 +83,9 @@ class TestComputeProvinceNations:
         sc_province = _make_province("lon", ProvinceType.COASTAL, supply_center=True)
         nation = _make_nation("england", "England")
         sc = _make_sc("lon", "England", sc_province, nation)
-        non_sc = _make_province("wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}])
+        non_sc = _make_province(
+            "wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}]
+        )
 
         result = compute_province_nations([sc], [sc_province, non_sc], [], [nation])
 
@@ -87,9 +97,13 @@ class TestComputeProvinceNations:
         nation = _make_nation("england", "England")
         sc_obj1 = _make_sc("lon", "England", sc1, nation)
         sc_obj2 = _make_sc("edi", "England", sc2, nation)
-        non_sc = _make_province("wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}, {"to": "edi"}])
+        non_sc = _make_province(
+            "wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}, {"to": "edi"}]
+        )
 
-        result = compute_province_nations([sc_obj1, sc_obj2], [sc1, sc2, non_sc], [], [nation])
+        result = compute_province_nations(
+            [sc_obj1, sc_obj2], [sc1, sc2, non_sc], [], [nation]
+        )
 
         assert result["wal"] == "England"
 
@@ -100,15 +114,21 @@ class TestComputeProvinceNations:
         france = _make_nation("france", "France")
         sc_obj1 = _make_sc("lon", "England", sc1, england)
         sc_obj2 = _make_sc("par", "France", sc2, france)
-        non_sc = _make_province("pic", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}, {"to": "par"}])
+        non_sc = _make_province(
+            "pic", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}, {"to": "par"}]
+        )
 
-        result = compute_province_nations([sc_obj1, sc_obj2], [sc1, sc2, non_sc], [], [england, france])
+        result = compute_province_nations(
+            [sc_obj1, sc_obj2], [sc1, sc2, non_sc], [], [england, france]
+        )
 
         assert "pic" not in result
 
     def test_default_color_no_adjacent_sc_returns_no_color(self):
         non_sc1 = _make_province("bur", ProvinceType.LAND, adjacencies=[{"to": "mun"}])
-        non_sc2 = _make_province("mun", ProvinceType.COASTAL, adjacencies=[{"to": "bur"}])
+        non_sc2 = _make_province(
+            "mun", ProvinceType.COASTAL, adjacencies=[{"to": "bur"}]
+        )
         england = _make_nation("england", "England")
 
         result = compute_province_nations([], [non_sc1, non_sc2], [], [england])
@@ -119,7 +139,9 @@ class TestComputeProvinceNations:
     def test_default_color_adjacent_unowned_sc_returns_no_color(self):
         sc_province = _make_province("lon", ProvinceType.COASTAL, supply_center=True)
         nation = _make_nation("england", "England")
-        non_sc = _make_province("wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}])
+        non_sc = _make_province(
+            "wal", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}]
+        )
 
         result = compute_province_nations([], [sc_province, non_sc], [], [nation])
 
@@ -132,7 +154,9 @@ class TestComputeProvinceNations:
         france = _make_nation("france", "France")
         sc_obj1 = _make_sc("lon", "England", sc_province, england)
         sc_obj2 = _make_sc("par", "France", sc_province2, france)
-        non_sc = _make_province("pic", ProvinceType.LAND, adjacencies=[{"to": "lon"}, {"to": "par"}])
+        non_sc = _make_province(
+            "pic", ProvinceType.LAND, adjacencies=[{"to": "lon"}, {"to": "par"}]
+        )
 
         dominance_rules = [
             {
@@ -143,7 +167,10 @@ class TestComputeProvinceNations:
         ]
 
         result = compute_province_nations(
-            [sc_obj1, sc_obj2], [sc_province, sc_province2, non_sc], dominance_rules, [england, france]
+            [sc_obj1, sc_obj2],
+            [sc_province, sc_province2, non_sc],
+            dominance_rules,
+            [england, france],
         )
 
         assert result["pic"] == "England"
@@ -155,7 +182,9 @@ class TestComputeProvinceNations:
         france = _make_nation("france", "France")
         sc_obj1 = _make_sc("lon", "England", sc_province, england)
         sc_obj2 = _make_sc("par", "France", sc_province2, france)
-        non_sc = _make_province("pic", ProvinceType.LAND, adjacencies=[{"to": "lon"}, {"to": "par"}])
+        non_sc = _make_province(
+            "pic", ProvinceType.LAND, adjacencies=[{"to": "lon"}, {"to": "par"}]
+        )
 
         dominance_rules = [
             {
@@ -166,7 +195,10 @@ class TestComputeProvinceNations:
         ]
 
         result = compute_province_nations(
-            [sc_obj1, sc_obj2], [sc_province, sc_province2, non_sc], dominance_rules, [england, france]
+            [sc_obj1, sc_obj2],
+            [sc_province, sc_province2, non_sc],
+            dominance_rules,
+            [england, france],
         )
 
         assert "pic" not in result
@@ -179,7 +211,9 @@ class TestComputeProvinceNations:
         france = _make_nation("france", "France")
         sc_spa = _make_sc("spa", "France", spa, france)
         sc_bre = _make_sc("bre", "France", bre, france)
-        gas = _make_province("gas", ProvinceType.LAND, adjacencies=[{"to": "spa"}, {"to": "bre"}])
+        gas = _make_province(
+            "gas", ProvinceType.LAND, adjacencies=[{"to": "spa"}, {"to": "bre"}]
+        )
 
         dominance_rules = [
             {
@@ -209,7 +243,9 @@ class TestComputeProvinceNations:
             }
         ]
 
-        result = compute_province_nations([sc_obj], [sc_province, non_sc], dominance_rules, [england])
+        result = compute_province_nations(
+            [sc_obj], [sc_province, non_sc], dominance_rules, [england]
+        )
 
         assert result["bur"] == "England"
 
@@ -226,7 +262,9 @@ class TestComputeProvinceNations:
             }
         ]
 
-        result = compute_province_nations([], [sc_province, non_sc], dominance_rules, [england])
+        result = compute_province_nations(
+            [], [sc_province, non_sc], dominance_rules, [england]
+        )
 
         assert result["bur"] == "England"
 
@@ -244,7 +282,9 @@ class TestComputeProvinceNations:
             }
         ]
 
-        result = compute_province_nations([sc_obj], [sc_province, non_sc], dominance_rules, [england])
+        result = compute_province_nations(
+            [sc_obj], [sc_province, non_sc], dominance_rules, [england]
+        )
 
         assert "bur" not in result
 
@@ -261,7 +301,9 @@ class TestComputeProvinceNations:
             }
         ]
 
-        result = compute_province_nations([], [sc_province, non_sc], dominance_rules, [england])
+        result = compute_province_nations(
+            [], [sc_province, non_sc], dominance_rules, [england]
+        )
 
         assert result["bur"] == "England"
 
@@ -279,7 +321,9 @@ class TestComputeProvinceNations:
             }
         ]
 
-        result = compute_province_nations([sc_obj], [sc_province, non_sc], dominance_rules, [england])
+        result = compute_province_nations(
+            [sc_obj], [sc_province, non_sc], dominance_rules, [england]
+        )
 
         assert "bur" not in result
 
@@ -306,7 +350,10 @@ class TestComputeProvinceNations:
         ]
 
         result = compute_province_nations(
-            [sc_obj1, sc_obj2], [sc_province, sc_province2, non_sc], dominance_rules, [england, france]
+            [sc_obj1, sc_obj2],
+            [sc_province, sc_province2, non_sc],
+            dominance_rules,
+            [england, france],
         )
 
         assert result["pic"] == "England"
@@ -325,19 +372,27 @@ class TestComputeProvinceNations:
         sc_province = _make_province("lon", ProvinceType.COASTAL, supply_center=True)
         nation = _make_nation("england", "England")
         sc_obj = _make_sc("lon", "England", sc_province, nation)
-        coastal = _make_province("yor", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}])
+        coastal = _make_province(
+            "yor", ProvinceType.COASTAL, adjacencies=[{"to": "lon"}]
+        )
 
-        result = compute_province_nations([sc_obj], [sc_province, coastal], [], [nation])
+        result = compute_province_nations(
+            [sc_obj], [sc_province, coastal], [], [nation]
+        )
 
         assert result["yor"] == "England"
 
     def test_adjacency_to_named_coast_resolves_via_parent(self):
         parent_sc = _make_province("spa", ProvinceType.COASTAL, supply_center=True)
         parent_sc.pk = 1
-        named_coast = _make_province("spa/nc", ProvinceType.NAMED_COAST, parent=parent_sc)
+        named_coast = _make_province(
+            "spa/nc", ProvinceType.NAMED_COAST, parent=parent_sc
+        )
         nation = _make_nation("france", "France")
         sc_obj = _make_sc("spa", "France", parent_sc, nation)
-        non_sc = _make_province("gas", ProvinceType.COASTAL, adjacencies=[{"to": "spa/nc"}])
+        non_sc = _make_province(
+            "gas", ProvinceType.COASTAL, adjacencies=[{"to": "spa/nc"}]
+        )
 
         result = compute_province_nations(
             [sc_obj], [parent_sc, named_coast, non_sc], [], [nation]

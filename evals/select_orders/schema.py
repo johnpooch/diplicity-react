@@ -108,13 +108,27 @@ _PROVENANCE = {
     "required": ["source"],
     "additionalProperties": False,
     "if": {"properties": {"source": {"const": "harvested"}}},
-    "then": {"required": ["game_id", "phase_id", "phase_ordinal", "harvested_at", "press_type", "was_bot"]},
+    "then": {
+        "required": [
+            "game_id",
+            "phase_id",
+            "phase_ordinal",
+            "harvested_at",
+            "press_type",
+            "was_bot",
+        ]
+    },
 }
 
 _OPTION_LABEL = {
     "type": "object",
     "properties": {
-        "options": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": True},
+        "options": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+            "uniqueItems": True,
+        },
         "label": {"enum": ["reasonable", "unreasonable"]},
         "labeller": {"type": "string"},
         "labelled_at": {"type": "string"},
@@ -174,12 +188,26 @@ FIXTURE_SCHEMA = {
         },
         "option_labels": {"type": "array", "items": _OPTION_LABEL},
         "order_set_labels": {"type": "array", "items": _ORDER_SET_LABEL},
-        "eval_sets": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
+        "eval_sets": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": True,
+        },
         "discarded": _DISCARDED,
     },
-    "required": ["schema_version", "id", "provenance", "variant", "nation", "phase", "eval_sets"],
+    "required": [
+        "schema_version",
+        "id",
+        "provenance",
+        "variant",
+        "nation",
+        "phase",
+        "eval_sets",
+    ],
     "additionalProperties": False,
-    "if": {"properties": {"provenance": {"properties": {"source": {"const": "harvested"}}}}},
+    "if": {
+        "properties": {"provenance": {"properties": {"source": {"const": "harvested"}}}}
+    },
     "then": {
         "required": [
             "units",

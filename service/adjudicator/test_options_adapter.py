@@ -125,7 +125,9 @@ def test_support_hold_uses_aux_equal_to_target():
 
 
 def test_support_move_nests_target_under_aux():
-    variant = _make_variant(provinces=[_coastal("lon"), _coastal("wal"), _coastal("yor")])
+    variant = _make_variant(
+        provinces=[_coastal("lon"), _coastal("wal"), _coastal("yor")]
+    )
     options = [
         OrderOption(
             source="lon",
@@ -153,7 +155,9 @@ def test_support_move_nests_target_under_aux():
 
 
 def test_convoy_option_nests_army_target_under_army_source():
-    variant = _make_variant(provinces=[_coastal("eng"), _coastal("lon"), _coastal("bre")])
+    variant = _make_variant(
+        provinces=[_coastal("eng"), _coastal("lon"), _coastal("bre")]
+    )
     options = [
         OrderOption(
             source="eng",
@@ -193,7 +197,9 @@ def test_build_army_keyed_by_supply_center_owner():
     ]
     supply_centers = [SupplyCenter(nation="ENG", province="lon")]
 
-    result = python_options_to_godip_dict(options, [], supply_centers, variant, "Adjustment")
+    result = python_options_to_godip_dict(
+        options, [], supply_centers, variant, "Adjustment"
+    )
 
     assert result["England"]["lon"]["Next"]["Build"]["Next"] == {
         "Army": {
@@ -225,7 +231,9 @@ def test_build_fleet_at_named_coast_uses_coast_as_source_key():
     ]
     supply_centers = [SupplyCenter(nation="RUS", province="stp")]
 
-    result = python_options_to_godip_dict(options, [], supply_centers, variant, "Adjustment")
+    result = python_options_to_godip_dict(
+        options, [], supply_centers, variant, "Adjustment"
+    )
 
     assert "stp/nc" in result["Russia"]
     assert result["Russia"]["stp/nc"]["Next"]["Build"]["Next"] == {
@@ -295,7 +303,9 @@ def test_retreat_option_emits_move_order_type_under_dislodged_unit():
 
 def test_unit_on_named_coast_keys_options_under_parent_province():
     parent = _coastal("stp")
-    named = NamedCoast(id="stp/sc", name="stp/sc", parent_province="stp", adjacencies=())
+    named = NamedCoast(
+        id="stp/sc", name="stp/sc", parent_province="stp", adjacencies=()
+    )
     variant = _make_variant(
         provinces=[parent, _coastal("fin")],
         named_coasts=[named],
@@ -368,13 +378,62 @@ def test_adapter_output_is_consumable_by_transform_options():
         ],
     )
     options = [
-        OrderOption(source="lon", order_type="Hold", target=None, aux=None, unit_type=None, named_coast=None),
-        OrderOption(source="lon", order_type="Move", target="wal", aux=None, unit_type=None, named_coast=None),
-        OrderOption(source="lon", order_type="Support", target="wal", aux="wal", unit_type=None, named_coast=None),
-        OrderOption(source="lon", order_type="Support", target="yor", aux="wal", unit_type=None, named_coast=None),
-        OrderOption(source="stp/nc", order_type="Build", target="stp/nc", aux=None, unit_type="Fleet", named_coast=None),
-        OrderOption(source="stp/sc", order_type="Build", target="stp/sc", aux=None, unit_type="Fleet", named_coast=None),
-        OrderOption(source="stp", order_type="Build", target="stp", aux=None, unit_type="Army", named_coast=None),
+        OrderOption(
+            source="lon",
+            order_type="Hold",
+            target=None,
+            aux=None,
+            unit_type=None,
+            named_coast=None,
+        ),
+        OrderOption(
+            source="lon",
+            order_type="Move",
+            target="wal",
+            aux=None,
+            unit_type=None,
+            named_coast=None,
+        ),
+        OrderOption(
+            source="lon",
+            order_type="Support",
+            target="wal",
+            aux="wal",
+            unit_type=None,
+            named_coast=None,
+        ),
+        OrderOption(
+            source="lon",
+            order_type="Support",
+            target="yor",
+            aux="wal",
+            unit_type=None,
+            named_coast=None,
+        ),
+        OrderOption(
+            source="stp/nc",
+            order_type="Build",
+            target="stp/nc",
+            aux=None,
+            unit_type="Fleet",
+            named_coast=None,
+        ),
+        OrderOption(
+            source="stp/sc",
+            order_type="Build",
+            target="stp/sc",
+            aux=None,
+            unit_type="Fleet",
+            named_coast=None,
+        ),
+        OrderOption(
+            source="stp",
+            order_type="Build",
+            target="stp",
+            aux=None,
+            unit_type="Army",
+            named_coast=None,
+        ),
     ]
     units = [
         Unit(nation="ENG", type=Unit.ARMY, location="lon"),
@@ -382,7 +441,9 @@ def test_adapter_output_is_consumable_by_transform_options():
     ]
     supply_centers = [SupplyCenter(nation="RUS", province="stp")]
 
-    raw = python_options_to_godip_dict(options, units, supply_centers, variant, "Adjustment")
+    raw = python_options_to_godip_dict(
+        options, units, supply_centers, variant, "Adjustment"
+    )
     transformed = transform_options(raw)
 
     assert transformed["England"]["lon"] == {

@@ -8,7 +8,6 @@ from variant.admin import VariantSvgAdminForm
 from variant.models import Variant, VariantSvg
 from variant.utils import normalize_dsvg, validate_dsvg
 
-
 EMPTY_SVG = '<svg xmlns="http://www.w3.org/2000/svg"/>'
 
 
@@ -50,19 +49,26 @@ def test_admin_form_accepts_valid_upload(dsvg_variant, make_dsvg):
         unit_position_ids=["fra", "ger", "fra/nc"],
     )
 
-    form = VariantSvgAdminForm(data={"variant": dsvg_variant.pk}, files={"svg_file": _upload(svg)})
+    form = VariantSvgAdminForm(
+        data={"variant": dsvg_variant.pk}, files={"svg_file": _upload(svg)}
+    )
 
     assert form.is_valid(), form.errors
     instance = form.save()
     assert instance.svg == normalize_dsvg(svg)
-    assert instance.content_hash == hashlib.sha256(normalize_dsvg(svg).encode()).hexdigest()
+    assert (
+        instance.content_hash
+        == hashlib.sha256(normalize_dsvg(svg).encode()).hexdigest()
+    )
 
 
 @pytest.mark.django_db
 def test_admin_form_rejects_svg_not_matching_variant(dsvg_variant, make_dsvg):
     svg = make_dsvg(province_ids=["fra", "xyz"], named_coast_ids=["fra/nc"])
 
-    form = VariantSvgAdminForm(data={"variant": dsvg_variant.pk}, files={"svg_file": _upload(svg)})
+    form = VariantSvgAdminForm(
+        data={"variant": dsvg_variant.pk}, files={"svg_file": _upload(svg)}
+    )
 
     assert not form.is_valid()
 
@@ -85,7 +91,9 @@ def test_admin_form_requires_a_file_on_add(dsvg_variant):
 
 @pytest.mark.django_db
 def test_admin_form_normalizes_uploaded_svg(make_editor_dsvg):
-    variant = Variant.objects.create(id="empty", name="Empty", description="", author="")
+    variant = Variant.objects.create(
+        id="empty", name="Empty", description="", author=""
+    )
 
     form = VariantSvgAdminForm(
         data={"variant": variant.pk}, files={"svg_file": _upload(make_editor_dsvg())}
@@ -99,7 +107,14 @@ def test_admin_form_normalizes_uploaded_svg(make_editor_dsvg):
 
 @pytest.mark.django_db
 def test_backfill_creates_an_svg_for_each_in_db_variant():
-    expected = {"classical", "italy-vs-germany", "hundred", "vietnam-war", "canton", "youngstown-redux"}
+    expected = {
+        "classical",
+        "italy-vs-germany",
+        "hundred",
+        "vietnam-war",
+        "canton",
+        "youngstown-redux",
+    }
 
     assert set(VariantSvg.objects.values_list("variant_id", flat=True)) == expected
 

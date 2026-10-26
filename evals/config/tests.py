@@ -10,13 +10,17 @@ def _packages(root):
     return {
         path.name
         for path in root.iterdir()
-        if path.is_dir() and path.name not in IGNORED_DIRECTORIES and any(path.glob("*.py"))
+        if path.is_dir()
+        and path.name not in IGNORED_DIRECTORIES
+        and any(path.glob("*.py"))
     }
 
 
 def _evals_sources():
     for path in settings.BASE_DIR.rglob("*.py"):
-        if not IGNORED_DIRECTORIES.intersection(path.relative_to(settings.BASE_DIR).parts):
+        if not IGNORED_DIRECTORIES.intersection(
+            path.relative_to(settings.BASE_DIR).parts
+        ):
             yield path
 
 

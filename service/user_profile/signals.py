@@ -25,9 +25,14 @@ def create_welcome_sandbox_game(sender, instance, created, **kwargs):
             if Game.objects.filter(sandbox=True, members__user=user).exists():
                 return
 
-            variant = Variant.objects.with_game_creation_data().filter(id="classical").first()
+            variant = (
+                Variant.objects.with_game_creation_data().filter(id="classical").first()
+            )
             if variant is None:
-                logger.warning("Classical variant not found — skipping welcome game for user %s", user.id)
+                logger.warning(
+                    "Classical variant not found — skipping welcome game for user %s",
+                    user.id,
+                )
                 return
 
             Game.objects.create_sandbox(
@@ -36,6 +41,10 @@ def create_welcome_sandbox_game(sender, instance, created, **kwargs):
                 variant=variant,
             )
         except Exception:
-            logger.warning("Failed to create welcome sandbox game for user %s", user.id, exc_info=True)
+            logger.warning(
+                "Failed to create welcome sandbox game for user %s",
+                user.id,
+                exc_info=True,
+            )
 
     transaction.on_commit(_create)

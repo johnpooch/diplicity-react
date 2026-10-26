@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 class VictoryQuerySet(models.QuerySet):
     def solo_victories(self):
-        return self.annotate(member_count=Count('members')).filter(member_count=1)
+        return self.annotate(member_count=Count("members")).filter(member_count=1)
 
     def draw_victories(self):
-        return self.annotate(member_count=Count('members')).filter(member_count__gte=2)
+        return self.annotate(member_count=Count("members")).filter(member_count__gte=2)
 
 
 class VictoryManager(models.Manager):
@@ -32,12 +32,11 @@ class VictoryManager(models.Manager):
         if not winner:
             return None
 
-        logger.info(f"Solo victory detected for member {winner.id} in game {phase.game.id}")
-
-        victory = self.create(
-            game=phase.game,
-            winning_phase=phase
+        logger.info(
+            f"Solo victory detected for member {winner.id} in game {phase.game.id}"
         )
+
+        victory = self.create(game=phase.game, winning_phase=phase)
         victory.members.add(winner)
 
         return victory
@@ -46,7 +45,9 @@ class VictoryManager(models.Manager):
 class Victory(BaseModel):
     objects = VictoryManager()
 
-    game = models.OneToOneField("game.Game", related_name="victory", on_delete=models.CASCADE)
+    game = models.OneToOneField(
+        "game.Game", related_name="victory", on_delete=models.CASCADE
+    )
     winning_phase = models.ForeignKey("phase.Phase", on_delete=models.CASCADE)
     members = models.ManyToManyField("member.Member", related_name="victories")
 

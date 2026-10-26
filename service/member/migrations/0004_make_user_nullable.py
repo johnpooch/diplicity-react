@@ -9,13 +9,18 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('member', '0003_add_nmr_extensions_remaining'),
+        ("member", "0003_add_nmr_extensions_remaining"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='member',
-            name='user',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='members', to=settings.AUTH_USER_MODEL),
+            model_name="member",
+            name="user",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="members",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

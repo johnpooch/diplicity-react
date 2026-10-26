@@ -15,5 +15,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_commitment_requirement, migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_commitment_requirement, migrations.RunPython.noop
+        ),
     ]

@@ -76,14 +76,18 @@ class ChannelMessageSerializer(serializers.Serializer):
 class ChannelMessagePageQuerySerializer(serializers.Serializer):
     before = serializers.IntegerField(required=False, min_value=1)
     after = serializers.IntegerField(required=False, min_value=1)
-    page_size = serializers.IntegerField(min_value=1, default=ChannelMessagePagination.DEFAULT_PAGE_SIZE)
+    page_size = serializers.IntegerField(
+        min_value=1, default=ChannelMessagePagination.DEFAULT_PAGE_SIZE
+    )
 
     def validate_page_size(self, value):
         return min(value, ChannelMessagePagination.MAX_PAGE_SIZE)
 
     def validate(self, attrs):
         if "before" in attrs and "after" in attrs:
-            raise serializers.ValidationError("Provide either before or after, not both.")
+            raise serializers.ValidationError(
+                "Provide either before or after, not both."
+            )
         return attrs
 
 
@@ -118,14 +122,18 @@ class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
     can_rename = serializers.SerializerMethodField()
     can_mute = serializers.SerializerMethodField()
 
-    member_ids = serializers.ListField(child=serializers.IntegerField(), required=True, write_only=True)
+    member_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=True, write_only=True
+    )
 
     def is_channel_member(self, channel, member):
         if member is None:
             return False
         if not channel.private:
             return True
-        return any(channel_member.id == member.id for channel_member in channel.members.all())
+        return any(
+            channel_member.id == member.id for channel_member in channel.members.all()
+        )
 
     def get_can_rename(self, channel) -> bool:
         game = self.context["game"]
@@ -149,7 +157,9 @@ class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
         channel_members = game.members.players().filter(id__in=member_ids)
 
         if channel_members.count() != len(member_ids):
-            raise serializers.ValidationError("One or more members are not part of the game.")
+            raise serializers.ValidationError(
+                "One or more members are not part of the game."
+            )
 
         if Channel.objects.private_channel_exists_for_members(game, member_ids):
             raise serializers.ValidationError("Channel already exists.")
@@ -160,7 +170,10 @@ class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
         request = self.context["request"]
         game = self.context["game"]
         return Channel.objects.create_from_member_ids(
-            request.user, validated_data["member_ids"], game, validated_data.get("title", "")
+            request.user,
+            validated_data["member_ids"],
+            game,
+            validated_data.get("title", ""),
         )
 
 
@@ -189,11 +202,15 @@ class ChannelDetailSerializer(ChannelNameMixin, serializers.Serializer):
     events = ChannelEventSerializer(many=True, read_only=True)
 
     def get_can_mute(self, channel) -> bool:
-        return can_mute_channel(self.context.get("current_game_member"), channel.requester_is_member)
+        return can_mute_channel(
+            self.context.get("current_game_member"), channel.requester_is_member
+        )
 
     def get_can_rename(self, channel) -> bool:
         member = self.context.get("current_game_member")
-        return can_rename_channel(channel, self.context["game"], member, channel.requester_is_member)
+        return can_rename_channel(
+            channel, self.context["game"], member, channel.requester_is_member
+        )
 
 
 class ChannelUpdateSerializer(serializers.Serializer):

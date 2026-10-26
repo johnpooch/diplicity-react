@@ -7,14 +7,14 @@ from phase.utils import transform_options
 def backfill_has_possible_orders(apps, schema_editor):
     PhaseState = apps.get_model("phase", "PhaseState")
 
-    phase_states = PhaseState.objects.select_related('phase', 'member__nation').all()
+    phase_states = PhaseState.objects.select_related("phase", "member__nation").all()
 
     for phase_state in phase_states:
         phase = phase_state.phase
 
         if not phase.options:
             phase_state.has_possible_orders = False
-            phase_state.save(update_fields=['has_possible_orders'])
+            phase_state.save(update_fields=["has_possible_orders"])
             continue
 
         transformed = transform_options(phase.options)
@@ -24,7 +24,7 @@ def backfill_has_possible_orders(apps, schema_editor):
         has_orders = any(province_data for province_data in nation_options.values())
 
         phase_state.has_possible_orders = has_orders
-        phase_state.save(update_fields=['has_possible_orders'])
+        phase_state.save(update_fields=["has_possible_orders"])
 
 
 def reverse_backfill(apps, schema_editor):
@@ -35,7 +35,7 @@ def reverse_backfill(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('phase', '0006_phasestate_has_possible_orders'),
+        ("phase", "0006_phasestate_has_possible_orders"),
     ]
 
     operations = [

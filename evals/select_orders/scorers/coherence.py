@@ -1,4 +1,12 @@
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    accuracy,
+    scorer,
+    stderr,
+)
 
 from select_orders.scorers._resolve import resolve_orders
 from select_orders.types import Context, OrderOption
@@ -18,8 +26,15 @@ def destinations(orders: list[OrderOption]) -> dict[str, str | None]:
 
 
 def foreign_units(context: Context) -> set[str]:
-    own = {member["nation"] for member in context.get("members", []) if member["is_current_user"]}
-    parents = {province["id"]: province["parent_id"] or province["id"] for province in context.get("provinces", [])}
+    own = {
+        member["nation"]
+        for member in context.get("members", [])
+        if member["is_current_user"]
+    }
+    parents = {
+        province["id"]: province["parent_id"] or province["id"]
+        for province in context.get("provinces", [])
+    }
     return {
         parents.get(unit["province"], unit["province"])
         for unit in context.get("units", [])
@@ -53,7 +68,12 @@ def dangling(
 
 
 def _dangling(state, orders, context, order_type):
-    return dangling(orders, order_type, (state.metadata or {}).get("foreign_orders"), foreign_units(context))
+    return dangling(
+        orders,
+        order_type,
+        (state.metadata or {}).get("foreign_orders"),
+        foreign_units(context),
+    )
 
 
 @scorer(metrics=[accuracy(), stderr()])

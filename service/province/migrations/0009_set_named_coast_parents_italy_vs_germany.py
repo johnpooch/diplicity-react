@@ -24,12 +24,10 @@ def set_named_coast_parents_italy_vs_germany(apps, schema_editor):
     for named_coast_id, parent_id in named_coast_mappings.items():
         try:
             named_coast = Province.objects.get(
-                province_id=named_coast_id,
-                variant=italy_vs_germany_variant
+                province_id=named_coast_id, variant=italy_vs_germany_variant
             )
             parent = Province.objects.get(
-                province_id=parent_id,
-                variant=italy_vs_germany_variant
+                province_id=parent_id, variant=italy_vs_germany_variant
             )
             named_coast.parent = parent
             named_coast.save()
@@ -47,8 +45,7 @@ def reverse_set_named_coast_parents_italy_vs_germany(apps, schema_editor):
         # Clear all parent relationships for named coasts in Italy vs Germany
         named_coast_ids = ["spa/nc", "spa/sc", "bul/ec", "bul/sc", "stp/nc", "stp/sc"]
         Province.objects.filter(
-            province_id__in=named_coast_ids,
-            variant=italy_vs_germany_variant
+            province_id__in=named_coast_ids, variant=italy_vs_germany_variant
         ).update(parent=None)
     except Variant.DoesNotExist:
         pass
@@ -57,7 +54,7 @@ def reverse_set_named_coast_parents_italy_vs_germany(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('province', '0008_set_named_coast_parents_classical'),
+        ("province", "0008_set_named_coast_parents_classical"),
     ]
 
     operations = [

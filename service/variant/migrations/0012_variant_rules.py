@@ -1,6 +1,5 @@
 from django.db import migrations, models
 
-
 RULES = {
     "classical": (
         "The first to 18 Supply Centers (SC) is the winner.\n"

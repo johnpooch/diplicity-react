@@ -14,7 +14,12 @@ from games.play import position
 from games.reference import read_reference
 from select_orders.context import fixture_to_context
 from select_orders.exceptions import FixtureError
-from select_orders.fixtures import full_option, read_fixture, validate_fixture, write_fixture
+from select_orders.fixtures import (
+    full_option,
+    read_fixture,
+    validate_fixture,
+    write_fixture,
+)
 from select_orders.notation import Notation
 from select_orders.options import describe_option, option_from_id, option_id
 from select_orders.order_sets import label_order_set, order_set_key, order_set_label
@@ -78,8 +83,15 @@ def _cached_fixture(path: Path) -> Fixture:
 
 
 def _fixtures() -> list[Fixture]:
-    fixtures = [_cached_fixture(path) for path in sorted(settings.EVALS_FIXTURES_DIR.glob("*.json"))]
-    return [fixture for fixture in fixtures if settings.EVALS_EVAL_SET in fixture["eval_sets"]]
+    fixtures = [
+        _cached_fixture(path)
+        for path in sorted(settings.EVALS_FIXTURES_DIR.glob("*.json"))
+    ]
+    return [
+        fixture
+        for fixture in fixtures
+        if settings.EVALS_EVAL_SET in fixture["eval_sets"]
+    ]
 
 
 def _summary(fixture: Fixture) -> dict:
@@ -87,7 +99,11 @@ def _summary(fixture: Fixture) -> dict:
 
 
 def _board(fixture: Fixture, context: Context) -> dict:
-    return {**_summary(fixture), "units": context["units"], "supply_centers": fixture.get("supply_centers", [])}
+    return {
+        **_summary(fixture),
+        "units": context["units"],
+        "supply_centers": fixture.get("supply_centers", []),
+    }
 
 
 def _describe(order_ids: set[str], context: Context) -> dict[str, dict]:
@@ -113,13 +129,21 @@ def _by_fixture(samples: list[EvalSample]) -> list[tuple[Fixture, list[EvalSampl
     for sample in samples:
         if sample.id in fixtures:
             grouped.setdefault(sample.id, []).append(sample)
-    return [(fixtures[fixture_id], grouped[fixture_id]) for fixture_id in sorted(grouped)]
+    return [
+        (fixtures[fixture_id], grouped[fixture_id]) for fixture_id in sorted(grouped)
+    ]
 
 
 def _scored(samples: list[EvalSample]) -> tuple[list[dict], dict]:
-    summaries = [{**_summary(fixture), **summarise(fixture, own)} for fixture, own in _by_fixture(samples)]
+    summaries = [
+        {**_summary(fixture), **summarise(fixture, own)}
+        for fixture, own in _by_fixture(samples)
+    ]
     totals = {key: sum(summary[key] for summary in summaries) for key in SUMMED}
-    return summaries, {**totals, "score": score(totals["reasonable"], totals["answers"] - totals["failed"])}
+    return summaries, {
+        **totals,
+        "score": score(totals["reasonable"], totals["answers"] - totals["failed"]),
+    }
 
 
 @require_GET
@@ -129,7 +153,12 @@ def fixture_list(request):
             "fixtures": [
                 {
                     **_summary(fixture),
-                    "labels": dict(Counter(entry["label"] for entry in fixture.get("order_set_labels", []))),
+                    "labels": dict(
+                        Counter(
+                            entry["label"]
+                            for entry in fixture.get("order_set_labels", [])
+                        )
+                    ),
                 }
                 for fixture in _fixtures()
             ]
@@ -180,7 +209,9 @@ def order_set_labels(request, fixture_id):
     except json.JSONDecodeError:
         return _error("request body is not JSON", 400)
     orders = body.get("orders") if isinstance(body, dict) else None
-    if not isinstance(orders, list) or not all(isinstance(order, str) for order in orders):
+    if not isinstance(orders, list) or not all(
+        isinstance(order, str) for order in orders
+    ):
         return _error("'orders' must be a list of option ids", 400)
     label = body.get("label")
     if label not in LABELS:
@@ -204,15 +235,25 @@ def order_set_labels(request, fixture_id):
         write_fixture(path, updated)
     except FixtureError as e:
         return _error(str(e), 400)
-    return JsonResponse({"orders": order_set_key(orders), "labels": updated["order_set_labels"]})
+    return JsonResponse(
+        {"orders": order_set_key(orders), "labels": updated["order_set_labels"]}
+    )
 
 
 @require_GET
 def run_list(request):
     runs = []
     for header in list_runs(settings.EVALS_LOGS_DIR):
-        summaries, totals = _scored(run_samples(settings.EVALS_LOGS_DIR, header["name"]))
-        runs.append({**header, **totals, "fixture_ids": [summary["id"] for summary in summaries]})
+        summaries, totals = _scored(
+            run_samples(settings.EVALS_LOGS_DIR, header["name"])
+        )
+        runs.append(
+            {
+                **header,
+                **totals,
+                "fixture_ids": [summary["id"] for summary in summaries],
+            }
+        )
     return JsonResponse({"runs": runs})
 
 
@@ -260,7 +301,11 @@ def run_fixture(request, name, fixture_id):
         _, samples = read_run(settings.EVALS_LOGS_DIR, name)
     except RunError as e:
         return _error(str(e), 404)
-    found = [(fixture, own) for fixture, own in _by_fixture(samples) if fixture["id"] == fixture_id]
+    found = [
+        (fixture, own)
+        for fixture, own in _by_fixture(samples)
+        if fixture["id"] == fixture_id
+    ]
     if not found:
         return _error(f"run '{name}' has no fixture '{fixture_id}'", 404)
     ((fixture, own),) = found
@@ -301,7 +346,12 @@ def run_prompts(request, name):
     for sample in sorted(samples, key=lambda sample: sample.epoch):
         first.setdefault(sample.id, sample)
     return JsonResponse(
-        {"prompts": [{"fixture": fixture_id, **sample_prompts(first[fixture_id])} for fixture_id in sorted(first)]}
+        {
+            "prompts": [
+                {"fixture": fixture_id, **sample_prompts(first[fixture_id])}
+                for fixture_id in sorted(first)
+            ]
+        }
     )
 
 
@@ -319,7 +369,10 @@ def _means(results: list[dict]) -> dict:
 
 def _game_run(name: str) -> tuple[dict, list[EvalSample]]:
     header, samples = read_run(settings.EVALS_LOGS_DIR, name, GAME_TASK)
-    return {**header, "nation": samples[0].metadata["nation"] if samples else None}, samples
+    return {
+        **header,
+        "nation": samples[0].metadata["nation"] if samples else None,
+    }, samples
 
 
 def _game(name: str, seed: int) -> tuple[dict, EvalSample]:
@@ -332,12 +385,20 @@ def _game(name: str, seed: int) -> tuple[dict, EvalSample]:
 
 def _feedback(feedback: dict | None) -> dict:
     feedback = feedback or {}
-    return {"overall": feedback.get("overall", ""), "phases": feedback.get("phases", {})}
+    return {
+        "overall": feedback.get("overall", ""),
+        "phases": feedback.get("phases", {}),
+    }
 
 
 def _game_phase(phase: dict, following: dict | None, nation: str) -> dict:
-    context = fixture_to_context(position(phase["phase"], phase["units"], phase["supply_centers"], nation, []))
-    results = {(entry["nation"], entry["source"]): entry["result"] for entry in phase["resolutions"]}
+    context = fixture_to_context(
+        position(phase["phase"], phase["units"], phase["supply_centers"], nation, [])
+    )
+    results = {
+        (entry["nation"], entry["source"]): entry["result"]
+        for entry in phase["resolutions"]
+    }
     submitted = [
         (player, option_id(full_option(option)), option["source"])
         for player, options in sorted(phase["orders"].items())
@@ -345,7 +406,12 @@ def _game_phase(phase: dict, following: dict | None, nation: str) -> dict:
     ]
     details = _describe({order for _, order, _ in submitted}, context)
     orders = [
-        {"nation": player, "id": order, **details[order], "result": results.get((player, source))}
+        {
+            "nation": player,
+            "id": order,
+            **details[order],
+            "result": results.get((player, source)),
+        }
         for player, order, source in submitted
     ]
     notation = Notation(context)
@@ -355,7 +421,11 @@ def _game_phase(phase: dict, following: dict | None, nation: str) -> dict:
         "phase": phase["phase"],
         "units": context["units"],
         "supply_centers": phase["supply_centers"],
-        "dislodged": [unit["province"] for unit in following["units"] if unit.get("dislodged")] if following else [],
+        "dislodged": (
+            [unit["province"] for unit in following["units"] if unit.get("dislodged")]
+            if following
+            else []
+        ),
         "orders": orders,
         "answer": (
             None
@@ -386,7 +456,10 @@ def game_run_list(request):
                 "nation": summaries[0].metadata["nation"] if summaries else None,
                 "games": len(results),
                 "with_feedback": sum(
-                    has_feedback(settings.EVALS_FEEDBACK_DIR, header["name"], result["seed"]) for result in results
+                    has_feedback(
+                        settings.EVALS_FEEDBACK_DIR, header["name"], result["seed"]
+                    )
+                    for result in results
                 ),
             }
         )
@@ -445,7 +518,11 @@ def game_detail(request, name, seed):
             **game_result(sample.metadata),
             "final_centres": sample.metadata["centres"],
             "phases": [
-                _game_phase(phase, phases[index + 1] if index + 1 < len(phases) else None, nation)
+                _game_phase(
+                    phase,
+                    phases[index + 1] if index + 1 < len(phases) else None,
+                    nation,
+                )
                 for index, phase in enumerate(phases)
             ],
             "feedback": _feedback(feedback),
@@ -475,7 +552,11 @@ def game_feedback(request, name, seed):
     keys = {phase_key(entry["phase"]) for entry in game_phases(sample)}
     try:
         updated = write_note(
-            feedback_path(settings.EVALS_FEEDBACK_DIR, name, seed), sample.metadata["nation"], keys, phase, note
+            feedback_path(settings.EVALS_FEEDBACK_DIR, name, seed),
+            sample.metadata["nation"],
+            keys,
+            phase,
+            note,
         )
     except FeedbackError as e:
         return _error(str(e), 400)

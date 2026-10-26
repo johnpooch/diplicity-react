@@ -27,7 +27,9 @@ class OrderListView(CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.ListA
     completed_phase_etag_salt = "orders"
 
     def get_queryset(self):
-        return Order.objects.visible_to_user_in_phase(self.request.user, self.get_phase()).with_related_data()
+        return Order.objects.visible_to_user_in_phase(
+            self.request.user, self.get_phase()
+        ).with_related_data()
 
     def list(self, request, *args, **kwargs):
         orders = list(self.get_queryset())
@@ -48,7 +50,9 @@ class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):
     serializer_class = OrderSerializer
 
 
-class OrderOptionsView(PrecomputedConditionalGetMixin, CurrentPhaseMixin, generics.RetrieveAPIView):
+class OrderOptionsView(
+    PrecomputedConditionalGetMixin, CurrentPhaseMixin, generics.RetrieveAPIView
+):
     permission_classes = [permissions.IsAuthenticated, IsActiveGame]
     serializer_class = OrderOptionsResponseSerializer
 
@@ -59,8 +63,11 @@ class OrderOptionsView(PrecomputedConditionalGetMixin, CurrentPhaseMixin, generi
 
     def get_nation_names(self):
         if not hasattr(self, "_nation_names"):
-            members = self.get_phase().game.members.players().select_related("nation").filter(
-                user=self.request.user, eliminated_at__isnull=True
+            members = (
+                self.get_phase()
+                .game.members.players()
+                .select_related("nation")
+                .filter(user=self.request.user, eliminated_at__isnull=True)
             )
             self._nation_names = [m.nation.name for m in members if m.occupied]
         return self._nation_names

@@ -39,4 +39,3 @@ class TestSendEmail:
         mock_resend.Emails.send.side_effect = Exception("Resend API error")
 
         send_email(to="a@b.com", subject="Test", html="<p>Hi</p>")
-

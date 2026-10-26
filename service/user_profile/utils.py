@@ -41,7 +41,9 @@ def normalise_picture(upload):
     image_format = image.format
     width, height = image.size
     if width > PICTURE_MAX_DIMENSION or height > PICTURE_MAX_DIMENSION:
-        raise ValidationError(f"Picture is larger than {PICTURE_MAX_DIMENSION}px on a side.")
+        raise ValidationError(
+            f"Picture is larger than {PICTURE_MAX_DIMENSION}px on a side."
+        )
 
     image.draft(None, (PICTURE_SIZE, PICTURE_SIZE))
 
@@ -71,7 +73,8 @@ def normalise_picture(upload):
 def get_player_stats(user):
     completed_members = (
         Member.objects.filter(
-            Q(removed_at__isnull=True, replaced_by__isnull=True) | Q(withdrawn_at__isnull=False),
+            Q(removed_at__isnull=True, replaced_by__isnull=True)
+            | Q(withdrawn_at__isnull=False),
             user=user,
             game__status=GameStatus.COMPLETED,
             game__sandbox=False,

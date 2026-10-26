@@ -18,13 +18,17 @@ class Migration(migrations.Migration):
             model_name="member",
             name="kind",
             field=models.CharField(
-                choices=[("player", "Player"), ("game_master", "Game Master")], default="player", max_length=20
+                choices=[("player", "Player"), ("game_master", "Game Master")],
+                default="player",
+                max_length=20,
             ),
         ),
         migrations.AddConstraint(
             model_name="member",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("kind", "game_master")), fields=("game",), name="member_unique_game_master_per_game"
+                condition=models.Q(("kind", "game_master")),
+                fields=("game",),
+                name="member_unique_game_master_per_game",
             ),
         ),
     ]

@@ -9,13 +9,19 @@ def add_canton_nations(apps, schema_editor):
 
     canton_variant = Variant.objects.get(id="canton")
 
-    nations_data = [{'name': 'Turkey', 'color': '#FFC107'}, {'name': 'Britain', 'color': '#2198F5'}, {'name': 'China', 'color': '#F33F35'}, {'name': 'Holland', 'color': '#F56B26'}, {'name': 'Japan', 'color': '#4CAF50'}, {'name': 'Russia', 'color': '#F5F5F5'}, {'name': 'France', 'color': '#80DEEA'}]
+    nations_data = [
+        {"name": "Turkey", "color": "#FFC107"},
+        {"name": "Britain", "color": "#2198F5"},
+        {"name": "China", "color": "#F33F35"},
+        {"name": "Holland", "color": "#F56B26"},
+        {"name": "Japan", "color": "#4CAF50"},
+        {"name": "Russia", "color": "#F5F5F5"},
+        {"name": "France", "color": "#80DEEA"},
+    ]
 
     for nation_data in nations_data:
         Nation.objects.create(
-            name=nation_data["name"],
-            color=nation_data["color"],
-            variant=canton_variant
+            name=nation_data["name"], color=nation_data["color"], variant=canton_variant
         )
 
 
