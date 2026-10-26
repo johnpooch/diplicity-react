@@ -21,12 +21,10 @@ dist-ssr
 *.sln
 *.sw?
 
-*storybook.log
 .env
 client_secret*.json
 *.plist
 !**/GoogleService-Info.plist
-storybook-static
 
 service/game/tests/prof/
 
