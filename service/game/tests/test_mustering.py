@@ -922,7 +922,20 @@ class TestGameCreateMusterRequired:
         return payload
 
     @pytest.mark.django_db
-    def test_private_games_default_muster_required_off(
+    def test_public_games_require_mustering(
+        self, authenticated_client, italy_vs_germany_variant, in_memory_procrastinate
+    ):
+        response = authenticated_client.post(
+            reverse("game-create"),
+            self._payload(italy_vs_germany_variant.id, private=False),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["muster_required"] is True
+
+    @pytest.mark.django_db
+    def test_private_games_do_not_require_mustering(
         self, authenticated_client, italy_vs_germany_variant, in_memory_procrastinate
     ):
         response = authenticated_client.post(
@@ -932,20 +945,51 @@ class TestGameCreateMusterRequired:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert Game.objects.get(id=response.data["id"]).muster_required is False
+        assert response.data["muster_required"] is False
 
     @pytest.mark.django_db
-    def test_private_games_can_opt_into_mustering(
+    def test_muster_required_in_the_request_is_ignored(
         self, authenticated_client, italy_vs_germany_variant, in_memory_procrastinate
     ):
-        response = authenticated_client.post(
+        private_response = authenticated_client.post(
             reverse("game-create"),
-            self._payload(italy_vs_germany_variant.id, private=True, muster_required=True),
+            self._payload(italy_vs_germany_variant.id, private=True, musterRequired=True),
+            format="json",
+        )
+        public_response = authenticated_client.post(
+            reverse("game-create"),
+            self._payload(italy_vs_germany_variant.id, private=False, musterRequired=False),
             format="json",
         )
 
+        assert private_response.status_code == status.HTTP_201_CREATED
+        assert private_response.data["muster_required"] is False
+        assert public_response.status_code == status.HTTP_201_CREATED
+        assert public_response.data["muster_required"] is True
+
+
+class TestGameCloneToSandboxMusterRequired:
+
+    @pytest.mark.django_db
+    def test_sandbox_cloned_from_a_public_game_does_not_require_mustering(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+    ):
+        game = muster_game_factory(private=False)
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        authenticated_client_for_secondary_user.post(reverse("game-muster", args=[game.id]))
+        Game.objects.start_if_mustered(game.id)
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+        response = authenticated_client.post(reverse("game-clone-to-sandbox", args=[game.id]))
+
         assert response.status_code == status.HTTP_201_CREATED
-        assert Game.objects.get(id=response.data["id"]).muster_required is True
+        assert response.data["muster_required"] is False
+        assert response.data["status"] == GameStatus.ACTIVE
 
 
 class TestMusterSerializerFields:

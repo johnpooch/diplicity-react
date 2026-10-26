@@ -3141,9 +3141,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/CommitmentRequirementEnum'
           default: open
-        musterRequired:
-          type: boolean
-          default: false
       required:
       - id
       - name

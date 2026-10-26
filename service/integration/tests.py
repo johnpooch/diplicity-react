@@ -19,7 +19,7 @@ from common.constants import (
     PhaseStatus,
     UnitType,
 )
-from integration.utils import run_due_resolution_jobs
+from integration.utils import muster, run_due_resolution_jobs
 from phase.models import Phase, PhaseState
 from supply_center.models import SupplyCenter
 from unit.models import Unit
@@ -41,6 +41,7 @@ def create_active_game(authenticated_client, authenticated_client_for_secondary_
     )
     join_url = reverse("game-join", args=[game_id])
     authenticated_client_for_secondary_user.post(join_url)
+    muster(game_id, authenticated_client, authenticated_client_for_secondary_user)
     return Game.objects.get(id=game_id)
 
 
@@ -150,9 +151,13 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
     join_response = authenticated_client_for_secondary_user.post(join_url)
     assert join_response.status_code == status.HTTP_201_CREATED
 
-    # Game should now be full and started
+    # Game should now be full and mustering
     game = Game.objects.get(id=game_id)
     assert game.members.count() == 2
+    assert game.status == GameStatus.MUSTERING
+
+    muster(game_id, authenticated_client, authenticated_client_for_secondary_user)
+    game = Game.objects.get(id=game_id)
     assert game.status == GameStatus.ACTIVE
 
     # Verify nations are assigned
@@ -827,6 +832,12 @@ def create_active_hundred_game(
     join_url = reverse("game-join", args=[game_id])
     authenticated_client_for_secondary_user.post(join_url)
     authenticated_client_for_tertiary_user.post(join_url)
+    muster(
+        game_id,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        authenticated_client_for_tertiary_user,
+    )
 
     return Game.objects.get(id=game_id)
 

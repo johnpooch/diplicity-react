@@ -1598,9 +1598,7 @@ class TestSeatConfirmedSerialization:
         secondary_user,
         in_memory_procrastinate,
     ):
-        game = _create_game_via_api(
-            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=True
-        )
+        game = _create_game_via_api(authenticated_client, italy_vs_germany_variant.id)
         join_response = authenticated_client_for_secondary_user.post(reverse(join_viewname, args=[game.id]))
         assert join_response.status_code == status.HTTP_201_CREATED
         muster_response = authenticated_client_for_secondary_user.post(reverse("game-muster", args=[game.id]))
@@ -1614,9 +1612,7 @@ class TestSeatConfirmedSerialization:
     def test_bot_seat_is_confirmed_while_mustering(
         self, allowlisted_client, italy_vs_germany_variant, primary_user, bot_user, in_memory_procrastinate
     ):
-        game = _create_game_via_api(
-            allowlisted_client, italy_vs_germany_variant.id, private=True, muster_required=True
-        )
+        game = _create_game_via_api(allowlisted_client, italy_vs_germany_variant.id)
         seat_response = allowlisted_client.post(
             reverse(seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
         )
@@ -1630,9 +1626,7 @@ class TestSeatConfirmedSerialization:
     def test_seat_confirmed_is_null_before_mustering(
         self, authenticated_client, italy_vs_germany_variant, primary_user, in_memory_procrastinate
     ):
-        game = _create_game_via_api(
-            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=True
-        )
+        game = _create_game_via_api(authenticated_client, italy_vs_germany_variant.id)
 
         seat_confirmed = self._seat_confirmed_by_user_id(authenticated_client, game)
 
@@ -1648,9 +1642,7 @@ class TestSeatConfirmedSerialization:
         secondary_user,
         in_memory_procrastinate,
     ):
-        game = _create_game_via_api(
-            authenticated_client, italy_vs_germany_variant.id, private=True, muster_required=False
-        )
+        game = _create_game_via_api(authenticated_client, italy_vs_germany_variant.id, private=True)
         authenticated_client_for_secondary_user.post(reverse(join_viewname, args=[game.id]))
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
@@ -1682,7 +1674,7 @@ class TestSeatMember:
     def test_seating_the_last_seat_starts_the_game(
         self, allowlisted_client, italy_vs_germany_variant, bot_user
     ):
-        game = _create_game_via_api(allowlisted_client, italy_vs_germany_variant.id)
+        game = _create_game_via_api(allowlisted_client, italy_vs_germany_variant.id, private=True)
 
         response = allowlisted_client.post(
             reverse(seat_viewname, args=[game.id]), {"user_id": bot_user.id}, format="json"
