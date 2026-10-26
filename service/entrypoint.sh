@@ -53,7 +53,10 @@ fi
 
 if [ "$SEED_STAGING_DATA" = "True" ]; then
     echo "Seeding staging test data..."
-    python manage.py seed_staging --skip-if-seeded || echo "Seeding staging test data failed; continuing startup." >&2
+    if ! python manage.py seed_staging --skip-if-seeded; then
+        echo "Seeding staging test data failed!" >&2
+        exit 1
+    fi
 fi
 
 echo "Starting Gunicorn..."

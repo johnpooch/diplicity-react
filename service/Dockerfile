@@ -5,6 +5,9 @@ FROM python:3.14-slim AS base
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+ARG GIT_SHA
+ENV GIT_SHA=$GIT_SHA
+
 # Set the working directory
 WORKDIR /app
 

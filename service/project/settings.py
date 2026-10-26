@@ -147,6 +147,12 @@ CORS_ALLOWED_ORIGINS = os.getenv(
     "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost,https://localhost",
 ).split(",")
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    pattern
+    for pattern in os.getenv("DJANGO_CORS_ALLOWED_ORIGIN_REGEXES", "").split(",")
+    if pattern
+]
+
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -363,7 +369,7 @@ R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
 R2_PUBLIC_BASE_URL = os.getenv("R2_PUBLIC_BASE_URL", "")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-VERSION = os.getenv("GIT_SHA", "0.0.0")
+VERSION = os.getenv("GIT_SHA") or "0.0.0"
 MINIMUM_CLIENT_VERSION = os.getenv("MINIMUM_CLIENT_VERSION", "0.0.0")
 
 if DEBUG:
