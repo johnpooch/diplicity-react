@@ -1125,6 +1125,24 @@ class TestPasswordResetView:
         assert response.status_code == status.HTTP_201_CREATED
         mock_send_email.assert_called_once()
 
+    def test_sends_reset_email_for_unverified_account(self, unauthenticated_client, mock_send_email):
+        User.objects.create_user(
+            username="unverified@example.com",
+            email="unverified@example.com",
+            password="strongpass123",
+            is_active=False,
+        )
+
+        response = unauthenticated_client.post(
+            reverse("password-reset"),
+            {"email": "unverified@example.com"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        mock_send_email.assert_called_once()
+        assert mock_send_email.call_args[1]["to"] == "unverified@example.com"
+
     def test_nonexistent_email_returns_200_without_sending(self, unauthenticated_client, mock_send_email):
         url = reverse("password-reset")
         response = unauthenticated_client.post(
@@ -1204,6 +1222,33 @@ class TestPasswordResetConfirmView:
         assert response.status_code == status.HTTP_201_CREATED
         user.refresh_from_db()
         assert user.check_password("newpass456")
+
+    def test_reset_verifies_unverified_account(self, unauthenticated_client):
+        user = User.objects.create_user(
+            username="unverified@example.com",
+            email="unverified@example.com",
+            password="oldpass123",
+            is_active=False,
+        )
+        UserProfile.objects.create(user=user, name="Unverified Player")
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        response = unauthenticated_client.post(
+            reverse("password-reset-confirm"),
+            {"uid": uid, "token": token, "new_password": "newpass456", "confirm_password": "newpass456"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        response = unauthenticated_client.post(
+            reverse("email-login"),
+            {"email": "unverified@example.com", "password": "newpass456"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "access_token" in response.data
 
     def test_invalid_token_returns_400(self, unauthenticated_client):
         user = User.objects.create_user(

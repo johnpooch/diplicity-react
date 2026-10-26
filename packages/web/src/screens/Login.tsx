@@ -1,4 +1,5 @@
 import React from "react";
+import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -78,6 +79,12 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const loginErrorMessage = (error: unknown) =>
   isRateLimitedError(error) ? RATE_LIMITED_MESSAGE : "Login failed";
 
+const emailLoginErrorMessage = (error: unknown) =>
+  isRateLimitedError(error)
+    ? RATE_LIMITED_MESSAGE
+    : ((error as AxiosError<{ detail?: string }>).response?.data?.detail ??
+      "Invalid email or password");
+
 const PlayStoreBadge: React.FC = () => (
   <a
     href={PLAY_STORE_URL}
@@ -127,11 +134,7 @@ const Login: React.FC = () => {
       });
       toast.success(`Logged in as ${result.name}`);
     } catch (error) {
-      toast.error(
-        isRateLimitedError(error)
-          ? RATE_LIMITED_MESSAGE
-          : "Invalid email or password"
-      );
+      toast.error(emailLoginErrorMessage(error));
     }
   };
 

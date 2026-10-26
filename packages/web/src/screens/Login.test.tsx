@@ -52,6 +52,23 @@ const rateLimitedError = () => {
   );
 };
 
+const unverifiedAccountError = () => {
+  const config = { headers: new AxiosHeaders() };
+  return new AxiosError(
+    "Request failed with status code 401",
+    AxiosError.ERR_BAD_REQUEST,
+    config,
+    undefined,
+    {
+      status: 401,
+      statusText: "",
+      data: { detail: "Account not verified." },
+      headers: {},
+      config,
+    } as AxiosResponse
+  );
+};
+
 const renderLogin = () =>
   render(
     <MemoryRouter>
@@ -121,6 +138,19 @@ describe("Login", () => {
 
     expect(toastErrorSpy).toHaveBeenCalledWith("Invalid email or password");
     expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's reason when the account is not verified", async () => {
+    mockMutateAsync.mockRejectedValue(unverifiedAccountError());
+    const toastErrorSpy = vi.spyOn(toast, "error");
+
+    renderLogin();
+
+    await userEvent.type(screen.getByLabelText(/email/i), "player@example.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "strongpass123");
+    await userEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    expect(toastErrorSpy).toHaveBeenCalledWith("Account not verified.");
   });
 
   it("tells the user to wait when email sign-in is rate limited", async () => {
