@@ -60,7 +60,9 @@ def _name_for(digest: str, day: date, taken: set[str]) -> str:
 def _logged_prompts(logs_dir: Path) -> dict[str, str]:
     prompts = {}
     for path in sorted(logs_dir.glob("*.eval")):
-        prompt = (read_eval_log(str(path), header_only=True).eval.metadata or {}).get("prompt")
+        prompt = (read_eval_log(str(path), header_only=True).eval.metadata or {}).get(
+            "prompt"
+        )
         if prompt:
             prompts.setdefault(prompt["digest"], prompt["name"])
     return prompts

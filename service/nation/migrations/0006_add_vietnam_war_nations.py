@@ -9,13 +9,19 @@ def add_vietnam_war_nations(apps, schema_editor):
 
     vietnam_war_variant = Variant.objects.get(id="vietnam-war")
 
-    nations_data = [{'name': 'North Vietnam', 'color': '#FD0000'}, {'name': 'Thailand', 'color': '#006FFF'}, {'name': 'South Vietnam', 'color': '#F0D211'}, {'name': 'Cambodia', 'color': '#708D9E'}, {'name': 'Laos', 'color': '#03853A'}]
+    nations_data = [
+        {"name": "North Vietnam", "color": "#FD0000"},
+        {"name": "Thailand", "color": "#006FFF"},
+        {"name": "South Vietnam", "color": "#F0D211"},
+        {"name": "Cambodia", "color": "#708D9E"},
+        {"name": "Laos", "color": "#03853A"},
+    ]
 
     for nation_data in nations_data:
         Nation.objects.create(
             name=nation_data["name"],
             color=nation_data["color"],
-            variant=vietnam_war_variant
+            variant=vietnam_war_variant,
         )
 
 

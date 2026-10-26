@@ -30,73 +30,89 @@ def flatten_options(nation_options, province_lookup):
             order_type = {"id": order_type_id, "label": order_type_id}
 
             if order_type_id in (OrderType.HOLD, OrderType.DISBAND):
-                results.append({
-                    "source": source,
-                    "order_type": order_type,
-                    "target": None,
-                    "aux": None,
-                    "unit_type": None,
-                    "named_coast": None,
-                })
+                results.append(
+                    {
+                        "source": source,
+                        "order_type": order_type,
+                        "target": None,
+                        "aux": None,
+                        "unit_type": None,
+                        "named_coast": None,
+                    }
+                )
 
             elif order_type_id in (OrderType.MOVE, OrderType.MOVE_VIA_CONVOY):
                 for target_id, target_data in order_type_data.items():
                     target = _make_field_value(target_id, province_lookup)
                     if _is_named_coast_dict(target_data):
                         for coast_id in target_data:
-                            results.append({
+                            results.append(
+                                {
+                                    "source": source,
+                                    "order_type": order_type,
+                                    "target": target,
+                                    "aux": None,
+                                    "unit_type": None,
+                                    "named_coast": _make_field_value(
+                                        coast_id, province_lookup
+                                    ),
+                                }
+                            )
+                    else:
+                        results.append(
+                            {
                                 "source": source,
                                 "order_type": order_type,
                                 "target": target,
                                 "aux": None,
                                 "unit_type": None,
-                                "named_coast": _make_field_value(coast_id, province_lookup),
-                            })
-                    else:
-                        results.append({
-                            "source": source,
-                            "order_type": order_type,
-                            "target": target,
-                            "aux": None,
-                            "unit_type": None,
-                            "named_coast": None,
-                        })
+                                "named_coast": None,
+                            }
+                        )
 
             elif order_type_id in (OrderType.SUPPORT, OrderType.CONVOY):
                 for aux_id, aux_data in order_type_data.items():
                     aux = _make_field_value(aux_id, province_lookup)
                     for target_id in aux_data:
-                        results.append({
-                            "source": source,
-                            "order_type": order_type,
-                            "target": _make_field_value(target_id, province_lookup),
-                            "aux": aux,
-                            "unit_type": None,
-                            "named_coast": None,
-                        })
+                        results.append(
+                            {
+                                "source": source,
+                                "order_type": order_type,
+                                "target": _make_field_value(target_id, province_lookup),
+                                "aux": aux,
+                                "unit_type": None,
+                                "named_coast": None,
+                            }
+                        )
 
             elif order_type_id == OrderType.BUILD:
                 for unit_type_id, unit_type_data in order_type_data.items():
                     unit_type = {"id": unit_type_id, "label": unit_type_id}
                     if _is_named_coast_dict(unit_type_data):
                         for coast_id in unit_type_data:
-                            results.append({
+                            results.append(
+                                {
+                                    "source": source,
+                                    "order_type": order_type,
+                                    "target": None,
+                                    "aux": None,
+                                    "unit_type": unit_type,
+                                    "named_coast": _make_field_value(
+                                        coast_id, province_lookup
+                                    ),
+                                }
+                            )
+                    else:
+                        results.append(
+                            {
                                 "source": source,
                                 "order_type": order_type,
                                 "target": None,
                                 "aux": None,
                                 "unit_type": unit_type,
-                                "named_coast": _make_field_value(coast_id, province_lookup),
-                            })
-                    else:
-                        results.append({
-                            "source": source,
-                            "order_type": order_type,
-                            "target": None,
-                            "aux": None,
-                            "unit_type": unit_type,
-                            "named_coast": None,
-                        })
+                                "named_coast": None,
+                            }
+                        )
 
     return results
 
@@ -110,7 +126,9 @@ def build_move_coast_lookup(orders):
             and order.source_id is not None
             and order.target_id is not None
         ):
-            lookup[(order.source.province_id, order.target.province_id)] = order.named_coast
+            lookup[(order.source.province_id, order.target.province_id)] = (
+                order.named_coast
+            )
     return lookup
 
 
@@ -163,12 +181,16 @@ def get_options_for_order(options, order):
         return list(current_options.keys())
 
     current_options = _navigate_options(
-        current_options, order.source.province_id, f"Source province {order.source.province_id} not found in options"
+        current_options,
+        order.source.province_id,
+        f"Source province {order.source.province_id} not found in options",
     )
 
     if order.order_type:
         current_options = _navigate_options(
-            current_options, order.order_type, f"Order type {order.order_type} not found in options"
+            current_options,
+            order.order_type,
+            f"Order type {order.order_type} not found in options",
         )
 
     if order.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
@@ -181,7 +203,9 @@ def get_options_for_order(options, order):
 
             if order.target:
                 if order.target.province_id not in current_options:
-                    raise ValueError(f"Target province {order.target.province_id} not found in options")
+                    raise ValueError(
+                        f"Target province {order.target.province_id} not found in options"
+                    )
                 return []
     else:
         if order.target:
@@ -193,12 +217,16 @@ def get_options_for_order(options, order):
 
     if order.order_type == OrderType.BUILD and order.unit_type:
         current_options = _navigate_options(
-            current_options, order.unit_type, f"Unit type {order.unit_type} not found in options"
+            current_options,
+            order.unit_type,
+            f"Unit type {order.unit_type} not found in options",
         )
 
     if order.order_type not in [OrderType.SUPPORT, OrderType.CONVOY] and order.aux:
         current_options = _navigate_options(
-            current_options, order.aux.province_id, f"Auxiliary province {order.aux.province_id} not found in options"
+            current_options,
+            order.aux.province_id,
+            f"Auxiliary province {order.aux.province_id} not found in options",
         )
 
     return list(current_options.keys())

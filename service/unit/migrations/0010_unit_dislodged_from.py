@@ -4,7 +4,9 @@ import django.db.models.deletion
 
 def populate_dislodged_from(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
-    units = list(Unit.objects.filter(dislodged_by__isnull=False).select_related("dislodged_by"))
+    units = list(
+        Unit.objects.filter(dislodged_by__isnull=False).select_related("dislodged_by")
+    )
     for unit in units:
         unit.dislodged_from_id = unit.dislodged_by.province_id
     Unit.objects.bulk_update(units, ["dislodged_from"])

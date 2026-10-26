@@ -14,7 +14,8 @@ class BundleManager(models.Manager):
         runnable = [
             bundle
             for bundle in self.filter(platform=platform, active=True)
-            if parse_version(bundle.minimum_native_version) <= native and parse_version(bundle.version) > native
+            if parse_version(bundle.minimum_native_version) <= native
+            and parse_version(bundle.version) > native
         ]
         if not runnable:
             return None

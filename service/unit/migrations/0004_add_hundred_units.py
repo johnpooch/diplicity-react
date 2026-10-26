@@ -11,19 +11,38 @@ def add_hundred_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     hundred_variant = Variant.objects.get(id="hundred")
-    template_phase = Phase.objects.get(game=None, variant=hundred_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=hundred_variant, status="template"
+    )
 
-    units_data = [{'type': 'Army', 'nation': 'Burgundy', 'province': 'dij'}, {'type': 'Army', 'nation': 'France', 'province': 'pro'}, {'type': 'Fleet', 'nation': 'England', 'province': 'lon'}, {'type': 'Army', 'nation': 'France', 'province': 'orl'}, {'type': 'Army', 'nation': 'France', 'province': 'par'}, {'type': 'Fleet', 'nation': 'England', 'province': 'dev'}, {'type': 'Fleet', 'nation': 'Burgundy', 'province': 'hol'}, {'type': 'Army', 'nation': 'France', 'province': 'dau'}, {'type': 'Army', 'nation': 'Burgundy', 'province': 'lux'}, {'type': 'Army', 'nation': 'France', 'province': 'tou'}, {'type': 'Army', 'nation': 'England', 'province': 'cal'}, {'type': 'Army', 'nation': 'England', 'province': 'nom'}, {'type': 'Army', 'nation': 'England', 'province': 'guy'}, {'type': 'Army', 'nation': 'Burgundy', 'province': 'fla'}]
+    units_data = [
+        {"type": "Army", "nation": "Burgundy", "province": "dij"},
+        {"type": "Army", "nation": "France", "province": "pro"},
+        {"type": "Fleet", "nation": "England", "province": "lon"},
+        {"type": "Army", "nation": "France", "province": "orl"},
+        {"type": "Army", "nation": "France", "province": "par"},
+        {"type": "Fleet", "nation": "England", "province": "dev"},
+        {"type": "Fleet", "nation": "Burgundy", "province": "hol"},
+        {"type": "Army", "nation": "France", "province": "dau"},
+        {"type": "Army", "nation": "Burgundy", "province": "lux"},
+        {"type": "Army", "nation": "France", "province": "tou"},
+        {"type": "Army", "nation": "England", "province": "cal"},
+        {"type": "Army", "nation": "England", "province": "nom"},
+        {"type": "Army", "nation": "England", "province": "guy"},
+        {"type": "Army", "nation": "Burgundy", "province": "fla"},
+    ]
 
     for unit_data in units_data:
         nation = Nation.objects.get(variant=hundred_variant, name=unit_data["nation"])
-        province = Province.objects.get(variant=hundred_variant, province_id=unit_data["province"])
+        province = Province.objects.get(
+            variant=hundred_variant, province_id=unit_data["province"]
+        )
 
         Unit.objects.create(
             nation=nation,
             province=province,
             phase=template_phase,
-            type=unit_data["type"]
+            type=unit_data["type"],
         )
 
 
@@ -33,7 +52,9 @@ def remove_hundred_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     hundred_variant = Variant.objects.get(id="hundred")
-    template_phase = Phase.objects.get(game=None, variant=hundred_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=hundred_variant, status="template"
+    )
     Unit.objects.filter(phase=template_phase).delete()
 
 

@@ -20,7 +20,9 @@ class TestCheckForSoloWinner:
             pytest.param(18, [19, 19], None, id="no_winner_when_tied_above_threshold"),
             pytest.param(8, [8, 5], 0, id="variant_specific_threshold"),
             pytest.param(18, [17, 17, 17], None, id="three_way_tie"),
-            pytest.param(18, [18, 10, 8, 7, 5, 3, 2], 0, id="clear_winner_with_multiple_players"),
+            pytest.param(
+                18, [18, 10, 8, 7, 5, 3, 2], 0, id="clear_winner_with_multiple_players"
+            ),
         ],
     )
     def test_check_for_solo_winner(
@@ -53,14 +55,34 @@ class TestCheckForSoloWinner:
         "default,overrides,sc_counts,winner_index",
         [
             pytest.param(None, {0: 15}, [15, 10], 0, id="override_only_winner"),
-            pytest.param(None, {1: 15}, [30, 10], None, id="nation_without_target_cannot_win"),
-            pytest.param(None, {0: 15}, [15, 20], 0, id="nation_without_target_does_not_block"),
-            pytest.param(18, {0: 15}, [15, 17], 0, id="lower_override_reached_below_default"),
+            pytest.param(
+                None, {1: 15}, [30, 10], None, id="nation_without_target_cannot_win"
+            ),
+            pytest.param(
+                None, {0: 15}, [15, 20], 0, id="nation_without_target_does_not_block"
+            ),
+            pytest.param(
+                18, {0: 15}, [15, 17], 0, id="lower_override_reached_below_default"
+            ),
             pytest.param(18, {0: 20}, [19, 10], None, id="higher_override_not_reached"),
-            pytest.param(18, {0: 15}, [16, 18], 0, id="highest_ratio_wins_over_more_supply_centers"),
-            pytest.param(18, {0: 15}, [15, 19], 1, id="highest_ratio_wins_with_default_target"),
+            pytest.param(
+                18,
+                {0: 15},
+                [16, 18],
+                0,
+                id="highest_ratio_wins_over_more_supply_centers",
+            ),
+            pytest.param(
+                18, {0: 15}, [15, 19], 1, id="highest_ratio_wins_with_default_target"
+            ),
             pytest.param(18, {0: 9}, [9, 18], None, id="no_winner_when_ratios_tied"),
-            pytest.param(20, {0: 10}, [12, 24], None, id="no_winner_when_ratios_tied_above_target"),
+            pytest.param(
+                20,
+                {0: 10},
+                [12, 24],
+                None,
+                id="no_winner_when_ratios_tied_above_target",
+            ),
         ],
     )
     def test_check_for_solo_winner_with_per_nation_targets(
@@ -79,9 +101,17 @@ class TestCheckForSoloWinner:
 
         members = [member_factory(game=game) for _ in sc_counts]
 
-        conditions = [] if default is None else [{"type": "supply-center-majority", "supplyCenters": default}]
+        conditions = (
+            []
+            if default is None
+            else [{"type": "supply-center-majority", "supplyCenters": default}]
+        )
         conditions += [
-            {"type": "supply-center-majority", "supplyCenters": target, "nation": members[index].nation.nation_id}
+            {
+                "type": "supply-center-majority",
+                "supplyCenters": target,
+                "nation": members[index].nation.nation_id,
+            }
             for index, target in overrides.items()
         ]
         game.variant.victory_conditions = conditions
@@ -132,7 +162,9 @@ class TestCheckForSoloWinner:
         supply_center_factory,
     ):
         game = game_factory()
-        game.variant.victory_conditions = [{"type": "timed-resolution", "year": 1910, "resolution": "shared-draw"}]
+        game.variant.victory_conditions = [
+            {"type": "timed-resolution", "year": 1910, "resolution": "shared-draw"}
+        ]
         game.variant.save()
 
         phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
@@ -194,7 +226,9 @@ class TestVictoryManager:
         self, game_factory, phase_factory, member_factory, supply_center_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
-        movement_phase = phase_factory(game=game, type=PhaseType.MOVEMENT, season="Fall")
+        movement_phase = phase_factory(
+            game=game, type=PhaseType.MOVEMENT, season="Fall"
+        )
 
         winner = member_factory(game=game)
         other_member = member_factory(game=game)
@@ -240,7 +274,9 @@ class TestVictoryManager:
         self, game_factory, phase_factory, member_factory, supply_center_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=9)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Year", year=1430)
+        phase = phase_factory(
+            game=game, type=PhaseType.ADJUSTMENT, season="Year", year=1430
+        )
 
         winner = member_factory(game=game)
         other_member = member_factory(game=game)
@@ -327,7 +363,9 @@ class TestVictoryModel:
             pytest.param(3, VictoryType.DRAW, id="draw_three_members"),
         ],
     )
-    def test_type_property(self, victory_factory, member_factory, member_count, expected_type):
+    def test_type_property(
+        self, victory_factory, member_factory, member_count, expected_type
+    ):
         victory = victory_factory()
         victory.members.add(*[member_factory() for _ in range(member_count)])
 
@@ -367,30 +405,39 @@ class TestVictoryModel:
 
 class TestVictorySerializer:
 
-    def test_serializes_solo_victory(self, victory_factory, member_factory, primary_user):
+    def test_serializes_solo_victory(
+        self, victory_factory, member_factory, primary_user
+    ):
         victory = victory_factory()
         member = member_factory(user=primary_user)
         victory.members.add(member)
 
         factory = APIRequestFactory()
-        request = factory.get('/')
+        request = factory.get("/")
         request.user = primary_user
 
-        serializer = VictorySerializer(victory, context={'request': request})
+        serializer = VictorySerializer(victory, context={"request": request})
         data = serializer.data
 
-        assert data['type'] == VictoryType.SOLO
-        assert data['id'] == victory.id
-        assert data['winning_phase_id'] == victory.winning_phase.id
-        assert len(data['members']) == 1
-        assert data['members'][0]['id'] == member.id
-        assert 'id' in data
-        assert 'type' in data
-        assert 'winning_phase_id' in data
-        assert 'members' in data
-        assert isinstance(data['members'], list)
+        assert data["type"] == VictoryType.SOLO
+        assert data["id"] == victory.id
+        assert data["winning_phase_id"] == victory.winning_phase.id
+        assert len(data["members"]) == 1
+        assert data["members"][0]["id"] == member.id
+        assert "id" in data
+        assert "type" in data
+        assert "winning_phase_id" in data
+        assert "members" in data
+        assert isinstance(data["members"], list)
 
-    def test_serializes_draw_victory(self, victory_factory, member_factory, primary_user, secondary_user, tertiary_user):
+    def test_serializes_draw_victory(
+        self,
+        victory_factory,
+        member_factory,
+        primary_user,
+        secondary_user,
+        tertiary_user,
+    ):
         victory = victory_factory()
         member1 = member_factory(user=primary_user)
         member2 = member_factory(user=secondary_user)
@@ -398,19 +445,18 @@ class TestVictorySerializer:
         victory.members.add(member1, member2, member3)
 
         factory = APIRequestFactory()
-        request = factory.get('/')
+        request = factory.get("/")
         request.user = primary_user
 
-        serializer = VictorySerializer(victory, context={'request': request})
+        serializer = VictorySerializer(victory, context={"request": request})
         data = serializer.data
 
-        assert data['type'] == VictoryType.DRAW
-        assert data['id'] == victory.id
-        assert data['winning_phase_id'] == victory.winning_phase.id
-        assert len(data['members']) == 3
+        assert data["type"] == VictoryType.DRAW
+        assert data["id"] == victory.id
+        assert data["winning_phase_id"] == victory.winning_phase.id
+        assert len(data["members"]) == 3
 
-        member_ids = [m['id'] for m in data['members']]
+        member_ids = [m["id"] for m in data["members"]]
         assert member1.id in member_ids
         assert member2.id in member_ids
         assert member3.id in member_ids
-

@@ -18,8 +18,8 @@ def backfill_confirmed_empty_orders_outcome(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('phase', '0021_arm_resolution_jobs'),
-        ('order', '0006_add_is_implicit_to_order'),
+        ("phase", "0021_arm_resolution_jobs"),
+        ("order", "0006_add_is_implicit_to_order"),
     ]
 
     operations = [

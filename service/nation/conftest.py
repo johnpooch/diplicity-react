@@ -14,8 +14,12 @@ def draft_variant_for_primary(db, primary_user):
         status=VariantStatus.DRAFT,
         owner=primary_user,
     )
-    Nation.objects.create(variant=variant, nation_id="reds", name="Reds", color="#ff0000")
-    Nation.objects.create(variant=variant, nation_id="blues", name="Blues", color="#0000ff")
+    Nation.objects.create(
+        variant=variant, nation_id="reds", name="Reds", color="#ff0000"
+    )
+    Nation.objects.create(
+        variant=variant, nation_id="blues", name="Blues", color="#0000ff"
+    )
     return variant
 
 
@@ -28,7 +32,9 @@ def draft_variant_for_secondary(db, secondary_user):
         status=VariantStatus.DRAFT,
         owner=secondary_user,
     )
-    Nation.objects.create(variant=variant, nation_id="greens", name="Greens", color="#00ff00")
+    Nation.objects.create(
+        variant=variant, nation_id="greens", name="Greens", color="#00ff00"
+    )
     return variant
 
 

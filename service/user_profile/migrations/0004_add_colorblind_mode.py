@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="colorblind_mode",
             field=models.CharField(
                 blank=True,
-                choices=[("deuteranopia", "Deuteranopia"), ("protanopia", "Protanopia"), ("tritanopia", "Tritanopia")],
+                choices=[
+                    ("deuteranopia", "Deuteranopia"),
+                    ("protanopia", "Protanopia"),
+                    ("tritanopia", "Tritanopia"),
+                ],
                 max_length=20,
                 null=True,
             ),

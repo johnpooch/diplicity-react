@@ -160,7 +160,8 @@ class Variant:
 
     def coasts_of(self, province_id: str) -> Tuple[str, ...]:
         return tuple(
-            nc.id for nc in self.named_coasts.values()
+            nc.id
+            for nc in self.named_coasts.values()
             if nc.parent_province == province_id
         )
 

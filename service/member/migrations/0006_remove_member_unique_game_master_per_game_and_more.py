@@ -6,17 +6,17 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('member', '0005_member_civil_disorder'),
-        ('game', '0017_backfill_created_by'),
+        ("member", "0005_member_civil_disorder"),
+        ("game", "0017_backfill_created_by"),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='member',
-            name='unique_game_master_per_game',
+            model_name="member",
+            name="unique_game_master_per_game",
         ),
         migrations.RemoveField(
-            model_name='member',
-            name='is_game_master',
+            model_name="member",
+            name="is_game_master",
         ),
     ]

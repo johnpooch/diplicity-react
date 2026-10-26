@@ -11,6 +11,7 @@ Public symbols: `convoy_path_exists`, `convoy_path_through_fleet`,
 `is_convoy_redundant`, and `fleet_reaches_coast`. Everything else is
 module-private.
 """
+
 from __future__ import annotations
 
 from typing import Collection, Optional, Set
@@ -174,9 +175,7 @@ def is_convoy_redundant(
     on no chain at all is not redundant — the order simply expresses
     intent that doesn't help (DATC 6.G.6)."""
     variant = state.variant()
-    candidate_parents = {
-        variant.parent_of(loc) for loc in candidate_fleet_locations
-    }
+    candidate_parents = {variant.parent_of(loc) for loc in candidate_fleet_locations}
     fleet_parent = variant.parent_of(fleet_location)
     if fleet_parent not in candidate_parents:
         return False

@@ -575,7 +575,6 @@ export interface GameCreate {
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
   commitmentRequirement?: CommitmentRequirementEnum;
-  musterRequired?: boolean;
 }
 
 export interface GameCreateSandbox {

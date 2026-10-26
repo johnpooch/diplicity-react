@@ -1,7 +1,9 @@
 from harness.types import Context, OrderOption
 
 
-def group_options_by_source(order_options: list[OrderOption]) -> dict[str, list[OrderOption]]:
+def group_options_by_source(
+    order_options: list[OrderOption],
+) -> dict[str, list[OrderOption]]:
     grouped: dict[str, list[OrderOption]] = {}
     for option in order_options:
         grouped.setdefault(option["source"], []).append(option)

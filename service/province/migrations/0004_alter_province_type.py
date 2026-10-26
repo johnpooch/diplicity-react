@@ -6,13 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('province', '0003_add_italy_vs_germany_provinces'),
+        ("province", "0003_add_italy_vs_germany_provinces"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='province',
-            name='type',
-            field=models.CharField(choices=[('land', 'Land'), ('sea', 'Sea'), ('coastal', 'Coastal'), ('named_coast', 'Named coast')], max_length=20),
+            model_name="province",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("land", "Land"),
+                    ("sea", "Sea"),
+                    ("coastal", "Coastal"),
+                    ("named_coast", "Named coast"),
+                ],
+                max_length=20,
+            ),
         ),
     ]

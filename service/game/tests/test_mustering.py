@@ -48,7 +48,9 @@ def _reminder_job(game):
 
 def _reminder_jobs(connector):
     return [
-        j for j in connector.jobs.values() if j["task_name"] == MusterReminderJob.TASK_NAME
+        j
+        for j in connector.jobs.values()
+        if j["task_name"] == MusterReminderJob.TASK_NAME
     ]
 
 
@@ -76,9 +78,13 @@ def _expire_deadline(game):
 
 @pytest.fixture
 def muster_game_factory(db, primary_user, secondary_user, italy_vs_germany_variant):
-    def _create(muster_required=True, private=True, fill=True, second_user=None, **kwargs):
+    def _create(
+        muster_required=True, private=True, fill=True, second_user=None, **kwargs
+    ):
         kwargs.setdefault("deadline_mode", DeadlineMode.DURATION)
-        kwargs.setdefault("movement_phase_duration", MovementPhaseDuration.TWENTY_FOUR_HOURS)
+        kwargs.setdefault(
+            "movement_phase_duration", MovementPhaseDuration.TWENTY_FOUR_HOURS
+        )
         game = Game.objects.create_from_template(
             italy_vs_germany_variant,
             name="Muster Game",
@@ -230,7 +236,11 @@ class TestArming:
 
     @pytest.mark.django_db
     def test_bots_do_not_block_the_final_confirmation(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client, bot_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        bot_user,
     ):
         game = muster_game_factory(second_user=bot_user)
 
@@ -269,7 +279,6 @@ class TestArming:
         new_job = in_memory_procrastinate.jobs[game.muster_job_id]
         assert new_job["status"] == MusterJob.TODO
         assert new_job["scheduled_at"] == game.muster_deadline
-
 
     @pytest.mark.django_db
     def test_entering_mustering_arms_reminder_before_deadline(
@@ -317,11 +326,16 @@ class TestArming:
         job_id = game.muster_reminder_job_id
 
         authenticated_client.post(reverse("game-muster", args=[game.id]))
-        authenticated_client_for_secondary_user.post(reverse("game-muster", args=[game.id]))
+        authenticated_client_for_secondary_user.post(
+            reverse("game-muster", args=[game.id])
+        )
 
         game.refresh_from_db()
         assert game.muster_reminder_job_id is None
-        assert in_memory_procrastinate.jobs[job_id]["status"] == MusterReminderJob.CANCELLED
+        assert (
+            in_memory_procrastinate.jobs[job_id]["status"]
+            == MusterReminderJob.CANCELLED
+        )
 
     @pytest.mark.django_db
     def test_returning_to_pending_cancels_reminder(
@@ -334,7 +348,10 @@ class TestArming:
 
         game.refresh_from_db()
         assert game.muster_reminder_job_id is None
-        assert in_memory_procrastinate.jobs[job_id]["status"] == MusterReminderJob.CANCELLED
+        assert (
+            in_memory_procrastinate.jobs[job_id]["status"]
+            == MusterReminderJob.CANCELLED
+        )
 
 
 class TestSendMusterReminder:
@@ -439,7 +456,9 @@ class TestStartIfMustered:
 
         removed = game.members.get(user=secondary_user)
         confirmed = game.members.get(user=primary_user)
-        assert list(removed.commitment_entries.values_list("kind", flat=True)) == [CommitmentEvent.MUSTER_NO_SHOW]
+        assert list(removed.commitment_entries.values_list("kind", flat=True)) == [
+            CommitmentEvent.MUSTER_NO_SHOW
+        ]
         assert not confirmed.commitment_entries.exists()
 
     @pytest.mark.django_db
@@ -625,7 +644,11 @@ class TestMusterEndpoint:
 
     @pytest.mark.django_db
     def test_confirming_sets_mustered_at(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client, primary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        primary_user,
     ):
         game = muster_game_factory()
 
@@ -637,7 +660,11 @@ class TestMusterEndpoint:
 
     @pytest.mark.django_db
     def test_confirming_twice_is_rejected(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client, primary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        primary_user,
     ):
         game = muster_game_factory()
 
@@ -660,7 +687,10 @@ class TestMusterEndpoint:
 
     @pytest.mark.django_db
     def test_confirming_requires_membership(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client_for_tertiary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client_for_tertiary_user,
     ):
         game = muster_game_factory()
 
@@ -698,7 +728,11 @@ class TestRosterChange:
 
     @pytest.mark.django_db
     def test_kick_during_mustering_returns_the_game_to_pending(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client, secondary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        secondary_user,
     ):
         game = muster_game_factory()
         member = game.members.get(user=secondary_user)
@@ -750,7 +784,10 @@ class TestStatusAudit:
 
     @pytest.mark.django_db
     def test_cannot_join_a_mustering_game(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client_for_tertiary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client_for_tertiary_user,
     ):
         game = muster_game_factory(private=False)
 
@@ -791,9 +828,7 @@ class TestStatusAudit:
         game.refresh_from_db()
         assert game.status == GameStatus.MUSTERING
 
-        assert primary_user.id not in {
-            m.user_id for m in game.unmustered_members()
-        }
+        assert primary_user.id not in {m.user_id for m in game.unmustered_members()}
 
         authenticated_client_factory(secondary_user).post(
             reverse("game-muster", args=[game.id])
@@ -922,7 +957,20 @@ class TestGameCreateMusterRequired:
         return payload
 
     @pytest.mark.django_db
-    def test_private_games_default_muster_required_off(
+    def test_public_games_require_mustering(
+        self, authenticated_client, italy_vs_germany_variant, in_memory_procrastinate
+    ):
+        response = authenticated_client.post(
+            reverse("game-create"),
+            self._payload(italy_vs_germany_variant.id, private=False),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["muster_required"] is True
+
+    @pytest.mark.django_db
+    def test_private_games_do_not_require_mustering(
         self, authenticated_client, italy_vs_germany_variant, in_memory_procrastinate
     ):
         response = authenticated_client.post(
@@ -932,20 +980,59 @@ class TestGameCreateMusterRequired:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert Game.objects.get(id=response.data["id"]).muster_required is False
+        assert response.data["muster_required"] is False
 
     @pytest.mark.django_db
-    def test_private_games_can_opt_into_mustering(
+    def test_muster_required_in_the_request_is_ignored(
         self, authenticated_client, italy_vs_germany_variant, in_memory_procrastinate
     ):
-        response = authenticated_client.post(
+        private_response = authenticated_client.post(
             reverse("game-create"),
-            self._payload(italy_vs_germany_variant.id, private=True, muster_required=True),
+            self._payload(
+                italy_vs_germany_variant.id, private=True, musterRequired=True
+            ),
+            format="json",
+        )
+        public_response = authenticated_client.post(
+            reverse("game-create"),
+            self._payload(
+                italy_vs_germany_variant.id, private=False, musterRequired=False
+            ),
             format="json",
         )
 
+        assert private_response.status_code == status.HTTP_201_CREATED
+        assert private_response.data["muster_required"] is False
+        assert public_response.status_code == status.HTTP_201_CREATED
+        assert public_response.data["muster_required"] is True
+
+
+class TestGameCloneToSandboxMusterRequired:
+
+    @pytest.mark.django_db
+    def test_sandbox_cloned_from_a_public_game_does_not_require_mustering(
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+    ):
+        game = muster_game_factory(private=False)
+        authenticated_client.post(reverse("game-muster", args=[game.id]))
+        authenticated_client_for_secondary_user.post(
+            reverse("game-muster", args=[game.id])
+        )
+        Game.objects.start_if_mustered(game.id)
+        game.refresh_from_db()
+        assert game.status == GameStatus.ACTIVE
+
+        response = authenticated_client.post(
+            reverse("game-clone-to-sandbox", args=[game.id])
+        )
+
         assert response.status_code == status.HTTP_201_CREATED
-        assert Game.objects.get(id=response.data["id"]).muster_required is True
+        assert response.data["muster_required"] is False
+        assert response.data["status"] == GameStatus.ACTIVE
 
 
 class TestMusterSerializerFields:
@@ -985,7 +1072,10 @@ class TestMusterSerializerFields:
 
     @pytest.mark.django_db
     def test_muster_status_is_null_for_non_members(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client_for_tertiary_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client_for_tertiary_user,
     ):
         game = muster_game_factory()
 
@@ -997,7 +1087,11 @@ class TestMusterSerializerFields:
 
     @pytest.mark.django_db
     def test_muster_status_is_confirmed_for_bots(
-        self, muster_game_factory, in_memory_procrastinate, authenticated_client_factory, bot_user
+        self,
+        muster_game_factory,
+        in_memory_procrastinate,
+        authenticated_client_factory,
+        bot_user,
     ):
         game = muster_game_factory(second_user=bot_user)
 

@@ -84,28 +84,44 @@ class VariantAdmin(admin.ModelAdmin):
 
     @admin.action(description="Publish selected drafts")
     def publish_selected(self, request, queryset):
-        updated = queryset.filter(status=VariantStatus.DRAFT).update(status=VariantStatus.PUBLISHED)
-        self.message_user(request, f"Published {updated} variant(s).", level=messages.SUCCESS)
+        updated = queryset.filter(status=VariantStatus.DRAFT).update(
+            status=VariantStatus.PUBLISHED
+        )
+        self.message_user(
+            request, f"Published {updated} variant(s).", level=messages.SUCCESS
+        )
 
     @admin.action(description="Archive selected published variants")
     def archive_selected(self, request, queryset):
-        updated = queryset.filter(status=VariantStatus.PUBLISHED).update(status=VariantStatus.ARCHIVED)
-        self.message_user(request, f"Archived {updated} variant(s).", level=messages.SUCCESS)
+        updated = queryset.filter(status=VariantStatus.PUBLISHED).update(
+            status=VariantStatus.ARCHIVED
+        )
+        self.message_user(
+            request, f"Archived {updated} variant(s).", level=messages.SUCCESS
+        )
 
     @admin.action(description="Revert selected to draft (use with care)")
     def revert_to_draft_selected(self, request, queryset):
-        updated = queryset.exclude(status=VariantStatus.DRAFT).update(status=VariantStatus.DRAFT)
-        self.message_user(request, f"Reverted {updated} variant(s) to draft.", level=messages.WARNING)
+        updated = queryset.exclude(status=VariantStatus.DRAFT).update(
+            status=VariantStatus.DRAFT
+        )
+        self.message_user(
+            request, f"Reverted {updated} variant(s) to draft.", level=messages.WARNING
+        )
 
     @admin.action(description="Mark selected as official")
     def mark_official_selected(self, request, queryset):
         updated = queryset.update(official=True)
-        self.message_user(request, f"Marked {updated} variant(s) as official.", level=messages.SUCCESS)
+        self.message_user(
+            request, f"Marked {updated} variant(s) as official.", level=messages.SUCCESS
+        )
 
     @admin.action(description="Unmark selected as official")
     def unmark_official_selected(self, request, queryset):
         updated = queryset.update(official=False)
-        self.message_user(request, f"Unmarked {updated} variant(s).", level=messages.WARNING)
+        self.message_user(
+            request, f"Unmarked {updated} variant(s).", level=messages.WARNING
+        )
 
     def get_urls(self):
         urls = super().get_urls()
@@ -149,7 +165,9 @@ class VariantAdmin(admin.ModelAdmin):
                         form.add_error("dsvg", f"{error.code}: {error.message}")
                 else:
                     with transaction.atomic():
-                        apply_safe_replacement(variant, form.parsed_dvar, form.parsed_dsvg)
+                        apply_safe_replacement(
+                            variant, form.parsed_dvar, form.parsed_dsvg
+                        )
                     self.message_user(
                         request,
                         f"Replaced files for variant '{variant.id}'.",
@@ -200,7 +218,9 @@ class VariantSvgAdminForm(forms.ModelForm):
 
         errors = validate_dsvg(svg, cleaned_data.get("variant"))
         if errors:
-            raise forms.ValidationError([f"{error.code}: {error.message}" for error in errors])
+            raise forms.ValidationError(
+                [f"{error.code}: {error.message}" for error in errors]
+            )
 
         self.instance.svg = svg
         return cleaned_data

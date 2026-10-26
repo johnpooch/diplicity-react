@@ -68,7 +68,9 @@ def build_push_message(title, body, notification_type, data=None, tag=None):
 def push_results_by_user(user_ids, tokens_by_user, result):
     rejections = {
         registration_id: str(exception)
-        for registration_id, exception in zip(result.failed_registration_ids, result.failed_exceptions)
+        for registration_id, exception in zip(
+            result.failed_registration_ids, result.failed_exceptions
+        )
     }
     results = {}
     for user_id in user_ids:
@@ -85,12 +87,16 @@ def unexpected_rejections(result):
     deactivated = set(result.deactivated_registration_ids)
     return [
         exception
-        for registration_id, exception in zip(result.failed_registration_ids, result.failed_exceptions)
+        for registration_id, exception in zip(
+            result.failed_registration_ids, result.failed_exceptions
+        )
         if registration_id not in deactivated
     ]
 
 
-def send_notification_to_users(user_ids, title, body, notification_type, data=None, tag=None):
+def send_notification_to_users(
+    user_ids, title, body, notification_type, data=None, tag=None
+):
     if not user_ids:
         return {}
 
@@ -113,7 +119,10 @@ def send_notification_to_users(user_ids, title, body, notification_type, data=No
         result = devices.send_message(message)
     except Exception as e:
         logger.error(f"Failed to send {notification_type} notification: {str(e)}")
-        return {user_id: str(e) if user_id in tokens_by_user else NO_ACTIVE_DEVICE_ERROR for user_id in user_ids}
+        return {
+            user_id: str(e) if user_id in tokens_by_user else NO_ACTIVE_DEVICE_ERROR
+            for user_id in user_ids
+        }
 
     logger.info(
         f"Sent {notification_type} notification to {len(result.registration_ids_sent)} device(s) "

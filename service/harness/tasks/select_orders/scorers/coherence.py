@@ -1,4 +1,12 @@
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    accuracy,
+    scorer,
+    stderr,
+)
 
 from harness.tasks.select_orders.scorers._resolve import resolve_orders
 from harness.types import OrderOption
@@ -17,7 +25,9 @@ def destinations(orders: list[OrderOption]) -> dict[str, str | None]:
     return resolved
 
 
-def dangling(orders: list[OrderOption], order_type: str) -> list[tuple[str, str, str | None]]:
+def dangling(
+    orders: list[OrderOption], order_type: str
+) -> list[tuple[str, str, str | None]]:
     resolved = destinations(orders)
     broken = []
     for order in orders:

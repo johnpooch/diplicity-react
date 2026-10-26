@@ -21,13 +21,13 @@ Quirks worth knowing:
   - For everything except multi-coast Builds the top-level province key
     is the parent province — even when the unit sits on a named coast.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple
 
 from .domain import OrderOption, SupplyCenter, Unit, Variant
-
 
 _PROVINCE = "Province"
 _ORDER_TYPE = "OrderType"
@@ -106,7 +106,9 @@ def _add_movement_option(
     nation_name = nation_name_by_id.get(nation_id, nation_id)
 
     godip_source = variant.parent_of(option.source)
-    godip_order_type = "Move" if is_retreat and option.order_type == "Retreat" else option.order_type
+    godip_order_type = (
+        "Move" if is_retreat and option.order_type == "Retreat" else option.order_type
+    )
 
     nation_tree = result.setdefault(nation_name, {})
     province_tree = nation_tree.setdefault(
@@ -156,7 +158,9 @@ def _add_build_options(
         single-coast → Army + Fleet, etc.).
     """
     # parent → unit_type → {src locations}
-    grouped: Dict[Tuple[str, str], Dict[str, set]] = defaultdict(lambda: defaultdict(set))
+    grouped: Dict[Tuple[str, str], Dict[str, set]] = defaultdict(
+        lambda: defaultdict(set)
+    )
     for option in build_options:
         parent = variant.parent_of(option.source)
         nation_id = sc_by_province.get(parent)
@@ -202,9 +206,7 @@ def _add_build_options(
 
         # No named coasts, or no Fleet at a coast — emit a single parent
         # entry with whatever unit types are buildable here.
-        province_tree = nation_tree.setdefault(
-            parent, {"Next": {}, "Type": _PROVINCE}
-        )
+        province_tree = nation_tree.setdefault(parent, {"Next": {}, "Type": _PROVINCE})
         order_type_tree = province_tree["Next"].setdefault(
             "Build", {"Next": {}, "Type": _ORDER_TYPE}
         )

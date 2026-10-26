@@ -20,7 +20,12 @@ from select_orders.evals import (
     select_orders,
 )
 from select_orders.exceptions import FixtureError, ParsingError, PromptError
-from select_orders.fixtures import ranked_options, read_fixture, validate_fixture, write_fixture
+from select_orders.fixtures import (
+    ranked_options,
+    read_fixture,
+    validate_fixture,
+    write_fixture,
+)
 from select_orders.notation import Notation
 from select_orders.options import option_from_id, option_id
 from select_orders.order_sets import label_order_set, order_set_label
@@ -38,7 +43,9 @@ from select_orders.scorers import (
 )
 
 
-def _option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+def _option(
+    source, order_type, target=None, aux=None, unit_type=None, named_coast=None
+):
     return {
         "source": source,
         "order_type": order_type,
@@ -54,7 +61,12 @@ def _context(options, max_orders=None):
 
 
 def _completion(option_ids):
-    return json.dumps({"reasoning": "because", "choices": [{"option_id": chosen} for chosen in option_ids]})
+    return json.dumps(
+        {
+            "reasoning": "because",
+            "choices": [{"option_id": chosen} for chosen in option_ids],
+        }
+    )
 
 
 class _FakeOutput:
@@ -104,7 +116,9 @@ class TestParseCompletion:
 
     def test_fenced_completion_parses(self):
         completion = f"```json\n{_completion(['lon:Hold'])}\n```"
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [_option("lon", "Hold")]
+        assert parse_completion(completion, _context(STRUCTURE_OPTIONS)) == [
+            _option("lon", "Hold")
+        ]
 
     def test_invalid_json_raises(self):
         with pytest.raises(ParsingError):
@@ -116,18 +130,24 @@ class TestParseCompletion:
 
     def test_missing_choices_raises(self):
         with pytest.raises(ParsingError):
-            parse_completion(json.dumps({"reasoning": "no choices"}), _context(STRUCTURE_OPTIONS))
+            parse_completion(
+                json.dumps({"reasoning": "no choices"}), _context(STRUCTURE_OPTIONS)
+            )
 
     def test_unknown_option_id_raises(self):
         with pytest.raises(ParsingError):
-            parse_completion(_completion(["lon:Hold", "ber:Move:mun"]), _context(STRUCTURE_OPTIONS))
+            parse_completion(
+                _completion(["lon:Hold", "ber:Move:mun"]), _context(STRUCTURE_OPTIONS)
+            )
 
     def test_non_string_option_id_raises(self):
         with pytest.raises(ParsingError):
             parse_completion(_completion([0]), _context(STRUCTURE_OPTIONS))
 
     def test_positional_choice_raises(self):
-        completion = json.dumps({"reasoning": "", "choices": [{"source_id": "lon", "option_index": 0}]})
+        completion = json.dumps(
+            {"reasoning": "", "choices": [{"source_id": "lon", "option_index": 0}]}
+        )
         with pytest.raises(ParsingError):
             parse_completion(completion, _context(STRUCTURE_OPTIONS))
 
@@ -138,18 +158,31 @@ class TestParseCompletion:
             _option("lon", "Move", target="eng"),
         ]
 
-    def test_option_id_selects_the_same_order_however_the_list_is_ordered_or_trimmed(self):
+    def test_option_id_selects_the_same_order_however_the_list_is_ordered_or_trimmed(
+        self,
+    ):
         completion = _completion(["par:Move:bur"])
         expected = [_option("par", "Move", target="bur")]
-        assert parse_completion(completion, _context(list(reversed(STRUCTURE_OPTIONS)))) == expected
-        assert parse_completion(completion, _context(STRUCTURE_OPTIONS[2:4])) == expected
+        assert (
+            parse_completion(completion, _context(list(reversed(STRUCTURE_OPTIONS))))
+            == expected
+        )
+        assert (
+            parse_completion(completion, _context(STRUCTURE_OPTIONS[2:4])) == expected
+        )
 
 
 class TestOptionId:
 
     def test_id_is_built_from_the_option_content(self):
-        assert option_id(_option("wal", "Support", target="lvp", aux="lon")) == "wal:Support:lvp:lon"
-        assert option_id(_option("stp", "Build", unit_type="Fleet", named_coast="stp/nc")) == "stp:Build:::Fleet:stp/nc"
+        assert (
+            option_id(_option("wal", "Support", target="lvp", aux="lon"))
+            == "wal:Support:lvp:lon"
+        )
+        assert (
+            option_id(_option("stp", "Build", unit_type="Fleet", named_coast="stp/nc"))
+            == "stp:Build:::Fleet:stp/nc"
+        )
 
     def test_option_is_rebuilt_from_its_id(self):
         for option in (
@@ -166,14 +199,19 @@ class TestOptionId:
 
     def test_ids_are_unique_within_every_fixture(self):
         for fixture in load_fixtures():
-            ids = [option_id(option) for option in fixture_to_context(fixture)["order_options"]]
+            ids = [
+                option_id(option)
+                for option in fixture_to_context(fixture)["order_options"]
+            ]
             assert len(ids) == len(set(ids)), fixture["id"]
 
 
 class TestLegality:
 
     def test_valid_selection_is_correct(self):
-        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS
+        )
         assert _run(legality, state).value == CORRECT
 
     def test_invalid_json_is_incorrect(self):
@@ -184,11 +222,16 @@ class TestLegality:
 class TestDeduplication:
 
     def test_distinct_provinces_are_correct(self):
-        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS
+        )
         assert _run(deduplication, state).value == CORRECT
 
     def test_repeated_choices_for_one_province_are_duplicates(self):
-        state = _state(_completion(["lon:Hold", "lon:Move:eng", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "lon:Move:eng", "par:Hold", "ber:Hold"]),
+            STRUCTURE_OPTIONS,
+        )
         assert _run(deduplication, state).value == INCORRECT
         assert _run(coverage, state).value == CORRECT
 
@@ -196,7 +239,9 @@ class TestDeduplication:
 class TestCoverage:
 
     def test_all_provinces_covered_is_correct(self):
-        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "par:Hold", "ber:Hold"]), STRUCTURE_OPTIONS
+        )
         assert _run(coverage, state).value == CORRECT
 
     def test_missing_province_is_incorrect(self):
@@ -204,7 +249,9 @@ class TestCoverage:
         assert _run(coverage, state).value == INCORRECT
 
     def test_unknown_option_id_is_incorrect(self):
-        state = _state(_completion(["lon:Hold", "par:Hold", "ber:Move:mun"]), STRUCTURE_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "par:Hold", "ber:Move:mun"]), STRUCTURE_OPTIONS
+        )
         assert _run(coverage, state).value == INCORRECT
 
     def test_max_orders_exact_count_is_correct(self):
@@ -212,7 +259,9 @@ class TestCoverage:
         assert _run(coverage, state).value == CORRECT
 
     def test_max_orders_over_selection_is_incorrect(self):
-        state = _state(_completion(["lon:Hold", "par:Hold"]), STRUCTURE_OPTIONS, max_orders=1)
+        state = _state(
+            _completion(["lon:Hold", "par:Hold"]), STRUCTURE_OPTIONS, max_orders=1
+        )
         assert _run(coverage, state).value == INCORRECT
 
     def test_max_orders_no_selection_is_incorrect(self):
@@ -232,19 +281,27 @@ SUPPORT_OPTIONS = [
 class TestSupportCoherence:
 
     def test_supported_move_present_is_coherent(self):
-        state = _state(_completion(["lon:Move:lvp", "wal:Support:lvp:lon"]), SUPPORT_OPTIONS)
+        state = _state(
+            _completion(["lon:Move:lvp", "wal:Support:lvp:lon"]), SUPPORT_OPTIONS
+        )
         assert _run(support_coherence, state).value == CORRECT
 
     def test_supported_move_absent_dangles(self):
-        state = _state(_completion(["lon:Hold", "wal:Support:lvp:lon"]), SUPPORT_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "wal:Support:lvp:lon"]), SUPPORT_OPTIONS
+        )
         assert _run(support_coherence, state).value == INCORRECT
 
     def test_supported_hold_present_is_coherent(self):
-        state = _state(_completion(["lon:Hold", "wal:Support:lon:lon"]), SUPPORT_OPTIONS)
+        state = _state(
+            _completion(["lon:Hold", "wal:Support:lon:lon"]), SUPPORT_OPTIONS
+        )
         assert _run(support_coherence, state).value == CORRECT
 
     def test_supported_unit_moves_away_dangles_hold(self):
-        state = _state(_completion(["lon:Move:lvp", "wal:Support:lon:lon"]), SUPPORT_OPTIONS)
+        state = _state(
+            _completion(["lon:Move:lvp", "wal:Support:lon:lon"]), SUPPORT_OPTIONS
+        )
         assert _run(support_coherence, state).value == INCORRECT
 
     def test_support_with_aux_unselected_dangles(self):
@@ -255,7 +312,6 @@ class TestSupportCoherence:
         state = _state(_completion(["lon:Hold", "wal:Hold"]), SUPPORT_OPTIONS)
         assert _run(support_coherence, state).value == CORRECT
 
-
     def _foreign_state(self, choices, foreign_orders):
         context = {
             **_context(SUPPORT_OPTIONS),
@@ -264,8 +320,18 @@ class TestSupportCoherence:
                 {"name": "France", "nation": "France", "is_current_user": False},
             ],
             "units": [
-                {"type": "Army", "nation": "France", "province": "lon", "dislodged": False},
-                {"type": "Army", "nation": "England", "province": "wal", "dislodged": False},
+                {
+                    "type": "Army",
+                    "nation": "France",
+                    "province": "lon",
+                    "dislodged": False,
+                },
+                {
+                    "type": "Army",
+                    "nation": "England",
+                    "province": "wal",
+                    "dislodged": False,
+                },
             ],
         }
         state = _FakeState(_completion(choices), context)
@@ -273,7 +339,9 @@ class TestSupportCoherence:
         return state
 
     def test_support_of_a_foreign_units_ordered_move_is_coherent(self):
-        state = self._foreign_state(["wal:Support:lvp:lon"], [_option("lon", "Move", target="lvp")])
+        state = self._foreign_state(
+            ["wal:Support:lvp:lon"], [_option("lon", "Move", target="lvp")]
+        )
         assert _run(support_coherence, state).value == CORRECT
 
     def test_support_of_a_foreign_move_that_was_not_ordered_dangles(self):
@@ -296,10 +364,13 @@ class TestSupportCoherence:
                 "France": [{"source": "bur", "order_type": "Hold"}],
             },
         }
-        assert fixture_to_sample(fixture).metadata["foreign_orders"] == [_option("bur", "Hold")]
+        assert fixture_to_sample(fixture).metadata["foreign_orders"] == [
+            _option("bur", "Hold")
+        ]
 
     def test_sample_without_real_orders_carries_none(self):
         assert fixture_to_sample(_quality_fixture()).metadata["foreign_orders"] is None
+
 
 CONVOY_OPTIONS = [
     _option("eng", "Convoy", aux="lon", target="bre"),
@@ -312,7 +383,9 @@ CONVOY_OPTIONS = [
 class TestConvoyCoherence:
 
     def test_convoyed_move_present_is_coherent(self):
-        state = _state(_completion(["eng:Convoy:bre:lon", "lon:Move:bre"]), CONVOY_OPTIONS)
+        state = _state(
+            _completion(["eng:Convoy:bre:lon", "lon:Move:bre"]), CONVOY_OPTIONS
+        )
         assert _run(convoy_coherence, state).value == CORRECT
 
     def test_convoyed_army_holds_dangles(self):
@@ -330,8 +403,17 @@ class TestConvoyCoherence:
     def test_convoy_of_a_foreign_armys_ordered_move_is_coherent(self):
         context = {
             **_context(CONVOY_OPTIONS),
-            "members": [{"name": "England", "nation": "England", "is_current_user": True}],
-            "units": [{"type": "Army", "nation": "France", "province": "lon", "dislodged": False}],
+            "members": [
+                {"name": "England", "nation": "England", "is_current_user": True}
+            ],
+            "units": [
+                {
+                    "type": "Army",
+                    "nation": "France",
+                    "province": "lon",
+                    "dislodged": False,
+                }
+            ],
         }
         state = _FakeState(_completion(["eng:Convoy:bre:lon"]), context)
         state.metadata["foreign_orders"] = [_option("lon", "Move", target="bre")]
@@ -368,16 +450,36 @@ class TestQualityScorers:
         return state
 
     def test_selecting_good_order_is_strong_correct(self):
-        assert _run(quality_strong, self._state(_quality_fixture(), ["lon:Hold:lon"])).value == CORRECT
+        assert (
+            _run(
+                quality_strong, self._state(_quality_fixture(), ["lon:Hold:lon"])
+            ).value
+            == CORRECT
+        )
 
     def test_missing_good_order_is_strong_incorrect(self):
-        assert _run(quality_strong, self._state(_quality_fixture(), ["lon:Move:eng"])).value == INCORRECT
+        assert (
+            _run(
+                quality_strong, self._state(_quality_fixture(), ["lon:Move:eng"])
+            ).value
+            == INCORRECT
+        )
 
     def test_selecting_bad_order_is_avoidance_incorrect(self):
-        assert _run(quality_avoidance, self._state(_quality_fixture(), ["lon:Move:eng"])).value == INCORRECT
+        assert (
+            _run(
+                quality_avoidance, self._state(_quality_fixture(), ["lon:Move:eng"])
+            ).value
+            == INCORRECT
+        )
 
     def test_avoiding_bad_order_is_avoidance_correct(self):
-        assert _run(quality_avoidance, self._state(_quality_fixture(), ["lon:Hold:lon"])).value == CORRECT
+        assert (
+            _run(
+                quality_avoidance, self._state(_quality_fixture(), ["lon:Hold:lon"])
+            ).value
+            == CORRECT
+        )
 
     def test_fixture_without_ranked_options_is_unscored(self):
         state = self._state(_quality_fixture(ranked=False), ["lon:Hold:lon"])
@@ -389,7 +491,12 @@ class TestQualityScorers:
 def _labelled_fixture(labels):
     fixture = _quality_fixture(ranked=False)
     fixture["option_labels"] = [
-        {"options": options, "label": label, "labeller": "labeller", "labelled_at": "2026-09-28T12:00:00+00:00"}
+        {
+            "options": options,
+            "label": label,
+            "labeller": "labeller",
+            "labelled_at": "2026-09-28T12:00:00+00:00",
+        }
         for options, label in labels
     ]
     return fixture
@@ -401,18 +508,28 @@ class TestRankedOptionsFromLabels:
         sample = fixture_to_sample(fixture)
         state = _FakeState(_completion(choices), sample.metadata["context"])
         state.metadata = sample.metadata
-        return [_run(scorer_factory, state).value for scorer_factory in (quality_strong, quality_avoidance)]
+        return [
+            _run(scorer_factory, state).value
+            for scorer_factory in (quality_strong, quality_avoidance)
+        ]
 
     @pytest.mark.parametrize("choices", [["lon:Hold:lon"], ["lon:Move:eng"], []])
     def test_labels_score_the_same_as_the_equivalent_ranked_options(self, choices):
-        labelled = _labelled_fixture([(["lon:Hold:lon"], "reasonable"), (["lon:Move:eng"], "unreasonable")])
+        labelled = _labelled_fixture(
+            [(["lon:Hold:lon"], "reasonable"), (["lon:Move:eng"], "unreasonable")]
+        )
         ranked = _quality_fixture(ranked=True)
         assert self._scores(labelled, choices) == self._scores(ranked, choices)
 
     def test_labels_take_precedence_over_a_stored_ranking(self):
-        fixture = {**_quality_fixture(ranked=True), **_labelled_fixture([(["lon:Move:eng"], "reasonable")])}
+        fixture = {
+            **_quality_fixture(ranked=True),
+            **_labelled_fixture([(["lon:Move:eng"], "reasonable")]),
+        }
         fixture["ranked_options"] = _quality_fixture(ranked=True)["ranked_options"]
-        assert ranked_options(fixture)["good"] == [{"source": "lon", "order_type": "Move", "target": "eng"}]
+        assert ranked_options(fixture)["good"] == [
+            {"source": "lon", "order_type": "Move", "target": "eng"}
+        ]
 
     def test_tuple_labels_are_left_out_of_the_derived_ranking(self):
         fixture = _labelled_fixture([(["lon:Hold:lon", "lon:Move:eng"], "reasonable")])
@@ -425,20 +542,26 @@ class TestRankedOptionsFromLabels:
         with pytest.raises(FixtureError):
             ranked_options(_labelled_fixture([(["lon:Move:atlantis"], "reasonable")]))
 
+
 class TestQualityMetricAggregation:
 
     def _sample(self, fixture):
         return Sample(
             id=fixture["id"],
             input="ignored",
-            metadata={"context": fixture_to_context(fixture), "ranked_options": fixture.get("ranked_options")},
+            metadata={
+                "context": fixture_to_context(fixture),
+                "ranked_options": fixture.get("ranked_options"),
+            },
         )
 
     def test_accuracy_covers_ranked_samples_and_skips_the_rest(self, tmp_path):
         good_pick = _completion(["lon:Hold:lon"])
         model = get_model(
             "mockllm/model",
-            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content("mockllm/model", good_pick),
+            custom_outputs=lambda *args, **kwargs: ModelOutput.from_content(
+                "mockllm/model", good_pick
+            ),
         )
         dataset = MemoryDataset(
             [
@@ -446,10 +569,16 @@ class TestQualityMetricAggregation:
                 self._sample(_quality_fixture("unranked", ranked=False)),
             ]
         )
-        task = Task(dataset=dataset, solver=generate(), scorer=[quality_strong(), quality_avoidance()])
+        task = Task(
+            dataset=dataset,
+            solver=generate(),
+            scorer=[quality_strong(), quality_avoidance()],
+        )
         log = inspect_eval(task, model=model, display="none", log_dir=str(tmp_path))[0]
 
-        metrics = {score.name: score.metrics["accuracy"].value for score in log.results.scores}
+        metrics = {
+            score.name: score.metrics["accuracy"].value for score in log.results.scores
+        }
         assert metrics["quality_strong"] == 1.0
         assert metrics["quality_avoidance"] == 1.0
 
@@ -458,11 +587,16 @@ class TestFixtureToContext:
 
     def test_eval_nation_is_the_current_member_and_listed_first(self):
         context = fixture_to_context(_quality_fixture())
-        assert context["members"][0] == {"name": "England", "nation": "England", "is_current_user": True}
+        assert context["members"][0] == {
+            "name": "England",
+            "nation": "England",
+            "is_current_user": True,
+        }
 
     def test_every_supply_centre_is_listed_with_its_owner_or_none(self):
         centers = {
-            center["province"]: center["nation"] for center in fixture_to_context(_quality_fixture())["supply_centers"]
+            center["province"]: center["nation"]
+            for center in fixture_to_context(_quality_fixture())["supply_centers"]
         }
         assert len(centers) == 34
         assert centers["lon"] == "England"
@@ -497,7 +631,13 @@ def _harvested_fixture():
         "phase": {"season": "Fall", "year": 1902, "type": "Movement"},
         "units": [
             {"type": "Army", "nation": "Germany", "province": "mun"},
-            {"type": "Army", "nation": "France", "province": "bur", "dislodged": True, "dislodged_from": "mun"},
+            {
+                "type": "Army",
+                "nation": "France",
+                "province": "bur",
+                "dislodged": True,
+                "dislodged_from": "mun",
+            },
         ],
         "supply_centers": [{"nation": "Germany", "province": "mun"}],
         "contested_provinces": ["ruh"],
@@ -526,7 +666,11 @@ def _harvested_fixture():
             }
         ],
         "eval_sets": ["dev"],
-        "discarded": {"by": "labeller", "at": "2026-09-28T12:06:00+00:00", "reason": "duplicate position"},
+        "discarded": {
+            "by": "labeller",
+            "at": "2026-09-28T12:06:00+00:00",
+            "reason": "duplicate position",
+        },
     }
 
 
@@ -594,7 +738,10 @@ class TestFixtures:
             assert fixture_to_context(fixture)["order_options"]
 
     def test_every_fixture_declares_its_provenance(self):
-        assert {fixture["provenance"]["source"] for fixture in load_fixtures()} == {"handbuilt", "harvested"}
+        assert {fixture["provenance"]["source"] for fixture in load_fixtures()} == {
+            "handbuilt",
+            "harvested",
+        }
 
 
 class TestEvalSets:
@@ -612,14 +759,29 @@ class TestEvalSets:
 class TestDumbbotSelectOrders:
 
     def test_dumbbot_passes_every_structural_scorer(self, tmp_path):
-        log = inspect_eval(dumbbot_select_orders(), model="mockllm/model", display="none", log_dir=str(tmp_path))[0]
-        metrics = {score.name: score.metrics["accuracy"].value for score in log.results.scores}
-        for name in ("legality", "deduplication", "coverage", "support_coherence", "convoy_coherence"):
+        log = inspect_eval(
+            dumbbot_select_orders(),
+            model="mockllm/model",
+            display="none",
+            log_dir=str(tmp_path),
+        )[0]
+        metrics = {
+            score.name: score.metrics["accuracy"].value for score in log.results.scores
+        }
+        for name in (
+            "legality",
+            "deduplication",
+            "coverage",
+            "support_coherence",
+            "convoy_coherence",
+        ):
             assert metrics[name] == 1.0
 
 
 def _fixture_context(fixture_id):
-    return fixture_to_context(next(fixture for fixture in load_fixtures() if fixture["id"] == fixture_id))
+    return fixture_to_context(
+        next(fixture for fixture in load_fixtures() if fixture["id"] == fixture_id)
+    )
 
 
 def _sections_except(prompt, index):
@@ -632,7 +794,9 @@ class TestPromptParts:
     def test_overriding_principles_changes_only_that_block(self):
         context = _fixture_context("support_hold_threatened_supply_center")
         overridden = system_prompt(context, {"system.principles": "Be bold."})
-        assert overridden == system_prompt(context).replace(DEFAULT_PARTS["system.principles"], "Be bold.")
+        assert overridden == system_prompt(context).replace(
+            DEFAULT_PARTS["system.principles"], "Be bold."
+        )
 
     def test_overriding_a_line_rewords_every_line_of_its_section_only(self):
         context = _fixture_context("support_hold_threatened_supply_center")
@@ -640,13 +804,17 @@ class TestPromptParts:
         default = user_prompt(context)
         overridden = user_prompt(context, {"user.units.line": "  {{ province }}"})
         units_index = next(
-            index for index, section in enumerate(default.split("\n\n")) if section.startswith("Units on the board:")
+            index
+            for index, section in enumerate(default.split("\n\n"))
+            if section.startswith("Units on the board:")
         )
         assert overridden.split("\n\n")[units_index].splitlines() == [
             "Units on the board:",
             *(f"  {names[unit['province']]}" for unit in context["units"]),
         ]
-        assert _sections_except(overridden, units_index) == _sections_except(default, units_index)
+        assert _sections_except(overridden, units_index) == _sections_except(
+            default, units_index
+        )
 
     def test_board_description_can_be_reworded(self):
         context = _fixture_context("take_neutral_supply_center")
@@ -654,24 +822,34 @@ class TestPromptParts:
             context,
             {"user.board.header": "Map:", "user.board.adjacency": "{{ name }}"},
         )
-        board = next(section for section in overridden.split("\n\n") if section.startswith("Map:"))
+        board = next(
+            section
+            for section in overridden.split("\n\n")
+            if section.startswith("Map:")
+        )
         assert "London (lon, coastal) [supply centre] -> " in board
         assert "(AF)" not in board and "(A)" not in board
 
     def test_task_part_follows_the_phase(self):
         retreat = _fixture_context("retreat_to_supply_center")
-        assert "Retreat now." in system_prompt(retreat, {"system.task.retreat": "Retreat now."})
-        assert system_prompt(retreat, {"system.task.movement": "Move now."}) == system_prompt(retreat)
+        assert "Retreat now." in system_prompt(
+            retreat, {"system.task.retreat": "Retreat now."}
+        )
+        assert system_prompt(
+            retreat, {"system.task.movement": "Move now."}
+        ) == system_prompt(retreat)
 
     def test_adjustment_task_receives_max_orders(self):
         build = _fixture_context("build_toward_open_supply_center")
-        assert "Build 1." in system_prompt(build, {"system.task.adjustment": "Build {{ max_orders }}."})
+        assert "Build 1." in system_prompt(
+            build, {"system.task.adjustment": "Build {{ max_orders }}."}
+        )
 
     def test_empty_option_list_uses_its_own_part(self):
         context = {**_fixture_context("structure_single"), "order_options": []}
-        assert user_prompt(context, {"user.options.empty": "  nothing to order"}).endswith(
-            "Your available orders:\n  nothing to order"
-        )
+        assert user_prompt(
+            context, {"user.options.empty": "  nothing to order"}
+        ).endswith("Your available orders:\n  nothing to order")
 
     def test_unknown_part_raises(self):
         with pytest.raises(PromptError):
@@ -679,11 +857,15 @@ class TestPromptParts:
 
     def test_malformed_template_raises(self):
         with pytest.raises(PromptError):
-            system_prompt(_fixture_context("structure_single"), {"system.role": "{{ unclosed"})
+            system_prompt(
+                _fixture_context("structure_single"), {"system.role": "{{ unclosed"}
+            )
 
     def test_undefined_value_raises(self):
         with pytest.raises(PromptError):
-            user_prompt(_fixture_context("structure_single"), {"user.intro": "{{ missing }}"})
+            user_prompt(
+                _fixture_context("structure_single"), {"user.intro": "{{ missing }}"}
+            )
 
 
 class TestOrderSetLabels:
@@ -700,37 +882,66 @@ class TestOrderSetLabels:
         }
 
     def _label(self, fixture, orders, label):
-        return label_order_set(fixture, orders, label, labeller="tester", labelled_at="2026-01-01T00:00:00+00:00")
+        return label_order_set(
+            fixture,
+            orders,
+            label,
+            labeller="tester",
+            labelled_at="2026-01-01T00:00:00+00:00",
+        )
 
     def test_label_matches_the_same_set_in_any_order(self):
-        fixture = self._label(self._fixture(), ["par:Move:bur", "bre:Hold"], "reasonable")
-        assert order_set_label(fixture, ["bre:Hold", "par:Move:bur"])["label"] == "reasonable"
+        fixture = self._label(
+            self._fixture(), ["par:Move:bur", "bre:Hold"], "reasonable"
+        )
+        assert (
+            order_set_label(fixture, ["bre:Hold", "par:Move:bur"])["label"]
+            == "reasonable"
+        )
 
     def test_label_does_not_match_a_subset_or_a_superset(self):
-        fixture = self._label(self._fixture(), ["par:Move:bur", "bre:Hold"], "reasonable")
+        fixture = self._label(
+            self._fixture(), ["par:Move:bur", "bre:Hold"], "reasonable"
+        )
         assert order_set_label(fixture, ["par:Move:bur"]) is None
-        assert order_set_label(fixture, ["par:Move:bur", "bre:Hold", "mar:Hold"]) is None
+        assert (
+            order_set_label(fixture, ["par:Move:bur", "bre:Hold", "mar:Hold"]) is None
+        )
 
     def test_relabelling_a_set_replaces_its_label(self):
         fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
         fixture = self._label(fixture, ["par:Move:bur"], "unreasonable")
-        assert [entry["label"] for entry in fixture["order_set_labels"]] == ["unreasonable"]
+        assert [entry["label"] for entry in fixture["order_set_labels"]] == [
+            "unreasonable"
+        ]
 
     def test_relabelling_a_set_keeps_its_place(self):
         fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
         fixture = self._label(fixture, ["par:Hold"], "unreasonable")
         fixture = self._label(fixture, ["par:Move:bur"], "unreasonable")
-        assert [entry["orders"] for entry in fixture["order_set_labels"]] == [["par:Move:bur"], ["par:Hold"]]
+        assert [entry["orders"] for entry in fixture["order_set_labels"]] == [
+            ["par:Move:bur"],
+            ["par:Hold"],
+        ]
 
     def test_duplicate_orders_do_not_change_the_set(self):
-        fixture = self._label(self._fixture(), ["par:Move:bur", "par:Move:bur", "bre:Hold"], "reasonable")
+        fixture = self._label(
+            self._fixture(), ["par:Move:bur", "par:Move:bur", "bre:Hold"], "reasonable"
+        )
         assert fixture["order_set_labels"][0]["orders"] == ["bre:Hold", "par:Move:bur"]
         assert order_set_label(fixture, ["bre:Hold", "par:Move:bur"]) is not None
 
     def test_reason_is_stored_only_when_given(self):
         fixture = self._label(self._fixture(), ["par:Move:bur"], "reasonable")
         assert "reason" not in fixture["order_set_labels"][0]
-        fixture = label_order_set(fixture, ["par:Hold"], "unreasonable", "tester", "now", reason="does nothing")
+        fixture = label_order_set(
+            fixture,
+            ["par:Hold"],
+            "unreasonable",
+            "tester",
+            "now",
+            reason="does nothing",
+        )
         assert fixture["order_set_labels"][1]["reason"] == "does nothing"
         assert validate_fixture(fixture) == fixture
 
@@ -765,7 +976,11 @@ class TestNotation:
 
     def _opening(self):
         return self._notation(
-            [self._unit("Fleet", "edi"), self._unit("Fleet", "lon"), self._unit("Army", "lvp")]
+            [
+                self._unit("Fleet", "edi"),
+                self._unit("Fleet", "lon"),
+                self._unit("Army", "lvp"),
+            ]
         )
 
     def test_order_set_is_one_line_sorted_by_province(self):
@@ -775,7 +990,10 @@ class TestNotation:
             _option("edi", "Move", target="nrg"),
         ]
         assert self._opening().order_set(options) == "F Edi–NRG · F Lon–NTH · A Lvp–Yor"
-        assert self._opening().order_set(list(reversed(options))) == "F Edi–NRG · F Lon–NTH · A Lvp–Yor"
+        assert (
+            self._opening().order_set(list(reversed(options)))
+            == "F Edi–NRG · F Lon–NTH · A Lvp–Yor"
+        )
 
     def test_sea_provinces_are_upper_case_and_land_provinces_capitalised(self):
         notation = self._opening()
@@ -788,29 +1006,56 @@ class TestNotation:
         assert self._opening().order(_option("lon", "Hold", target="lon")) == "F Lon H"
 
     def test_support_of_a_move_names_the_supported_unit_and_its_move(self):
-        assert self._opening().order(_option("lon", "Support", target="yor", aux="lvp")) == "F Lon S A Lvp–Yor"
+        assert (
+            self._opening().order(_option("lon", "Support", target="yor", aux="lvp"))
+            == "F Lon S A Lvp–Yor"
+        )
 
     def test_support_of_a_hold_names_only_the_supported_unit(self):
-        assert self._opening().order(_option("lon", "Support", target="lvp", aux="lvp")) == "F Lon S A Lvp"
+        assert (
+            self._opening().order(_option("lon", "Support", target="lvp", aux="lvp"))
+            == "F Lon S A Lvp"
+        )
 
     def test_convoy_and_the_convoyed_move(self):
-        notation = self._notation([self._unit("Fleet", "nth"), self._unit("Army", "lon")])
-        assert notation.order(_option("nth", "Convoy", target="bel", aux="lon")) == "F NTH C A Lon–Bel"
-        assert notation.order(_option("lon", "MoveViaConvoy", target="bel")) == "A Lon–Bel via convoy"
+        notation = self._notation(
+            [self._unit("Fleet", "nth"), self._unit("Army", "lon")]
+        )
+        assert (
+            notation.order(_option("nth", "Convoy", target="bel", aux="lon"))
+            == "F NTH C A Lon–Bel"
+        )
+        assert (
+            notation.order(_option("lon", "MoveViaConvoy", target="bel"))
+            == "A Lon–Bel via convoy"
+        )
 
     def test_move_to_a_named_coast_names_the_coast(self):
         notation = self._notation([self._unit("Fleet", "nwy")])
-        assert notation.order(_option("nwy", "Move", target="stp", named_coast="stp/nc")) == "F Nwy–Stp/nc"
+        assert (
+            notation.order(_option("nwy", "Move", target="stp", named_coast="stp/nc"))
+            == "F Nwy–Stp/nc"
+        )
 
     def test_build_and_disband(self):
         notation = self._notation([self._unit("Army", "lvp")], phase_type="Adjustment")
-        assert notation.order(_option("lon", "Build", unit_type="Fleet")) == "Build F Lon"
-        assert notation.order(_option("stp", "Build", unit_type="Fleet", named_coast="stp/nc")) == "Build F Stp/nc"
+        assert (
+            notation.order(_option("lon", "Build", unit_type="Fleet")) == "Build F Lon"
+        )
+        assert (
+            notation.order(
+                _option("stp", "Build", unit_type="Fleet", named_coast="stp/nc")
+            )
+            == "Build F Stp/nc"
+        )
         assert notation.order(_option("lvp", "Disband")) == "Disband A Lvp"
 
     def test_retreat_names_the_dislodged_unit(self):
         notation = self._notation(
-            [self._unit("Army", "bur", nation="Germany"), self._unit("Fleet", "bur", dislodged=True)],
+            [
+                self._unit("Army", "bur", nation="Germany"),
+                self._unit("Fleet", "bur", dislodged=True),
+            ],
             phase_type="Retreat",
         )
         assert notation.order(_option("bur", "Move", target="par")) == "F Bur–Par"
@@ -828,7 +1073,9 @@ def _write_prompt(tmp_path, name, text):
 class TestCustomPrompt:
 
     def test_fixture_narrows_the_eval_set_to_one_fixture(self):
-        assert [fixture["id"] for fixture in select_fixtures(None, "structure_single")] == ["structure_single"]
+        assert [
+            fixture["id"] for fixture in select_fixtures(None, "structure_single")
+        ] == ["structure_single"]
 
     def test_unknown_fixture_raises(self):
         with pytest.raises(FixtureError):
@@ -846,14 +1093,18 @@ class TestCustomPrompt:
         context = fixture_to_context(fixture)
         dropped = option_id(context["order_options"][0])
         with pytest.raises(PromptError, match=dropped):
-            fixture_to_sample(fixture, user=user_prompt(context).replace(dropped, "gone"))
+            fixture_to_sample(
+                fixture, user=user_prompt(context).replace(dropped, "gone")
+            )
 
     def test_option_id_counts_only_as_a_whole_id(self):
         fixture = select_fixtures(None, "structure_single")[0]
         context = fixture_to_context(fixture)
         extended = option_id(context["order_options"][0])
         with pytest.raises(PromptError, match=extended):
-            fixture_to_sample(fixture, user=user_prompt(context).replace(extended, f"{extended}:x"))
+            fixture_to_sample(
+                fixture, user=user_prompt(context).replace(extended, f"{extended}:x")
+            )
 
     def test_task_sends_the_prompt_files_to_the_named_fixture(self, tmp_path):
         system_file = _write_prompt(tmp_path, "system.txt", "Play well.")
@@ -864,7 +1115,10 @@ class TestCustomPrompt:
 
     def test_custom_prompt_without_a_named_fixture_raises(self, tmp_path):
         with pytest.raises(FixtureError):
-            select_orders("fall_1901", system_file=_write_prompt(tmp_path, "system.txt", "Play well."))
+            select_orders(
+                "fall_1901",
+                system_file=_write_prompt(tmp_path, "system.txt", "Play well."),
+            )
 
 
 class TestUserVariant:
@@ -877,7 +1131,11 @@ class TestUserVariant:
     def _prompts(self, tmp_path, monkeypatch):
         monkeypatch.setattr("select_orders.evals.PROMPTS_DIR", tmp_path)
         for fixture in load_fixtures("opening"):
-            self._write(tmp_path, fixture["id"], f"{user_prompt(fixture_to_context(fixture))}\nAs {fixture['id']}.")
+            self._write(
+                tmp_path,
+                fixture["id"],
+                f"{user_prompt(fixture_to_context(fixture))}\nAs {fixture['id']}.",
+            )
         return tmp_path
 
     def test_sends_each_fixture_its_own_variant_file(self, tmp_path, monkeypatch):
@@ -895,9 +1153,16 @@ class TestUserVariant:
     def test_variant_and_user_file_together_raise(self, tmp_path, monkeypatch):
         self._prompts(tmp_path, monkeypatch)
         fixture = load_fixtures("opening")[0]
-        user_file = _write_prompt(tmp_path, "user.txt", user_prompt(fixture_to_context(fixture)))
+        user_file = _write_prompt(
+            tmp_path, "user.txt", user_prompt(fixture_to_context(fixture))
+        )
         with pytest.raises(PromptError):
-            select_orders("opening", fixture["id"], user_file=user_file, user_variant="user_9_test")
+            select_orders(
+                "opening",
+                fixture["id"],
+                user_file=user_file,
+                user_variant="user_9_test",
+            )
 
 
 class TestRunEvals:
@@ -931,17 +1196,26 @@ class TestPromptNames:
         fixture = select_fixtures(None, "structure_single")[0]
         return MemoryDataset(
             [
-                Sample(id=f"fixture_{index}", input=fixture_to_sample(fixture, system=text).input)
+                Sample(
+                    id=f"fixture_{index}",
+                    input=fixture_to_sample(fixture, system=text).input,
+                )
                 for index, text in enumerate(system_texts)
             ]
         )
 
     def test_digest_follows_the_prompt_text(self):
-        assert prompt_digest(self._dataset("a", "b")) == prompt_digest(self._dataset("a", "b"))
-        assert prompt_digest(self._dataset("a", "b")) != prompt_digest(self._dataset("a", "c"))
+        assert prompt_digest(self._dataset("a", "b")) == prompt_digest(
+            self._dataset("a", "b")
+        )
+        assert prompt_digest(self._dataset("a", "b")) != prompt_digest(
+            self._dataset("a", "c")
+        )
 
     def test_name_is_adjective_noun_month_day(self, tmp_path):
-        name = prompt_name(prompt_digest(self._dataset("a")), tmp_path, date(2026, 10, 15))
+        name = prompt_name(
+            prompt_digest(self._dataset("a")), tmp_path, date(2026, 10, 15)
+        )
         adjective, noun, month, day = name.split("-")
         assert (month, day) == ("oct", "15")
         assert adjective and noun
@@ -950,12 +1224,20 @@ class TestPromptNames:
         task = dumbbot_select_orders()
         digest = prompt_digest(task.dataset)
         metadata = {"prompt": {"name": name, "digest": digest}}
-        inspect_eval(task, model="mockllm/model", display="none", log_dir=str(logs_dir), metadata=metadata)
+        inspect_eval(
+            task,
+            model="mockllm/model",
+            display="none",
+            log_dir=str(logs_dir),
+            metadata=metadata,
+        )
         return digest
 
     def test_logged_prompt_keeps_its_name_on_a_later_day(self, tmp_path):
         digest = self._log(tmp_path, "steady-harbour-oct-1")
-        assert prompt_name(digest, tmp_path, date(2026, 10, 15)) == "steady-harbour-oct-1"
+        assert (
+            prompt_name(digest, tmp_path, date(2026, 10, 15)) == "steady-harbour-oct-1"
+        )
 
     def test_new_prompt_skips_a_name_already_logged_for_another_prompt(self, tmp_path):
         day = date(2026, 10, 1)
@@ -967,13 +1249,28 @@ class TestPromptNames:
 class TestRenderPrompt:
 
     def test_writes_the_fixture_prompts(self, tmp_path):
-        call_command("render_prompt", fixture="structure_single", eval_set=None, out=str(tmp_path / "p"))
+        call_command(
+            "render_prompt",
+            fixture="structure_single",
+            eval_set=None,
+            out=str(tmp_path / "p"),
+        )
         fixture = select_fixtures(None, "structure_single")[0]
         system, user = fixture_to_sample(fixture).input
         assert (tmp_path / "p" / "system.txt").read_text() == system.text
         assert (tmp_path / "p" / "user.txt").read_text() == user.text
 
     def test_refuses_to_overwrite_an_edited_prompt(self, tmp_path):
-        call_command("render_prompt", fixture="structure_single", eval_set=None, out=str(tmp_path / "p"))
+        call_command(
+            "render_prompt",
+            fixture="structure_single",
+            eval_set=None,
+            out=str(tmp_path / "p"),
+        )
         with pytest.raises(CommandError):
-            call_command("render_prompt", fixture="structure_single", eval_set=None, out=str(tmp_path / "p"))
+            call_command(
+                "render_prompt",
+                fixture="structure_single",
+                eval_set=None,
+                out=str(tmp_path / "p"),
+            )

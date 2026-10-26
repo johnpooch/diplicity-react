@@ -2,8 +2,24 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("game/<str:game_id>/orders/<int:phase_id>", views.OrderListView.as_view(), name="order-list"),
-    path("game/<str:game_id>/orders/", views.OrderCreateView.as_view(), name="order-create"),
-    path("game/<str:game_id>/orders/delete/<str:source_id>", views.OrderDeleteView.as_view(), name="order-delete"),
-    path("game/<str:game_id>/options/", views.OrderOptionsView.as_view(), name="order-options"),
+    path(
+        "game/<str:game_id>/orders/<int:phase_id>",
+        views.OrderListView.as_view(),
+        name="order-list",
+    ),
+    path(
+        "game/<str:game_id>/orders/",
+        views.OrderCreateView.as_view(),
+        name="order-create",
+    ),
+    path(
+        "game/<str:game_id>/orders/delete/<str:source_id>",
+        views.OrderDeleteView.as_view(),
+        name="order-delete",
+    ),
+    path(
+        "game/<str:game_id>/options/",
+        views.OrderOptionsView.as_view(),
+        name="order-options",
+    ),
 ]

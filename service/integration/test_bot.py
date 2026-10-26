@@ -9,7 +9,7 @@ from common.constants import DeadlineMode, GameStatus, PhaseStatus
 from game.models import Game
 from province.models import Province
 from agent import tasks
-from integration.utils import run_due_resolution_jobs
+from integration.utils import muster, run_due_resolution_jobs
 from agent.fallback import first_legal_options
 from agent.orders import option_to_selected
 from harness.adapter import orders_to_options
@@ -17,7 +17,9 @@ from user_profile.models import UserProfile
 
 
 def _submit_first_legal_orders(client, game_id):
-    options = orders_to_options(client.get(reverse("order-options", args=[game_id])).data["orders"])
+    options = orders_to_options(
+        client.get(reverse("order-options", args=[game_id])).data["orders"]
+    )
     create_url = reverse("order-create", args=[game_id])
     for option in first_legal_options(options):
         client.post(create_url, {"selected": option_to_selected(option)}, format="json")
@@ -39,9 +41,12 @@ def _create_bot_game(client, variant_id):
 
     bot_user = UserProfile.objects.addable_to_game(game).first().user
     add_response = client.post(
-        reverse("game-member-create", args=[game.id]), {"user_id": bot_user.id}, format="json"
+        reverse("game-member-create", args=[game.id]),
+        {"user_id": bot_user.id},
+        format="json",
     )
     assert add_response.status_code == status.HTTP_201_CREATED
+    muster(game.id, client)
 
     game.refresh_from_db()
     return game, bot_user
@@ -115,7 +120,9 @@ def test_dump_phase_writes_render_state_and_fixture_stubs(
 
 
 @pytest.mark.django_db
-def test_bot_plans_when_variant_has_no_adjacencies(allowlisted_human, italy_vs_germany_variant):
+def test_bot_plans_when_variant_has_no_adjacencies(
+    allowlisted_human, italy_vs_germany_variant
+):
     Province.objects.filter(variant=italy_vs_germany_variant).update(adjacencies=[])
     human_client = allowlisted_human
     game, bot_user = _create_bot_game(human_client, italy_vs_germany_variant.id)

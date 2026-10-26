@@ -6,13 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0001_initial'),
+        ("game", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='game',
-            name='movement_phase_duration',
-            field=models.CharField(choices=[('24 hours', '24 hours'), ('48 hours', '48 hours')], default='24 hours', max_length=20),
+            model_name="game",
+            name="movement_phase_duration",
+            field=models.CharField(
+                choices=[("24 hours", "24 hours"), ("48 hours", "48 hours")],
+                default="24 hours",
+                max_length=20,
+            ),
         ),
     ]

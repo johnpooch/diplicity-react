@@ -37,7 +37,6 @@ from .types import (
     SupportMoveOrder,
 )
 
-
 # === Actions ===
 
 
@@ -268,11 +267,7 @@ class ParseMovementOrdersReducer(Reducer):
             ):
                 continue
             unit = units_view.at_parent(raw.source or "")
-            if (
-                unit is None
-                or unit.nation != raw.nation
-                or unit.location in by_loc
-            ):
+            if unit is None or unit.nation != raw.nation or unit.location in by_loc:
                 continue
             if raw.order_type == OrderType.MOVE and raw.target is not None:
                 if raw.via_convoy:
@@ -289,7 +284,8 @@ class ParseMovementOrdersReducer(Reducer):
                     coasts = variant.coasts_of(target_parent)
                     if coasts:
                         reachable = [
-                            c for c in coasts
+                            c
+                            for c in coasts
                             if variant.can_move(unit.location, c, Unit.FLEET)
                         ]
                         if len(reachable) == 1:
@@ -347,7 +343,6 @@ class ParseMovementOrdersReducer(Reducer):
             for loc in sorted_locs
         )
         return state.replace(parsed_orders=parsed, resolutions=resolutions)
-
 
 
 class ParseRetreatOrdersReducer(Reducer):
@@ -529,7 +524,8 @@ class MarkConvoyedMovesReachableReducer(Reducer):
         variant = state.variant()
         reach_message = MoveTargetIsReachableCheck.MESSAGE
         potential_fleet_locs = tuple(
-            u.location for u in state.units().all()
+            u.location
+            for u in state.units().all()
             if not u.dislodged
             and u.type == Unit.FLEET
             and state.province(variant.parent_of(u.location)).is_sea()
@@ -654,7 +650,10 @@ class MatchSupportsReducer(Reducer):
                     continue
                 supported = parsed[supported_idx]
                 supported_status = resolutions[supported_idx].status
-                if isinstance(supported, MoveOrder) and supported_status != Status.ILLEGAL:
+                if (
+                    isinstance(supported, MoveOrder)
+                    and supported_status != Status.ILLEGAL
+                ):
                     resolutions[i] = replace(resolutions[i], support_matched=False)
                 else:
                     resolutions[i] = replace(resolutions[i], support_matched=True)
@@ -667,7 +666,10 @@ class MatchSupportsReducer(Reducer):
                     continue
                 supported = parsed[supported_idx]
                 supported_status = resolutions[supported_idx].status
-                if not isinstance(supported, MoveOrder) or supported_status == Status.ILLEGAL:
+                if (
+                    not isinstance(supported, MoveOrder)
+                    or supported_status == Status.ILLEGAL
+                ):
                     resolutions[i] = replace(resolutions[i], support_matched=False)
                 # A SupportMove matches when the support's target equals the
                 # move's target, or when one is the bare parent of the other.
@@ -708,9 +710,7 @@ class MatchConvoysReducer(Reducer):
                 continue
             source_parent = variant.parent_of(order.source)
             target_parent = variant.parent_of(order.target)
-            moves_by_endpoints.setdefault(
-                (source_parent, target_parent), i
-            )
+            moves_by_endpoints.setdefault((source_parent, target_parent), i)
         for i, order in enumerate(parsed):
             if not isinstance(order, ConvoyOrder):
                 continue
@@ -922,15 +922,11 @@ class FinalizeStatusesReducer(Reducer):
                     failure_reason="The convoying fleet was dislodged.",
                 )
                 continue
-            resolutions[i] = replace(
-                r, status=Status.OK, code=ResolutionCode.SUCCEEDED
-            )
+            resolutions[i] = replace(r, status=Status.OK, code=ResolutionCode.SUCCEEDED)
         return state.replace(resolutions=tuple(resolutions))
 
     @classmethod
-    def _convoy_fleet_dislodged(
-        cls, state: StateView, order: ConvoyOrder
-    ) -> bool:
+    def _convoy_fleet_dislodged(cls, state: StateView, order: ConvoyOrder) -> bool:
         variant = state.variant()
         fleet_parent = variant.parent_of(order.source)
         resolutions = state.resolutions()
@@ -1097,8 +1093,7 @@ class ApplyMovementOutcomesReducer(Reducer):
                     dislodged_from=unit.dislodged_from,
                 )
                 if all(
-                    c.check(post_movement, order)
-                    for c in RetreatOrder.LEGALITY_CHECKS
+                    c.check(post_movement, order) for c in RetreatOrder.LEGALITY_CHECKS
                 ):
                     has_retreat = True
                     break
@@ -1128,7 +1123,10 @@ class ApplyRetreatOutcomesReducer(Reducer):
             if index_order is None:
                 continue
             index, order = index_order
-            if isinstance(order, RetreatOrder) and resolutions[index].status == Status.OK:
+            if (
+                isinstance(order, RetreatOrder)
+                and resolutions[index].status == Status.OK
+            ):
                 next_units.append(
                     replace(
                         unit,
@@ -1201,7 +1199,9 @@ class ApplyAdjustmentOutcomesReducer(Reducer):
         is not the source of an OK AdjustmentDisbandOrder and not in the
         civil-disorder set."""
         variant = state.variant()
-        disbanded: set = {variant.parent_of(loc) for loc in state.civil_disorder_disbands()}
+        disbanded: set = {
+            variant.parent_of(loc) for loc in state.civil_disorder_disbands()
+        }
         resolutions = state.resolutions()
         for i, order in enumerate(state.parsed_orders()):
             if not isinstance(order, AdjustmentDisbandOrder):
@@ -1210,7 +1210,8 @@ class ApplyAdjustmentOutcomesReducer(Reducer):
                 continue
             disbanded.add(variant.parent_of(order.location))
         kept = tuple(
-            u for u in state.units().all()
+            u
+            for u in state.units().all()
             if not u.dislodged and variant.parent_of(u.location) not in disbanded
         )
         return state.replace(next_units=kept)
@@ -1260,8 +1261,12 @@ class AutoBuildNeutralNationsReducer(Reducer):
             for sc_province in sorted(owned_scs):
                 if sc_province in occupied:
                     continue
-                unit_type = Unit.FLEET if state.province(sc_province).is_sea() else Unit.ARMY
-                next_units.append(Unit(nation=nation.id, type=unit_type, location=sc_province))
+                unit_type = (
+                    Unit.FLEET if state.province(sc_province).is_sea() else Unit.ARMY
+                )
+                next_units.append(
+                    Unit(nation=nation.id, type=unit_type, location=sc_province)
+                )
                 occupied.add(sc_province)
         return state.replace(next_units=tuple(next_units))
 
@@ -1307,39 +1312,39 @@ class PhaseResolver:
 
 class MovementPhaseResolver(PhaseResolver):
     """Movement-phase pipeline:
-      1. ParseMovementOrders        — assign each unit a Hold, Move,
-                                      Support, or Convoy order
-                                      (default Hold).
-      2. ApplyLegalityChecks        — per-order LEGALITY_CHECKS, including
-                                      reachability for Moves and the
-                                      support-existence / reach / self
-                                      checks for Supports. Coastal-to-
-                                      coastal Moves needing a convoy
-                                      fail reachability here and are
-                                      revisited in step 3.
-      3. MarkConvoyedMovesReachable — un-mark MoveOrders flagged ILLEGAL
-                                      by reachability when a static
-                                      convoy path exists through the
-                                      submitted non-ILLEGAL ConvoyOrders.
-      4. MatchSupports              — decide which non-ILLEGAL Supports
-                                      actually attach to the supported
-                                      unit's behavior.
-      5. MatchConvoys               — decide which non-ILLEGAL Convoys
-                                      have a corresponding non-ILLEGAL
-                                      Move from army_source to
-                                      army_target. Writes convoy_matched.
-      6. ResolveStrengthsAndCuts    — dependency-tracked Decision-graph
-                                      resolution of support cuts, attack /
-                                      defense / prevent / hold strengths,
-                                      and Move statuses (including head-to-
-                                      head and self-dislodgement). The
-                                      solver itself lives in resolution.py.
-      7. FinalizeStatuses           — remaining undecided -> OK; Supports
-                                      mirror Status from support_cut.
-      8. ApplyMovementOutcomes      — relocate successful Moves, mark
-                                      dislodged units (skipping same-
-                                      nation dislodgement), record
-                                      contested provinces."""
+    1. ParseMovementOrders        — assign each unit a Hold, Move,
+                                    Support, or Convoy order
+                                    (default Hold).
+    2. ApplyLegalityChecks        — per-order LEGALITY_CHECKS, including
+                                    reachability for Moves and the
+                                    support-existence / reach / self
+                                    checks for Supports. Coastal-to-
+                                    coastal Moves needing a convoy
+                                    fail reachability here and are
+                                    revisited in step 3.
+    3. MarkConvoyedMovesReachable — un-mark MoveOrders flagged ILLEGAL
+                                    by reachability when a static
+                                    convoy path exists through the
+                                    submitted non-ILLEGAL ConvoyOrders.
+    4. MatchSupports              — decide which non-ILLEGAL Supports
+                                    actually attach to the supported
+                                    unit's behavior.
+    5. MatchConvoys               — decide which non-ILLEGAL Convoys
+                                    have a corresponding non-ILLEGAL
+                                    Move from army_source to
+                                    army_target. Writes convoy_matched.
+    6. ResolveStrengthsAndCuts    — dependency-tracked Decision-graph
+                                    resolution of support cuts, attack /
+                                    defense / prevent / hold strengths,
+                                    and Move statuses (including head-to-
+                                    head and self-dislodgement). The
+                                    solver itself lives in resolution.py.
+    7. FinalizeStatuses           — remaining undecided -> OK; Supports
+                                    mirror Status from support_cut.
+    8. ApplyMovementOutcomes      — relocate successful Moves, mark
+                                    dislodged units (skipping same-
+                                    nation dislodgement), record
+                                    contested provinces."""
 
     PHASE_TYPE = Phase.MOVEMENT
 

@@ -1,6 +1,5 @@
 from django.db import migrations
 
-
 OFFICIAL_IDS = ["classical", "vietnam-war", "italy-vs-germany", "hundred"]
 
 

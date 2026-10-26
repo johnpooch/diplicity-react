@@ -78,11 +78,19 @@ class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
 
     def get_object(self):
         user_id = self.kwargs["user_id"]
-        return get_object_or_404(UserProfile.objects.with_related_data().with_commitment_total(), user_id=user_id)
+        return get_object_or_404(
+            UserProfile.objects.with_related_data().with_commitment_total(),
+            user_id=user_id,
+        )
 
 
 class AddableUserListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, CanUseBotOpponent]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingGame,
+        IsGameManager,
+        CanUseBotOpponent,
+    ]
     serializer_class = AddableUserSerializer
 
     def get_queryset(self):

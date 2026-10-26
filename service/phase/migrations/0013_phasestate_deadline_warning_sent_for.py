@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('phase', '0012_add_canton_template_phase'),
+        ("phase", "0012_add_canton_template_phase"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='phasestate',
-            name='deadline_warning_sent_for',
+            model_name="phasestate",
+            name="deadline_warning_sent_for",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

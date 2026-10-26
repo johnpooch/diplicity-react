@@ -37,7 +37,11 @@ def _opening_supply_centers(phase):
     variant = load_variant("classical")
     names = {nation["id"]: nation["name"] for nation in variant["nations"]}
     return [
-        {"phase": phase, "province": center["province"], "nation": names[center["nation"]]}
+        {
+            "phase": phase,
+            "province": center["province"],
+            "nation": names[center["nation"]],
+        }
         for center in variant["initialState"]["supplyCenters"]
     ]
 
@@ -71,10 +75,22 @@ def _phase(phase_id, ordinal, season, status):
 
 def _snapshot():
     return {
-        "games": [{"id": GAME, "variant": "classical", "press_type": "full_press", "status": "active"}],
-        "phases": [_phase(SPRING, 1, "Spring", "completed"), _phase(FALL, 2, "Fall", "active")],
-        "units": _opening_units(SPRING) + _opening_units(FALL, moved={"lon": "eng", "bud": "gal"}),
-        "supply_centers": _opening_supply_centers(SPRING) + _opening_supply_centers(FALL),
+        "games": [
+            {
+                "id": GAME,
+                "variant": "classical",
+                "press_type": "full_press",
+                "status": "active",
+            }
+        ],
+        "phases": [
+            _phase(SPRING, 1, "Spring", "completed"),
+            _phase(FALL, 2, "Fall", "active"),
+        ],
+        "units": _opening_units(SPRING)
+        + _opening_units(FALL, moved={"lon": "eng", "bud": "gal"}),
+        "supply_centers": _opening_supply_centers(SPRING)
+        + _opening_supply_centers(FALL),
         "orders": [
             _order("England", "lon", "Move", "eng"),
             _order("France", "par", "Move", "bur", resolution="ErrBounce"),
@@ -83,24 +99,38 @@ def _snapshot():
             _order("Austria", "vie", "Support", "gal", aux="bud"),
             _order("Russia", "war", "Move", "gal", resolution="ErrBounce"),
         ],
-        "players": [{"phase": SPRING, "nation": nation, "was_bot": nation == "Germany"} for nation in NATIONS],
+        "players": [
+            {"phase": SPRING, "nation": nation, "was_bot": nation == "Germany"}
+            for nation in NATIONS
+        ],
     }
 
 
 def _adjustment_snapshot():
     snapshot = _snapshot()
-    snapshot["phases"] = [{**_phase(SPRING, 1, "Fall", "completed"), "type": "Adjustment"}]
-    snapshot["units"] = [unit for unit in _opening_units(SPRING) if unit["province"] != "lon"]
+    snapshot["phases"] = [
+        {**_phase(SPRING, 1, "Fall", "completed"), "type": "Adjustment"}
+    ]
+    snapshot["units"] = [
+        unit for unit in _opening_units(SPRING) if unit["province"] != "lon"
+    ]
     snapshot["orders"] = [_order("England", "lon", "Build", unit_type="Army")]
     return snapshot
 
 
 def _harvest(snapshot=None):
-    return Harvest(validate_snapshot(snapshot or _snapshot()), harvested_at="2026-09-28T12:00:00+00:00")
+    return Harvest(
+        validate_snapshot(snapshot or _snapshot()),
+        harvested_at="2026-09-28T12:00:00+00:00",
+    )
 
 
 def _fixture(nation, snapshot=None):
-    return next(fixture for fixture in _harvest(snapshot).fixtures(SPRING) if fixture["nation"] == nation)
+    return next(
+        fixture
+        for fixture in _harvest(snapshot).fixtures(SPRING)
+        if fixture["nation"] == nation
+    )
 
 
 class TestHarvest:
@@ -139,15 +169,28 @@ class TestHarvest:
 
     def test_actual_orders_are_drawn_from_the_legal_options(self):
         fixture = _fixture("Austria")
-        assert all(order in fixture["order_options"] for order in fixture["actual_orders"]["Austria"])
+        assert all(
+            order in fixture["order_options"]
+            for order in fixture["actual_orders"]["Austria"]
+        )
 
     def test_actual_outcome_records_each_order_result_and_the_resulting_board(self):
         outcome = _fixture("England")["actual_outcome"]
-        assert {"nation": "France", "source": "par", "result": "ErrBounce"} in outcome["resolutions"]
-        assert {"nation": "Russia", "source": "war", "result": "ErrBounce"} in outcome["resolutions"]
-        assert {"nation": "Austria", "source": "vie", "result": "OK"} in outcome["resolutions"]
+        assert {"nation": "France", "source": "par", "result": "ErrBounce"} in outcome[
+            "resolutions"
+        ]
+        assert {"nation": "Russia", "source": "war", "result": "ErrBounce"} in outcome[
+            "resolutions"
+        ]
+        assert {"nation": "Austria", "source": "vie", "result": "OK"} in outcome[
+            "resolutions"
+        ]
         provinces = {unit["province"] for unit in outcome["units"]}
-        assert {"eng", "gal", "war"} <= provinces and not {"lon", "bud", "bur"} & provinces
+        assert {"eng", "gal", "war"} <= provinces and not {
+            "lon",
+            "bud",
+            "bur",
+        } & provinces
 
     def test_decision_richness_is_the_product_of_per_unit_option_counts(self):
         fixture = _fixture("Turkey")
@@ -155,20 +198,31 @@ class TestHarvest:
         for option in fixture["order_options"]:
             counts[option["source"]] = counts.get(option["source"], 0) + 1
         assert len(counts) == 3
-        assert fixture["decision_richness"] == counts["ank"] * counts["con"] * counts["smy"]
+        assert (
+            fixture["decision_richness"]
+            == counts["ank"] * counts["con"] * counts["smy"]
+        )
 
     def test_options_for_a_past_phase_match_the_same_board_as_the_current_phase(self):
         current = _snapshot()
         current["phases"] = [{**current["phases"][0], "status": "active"}]
-        current["units"] = [unit for unit in current["units"] if unit["phase"] == SPRING]
-        current["supply_centers"] = [center for center in current["supply_centers"] if center["phase"] == SPRING]
+        current["units"] = [
+            unit for unit in current["units"] if unit["phase"] == SPRING
+        ]
+        current["supply_centers"] = [
+            center for center in current["supply_centers"] if center["phase"] == SPRING
+        ]
         current["orders"] = []
-        assert _harvest().legal_options(SPRING) == _harvest(current).legal_options(SPRING)
+        assert _harvest().legal_options(SPRING) == _harvest(current).legal_options(
+            SPRING
+        )
 
     def test_adjustment_fixture_limits_orders_to_the_build_count(self):
         fixture = _fixture("England", _adjustment_snapshot())
         assert fixture["max_orders"] == 1
-        assert fixture["actual_orders"]["England"] == [{"source": "lon", "order_type": "Build", "unit_type": "Army"}]
+        assert fixture["actual_orders"]["England"] == [
+            {"source": "lon", "order_type": "Build", "unit_type": "Army"}
+        ]
 
     def test_unfinished_phase_is_not_harvested(self):
         with pytest.raises(HarvestError):
@@ -199,12 +253,20 @@ class TestHarvest:
     def test_stored_failure_reported_under_another_code_is_accepted(self):
         snapshot = _snapshot()
         snapshot["orders"][1]["resolution"] = "ErrIllegalMove"
-        outcome = next(f for f in _harvest(snapshot).fixtures(SPRING) if f["nation"] == "France")["actual_outcome"]
-        assert {"nation": "France", "source": "par", "result": "ErrBounce"} in outcome["resolutions"]
+        outcome = next(
+            f for f in _harvest(snapshot).fixtures(SPRING) if f["nation"] == "France"
+        )["actual_outcome"]
+        assert {"nation": "France", "source": "par", "result": "ErrBounce"} in outcome[
+            "resolutions"
+        ]
 
     def test_next_stored_phase_that_disagrees_with_the_replay_is_rejected(self):
         snapshot = _snapshot()
-        moved = next(unit for unit in snapshot["units"] if unit["phase"] == FALL and unit["province"] == "par")
+        moved = next(
+            unit
+            for unit in snapshot["units"]
+            if unit["phase"] == FALL and unit["province"] == "par"
+        )
         moved["province"] = "bur"
         with pytest.raises(HarvestError):
             _harvest(snapshot).fixtures(SPRING)
@@ -212,7 +274,9 @@ class TestHarvest:
 
 class TestSnapshot:
 
-    @pytest.mark.parametrize("table", ["games", "phases", "units", "supply_centers", "orders", "players"])
+    @pytest.mark.parametrize(
+        "table", ["games", "phases", "units", "supply_centers", "orders", "players"]
+    )
     def test_user_identifier_is_rejected(self, table):
         snapshot = _snapshot()
         snapshot[table][0]["user_id"] = 42
@@ -233,13 +297,24 @@ class TestBuildFixturesCommand:
 
     def test_writes_one_fixture_per_nation_for_each_completed_phase(self, tmp_path):
         out = tmp_path / "fixtures"
-        call_command("build_fixtures", str(self._snapshot_path(tmp_path)), "--out", str(out))
-        assert sorted(path.name for path in out.iterdir()) == [f"{GAME}_p1_{nation.lower()}.json" for nation in NATIONS]
+        call_command(
+            "build_fixtures", str(self._snapshot_path(tmp_path)), "--out", str(out)
+        )
+        assert sorted(path.name for path in out.iterdir()) == [
+            f"{GAME}_p1_{nation.lower()}.json" for nation in NATIONS
+        ]
         assert read_fixture(out / f"{GAME}_p1_england.json")["nation"] == "England"
 
     def test_nation_filter_limits_the_eval_nations(self, tmp_path):
         out = tmp_path / "fixtures"
-        call_command("build_fixtures", str(self._snapshot_path(tmp_path)), "--out", str(out), "--nation", "France")
+        call_command(
+            "build_fixtures",
+            str(self._snapshot_path(tmp_path)),
+            "--out",
+            str(out),
+            "--nation",
+            "France",
+        )
         assert [path.name for path in out.iterdir()] == [f"{GAME}_p1_france.json"]
 
     def test_existing_fixture_is_left_untouched(self, tmp_path):
@@ -256,7 +331,12 @@ class TestBuildFixturesCommand:
         snapshot = copy.deepcopy(_snapshot())
         snapshot["orders"][1]["resolution"] = "OK"
         out = tmp_path / "fixtures"
-        call_command("build_fixtures", str(self._snapshot_path(tmp_path, snapshot)), "--out", str(out))
+        call_command(
+            "build_fixtures",
+            str(self._snapshot_path(tmp_path, snapshot)),
+            "--out",
+            str(out),
+        )
         assert list(out.iterdir()) == []
 
     def test_missing_snapshot_is_an_error(self, tmp_path):

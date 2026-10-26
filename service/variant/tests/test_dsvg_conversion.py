@@ -1,6 +1,11 @@
 import xml.etree.ElementTree as ElementTree
 
-from variant.utils import DSVG_LAYER_ORDER, convert_godip_dsvg, normalize_dsvg, validate_dsvg
+from variant.utils import (
+    DSVG_LAYER_ORDER,
+    convert_godip_dsvg,
+    normalize_dsvg,
+    validate_dsvg,
+)
 
 
 def _local_name(tag):
@@ -14,13 +19,17 @@ def _layers(svg):
 
 def _path_ids(layer):
     return [
-        element.get("id") for element in layer.iter() if _local_name(element.tag) == "path"
+        element.get("id")
+        for element in layer.iter()
+        if _local_name(element.tag) == "path"
     ]
 
 
 def _circle_ids(layer):
     return {
-        element.get("id") for element in layer.iter() if _local_name(element.tag) == "circle"
+        element.get("id")
+        for element in layer.iter()
+        if _local_name(element.tag) == "circle"
     }
 
 
@@ -74,7 +83,9 @@ def test_godip_names_become_province_names(make_godip_svg):
     dsvg, _ = convert_godip_dsvg(make_godip_svg())
 
     province_names = _layers(dsvg)["province-names"]
-    texts = [el.get("id") for el in province_names.iter() if _local_name(el.tag) == "text"]
+    texts = [
+        el.get("id") for el in province_names.iter() if _local_name(el.tag) == "text"
+    ]
     assert texts == ["France"]
 
 
@@ -181,7 +192,9 @@ def test_province_subgroup_is_flattened():
 
     dsvg, _ = convert_godip_dsvg(svg)
 
-    paths = [el for el in _layers(dsvg)["provinces"].iter() if _local_name(el.tag) == "path"]
+    paths = [
+        el for el in _layers(dsvg)["provinces"].iter() if _local_name(el.tag) == "path"
+    ]
     assert len(paths) == 1
     assert paths[0].get("id") == "fra"
     assert paths[0].get("d") == "M0 0 L1 1 M2 2 L3 3"

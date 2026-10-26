@@ -11,19 +11,29 @@ def _unit_lines(board: Board) -> list[str]:
         lines.append(f"  {board.unit_name(unit)} ({unit['province']})")
         destinations = board.reach(unit["province"], unit["type"])
         lines.append("    can move to:" if unit["type"] == "Fleet" else "    by land:")
-        lines.extend(f"      {board.name(target)} ({target}) [{board.move_note(target)}]" for target in destinations)
+        lines.extend(
+            f"      {board.name(target)} ({target}) [{board.move_note(target)}]"
+            for target in destinations
+        )
         if not destinations:
             lines.append("      (none)")
         convoys = [
             (target, route)
             for target in board.convoy_targets(unit)
-            if (route := board.convoy_route(board.parent(unit["province"]), target)) is not None
+            if (route := board.convoy_route(board.parent(unit["province"]), target))
+            is not None
         ]
         if convoys:
-            lines.append("    by convoy (only if the named fleets order the matching Convoy):")
+            lines.append(
+                "    by convoy (only if the named fleets order the matching Convoy):"
+            )
             for target, route in convoys:
-                fleets = join_and([board.fleet_name(fleet) for fleet in board.route_fleets(route)])
-                lines.append(f"      {board.name(target)} ({target}) via {fleets} [{board.move_note(target)}]")
+                fleets = join_and(
+                    [board.fleet_name(fleet) for fleet in board.route_fleets(route)]
+                )
+                lines.append(
+                    f"      {board.name(target)} ({target}) via {fleets} [{board.move_note(target)}]"
+                )
     return lines
 
 
@@ -33,9 +43,14 @@ def _threat_lines(board: Board) -> list[str]:
         if center["nation"] != board.nation:
             continue
         province_id = center["province"]
-        distances = [(unit, board.moves_away(unit, 2).get(province_id)) for unit in board.foreign_units()]
+        distances = [
+            (unit, board.moves_away(unit, 2).get(province_id))
+            for unit in board.foreign_units()
+        ]
         now = [board.owned_short(unit) for unit, distance in distances if distance == 1]
-        later = [board.owned_short(unit) for unit, distance in distances if distance == 2]
+        later = [
+            board.owned_short(unit) for unit, distance in distances if distance == 2
+        ]
         lines.append(
             f"  {board.name(province_id)} ({province_id}): can be entered this phase by: {listed(now)}; "
             f"two moves away: {listed(later)}"
@@ -54,10 +69,16 @@ def build(context: Context) -> str:
     if not near_units:
         foreign.append("  (none)")
 
-    local = ["Local map, provinces within two moves of your units (adjacency: A=army only, F=fleet only, AF=both):"]
+    local = [
+        "Local map, provinces within two moves of your units (adjacency: A=army only, F=fleet only, AF=both):"
+    ]
     local.extend(board_lines(context, near_ids))
 
-    others = [unit for unit in board.foreign_units() if not any(unit is near for near in near_units)]
+    others = [
+        unit
+        for unit in board.foreign_units()
+        if not any(unit is near for near in near_units)
+    ]
     rest = ["Other units on the board:", *(board.unit_line(unit) for unit in others)]
 
     return "\n\n".join(
@@ -72,4 +93,3 @@ def build(context: Context) -> str:
             sections["options"],
         ]
     )
-

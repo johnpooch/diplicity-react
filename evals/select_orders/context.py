@@ -38,11 +38,19 @@ def fixture_to_context(fixture: Fixture) -> Context:
         if entry["nation"] not in nations:
             nations.append(entry["nation"])
 
-    owners = {_check_province(province_ids, center["province"]): center["nation"] for center in supply_centers}
+    owners = {
+        _check_province(province_ids, center["province"]): center["nation"]
+        for center in supply_centers
+    }
 
     return {
         "members": [
-            {"name": nation, "nation": nation, "is_current_user": nation == fixture["nation"]} for nation in nations
+            {
+                "name": nation,
+                "nation": nation,
+                "is_current_user": nation == fixture["nation"],
+            }
+            for nation in nations
         ],
         "phase": {
             "season": fixture["phase"]["season"],

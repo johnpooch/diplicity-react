@@ -11,18 +11,44 @@ def add_canton_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     canton_variant = Variant.objects.get(id="canton")
-    template_phase = Phase.objects.get(game=None, variant=canton_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=canton_variant, status="template"
+    )
 
-    supply_centers_data = [{'nation': 'Turkey', 'province': 'bag'}, {'nation': 'Britain', 'province': 'cal'}, {'nation': 'Britain', 'province': 'del'}, {'nation': 'Holland', 'province': 'bor'}, {'nation': 'Japan', 'province': 'tok'}, {'nation': 'France', 'province': 'hue'}, {'nation': 'Turkey', 'province': 'con'}, {'nation': 'China', 'province': 'sha'}, {'nation': 'Holland', 'province': 'jav'}, {'nation': 'Turkey', 'province': 'dam'}, {'nation': 'Britain', 'province': 'mad'}, {'nation': 'China', 'province': 'pek'}, {'nation': 'China', 'province': 'chu'}, {'nation': 'China', 'province': 'tib'}, {'nation': 'Japan', 'province': 'sas'}, {'nation': 'France', 'province': 'han'}, {'nation': 'Holland', 'province': 'sum'}, {'nation': 'Japan', 'province': 'kyo'}, {'nation': 'Russia', 'province': 'sev'}, {'nation': 'Russia', 'province': 'kha'}, {'nation': 'Russia', 'province': 'mos'}, {'nation': 'Russia', 'province': 'irk'}, {'nation': 'France', 'province': 'sai'}]
+    supply_centers_data = [
+        {"nation": "Turkey", "province": "bag"},
+        {"nation": "Britain", "province": "cal"},
+        {"nation": "Britain", "province": "del"},
+        {"nation": "Holland", "province": "bor"},
+        {"nation": "Japan", "province": "tok"},
+        {"nation": "France", "province": "hue"},
+        {"nation": "Turkey", "province": "con"},
+        {"nation": "China", "province": "sha"},
+        {"nation": "Holland", "province": "jav"},
+        {"nation": "Turkey", "province": "dam"},
+        {"nation": "Britain", "province": "mad"},
+        {"nation": "China", "province": "pek"},
+        {"nation": "China", "province": "chu"},
+        {"nation": "China", "province": "tib"},
+        {"nation": "Japan", "province": "sas"},
+        {"nation": "France", "province": "han"},
+        {"nation": "Holland", "province": "sum"},
+        {"nation": "Japan", "province": "kyo"},
+        {"nation": "Russia", "province": "sev"},
+        {"nation": "Russia", "province": "kha"},
+        {"nation": "Russia", "province": "mos"},
+        {"nation": "Russia", "province": "irk"},
+        {"nation": "France", "province": "sai"},
+    ]
 
     for sc_data in supply_centers_data:
         nation = Nation.objects.get(variant=canton_variant, name=sc_data["nation"])
-        province = Province.objects.get(variant=canton_variant, province_id=sc_data["province"])
+        province = Province.objects.get(
+            variant=canton_variant, province_id=sc_data["province"]
+        )
 
         SupplyCenter.objects.create(
-            nation=nation,
-            province=province,
-            phase=template_phase
+            nation=nation, province=province, phase=template_phase
         )
 
 
@@ -32,7 +58,9 @@ def remove_canton_supply_centers(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     canton_variant = Variant.objects.get(id="canton")
-    template_phase = Phase.objects.get(game=None, variant=canton_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=canton_variant, status="template"
+    )
     SupplyCenter.objects.filter(phase=template_phase).delete()
 
 

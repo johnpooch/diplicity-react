@@ -51,7 +51,9 @@ def resolve_phase(request, game_id, phase_id):
         request._phase_cache = cache
     key = (game_id, phase_id)
     if key not in cache:
-        cache[key] = get_object_or_404(Phase.objects.defer("options"), id=phase_id, game_id=game_id)
+        cache[key] = get_object_or_404(
+            Phase.objects.defer("options"), id=phase_id, game_id=game_id
+        )
     return cache[key]
 
 
@@ -219,7 +221,9 @@ class CurrentGameMemberMixin:
         if not hasattr(self, "_current_game_member"):
             user = self.request.user
             self._current_game_member = (
-                self.get_game().members.filter(user=user).first() if user.is_authenticated else None
+                self.get_game().members.filter(user=user).first()
+                if user.is_authenticated
+                else None
             )
         return self._current_game_member
 
@@ -259,9 +263,14 @@ class CompletedPhaseCacheMixin:
 
     def get(self, request, *args, **kwargs):
         phase = self.get_phase()
-        if phase.status != PhaseStatus.COMPLETED or resolve_game(request, self.kwargs.get("game_id")).sandbox:
+        if (
+            phase.status != PhaseStatus.COMPLETED
+            or resolve_game(request, self.kwargs.get("game_id")).sandbox
+        ):
             return super().get(request, *args, **kwargs)
-        digest = hashlib.sha256(f"{self.completed_phase_etag_salt}|{phase.id}".encode()).hexdigest()
+        digest = hashlib.sha256(
+            f"{self.completed_phase_etag_salt}|{phase.id}".encode()
+        ).hexdigest()
         etag = f'"{digest[:32]}"'
         if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)

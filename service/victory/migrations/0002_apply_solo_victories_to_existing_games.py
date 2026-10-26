@@ -14,13 +14,13 @@ def apply_solo_victories_to_existing_games(apps, schema_editor):
     Victory = apps.get_model("victory", "Victory")
 
     games = Game.objects.filter(sandbox=False).prefetch_related(
-        "members__nation",
-        "phases",
-        "variant"
+        "members__nation", "phases", "variant"
     )
 
     total_games = games.count()
-    logger.info(f"Processing {total_games} non-sandbox games for solo victory detection")
+    logger.info(
+        f"Processing {total_games} non-sandbox games for solo victory detection"
+    )
 
     games_updated = 0
     phases_deleted = 0
@@ -30,10 +30,10 @@ def apply_solo_victories_to_existing_games(apps, schema_editor):
         if game_idx % 100 == 0:
             logger.info(f"Processing game {game_idx}/{total_games}")
 
-        if hasattr(game, 'victory'):
+        if hasattr(game, "victory"):
             continue
 
-        phases = list(game.phases.order_by('ordinal'))
+        phases = list(game.phases.order_by("ordinal"))
 
         winning_phase = None
         winner = None
@@ -51,10 +51,7 @@ def apply_solo_victories_to_existing_games(apps, schema_editor):
                 break
 
         if winning_phase:
-            victory = Victory.objects.create(
-                game=game,
-                winning_phase=winning_phase
-            )
+            victory = Victory.objects.create(game=game, winning_phase=winning_phase)
             victory.members.add(winner)
             victories_created += 1
 
@@ -98,6 +95,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(
             apply_solo_victories_to_existing_games,
-            reverse_code=migrations.RunPython.noop
+            reverse_code=migrations.RunPython.noop,
         ),
     ]

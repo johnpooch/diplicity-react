@@ -21,7 +21,9 @@ from user_profile.models import UserProfile, UserProfilePicture
 
 User = get_user_model()
 
-unusable_passwords_migration = importlib.import_module("login.migrations.0002_unusable_unrecognised_passwords")
+unusable_passwords_migration = importlib.import_module(
+    "login.migrations.0002_unusable_unrecognised_passwords"
+)
 
 
 @pytest.mark.django_db
@@ -31,27 +33,43 @@ class TestGoogleAuthView:
         response = unauthenticated_client.post(url, {}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_google_auth_verification_error_returns_401(self, unauthenticated_client, mock_google_auth):
+    def test_google_auth_verification_error_returns_401(
+        self, unauthenticated_client, mock_google_auth
+    ):
         mock_google_auth.side_effect = GoogleAuthError("Mocked GoogleAuthError")
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "token"}, format="json"
+        )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_google_auth_value_error_returns_401(self, unauthenticated_client, mock_google_auth):
+    def test_google_auth_value_error_returns_401(
+        self, unauthenticated_client, mock_google_auth
+    ):
         mock_google_auth.side_effect = ValueError("Mocked ValueError")
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "token"}, format="json"
+        )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_google_auth_wrong_issuer_returns_401(self, unauthenticated_client, mock_google_auth):
+    def test_google_auth_wrong_issuer_returns_401(
+        self, unauthenticated_client, mock_google_auth
+    ):
         mock_google_auth.return_value = {"iss": "wrong_issuer", "aud": "web-client-id"}
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "token"}, format="json"
+        )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_creates_new_user_if_no_existing_user(self, unauthenticated_client, mock_google_auth, mock_refresh_token):
+    def test_creates_new_user_if_no_existing_user(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert "access_token" in response.data
         assert "refresh_token" in response.data
@@ -60,11 +78,11 @@ class TestGoogleAuthView:
         assert user_profile.picture == "http://example.com/picture.jpg"
         assert user_profile.name == "Test User"
 
-    def test_existing_user_sign_in(self, unauthenticated_client, mock_google_auth, mock_refresh_token):
+    def test_existing_user_sign_in(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
         user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="testuser", email="test@example.com", password="testpass123"
         )
         user_profile = UserProfile.objects.create(
             user=user,
@@ -73,7 +91,9 @@ class TestGoogleAuthView:
         )
 
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert "access_token" in response.data
         assert "refresh_token" in response.data
@@ -83,10 +103,15 @@ class TestGoogleAuthView:
         assert user_profile.name == "Custom Name"
 
     def test_creates_new_user_with_null_picture(
-        self, unauthenticated_client, mock_google_auth_without_picture, mock_refresh_token
+        self,
+        unauthenticated_client,
+        mock_google_auth_without_picture,
+        mock_refresh_token,
     ):
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert "access_token" in response.data
         assert "refresh_token" in response.data
@@ -96,12 +121,13 @@ class TestGoogleAuthView:
         assert user_profile.name == "Test User"
 
     def test_updates_existing_user_picture_to_null(
-        self, unauthenticated_client, mock_google_auth_without_picture, mock_refresh_token
+        self,
+        unauthenticated_client,
+        mock_google_auth_without_picture,
+        mock_refresh_token,
     ):
         user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="testuser", email="test@example.com", password="testpass123"
         )
         user_profile = UserProfile.objects.create(
             user=user,
@@ -110,7 +136,9 @@ class TestGoogleAuthView:
         )
 
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert "access_token" in response.data
         assert "refresh_token" in response.data
@@ -124,17 +152,19 @@ class TestGoogleAuthView:
         self, unauthenticated_client, mock_google_auth, mock_refresh_token, make_image
     ):
         user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="testuser", email="test@example.com", password="testpass123"
         )
         user_profile = UserProfile.objects.create(user=user, name="Test User")
         buffer = io.BytesIO()
         make_image().save(buffer, format="PNG")
-        picture = UserProfilePicture.objects.store(user_profile, buffer.getvalue(), "image/png")
+        picture = UserProfilePicture.objects.store(
+            user_profile, buffer.getvalue(), "image/png"
+        )
 
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
         user_profile.refresh_from_db()
@@ -145,7 +175,9 @@ class TestGoogleAuthView:
         self, unauthenticated_client, mock_google_auth_without_name, mock_refresh_token
     ):
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
         user_profile = UserProfile.objects.get(user__email="test@example.com")
@@ -156,21 +188,23 @@ class TestGoogleAuthView:
         self, unauthenticated_client, mock_google_auth_without_name, mock_refresh_token
     ):
         user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="testuser", email="test@example.com", password="testpass123"
         )
         user_profile = UserProfile.objects.create(user=user, name="Custom Name")
 
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
         user_profile.refresh_from_db()
         assert user_profile.name == "Custom Name"
         assert User.objects.filter(email="test@example.com").count() == 1
 
-    def test_ios_client_id_audience_accepted(self, unauthenticated_client, mock_google_auth, mock_refresh_token):
+    def test_ios_client_id_audience_accepted(
+        self, unauthenticated_client, mock_google_auth, mock_refresh_token
+    ):
         mock_google_auth.return_value = {
             "iss": "accounts.google.com",
             "aud": "ios-client-id",
@@ -180,7 +214,9 @@ class TestGoogleAuthView:
             "picture": "http://example.com/ios_picture.jpg",
         }
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "ios_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "ios_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert "access_token" in response.data
         assert "refresh_token" in response.data
@@ -197,7 +233,9 @@ class TestGoogleAuthView:
         UserProfile.objects.create(user=user, name="Original Name")
 
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "valid_token"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
@@ -245,7 +283,9 @@ class TestGoogleAuthView:
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
-        response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("auth"), {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
 
@@ -267,7 +307,9 @@ class TestGoogleAuthView:
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
-        response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("auth"), {"id_token": "valid_token"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
@@ -276,7 +318,9 @@ class TestGoogleAuthView:
     def test_new_google_user_has_no_usable_password(
         self, unauthenticated_client, mock_google_auth, mock_refresh_token
     ):
-        response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("auth"), {"id_token": "valid_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
         assert User.objects.get(id=response.data["id"]).has_usable_password() is False
@@ -291,18 +335,26 @@ class TestGoogleAuthView:
         self, unauthenticated_client, mock_google_auth, mock_refresh_token
     ):
         def create_competing_account(name):
-            User.objects.create_user(username="testuser", email="test@example.com", password=None)
+            User.objects.create_user(
+                username="testuser", email="test@example.com", password=None
+            )
             return "testuser"
 
-        with patch.object(AuthUserManager, "generate_username", side_effect=create_competing_account):
-            response = unauthenticated_client.post(reverse("auth"), {"id_token": "valid_token"}, format="json")
+        with patch.object(
+            AuthUserManager, "generate_username", side_effect=create_competing_account
+        ):
+            response = unauthenticated_client.post(
+                reverse("auth"), {"id_token": "valid_token"}, format="json"
+            )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == User.objects.get(email="test@example.com").id
         assert User.objects.filter(email="test@example.com").count() == 1
 
     @pytest.mark.parametrize("email_verified", [False, "false", None])
-    def test_unverified_google_email_rejected(self, unauthenticated_client, mock_google_auth, email_verified):
+    def test_unverified_google_email_rejected(
+        self, unauthenticated_client, mock_google_auth, email_verified
+    ):
         mock_google_auth.return_value = {
             "iss": "accounts.google.com",
             "aud": "web-client-id",
@@ -311,7 +363,9 @@ class TestGoogleAuthView:
             "name": "Test User",
         }
 
-        response = unauthenticated_client.post(reverse("auth"), {"id_token": "token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("auth"), {"id_token": "token"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data["detail"] == "Email address is not verified"
@@ -334,13 +388,17 @@ class TestGoogleAuthView:
             "name": "Test User",
         }
 
-        response = unauthenticated_client.post(reverse("auth"), {"id_token": "token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("auth"), {"id_token": "token"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         user.refresh_from_db()
         assert user.is_active is False
 
-    def test_google_token_without_email_rejected(self, unauthenticated_client, mock_google_auth):
+    def test_google_token_without_email_rejected(
+        self, unauthenticated_client, mock_google_auth
+    ):
         mock_google_auth.return_value = {
             "iss": "accounts.google.com",
             "aud": "web-client-id",
@@ -348,7 +406,9 @@ class TestGoogleAuthView:
             "name": "Test User",
         }
 
-        response = unauthenticated_client.post(reverse("auth"), {"id_token": "token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("auth"), {"id_token": "token"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data["detail"] == "No email address was provided"
@@ -361,22 +421,33 @@ class TestGoogleAuthView:
             "name": "Test User",
         }
         url = reverse("auth")
-        response = unauthenticated_client.post(url, {"id_token": "bad_token"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"id_token": "bad_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-
     def test_google_login_is_rate_limited_per_client(
-        self, unauthenticated_client, mock_google_auth, mock_refresh_token, throttle_limit
+        self,
+        unauthenticated_client,
+        mock_google_auth,
+        mock_refresh_token,
+        throttle_limit,
     ):
         url = reverse("auth")
         for _ in range(throttle_limit("social_login")):
             response = unauthenticated_client.post(
-                url, {"id_token": "valid_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+                url,
+                {"id_token": "valid_token"},
+                format="json",
+                HTTP_X_FORWARDED_FOR="203.0.113.1",
             )
             assert response.status_code == status.HTTP_201_CREATED
 
         response = unauthenticated_client.post(
-            url, {"id_token": "valid_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+            url,
+            {"id_token": "valid_token"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="203.0.113.1",
         )
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
@@ -390,7 +461,9 @@ class TestAppleAuthView:
         response = unauthenticated_client.post(url, {}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_creates_new_user_with_name(self, unauthenticated_client, mock_apple_auth, mock_refresh_token):
+    def test_creates_new_user_with_name(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
         url = reverse("apple-auth")
         response = unauthenticated_client.post(
             url,
@@ -404,7 +477,9 @@ class TestAppleAuthView:
         user_profile = UserProfile.objects.get(user__email="apple@example.com")
         assert user_profile.name == "John Doe"
 
-    def test_creates_new_user_without_name(self, unauthenticated_client, mock_apple_auth, mock_refresh_token):
+    def test_creates_new_user_without_name(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
         url = reverse("apple-auth")
         response = unauthenticated_client.post(
             url, {"id_token": "apple_token"}, format="json"
@@ -414,7 +489,9 @@ class TestAppleAuthView:
         user_profile = UserProfile.objects.get(user__email="apple@example.com")
         assert user_profile.name == "apple"
 
-    def test_existing_user_sign_in(self, unauthenticated_client, mock_apple_auth, mock_refresh_token):
+    def test_existing_user_sign_in(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
         user = User.objects.create_user(
             username="appleuser", email="apple@example.com", password="testpass123"
         )
@@ -430,7 +507,9 @@ class TestAppleAuthView:
         user_profile = UserProfile.objects.get(user=user)
         assert user_profile.name == "Existing Name"
 
-    def test_links_to_existing_inactive_account(self, unauthenticated_client, mock_apple_auth, mock_refresh_token):
+    def test_links_to_existing_inactive_account(
+        self, unauthenticated_client, mock_apple_auth, mock_refresh_token
+    ):
         user = User.objects.create_user(
             username="apple@example.com",
             email="apple@example.com",
@@ -456,7 +535,9 @@ class TestAppleAuthView:
 
         assert User.objects.filter(email="apple@example.com").count() == 1
 
-    def test_relay_email_accepted(self, unauthenticated_client, mock_apple_auth_relay_email, mock_refresh_token):
+    def test_relay_email_accepted(
+        self, unauthenticated_client, mock_apple_auth_relay_email, mock_refresh_token
+    ):
         url = reverse("apple-auth")
         response = unauthenticated_client.post(
             url,
@@ -465,11 +546,15 @@ class TestAppleAuthView:
         )
         assert response.status_code == status.HTTP_201_CREATED
 
-        user_profile = UserProfile.objects.get(user__email="abc123@privaterelay.appleid.com")
+        user_profile = UserProfile.objects.get(
+            user__email="abc123@privaterelay.appleid.com"
+        )
         assert user_profile.name == "Jane"
 
     def test_invalid_token_returns_401(self, unauthenticated_client, mock_apple_auth):
-        mock_apple_auth.side_effect = AuthenticationFailed("Apple authentication failed")
+        mock_apple_auth.side_effect = AuthenticationFailed(
+            "Apple authentication failed"
+        )
         url = reverse("apple-auth")
         response = unauthenticated_client.post(
             url, {"id_token": "bad_token"}, format="json"
@@ -544,7 +629,9 @@ class TestAppleAuthView:
 
         url = reverse("apple-auth")
         response = unauthenticated_client.post(
-            url, {"id_token": apple_id_token_factory("com.diplicity.web")}, format="json"
+            url,
+            {"id_token": apple_id_token_factory("com.diplicity.web")},
+            format="json",
         )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -561,7 +648,9 @@ class TestAppleAuthView:
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
-        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("apple-auth"), {"id_token": "apple_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
 
@@ -582,7 +671,9 @@ class TestAppleAuthView:
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
-        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("apple-auth"), {"id_token": "apple_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
 
@@ -604,7 +695,9 @@ class TestAppleAuthView:
         )
         UserProfile.objects.create(user=user, name="Original Name")
 
-        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("apple-auth"), {"id_token": "apple_token"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
@@ -613,7 +706,9 @@ class TestAppleAuthView:
     def test_new_apple_user_has_no_usable_password(
         self, unauthenticated_client, mock_apple_auth, mock_refresh_token
     ):
-        response = unauthenticated_client.post(reverse("apple-auth"), {"id_token": "apple_token"}, format="json")
+        response = unauthenticated_client.post(
+            reverse("apple-auth"), {"id_token": "apple_token"}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
         assert User.objects.get(id=response.data["id"]).has_usable_password() is False
@@ -632,7 +727,11 @@ class TestAppleAuthView:
 
         response = unauthenticated_client.post(
             reverse("apple-auth"),
-            {"id_token": apple_id_token_factory("com.diplicity.app", email_verified=email_verified)},
+            {
+                "id_token": apple_id_token_factory(
+                    "com.diplicity.app", email_verified=email_verified
+                )
+            },
             format="json",
         )
 
@@ -641,13 +740,22 @@ class TestAppleAuthView:
 
     @pytest.mark.parametrize("email_verified", ["false", False, None])
     def test_unverified_apple_email_rejected(
-        self, settings, unauthenticated_client, patch_apple_key, apple_id_token_factory, email_verified
+        self,
+        settings,
+        unauthenticated_client,
+        patch_apple_key,
+        apple_id_token_factory,
+        email_verified,
     ):
         settings.APPLE_CLIENT_ID = "com.diplicity.app"
 
         response = unauthenticated_client.post(
             reverse("apple-auth"),
-            {"id_token": apple_id_token_factory("com.diplicity.app", email_verified=email_verified)},
+            {
+                "id_token": apple_id_token_factory(
+                    "com.diplicity.app", email_verified=email_verified
+                )
+            },
             format="json",
         )
 
@@ -669,17 +777,27 @@ class TestAppleAuthView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data["detail"] == "No email address was provided"
 
-
     def test_apple_login_shares_the_social_login_limit(
-        self, unauthenticated_client, mock_google_auth, mock_apple_auth, mock_refresh_token, throttle_limit
+        self,
+        unauthenticated_client,
+        mock_google_auth,
+        mock_apple_auth,
+        mock_refresh_token,
+        throttle_limit,
     ):
         for _ in range(throttle_limit("social_login")):
             unauthenticated_client.post(
-                reverse("auth"), {"id_token": "valid_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+                reverse("auth"),
+                {"id_token": "valid_token"},
+                format="json",
+                HTTP_X_FORWARDED_FOR="203.0.113.1",
             )
 
         response = unauthenticated_client.post(
-            reverse("apple-auth"), {"id_token": "apple_token"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+            reverse("apple-auth"),
+            {"id_token": "apple_token"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="203.0.113.1",
         )
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
@@ -776,7 +894,6 @@ class TestEmailLoginView:
         assert "not verified" in str(response.data)
         assert "check your email" in str(response.data).lower()
 
-
     def _wrong_password(self, client, forwarded_for):
         return client.post(
             reverse("email-login"),
@@ -785,9 +902,14 @@ class TestEmailLoginView:
             HTTP_X_FORWARDED_FOR=forwarded_for,
         )
 
-    def test_email_login_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
+    def test_email_login_is_rate_limited_per_client(
+        self, unauthenticated_client, throttle_limit
+    ):
         for _ in range(throttle_limit("email_login")):
-            assert self._wrong_password(unauthenticated_client, "203.0.113.1").status_code == 401
+            assert (
+                self._wrong_password(unauthenticated_client, "203.0.113.1").status_code
+                == 401
+            )
 
         response = self._wrong_password(unauthenticated_client, "203.0.113.1")
 
@@ -795,7 +917,9 @@ class TestEmailLoginView:
         assert "throttled" in response.data["detail"]
         assert "Retry-After" in response
 
-    def test_email_login_limit_is_separate_for_each_client(self, unauthenticated_client, throttle_limit):
+    def test_email_login_limit_is_separate_for_each_client(
+        self, unauthenticated_client, throttle_limit
+    ):
         for _ in range(throttle_limit("email_login") + 1):
             self._wrong_password(unauthenticated_client, "203.0.113.1")
 
@@ -803,22 +927,34 @@ class TestEmailLoginView:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_email_login_limit_ignores_client_supplied_forwarded_for(self, unauthenticated_client, throttle_limit):
+    def test_email_login_limit_ignores_client_supplied_forwarded_for(
+        self, unauthenticated_client, throttle_limit
+    ):
         for index in range(throttle_limit("email_login")):
-            self._wrong_password(unauthenticated_client, f"198.51.100.{index}, 203.0.113.1")
+            self._wrong_password(
+                unauthenticated_client, f"198.51.100.{index}, 203.0.113.1"
+            )
 
-        response = self._wrong_password(unauthenticated_client, "198.51.100.250, 203.0.113.1")
+        response = self._wrong_password(
+            unauthenticated_client, "198.51.100.250, 203.0.113.1"
+        )
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
-    def test_email_login_without_forwarded_for_uses_the_peer_address(self, unauthenticated_client, throttle_limit):
+    def test_email_login_without_forwarded_for_uses_the_peer_address(
+        self, unauthenticated_client, throttle_limit
+    ):
         for _ in range(throttle_limit("email_login")):
             unauthenticated_client.post(
-                reverse("email-login"), {"email": "player@example.com", "password": "wrongpass123"}, format="json"
+                reverse("email-login"),
+                {"email": "player@example.com", "password": "wrongpass123"},
+                format="json",
             )
 
         response = unauthenticated_client.post(
-            reverse("email-login"), {"email": "player@example.com", "password": "wrongpass123"}, format="json"
+            reverse("email-login"),
+            {"email": "player@example.com", "password": "wrongpass123"},
+            format="json",
         )
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
@@ -868,7 +1004,9 @@ class TestRegisterView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "already exists" in str(response.data["email"])
 
-    def test_duplicate_email_message_names_google_and_apple(self, unauthenticated_client, mock_send_email):
+    def test_duplicate_email_message_names_google_and_apple(
+        self, unauthenticated_client, mock_send_email
+    ):
         User.objects.create_user(
             username="existing",
             email="taken@example.com",
@@ -890,7 +1028,9 @@ class TestRegisterView:
         assert "Google" in str(response.data["email"])
         assert "Apple" in str(response.data["email"])
 
-    def test_duplicate_email_case_insensitive_returns_400(self, unauthenticated_client, mock_send_email):
+    def test_duplicate_email_case_insensitive_returns_400(
+        self, unauthenticated_client, mock_send_email
+    ):
         User.objects.create_user(
             username="existing",
             email="Taken@Example.com",
@@ -934,10 +1074,16 @@ class TestRegisterView:
             ("newplayer@example", "The password is too similar to the email address."),
         ],
     )
-    def test_weak_password_returns_400(self, unauthenticated_client, mock_send_email, password, message):
+    def test_weak_password_returns_400(
+        self, unauthenticated_client, mock_send_email, password, message
+    ):
         response = unauthenticated_client.post(
             reverse("register"),
-            {"email": "newplayer@example.com", "password": password, "display_name": "New Player"},
+            {
+                "email": "newplayer@example.com",
+                "password": password,
+                "display_name": "New Player",
+            },
             format="json",
         )
 
@@ -946,7 +1092,9 @@ class TestRegisterView:
         assert User.objects.filter(email="newplayer@example.com").exists() is False
         mock_send_email.assert_not_called()
 
-    def test_registration_sends_verification_email(self, unauthenticated_client, mock_send_email):
+    def test_registration_sends_verification_email(
+        self, unauthenticated_client, mock_send_email
+    ):
         url = reverse("register")
         unauthenticated_client.post(
             url,
@@ -964,12 +1112,17 @@ class TestRegisterView:
         assert call_kwargs["subject"] == "Verify your Diplicity account"
         assert "verify-email" in call_kwargs["html"]
 
-
-    def test_registration_is_rate_limited_per_client(self, unauthenticated_client, mock_send_email, throttle_limit):
+    def test_registration_is_rate_limited_per_client(
+        self, unauthenticated_client, mock_send_email, throttle_limit
+    ):
         for index in range(throttle_limit("register")):
             response = unauthenticated_client.post(
                 reverse("register"),
-                {"email": f"player{index}@example.com", "password": "strongpass123", "display_name": "Player"},
+                {
+                    "email": f"player{index}@example.com",
+                    "password": "strongpass123",
+                    "display_name": "Player",
+                },
                 format="json",
                 HTTP_X_FORWARDED_FOR="203.0.113.1",
             )
@@ -977,7 +1130,11 @@ class TestRegisterView:
 
         response = unauthenticated_client.post(
             reverse("register"),
-            {"email": "one-more@example.com", "password": "strongpass123", "display_name": "Player"},
+            {
+                "email": "one-more@example.com",
+                "password": "strongpass123",
+                "display_name": "Player",
+            },
             format="json",
             HTTP_X_FORWARDED_FOR="203.0.113.1",
         )
@@ -992,14 +1149,22 @@ class TestRegisterView:
         for index in range(throttle_limit("register_email")):
             unauthenticated_client.post(
                 reverse("register"),
-                {"email": "Target@Example.com", "password": "strongpass123", "display_name": "Player"},
+                {
+                    "email": "Target@Example.com",
+                    "password": "strongpass123",
+                    "display_name": "Player",
+                },
                 format="json",
                 HTTP_X_FORWARDED_FOR=f"203.0.113.{index}",
             )
 
         response = unauthenticated_client.post(
             reverse("register"),
-            {"email": "target@example.com", "password": "strongpass123", "display_name": "Player"},
+            {
+                "email": "target@example.com",
+                "password": "strongpass123",
+                "display_name": "Player",
+            },
             format="json",
             HTTP_X_FORWARDED_FOR="198.51.100.1",
         )
@@ -1062,8 +1227,9 @@ class TestVerifyEmailView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Invalid verification link." in response.data["uid"]
 
-
-    def test_verify_email_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
+    def test_verify_email_is_rate_limited_per_client(
+        self, unauthenticated_client, throttle_limit
+    ):
         for _ in range(throttle_limit("verify_email")):
             response = unauthenticated_client.post(
                 reverse("verify-email"),
@@ -1085,7 +1251,9 @@ class TestVerifyEmailView:
 
 @pytest.mark.django_db
 class TestPasswordResetView:
-    def test_sends_reset_email_for_valid_user(self, unauthenticated_client, mock_send_email):
+    def test_sends_reset_email_for_valid_user(
+        self, unauthenticated_client, mock_send_email
+    ):
         User.objects.create_user(
             username="player@example.com",
             email="player@example.com",
@@ -1107,7 +1275,9 @@ class TestPasswordResetView:
         assert "reset" in call_kwargs["subject"].lower()
         assert "reset-password?uid=" in call_kwargs["html"]
 
-    def test_case_insensitive_email_sends_reset(self, unauthenticated_client, mock_send_email):
+    def test_case_insensitive_email_sends_reset(
+        self, unauthenticated_client, mock_send_email
+    ):
         User.objects.create_user(
             username="Player@Example.com",
             email="Player@Example.com",
@@ -1125,7 +1295,9 @@ class TestPasswordResetView:
         assert response.status_code == status.HTTP_201_CREATED
         mock_send_email.assert_called_once()
 
-    def test_sends_reset_email_for_unverified_account(self, unauthenticated_client, mock_send_email):
+    def test_sends_reset_email_for_unverified_account(
+        self, unauthenticated_client, mock_send_email
+    ):
         User.objects.create_user(
             username="unverified@example.com",
             email="unverified@example.com",
@@ -1143,7 +1315,9 @@ class TestPasswordResetView:
         mock_send_email.assert_called_once()
         assert mock_send_email.call_args[1]["to"] == "unverified@example.com"
 
-    def test_nonexistent_email_returns_200_without_sending(self, unauthenticated_client, mock_send_email):
+    def test_nonexistent_email_returns_200_without_sending(
+        self, unauthenticated_client, mock_send_email
+    ):
         url = reverse("password-reset")
         response = unauthenticated_client.post(
             url,
@@ -1154,8 +1328,9 @@ class TestPasswordResetView:
         assert response.status_code == status.HTTP_201_CREATED
         mock_send_email.assert_not_called()
 
-
-    def test_password_reset_is_rate_limited_per_client(self, unauthenticated_client, mock_send_email, throttle_limit):
+    def test_password_reset_is_rate_limited_per_client(
+        self, unauthenticated_client, mock_send_email, throttle_limit
+    ):
         for index in range(throttle_limit("password_reset")):
             response = unauthenticated_client.post(
                 reverse("password-reset"),
@@ -1178,7 +1353,10 @@ class TestPasswordResetView:
         self, unauthenticated_client, mock_send_email, throttle_limit
     ):
         User.objects.create_user(
-            username="resetuser", email="reset@example.com", password="strongpass123", is_active=True
+            username="resetuser",
+            email="reset@example.com",
+            password="strongpass123",
+            is_active=True,
         )
         for index in range(throttle_limit("password_reset_email")):
             response = unauthenticated_client.post(
@@ -1215,7 +1393,12 @@ class TestPasswordResetConfirmView:
         url = reverse("password-reset-confirm")
         response = unauthenticated_client.post(
             url,
-            {"uid": uid, "token": token, "new_password": "newpass456", "confirm_password": "newpass456"},
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": "newpass456",
+                "confirm_password": "newpass456",
+            },
             format="json",
         )
 
@@ -1236,7 +1419,12 @@ class TestPasswordResetConfirmView:
 
         response = unauthenticated_client.post(
             reverse("password-reset-confirm"),
-            {"uid": uid, "token": token, "new_password": "newpass456", "confirm_password": "newpass456"},
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": "newpass456",
+                "confirm_password": "newpass456",
+            },
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
@@ -1262,7 +1450,12 @@ class TestPasswordResetConfirmView:
         url = reverse("password-reset-confirm")
         response = unauthenticated_client.post(
             url,
-            {"uid": uid, "token": "bad-token", "new_password": "newpass456", "confirm_password": "newpass456"},
+            {
+                "uid": uid,
+                "token": "bad-token",
+                "new_password": "newpass456",
+                "confirm_password": "newpass456",
+            },
             format="json",
         )
 
@@ -1275,7 +1468,12 @@ class TestPasswordResetConfirmView:
         url = reverse("password-reset-confirm")
         response = unauthenticated_client.post(
             url,
-            {"uid": "baduid", "token": "bad-token", "new_password": "newpass456", "confirm_password": "newpass456"},
+            {
+                "uid": "baduid",
+                "token": "bad-token",
+                "new_password": "newpass456",
+                "confirm_password": "newpass456",
+            },
             format="json",
         )
 
@@ -1295,7 +1493,12 @@ class TestPasswordResetConfirmView:
         url = reverse("password-reset-confirm")
         response = unauthenticated_client.post(
             url,
-            {"uid": uid, "token": token, "new_password": "newpass456", "confirm_password": "different789"},
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": "newpass456",
+                "confirm_password": "different789",
+            },
             format="json",
         )
 
@@ -1303,7 +1506,6 @@ class TestPasswordResetConfirmView:
         assert "do not match" in str(response.json()).lower()
         user.refresh_from_db()
         assert user.check_password("oldpass123")
-
 
     def test_weak_password_returns_400(self, unauthenticated_client):
         user = User.objects.create_user(
@@ -1317,7 +1519,12 @@ class TestPasswordResetConfirmView:
 
         response = unauthenticated_client.post(
             reverse("password-reset-confirm"),
-            {"uid": uid, "token": token, "new_password": "password123", "confirm_password": "password123"},
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": "password123",
+                "confirm_password": "password123",
+            },
             format="json",
         )
 
@@ -1326,7 +1533,9 @@ class TestPasswordResetConfirmView:
         user.refresh_from_db()
         assert user.check_password("oldpass123")
 
-    def test_password_reset_confirm_is_rate_limited_per_client(self, unauthenticated_client, throttle_limit):
+    def test_password_reset_confirm_is_rate_limited_per_client(
+        self, unauthenticated_client, throttle_limit
+    ):
         payload = {
             "uid": "baduid",
             "token": "bad-token",
@@ -1335,12 +1544,18 @@ class TestPasswordResetConfirmView:
         }
         for _ in range(throttle_limit("password_reset_confirm")):
             response = unauthenticated_client.post(
-                reverse("password-reset-confirm"), payload, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+                reverse("password-reset-confirm"),
+                payload,
+                format="json",
+                HTTP_X_FORWARDED_FOR="203.0.113.1",
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
         response = unauthenticated_client.post(
-            reverse("password-reset-confirm"), payload, format="json", HTTP_X_FORWARDED_FOR="203.0.113.1"
+            reverse("password-reset-confirm"),
+            payload,
+            format="json",
+            HTTP_X_FORWARDED_FOR="203.0.113.1",
         )
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
@@ -1366,7 +1581,9 @@ class TestTokenRefreshView:
 
 @pytest.mark.django_db
 class TestCreateTestUserCommand:
-    def test_defaults_create_active_loginable_user(self, capsys, unauthenticated_client):
+    def test_defaults_create_active_loginable_user(
+        self, capsys, unauthenticated_client
+    ):
         call_command("create_test_user")
 
         output = json.loads(capsys.readouterr().out)
@@ -1431,7 +1648,9 @@ class TestCreateTestUserCommand:
 class TestMakeUnrecognisedPasswordsUnusableMigration:
     def test_raw_text_password_becomes_unusable(self):
         user = User.objects.create(
-            username="socialuser", email="social@example.com", password="default_social_password"
+            username="socialuser",
+            email="social@example.com",
+            password="default_social_password",
         )
 
         unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
@@ -1441,7 +1660,9 @@ class TestMakeUnrecognisedPasswordsUnusableMigration:
         assert user.check_password("default_social_password") is False
 
     def test_hashed_password_is_unchanged(self):
-        user = User.objects.create_user(username="hasheduser", email="hashed@example.com", password="securepass123")
+        user = User.objects.create_user(
+            username="hasheduser", email="hashed@example.com", password="securepass123"
+        )
         encoded = user.password
 
         unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
@@ -1451,7 +1672,9 @@ class TestMakeUnrecognisedPasswordsUnusableMigration:
         assert user.check_password("securepass123") is True
 
     def test_unusable_password_is_unchanged(self):
-        user = User.objects.create_user(username="unusableuser", email="unusable@example.com", password=None)
+        user = User.objects.create_user(
+            username="unusableuser", email="unusable@example.com", password=None
+        )
         encoded = user.password
 
         unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
@@ -1461,14 +1684,20 @@ class TestMakeUnrecognisedPasswordsUnusableMigration:
 
     def test_password_changed_after_the_scan_is_kept(self, monkeypatch):
         user = User.objects.create(
-            username="socialuser", email="social@example.com", password="default_social_password"
+            username="socialuser",
+            email="social@example.com",
+            password="default_social_password",
         )
 
         def reset_password_during_scan(password):
             User.objects.filter(id=user.id).update(password=make_password("newpass456"))
             return False
 
-        monkeypatch.setattr(unusable_passwords_migration, "_is_recognised_hash", reset_password_during_scan)
+        monkeypatch.setattr(
+            unusable_passwords_migration,
+            "_is_recognised_hash",
+            reset_password_during_scan,
+        )
 
         unusable_passwords_migration.make_unrecognised_passwords_unusable(apps, None)
 

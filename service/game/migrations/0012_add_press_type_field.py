@@ -6,13 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0011_add_2h_4h_8h_phase_durations'),
+        ("game", "0011_add_2h_4h_8h_phase_durations"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='game',
-            name='press_type',
-            field=models.CharField(choices=[('full_press', 'Full Press'), ('no_press', 'No Press')], default='full_press', max_length=20),
+            model_name="game",
+            name="press_type",
+            field=models.CharField(
+                choices=[("full_press", "Full Press"), ("no_press", "No Press")],
+                default="full_press",
+                max_length=20,
+            ),
         ),
     ]

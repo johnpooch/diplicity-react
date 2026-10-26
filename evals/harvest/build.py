@@ -53,14 +53,23 @@ class Harvest:
         self.harvested_at = harvested_at
         self.games = {game["id"]: game for game in snapshot["games"]}
         self.phases = {phase["id"]: phase for phase in snapshot["phases"]}
-        self.by_ordinal = {(phase["game"], phase["ordinal"]): phase for phase in snapshot["phases"]}
+        self.by_ordinal = {
+            (phase["game"], phase["ordinal"]): phase for phase in snapshot["phases"]
+        }
         self.units = _by_phase(snapshot["units"])
         self.supply_centers = _by_phase(snapshot["supply_centers"])
         self.orders = _by_phase(snapshot["orders"])
-        self.bots = {(player["phase"], player["nation"]): player["was_bot"] for player in snapshot["players"]}
+        self.bots = {
+            (player["phase"], player["nation"]): player["was_bot"]
+            for player in snapshot["players"]
+        }
 
     def phase_ids(self) -> list[int]:
-        return [phase["id"] for phase in self.phases.values() if phase["status"] == COMPLETED]
+        return [
+            phase["id"]
+            for phase in self.phases.values()
+            if phase["status"] == COMPLETED
+        ]
 
     def legal_options(self, phase_id: int) -> dict[str, list[dict]]:
         board, state = self._position(self._phase_row(phase_id))
@@ -69,7 +78,9 @@ class Harvest:
     def fixtures(self, phase_id: int, nations=None) -> list[Fixture]:
         phase = self._phase_row(phase_id)
         if phase["status"] != COMPLETED:
-            raise HarvestError(f"{_label(phase)} is not completed, so it has no final orders")
+            raise HarvestError(
+                f"{_label(phase)} is not completed, so it has no final orders"
+            )
         board, state = self._position(phase)
         options = board.options_by_nation(state)
         actual_orders = self._actual_orders(phase, options)
@@ -110,7 +121,10 @@ class Harvest:
 
     def _supply_centers(self, phase_id):
         return sorted(
-            ({"nation": row["nation"], "province": row["province"]} for row in self.supply_centers.get(phase_id, [])),
+            (
+                {"nation": row["nation"], "province": row["province"]}
+                for row in self.supply_centers.get(phase_id, [])
+            ),
             key=lambda center: center["province"],
         )
 
@@ -118,15 +132,22 @@ class Harvest:
         nations = {unit["nation"] for unit in self._units(phase["id"])} | set(options)
         actual = {nation: [] for nation in sorted(nations)}
         for order in self.orders.get(phase["id"], []):
-            legal = {option_id(full_option(option)): option for option in options.get(order["nation"], [])}
+            legal = {
+                option_id(full_option(option)): option
+                for option in options.get(order["nation"], [])
+            }
             chosen = option_id(full_option(_option(order)))
             if chosen not in legal:
-                raise HarvestError(f"{_label(phase)}: {order['nation']} order {chosen} is not a legal option")
+                raise HarvestError(
+                    f"{_label(phase)}: {order['nation']} order {chosen} is not a legal option"
+                )
             actual.setdefault(order["nation"], []).append(legal[chosen])
         return actual
 
     def _check_resolutions(self, phase, outcome):
-        results = {(r["nation"], r["source"]): r["result"] for r in outcome["resolutions"]}
+        results = {
+            (r["nation"], r["source"]): r["result"] for r in outcome["resolutions"]
+        }
         for order in self.orders.get(phase["id"], []):
             stored = order["resolution"]
             computed = results.get((order["nation"], order["source"]))
@@ -147,9 +168,13 @@ class Harvest:
         if not same and not skipped:
             return
         if self._units(stored["id"]) != outcome["units"]:
-            raise HarvestError(f"{_label(phase)}: replayed units differ from the stored {_label(stored)}")
+            raise HarvestError(
+                f"{_label(phase)}: replayed units differ from the stored {_label(stored)}"
+            )
         if same and self._supply_centers(stored["id"]) != outcome["supply_centers"]:
-            raise HarvestError(f"{_label(phase)}: replayed supply centres differ from the stored {_label(stored)}")
+            raise HarvestError(
+                f"{_label(phase)}: replayed supply centres differ from the stored {_label(stored)}"
+            )
 
     def _fixture(self, phase, nation, options, actual_orders, outcome) -> Fixture:
         game = self.games[phase["game"]]

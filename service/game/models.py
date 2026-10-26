@@ -48,7 +48,11 @@ from common.constants import (
 from common.models import BaseModel
 from emit import emit
 from phase.models import Phase, PhaseState
-from phase.utils import calculate_next_fixed_deadline, deadline_warning_offset, FREQUENCY_INTERVALS
+from phase.utils import (
+    calculate_next_fixed_deadline,
+    deadline_warning_offset,
+    FREQUENCY_INTERVALS,
+)
 from member.models import CommitmentEntry, Member, NationPreference
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -101,7 +105,9 @@ class GameQuerySet(models.QuerySet):
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation"),
+            queryset=Member.objects.select_related(
+                "user__profile__uploaded_picture", "nation"
+            ),
         )
 
         phases_prefetch = Prefetch(
@@ -119,7 +125,9 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
-        return self.select_related("variant", "victory", "game_master__profile__uploaded_picture").prefetch_related(
+        return self.select_related(
+            "variant", "victory", "game_master__profile__uploaded_picture"
+        ).prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -136,7 +144,9 @@ class GameQuerySet(models.QuerySet):
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
+            queryset=Member.objects.select_related(
+                "user__profile__uploaded_picture", "nation__flag"
+            ),
         )
 
         phases_prefetch = Prefetch("phases", queryset=Phase.objects.defer("options"))
@@ -146,7 +156,9 @@ class GameQuerySet(models.QuerySet):
         ).values("id")[:1]
 
         return (
-            self.select_related("variant", "victory", "game_master__profile__uploaded_picture")
+            self.select_related(
+                "variant", "victory", "game_master__profile__uploaded_picture"
+            )
             .prefetch_related(
                 members_prefetch,
                 victory_members_prefetch,
@@ -197,7 +209,9 @@ class GameQuerySet(models.QuerySet):
 
         template_phase_prefetch = Prefetch(
             "variant__phases",
-            queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
+            queryset=Phase.objects.filter(
+                game=None, status=PhaseStatus.TEMPLATE
+            ).prefetch_related(
                 units_prefetch,
                 supply_centers_prefetch,
                 phase_states_prefetch,
@@ -224,10 +238,14 @@ class GameQuerySet(models.QuerySet):
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile__uploaded_picture", "nation__flag")
+            queryset=Member.objects.select_related(
+                "user__profile__uploaded_picture", "nation__flag"
+            ),
         )
 
-        return self.select_related("victory", "game_master__profile__uploaded_picture").prefetch_related(
+        return self.select_related(
+            "victory", "game_master__profile__uploaded_picture"
+        ).prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
@@ -264,13 +282,21 @@ class GameManager(models.Manager):
             phases,
             current_phases + latest_completed_phases,
             "phase_states",
-            PhaseState.objects.select_related("member").annotate(order_count=Count("orders")),
+            PhaseState.objects.select_related("member").annotate(
+                order_count=Count("orders")
+            ),
         )
         self._prefetch_for_phases(
-            phases, current_phases, "units", Unit.objects.select_related("nation", "province")
+            phases,
+            current_phases,
+            "units",
+            Unit.objects.select_related("nation", "province"),
         )
         self._prefetch_for_phases(
-            phases, current_phases, "supply_centers", SupplyCenter.objects.select_related("nation", "province")
+            phases,
+            current_phases,
+            "supply_centers",
+            SupplyCenter.objects.select_related("nation", "province"),
         )
 
     def hydrate_total_unread_counts(self, games, user):
@@ -291,7 +317,12 @@ class GameManager(models.Manager):
 
     def hydrate_member_commitment_totals(self, games):
         members = [member for game in games for member in game.members.all()]
-        members += [member for game in games if hasattr(game, "victory") for member in game.victory.members.all()]
+        members += [
+            member
+            for game in games
+            if hasattr(game, "victory")
+            for member in game.victory.members.all()
+        ]
         Member.objects.hydrate_commitment_totals(members)
 
     def hydrate_retrieve_phases(self, games):
@@ -300,7 +331,9 @@ class GameManager(models.Manager):
             phases,
             current_phases + latest_completed_phases,
             "phase_states",
-            PhaseState.objects.select_related("member__user").annotate(order_count=Count("orders")),
+            PhaseState.objects.select_related("member__user").annotate(
+                order_count=Count("orders")
+            ),
         )
 
     def retrieve_fingerprint(self, game_id, request):
@@ -309,17 +342,32 @@ class GameManager(models.Manager):
         if game is None:
             raise Http404
         members = list(Member.objects.filter(game_id=game_id).order_by("id").values())
-        user_ids = {member["user_id"] for member in members} | {game["game_master_id"], user.id}
+        user_ids = {member["user_id"] for member in members} | {
+            game["game_master_id"],
+            user.id,
+        }
         profiles = list(
             UserProfile.objects.filter(user_id__in=user_ids - {None})
             .annotate(uploaded_picture_hash=F("uploaded_picture__content_hash"))
             .order_by("id")
             .values()
         )
-        phase_fields = [field.attname for field in Phase._meta.concrete_fields if field.name != "options"]
-        phases = list(Phase.objects.filter(game_id=game_id).order_by("ordinal", "id").values(*phase_fields))
-        completed_phases = [phase for phase in phases if phase["status"] == PhaseStatus.COMPLETED]
-        hydrated_phase_ids = {phase["id"] for phase in phases[-1:] + completed_phases[-1:]}
+        phase_fields = [
+            field.attname
+            for field in Phase._meta.concrete_fields
+            if field.name != "options"
+        ]
+        phases = list(
+            Phase.objects.filter(game_id=game_id)
+            .order_by("ordinal", "id")
+            .values(*phase_fields)
+        )
+        completed_phases = [
+            phase for phase in phases if phase["status"] == PhaseStatus.COMPLETED
+        ]
+        hydrated_phase_ids = {
+            phase["id"] for phase in phases[-1:] + completed_phases[-1:]
+        }
         phase_states = list(
             PhaseState.objects.filter(phase_id__in=hydrated_phase_ids)
             .annotate(order_count=Count("orders"))
@@ -327,7 +375,9 @@ class GameManager(models.Manager):
             .values()
         )
         nation_preferences = list(
-            NationPreference.objects.filter(member__game_id=game_id).order_by("id").values()
+            NationPreference.objects.filter(member__game_id=game_id)
+            .order_by("id")
+            .values()
         )
         victory_members = list(
             Victory.members.through.objects.filter(victory__game_id=game_id)
@@ -354,7 +404,9 @@ class GameManager(models.Manager):
         phases, current_phases, latest_completed_phases = [], [], []
         for game in games:
             game_phases = list(game.phases.all())
-            completed_phases = [phase for phase in game_phases if phase.status == PhaseStatus.COMPLETED]
+            completed_phases = [
+                phase for phase in game_phases if phase.status == PhaseStatus.COMPLETED
+            ]
             phases += game_phases
             current_phases += game_phases[-1:]
             latest_completed_phases += completed_phases[-1:]
@@ -363,10 +415,12 @@ class GameManager(models.Manager):
     def _prefetch_for_phases(self, phases, target_phases, lookup, queryset):
         target_ids = {phase.id for phase in target_phases}
         prefetch_related_objects(
-            [phase for phase in phases if phase.id in target_ids], Prefetch(lookup, queryset=queryset)
+            [phase for phase in phases if phase.id in target_ids],
+            Prefetch(lookup, queryset=queryset),
         )
         prefetch_related_objects(
-            [phase for phase in phases if phase.id not in target_ids], Prefetch(lookup, queryset=queryset.none())
+            [phase for phase in phases if phase.id not in target_ids],
+            Prefetch(lookup, queryset=queryset.none()),
         )
 
     def filter_musterable(self):
@@ -380,16 +434,24 @@ class GameManager(models.Manager):
             self.filter(status=GameStatus.PENDING, private=False, sandbox=False)
             .exclude(members__user=user)
             .annotate(
-                player_count=Count("members", filter=Q(members__kind=MemberKind.PLAYER), distinct=True),
+                player_count=Count(
+                    "members", filter=Q(members__kind=MemberKind.PLAYER), distinct=True
+                ),
                 seat_count=Count(
-                    "variant__nations", filter=Q(variant__nations__non_playable=False), distinct=True
+                    "variant__nations",
+                    filter=Q(variant__nations__non_playable=False),
+                    distinct=True,
                 ),
             )
             .filter(player_count__gte=FASTEST_START_MIN_PLAYERS)
             .order_by(F("seat_count") - F("player_count"), "-created_at")
         )
         fastest = next(
-            (game for game in candidates.iterator() if not game.show_short_game_join_warning),
+            (
+                game
+                for game in candidates.iterator()
+                if not game.show_short_game_join_warning
+            ),
             None,
         )
         if fastest is None:
@@ -405,7 +467,12 @@ class GameManager(models.Manager):
             .annotate(
                 musterable=Exists(self.filter_musterable().filter(pk=OuterRef("pk")))
             )
-            .values_list("muster_job_id", "muster_reminder_job_id", "muster_deadline", "musterable")[:1]
+            .values_list(
+                "muster_job_id",
+                "muster_reminder_job_id",
+                "muster_deadline",
+                "musterable",
+            )[:1]
         )
         if not state:
             return None
@@ -453,7 +520,14 @@ class GameManager(models.Manager):
         return muster_deadline - deadline_warning_offset(window_seconds)
 
     def _arm_muster_job(
-        self, game, current_job_id, should_arm, schedule_at, task_name, live_statuses, lock=None
+        self,
+        game,
+        current_job_id,
+        should_arm,
+        schedule_at,
+        task_name,
+        live_statuses,
+        lock=None,
     ):
         if current_job_id is not None:
             armed = procrastinate_app.job_manager.list_jobs(id=current_job_id)
@@ -477,7 +551,9 @@ class GameManager(models.Manager):
 
     def send_muster_reminder(self, game_id):
         now = timezone.now()
-        game = self.filter_musterable().filter(pk=game_id, muster_deadline__gt=now).first()
+        game = (
+            self.filter_musterable().filter(pk=game_id, muster_deadline__gt=now).first()
+        )
         if game is None or self._muster_reminder_at(game, game.muster_deadline) > now:
             return
 
@@ -504,9 +580,7 @@ class GameManager(models.Manager):
             unmustered_user_ids = {
                 member.user_id for member in unmustered if member.user_id is not None
             }
-            recipients = list(
-                game.seated_member_user_ids() - unmustered_user_ids
-            )
+            recipients = list(game.seated_member_user_ids() - unmustered_user_ids)
 
             game.start(notify_user_ids=recipients)
 
@@ -577,7 +651,9 @@ class GameManager(models.Manager):
             game = self.create_from_template(variant, name=name, **kwargs)
 
             nations_list = [n for n in variant.nations.all() if not n.non_playable]
-            members_to_create = [Member(game=game, user=user, sandbox=True) for _ in nations_list]
+            members_to_create = [
+                Member(game=game, user=user, sandbox=True) for _ in nations_list
+            ]
             created_members = Member.objects.bulk_create(members_to_create)
 
             current_phase = getattr(game, "_created_phase", None)
@@ -619,7 +695,9 @@ class GameManager(models.Manager):
                 dislodged=unit.dislodged,
                 dislodged_from=unit.dislodged_from,
             )
-            for unit in source_phase.units.select_related("nation", "province", "dislodged_from")
+            for unit in source_phase.units.select_related(
+                "nation", "province", "dislodged_from"
+            )
         ]
         Unit.objects.bulk_create(units_to_create)
 
@@ -663,9 +741,13 @@ class Game(BaseModel):
         blank=True,
         related_name="administered_games",
     )
-    variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="games")
+    variant = models.ForeignKey(
+        "variant.Variant", on_delete=models.CASCADE, related_name="games"
+    )
     name = models.CharField(max_length=100)
-    status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
+    status = models.CharField(
+        max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING
+    )
     sandbox = models.BooleanField(default=False)
     private = models.BooleanField(default=False)
     anonymous = models.BooleanField(default=False)
@@ -718,7 +800,9 @@ class Game(BaseModel):
     muster_required = models.BooleanField(default=False)
     muster_deadline = models.DateTimeField(null=True, blank=True)
     muster_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
-    muster_reminder_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
+    muster_reminder_job_id = models.BigIntegerField(
+        null=True, blank=True, editable=False
+    )
 
     def save(self, *args, **kwargs):
         if self.id:
@@ -768,7 +852,9 @@ class Game(BaseModel):
     @property
     def show_short_game_join_warning(self):
         seconds = self.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
-        return seconds is not None and seconds < duration_to_seconds(MovementPhaseDuration.TWENTY_FOUR_HOURS)
+        return seconds is not None and seconds < duration_to_seconds(
+            MovementPhaseDuration.TWENTY_FOUR_HOURS
+        )
 
     @property
     def effective_retreat_frequency(self):
@@ -780,7 +866,9 @@ class Game(BaseModel):
 
     @property
     def manager_label(self):
-        return "the Game Master" if self.game_master_id is not None else "the game creator"
+        return (
+            "the Game Master" if self.game_master_id is not None else "the game creator"
+        )
 
     @property
     def anonymity_active(self):
@@ -788,12 +876,16 @@ class Game(BaseModel):
 
     @property
     def bot_members(self):
-        return self.members.filter(user__profile__kind__in=UserKind.BOT_KINDS).select_related("user")
+        return self.members.filter(
+            user__profile__kind__in=UserKind.BOT_KINDS
+        ).select_related("user")
 
     @cached_property
     def nmrd_member_ids(self):
         with tracer.start_as_current_span("game.models.nmrd_member_ids"):
-            completed = [p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED]
+            completed = [
+                p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED
+            ]
             if not completed:
                 return set()
             latest = max(completed, key=lambda p: p.ordinal)
@@ -822,10 +914,16 @@ class Game(BaseModel):
         else:
             return self.effective_retreat_frequency
 
-    def get_scheduled_resolution(self, phase_type, is_first_phase=False, reference_time=None):
+    def get_scheduled_resolution(
+        self, phase_type, is_first_phase=False, reference_time=None
+    ):
         if self.deadline_mode == DeadlineMode.FIXED_TIME:
             frequency = self.get_phase_frequency(phase_type)
-            if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
+            if (
+                not frequency
+                or not self.fixed_deadline_time
+                or not self.fixed_deadline_timezone
+            ):
                 return None
             return calculate_next_fixed_deadline(
                 target_time=self.fixed_deadline_time,
@@ -871,7 +969,10 @@ class Game(BaseModel):
                 for member in self.members.all()
                 if not member.is_game_master
             )
-            game_is_unstarted = self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            game_is_unstarted = self.status in (
+                GameStatus.PENDING,
+                GameStatus.MUSTERING,
+            )
             return user_is_player and game_is_unstarted
 
     def can_withdraw(self, user):
@@ -938,15 +1039,22 @@ class Game(BaseModel):
         active = self.status == GameStatus.ACTIVE
         current_phase = self.current_phase
         is_player = any(
-            member.user_id is not None and member.user_id == user.id and not member.is_game_master
+            member.user_id is not None
+            and member.user_id == user.id
+            and not member.is_game_master
             for member in self.members.all()
         )
-        is_game_master = self.game_master_id is not None and self.game_master_id == user.id
+        is_game_master = (
+            self.game_master_id is not None and self.game_master_id == user.id
+        )
         return {
             GameActionKey.JOIN: self.can_join(user),
-            GameActionKey.CONFIRM_SEAT: self.muster_status(user) == MusterStatus.CONFIRMATION_REQUIRED,
-            GameActionKey.EDIT_NATION_PREFERENCES: self.status == GameStatus.PENDING and is_player,
-            GameActionKey.ASSIGN_NATIONS: self.status == GameStatus.PENDING and is_game_master,
+            GameActionKey.CONFIRM_SEAT: self.muster_status(user)
+            == MusterStatus.CONFIRMATION_REQUIRED,
+            GameActionKey.EDIT_NATION_PREFERENCES: self.status == GameStatus.PENDING
+            and is_player,
+            GameActionKey.ASSIGN_NATIONS: self.status == GameStatus.PENDING
+            and is_game_master,
             GameActionKey.EXTEND_DEADLINE: (
                 manages
                 and active
@@ -996,7 +1104,8 @@ class Game(BaseModel):
 
     def seated_member_user_ids(self):
         ids = {
-            m.user_id for m in self.members.all()
+            m.user_id
+            for m in self.members.all()
             if m.user_id is not None and m.occupied
         }
         return self._with_game_master(ids)
@@ -1010,7 +1119,9 @@ class Game(BaseModel):
         if self.sandbox:
             return False
 
-        remaining = list(self.members.players().not_replaced().filter(eliminated_at__isnull=True))
+        remaining = list(
+            self.members.players().not_replaced().filter(eliminated_at__isnull=True)
+        )
         if not remaining:
             return False
 
@@ -1029,7 +1140,11 @@ class Game(BaseModel):
             if current_phase is None:
                 return False
             for phase_state in current_phase.phase_states.all():
-                if phase_state.member.user_id is not None and phase_state.member.user_id == user.id and phase_state.orders_confirmed:
+                if (
+                    phase_state.member.user_id is not None
+                    and phase_state.member.user_id == user.id
+                    and phase_state.orders_confirmed
+                ):
                     return True
             return False
 
@@ -1049,7 +1164,9 @@ class Game(BaseModel):
 
             current_phase.status = PhaseStatus.ACTIVE
             current_phase.options = adjudication_data["options"]
-            current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type, is_first_phase=True)
+            current_phase.scheduled_resolution = self.get_scheduled_resolution(
+                current_phase.type, is_first_phase=True
+            )
             current_phase.save()
 
             # Use prefetched nations if available, otherwise fetch
@@ -1066,7 +1183,9 @@ class Game(BaseModel):
                 member.updated_at = now
 
             # Use bulk_update to avoid n+1 queries
-            Member.objects.bulk_update(members, ["nation", "nmr_extensions_remaining", "updated_at"])
+            Member.objects.bulk_update(
+                members, ["nation", "nmr_extensions_remaining", "updated_at"]
+            )
 
             nations_with_orders = current_phase.nations_with_possible_orders
             phase_states_to_create = [
@@ -1130,7 +1249,9 @@ class Game(BaseModel):
             return False
 
         if self.muster_required:
-            window_seconds = self.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+            window_seconds = self.get_effective_phase_duration_seconds(
+                PhaseType.MOVEMENT
+            )
             if window_seconds is not None:
                 self.enter_mustering(window_seconds)
                 return True
@@ -1139,8 +1260,10 @@ class Game(BaseModel):
         return True
 
     def unmustered_members(self):
-        return self.members.players().filter(mustered_at__isnull=True).exclude(
-            user__profile__kind__in=UserKind.BOT_KINDS
+        return (
+            self.members.players()
+            .filter(mustered_at__isnull=True)
+            .exclude(user__profile__kind__in=UserKind.BOT_KINDS)
         )
 
     def is_mustered(self):
@@ -1213,8 +1336,13 @@ class Game(BaseModel):
             Phase.objects.arm_warning(current_phase)
 
     def delete_if_empty_pending(self):
-        human_members = self.members.players().exclude(user__profile__kind__in=UserKind.BOT_KINDS)
-        if self.status in (GameStatus.PENDING, GameStatus.MUSTERING) and not human_members.exists():
+        human_members = self.members.players().exclude(
+            user__profile__kind__in=UserKind.BOT_KINDS
+        )
+        if (
+            self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            and not human_members.exists()
+        ):
             self.delete()
             return True
         return False

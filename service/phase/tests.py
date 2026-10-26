@@ -9,7 +9,17 @@ from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import CommitmentEvent, PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency
+from common.constants import (
+    CommitmentEvent,
+    PhaseStatus,
+    PhaseType,
+    OrderType,
+    UnitType,
+    GameStatus,
+    DeadlineMode,
+    ProvinceType,
+    PhaseFrequency,
+)
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -32,11 +42,18 @@ def _admin_reassigned_notifications():
 
 @pytest.mark.django_db
 def test_confirm_phase_success(
-    authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+    authenticated_client,
+    active_game_with_phase_state,
+    secondary_user,
+    classical_france_nation,
 ):
     # Add secondary user so that phase doesn't resolve
-    secondary_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
-    active_game_with_phase_state.current_phase.phase_states.create(member=secondary_member)
+    secondary_member = active_game_with_phase_state.members.create(
+        user=secondary_user, nation=classical_france_nation
+    )
+    active_game_with_phase_state.current_phase.phase_states.create(
+        member=secondary_member
+    )
 
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
     response = authenticated_client.put(url)
@@ -49,60 +66,82 @@ def test_confirm_phase_success(
 
 
 @pytest.mark.django_db
-def test_confirm_phase_already_confirmed(authenticated_client, active_game_with_confirmed_phase_state):
-    url = reverse("game-confirm-phase", args=[active_game_with_confirmed_phase_state.id])
+def test_confirm_phase_already_confirmed(
+    authenticated_client, active_game_with_confirmed_phase_state
+):
+    url = reverse(
+        "game-confirm-phase", args=[active_game_with_confirmed_phase_state.id]
+    )
     response = authenticated_client.put(url)
     assert response.status_code == status.HTTP_200_OK
 
-    phase_state = active_game_with_confirmed_phase_state.current_phase.phase_states.first()
+    phase_state = (
+        active_game_with_confirmed_phase_state.current_phase.phase_states.first()
+    )
     assert not phase_state.orders_confirmed
 
 
 @pytest.mark.django_db
-def test_confirm_phase_game_not_active(authenticated_client, pending_game_created_by_primary_user):
+def test_confirm_phase_game_not_active(
+    authenticated_client, pending_game_created_by_primary_user
+):
     url = reverse("game-confirm-phase", args=[pending_game_created_by_primary_user.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
-def test_confirm_phase_user_not_member(authenticated_client, active_game_created_by_secondary_user):
+def test_confirm_phase_user_not_member(
+    authenticated_client, active_game_created_by_secondary_user
+):
     url = reverse("game-confirm-phase", args=[active_game_created_by_secondary_user.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
-def test_confirm_phase_user_eliminated(authenticated_client_for_secondary_user, active_game_with_eliminated_member):
+def test_confirm_phase_user_eliminated(
+    authenticated_client_for_secondary_user, active_game_with_eliminated_member
+):
     url = reverse("game-confirm-phase", args=[active_game_with_eliminated_member.id])
     response = authenticated_client_for_secondary_user.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
-def test_confirm_phase_user_kicked(authenticated_client_for_secondary_user, active_game_with_kicked_member):
+def test_confirm_phase_user_kicked(
+    authenticated_client_for_secondary_user, active_game_with_kicked_member
+):
     url = reverse("game-confirm-phase", args=[active_game_with_kicked_member.id])
     response = authenticated_client_for_secondary_user.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
-def test_confirm_phase_user_in_civil_disorder(authenticated_client, active_game_with_phase_state, primary_user):
-    active_game_with_phase_state.members.filter(user=primary_user).update(civil_disorder_at=timezone.now())
+def test_confirm_phase_user_in_civil_disorder(
+    authenticated_client, active_game_with_phase_state, primary_user
+):
+    active_game_with_phase_state.members.filter(user=primary_user).update(
+        civil_disorder_at=timezone.now()
+    )
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
-def test_confirm_phase_unauthenticated(unauthenticated_client, active_game_with_phase_state):
+def test_confirm_phase_unauthenticated(
+    unauthenticated_client, active_game_with_phase_state
+):
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
     response = unauthenticated_client.post(url)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.django_db
-def test_list_orderable_provinces_success(authenticated_client, active_game_with_phase_options):
+def test_list_orderable_provinces_success(
+    authenticated_client, active_game_with_phase_options
+):
     url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
@@ -111,7 +150,9 @@ def test_list_orderable_provinces_success(authenticated_client, active_game_with
 
 
 @pytest.mark.django_db
-def test_list_orderable_provinces_sandbox_game(authenticated_client, sandbox_game_with_phase_options):
+def test_list_orderable_provinces_sandbox_game(
+    authenticated_client, sandbox_game_with_phase_options
+):
     url = reverse("phase-state-list", args=[sandbox_game_with_phase_options.id])
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
@@ -119,7 +160,9 @@ def test_list_orderable_provinces_sandbox_game(authenticated_client, sandbox_gam
 
 
 @pytest.mark.django_db
-def test_list_orderable_provinces_not_member(authenticated_client, active_game_created_by_secondary_user):
+def test_list_orderable_provinces_not_member(
+    authenticated_client, active_game_created_by_secondary_user
+):
     url = reverse("phase-state-list", args=[active_game_created_by_secondary_user.id])
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
@@ -135,7 +178,9 @@ def test_phase_with_no_actionable_states_is_due(active_game_with_phase_state):
 
 
 @pytest.mark.django_db
-def test_phase_is_due_once_every_actionable_state_is_confirmed(active_game_with_phase_state):
+def test_phase_is_due_once_every_actionable_state_is_confirmed(
+    active_game_with_phase_state,
+):
     phase = active_game_with_phase_state.current_phase
 
     assert not Phase.objects.filter_due_phases().filter(pk=phase.pk).exists()
@@ -150,7 +195,9 @@ def test_phase_is_not_due_with_partial_confirmation(
     active_game_with_phase_state, secondary_user, classical_france_nation
 ):
     phase = active_game_with_phase_state.current_phase
-    secondary_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+    secondary_member = active_game_with_phase_state.members.create(
+        user=secondary_user, nation=classical_france_nation
+    )
     phase.phase_states.create(member=secondary_member, has_possible_orders=True)
     phase.phase_states.filter(member__user=secondary_user).update(orders_confirmed=True)
 
@@ -183,7 +230,9 @@ def test_nations_with_possible_orders_various_scenarios(
 
 
 @pytest.mark.django_db
-def test_resolve_if_due_resolves_a_phase_past_its_deadline(active_game_with_phase_state):
+def test_resolve_if_due_resolves_a_phase_past_its_deadline(
+    active_game_with_phase_state,
+):
     phase = active_game_with_phase_state.current_phase
     phase.scheduled_resolution = timezone.now() - timedelta(hours=1)
     phase.save()
@@ -195,7 +244,9 @@ def test_resolve_if_due_resolves_a_phase_past_its_deadline(active_game_with_phas
 
 
 @pytest.mark.django_db
-def test_resolve_if_due_resolves_a_phase_with_no_actionable_states(active_game_with_phase_state):
+def test_resolve_if_due_resolves_a_phase_with_no_actionable_states(
+    active_game_with_phase_state,
+):
     phase = active_game_with_phase_state.current_phase
     phase.scheduled_resolution = timezone.now() + timedelta(hours=24)
     phase.save()
@@ -263,7 +314,9 @@ def test_a_sandbox_phase_is_never_armed(db, classical_variant, primary_user):
 
 
 @pytest.mark.django_db
-def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_variant, primary_user):
+def test_sandbox_game_resolve_phase_success(
+    authenticated_client, db, classical_variant, primary_user
+):
     from game.models import Game
     from unittest.mock import MagicMock
 
@@ -288,7 +341,9 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
     mock_new_phase.status = "active"
 
     url = reverse("game-resolve-phase", args=[game.id])
-    with patch.object(Phase.objects, "resolve", return_value=mock_new_phase) as mock_resolve:
+    with patch.object(
+        Phase.objects, "resolve", return_value=mock_new_phase
+    ) as mock_resolve:
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == 12345
@@ -296,7 +351,9 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
 
 
 @pytest.mark.django_db
-def test_sandbox_game_resolve_phase_unauthenticated(unauthenticated_client, db, classical_variant, primary_user):
+def test_sandbox_game_resolve_phase_unauthenticated(
+    unauthenticated_client, db, classical_variant, primary_user
+):
     from game.models import Game
 
     game = Game.objects.create_from_template(
@@ -316,7 +373,9 @@ def test_sandbox_game_resolve_phase_unauthenticated(unauthenticated_client, db, 
 
 
 @pytest.mark.django_db
-def test_regular_game_cannot_use_sandbox_resolve(authenticated_client, active_game_with_phase_state):
+def test_regular_game_cannot_use_sandbox_resolve(
+    authenticated_client, active_game_with_phase_state
+):
     url = reverse("game-resolve-phase", args=[active_game_with_phase_state.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -348,7 +407,9 @@ def test_sandbox_game_resolve_phase_non_member(
 class TestAdjustmentPhaseOrderLimits:
 
     @pytest.mark.django_db
-    def test_max_allowed_orders_non_adjustment_phase(self, active_game_with_phase_state):
+    def test_max_allowed_orders_non_adjustment_phase(
+        self, active_game_with_phase_state
+    ):
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.MOVEMENT
         phase.save()
@@ -369,9 +430,17 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation has 2 supply centers but only 1 unit (can build 1)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
         assert phase_state.max_allowed_adjustment_orders() == 1
@@ -389,30 +458,51 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation has 1 supply center but 2 units (must disband 1)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Army", nation=classical_england_nation, province=classical_paris_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+        phase.units.create(
+            type="Army",
+            nation=classical_england_nation,
+            province=classical_paris_province,
+        )
 
         phase_state = phase.phase_states.first()
         assert phase_state.max_allowed_adjustment_orders() == 1
 
     @pytest.mark.django_db
     def test_max_allowed_orders_balanced(
-        self, active_game_with_phase_state, classical_england_nation, classical_london_province
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
     ):
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.ADJUSTMENT
         phase.save()
 
         # Nation has 1 supply center and 1 unit (balanced)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
         assert phase_state.max_allowed_adjustment_orders() == 0
 
     @pytest.mark.django_db
-    def test_max_allowed_orders_no_supply_centers_no_units(self, active_game_with_phase_state):
+    def test_max_allowed_orders_no_supply_centers_no_units(
+        self, active_game_with_phase_state
+    ):
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.ADJUSTMENT
         phase.save()
@@ -422,7 +512,9 @@ class TestAdjustmentPhaseOrderLimits:
         assert phase_state.max_allowed_adjustment_orders() == 0
 
     @pytest.mark.django_db
-    def test_orderable_provinces_movement_phase_no_limit(self, active_game_with_phase_state):
+    def test_orderable_provinces_movement_phase_no_limit(
+        self, active_game_with_phase_state
+    ):
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.MOVEMENT
         phase.options = {"England": {"lon": {}, "par": {}}}
@@ -446,9 +538,17 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation can build 1 order (2 supply centers, 1 unit)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
         orderable = phase_state.orderable_provinces
@@ -468,13 +568,25 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation can build 1 order (2 supply centers, 1 unit)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         # Create 1 order (at limit)
         phase_state = phase.phase_states.first()
-        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
 
         orderable = phase_state.orderable_provinces
         assert orderable.count() == 1  # Only province with existing order
@@ -494,16 +606,27 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation has balanced supply centers and units (0 orders allowed)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
         orderable = phase_state.orderable_provinces
-        assert orderable.count() == 0  # No provinces available (at limit with 0 allowed)
+        assert (
+            orderable.count() == 0
+        )  # No provinces available (at limit with 0 allowed)
 
     @pytest.mark.django_db
     def test_orderable_provinces_adjustment_balanced_no_orders_allowed(
-        self, active_game_with_phase_state, classical_england_nation, classical_london_province
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
     ):
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.ADJUSTMENT
@@ -511,8 +634,14 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation has balanced supply centers and units (0 orders allowed)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
         orderable = phase_state.orderable_provinces
@@ -532,9 +661,17 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation can build 1 order
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
 
@@ -543,7 +680,11 @@ class TestAdjustmentPhaseOrderLimits:
         assert orderable.count() == 2
 
         # Create order for london
-        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
 
         # After creating order (at limit): can only see provinces with existing orders
         orderable = phase_state.orderable_provinces
@@ -572,9 +713,15 @@ class TestAdjustmentPhaseOrderLimits:
         phase.save()
 
         # Nation has 3 supply centers but 0 units (can build 3)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         phase_state = phase.phase_states.first()
         assert phase_state.max_allowed_adjustment_orders() == 3
@@ -584,15 +731,27 @@ class TestAdjustmentPhaseOrderLimits:
         assert orderable.count() == 3
 
         # Create 2 orders
-        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
-        Order.objects.create(phase_state=phase_state, source=classical_paris_province, order_type=OrderType.BUILD)
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_paris_province,
+            order_type=OrderType.BUILD,
+        )
 
         # Still under limit, should see all provinces
         orderable = phase_state.orderable_provinces
         assert orderable.count() == 3
 
         # Create 3rd order (at limit)
-        Order.objects.create(phase_state=phase_state, source=classical_edinburgh_province, order_type=OrderType.BUILD)
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_edinburgh_province,
+            order_type=OrderType.BUILD,
+        )
 
         # At limit, should only see provinces with orders
         orderable = phase_state.orderable_provinces
@@ -622,9 +781,17 @@ class TestAdjustmentPhaseOrderLimits:
         phase = active_game_with_phase_options.current_phase
         phase.type = PhaseType.ADJUSTMENT
         phase.save()
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
         response = authenticated_client.get(url)
@@ -639,7 +806,12 @@ class TestOptionsTransformation:
         raw_options = {
             "England": {
                 "lon": {
-                    "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                    "Next": {
+                        "Hold": {
+                            "Next": {"lon": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        }
+                    },
                     "Type": "Province",
                 }
             }
@@ -692,8 +864,18 @@ class TestOptionsTransformation:
                             "Next": {
                                 "lon": {
                                     "Next": {
-                                        "wal": {"Next": {"yor": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
-                                        "yor": {"Next": {"wal": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
+                                        "wal": {
+                                            "Next": {
+                                                "yor": {"Next": {}, "Type": "Province"}
+                                            },
+                                            "Type": "Province",
+                                        },
+                                        "yor": {
+                                            "Next": {
+                                                "wal": {"Next": {}, "Type": "Province"}
+                                            },
+                                            "Type": "Province",
+                                        },
                                     },
                                     "Type": "SrcProvince",
                                 }
@@ -708,7 +890,9 @@ class TestOptionsTransformation:
 
         result = transform_options(raw_options)
 
-        expected = {"England": {"lon": {"Support": {"wal": {"yor": {}}, "yor": {"wal": {}}}}}}
+        expected = {
+            "England": {"lon": {"Support": {"wal": {"yor": {}}, "yor": {"wal": {}}}}}
+        }
 
         assert result == expected
 
@@ -784,7 +968,10 @@ class TestOptionsTransformation:
             "France": {
                 "spa": {
                     "Next": {
-                        "Hold": {"Next": {"spa": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                        "Hold": {
+                            "Next": {"spa": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
                         "Move": {
                             "Next": {
                                 "spa": {
@@ -807,7 +994,14 @@ class TestOptionsTransformation:
 
         result = transform_options(raw_options)
 
-        expected = {"France": {"spa": {"Hold": {}, "Move": {"bre": {}, "gas": {}, "mar": {}, "por": {}}}}}
+        expected = {
+            "France": {
+                "spa": {
+                    "Hold": {},
+                    "Move": {"bre": {}, "gas": {}, "mar": {}, "por": {}},
+                }
+            }
+        }
 
         assert result == expected
 
@@ -817,7 +1011,10 @@ class TestOptionsTransformation:
             "Russia": {
                 "stp": {
                     "Next": {
-                        "Hold": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                        "Hold": {
+                            "Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
                         "Move": {
                             "Next": {
                                 "stp/sc": {
@@ -839,7 +1036,9 @@ class TestOptionsTransformation:
 
         result = transform_options(raw_options)
 
-        expected = {"Russia": {"stp": {"Hold": {}, "Move": {"bot": {}, "fin": {}, "lvn": {}}}}}
+        expected = {
+            "Russia": {"stp": {"Hold": {}, "Move": {"bot": {}, "fin": {}, "lvn": {}}}}
+        }
 
         assert result == expected
 
@@ -871,7 +1070,13 @@ class TestOptionsTransformation:
 
         result = transform_options(raw_options)
 
-        expected = {"France": {"mid": {"Move": {"bre": {}, "eng": {}, "spa": {"spa/nc": {}, "spa/sc": {}}}}}}
+        expected = {
+            "France": {
+                "mid": {
+                    "Move": {"bre": {}, "eng": {}, "spa": {"spa/nc": {}, "spa/sc": {}}}
+                }
+            }
+        }
 
         assert result == expected
 
@@ -902,7 +1107,9 @@ class TestOptionsTransformation:
 
         result = transform_options(raw_options)
 
-        expected = {"Russia": {"bot": {"Move": {"bal": {}, "fin": {}, "stp": {"stp/sc": {}}}}}}
+        expected = {
+            "Russia": {"bot": {"Move": {"bal": {}, "fin": {}, "stp": {"stp/sc": {}}}}}
+        }
 
         assert result == expected
 
@@ -914,7 +1121,12 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {"Next": {"mun": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"}
+                                "Army": {
+                                    "Next": {
+                                        "mun": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                }
                             },
                             "Type": "OrderType",
                         }
@@ -938,8 +1150,18 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {"Next": {"bre": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
-                                "Fleet": {"Next": {"bre": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Army": {
+                                    "Next": {
+                                        "bre": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                },
+                                "Fleet": {
+                                    "Next": {
+                                        "bre": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                },
                             },
                             "Type": "OrderType",
                         }
@@ -963,8 +1185,18 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {"Next": {"stp": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
-                                "Fleet": {"Next": {"stp/nc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Army": {
+                                    "Next": {
+                                        "stp": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                },
+                                "Fleet": {
+                                    "Next": {
+                                        "stp/nc": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                },
                             },
                             "Type": "OrderType",
                         }
@@ -975,8 +1207,18 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {"Next": {"stp": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
-                                "Fleet": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Army": {
+                                    "Next": {
+                                        "stp": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                },
+                                "Fleet": {
+                                    "Next": {
+                                        "stp/sc": {"Next": {}, "Type": "SrcProvince"}
+                                    },
+                                    "Type": "UnitType",
+                                },
                             },
                             "Type": "OrderType",
                         }
@@ -988,7 +1230,11 @@ class TestOptionsTransformation:
 
         result = transform_options(raw_options)
 
-        expected = {"Russia": {"stp": {"Build": {"Army": {}, "Fleet": {"stp/nc": {}, "stp/sc": {}}}}}}
+        expected = {
+            "Russia": {
+                "stp": {"Build": {"Army": {}, "Fleet": {"stp/nc": {}, "stp/sc": {}}}}
+            }
+        }
 
         assert result == expected
 
@@ -1004,7 +1250,9 @@ class TestCreateFromAdjudicationData:
         phase = italy_vs_germany_phase_with_orders
         initial_phase_count = Phase.objects.count()
 
-        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_basic
+        )
 
         assert Phase.objects.count() == initial_phase_count + 1
         assert new_phase.season == "Spring"
@@ -1038,15 +1286,21 @@ class TestCreateFromAdjudicationData:
     ):
         phase = italy_vs_germany_phase_with_orders
 
-        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_dislodged_unit)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_with_dislodged_unit
+        )
 
         assert new_phase.units.count() == 4
 
-        dislodged_unit = new_phase.units.get(province__province_id="kie", nation__name="Germany")
+        dislodged_unit = new_phase.units.get(
+            province__province_id="kie", nation__name="Germany"
+        )
         assert dislodged_unit.dislodged
         assert dislodged_unit.dislodged_from.province_id == "ven"
 
-        attacker_unit = new_phase.units.get(province__province_id="kie", nation__name="Italy")
+        attacker_unit = new_phase.units.get(
+            province__province_id="kie", nation__name="Italy"
+        )
         assert not attacker_unit.dislodged
         assert attacker_unit.dislodged_from is None
 
@@ -1073,7 +1327,9 @@ class TestCreateFromAdjudicationData:
         phase = italy_vs_germany_phase_with_orders
         member_count = phase.game.members.count()
 
-        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_basic
+        )
 
         assert new_phase.phase_states.count() == member_count
         assert new_phase.phase_states.count() == 2
@@ -1091,7 +1347,9 @@ class TestCreateFromAdjudicationData:
         phase = italy_vs_germany_phase_with_orders
         duration_seconds = phase.game.movement_phase_duration_seconds
 
-        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_basic
+        )
 
         assert new_phase.scheduled_resolution is not None
 
@@ -1109,7 +1367,9 @@ class TestCreateFromAdjudicationData:
 
         Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
 
-        resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
+        resolved_orders = [
+            order for order in phase.all_orders if hasattr(order, "resolution")
+        ]
         assert len(resolved_orders) == orders_count
 
     @pytest.mark.django_db
@@ -1120,7 +1380,9 @@ class TestCreateFromAdjudicationData:
     ):
         phase = italy_vs_germany_phase_with_orders
 
-        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_failed_implicit_hold)
+        Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_with_failed_implicit_hold
+        )
 
         implicit_order = Order.objects.get(
             phase_state__phase=phase,
@@ -1154,7 +1416,9 @@ class TestCreateFromAdjudicationData:
     ):
         phase = italy_vs_germany_phase_with_orders
 
-        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_dislodged_implicit_hold)
+        Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_with_dislodged_implicit_hold
+        )
 
         implicit_order = Order.objects.get(
             phase_state__phase=phase,
@@ -1172,9 +1436,14 @@ class TestCreateFromAdjudicationData:
         mock_adjudication_data_basic,
     ):
         phase = italy_vs_germany_phase_with_orders
-        adjudication_data = {**mock_adjudication_data_basic, "contested_provinces": ["bur", "ruh"]}
+        adjudication_data = {
+            **mock_adjudication_data_basic,
+            "contested_provinces": ["bur", "ruh"],
+        }
 
-        new_phase = Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase, adjudication_data
+        )
 
         new_phase.refresh_from_db()
         assert new_phase.contested_provinces == ["bur", "ruh"]
@@ -1187,7 +1456,9 @@ class TestCreateFromAdjudicationData:
     ):
         phase = italy_vs_germany_phase_with_orders
 
-        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            phase, mock_adjudication_data_basic
+        )
 
         new_phase.refresh_from_db()
         assert new_phase.contested_provinces == []
@@ -1201,12 +1472,16 @@ class TestCreateFromAdjudicationDataPerformance:
         italy_vs_germany_phase_with_orders,
         mock_adjudication_data_basic,
     ):
-        phase = Phase.objects.with_related_data().get(pk=italy_vs_germany_phase_with_orders.pk)
+        phase = Phase.objects.with_related_data().get(
+            pk=italy_vs_germany_phase_with_orders.pk
+        )
 
         connection.queries_log.clear()
 
         with override_settings(DEBUG=True):
-            Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+            Phase.objects.create_from_adjudication_data(
+                phase, mock_adjudication_data_basic
+            )
 
         query_count = len(connection.queries)
 
@@ -1253,7 +1528,9 @@ class TestCreateFromAdjudicationDataPerformance:
         rome = Province.objects.get(province_id="rom", variant=classical_variant)
         vienna = Province.objects.get(province_id="vie", variant=classical_variant)
         moscow = Province.objects.get(province_id="mos", variant=classical_variant)
-        constantinople = Province.objects.get(province_id="con", variant=classical_variant)
+        constantinople = Province.objects.get(
+            province_id="con", variant=classical_variant
+        )
 
         phase = game.phases.create(
             variant=classical_variant,
@@ -1308,12 +1585,23 @@ class TestCreateFromAdjudicationDataPerformance:
             "year": 1901,
             "type": "Retreat",
             "options": {},
-            "supply_centers": [{"province": sc[0].province_id, "nation": sc[1].name} for sc in supply_centers_data],
+            "supply_centers": [
+                {"province": sc[0].province_id, "nation": sc[1].name}
+                for sc in supply_centers_data
+            ],
             "units": [
-                {"province": u[0].province_id, "nation": u[1].name, "type": u[2], "dislodged_by": None}
+                {
+                    "province": u[0].province_id,
+                    "nation": u[1].name,
+                    "type": u[2],
+                    "dislodged_by": None,
+                }
                 for u in units_data
             ],
-            "resolutions": [{"province": sc[0].province_id, "result": "OK", "by": None} for sc in supply_centers_data],
+            "resolutions": [
+                {"province": sc[0].province_id, "result": "OK", "by": None}
+                for sc in supply_centers_data
+            ],
         }
 
         phase = Phase.objects.with_related_data().get(pk=phase.pk)
@@ -1399,7 +1687,9 @@ class TestPhaseReversion:
             status=PhaseStatus.ACTIVE,
         )
         phase4.units.create(
-            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
         )
 
         assert game.phases.count() == 4
@@ -1432,7 +1722,9 @@ class TestPhaseReversion:
         assert Order.objects.filter(phase_state__phase=phase3).count() == 0
 
     @pytest.mark.django_db
-    def test_revert_to_phase_recalculates_scheduled_resolution(self, game_with_three_phases):
+    def test_revert_to_phase_recalculates_scheduled_resolution(
+        self, game_with_three_phases
+    ):
         game = game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
 
@@ -1445,7 +1737,9 @@ class TestPhaseReversion:
         assert phase1.scheduled_resolution is not None
 
         expected_resolution = before_revert + timedelta(seconds=duration_seconds)
-        time_diff = abs((phase1.scheduled_resolution - expected_resolution).total_seconds())
+        time_diff = abs(
+            (phase1.scheduled_resolution - expected_resolution).total_seconds()
+        )
         assert time_diff < 2
 
     @pytest.mark.django_db
@@ -1470,7 +1764,9 @@ class TestPhaseReversion:
         game = game_with_three_phases
         phase3 = game.phases.get(ordinal=3)
 
-        phase_state_confirmed = phase3.phase_states.filter(orders_confirmed=True).first()
+        phase_state_confirmed = phase3.phase_states.filter(
+            orders_confirmed=True
+        ).first()
         assert phase_state_confirmed is not None
 
         phase3.revert_to_this_phase()
@@ -1501,7 +1797,11 @@ class TestPhaseReversion:
         phase1 = game.phases.get(ordinal=1)
         phase2 = game.phases.get(ordinal=2)
 
-        order_resolutions_phase2 = [order.resolution for order in phase2.all_orders if hasattr(order, "resolution")]
+        order_resolutions_phase2 = [
+            order.resolution
+            for order in phase2.all_orders
+            if hasattr(order, "resolution")
+        ]
         assert len(order_resolutions_phase2) > 0
 
         phase1.revert_to_this_phase()
@@ -1527,69 +1827,98 @@ class TestPhaseReversion:
 class TestPhaseRevertView:
 
     @pytest.mark.django_db
-    def test_sandbox_player_can_revert_to_previous_phase(self, authenticated_client, sandbox_game_with_three_phases):
+    def test_sandbox_player_can_revert_to_previous_phase(
+        self, authenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
 
-        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+        response = authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase1.id])
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == phase1.id
         assert response.data["status"] == PhaseStatus.ACTIVE
 
-        phases_response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+        phases_response = authenticated_client.get(
+            reverse("phase-list", args=[game.id])
+        )
         assert [p["id"] for p in phases_response.data] == [phase1.id]
 
     @pytest.mark.django_db
-    def test_revert_clears_orders_of_reverted_phase(self, authenticated_client, sandbox_game_with_three_phases):
+    def test_revert_clears_orders_of_reverted_phase(
+        self, authenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
 
-        authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+        authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase1.id])
+        )
 
-        orders_response = authenticated_client.get(reverse("order-list", args=[game.id, phase1.id]))
+        orders_response = authenticated_client.get(
+            reverse("order-list", args=[game.id, phase1.id])
+        )
         assert orders_response.status_code == status.HTTP_200_OK
         assert orders_response.data == []
 
     @pytest.mark.django_db
-    def test_revert_to_middle_phase_keeps_earlier_phases(self, authenticated_client, sandbox_game_with_three_phases):
+    def test_revert_to_middle_phase_keeps_earlier_phases(
+        self, authenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
         phase2 = game.phases.get(ordinal=2)
 
-        authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase2.id]))
+        authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase2.id])
+        )
 
-        phases_response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+        phases_response = authenticated_client.get(
+            reverse("phase-list", args=[game.id])
+        )
         assert [(p["id"], p["status"]) for p in phases_response.data] == [
             (phase1.id, PhaseStatus.COMPLETED),
             (phase2.id, PhaseStatus.ACTIVE),
         ]
 
     @pytest.mark.django_db
-    def test_cannot_revert_non_sandbox_game(self, authenticated_client, game_with_three_phases):
+    def test_cannot_revert_non_sandbox_game(
+        self, authenticated_client, game_with_three_phases
+    ):
         game = game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
 
-        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+        response = authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase1.id])
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert game.phases.count() == 3
 
     @pytest.mark.django_db
-    def test_cannot_revert_completed_sandbox_game(self, authenticated_client, sandbox_game_with_three_phases):
+    def test_cannot_revert_completed_sandbox_game(
+        self, authenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         game.status = GameStatus.COMPLETED
         game.save()
         phase1 = game.phases.get(ordinal=1)
 
-        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+        response = authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase1.id])
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert game.phases.count() == 3
 
     @pytest.mark.django_db
     def test_non_member_cannot_revert(
-        self, authenticated_client_factory, tertiary_user, sandbox_game_with_three_phases
+        self,
+        authenticated_client_factory,
+        tertiary_user,
+        sandbox_game_with_three_phases,
     ):
         game = sandbox_game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
@@ -1601,11 +1930,15 @@ class TestPhaseRevertView:
         assert game.phases.count() == 3
 
     @pytest.mark.django_db
-    def test_revert_unauthenticated(self, unauthenticated_client, sandbox_game_with_three_phases):
+    def test_revert_unauthenticated(
+        self, unauthenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         phase1 = game.phases.get(ordinal=1)
 
-        response = unauthenticated_client.put(reverse("game-revert-phase", args=[game.id, phase1.id]))
+        response = unauthenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, phase1.id])
+        )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -1616,7 +1949,9 @@ class TestPhaseRevertView:
         game = sandbox_game_with_three_phases
         other_phase = sandbox_game_factory().phases.first()
 
-        response = authenticated_client.put(reverse("game-revert-phase", args=[game.id, other_phase.id]))
+        response = authenticated_client.put(
+            reverse("game-revert-phase", args=[game.id, other_phase.id])
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert game.phases.count() == 3
@@ -1625,7 +1960,9 @@ class TestPhaseRevertView:
 class TestPhaseRetrieveView:
 
     @pytest.mark.django_db
-    def test_retrieve_phase_success(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_phase_success(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         phase = game.current_phase
         url = reverse("phase-retrieve", args=[game.id, phase.id])
@@ -1639,7 +1976,9 @@ class TestPhaseRetrieveView:
         assert response.data["status"] == phase.status
 
     @pytest.mark.django_db
-    def test_retrieve_phase_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+    def test_retrieve_phase_unauthenticated(
+        self, unauthenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         phase = game.current_phase
         url = reverse("phase-retrieve", args=[game.id, phase.id])
@@ -1648,7 +1987,9 @@ class TestPhaseRetrieveView:
         assert response.data["id"] == phase.id
 
     @pytest.mark.django_db
-    def test_retrieve_phase_not_found(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_phase_not_found(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         url = reverse("phase-retrieve", args=[game.id, 99999])
         response = authenticated_client.get(url)
@@ -1659,24 +2000,34 @@ class TestPhaseRetrieveView:
         self, authenticated_client, active_game_with_phase_state, game_with_three_phases
     ):
         phase = game_with_three_phases.phases.get(ordinal=1)
-        url = reverse("phase-retrieve", args=[active_game_with_phase_state.id, phase.id])
+        url = reverse(
+            "phase-retrieve", args=[active_game_with_phase_state.id, phase.id]
+        )
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_active_phase_response_is_not_cached(self, authenticated_client, game_with_three_phases):
+    def test_active_phase_response_is_not_cached(
+        self, authenticated_client, game_with_three_phases
+    ):
         game = game_with_three_phases
         phase = game.phases.get(ordinal=3)
-        response = authenticated_client.get(reverse("phase-retrieve", args=[game.id, phase.id]))
+        response = authenticated_client.get(
+            reverse("phase-retrieve", args=[game.id, phase.id])
+        )
         assert response.status_code == status.HTTP_200_OK
         assert "ETag" not in response
         assert "Cache-Control" not in response
 
     @pytest.mark.django_db
-    def test_completed_phase_response_has_cache_headers(self, authenticated_client, game_with_three_phases):
+    def test_completed_phase_response_has_cache_headers(
+        self, authenticated_client, game_with_three_phases
+    ):
         game = game_with_three_phases
         phase = game.phases.get(ordinal=1)
-        response = authenticated_client.get(reverse("phase-retrieve", args=[game.id, phase.id]))
+        response = authenticated_client.get(
+            reverse("phase-retrieve", args=[game.id, phase.id])
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == phase.id
         assert response["ETag"]
@@ -1684,13 +2035,17 @@ class TestPhaseRetrieveView:
 
     @pytest.mark.django_db
     @pytest.mark.parametrize("weaken", [False, True])
-    def test_completed_phase_matching_etag_returns_304(self, authenticated_client, game_with_three_phases, weaken):
+    def test_completed_phase_matching_etag_returns_304(
+        self, authenticated_client, game_with_three_phases, weaken
+    ):
         game = game_with_three_phases
         phase = game.phases.get(ordinal=1)
         url = reverse("phase-retrieve", args=[game.id, phase.id])
         etag = authenticated_client.get(url)["ETag"]
 
-        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}" if weaken else etag)
+        response = authenticated_client.get(
+            url, HTTP_IF_NONE_MATCH=f"W/{etag}" if weaken else etag
+        )
 
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
         assert response.content == b""
@@ -1698,30 +2053,41 @@ class TestPhaseRetrieveView:
         assert response["Cache-Control"] == "private, max-age=604800"
 
     @pytest.mark.django_db
-    def test_completed_phase_etag_differs_per_phase(self, authenticated_client, game_with_three_phases):
+    def test_completed_phase_etag_differs_per_phase(
+        self, authenticated_client, game_with_three_phases
+    ):
         game = game_with_three_phases
         first, second = game.phases.filter(ordinal__in=[1, 2]).order_by("ordinal")
-        first_etag = authenticated_client.get(reverse("phase-retrieve", args=[game.id, first.id]))["ETag"]
+        first_etag = authenticated_client.get(
+            reverse("phase-retrieve", args=[game.id, first.id])
+        )["ETag"]
 
         response = authenticated_client.get(
-            reverse("phase-retrieve", args=[game.id, second.id]), HTTP_IF_NONE_MATCH=first_etag
+            reverse("phase-retrieve", args=[game.id, second.id]),
+            HTTP_IF_NONE_MATCH=first_etag,
         )
 
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"] != first_etag
 
     @pytest.mark.django_db
-    def test_sandbox_completed_phase_response_is_not_cached(self, authenticated_client, sandbox_game_with_three_phases):
+    def test_sandbox_completed_phase_response_is_not_cached(
+        self, authenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         phase = game.phases.get(ordinal=1)
-        response = authenticated_client.get(reverse("phase-retrieve", args=[game.id, phase.id]))
+        response = authenticated_client.get(
+            reverse("phase-retrieve", args=[game.id, phase.id])
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response.data["status"] == PhaseStatus.COMPLETED
         assert "ETag" not in response
         assert "Cache-Control" not in response
 
     @pytest.mark.django_db
-    def test_retrieve_phase_response_structure(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_phase_response_structure(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         phase = game.current_phase
         url = reverse("phase-retrieve", args=[game.id, phase.id])
@@ -1749,13 +2115,23 @@ class TestPhaseRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_phase_with_units_and_supply_centers(
-        self, authenticated_client, active_game_with_phase_state, classical_england_nation, classical_london_province
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
     ):
         game = active_game_with_phase_state
         phase = game.current_phase
 
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
 
         url = reverse("phase-retrieve", args=[game.id, phase.id])
         response = authenticated_client.get(url)
@@ -1777,7 +2153,9 @@ class TestPhaseRetrieveView:
 class TestPhaseListView:
 
     @pytest.mark.django_db
-    def test_list_phases_success(self, authenticated_client, active_game_with_phase_state):
+    def test_list_phases_success(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
 
         for i in range(3):
@@ -1799,7 +2177,9 @@ class TestPhaseListView:
         assert response.data[0]["ordinal"] == 1
 
     @pytest.mark.django_db
-    def test_list_phases_ordered_by_ordinal(self, authenticated_client, active_game_with_phase_state):
+    def test_list_phases_ordered_by_ordinal(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
 
         for i in range(3):
@@ -1821,7 +2201,9 @@ class TestPhaseListView:
         assert ordinals == sorted(ordinals)
 
     @pytest.mark.django_db
-    def test_list_phases_excludes_units_and_supply_centers(self, authenticated_client, active_game_with_phase_state):
+    def test_list_phases_excludes_units_and_supply_centers(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
 
         url = reverse("phase-list", args=[game.id])
@@ -1832,7 +2214,9 @@ class TestPhaseListView:
         assert "supply_centers" not in response.data[0]
 
     @pytest.mark.django_db
-    def test_list_phases_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+    def test_list_phases_unauthenticated(
+        self, unauthenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
 
         url = reverse("phase-list", args=[game.id])
@@ -1841,7 +2225,9 @@ class TestPhaseListView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_list_phases_not_member(self, authenticated_client, active_game_created_by_secondary_user):
+    def test_list_phases_not_member(
+        self, authenticated_client, active_game_created_by_secondary_user
+    ):
         url = reverse("phase-list", args=[active_game_created_by_secondary_user.id])
         response = authenticated_client.get(url)
 
@@ -1852,7 +2238,9 @@ class TestPhaseListView:
 class TestPhaseListViewPerformance:
 
     @pytest.mark.django_db
-    def test_list_phases_query_count(self, authenticated_client, active_game_with_phase_state):
+    def test_list_phases_query_count(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
 
         for i in range(10):
@@ -1893,13 +2281,31 @@ class TestPhaseRetrieveViewQueryPerformance:
         game = active_game_with_phase_state
         phase = game.current_phase
 
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Army", nation=classical_france_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+        phase.units.create(
+            type="Army",
+            nation=classical_france_nation,
+            province=classical_paris_province,
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
 
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_france_nation, province=classical_paris_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_france_nation, province=classical_paris_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         url = reverse("phase-retrieve", args=[game.id, phase.id])
         connection.queries_log.clear()
@@ -1934,7 +2340,9 @@ class TestResolveTransactionSafety:
                 raise IntegrityError("Simulated database integrity error")
 
             with patch.object(phase, "save", side_effect=fail_on_save):
-                with pytest.raises(IntegrityError, match="Simulated database integrity error"):
+                with pytest.raises(
+                    IntegrityError, match="Simulated database integrity error"
+                ):
                     Phase.objects.resolve(phase)
 
         assert Phase.objects.count() == initial_phase_count
@@ -1944,7 +2352,9 @@ class TestResolveTransactionSafety:
 
         from order.models import OrderResolution
 
-        resolution_count = OrderResolution.objects.filter(order__phase_state__phase=phase).count()
+        resolution_count = OrderResolution.objects.filter(
+            order__phase_state__phase=phase
+        ).count()
         assert resolution_count == 0
 
     @pytest.mark.django_db
@@ -1967,8 +2377,14 @@ class TestResolveTransactionSafety:
                 result = original_create_from_adj(*args, **kwargs)
                 raise DatabaseError("Simulated database error after creation")
 
-            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=create_then_fail):
-                with pytest.raises(DatabaseError, match="Simulated database error after creation"):
+            with patch.object(
+                Phase.objects,
+                "create_from_adjudication_data",
+                side_effect=create_then_fail,
+            ):
+                with pytest.raises(
+                    DatabaseError, match="Simulated database error after creation"
+                ):
                     Phase.objects.resolve(phase)
 
         assert Phase.objects.count() == initial_phase_count
@@ -2013,8 +2429,14 @@ class TestResolveTransactionSafety:
 
                 raise Exception("Simulated failure during supply center creation")
 
-            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=failing_create):
-                with pytest.raises(Exception, match="Simulated failure during supply center creation"):
+            with patch.object(
+                Phase.objects,
+                "create_from_adjudication_data",
+                side_effect=failing_create,
+            ):
+                with pytest.raises(
+                    Exception, match="Simulated failure during supply center creation"
+                ):
                     Phase.objects.resolve(phase)
 
         assert Phase.objects.count() == initial_phase_count
@@ -2048,8 +2470,14 @@ class TestResolveTransactionSafety:
                     raise Exception("Simulated failure after phase creation")
                 return original_method(*args, **kwargs)
 
-            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=failing_on_units):
-                with pytest.raises(Exception, match="Simulated failure after phase creation"):
+            with patch.object(
+                Phase.objects,
+                "create_from_adjudication_data",
+                side_effect=failing_on_units,
+            ):
+                with pytest.raises(
+                    Exception, match="Simulated failure after phase creation"
+                ):
                     Phase.objects.resolve(phase)
 
         assert Phase.objects.count() == initial_phase_count
@@ -2083,7 +2511,11 @@ class TestResolveTransactionSafety:
                 original_method(*args, **kwargs)
                 raise Exception("Simulated mid-process failure")
 
-            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=fail_mid_process):
+            with patch.object(
+                Phase.objects,
+                "create_from_adjudication_data",
+                side_effect=fail_mid_process,
+            ):
                 with pytest.raises(Exception, match="Simulated mid-process failure"):
                     Phase.objects.resolve(phase)
 
@@ -2118,7 +2550,10 @@ class TestResolveTransactionSafety:
 
         assert Phase.objects.count() == initial_counts["phases"] + 1
 
-        assert OrderResolution.objects.count() == initial_counts["order_resolutions"] + orders_count
+        assert (
+            OrderResolution.objects.count()
+            == initial_counts["order_resolutions"] + orders_count
+        )
 
         new_phase = phase.game.phases.last()
         assert new_phase.ordinal == phase.ordinal + 1
@@ -2155,7 +2590,11 @@ class TestResolveTransactionSafety:
                     raise Exception("Simulated first attempt failure")
                 return original_method(*args, **kwargs)
 
-            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=fail_first_time):
+            with patch.object(
+                Phase.objects,
+                "create_from_adjudication_data",
+                side_effect=fail_first_time,
+            ):
                 with pytest.raises(Exception, match="Simulated first attempt failure"):
                     Phase.objects.resolve(phase)
 
@@ -2191,10 +2630,19 @@ class TestResolveTransactionSafety:
 
             def fail_before_marking_complete(*args, **kwargs):
                 result = original_method(*args, **kwargs)
-                raise Exception("Simulated failure before marking previous phase complete")
+                raise Exception(
+                    "Simulated failure before marking previous phase complete"
+                )
 
-            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=fail_before_marking_complete):
-                with pytest.raises(Exception, match="Simulated failure before marking previous phase complete"):
+            with patch.object(
+                Phase.objects,
+                "create_from_adjudication_data",
+                side_effect=fail_before_marking_complete,
+            ):
+                with pytest.raises(
+                    Exception,
+                    match="Simulated failure before marking previous phase complete",
+                ):
                     Phase.objects.resolve(phase)
 
         active_phases = Phase.objects.filter(game=game, status=PhaseStatus.ACTIVE)
@@ -2216,8 +2664,12 @@ class TestUniqueLivePhaseOrdinal:
         )
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("status", [PhaseStatus.ACTIVE, PhaseStatus.PROCESSING, PhaseStatus.PENDING])
-    def test_second_live_phase_at_same_ordinal_is_rejected(self, italy_vs_germany_phase_with_orders, status):
+    @pytest.mark.parametrize(
+        "status", [PhaseStatus.ACTIVE, PhaseStatus.PROCESSING, PhaseStatus.PENDING]
+    )
+    def test_second_live_phase_at_same_ordinal_is_rejected(
+        self, italy_vs_germany_phase_with_orders, status
+    ):
         phase = italy_vs_germany_phase_with_orders
 
         with pytest.raises(IntegrityError):
@@ -2225,7 +2677,9 @@ class TestUniqueLivePhaseOrdinal:
                 self._duplicate(phase, status)
 
     @pytest.mark.django_db
-    def test_completed_phase_at_same_ordinal_is_allowed(self, italy_vs_germany_phase_with_orders):
+    def test_completed_phase_at_same_ordinal_is_allowed(
+        self, italy_vs_germany_phase_with_orders
+    ):
         phase = italy_vs_germany_phase_with_orders
 
         duplicate = self._duplicate(phase, PhaseStatus.COMPLETED)
@@ -2259,7 +2713,9 @@ class TestGameEndingFinalisesPhases:
         stale_phase = self._stale_active_phase(game, ordinal=phase.ordinal + 2)
 
         with patch("phase.models.resolve", return_value=mock_adjudication_data_basic):
-            with patch("phase.models.Victory.objects.try_create_victory", return_value=Mock()):
+            with patch(
+                "phase.models.Victory.objects.try_create_victory", return_value=Mock()
+            ):
                 Phase.objects.resolve(phase)
 
         game.refresh_from_db()
@@ -2285,7 +2741,9 @@ class TestGameEndingFinalisesPhases:
             member.save()
 
         with patch("phase.models.resolve", return_value=mock_adjudication_data_basic):
-            with patch("phase.models.Victory.objects.try_create_victory", return_value=None):
+            with patch(
+                "phase.models.Victory.objects.try_create_victory", return_value=None
+            ):
                 Phase.objects.resolve(phase)
 
         game.refresh_from_db()
@@ -2325,7 +2783,11 @@ class TestGameEndingFinalisesPhases:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(hours=24),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
             ],
         )
         phase.refresh_from_db()
@@ -2344,11 +2806,17 @@ class TestGameEndingFinalisesPhases:
 class TestFilterDuePhasesBasicFiltering:
 
     @pytest.mark.django_db
-    def test_filter_due_phases_past_scheduled_resolution(self, phase_factory, classical_england_nation):
+    def test_filter_due_phases_past_scheduled_resolution(
+        self, phase_factory, classical_england_nation
+    ):
         phase = phase_factory(
             scheduled_resolution=timezone.now() - timedelta(hours=1),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False}
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                }
             ],
         )
 
@@ -2363,8 +2831,16 @@ class TestFilterDuePhasesBasicFiltering:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(hours=24),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
-                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
+                {
+                    "nation": classical_france_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": False,
+                },
             ],
         )
 
@@ -2379,8 +2855,16 @@ class TestFilterDuePhasesBasicFiltering:
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(hours=24),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
-                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
+                {
+                    "nation": classical_france_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
             ],
         )
 
@@ -2390,7 +2874,11 @@ class TestFilterDuePhasesBasicFiltering:
 
     @pytest.mark.django_db
     def test_filter_due_phases_fixed_time_all_confirmed_resolves_early(
-        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+        self,
+        phase_factory,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
     ):
         game = Game.objects.create(
             variant=classical_variant,
@@ -2402,8 +2890,16 @@ class TestFilterDuePhasesBasicFiltering:
             game=game,
             scheduled_resolution=timezone.now() + timedelta(hours=24),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
-                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
+                {
+                    "nation": classical_france_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
             ],
         )
 
@@ -2413,7 +2909,11 @@ class TestFilterDuePhasesBasicFiltering:
 
     @pytest.mark.django_db
     def test_filter_due_phases_fixed_time_resolves_at_scheduled_time(
-        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+        self,
+        phase_factory,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
     ):
         game = Game.objects.create(
             variant=classical_variant,
@@ -2425,8 +2925,16 @@ class TestFilterDuePhasesBasicFiltering:
             game=game,
             scheduled_resolution=timezone.now() - timedelta(seconds=1),
             phase_states_config=[
-                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
-                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {
+                    "nation": classical_england_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
+                {
+                    "nation": classical_france_nation,
+                    "has_possible_orders": True,
+                    "orders_confirmed": True,
+                },
             ],
         )
 
@@ -2435,7 +2943,9 @@ class TestFilterDuePhasesBasicFiltering:
         assert phase in phases
 
     @pytest.mark.django_db
-    def test_filter_due_phases_duration_game_no_phase_states_is_due(self, phase_factory):
+    def test_filter_due_phases_duration_game_no_phase_states_is_due(
+        self, phase_factory
+    ):
         # A duration-mode phase with no phase states is vacuously "all confirmed"
         # (the Exists() subquery returns no rows, so ~Exists is True), making it
         # appear immediately resolvable. This is the intermediate DB state that
@@ -2507,8 +3017,15 @@ class TestPhaseAdminQueryPerformance:
                     status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
                     ordinal=j + 1,
                 )
-                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.units.create(
+                    type="Fleet",
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
 
         url = "/admin/phase/phase/"
         connection.queries_log.clear()
@@ -2553,8 +3070,15 @@ class TestPhaseAdminQueryPerformance:
                     status=PhaseStatus.ACTIVE if j == 3 else PhaseStatus.COMPLETED,
                     ordinal=j + 1,
                 )
-                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.units.create(
+                    type="Fleet",
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
 
                 # Create phase states to test prefetch
                 for member in game.members.all():
@@ -2588,7 +3112,11 @@ class TestPhaseAdminNavigationLinks:
         authenticated_client.force_login(primary_user)
 
         phase = active_game_with_phase_state.current_phase
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         url = "/admin/phase/phase/"
         response = authenticated_client.get(url)
@@ -2634,7 +3162,9 @@ class TestPhaseAdminNavigationLinks:
         authenticated_client.force_login(primary_user)
 
         phase = active_game_with_phase_state.current_phase
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
 
         url = "/admin/phase/phase/"
         response = authenticated_client.get(url)
@@ -2642,7 +3172,10 @@ class TestPhaseAdminNavigationLinks:
 
         # Check that the link is in the response
         content = response.content.decode()
-        assert f'href="/admin/supply_center/supplycenter/?phase__id__exact={phase.id}"' in content
+        assert (
+            f'href="/admin/supply_center/supplycenter/?phase__id__exact={phase.id}"'
+            in content
+        )
         assert f"{phase.supply_centers.count()} supply centers" in content
 
     @pytest.mark.django_db
@@ -2664,7 +3197,10 @@ class TestPhaseAdminNavigationLinks:
         assert response.status_code == 200
 
         # Check that the link is in the response
-        assert f'href="/admin/phase/phasestate/?phase__id__exact={phase.id}"' in response.content.decode()
+        assert (
+            f'href="/admin/phase/phasestate/?phase__id__exact={phase.id}"'
+            in response.content.decode()
+        )
         phase_states_count = phase.phase_states.count()
         assert f"{phase_states_count} phase states" in response.content.decode()
 
@@ -2683,7 +3219,11 @@ class TestPhaseAdminNavigationLinks:
         authenticated_client.force_login(primary_user)
 
         phase = active_game_with_phase_state.current_phase
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         # Follow the units link
         url = f"/admin/unit/unit/?phase__id__exact={phase.id}"
@@ -2839,7 +3379,6 @@ class TestPhaseAdminCustomActions:
         assert "Total:" in content
 
 
-
 @pytest.mark.django_db
 class TestPhaseNavigationProperties:
     def test_first_phase_has_no_previous(self, game_with_three_phases):
@@ -2931,10 +3470,17 @@ class TestAbandonmentDetection:
 
     @staticmethod
     def _make_game(
-        variant, italy_nation, germany_nation, primary_user, secondary_user,
-        italy_cd=False, germany_cd=False,
-        italy_eliminated=False, italy_kicked=False,
-        germany_eliminated=False, germany_kicked=False,
+        variant,
+        italy_nation,
+        germany_nation,
+        primary_user,
+        secondary_user,
+        italy_cd=False,
+        germany_cd=False,
+        italy_eliminated=False,
+        italy_kicked=False,
+        germany_eliminated=False,
+        germany_kicked=False,
         sandbox=False,
     ):
         game = Game.objects.create(
@@ -2944,13 +3490,17 @@ class TestAbandonmentDetection:
             sandbox=sandbox,
         )
         Member.objects.create(
-            nation=italy_nation, user=primary_user, game=game,
+            nation=italy_nation,
+            user=primary_user,
+            game=game,
             civil_disorder_at=timezone.now() if italy_cd else None,
             eliminated_at=timezone.now() if italy_eliminated else None,
             removed_at=timezone.now() if italy_kicked else None,
         )
         Member.objects.create(
-            nation=germany_nation, user=secondary_user, game=game,
+            nation=germany_nation,
+            user=secondary_user,
+            game=game,
             civil_disorder_at=timezone.now() if germany_cd else None,
             eliminated_at=timezone.now() if germany_eliminated else None,
             removed_at=timezone.now() if germany_kicked else None,
@@ -2970,8 +3520,10 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
-            italy_cd=True, germany_cd=True,
+            primary_user,
+            secondary_user,
+            italy_cd=True,
+            germany_cd=True,
         )
         assert game.should_abandon() is True
 
@@ -2988,8 +3540,10 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
-            italy_cd=True, germany_cd=False,
+            primary_user,
+            secondary_user,
+            italy_cd=True,
+            germany_cd=False,
         )
         assert game.should_abandon() is False
 
@@ -3006,7 +3560,8 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
+            primary_user,
+            secondary_user,
         )
         assert game.should_abandon() is False
 
@@ -3023,8 +3578,10 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
-            italy_cd=True, germany_cd=True,
+            primary_user,
+            secondary_user,
+            italy_cd=True,
+            germany_cd=True,
             sandbox=True,
         )
         assert game.should_abandon() is False
@@ -3042,7 +3599,8 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
+            primary_user,
+            secondary_user,
             italy_eliminated=True,
             germany_eliminated=True,
         )
@@ -3061,7 +3619,8 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
+            primary_user,
+            secondary_user,
             italy_kicked=True,
             germany_kicked=True,
         )
@@ -3080,7 +3639,8 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
+            primary_user,
+            secondary_user,
             italy_cd=True,
             germany_kicked=True,
         )
@@ -3099,7 +3659,8 @@ class TestAbandonmentDetection:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
-            primary_user, secondary_user,
+            primary_user,
+            secondary_user,
             italy_cd=True,
             germany_eliminated=True,
         )
@@ -3145,8 +3706,12 @@ class TestAbandonmentDetection:
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=timezone.now() - timedelta(hours=1),
         )
-        phase.phase_states.create(member=member_italy, orders_confirmed=True, has_possible_orders=True)
-        phase.phase_states.create(member=member_germany, orders_confirmed=True, has_possible_orders=True)
+        phase.phase_states.create(
+            member=member_italy, orders_confirmed=True, has_possible_orders=True
+        )
+        phase.phase_states.create(
+            member=member_germany, orders_confirmed=True, has_possible_orders=True
+        )
 
         due_phases = Phase.objects.filter_due_phases()
         assert phase not in due_phases
@@ -3199,23 +3764,39 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
-        phase1_germany.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
+        phase1_germany.orders.create(
+            source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD
+        )
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
-        phase2_germany.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+        phase2_germany = phase2.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
+        phase2_germany.orders.create(
+            source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD
+        )
         Phase.objects._set_orders_outcome(phase2)
 
         return phase2, italy, germany
@@ -3239,24 +3820,36 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase1_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase2_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
@@ -3290,23 +3883,35 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
-        phase1_italy = phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_italy = phase1.phase_states.create(
+            member=italy, has_possible_orders=True
+        )
         phase1_italy.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase1_germany.orders.create(
             source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD
         )
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3338,20 +3943,30 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
-        phase1_italy = phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_italy = phase1.phase_states.create(
+            member=italy, has_possible_orders=True
+        )
         phase1_italy.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
         phase1.phase_states.create(member=germany, has_possible_orders=True)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3379,26 +3994,38 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=True)
         Phase.objects._set_orders_outcome(phase1)
 
         phase_retreat = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.RETREAT,
-            ordinal=2, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.RETREAT,
+            ordinal=2,
+            status=PhaseStatus.COMPLETED,
         )
         phase_retreat.phase_states.create(member=italy, has_possible_orders=False)
         phase_retreat.phase_states.create(member=germany, has_possible_orders=False)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=3, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=3,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3427,18 +4054,26 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=True)
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3473,17 +4108,25 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=False)
         phase1.phase_states.create(member=germany, has_possible_orders=False)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=False)
         phase2.phase_states.create(member=germany, has_possible_orders=False)
@@ -3510,17 +4153,25 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=True)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3548,16 +4199,24 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
 
         retreat_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.RETREAT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.RETREAT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         retreat_phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -3584,17 +4243,25 @@ class TestCivilDisorderDetection:
         italy.save()
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=True)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3658,9 +4325,9 @@ class TestCivilDisorderDetection:
         Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
         recipients = set(
-            Notification.objects.filter(event_type="entered_civil_disorder").values_list(
-                "recipient_id", flat=True
-            )
+            Notification.objects.filter(
+                event_type="entered_civil_disorder"
+            ).values_list("recipient_id", flat=True)
         )
         assert recipients == {primary_user.id}
 
@@ -3716,23 +4383,35 @@ class TestCivilDisorderDetection:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
-        phase1_italy = phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_italy = phase1.phase_states.create(
+            member=italy, has_possible_orders=True
+        )
         phase1_italy.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase1_germany.orders.create(
             source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD
         )
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
@@ -3764,24 +4443,36 @@ class TestCivilDisorderDetection:
         game.save()
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase1_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase2_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
@@ -3816,24 +4507,36 @@ class TestCivilDisorderDetection:
         game.save()
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase1_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase2_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
@@ -3875,21 +4578,33 @@ class TestCivilDisorderStagingRemoval:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase1_germany.orders.create(source=venice_province, order_type=OrderType.HOLD)
 
         phase2 = Phase.objects.create(
-            game=game, variant=variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
         phase2_germany.orders.create(source=venice_province, order_type=OrderType.HOLD)
 
         Phase.objects._set_orders_outcome(phase1)
@@ -4029,9 +4744,13 @@ class TestCivilDisorderStagingRemoval:
         newly_cd_members = Phase.objects._check_civil_disorder(phase2)
         Phase.objects._notify_civil_disorder(phase2, newly_cd_members)
 
-        staging_removal_notifications = Notification.objects.filter(event_type="removed_from_staging")
+        staging_removal_notifications = Notification.objects.filter(
+            event_type="removed_from_staging"
+        )
         assert staging_removal_notifications.count() == 1
-        assert list(staging_removal_notifications.values_list("recipient_id", flat=True)) == [primary_user.id]
+        assert list(
+            staging_removal_notifications.values_list("recipient_id", flat=True)
+        ) == [primary_user.id]
 
         delivery = NotificationDelivery.objects.get(
             notification=staging_removal_notifications.get(),
@@ -4041,7 +4760,6 @@ class TestCivilDisorderStagingRemoval:
         assert delivery.body == (
             "You have been removed from this game because you entered civil disorder in Active CD Game."
         )
-
 
     @pytest.mark.django_db
     def test_cd_does_not_remove_game_creator_from_staging(
@@ -4157,18 +4875,26 @@ class TestCivilDisorderExcludesEliminatedMembers:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=False)
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=False)
@@ -4188,9 +4914,9 @@ class TestCivilDisorderExcludesEliminatedMembers:
         assert broadcast_recipients == {tertiary_user.id}
 
         entered_recipients = set(
-            Notification.objects.filter(event_type="entered_civil_disorder").values_list(
-                "recipient_id", flat=True
-            )
+            Notification.objects.filter(
+                event_type="entered_civil_disorder"
+            ).values_list("recipient_id", flat=True)
         )
         assert entered_recipients == {primary_user.id}
 
@@ -4223,23 +4949,39 @@ class TestCivilDisorderEliminationReconciliation:
         )
 
         phase1 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
-        phase1_germany.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        phase1_germany = phase1.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
+        phase1_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
         Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
-        phase2_germany.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        phase2_germany = phase2.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
+        phase2_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
         Phase.objects._set_orders_outcome(phase2)
 
         newly_cd_members = Phase.objects._check_civil_disorder(phase2)
@@ -4384,7 +5126,9 @@ class TestCivilDisorderEliminationReconciliation:
         )
         Phase.objects._notify_civil_disorder(phase2, surviving)
 
-        assert not Notification.objects.filter(event_type="entered_civil_disorder").exists()
+        assert not Notification.objects.filter(
+            event_type="entered_civil_disorder"
+        ).exists()
 
 
 class TestSetOrdersOutcome:
@@ -4404,7 +5148,9 @@ class TestSetOrdersOutcome:
             status=GameStatus.ACTIVE,
         )
         italy = Member.objects.create(nation=italy_nation, user=primary_user, game=game)
-        germany = Member.objects.create(nation=germany_nation, user=secondary_user, game=game)
+        germany = Member.objects.create(
+            nation=germany_nation, user=secondary_user, game=game
+        )
         phase = Phase.objects.create(
             game=game,
             variant=variant,
@@ -4457,7 +5203,9 @@ class TestSetOrdersOutcome:
             secondary_user,
         )
         ps = phase.phase_states.create(member=italy, has_possible_orders=True)
-        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects._set_orders_outcome(phase)
 
@@ -4630,7 +5378,8 @@ class TestSetOrdersOutcome:
             nation=italy_vs_germany_italy_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
         )
         ps = phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -4670,13 +5419,17 @@ class TestSetOrdersOutcome:
             nation=italy_vs_germany_germany_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
+            province=italy_vs_germany_kiel_province,
+            nation=italy_vs_germany_germany_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation
+            province=italy_vs_germany_berlin_province,
+            nation=italy_vs_germany_germany_nation,
         )
         italy_state = phase.phase_states.create(member=italy, has_possible_orders=True)
-        germany_state = phase.phase_states.create(member=germany, has_possible_orders=True)
+        germany_state = phase.phase_states.create(
+            member=germany, has_possible_orders=True
+        )
 
         Phase.objects._set_orders_outcome(phase)
 
@@ -4745,14 +5498,19 @@ class TestCivilDisorderAutoConfirm:
         )
 
         prev_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
         )
         prev_phase.phase_states.create(member=cd_member, has_possible_orders=True)
         prev_phase.phase_states.create(member=active_member, has_possible_orders=True)
         prev_phase.units.create(
-            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
             province=italy_vs_germany_venice_province,
         )
         prev_phase.supply_centers.create(
@@ -4770,7 +5528,9 @@ class TestCivilDisorderAutoConfirm:
             "units": [{"type": UnitType.ARMY, "nation": "Italy", "province": "ven"}],
         }
 
-        new_phase = Phase.objects.create_from_adjudication_data(prev_phase, adjudication_data)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            prev_phase, adjudication_data
+        )
 
         cd_ps = new_phase.phase_states.get(member=cd_member)
         active_ps = new_phase.phase_states.get(member=active_member)
@@ -4805,16 +5565,24 @@ class TestCivilDisorderAutoConfirm:
         )
 
         phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
             scheduled_resolution=timezone.now() + timedelta(days=1),
         )
         phase.phase_states.create(
-            member=cd_member, has_possible_orders=True, orders_confirmed=True,
+            member=cd_member,
+            has_possible_orders=True,
+            orders_confirmed=True,
         )
         active_ps = phase.phase_states.create(
-            member=active_member, has_possible_orders=True, orders_confirmed=False,
+            member=active_member,
+            has_possible_orders=True,
+            orders_confirmed=False,
         )
 
         assert phase not in Phase.objects.filter_due_phases()
@@ -4830,7 +5598,9 @@ class TestCommitmentLedger:
     @staticmethod
     def _rate(phase):
         phase.phase_states.update(has_possible_orders=True)
-        return phase.game.members.get(nation__name="Italy"), phase.game.members.get(nation__name="Germany")
+        return phase.game.members.get(nation__name="Italy"), phase.game.members.get(
+            nation__name="Germany"
+        )
 
     @staticmethod
     def _resolve(phase, adjudication_data):
@@ -4839,24 +5609,40 @@ class TestCommitmentLedger:
 
     @staticmethod
     def _ledger(member):
-        kinds = list(member.commitment_entries.order_by("id").values_list("kind", flat=True))
-        square = Member.objects.with_commitment_square().get(id=member.id).commitment_square
-        total = UserProfile.objects.with_commitment_total().get(user_id=member.user_id).commitment_total
+        kinds = list(
+            member.commitment_entries.order_by("id").values_list("kind", flat=True)
+        )
+        square = (
+            Member.objects.with_commitment_square().get(id=member.id).commitment_square
+        )
+        total = (
+            UserProfile.objects.with_commitment_total()
+            .get(user_id=member.user_id)
+            .commitment_total
+        )
         return kinds, square, total
 
     @staticmethod
     def _add_previous_nmr(phase, member):
         previous = Phase.objects.create(
-            game=phase.game, variant=phase.variant,
-            season="Fall", year=1900, type=PhaseType.MOVEMENT,
-            ordinal=phase.ordinal - 1, status=PhaseStatus.COMPLETED,
+            game=phase.game,
+            variant=phase.variant,
+            season="Fall",
+            year=1900,
+            type=PhaseType.MOVEMENT,
+            ordinal=phase.ordinal - 1,
+            status=PhaseStatus.COMPLETED,
         )
         previous.phase_states.create(
-            member=member, has_possible_orders=True, orders_outcome=PhaseState.OrdersOutcome.NMR
+            member=member,
+            has_possible_orders=True,
+            orders_outcome=PhaseState.OrdersOutcome.NMR,
         )
 
     @pytest.mark.django_db
-    def test_submitted_phase_credits_one_point(self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic):
+    def test_submitted_phase_credits_one_point(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
         italy, germany = self._rate(italy_vs_germany_phase_with_orders)
 
         self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
@@ -4865,7 +5651,9 @@ class TestCommitmentLedger:
         assert self._ledger(germany) == ([CommitmentEvent.SUBMITTED], 1, 1)
 
     @pytest.mark.django_db
-    def test_nmr_debits_two_points(self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic):
+    def test_nmr_debits_two_points(
+        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic
+    ):
         italy, germany = self._rate(italy_vs_germany_phase_with_orders)
         Order.objects.filter(phase_state__member=italy).delete()
 
@@ -4884,7 +5672,9 @@ class TestCommitmentLedger:
         self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
 
         assert self._ledger(italy) == (
-            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER],
+            -12,
+            -12,
         )
 
     @pytest.mark.django_db
@@ -4895,7 +5685,9 @@ class TestCommitmentLedger:
         italy, germany = self._rate(phase)
         self._add_previous_nmr(phase, italy)
         phase.game.phases.get(ordinal=phase.ordinal - 1).phase_states.create(
-            member=germany, has_possible_orders=True, orders_outcome=PhaseState.OrdersOutcome.NMR
+            member=germany,
+            has_possible_orders=True,
+            orders_outcome=PhaseState.OrdersOutcome.NMR,
         )
         Order.objects.filter(phase_state__phase=phase).delete()
 
@@ -4904,10 +5696,14 @@ class TestCommitmentLedger:
         phase.game.refresh_from_db()
         assert phase.game.status == GameStatus.ABANDONED
         assert self._ledger(italy) == (
-            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER],
+            -12,
+            -12,
         )
         assert self._ledger(germany) == (
-            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER],
+            -12,
+            -12,
         )
 
     @pytest.mark.django_db
@@ -4919,11 +5715,21 @@ class TestCommitmentLedger:
         Order.objects.filter(phase_state__member=italy).delete()
         adjudication_data = {
             **mock_adjudication_data_basic,
-            "units": [u for u in mock_adjudication_data_basic["units"] if u["nation"] != "Italy"],
-            "supply_centers": [
-                sc for sc in mock_adjudication_data_basic["supply_centers"] if sc["nation"] != "Italy"
+            "units": [
+                u
+                for u in mock_adjudication_data_basic["units"]
+                if u["nation"] != "Italy"
             ],
-            "resolutions": [r for r in mock_adjudication_data_basic["resolutions"] if r["province"] != "ven"],
+            "supply_centers": [
+                sc
+                for sc in mock_adjudication_data_basic["supply_centers"]
+                if sc["nation"] != "Italy"
+            ],
+            "resolutions": [
+                r
+                for r in mock_adjudication_data_basic["resolutions"]
+                if r["province"] != "ven"
+            ],
         }
 
         self._resolve(italy_vs_germany_phase_with_orders, adjudication_data)
@@ -4944,7 +5750,10 @@ class TestCommitmentLedger:
 
     @pytest.mark.django_db
     def test_civil_disorder_square_stays_after_the_seat_is_taken_over(
-        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic, tertiary_user
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+        tertiary_user,
     ):
         italy, germany = self._rate(italy_vs_germany_phase_with_orders)
         self._add_previous_nmr(italy_vs_germany_phase_with_orders, italy)
@@ -4955,7 +5764,9 @@ class TestCommitmentLedger:
         Member.objects.hand_over_seat(italy, tertiary_user)
 
         assert self._ledger(italy) == (
-            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -12
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER],
+            -12,
+            -12,
         )
 
     @pytest.mark.django_db
@@ -4986,7 +5797,10 @@ class TestCommitmentLedger:
 
     @pytest.mark.django_db
     def test_total_sums_squares_across_games(
-        self, italy_vs_germany_phase_with_orders, mock_adjudication_data_basic, primary_user
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+        primary_user,
     ):
         italy, germany = self._rate(italy_vs_germany_phase_with_orders)
         other_game = Game.objects.create(
@@ -4994,13 +5808,17 @@ class TestCommitmentLedger:
         )
         other_member = other_game.members.create(user=primary_user, nation=italy.nation)
         CommitmentEntry.objects.create(member=other_member, kind=CommitmentEvent.NMR)
-        CommitmentEntry.objects.create(member=other_member, kind=CommitmentEvent.CIVIL_DISORDER)
+        CommitmentEntry.objects.create(
+            member=other_member, kind=CommitmentEvent.CIVIL_DISORDER
+        )
 
         self._resolve(italy_vs_germany_phase_with_orders, mock_adjudication_data_basic)
 
         assert self._ledger(italy) == ([CommitmentEvent.SUBMITTED], 1, -11)
         assert self._ledger(other_member) == (
-            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER], -12, -11
+            [CommitmentEvent.NMR, CommitmentEvent.CIVIL_DISORDER],
+            -12,
+            -11,
         )
 
 
@@ -5041,9 +5859,17 @@ class TestPhaseDurationByPhaseType:
             ordinal=1,
             status=PhaseStatus.ACTIVE,
         )
-        movement_phase.phase_states.create(member=member, orders_confirmed=True, has_possible_orders=True)
-        movement_phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
-        movement_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        movement_phase.phase_states.create(
+            member=member, orders_confirmed=True, has_possible_orders=True
+        )
+        movement_phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        movement_phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         adjudication_data = {
             "season": "Spring",
@@ -5056,7 +5882,9 @@ class TestPhaseDurationByPhaseType:
         }
 
         now = timezone.now()
-        new_phase = Phase.objects.create_from_adjudication_data(movement_phase, adjudication_data)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            movement_phase, adjudication_data
+        )
 
         expected_seconds = 12 * 60 * 60
         actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
@@ -5097,9 +5925,17 @@ class TestPhaseDurationByPhaseType:
             ordinal=1,
             status=PhaseStatus.ACTIVE,
         )
-        prev_phase.phase_states.create(member=member, orders_confirmed=True, has_possible_orders=True)
-        prev_phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
-        prev_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        prev_phase.phase_states.create(
+            member=member, orders_confirmed=True, has_possible_orders=True
+        )
+        prev_phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        prev_phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         adjudication_data = {
             "season": "Spring",
@@ -5112,7 +5948,9 @@ class TestPhaseDurationByPhaseType:
         }
 
         now = timezone.now()
-        new_phase = Phase.objects.create_from_adjudication_data(prev_phase, adjudication_data)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            prev_phase, adjudication_data
+        )
 
         expected_seconds = 24 * 60 * 60
         actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
@@ -5153,9 +5991,17 @@ class TestPhaseDurationByPhaseType:
             ordinal=1,
             status=PhaseStatus.ACTIVE,
         )
-        movement_phase.phase_states.create(member=member, orders_confirmed=True, has_possible_orders=True)
-        movement_phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
-        movement_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        movement_phase.phase_states.create(
+            member=member, orders_confirmed=True, has_possible_orders=True
+        )
+        movement_phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        movement_phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         adjudication_data = {
             "season": "Spring",
@@ -5168,7 +6014,9 @@ class TestPhaseDurationByPhaseType:
         }
 
         now = timezone.now()
-        new_phase = Phase.objects.create_from_adjudication_data(movement_phase, adjudication_data)
+        new_phase = Phase.objects.create_from_adjudication_data(
+            movement_phase, adjudication_data
+        )
 
         expected_seconds = 48 * 60 * 60
         actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
@@ -5194,7 +6042,9 @@ class TestPhaseToCanonicalGameState:
         return game, england, france
 
     @pytest.mark.django_db
-    def test_movement_phase_round_trips(self, classical_variant, primary_user, secondary_user):
+    def test_movement_phase_round_trips(
+        self, classical_variant, primary_user, secondary_user
+    ):
         game, england, france = self._game_with_members(
             classical_variant, primary_user, secondary_user
         )
@@ -5208,17 +6058,33 @@ class TestPhaseToCanonicalGameState:
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        phase.units.create(type=UnitType.FLEET, nation=england.nation, province=provinces["edi"])
-        phase.units.create(type=UnitType.ARMY, nation=england.nation, province=provinces["lon"])
-        phase.units.create(type=UnitType.ARMY, nation=england.nation, province=provinces["yor"])
-        phase.units.create(type=UnitType.FLEET, nation=france.nation, province=provinces["bre"])
-        phase.units.create(type=UnitType.ARMY, nation=france.nation, province=provinces["par"])
-        phase.units.create(type=UnitType.FLEET, nation=france.nation, province=provinces["mar"])
+        phase.units.create(
+            type=UnitType.FLEET, nation=england.nation, province=provinces["edi"]
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=england.nation, province=provinces["lon"]
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=england.nation, province=provinces["yor"]
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=france.nation, province=provinces["bre"]
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=france.nation, province=provinces["par"]
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=france.nation, province=provinces["mar"]
+        )
 
         for province_id in ("edi", "lon"):
-            phase.supply_centers.create(nation=england.nation, province=provinces[province_id])
+            phase.supply_centers.create(
+                nation=england.nation, province=provinces[province_id]
+            )
         for province_id in ("bre", "par", "mar"):
-            phase.supply_centers.create(nation=france.nation, province=provinces[province_id])
+            phase.supply_centers.create(
+                nation=france.nation, province=provinces[province_id]
+            )
 
         england_state = phase.phase_states.create(member=england)
         france_state = phase.phase_states.create(member=france)
@@ -5239,7 +6105,9 @@ class TestPhaseToCanonicalGameState:
             target=provinces["lon"],
         )
         france_state.orders.create(
-            source=provinces["par"], order_type=OrderType.MOVE_VIA_CONVOY, target=provinces["lon"]
+            source=provinces["par"],
+            order_type=OrderType.MOVE_VIA_CONVOY,
+            target=provinces["lon"],
         )
         france_state.orders.create(
             source=provinces["mar"],
@@ -5249,7 +6117,9 @@ class TestPhaseToCanonicalGameState:
         )
 
         data = phase_to_canonical_game_state(phase)
-        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        domain_variant = deserialize_variant(
+            variant_to_canonical_dict(classical_variant)
+        )
         deserialize_game_state(data, domain_variant)
 
         assert data["phase"] == {"season": "Spring", "year": 1901, "type": "Movement"}
@@ -5265,7 +6135,9 @@ class TestPhaseToCanonicalGameState:
         assert orders_by_source["mar"]["target"] == "spa/sc"
 
     @pytest.mark.django_db
-    def test_retreat_phase_round_trips(self, classical_variant, primary_user, secondary_user):
+    def test_retreat_phase_round_trips(
+        self, classical_variant, primary_user, secondary_user
+    ):
         game, england, france = self._game_with_members(
             classical_variant, primary_user, secondary_user
         )
@@ -5291,7 +6163,10 @@ class TestPhaseToCanonicalGameState:
         )
         # A unit dislodged by a convoyed army has no recorded dislodger.
         phase.units.create(
-            type=UnitType.ARMY, nation=france.nation, province=provinces["lvp"], dislodged=True
+            type=UnitType.ARMY,
+            nation=france.nation,
+            province=provinces["lvp"],
+            dislodged=True,
         )
 
         phase.supply_centers.create(nation=england.nation, province=provinces["lon"])
@@ -5303,10 +6178,14 @@ class TestPhaseToCanonicalGameState:
         england_state.orders.create(
             source=provinces["lon"], order_type=OrderType.MOVE, target=provinces["yor"]
         )
-        france_state.orders.create(source=provinces["lvp"], order_type=OrderType.DISBAND)
+        france_state.orders.create(
+            source=provinces["lvp"], order_type=OrderType.DISBAND
+        )
 
         data = phase_to_canonical_game_state(phase)
-        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        domain_variant = deserialize_variant(
+            variant_to_canonical_dict(classical_variant)
+        )
         deserialize_game_state(data, domain_variant)
 
         units_by_location = {u["location"]: u for u in data["units"]}
@@ -5320,7 +6199,9 @@ class TestPhaseToCanonicalGameState:
         assert orders_by_source["lvp"]["orderType"] == "Disband"
 
     @pytest.mark.django_db
-    def test_adjustment_phase_round_trips(self, classical_variant, primary_user, secondary_user):
+    def test_adjustment_phase_round_trips(
+        self, classical_variant, primary_user, secondary_user
+    ):
         game, england, france = self._game_with_members(
             classical_variant, primary_user, secondary_user
         )
@@ -5334,13 +6215,21 @@ class TestPhaseToCanonicalGameState:
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        phase.units.create(type=UnitType.FLEET, nation=england.nation, province=provinces["lon"])
-        phase.units.create(type=UnitType.ARMY, nation=france.nation, province=provinces["par"])
+        phase.units.create(
+            type=UnitType.FLEET, nation=england.nation, province=provinces["lon"]
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=france.nation, province=provinces["par"]
+        )
 
         for province_id in ("lon", "edi"):
-            phase.supply_centers.create(nation=england.nation, province=provinces[province_id])
+            phase.supply_centers.create(
+                nation=england.nation, province=provinces[province_id]
+            )
         for province_id in ("par", "bre", "mar"):
-            phase.supply_centers.create(nation=france.nation, province=provinces[province_id])
+            phase.supply_centers.create(
+                nation=france.nation, province=provinces[province_id]
+            )
 
         england_state = phase.phase_states.create(member=england)
         france_state = phase.phase_states.create(member=france)
@@ -5353,20 +6242,28 @@ class TestPhaseToCanonicalGameState:
             unit_type=UnitType.FLEET,
             named_coast=provinces["stp/nc"],
         )
-        france_state.orders.create(source=provinces["par"], order_type=OrderType.DISBAND)
+        france_state.orders.create(
+            source=provinces["par"], order_type=OrderType.DISBAND
+        )
 
         data = phase_to_canonical_game_state(phase)
-        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        domain_variant = deserialize_variant(
+            variant_to_canonical_dict(classical_variant)
+        )
         deserialize_game_state(data, domain_variant)
 
         assert data["phase"] == {"season": "Fall", "year": 1901, "type": "Adjustment"}
-        orders_by_unit_type = {o["unitType"]: o for o in data["orders"] if o["orderType"] == "Build"}
+        orders_by_unit_type = {
+            o["unitType"]: o for o in data["orders"] if o["orderType"] == "Build"
+        }
         # A fleet build on a multi-coast province addresses the coast as its source.
         assert orders_by_unit_type["Fleet"]["source"] == "stp/nc"
         assert orders_by_unit_type["Army"]["source"] == "edi"
 
     @pytest.mark.django_db
-    def test_contested_provinces_round_trip(self, classical_variant, primary_user, secondary_user):
+    def test_contested_provinces_round_trip(
+        self, classical_variant, primary_user, secondary_user
+    ):
         game, england, france = self._game_with_members(
             classical_variant, primary_user, secondary_user
         )
@@ -5394,7 +6291,9 @@ class TestPhaseToCanonicalGameState:
         phase.supply_centers.create(nation=england.nation, province=provinces["lon"])
 
         data = phase_to_canonical_game_state(phase)
-        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        domain_variant = deserialize_variant(
+            variant_to_canonical_dict(classical_variant)
+        )
         state = deserialize_game_state(data, domain_variant)
 
         assert data["contestedProvinces"] == ["bur", "ruh"]
@@ -5446,13 +6345,9 @@ class TestPhaseToCanonicalGameStatePerformance:
         ]
         for nation, phase_state, nation_provinces in assignments:
             for province in nation_provinces:
-                phase.units.create(
-                    type=UnitType.ARMY, nation=nation, province=province
-                )
+                phase.units.create(type=UnitType.ARMY, nation=nation, province=province)
                 phase.supply_centers.create(nation=nation, province=province)
-                phase_state.orders.create(
-                    source=province, order_type=OrderType.HOLD
-                )
+                phase_state.orders.create(source=province, order_type=OrderType.HOLD)
         return phase
 
     def _count_queries(self, phase):
@@ -5536,12 +6431,18 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
         germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True)
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
-        germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        germany_ps.orders.create(
+            source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5557,12 +6458,22 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
-        germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True, orders_confirmed=True)
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
-        germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
+        germany_ps = phase.phase_states.create(
+            member=germany, has_possible_orders=True, orders_confirmed=True
+        )
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        germany_ps.orders.create(
+            source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5576,9 +6487,13 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5594,11 +6509,25 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        phase.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5614,11 +6543,23 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        phase.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5636,7 +6577,9 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -5669,7 +6612,9 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(deadline_mode, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            deadline_mode, now + timedelta(minutes=10)
+        )
         phase.units.create(
             province=italy_vs_germany_venice_province,
             type=UnitType.ARMY,
@@ -5681,7 +6626,10 @@ class TestSendDeadlineWarning:
             nation=italy_vs_germany_italy_nation,
         )
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
-        for province in [italy_vs_germany_venice_province, italy_vs_germany_rome_province][:orders_to_give]:
+        for province in [
+            italy_vs_germany_venice_province,
+            italy_vs_germany_rome_province,
+        ][:orders_to_give]:
             italy_ps.orders.create(source=province, order_type=OrderType.HOLD)
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -5699,7 +6647,9 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -5711,9 +6661,14 @@ class TestSendDeadlineWarning:
         Phase.objects.send_deadline_warning(phase.id)
 
         assert mock_send_notification_to_users.call_count == 2
-        first, second = [call.kwargs["body"] for call in mock_send_notification_to_users.call_args_list]
+        first, second = [
+            call.kwargs["body"]
+            for call in mock_send_notification_to_users.call_args_list
+        ]
         assert first.startswith("Deadline approaching - no orders given.")
-        assert second.startswith("The deadline has been extended - still no orders given.")
+        assert second.startswith(
+            "The deadline has been extended - still no orders given."
+        )
 
     @pytest.mark.django_db
     def test_warning_after_an_extended_deadline_reports_partial_orders(
@@ -5725,7 +6680,9 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         phase.units.create(
             province=italy_vs_germany_venice_province,
             type=UnitType.ARMY,
@@ -5740,14 +6697,18 @@ class TestSendDeadlineWarning:
 
         Phase.objects.send_deadline_warning(phase.id)
 
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
         phase.scheduled_resolution = now + timedelta(minutes=30)
         phase.save()
 
         Phase.objects.send_deadline_warning(phase.id)
 
         body = mock_send_notification_to_users.call_args.kwargs["body"]
-        assert body.startswith("The deadline has been extended - orders still incomplete.")
+        assert body.startswith(
+            "The deadline has been extended - orders still incomplete."
+        )
         assert "1/2" in body
 
     @pytest.mark.django_db
@@ -5758,9 +6719,13 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5775,10 +6740,16 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5798,11 +6769,25 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        phase.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
+        italy_ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5820,9 +6805,13 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5839,9 +6828,13 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         add_italy_germany_units(phase)
-        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5857,10 +6850,16 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
         italy.nmr_extensions_remaining = 2
         italy.save()
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -5878,8 +6877,14 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -5896,11 +6901,19 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
         italy.nmr_extensions_remaining = 1
         italy.save()
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5917,9 +6930,17 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.DURATION, now + timedelta(minutes=10))
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.DURATION, now + timedelta(minutes=10)
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -5933,7 +6954,9 @@ class TestSendDeadlineWarning:
         mock_send_notification_to_users,
     ):
         now = timezone.now()
-        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now + timedelta(minutes=10)
+        )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -5957,7 +6980,9 @@ class TestSendDeadlineWarning:
             deadline_mode=DeadlineMode.FIXED_TIME,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
         phase = Phase.objects.create(
             game=game,
             variant=italy_vs_germany_variant,
@@ -5968,8 +6993,15 @@ class TestSendDeadlineWarning:
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=now + timedelta(minutes=10),
         )
-        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
+        )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -5993,7 +7025,9 @@ class TestSendDeadlineWarning:
             deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
         phase = Phase.objects.create(
             game=game,
             variant=italy_vs_germany_variant,
@@ -6005,7 +7039,9 @@ class TestSendDeadlineWarning:
             scheduled_resolution=now + timedelta(minutes=10),
         )
         phase.units.create(
-            province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_rome_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
         )
         dislodged_unit = phase.units.create(
             province=italy_vs_germany_venice_province,
@@ -6013,9 +7049,13 @@ class TestSendDeadlineWarning:
             nation=italy_vs_germany_italy_nation,
             dislodged=True,
         )
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
         italy_ps.orders.create(
-            source=dislodged_unit.province, order_type=OrderType.MOVE, target=italy_vs_germany_rome_province
+            source=dislodged_unit.province,
+            order_type=OrderType.MOVE,
+            target=italy_vs_germany_rome_province,
         )
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -6055,7 +7095,9 @@ class TestSendDeadlineWarning:
             deadline_mode=deadline_mode,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
         phase = Phase.objects.create(
             game=game,
             variant=italy_vs_germany_variant,
@@ -6067,11 +7109,25 @@ class TestSendDeadlineWarning:
             scheduled_resolution=now + timedelta(minutes=10),
             options={"Italy": {"rom": {}, "nap": {}}},
         )
-        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-        for province in [italy_vs_germany_rome_province, italy_vs_germany_naples_province][:orders_to_give]:
+        phase.supply_centers.create(
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_naples_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
+        for province in [
+            italy_vs_germany_rome_province,
+            italy_vs_germany_naples_province,
+        ][:orders_to_give]:
             italy_ps.orders.create(source=province, order_type=OrderType.BUILD)
 
         Phase.objects.send_deadline_warning(phase.id)
@@ -6099,7 +7155,9 @@ class TestSendDeadlineWarning:
             deadline_mode=DeadlineMode.FIXED_TIME,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
         phase = Phase.objects.create(
             game=game,
             variant=italy_vs_germany_variant,
@@ -6111,12 +7169,27 @@ class TestSendDeadlineWarning:
             scheduled_resolution=now + timedelta(minutes=10),
             options={"Italy": {"rom": {}, "nap": {}}},
         )
-        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
-        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-        italy_ps.orders.create(source=italy_vs_germany_rome_province, order_type=OrderType.BUILD)
-        italy_ps.orders.create(source=italy_vs_germany_naples_province, order_type=OrderType.BUILD)
+        phase.supply_centers.create(
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_naples_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        italy_ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
+        italy_ps.orders.create(
+            source=italy_vs_germany_rome_province, order_type=OrderType.BUILD
+        )
+        italy_ps.orders.create(
+            source=italy_vs_germany_naples_province, order_type=OrderType.BUILD
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -6139,7 +7212,9 @@ class TestSendDeadlineWarning:
             deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
         phase = Phase.objects.create(
             game=game,
             variant=italy_vs_germany_variant,
@@ -6152,11 +7227,21 @@ class TestSendDeadlineWarning:
             scheduled_resolution=now + timedelta(minutes=10),
         )
         phase.units.create(
-            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
         )
-        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        phase.supply_centers.create(
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -6183,7 +7268,9 @@ class TestSendDeadlineWarning:
             deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration="24h",
         )
-        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        italy = game.members.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user
+        )
         italy.nmr_extensions_remaining = 1
         italy.save()
         phase = Phase.objects.create(
@@ -6198,11 +7285,21 @@ class TestSendDeadlineWarning:
             scheduled_resolution=now + timedelta(minutes=10),
         )
         phase.units.create(
-            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
         )
-        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
-        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        phase.supply_centers.create(
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.supply_centers.create(
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
 
         Phase.objects.send_deadline_warning(phase.id)
 
@@ -6273,8 +7370,16 @@ class TestNMRExtensionsFixedTime:
 
         Phase.objects._apply_nmr_extensions(phase)
 
-        italy_events = set(Notification.objects.filter(recipient=italy.user).values_list("event_type", flat=True))
-        germany_events = set(Notification.objects.filter(recipient=germany.user).values_list("event_type", flat=True))
+        italy_events = set(
+            Notification.objects.filter(recipient=italy.user).values_list(
+                "event_type", flat=True
+            )
+        )
+        germany_events = set(
+            Notification.objects.filter(recipient=germany.user).values_list(
+                "event_type", flat=True
+            )
+        )
         assert italy_events == {"nmr_extension_used"}
         assert germany_events == {"nmr_extension_applied"}
 
@@ -6296,8 +7401,12 @@ class TestNMRExtensionsFixedTime:
             type=UnitType.ARMY,
             nation=italy_vs_germany_italy_nation,
         )
-        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
-        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=False
+        )
+        ps.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
 
         result = Phase.objects._apply_nmr_extensions(phase)
 
@@ -6327,7 +7436,9 @@ class TestNMRExtensionsFixedTime:
             type=UnitType.ARMY,
             nation=italy_vs_germany_italy_nation,
         )
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
 
         result = Phase.objects._apply_nmr_extensions(phase)
 
@@ -6358,7 +7469,9 @@ class TestNMRExtensionsFixedTime:
             type=UnitType.ARMY,
             nation=italy_vs_germany_italy_nation,
         )
-        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
 
         result = Phase.objects._apply_nmr_extensions(phase)
 
@@ -6416,7 +7529,8 @@ class TestNMRExtensionsNothingToOrder:
             nation=italy_vs_germany_italy_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -6470,7 +7584,8 @@ class TestNMRExtensionsNothingToOrder:
         italy.nmr_extensions_remaining = 1
         italy.save()
         phase.supply_centers.create(
-            province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -6572,13 +7687,16 @@ class TestNMRExtensionsNothingToOrder:
             nation=italy_vs_germany_italy_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation
+            province=italy_vs_germany_kiel_province,
+            nation=italy_vs_germany_germany_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation
+            province=italy_vs_germany_berlin_province,
+            nation=italy_vs_germany_germany_nation,
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
         phase.phase_states.create(member=germany, has_possible_orders=True)
@@ -6659,7 +7777,8 @@ class TestNMRExtensionsNothingToOrder:
             nation=italy_vs_germany_italy_nation,
         )
         phase.supply_centers.create(
-            province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_rome_province,
+            nation=italy_vs_germany_italy_nation,
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
@@ -6687,17 +7806,32 @@ class TestCheckEliminations:
     ):
         game, italy, germany = elimination_game_factory()
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
-        new_phase.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+        new_phase.units.create(
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
+        )
+        new_phase.supply_centers.create(
+            province=italy_vs_germany_kiel_province,
+            nation=italy_vs_germany_germany_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6717,16 +7851,28 @@ class TestCheckEliminations:
     ):
         game, italy, germany = elimination_game_factory()
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        new_phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6744,16 +7890,27 @@ class TestCheckEliminations:
     ):
         game, italy, germany = elimination_game_factory()
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.ADJUSTMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1902, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1902,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        new_phase.supply_centers.create(
+            province=italy_vs_germany_venice_province,
+            nation=italy_vs_germany_italy_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6774,16 +7931,28 @@ class TestCheckEliminations:
         italy.save()
 
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+        new_phase.units.create(
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6802,16 +7971,28 @@ class TestCheckEliminations:
         italy.civil_disorder_at = timezone.now()
         italy.save()
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+        new_phase.units.create(
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6831,17 +8012,32 @@ class TestCheckEliminations:
     ):
         game, italy, germany = elimination_game_factory()
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
-        new_phase.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+        new_phase.units.create(
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
+        )
+        new_phase.supply_centers.create(
+            province=italy_vs_germany_kiel_province,
+            nation=italy_vs_germany_germany_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6867,17 +8063,33 @@ class TestCheckEliminations:
     ):
         game, italy, germany = elimination_game_factory()
         previous_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Spring", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=1, status=PhaseStatus.COMPLETED,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
         )
         new_phase = Phase.objects.create(
-            game=game, variant=italy_vs_germany_variant,
-            season="Fall", year=1901, type=PhaseType.MOVEMENT,
-            ordinal=2, status=PhaseStatus.ACTIVE,
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
         )
-        new_phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
-        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+        new_phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        new_phase.units.create(
+            province=italy_vs_germany_kiel_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_germany_nation,
+        )
 
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
@@ -6900,7 +8112,10 @@ class TestKickedMemberPhaseStates:
 
         new_phase = Phase.objects.create_from_adjudication_data(
             phase,
-            {**mock_adjudication_data_basic, "options": adjudication_data_italy_vs_germany["options"]},
+            {
+                **mock_adjudication_data_basic,
+                "options": adjudication_data_italy_vs_germany["options"],
+            },
         )
 
         kicked_state = new_phase.phase_states.get(member=kicked)
@@ -6926,7 +8141,10 @@ class TestKickedMemberPhaseStates:
 
         new_phase = Phase.objects.create_from_adjudication_data(
             phase,
-            {**mock_adjudication_data_basic, "options": adjudication_data_italy_vs_germany["options"]},
+            {
+                **mock_adjudication_data_basic,
+                "options": adjudication_data_italy_vs_germany["options"],
+            },
         )
 
         replaced_state = new_phase.phase_states.get(member=replaced)

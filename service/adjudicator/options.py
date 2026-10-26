@@ -21,6 +21,7 @@ the project was given): `target = aux = supported_loc`. The frontend (and
 test scaffolding) translates `target = None` when converting to a wire
 order for submission.
 """
+
 from __future__ import annotations
 
 from typing import List, Tuple
@@ -134,17 +135,14 @@ def _movement_options(view: StateView) -> List[OrderOption]:
                     )
                 )
         options.extend(
-            _support_options(
-                view, unit, source_loc, sea_fleet_locs, standing_items
-            )
+            _support_options(view, unit, source_loc, sea_fleet_locs, standing_items)
         )
-        if unit.type == Unit.FLEET and view.province(
-            variant.parent_of(source_loc)
-        ).is_sea():
+        if (
+            unit.type == Unit.FLEET
+            and view.province(variant.parent_of(source_loc)).is_sea()
+        ):
             options.extend(
-                _convoy_options(
-                    view, unit, source_loc, sea_fleet_locs, standing_items
-                )
+                _convoy_options(view, unit, source_loc, sea_fleet_locs, standing_items)
             )
     return options
 
@@ -274,9 +272,8 @@ def _support_move_is_orderable(
     for check_cls in SupportMoveOrder.LEGALITY_CHECKS:
         if check_cls.check(view, order):
             continue
-        if (
-            check_cls is SupportMoveSupportedCanReachCheck
-            and _supported_can_convoy(view, order, mover, sea_fleet_locs)
+        if check_cls is SupportMoveSupportedCanReachCheck and _supported_can_convoy(
+            view, order, mover, sea_fleet_locs
         ):
             continue
         return False
@@ -495,7 +492,9 @@ def _adjustment_options(view: StateView) -> List[OrderOption]:
                 location=loc,
                 unit_type=unit.type,
             )
-            if all(c.check(view, order) for c in AdjustmentDisbandOrder.LEGALITY_CHECKS):
+            if all(
+                c.check(view, order) for c in AdjustmentDisbandOrder.LEGALITY_CHECKS
+            ):
                 options.append(
                     OrderOption(
                         source=loc,

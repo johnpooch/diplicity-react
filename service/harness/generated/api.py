@@ -611,7 +611,6 @@ class GameCreate(TypedDict):
     nmr_extensions_allowed: NotRequired[int]
     press_type: NotRequired[PressTypeEnum]
     commitment_requirement: NotRequired[CommitmentRequirementEnum]
-    muster_required: NotRequired[bool]
 
 
 class GameListCurrentPhase(TypedDict):

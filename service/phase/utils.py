@@ -36,20 +36,31 @@ def deadline_warning_offset(duration_seconds):
 
 
 def build_notification_body(
-    orders_confirmed, is_fixed_time, orders_given, total_units, extensions_remaining,
-    is_adjustment=False, deadline_extended=False,
+    orders_confirmed,
+    is_fixed_time,
+    orders_given,
+    total_units,
+    extensions_remaining,
+    is_adjustment=False,
+    deadline_extended=False,
 ):
     if extensions_remaining > 0:
         nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
     elif is_adjustment:
         nmr_suffix = "If no orders given, adjustments will be made automatically."
     else:
-        nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."
+        nmr_suffix = (
+            "If no orders given, the game will stop waiting for you for next turns."
+        )
 
     if orders_confirmed:
         return None
 
-    lead = "The deadline has been extended" if deadline_extended else "Deadline approaching"
+    lead = (
+        "The deadline has been extended"
+        if deadline_extended
+        else "Deadline approaching"
+    )
     still = "still " if deadline_extended else ""
 
     if is_fixed_time:
@@ -102,7 +113,9 @@ def transform_options(raw_options):
         transformed[nation] = {}
 
         for province_id, province_data in merged_provinces.items():
-            transformed[nation][province_id] = _transform_province_options(province_data)
+            transformed[nation][province_id] = _transform_province_options(
+                province_data
+            )
 
     return transformed
 
@@ -215,7 +228,10 @@ def _merge_build_options_for_coasts(coast_provinces):
 
     # Build Fleet option (offers coast selection)
     if fleet_src_provinces:
-        merged["Next"]["Build"]["Next"]["Fleet"] = {"Next": fleet_src_provinces, "Type": "UnitType"}
+        merged["Next"]["Build"]["Next"]["Fleet"] = {
+            "Next": fleet_src_provinces,
+            "Type": "UnitType",
+        }
 
     return merged
 
@@ -496,7 +512,9 @@ def _canonical_order(order, phase_type):
     # MoveViaConvoy collapses to a Move with viaConvoy set.
     via_convoy = False
     if phase_type == PhaseType.RETREAT:
-        order_type = "Retreat" if order.order_type == OrderType.MOVE else order.order_type
+        order_type = (
+            "Retreat" if order.order_type == OrderType.MOVE else order.order_type
+        )
     elif order.order_type == OrderType.MOVE_VIA_CONVOY:
         order_type = OrderType.MOVE
         via_convoy = True
@@ -587,7 +605,14 @@ def compute_province_nations(supply_centers, provinces, dominance_rules, nations
 
         rules = rules_by_province.get(province.province_id)
         if rules:
-            matched = next((r for r in rules if all(dependency_matches(d) for d in r["dependencies"])), None)
+            matched = next(
+                (
+                    r
+                    for r in rules
+                    if all(dependency_matches(d) for d in r["dependencies"])
+                ),
+                None,
+            )
             if matched:
                 nation_name = nation_id_to_name.get(matched["nation"])
                 if nation_name:

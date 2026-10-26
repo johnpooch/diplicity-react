@@ -18,7 +18,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Phase",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("ordinal", models.PositiveIntegerField(editable=False)),
@@ -70,7 +78,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="PhaseState",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("orders_confirmed", models.BooleanField(default=False)),
@@ -78,13 +94,17 @@ class Migration(migrations.Migration):
                 (
                     "member",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, related_name="phase_states", to="member.member"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="phase_states",
+                        to="member.member",
                     ),
                 ),
                 (
                     "phase",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, related_name="phase_states", to="phase.phase"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="phase_states",
+                        to="phase.phase",
                     ),
                 ),
             ],

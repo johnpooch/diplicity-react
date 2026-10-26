@@ -25,7 +25,11 @@ class IsActiveOrCompletedGame(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED)
+        return game.status in (
+            GameStatus.ACTIVE,
+            GameStatus.COMPLETED,
+            GameStatus.ABANDONED,
+        )
 
 
 class IsGamePlayer(BasePermission):
@@ -131,7 +135,11 @@ class IsPendingOrActiveGame(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.status in (GameStatus.PENDING, GameStatus.MUSTERING, GameStatus.ACTIVE)
+        return game.status in (
+            GameStatus.PENDING,
+            GameStatus.MUSTERING,
+            GameStatus.ACTIVE,
+        )
 
 
 class IsNotGamePlayer(BasePermission):
@@ -147,7 +155,10 @@ class IsSpaceAvailable(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.members.players().count() < game.variant.nations.filter(non_playable=False).count()
+        return (
+            game.members.players().count()
+            < game.variant.nations.filter(non_playable=False).count()
+        )
 
 
 class MeetsCommitmentRequirement(BasePermission):
@@ -226,7 +237,9 @@ class IsGameMaster(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.game_master_id is not None and game.game_master_id == request.user.id
+        return (
+            game.game_master_id is not None and game.game_master_id == request.user.id
+        )
 
 
 class IsNotGameMaster(BasePermission):

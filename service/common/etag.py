@@ -11,7 +11,7 @@ _WEAK_PREFIX = "W/"
 
 def _strip_weak(etag):
     if etag.startswith(_WEAK_PREFIX):
-        return etag[len(_WEAK_PREFIX):]
+        return etag[len(_WEAK_PREFIX) :]
     return etag
 
 

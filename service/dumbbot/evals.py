@@ -30,9 +30,13 @@ def dumbbot_solver():
         choices = []
         for order in orders:
             options = grouped[order["source"]]
-            index = next(i for i, option in enumerate(options) if same_option(option, order))
+            index = next(
+                i for i, option in enumerate(options) if same_option(option, order)
+            )
             choices.append({"source_id": order["source"], "option_index": index})
-        state.output = ModelOutput.from_content(model="dumbbot", content=json.dumps({"choices": choices}))
+        state.output = ModelOutput.from_content(
+            model="dumbbot", content=json.dumps({"choices": choices})
+        )
         return state
 
     return solve

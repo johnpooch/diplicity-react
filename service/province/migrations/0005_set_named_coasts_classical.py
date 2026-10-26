@@ -14,7 +14,9 @@ def set_named_coasts_type(apps, schema_editor):
     named_coast_ids = ["bul/ec", "bul/sc", "spa/nc", "spa/sc", "stp/sc", "stp/nc"]
 
     # Update the type to 'named_coast' for these provinces in the classical variant only
-    Province.objects.filter(province_id__in=named_coast_ids, variant=classical_variant).update(type="named_coast")
+    Province.objects.filter(
+        province_id__in=named_coast_ids, variant=classical_variant
+    ).update(type="named_coast")
 
 
 def reverse_set_named_coasts_type(apps, schema_editor):
@@ -28,7 +30,9 @@ def reverse_set_named_coasts_type(apps, schema_editor):
     named_coast_ids = ["bul/ec", "bul/sc", "spa/nc", "spa/sc", "stp/sc", "stp/nc"]
 
     # Revert the type back to 'sea' for these provinces in the classical variant only
-    Province.objects.filter(province_id__in=named_coast_ids, variant=classical_variant).update(type="sea")
+    Province.objects.filter(
+        province_id__in=named_coast_ids, variant=classical_variant
+    ).update(type="sea")
 
 
 class Migration(migrations.Migration):

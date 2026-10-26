@@ -66,11 +66,15 @@ class ApiClient:
     def get_channels(self, game_id):
         response = self._client.get(reverse("channel-preview-list", args=[game_id]))
         if response.status_code != 200:
-            raise ApiClientError(f"channel preview request failed: {response.status_code}")
+            raise ApiClientError(
+                f"channel preview request failed: {response.status_code}"
+            )
         return [self.get_channel(game_id, preview["id"]) for preview in response.data]
 
     def get_channel(self, game_id, channel_id):
-        response = self._client.get(reverse("channel-update", args=[game_id, channel_id]))
+        response = self._client.get(
+            reverse("channel-update", args=[game_id, channel_id])
+        )
         if response.status_code != 200:
             raise ApiClientError(f"channel retrieve failed: {response.status_code}")
         channel = response.data
@@ -94,7 +98,9 @@ class ApiClient:
         while True:
             response = self._client.get(url, params)
             if response.status_code != 200:
-                raise ApiClientError(f"channel message request failed: {response.status_code}")
+                raise ApiClientError(
+                    f"channel message request failed: {response.status_code}"
+                )
             results = response.data["results"]
             pages.append(results)
             if not response.data["has_older"]:
@@ -105,9 +111,13 @@ class ApiClient:
     def submit_orders(self, game_id, selections):
         create_url = reverse("order-create", args=[game_id])
         for selected in selections:
-            response = self._client.post(create_url, {"selected": selected}, format="json")
+            response = self._client.post(
+                create_url, {"selected": selected}, format="json"
+            )
             if response.status_code not in (200, 201):
-                logger.error(f"[agent.api] create order failed ({response.status_code}) for {selected}")
+                logger.error(
+                    f"[agent.api] create order failed ({response.status_code}) for {selected}"
+                )
             else:
                 logger.info(f"[agent.api] created order {selected}")
 
@@ -121,5 +131,7 @@ class ApiClient:
         create_url = reverse("channel-message-create", args=[game_id, channel_id])
         response = self._client.post(create_url, {"body": body}, format="json")
         if response.status_code not in (200, 201):
-            raise ApiClientError(f"post reply failed: {response.status_code}: {response.data}")
+            raise ApiClientError(
+                f"post reply failed: {response.status_code}: {response.data}"
+            )
         logger.info("[agent.api] posted reply")

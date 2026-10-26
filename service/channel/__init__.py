@@ -1,1 +1,1 @@
-default_app_config = 'channel.apps.ChannelConfig'
+default_app_config = "channel.apps.ChannelConfig"

@@ -8,7 +8,6 @@ from channel.models import Channel, ChannelMessage
 from draw_proposal.models import DrawProposal, DrawVote
 from victory.models import Victory
 
-
 retrieve_viewname = "game-retrieve"
 channel_list_viewname = "channel-list"
 draw_proposal_list_viewname = "draw-proposal-list"
@@ -16,10 +15,19 @@ game_list_viewname = "game-list"
 phase_state_list_viewname = "phase-state-list"
 
 
-def create_anonymous_game(classical_variant, classical_england_nation, classical_france_nation,
-                          classical_edinburgh_province, primary_user, secondary_user,
-                          game_status=GameStatus.ACTIVE, anonymous=True):
-    phase_status = PhaseStatus.PENDING if game_status == GameStatus.PENDING else PhaseStatus.ACTIVE
+def create_anonymous_game(
+    classical_variant,
+    classical_england_nation,
+    classical_france_nation,
+    classical_edinburgh_province,
+    primary_user,
+    secondary_user,
+    game_status=GameStatus.ACTIVE,
+    anonymous=True,
+):
+    phase_status = (
+        PhaseStatus.PENDING if game_status == GameStatus.PENDING else PhaseStatus.ACTIVE
+    )
     game = Game.objects.create(
         name=f"Anon {game_status} Game",
         variant=classical_variant,
@@ -35,7 +43,11 @@ def create_anonymous_game(classical_variant, classical_england_nation, classical
         status=phase_status,
         ordinal=1,
     )
-    phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+    phase.units.create(
+        type="Fleet",
+        nation=classical_england_nation,
+        province=classical_edinburgh_province,
+    )
 
     game.members.create(user=primary_user, nation=classical_england_nation)
     game.members.create(user=secondary_user, nation=classical_france_nation)
@@ -56,8 +68,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
             anonymous=False,
         )
 
@@ -82,8 +98,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         url = reverse(retrieve_viewname, args=[game.id])
@@ -108,8 +128,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         url = reverse(retrieve_viewname, args=[game.id])
@@ -142,8 +166,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
             game_status=GameStatus.COMPLETED,
         )
 
@@ -168,8 +196,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
             game_status=GameStatus.ABANDONED,
         )
 
@@ -195,8 +227,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
             game_status=GameStatus.PENDING,
         )
 
@@ -222,8 +258,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         primary_member = game.members.get(user=primary_user)
@@ -261,14 +301,20 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
         game.game_master = tertiary_user
         game.save(update_fields=["game_master"])
 
         channel = Channel.objects.create(name="Public Press", game=game, private=False)
-        game_master_member = game.members.create(user=tertiary_user, kind=MemberKind.GAME_MASTER)
+        game_master_member = game.members.create(
+            user=tertiary_user, kind=MemberKind.GAME_MASTER
+        )
         ChannelMessage.objects.create(
             channel=channel, sender=game_master_member, body="Deadline moves to Friday."
         )
@@ -293,8 +339,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         primary_member = game.members.get(user=primary_user)
@@ -302,13 +352,21 @@ class TestAnonymousGames:
 
         phase = game.current_phase
         proposal = DrawProposal.objects.create(
-            game=game, created_by=primary_member, phase=phase,
+            game=game,
+            created_by=primary_member,
+            phase=phase,
         )
         DrawVote.objects.create(
-            proposal=proposal, member=primary_member, included=True, accepted=True,
+            proposal=proposal,
+            member=primary_member,
+            included=True,
+            accepted=True,
         )
         DrawVote.objects.create(
-            proposal=proposal, member=secondary_member, included=True, accepted=None,
+            proposal=proposal,
+            member=secondary_member,
+            included=True,
+            accepted=None,
         )
 
         url = reverse(draw_proposal_list_viewname, args=[game.id])
@@ -337,8 +395,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         url = reverse(game_list_viewname)
@@ -346,7 +408,11 @@ class TestAnonymousGames:
 
         assert response.status_code == status.HTTP_200_OK
 
-        results = response.data["results"] if isinstance(response.data, dict) else response.data
+        results = (
+            response.data["results"]
+            if isinstance(response.data, dict)
+            else response.data
+        )
         game_data = next(g for g in results if g["id"] == str(game.id))
         members_by_nation = {m["nation"]: m for m in game_data["members"]}
         england = members_by_nation["England"]
@@ -366,8 +432,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         phase = game.current_phase
@@ -396,8 +466,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
             game_status=GameStatus.COMPLETED,
         )
 
@@ -428,8 +502,12 @@ class TestAnonymousGames:
         classical_edinburgh_province,
     ):
         game = create_anonymous_game(
-            classical_variant, classical_england_nation, classical_france_nation,
-            classical_edinburgh_province, primary_user, secondary_user,
+            classical_variant,
+            classical_england_nation,
+            classical_france_nation,
+            classical_edinburgh_province,
+            primary_user,
+            secondary_user,
         )
 
         url = reverse(retrieve_viewname, args=[game.id])

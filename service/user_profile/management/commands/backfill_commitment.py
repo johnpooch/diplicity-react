@@ -12,4 +12,6 @@ class Command(BaseCommand):
             recompute_commitment(profile.user)
             count += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Recomputed commitment for {count} player(s)."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Recomputed commitment for {count} player(s).")
+        )

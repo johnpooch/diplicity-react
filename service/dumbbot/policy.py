@@ -72,7 +72,8 @@ def _destination_values(board, weights):
     values = {}
     for province_id in board.province_ids:
         value = sum(
-            weights.proximity[depth] * proximities[depth][province_id] for depth in range(PROXIMITY_DEPTHS)
+            weights.proximity[depth] * proximities[depth][province_id]
+            for depth in range(PROXIMITY_DEPTHS)
         )
         value += weights.strength * board.strength[province_id]
         value -= weights.competition * board.competition[province_id]
@@ -98,7 +99,11 @@ def _destination_of(option, board):
 
 def _find_support(options, aux, target):
     for option in options:
-        if option["order_type"] == OrderType.SUPPORT and option["aux"] == aux and option["target"] == target:
+        if (
+            option["order_type"] == OrderType.SUPPORT
+            and option["aux"] == aux
+            and option["target"] == target
+        ):
             return option
     return None
 
@@ -111,7 +116,9 @@ def _next_item(items, value_of, rng):
         if current == 0:
             chance = 0
         else:
-            chance = abs(current - following) * ALTERNATIVE_DIFFERENCE_MODIFIER / current
+            chance = (
+                abs(current - following) * ALTERNATIVE_DIFFERENCE_MODIFIER / current
+            )
         if PLAY_ALTERNATIVE > rng.random() >= chance:
             index += 1
             continue
@@ -137,9 +144,18 @@ def _movement_orders(board, values, options, rng):
     while unordered:
         source = unordered.pop(0)
         source_options = grouped[source]
-        hold = next((option for option in source_options if option["order_type"] == OrderType.HOLD), None)
+        hold = next(
+            (
+                option
+                for option in source_options
+                if option["order_type"] == OrderType.HOLD
+            ),
+            None,
+        )
         unit = our_units.get(board.parent[source])
-        reachable = board.reachable_provinces(unit["province"], unit["type"]) if unit else set()
+        reachable = (
+            board.reachable_provinces(unit["province"], unit["type"]) if unit else set()
+        )
 
         candidates = [
             option
@@ -150,10 +166,14 @@ def _movement_orders(board, values, options, rng):
         ]
         if hold is not None:
             candidates.append(hold)
-        candidates.sort(key=lambda option: values[_destination_of(option, board)], reverse=True)
+        candidates.sort(
+            key=lambda option: values[_destination_of(option, board)], reverse=True
+        )
 
         while candidates:
-            choice = _next_item(candidates, lambda option: values[_destination_of(option, board)], rng)
+            choice = _next_item(
+                candidates, lambda option: values[_destination_of(option, board)], rng
+            )
             destination = _destination_of(choice, board)
 
             if destination == source:
@@ -164,7 +184,11 @@ def _movement_orders(board, values, options, rng):
             moves = True
 
             occupier = destination if destination in our_units else None
-            if occupier is not None and occupier not in orders and occupier in unordered:
+            if (
+                occupier is not None
+                and occupier not in orders
+                and occupier in unordered
+            ):
                 unordered.insert(unordered.index(occupier) + 1, source)
                 dependencies[occupier].append(source)
                 break
@@ -179,7 +203,10 @@ def _movement_orders(board, values, options, rng):
                     continue
 
             if okay:
-                mover = next((other for other, dest in moving.items() if dest == destination), None)
+                mover = next(
+                    (other for other, dest in moving.items() if dest == destination),
+                    None,
+                )
                 if mover is not None:
                     support = _find_support(source_options, mover, destination)
                     if board.competition[destination] > 0 and support is not None:
@@ -208,14 +235,28 @@ def _replace_wasted_holds(board, values, grouped, orders, moving, our_units):
         best_value = 0
         best_support = None
         for destination in board.reachable_provinces(unit["province"], unit["type"]):
-            mover = next((other for other, dest in moving.items() if dest == destination), None)
-            if mover is not None and board.competition[destination] > 0 and values[mover] > best_value:
+            mover = next(
+                (other for other, dest in moving.items() if dest == destination), None
+            )
+            if (
+                mover is not None
+                and board.competition[destination] > 0
+                and values[mover] > best_value
+            ):
                 support = _find_support(grouped[source], mover, destination)
                 if support is not None:
                     best_value = values[mover]
                     best_support = support
-            occupier = destination if destination in orders and destination not in moving else None
-            if occupier is not None and board.competition[occupier] > 1 and values[occupier] > best_value:
+            occupier = (
+                destination
+                if destination in orders and destination not in moving
+                else None
+            )
+            if (
+                occupier is not None
+                and board.competition[occupier] > 1
+                and values[occupier] > best_value
+            ):
                 support = _find_support(grouped[source], occupier, occupier)
                 if support is not None:
                     best_value = values[occupier]
@@ -242,10 +283,14 @@ def _retreat_orders(board, values, options, rng):
             for option in source_options
             if option["order_type"] in (OrderType.MOVE, OrderType.MOVE_VIA_CONVOY)
         ]
-        candidates.sort(key=lambda option: values[_destination_of(option, board)], reverse=True)
+        candidates.sort(
+            key=lambda option: values[_destination_of(option, board)], reverse=True
+        )
 
         while candidates:
-            choice = _next_item(candidates, lambda option: values[_destination_of(option, board)], rng)
+            choice = _next_item(
+                candidates, lambda option: values[_destination_of(option, board)], rng
+            )
             destination = _destination_of(choice, board)
             if destination in taken or destination in occupied:
                 candidates.remove(choice)
@@ -255,7 +300,12 @@ def _retreat_orders(board, values, options, rng):
             break
         else:
             disband = next(
-                (option for option in source_options if option["order_type"] == OrderType.DISBAND), None
+                (
+                    option
+                    for option in source_options
+                    if option["order_type"] == OrderType.DISBAND
+                ),
+                None,
             )
             if disband is not None:
                 orders[source] = disband
@@ -264,15 +314,21 @@ def _retreat_orders(board, values, options, rng):
 
 
 def _build_orders(board, values, max_orders, options, rng):
-    candidates = [option for option in options if option["order_type"] == OrderType.BUILD]
+    candidates = [
+        option for option in options if option["order_type"] == OrderType.BUILD
+    ]
     candidates.sort(key=lambda option: values[_build_site(option, board)], reverse=True)
 
     count = len(candidates) if max_orders is None else max_orders
     orders = {}
     while len(orders) < count and candidates:
-        choice = _next_item(candidates, lambda option: values[_build_site(option, board)], rng)
+        choice = _next_item(
+            candidates, lambda option: values[_build_site(option, board)], rng
+        )
         orders[choice["source"]] = choice
-        candidates = [option for option in candidates if option["source"] != choice["source"]]
+        candidates = [
+            option for option in candidates if option["source"] != choice["source"]
+        ]
     return list(orders.values())
 
 
@@ -284,19 +340,24 @@ def _build_site(option, board):
 
 def _disband_orders(board, values, max_orders, options, rng):
     disband_by_source = {
-        option["source"]: option for option in options if option["order_type"] == OrderType.DISBAND
+        option["source"]: option
+        for option in options
+        if option["order_type"] == OrderType.DISBAND
     }
     units = [
         unit
         for unit in board.standing_units
-        if unit["nation"] == board.nation and board.parent[unit["province"]] in disband_by_source
+        if unit["nation"] == board.nation
+        and board.parent[unit["province"]] in disband_by_source
     ]
     units.sort(key=lambda unit: values[board.parent[unit["province"]]])
 
     count = len(disband_by_source) if max_orders is None else max_orders
     orders = {}
     while len(orders) < count and units:
-        choice = _next_item(units, lambda unit: values[board.parent[unit["province"]]], rng)
+        choice = _next_item(
+            units, lambda unit: values[board.parent[unit["province"]]], rng
+        )
         source = board.parent[choice["province"]]
         orders[source] = disband_by_source[source]
         units = [unit for unit in units if unit is not choice]

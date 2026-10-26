@@ -26,7 +26,9 @@ class FlatOrderOptionSerializer(serializers.Serializer):
 
 class OrderOptionsResponseSerializer(serializers.Serializer):
     orders = FlatOrderOptionSerializer(many=True)
-    field_order = serializers.DictField(child=serializers.ListField(child=serializers.CharField()))
+    field_order = serializers.DictField(
+        child=serializers.ListField(child=serializers.CharField())
+    )
 
 
 class OrderResolutionSerializer(serializers.Serializer):
@@ -42,13 +44,19 @@ class OrderSerializer(serializers.Serializer):
     aux = ProvinceSerializer(read_only=True)
     named_coast = ProvinceSerializer(read_only=True)
     resolution = OrderResolutionSerializer(read_only=True)
-    order_type = serializers.ChoiceField(choices=OrderType.ORDER_TYPE_CHOICES, read_only=True)
-    unit_type = serializers.ChoiceField(choices=UnitType.UNIT_TYPE_CHOICES, read_only=True)
+    order_type = serializers.ChoiceField(
+        choices=OrderType.ORDER_TYPE_CHOICES, read_only=True
+    )
+    unit_type = serializers.ChoiceField(
+        choices=UnitType.UNIT_TYPE_CHOICES, read_only=True
+    )
     nation = NationSerializer(read_only=True)
     is_implicit = serializers.BooleanField(read_only=True)
     complete = serializers.BooleanField(allow_null=True, read_only=True)
     step = serializers.ChoiceField(
-        choices=OrderCreationStep.ORDER_CREATION_STEP_CHOICES, allow_null=True, read_only=True
+        choices=OrderCreationStep.ORDER_CREATION_STEP_CHOICES,
+        allow_null=True,
+        read_only=True,
     )
     title = serializers.CharField(allow_null=True, read_only=True)
     summary = serializers.CharField(allow_null=True, read_only=True)
@@ -86,16 +94,24 @@ class OrderSerializer(serializers.Serializer):
         if order is None:
             province_lookup = self.context.get("_province_lookup")
             if province_lookup is None:
-                province_lookup = {p.province_id: p for p in self.context["phase"].variant.provinces.all()}
+                province_lookup = {
+                    p.province_id: p
+                    for p in self.context["phase"].variant.provinces.all()
+                }
             order = Order.objects.create_from_selected(
-                self.context["request"].user, self.context["phase"], validated_data["selected"], province_lookup=province_lookup
+                self.context["request"].user,
+                self.context["phase"],
+                validated_data["selected"],
+                province_lookup=province_lookup,
             )
 
         if order.complete:
             with transaction.atomic():
                 if Phase.objects.lock_if_active(self.context["phase"].id) is None:
                     raise serializers.ValidationError(IsCurrentPhaseActive.message)
-                Order.objects.delete_existing_for_source(order.phase_state, order.source)
+                Order.objects.delete_existing_for_source(
+                    order.phase_state, order.source
+                )
                 if self.context["phase"].type == PhaseType.ADJUSTMENT:
                     try:
                         order.clean()

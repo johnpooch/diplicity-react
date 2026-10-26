@@ -21,5 +21,9 @@ def replan(member):
     with transaction.atomic():
         if phase is None or Phase.objects.lock_if_active(phase.id) is None:
             raise ReplanError(f"game '{member.game_id}' has no active phase")
-        Order.objects.filter(phase_state__member=member, phase_state__phase=phase).delete()
-        return AgentTask.objects.requeue(kind=AgentTaskKind.PLAN, member=member, phase=phase)
+        Order.objects.filter(
+            phase_state__member=member, phase_state__phase=phase
+        ).delete()
+        return AgentTask.objects.requeue(
+            kind=AgentTaskKind.PLAN, member=member, phase=phase
+        )

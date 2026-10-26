@@ -15,11 +15,20 @@ from harness.tasks.select_orders import parse_completion, system_prompt, user_pr
 from harness.tasks.select_orders.options import describe_option
 from harness.tasks.select_orders.scorers.coherence import MOVEMENT_TYPES, dangling
 
-OPENINGS_DIR = Path(__file__).resolve().parents[2] / "tasks" / "select_orders" / "openings" / "s1901m"
+OPENINGS_DIR = (
+    Path(__file__).resolve().parents[2]
+    / "tasks"
+    / "select_orders"
+    / "openings"
+    / "s1901m"
+)
 
 
 def _unit_types(context):
-    return {unit["province"]: ("A" if unit["type"] == "Army" else "F") for unit in context["units"]}
+    return {
+        unit["province"]: ("A" if unit["type"] == "Army" else "F")
+        for unit in context["units"]
+    }
 
 
 def _order_str(order, context, unit_types):
@@ -28,14 +37,24 @@ def _order_str(order, context, unit_types):
 
 
 def _own_nation(context):
-    return next((member["nation"] for member in context["members"] if member["is_current_user"]), None)
+    return next(
+        (
+            member["nation"]
+            for member in context["members"]
+            if member["is_current_user"]
+        ),
+        None,
+    )
 
 
 def _can_reach(context, from_province, to_province, unit_type):
     allow = "army" if unit_type == "Army" else "fleet"
     for province in context["provinces"]:
         if province["id"] == from_province:
-            return any(adj["to"] == to_province and allow in adj["allows"] for adj in province["adjacencies"])
+            return any(
+                adj["to"] == to_province and allow in adj["allows"]
+                for adj in province["adjacencies"]
+            )
     return False
 
 
@@ -43,7 +62,9 @@ def _contested(context, province, own_nation):
     for unit in context["units"]:
         if unit["nation"] == own_nation:
             continue
-        if unit["province"] == province or _can_reach(context, unit["province"], province, unit["type"]):
+        if unit["province"] == province or _can_reach(
+            context, unit["province"], province, unit["type"]
+        ):
             return True
     return False
 
@@ -54,12 +75,18 @@ def _flags(orders, context):
 
     own_nation = _own_nation(context)
     sources = {order["source"] for order in orders}
-    flags = [f"hold:{order['source']}" for order in orders if order["order_type"] == "Hold"]
+    flags = [
+        f"hold:{order['source']}" for order in orders if order["order_type"] == "Hold"
+    ]
 
     move_targets = Counter(
-        order["target"] for order in orders if order["order_type"] in MOVEMENT_TYPES and order["target"]
+        order["target"]
+        for order in orders
+        if order["order_type"] in MOVEMENT_TYPES and order["target"]
     )
-    flags += [f"self_bounce:{dest}" for dest, count in move_targets.items() if count >= 2]
+    flags += [
+        f"self_bounce:{dest}" for dest, count in move_targets.items() if count >= 2
+    ]
 
     dangling_aux = set()
     for order_type, own_label, foreign_label in (
@@ -97,7 +124,9 @@ def ledger_for_nation(context, completions):
         joint[key] += 1
         representative.setdefault(key, orders)
         for order in orders:
-            marginals.setdefault(order["source"], Counter())[_order_str(order, context, unit_types)] += 1
+            marginals.setdefault(order["source"], Counter())[
+                _order_str(order, context, unit_types)
+            ] += 1
 
     scored = sum(joint.values())
     order_sets = [
@@ -111,7 +140,11 @@ def ledger_for_nation(context, completions):
     ]
     unit_marginals = {
         source: [
-            {"order": order, "count": count, "share": round(count / scored, 3) if scored else 0.0}
+            {
+                "order": order,
+                "count": count,
+                "share": round(count / scored, 3) if scored else 0.0,
+            }
             for order, count in counts.most_common()
         ]
         for source, counts in marginals.items()
@@ -131,7 +164,9 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
-        parser.add_argument("--samples", type=int, default=50, help="samples per nation")
+        parser.add_argument(
+            "--samples", type=int, default=50, help="samples per nation"
+        )
         parser.add_argument("--model", default=f"anthropic/{settings.BOT_LLM_MODEL}")
         parser.add_argument("--concurrency", type=int, default=8)
         parser.add_argument("--out", default="phase_dumps/opening_ledger.json")
@@ -156,7 +191,9 @@ class Command(BaseCommand):
                 self._sample(model, context, options["samples"], options["concurrency"])
             )
             nations[fixture["nation"]] = ledger_for_nation(context, completions)
-            self.stdout.write(f"sampled {fixture['nation']}: {len(completions)} completion(s)")
+            self.stdout.write(
+                f"sampled {fixture['nation']}: {len(completions)} completion(s)"
+            )
 
         ledger = {
             "meta": {
@@ -178,7 +215,9 @@ class Command(BaseCommand):
 
         async def one():
             async with semaphore:
-                output = await model.generate([ChatMessageSystem(content=system), ChatMessageUser(content=user)])
+                output = await model.generate(
+                    [ChatMessageSystem(content=system), ChatMessageUser(content=user)]
+                )
                 return output.completion
 
         return await asyncio.gather(*[one() for _ in range(samples)])

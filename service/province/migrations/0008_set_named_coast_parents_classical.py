@@ -24,12 +24,10 @@ def set_named_coast_parents(apps, schema_editor):
     for named_coast_id, parent_id in named_coast_mappings.items():
         try:
             named_coast = Province.objects.get(
-                province_id=named_coast_id,
-                variant=classical_variant
+                province_id=named_coast_id, variant=classical_variant
             )
             parent = Province.objects.get(
-                province_id=parent_id,
-                variant=classical_variant
+                province_id=parent_id, variant=classical_variant
             )
             named_coast.parent = parent
             named_coast.save()
@@ -49,7 +47,7 @@ def reverse_set_named_coast_parents(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('province', '0007_add_parent_field'),
+        ("province", "0007_add_parent_field"),
     ]
 
     operations = [

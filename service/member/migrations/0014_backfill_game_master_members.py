@@ -11,11 +11,15 @@ def seat_existing_game_masters(apps, schema_editor):
         Member.objects.filter(kind="game_master").values_list("game_id", flat=True)
     )
 
-    for game in Game.objects.filter(game_master__isnull=False).exclude(id__in=seated_game_ids):
+    for game in Game.objects.filter(game_master__isnull=False).exclude(
+        id__in=seated_game_ids
+    ):
         if Member.objects.filter(game=game, user_id=game.game_master_id).exists():
             continue
 
-        member = Member.objects.create(game=game, user_id=game.game_master_id, kind="game_master")
+        member = Member.objects.create(
+            game=game, user_id=game.game_master_id, kind="game_master"
+        )
 
         public_channel = Channel.objects.filter(game=game, private=False).first()
         if public_channel is not None:

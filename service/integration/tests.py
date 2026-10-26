@@ -19,13 +19,17 @@ from common.constants import (
     PhaseStatus,
     UnitType,
 )
-from integration.utils import run_due_resolution_jobs
+from integration.utils import muster, run_due_resolution_jobs
 from phase.models import Phase, PhaseState
 from supply_center.models import SupplyCenter
 from unit.models import Unit
 
 
-def create_active_game(authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant):
+def create_active_game(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+):
     create_url = reverse("game-create")
     create_payload = {
         "name": "Italy vs Germany Test",
@@ -33,7 +37,9 @@ def create_active_game(authenticated_client, authenticated_client_for_secondary_
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
     }
-    create_response = authenticated_client.post(create_url, create_payload, format="json")
+    create_response = authenticated_client.post(
+        create_url, create_payload, format="json"
+    )
     game_id = create_response.data["id"]
     game = Game.objects.get(id=game_id)
     Member.objects.assign_nation(
@@ -41,6 +47,7 @@ def create_active_game(authenticated_client, authenticated_client_for_secondary_
     )
     join_url = reverse("game-join", args=[game_id])
     authenticated_client_for_secondary_user.post(join_url)
+    muster(game_id, authenticated_client, authenticated_client_for_secondary_user)
     return Game.objects.get(id=game_id)
 
 
@@ -67,7 +74,9 @@ def test_create_game_with_classical_variant_one_user_joins(
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
     }
-    create_response = authenticated_client.post(create_url, create_payload, format="json")
+    create_response = authenticated_client.post(
+        create_url, create_payload, format="json"
+    )
     assert create_response.status_code == status.HTTP_201_CREATED
 
     game_id = create_response.data["id"]
@@ -140,7 +149,9 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
     }
-    create_response = authenticated_client.post(create_url, create_payload, format="json")
+    create_response = authenticated_client.post(
+        create_url, create_payload, format="json"
+    )
     assert create_response.status_code == status.HTTP_201_CREATED
 
     game_id = create_response.data["id"]
@@ -150,9 +161,13 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
     join_response = authenticated_client_for_secondary_user.post(join_url)
     assert join_response.status_code == status.HTTP_201_CREATED
 
-    # Game should now be full and started
+    # Game should now be full and mustering
     game = Game.objects.get(id=game_id)
     assert game.members.count() == 2
+    assert game.status == GameStatus.MUSTERING
+
+    muster(game_id, authenticated_client, authenticated_client_for_secondary_user)
+    game = Game.objects.get(id=game_id)
     assert game.status == GameStatus.ACTIVE
 
     # Verify nations are assigned
@@ -184,7 +199,9 @@ def test_create_game_with_classical_variant_one_user_leaves_and_rejoins(
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
     }
-    create_response = authenticated_client.post(create_url, create_payload, format="json")
+    create_response = authenticated_client.post(
+        create_url, create_payload, format="json"
+    )
     game_id = create_response.data["id"]
 
     join_url = reverse("game-join", args=[game_id])
@@ -224,7 +241,9 @@ def test_active_game_create_orders_and_confirm(
     - Game resolves
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     create_order_url = reverse("order-create", args=[active_game.id])
     first_phase = active_game.current_phase
@@ -235,19 +254,25 @@ def test_active_game_create_orders_and_confirm(
     # Primary user creates an order
 
     create_order_payload = {"selected": ["kie"]}
-    create_order_response = authenticated_client.post(create_order_url, create_order_payload, format="json")
+    create_order_response = authenticated_client.post(
+        create_order_url, create_order_payload, format="json"
+    )
 
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["kie"]
 
     create_order_payload = {"selected": ["kie", "Move"]}
-    create_order_response = authenticated_client.post(create_order_url, create_order_payload, format="json")
+    create_order_response = authenticated_client.post(
+        create_order_url, create_order_payload, format="json"
+    )
 
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["kie", "Move"]
 
     create_order_payload = {"selected": ["kie", "Move", "den"]}
-    create_order_response = authenticated_client.post(create_order_url, create_order_payload, format="json")
+    create_order_response = authenticated_client.post(
+        create_order_url, create_order_payload, format="json"
+    )
     assert create_order_response.status_code == status.HTTP_201_CREATED
 
     assert create_order_response.data["selected"] == ["kie", "Move", "den"]
@@ -294,7 +319,9 @@ def test_active_game_create_orders_and_confirm(
     assert first_phase.status == PhaseStatus.ACTIVE
 
     # Secondary user confirms their order
-    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+    confirm_order_response = authenticated_client_for_secondary_user.put(
+        confirm_order_url
+    )
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
     # Simulate the scheduled resolver task running
@@ -346,7 +373,9 @@ def test_scheduled_phase_resolution_after_time_elapsed(
     - Game resolves
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     current_phase = active_game.current_phase
 
@@ -387,7 +416,9 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     mock_immediate_on_commit,
 ):
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     create_order_url = reverse("order-create", args=[active_game.id])
     first_phase = active_game.current_phase
@@ -419,7 +450,9 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert first_phase.status == PhaseStatus.ACTIVE
 
     # Secondary user confirms their order
-    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+    confirm_order_response = authenticated_client_for_secondary_user.put(
+        confirm_order_url
+    )
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
     # Simulate the scheduled resolver task running
@@ -444,7 +477,9 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     )
 
     confirm_order_response = authenticated_client.put(confirm_order_url)
-    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+    confirm_order_response = authenticated_client_for_secondary_user.put(
+        confirm_order_url
+    )
 
     assert run_due_resolution_jobs() >= 1
 
@@ -467,12 +502,16 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert create_order_response.data["title"] == "Gulf of Lyon will move to Spain (SC)"
 
     confirm_order_response = authenticated_client.put(confirm_order_url)
-    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+    confirm_order_response = authenticated_client_for_secondary_user.put(
+        confirm_order_url
+    )
 
     # Capture the Spring 1902 Movement phase so the order resolution can be
     # checked on it after it resolves.
     spring_1902_movement = active_game.current_phase
-    order = spring_1902_movement.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
+    order = spring_1902_movement.phase_states.get(member=italy_member).orders.get(
+        source__province_id="gol"
+    )
 
     assert run_due_resolution_jobs() >= 1
 
@@ -488,7 +527,9 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert order.resolution.status == OrderResolutionStatus.SUCCEEDED
 
     # Assert that Italy has a fleet in Spain SC
-    assert phase.units.filter(nation__name="Italy", province__province_id="spa/sc", type=UnitType.FLEET).exists()
+    assert phase.units.filter(
+        nation__name="Italy", province__province_id="spa/sc", type=UnitType.FLEET
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -508,7 +549,9 @@ def test_dislodged_unit_scenario(
     - Verify final positions
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
 
     italy_member = active_game.members.filter(nation__name="Italy").first()
@@ -538,19 +581,25 @@ def test_dislodged_unit_scenario(
     # Germany: Berlin to Munich
     germany_client.post(create_order_url, {"selected": ["ber"]}, format="json")
     germany_client.post(create_order_url, {"selected": ["ber", "Move"]}, format="json")
-    response = germany_client.post(create_order_url, {"selected": ["ber", "Move", "mun"]}, format="json")
+    response = germany_client.post(
+        create_order_url, {"selected": ["ber", "Move", "mun"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # Germany: Munich to Bohemia
     germany_client.post(create_order_url, {"selected": ["mun"]}, format="json")
     germany_client.post(create_order_url, {"selected": ["mun", "Move"]}, format="json")
-    response = germany_client.post(create_order_url, {"selected": ["mun", "Move", "boh"]}, format="json")
+    response = germany_client.post(
+        create_order_url, {"selected": ["mun", "Move", "boh"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # Italy: Venice to Tyrolia
     italy_client.post(create_order_url, {"selected": ["ven"]}, format="json")
     italy_client.post(create_order_url, {"selected": ["ven", "Move"]}, format="json")
-    response = italy_client.post(create_order_url, {"selected": ["ven", "Move", "tyr"]}, format="json")
+    response = italy_client.post(
+        create_order_url, {"selected": ["ven", "Move", "tyr"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # Both players confirm
@@ -574,21 +623,35 @@ def test_dislodged_unit_scenario(
     assert phase.type == "Movement"
 
     # Verify positions from Spring 1901
-    assert phase.units.filter(nation__name="Germany", province__province_id="mun").exists()
-    assert phase.units.filter(nation__name="Germany", province__province_id="boh").exists()
-    assert phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()
+    assert phase.units.filter(
+        nation__name="Germany", province__province_id="mun"
+    ).exists()
+    assert phase.units.filter(
+        nation__name="Germany", province__province_id="boh"
+    ).exists()
+    assert phase.units.filter(
+        nation__name="Italy", province__province_id="tyr"
+    ).exists()
 
     # Germany: Munich to Tyrolia
     germany_client.post(create_order_url, {"selected": ["mun"]}, format="json")
     germany_client.post(create_order_url, {"selected": ["mun", "Move"]}, format="json")
-    response = germany_client.post(create_order_url, {"selected": ["mun", "Move", "tyr"]}, format="json")
+    response = germany_client.post(
+        create_order_url, {"selected": ["mun", "Move", "tyr"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # Germany: Bohemia supports Munich to Tyrolia
     germany_client.post(create_order_url, {"selected": ["boh"]}, format="json")
-    germany_client.post(create_order_url, {"selected": ["boh", "Support"]}, format="json")
-    germany_client.post(create_order_url, {"selected": ["boh", "Support", "mun"]}, format="json")
-    response = germany_client.post(create_order_url, {"selected": ["boh", "Support", "mun", "tyr"]}, format="json")
+    germany_client.post(
+        create_order_url, {"selected": ["boh", "Support"]}, format="json"
+    )
+    germany_client.post(
+        create_order_url, {"selected": ["boh", "Support", "mun"]}, format="json"
+    )
+    response = germany_client.post(
+        create_order_url, {"selected": ["boh", "Support", "mun", "tyr"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # Both players confirm
@@ -609,10 +672,14 @@ def test_dislodged_unit_scenario(
     assert phase.type == "Retreat"
 
     # Verify Germany's army is now in Tyrolia
-    assert phase.units.filter(nation__name="Germany", province__province_id="tyr").exists()
+    assert phase.units.filter(
+        nation__name="Germany", province__province_id="tyr"
+    ).exists()
 
     # Verify Italy's dislodged army is still in Tyrolia (but marked as dislodged)
-    italy_dislodged_unit = phase.units.filter(nation__name="Italy", province__province_id="tyr").first()
+    italy_dislodged_unit = phase.units.filter(
+        nation__name="Italy", province__province_id="tyr"
+    ).first()
     assert italy_dislodged_unit is not None
     assert italy_dislodged_unit.dislodged
     assert italy_dislodged_unit.dislodged_from is not None
@@ -620,7 +687,9 @@ def test_dislodged_unit_scenario(
     # Italy: Retreat from Tyrolia to Trieste
     italy_client.post(create_order_url, {"selected": ["tyr"]}, format="json")
     italy_client.post(create_order_url, {"selected": ["tyr", "Move"]}, format="json")
-    response = italy_client.post(create_order_url, {"selected": ["tyr", "Move", "tri"]}, format="json")
+    response = italy_client.post(
+        create_order_url, {"selected": ["tyr", "Move", "tri"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # Italy confirms
@@ -638,13 +707,19 @@ def test_dislodged_unit_scenario(
     phase.refresh_from_db()
 
     # German army should be in Tyrolia
-    assert phase.units.filter(nation__name="Germany", province__province_id="tyr", type=UnitType.ARMY).exists()
+    assert phase.units.filter(
+        nation__name="Germany", province__province_id="tyr", type=UnitType.ARMY
+    ).exists()
 
     # Italian army should be in Trieste
-    assert phase.units.filter(nation__name="Italy", province__province_id="tri", type=UnitType.ARMY).exists()
+    assert phase.units.filter(
+        nation__name="Italy", province__province_id="tri", type=UnitType.ARMY
+    ).exists()
 
     # Italian army should NOT be in Tyrolia anymore
-    assert not phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()
+    assert not phase.units.filter(
+        nation__name="Italy", province__province_id="tyr"
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -659,7 +734,9 @@ def test_empty_retreat_phase_is_skipped(
     movement phase: the empty retreat phase is never created, and phase
     ordinals stay contiguous."""
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     first_phase = active_game.current_phase
     assert first_phase.season == "Spring"
@@ -670,8 +747,12 @@ def test_empty_retreat_phase_is_skipped(
     confirm_url = reverse("game-confirm-phase", args=[active_game.id])
 
     # Holds dislodge nothing.
-    authenticated_client.post(create_order_url, {"selected": ["kie", "Hold"]}, format="json")
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.post(
+        create_order_url, {"selected": ["kie", "Hold"]}, format="json"
+    )
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client.put(confirm_url)
     authenticated_client_for_secondary_user.put(confirm_url)
 
@@ -687,7 +768,9 @@ def test_empty_retreat_phase_is_skipped(
     assert not active_game.phases.filter(type="Retreat").exists()
 
     # Ordinals stay contiguous: template movement (1) then Fall movement (2).
-    ordinals = list(active_game.phases.order_by("ordinal").values_list("ordinal", flat=True))
+    ordinals = list(
+        active_game.phases.order_by("ordinal").values_list("ordinal", flat=True)
+    )
     assert ordinals == [1, 2]
 
 
@@ -703,14 +786,20 @@ def test_empty_adjustment_phase_is_skipped(
     retreat and the balanced adjustment, landing on the next Spring movement.
     Neither skipped phase is written to the database."""
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     create_order_url = reverse("order-create", args=[active_game.id])
     confirm_url = reverse("game-confirm-phase", args=[active_game.id])
 
     def hold_and_resolve():
-        authenticated_client.post(create_order_url, {"selected": ["kie", "Hold"]}, format="json")
-        authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+        authenticated_client.post(
+            create_order_url, {"selected": ["kie", "Hold"]}, format="json"
+        )
+        authenticated_client_for_secondary_user.post(
+            create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+        )
         authenticated_client.put(confirm_url)
         authenticated_client_for_secondary_user.put(confirm_url)
         return run_due_resolution_jobs()
@@ -750,7 +839,9 @@ def test_cd_only_retreat_phase_is_skipped(
     Italy dislodges Germany's fleet and Germany is in Civil Disorder, the
     game advances directly to Fall 1901 Movement."""
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     phase = active_game.current_phase
 
@@ -767,9 +858,15 @@ def test_cd_only_retreat_phase_is_skipped(
     # Replace the initial units with a conflict scenario:
     # Italy at Berlin + Munich attacks Kiel; Germany fleet holds Kiel.
     phase.units.all().delete()
-    Unit.objects.create(phase=phase, nation=italy_nation, type=UnitType.ARMY, province=ber)
-    Unit.objects.create(phase=phase, nation=italy_nation, type=UnitType.ARMY, province=mun)
-    Unit.objects.create(phase=phase, nation=germany_nation, type=UnitType.FLEET, province=kie)
+    Unit.objects.create(
+        phase=phase, nation=italy_nation, type=UnitType.ARMY, province=ber
+    )
+    Unit.objects.create(
+        phase=phase, nation=italy_nation, type=UnitType.ARMY, province=mun
+    )
+    Unit.objects.create(
+        phase=phase, nation=germany_nation, type=UnitType.FLEET, province=kie
+    )
 
     phase.supply_centers.all().delete()
     SupplyCenter.objects.create(phase=phase, nation=italy_nation, province=ber)
@@ -779,7 +876,9 @@ def test_cd_only_retreat_phase_is_skipped(
     # Italy attacks Kiel from Berlin, supported by Munich.
     italy_ps = phase.phase_states.get(member=italy_member)
     italy_ps.orders.create(source=ber, order_type=OrderType.MOVE, target=kie)
-    italy_ps.orders.create(source=mun, order_type=OrderType.SUPPORT, target=kie, aux=ber)
+    italy_ps.orders.create(
+        source=mun, order_type=OrderType.SUPPORT, target=kie, aux=ber
+    )
 
     # Germany is in Civil Disorder — no orders, confirmed automatically.
     germany_member.civil_disorder_at = timezone.now()
@@ -820,13 +919,21 @@ def create_active_hundred_game(
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
     }
-    create_response = authenticated_client.post(create_url, create_payload, format="json")
+    create_response = authenticated_client.post(
+        create_url, create_payload, format="json"
+    )
     game_id = create_response.data["id"]
 
     # Second and third users join
     join_url = reverse("game-join", args=[game_id])
     authenticated_client_for_secondary_user.post(join_url)
     authenticated_client_for_tertiary_user.post(join_url)
+    muster(
+        game_id,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        authenticated_client_for_tertiary_user,
+    )
 
     return Game.objects.get(id=game_id)
 
@@ -922,31 +1029,41 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
     # nom: Move to orl
     england_client.post(create_order_url, {"selected": ["nom"]}, format="json")
     england_client.post(create_order_url, {"selected": ["nom", "Move"]}, format="json")
-    response = england_client.post(create_order_url, {"selected": ["nom", "Move", "orl"]}, format="json")
+    response = england_client.post(
+        create_order_url, {"selected": ["nom", "Move", "orl"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # dev: Move to brs
     england_client.post(create_order_url, {"selected": ["dev"]}, format="json")
     england_client.post(create_order_url, {"selected": ["dev", "Move"]}, format="json")
-    response = england_client.post(create_order_url, {"selected": ["dev", "Move", "brs"]}, format="json")
+    response = england_client.post(
+        create_order_url, {"selected": ["dev", "Move", "brs"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # lon: Move to str
     england_client.post(create_order_url, {"selected": ["lon"]}, format="json")
     england_client.post(create_order_url, {"selected": ["lon", "Move"]}, format="json")
-    response = england_client.post(create_order_url, {"selected": ["lon", "Move", "str"]}, format="json")
+    response = england_client.post(
+        create_order_url, {"selected": ["lon", "Move", "str"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # cal: Move to dij
     england_client.post(create_order_url, {"selected": ["cal"]}, format="json")
     england_client.post(create_order_url, {"selected": ["cal", "Move"]}, format="json")
-    response = england_client.post(create_order_url, {"selected": ["cal", "Move", "dij"]}, format="json")
+    response = england_client.post(
+        create_order_url, {"selected": ["cal", "Move", "dij"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # guy: Move to ara
     england_client.post(create_order_url, {"selected": ["guy"]}, format="json")
     england_client.post(create_order_url, {"selected": ["guy", "Move"]}, format="json")
-    response = england_client.post(create_order_url, {"selected": ["guy", "Move", "ara"]}, format="json")
+    response = england_client.post(
+        create_order_url, {"selected": ["guy", "Move", "ara"]}, format="json"
+    )
     assert response.status_code == status.HTTP_201_CREATED
 
     # All players confirm (France and Burgundy have no orders, they just confirm)
@@ -1085,25 +1202,45 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     create_order_url = reverse("order-create", args=[active_game.id])
     confirm_url = reverse("game-confirm-phase", args=[active_game.id])
 
-    france_client.post(create_order_url, {"selected": ["orl", "Move", "brt"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["orl", "Move", "brt"]}, format="json"
+    )
 
-    france_client.post(create_order_url, {"selected": ["pro", "Move", "sav"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["pro", "Move", "sav"]}, format="json"
+    )
 
-    france_client.post(create_order_url, {"selected": ["tou", "Move", "ara"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["tou", "Move", "ara"]}, format="json"
+    )
 
-    france_client.post(create_order_url, {"selected": ["par", "Move", "nom"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["par", "Move", "nom"]}, format="json"
+    )
 
-    france_client.post(create_order_url, {"selected": ["dau", "Move", "dij"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["dau", "Move", "dij"]}, format="json"
+    )
 
-    burgundy_client.post(create_order_url, {"selected": ["dij", "Move", "lor"]}, format="json")
+    burgundy_client.post(
+        create_order_url, {"selected": ["dij", "Move", "lor"]}, format="json"
+    )
 
-    burgundy_client.post(create_order_url, {"selected": ["fla", "Move", "hol"]}, format="json")
+    burgundy_client.post(
+        create_order_url, {"selected": ["fla", "Move", "hol"]}, format="json"
+    )
 
-    burgundy_client.post(create_order_url, {"selected": ["hol", "Move", "fri"]}, format="json")
+    burgundy_client.post(
+        create_order_url, {"selected": ["hol", "Move", "fri"]}, format="json"
+    )
 
-    england_client.post(create_order_url, {"selected": ["nom", "Move", "anj"]}, format="json")
+    england_client.post(
+        create_order_url, {"selected": ["nom", "Move", "anj"]}, format="json"
+    )
 
-    england_client.post(create_order_url, {"selected": ["cal", "Move", "fla"]}, format="json")
+    england_client.post(
+        create_order_url, {"selected": ["cal", "Move", "fla"]}, format="json"
+    )
 
     france_client.put(confirm_url)
     england_client.put(confirm_url)
@@ -1118,9 +1255,13 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     assert fall_movement_phase.year == 1430
     assert fall_movement_phase.type == "Movement"
 
-    france_client.post(create_order_url, {"selected": ["sav", "Move", "can"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["sav", "Move", "can"]}, format="json"
+    )
 
-    france_client.post(create_order_url, {"selected": ["ara", "Move", "cas"]}, format="json")
+    france_client.post(
+        create_order_url, {"selected": ["ara", "Move", "cas"]}, format="json"
+    )
 
     france_client.put(confirm_url)
     england_client.put(confirm_url)
@@ -1168,7 +1309,9 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
       resolves immediately without Germany doing anything
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     germany_member = active_game.members.filter(nation__name="Germany").first()
     italy_member = active_game.members.filter(nation__name="Italy").first()
@@ -1194,11 +1337,17 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
             resolved = advance_and_resolve()
             if resolved == 0:
                 break
-        raise AssertionError(f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}")
+        raise AssertionError(
+            f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}"
+        )
 
     # Spring 1901: both submit + confirm, normal early resolve.
-    authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.post(
+        create_order_url, {"selected": ["ber", "Hold"]}, format="json"
+    )
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client.put(confirm_order_url)
     authenticated_client_for_secondary_user.put(confirm_order_url)
     assert run_due_resolution_jobs() >= 1
@@ -1206,7 +1355,9 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     fall_1901 = resolve_until("Fall", 1901, "Movement")
 
     # Fall 1901: only Italy submits. Germany NMRs once.
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client_for_secondary_user.put(confirm_order_url)
     assert advance_and_resolve() >= 1
 
@@ -1216,7 +1367,9 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     spring_1902 = resolve_until("Spring", 1902, "Movement")
 
     # Spring 1902: only Italy submits. Germany's second consecutive movement-phase NMR → CD.
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client_for_secondary_user.put(confirm_order_url)
     assert advance_and_resolve() >= 1
 
@@ -1224,7 +1377,8 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     assert germany_member.civil_disorder is True
 
     cd_calls = [
-        c for c in mock_send_notification_to_users.call_args_list
+        c
+        for c in mock_send_notification_to_users.call_args_list
         if c.kwargs.get("notification_type") == "civil_disorder"
     ]
     assert len(cd_calls) == 1
@@ -1246,7 +1400,9 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
 
     # Italy submits and confirms; phase should resolve immediately because the CD
     # member's PhaseState no longer blocks the all-confirmed check.
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client_for_secondary_user.put(confirm_order_url)
     assert run_due_resolution_jobs() >= 1
     fall_1902.refresh_from_db()
@@ -1269,7 +1425,9 @@ def test_player_who_confirms_without_orders_is_not_recorded_as_nmr(
     - Germany does not enter civil disorder
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     active_game.members.update(nmr_extensions_remaining=1)
     germany_member = active_game.members.filter(nation__name="Germany").first()
@@ -1293,11 +1451,15 @@ def test_player_who_confirms_without_orders_is_not_recorded_as_nmr(
             resolved = advance_and_resolve()
             if resolved == 0:
                 break
-        raise AssertionError(f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}")
+        raise AssertionError(
+            f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}"
+        )
 
     # Spring 1901: Italy submits and confirms, Germany confirms with no orders at all.
     spring_1901 = active_game.current_phase
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client_for_secondary_user.put(confirm_order_url)
     authenticated_client.put(confirm_order_url)
     assert run_due_resolution_jobs() >= 1
@@ -1309,19 +1471,25 @@ def test_player_who_confirms_without_orders_is_not_recorded_as_nmr(
     fall_1901 = resolve_until("Fall", 1901, "Movement")
 
     # Fall 1901: same again — the second consecutive movement phase.
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client_for_secondary_user.put(confirm_order_url)
     authenticated_client.put(confirm_order_url)
     assert run_due_resolution_jobs() >= 1
 
-    assert fall_1901.phase_states.get(member=germany_member).orders_outcome == PhaseState.OrdersOutcome.RECEIVED
+    assert (
+        fall_1901.phase_states.get(member=germany_member).orders_outcome
+        == PhaseState.OrdersOutcome.RECEIVED
+    )
 
     germany_member.refresh_from_db()
     assert germany_member.civil_disorder is False
     assert germany_member.nmr_extensions_remaining == 1
 
     extension_calls = [
-        c for c in mock_send_notification_to_users.call_args_list
+        c
+        for c in mock_send_notification_to_users.call_args_list
         if c.kwargs.get("notification_type") == "nmr_extension_used"
     ]
     assert extension_calls == []
@@ -1340,7 +1508,9 @@ def test_game_becomes_abandoned_when_all_active_members_in_cd(
     both are in CD and the game's status becomes ABANDONED.
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     germany_member = active_game.members.filter(nation__name="Germany").first()
     italy_member = active_game.members.filter(nation__name="Italy").first()
@@ -1357,8 +1527,12 @@ def test_game_becomes_abandoned_when_all_active_members_in_cd(
             return run_due_resolution_jobs()
 
     # Spring 1901: both submit so neither NMRs here.
-    authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
-    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.post(
+        create_order_url, {"selected": ["ber", "Hold"]}, format="json"
+    )
+    authenticated_client_for_secondary_user.post(
+        create_order_url, {"selected": ["ven", "Hold"]}, format="json"
+    )
     authenticated_client.put(confirm_order_url)
     authenticated_client_for_secondary_user.put(confirm_order_url)
     assert run_due_resolution_jobs() >= 1
@@ -1396,7 +1570,9 @@ def test_dias_draw_proposal_accepted_ends_game_in_draw(
     every active player drawing.
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     germany_member = active_game.members.filter(nation__name="Germany").first()
     italy_member = active_game.members.filter(nation__name="Italy").first()
@@ -1407,9 +1583,7 @@ def test_dias_draw_proposal_accepted_ends_game_in_draw(
 
     # Proposer (Germany) already auto-accepted; Italy still needs to accept.
     proposal = active_game.draw_proposals.first()
-    vote_url = reverse(
-        "draw-proposal-vote", args=[active_game.id, proposal.id]
-    )
+    vote_url = reverse("draw-proposal-vote", args=[active_game.id, proposal.id])
     vote_response = authenticated_client_for_secondary_user.patch(
         vote_url, {"accepted": True}, format="json"
     )
@@ -1443,7 +1617,9 @@ def test_dias_draw_proposal_rejected_leaves_game_active(
     """One active player rejects the proposal → status flips to rejected,
     game stays active, no victory is created."""
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
 
     create_url = reverse("draw-proposal-create", args=[active_game.id])
@@ -1451,9 +1627,7 @@ def test_dias_draw_proposal_rejected_leaves_game_active(
     assert propose_response.status_code == status.HTTP_201_CREATED
 
     proposal = active_game.draw_proposals.first()
-    vote_url = reverse(
-        "draw-proposal-vote", args=[active_game.id, proposal.id]
-    )
+    vote_url = reverse("draw-proposal-vote", args=[active_game.id, proposal.id])
     vote_response = authenticated_client_for_secondary_user.patch(
         vote_url, {"accepted": False}, format="json"
     )
@@ -1485,7 +1659,9 @@ def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
     - Italy gets a draw victory; Germany does NOT.
     """
     active_game = create_active_game(
-        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        italy_vs_germany_variant,
     )
     germany_member = active_game.members.filter(nation__name="Germany").first()
     italy_member = active_game.members.filter(nation__name="Italy").first()

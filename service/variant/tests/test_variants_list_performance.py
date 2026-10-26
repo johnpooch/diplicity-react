@@ -16,7 +16,9 @@ from variant.utils import variant_to_canonical_dict
 
 # The session-wide test cache is a no-op DummyCache; opt individual tests into a
 # real backend so the published-list render cache can actually be exercised.
-_LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+_LOCMEM_CACHE = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+}
 
 
 @pytest.fixture
@@ -31,7 +33,9 @@ def classical_dsvg(classical_variant):
 
 def _dvar_upload(dvar, dsvg):
     return {
-        "dvar": SimpleUploadedFile("upload.dvar.json", json.dumps(dvar).encode(), "application/json"),
+        "dvar": SimpleUploadedFile(
+            "upload.dvar.json", json.dumps(dvar).encode(), "application/json"
+        ),
         "dsvg": SimpleUploadedFile("upload.svg", dsvg.encode(), "image/svg+xml"),
     }
 
@@ -51,7 +55,9 @@ def test_list_variants_baseline_query_count(authenticated_client):
     If this number grows, something added an un-prefetched relation access."""
     query_count, response = _list_query_count(authenticated_client)
     assert len(response.data) >= 2
-    assert query_count <= 21, f"GET /variants/ issued {query_count} queries for {len(response.data)} variants"
+    assert (
+        query_count <= 21
+    ), f"GET /variants/ issued {query_count} queries for {len(response.data)} variants"
 
 
 @pytest.mark.django_db
@@ -73,7 +79,9 @@ def test_list_variants_no_n_plus_one_when_variant_count_grows(
         format="multipart",
     )
     assert upload_response.status_code == status.HTTP_201_CREATED, upload_response.data
-    Variant.objects.filter(id=upload_response.data["id"]).update(status=VariantStatus.PUBLISHED)
+    Variant.objects.filter(id=upload_response.data["id"]).update(
+        status=VariantStatus.PUBLISHED
+    )
 
     grown_count, grown_response = _list_query_count(authenticated_client)
     assert len(grown_response.data) == baseline_variant_count + 1
@@ -104,7 +112,9 @@ def test_list_variants_returns_304_on_matching_if_none_match(authenticated_clien
 
 @pytest.mark.django_db
 def test_list_variants_is_gzipped_when_client_accepts(authenticated_client):
-    response = authenticated_client.get(reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip")
+    response = authenticated_client.get(
+        reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip"
+    )
 
     assert response["Content-Encoding"] == "gzip"
     assert "Accept-Encoding" in response["Vary"]
@@ -113,7 +123,9 @@ def test_list_variants_is_gzipped_when_client_accepts(authenticated_client):
 
 @pytest.mark.django_db
 def test_list_variants_returns_304_on_replayed_gzip_etag(authenticated_client):
-    first = authenticated_client.get(reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip")
+    first = authenticated_client.get(
+        reverse("variant-list"), HTTP_ACCEPT_ENCODING="gzip"
+    )
     etag = first["ETag"]
     assert etag.startswith('W/"')
 
@@ -179,7 +191,11 @@ def test_render_cache_shared_across_users(user_factory, authenticated_client_fac
         second = second_client.get(reverse("variant-list"))
 
     def nation_colors(response):
-        return {nation["color"] for variant in response.data for nation in variant["nations"]}
+        return {
+            nation["color"]
+            for variant in response.data
+            for nation in variant["nations"]
+        }
 
     assert nation_colors(first) == nation_colors(second)
 
@@ -190,8 +206,11 @@ def test_draft_variant_never_appears_in_published_list(
 ):
     owner = user_factory()
     draft = Variant.objects.create(
-        id="cache-draft", name="Cache Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="cache-draft",
+        name="Cache Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
     owner_client = authenticated_client_factory(owner)
 
@@ -209,12 +228,18 @@ def test_mine_list_returns_only_own_drafts(user_factory, authenticated_client_fa
     owner = user_factory()
     other = user_factory()
     own_draft = Variant.objects.create(
-        id="own-draft", name="Own Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="own-draft",
+        name="Own Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
     Variant.objects.create(
-        id="other-draft", name="Other Draft", description="",
-        status=VariantStatus.DRAFT, owner=other,
+        id="other-draft",
+        name="Other Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=other,
     )
 
     response = authenticated_client_factory(owner).get(reverse("variant-mine-list"))
@@ -230,7 +255,9 @@ def test_mine_list_requires_authentication(unauthenticated_client):
 
 
 @pytest.mark.django_db
-def test_variant_detail_returns_etag_and_cache_control(authenticated_client, classical_variant):
+def test_variant_detail_returns_etag_and_cache_control(
+    authenticated_client, classical_variant
+):
     response = authenticated_client.get(
         reverse("variant-detail", kwargs={"pk": classical_variant.id})
     )
@@ -253,11 +280,16 @@ def test_variant_detail_returns_304_on_matching_if_none_match(
 
 
 @pytest.mark.django_db
-def test_variant_detail_resolves_a_draft_by_id(user_factory, authenticated_client_factory):
+def test_variant_detail_resolves_a_draft_by_id(
+    user_factory, authenticated_client_factory
+):
     owner = user_factory()
     draft = Variant.objects.create(
-        id="detail-draft", name="Detail Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="detail-draft",
+        name="Detail Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
 
     response = authenticated_client_factory(owner).get(

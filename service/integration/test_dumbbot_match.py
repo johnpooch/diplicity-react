@@ -4,7 +4,13 @@ from django.urls import reverse
 from rest_framework import status
 
 from agent import tasks
-from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration, PhaseType, UserKind
+from common.constants import (
+    DeadlineMode,
+    GameStatus,
+    MovementPhaseDuration,
+    PhaseType,
+    UserKind,
+)
 from game.models import Game
 from integration.scoring import sum_of_squares
 from integration.utils import run_due_resolution_jobs
@@ -49,7 +55,9 @@ def _create_match_game(client, variant_id, name, llm_seats, dumbbot_seats):
 
     for profile in profiles:
         add_response = client.post(
-            reverse("game-member-create", args=[game.id]), {"user_id": profile.user_id}, format="json"
+            reverse("game-member-create", args=[game.id]),
+            {"user_id": profile.user_id},
+            format="json",
         )
         assert add_response.status_code == status.HTTP_201_CREATED
 
@@ -59,7 +67,11 @@ def _create_match_game(client, variant_id, name, llm_seats, dumbbot_seats):
 
 
 def _at_target(phase):
-    return phase.season == TARGET_SEASON and phase.year == TARGET_YEAR and phase.type == PhaseType.MOVEMENT
+    return (
+        phase.season == TARGET_SEASON
+        and phase.year == TARGET_YEAR
+        and phase.type == PhaseType.MOVEMENT
+    )
 
 
 def _drive_to_target(client, game):
@@ -71,7 +83,9 @@ def _drive_to_target(client, game):
         if _at_target(phase):
             return "reached target"
 
-        phase_states = phase.phase_states.filter(has_possible_orders=True).select_related("member")
+        phase_states = phase.phase_states.filter(
+            has_possible_orders=True
+        ).select_related("member")
         for phase_state in phase_states.order_by("member_id"):
             tasks.finalize(user_id=phase_state.member.user_id, game_id=game.id)
 
@@ -79,16 +93,18 @@ def _drive_to_target(client, game):
 
         game.refresh_from_db()
         if game.status == GameStatus.ACTIVE:
-            assert game.current_phase.id != phase.id, (
-                f"phase did not advance: {phase.season} {phase.year} {phase.type}"
-            )
+            assert (
+                game.current_phase.id != phase.id
+            ), f"phase did not advance: {phase.season} {phase.year} {phase.type}"
 
         score = sum_of_squares(game.current_phase)
         print(
             f"{game.name}: {game.current_phase.season} {game.current_phase.year} "
             f"{game.current_phase.type} centers={score.centers}"
         )
-    pytest.fail(f"{game.name}: hit the {MAX_PHASES}-phase cap without reaching the target")
+    pytest.fail(
+        f"{game.name}: hit the {MAX_PHASES}-phase cap without reaching the target"
+    )
 
 
 def _report(game, outcome):
@@ -113,7 +129,11 @@ def _assert_invariants(game, score):
 @pytest.mark.django_db
 def test_llm_majority_versus_one_dumbbot(game_master_client, classical_variant):
     game = _create_match_game(
-        game_master_client, classical_variant.id, "Match A: 6 LLM + 1 dumbbot", llm_seats=6, dumbbot_seats=1
+        game_master_client,
+        classical_variant.id,
+        "Match A: 6 LLM + 1 dumbbot",
+        llm_seats=6,
+        dumbbot_seats=1,
     )
     outcome = _drive_to_target(game_master_client, game)
     score = _report(game, outcome)
@@ -123,7 +143,11 @@ def test_llm_majority_versus_one_dumbbot(game_master_client, classical_variant):
 @pytest.mark.django_db
 def test_dumbbot_majority_versus_one_llm(game_master_client, classical_variant):
     game = _create_match_game(
-        game_master_client, classical_variant.id, "Match B: 1 LLM + 6 dumbbots", llm_seats=1, dumbbot_seats=6
+        game_master_client,
+        classical_variant.id,
+        "Match B: 1 LLM + 6 dumbbots",
+        llm_seats=1,
+        dumbbot_seats=6,
     )
     outcome = _drive_to_target(game_master_client, game)
     score = _report(game, outcome)

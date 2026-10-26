@@ -6,13 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0004_game_sandbox_alter_game_movement_phase_duration'),
+        ("game", "0004_game_sandbox_alter_game_movement_phase_duration"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='game',
-            name='status',
-            field=models.CharField(choices=[('pending', 'Pending'), ('active', 'Active'), ('completed', 'Completed'), ('abandoned', 'Abandoned')], default='pending', max_length=20),
+            model_name="game",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("pending", "Pending"),
+                    ("active", "Active"),
+                    ("completed", "Completed"),
+                    ("abandoned", "Abandoned"),
+                ],
+                default="pending",
+                max_length=20,
+            ),
         ),
     ]

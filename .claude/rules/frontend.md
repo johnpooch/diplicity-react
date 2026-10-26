@@ -5,7 +5,7 @@ paths:
 
 # Frontend conventions (`packages/web/`)
 
-React 19 + TypeScript, Vite, React Router, TanStack Query, shadcn/ui + Tailwind, Vitest + Testing Library.
+React 19 + TypeScript, Vite, React Router, TanStack Query, shadcn/ui + Tailwind, Vitest.
 
 `src/api/generated/` is produced by orval. Never edit it — run `docker compose up codegen`.
 
@@ -58,7 +58,7 @@ This is the **only** sanctioned `eslint-disable` in the codebase.
 
 Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` or `PrecomputedConditionalGetMixin` — see `.claude/rules/backend/views.md`. The precomputed variant also skips building the response, and it is allowed only when tests cover every response input. The browser/WebView revalidates with `If-None-Match` and receives an empty 304 when nothing changed; client code needs nothing extra. Do not add cache-busting query params or `Cache-Control` request headers to a polled request — both defeat revalidation.
 
-Otherwise, minimise `useEffect` — prefer derived state and event handlers. See `docs/frontend/react-use-effect-minimizer.md`.
+Otherwise, minimise `useEffect` — prefer derived state and event handlers.
 
 ## Components
 
@@ -203,16 +203,6 @@ Do not add a success toast unless one is explicitly asked for — by the user, t
 
 Use `parseOnlyInDev` for API parsing so a schema mismatch does not crash production. Define Zod schemas first and infer TypeScript types with `z.infer`. Never use `any`.
 
-## Screenshot stability
-
-The `Screenshot Diff` workflow renders every screen twice per PR and reports the pixels that moved, so anything that varies between two runs of the same commit surfaces as a false difference and trains reviewers to ignore the comment. Writing a screen that captures cleanly:
-
-- **Suspense fallbacks must render `Skeleton`.** The capture treats `[data-slot="skeleton"]` as "still loading". A fallback that renders an empty pulsing div reads as loaded and gets captured blank.
-- **Never derive fixture or component state from `Date.now()` in a way a fixed clock cannot pin.** Capture freezes the clock; a value computed from real elapsed time changes between runs.
-- **Content must not depend on scroll or intersection to appear.** Capture forces `IntersectionObserver` to report intersecting, so lazy content loads eagerly; anything gated on a real scroll event will not.
-
-Toasts are hidden during capture because they dismiss on a timer, so a change to toast styling will not appear in the diff.
-
 ## Before submitting
 
 - `npm run lint` in `packages/web` (changed files only where possible)
@@ -220,13 +210,3 @@ Toasts are hidden during capture because they dismiss on a timer, so a change to
 - `npm run test`
 
 Fix violations properly; never disable a rule.
-
-## Detailed guidance
-
-Read on demand — these are not loaded automatically:
-
-- `docs/frontend/react-components.md` — component patterns, React 19 features, Radix UI migration, compound components
-- `docs/frontend/react-data-loading.md` — TanStack Query patterns, query keys, caching, prefetching
-- `docs/frontend/react-hook-form.md` — form state, validation patterns, migration from Formik
-- `docs/frontend/react-tests.md` — testing patterns, MSW setup, Testing Library practices
-- `docs/frontend/react-use-effect-minimizer.md` — when to use and avoid `useEffect`

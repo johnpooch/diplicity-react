@@ -47,7 +47,10 @@ class AgentTaskSpec:
 class PhaseStartedSpec(AgentTaskSpec):
     def get_tasks(self):
         phase = self.context.phase
-        plan = [{"kind": AgentTaskKind.PLAN, "member": member, "phase": phase} for member in phase.game.bot_members]
+        plan = [
+            {"kind": AgentTaskKind.PLAN, "member": member, "phase": phase}
+            for member in phase.game.bot_members
+        ]
         if not plan:
             return []
         if phase.has_unconfirmed_human:
@@ -75,7 +78,9 @@ class ChannelMessageSpec(AgentTaskSpec):
         actor = self.context.actor
         if actor is None or actor.profile.is_bot:
             return []
-        bot_members = self.context.channel.members.filter(user__profile__kind=UserKind.LLM).select_related("user")
+        bot_members = self.context.channel.members.filter(
+            user__profile__kind=UserKind.LLM
+        ).select_related("user")
         return [
             {
                 "kind": AgentTaskKind.REPLY,
