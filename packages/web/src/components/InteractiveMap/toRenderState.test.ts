@@ -317,6 +317,31 @@ describe("toRenderState", () => {
       });
     });
 
+    test("Support hold of a unit on a named coast uses the coast for aux and target", () => {
+      const state = toRenderState(
+        variant,
+        emptyPhase,
+        [
+          {
+            ...baseOrder,
+            orderType: "Support",
+            source: province("por"),
+            target: province("spa"),
+            targetCoast: province("spa/sc", "spa"),
+            aux: province("spa"),
+          },
+        ],
+        [],
+        []
+      );
+      expect(state.orders?.[0]).toMatchObject({
+        type: "Support",
+        source: "por",
+        target: "spa/sc",
+        aux: "spa/sc",
+      });
+    });
+
     test("Convoy uses sourceCoast for source and the parent target", () => {
       const state = toRenderState(
         variant,

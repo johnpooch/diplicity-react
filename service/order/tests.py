@@ -554,6 +554,68 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will support Vienna to Trieste"
 
+    def test_order_create_support_hold_title(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "Support", "vie", "vie"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.COMPLETED
+        assert response.data["title"] == "Budapest will support Vienna to hold"
+        assert response.data["summary"] == "Support Vienna to hold"
+
+    def test_order_create_support_hold_title_for_unit_on_named_coast(
+        self,
+        authenticated_client,
+        game_with_options,
+        primary_user,
+        classical_england_nation,
+        classical_spain_sc_province,
+    ):
+        game = game_with_options
+        phase = game.current_phase
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_spain_sc_province,
+        )
+        phase.options = {
+            "England": {
+                "por": {
+                    "Next": {
+                        "Support": {
+                            "Next": {
+                                "por": {
+                                    "Next": {
+                                        "spa": {
+                                            "Next": {
+                                                "spa": {"Next": {}, "Type": "Province"}
+                                            },
+                                            "Type": "Province",
+                                        },
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["por", "Support", "spa", "spa"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.COMPLETED
+        assert response.data["title"] == "Portugal will support Spain (SC) to hold"
+        assert response.data["summary"] == "Support Spain (SC) to hold"
+
     def test_order_create_hold_with_source(
         self, authenticated_client, game_with_options, primary_user
     ):

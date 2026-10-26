@@ -104,7 +104,7 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = [MultiPartParser]
 
     def get_queryset(self):
-        return Variant.objects.visible_to(self.request.user).with_related_data()
+        return Variant.objects.with_related_data()
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -134,7 +134,7 @@ class VariantDvarDownloadView(generics.GenericAPIView):
     lookup_url_kwarg = "variant_id"
 
     def get_queryset(self):
-        return Variant.objects.visible_to(self.request.user).with_related_data()
+        return Variant.objects.with_related_data()
 
     def get(self, request, *args, **kwargs):
         variant = self.get_object()

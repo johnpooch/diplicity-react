@@ -87,13 +87,15 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
     [props.variant, props.phase]
   );
 
-  const baseSvg = useMemo(
+  const baseSplit = useMemo(
     () =>
       renderer && parsed
-        ? renderSplitSvg(renderer, baseState, parsed.viewBox).base
+        ? renderSplitSvg(renderer, baseState, parsed.viewBox)
         : null,
     [renderer, parsed, baseState]
   );
+  const baseSvg = baseSplit?.base ?? null;
+  const labelsSvg = baseSplit?.labels ?? null;
 
   // The overlay (units + order arrows) is a light vector layer repainted on
   // every interaction, so it carries the live orders.
@@ -230,6 +232,12 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       cancelled = true;
     };
   }, [baseSvg, parsed]);
+
+  useEffect(() => {
+    if (controllerRef.current && labelsSvg !== null) {
+      controllerRef.current.setLabels(labelsSvg);
+    }
+  }, [labelsSvg]);
 
   useEffect(() => {
     if (controllerRef.current && overlaySvg !== null) {

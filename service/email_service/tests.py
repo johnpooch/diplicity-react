@@ -4,6 +4,7 @@ from django.test import override_settings
 
 
 class TestSendEmail:
+    @override_settings(RESEND_API_KEY="test-api-key-123")
     @patch("email_service.utils.resend")
     def test_sends_email_with_correct_params(self, mock_resend):
         from email_service.utils import send_email
@@ -32,6 +33,7 @@ class TestSendEmail:
 
         assert mock_resend.api_key == "test-api-key-123"
 
+    @override_settings(RESEND_API_KEY="test-api-key-123")
     @patch("email_service.utils.resend")
     def test_handles_resend_api_error(self, mock_resend):
         from email_service.utils import send_email
@@ -39,3 +41,12 @@ class TestSendEmail:
         mock_resend.Emails.send.side_effect = Exception("Resend API error")
 
         send_email(to="a@b.com", subject="Test", html="<p>Hi</p>")
+
+    @override_settings(RESEND_API_KEY="")
+    @patch("email_service.utils.resend")
+    def test_skips_sending_without_an_api_key(self, mock_resend):
+        from email_service.utils import send_email
+
+        send_email(to="a@b.com", subject="Test", html="<p>Hi</p>")
+
+        mock_resend.Emails.send.assert_not_called()
