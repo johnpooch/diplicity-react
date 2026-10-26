@@ -46,11 +46,11 @@ There are three reasons for drawing the line here:
 2. A check can be reported to clients through `Actions` as a `blocked_reason`, so a client does not re-implement game rules to decide whether to show a button. A permission class cannot.
 3. "About the user alone, or about a row" leaves fewer judgement calls than "about the request".
 
-Rules shared across many commands, such as being an active player in an active game, become a shared policy that each command's policy includes, the same way `CanRenewPolicy` includes `RenewablePolicy`. Their checks read the game through the instance (`instance.game`), so one check works for any target that has a `game` foreign key. A command that relies on game or phase state locks that row with `locks=`, or targets it.
+Rules shared across many commands, such as being an active player in an active game, become a shared policy that each command's policy includes, the same way `CanRenewPolicy` includes `RenewablePolicy`. Their checks read the game through `game_of(instance)`, which is the instance itself when the target is a game and `instance.game` otherwise, so one check works for the game or any target that has a `game` foreign key. A command that relies on game or phase state locks that row with `locks=`, or targets it.
 
 Finding the game from the URL stays a view concern. A game that does not exist is a 404, not a refusal.
 
-Whether a row exists for this actor at all is `visible_to` on the QuerySet. A row the actor cannot see answers 404, not a refusal.
+`visible_to` on the QuerySet says which rows an actor may know exist. Reads always apply it, through the loader. A write applies it only where the row's existence must stay hidden from the actor: there the view's `get_queryset` scopes the lookup with `scoped`, and a row the actor cannot see answers 404. Everywhere else a write looks its target up without scoping, and an actor who may not act on the row gets the policy's 403. In particular, do not scope a write lookup when the policy already checks what `visible_to` filters on.
 
 Validating the shape of input (types, choices, lengths, that a referenced row exists) belongs to the input serializer. Whether the input is allowed given the current state is a check.
 
@@ -60,13 +60,17 @@ What happens as a consequence of a write (notifications, follow-on commands, res
 
 The shared classes live in `service/common/`, next to the existing `BaseModel`, permissions and mixins. `service/common/views.py` and `service/common/serializers.py` already exist, and the new classes are added to them. The other modules are new.
 
-Only add a shared class when an app needs it. The first conversion, `draw_proposal`, needs actors, checks, policies, commands, loaders and the refusal mixin. It does not need timers, hydrators, `Actions`, `QuerySetFilter` or the loader and action views, so those wait for the app that does.
+Only add a shared class when an app needs it. The first conversion, `draw_proposal`, needs actors, checks, policies, commands, loaders, the refusal mixin, `LoaderMixin`, `LoaderListView`, `ActionSchema`, `ActionView` and `CreateActionView`. It does not need timers, hydrators, `Actions`, `QuerySetFilter` or `LoaderDetailView`, so those wait for the app that does.
 
-The code below is the shared code in full. It differs from the throwaway example app in three ways, each of which came out of the `draw_proposal` analysis:
+The code below is the shared code in full. It differs from the throwaway example app in these ways, each of which came out of the `draw_proposal` work:
 
 1. `lock_rows` now locks the related rows before the target. This keeps a consistent parent-before-child lock order.
 2. `lock_rows` accepts a target instance of a model other than the manager's own.
-3. The conversion of `Refused` into an HTTP error has moved into a `RefusalMixin`, so that DRF generic views can use it too.
+3. `lock_rows` accepts a property path, such as `current_phase`, which it locks without re-attaching.
+4. The conversion of `Refused` into an HTTP error has moved into a `RefusalMixin`.
+5. `ActionView` serves `POST`, `PUT`, `PATCH` and `DELETE`, limited per view by `http_method_names`, and does not scope its lookup with `visible_to`.
+6. `CreateActionView` extends `CreateAPIView`, so the schema publishes its 201.
+7. `LoaderListView` has no filter backend of its own. A list view with a FilterSet declares `filter_backends` beside `filterset_class`.
 
 ### Actors
 
@@ -197,7 +201,9 @@ def lock_rows(model, value, paths):
     target = select_for_update(target)
     for path, row in related.items():
         *parents, attribute = path.split(".")
-        setattr(reduce(getattr, parents, target), attribute, row)
+        parent = reduce(getattr, parents, target)
+        if not isinstance(getattr(type(parent), attribute, None), property):
+            setattr(parent, attribute, row)
     return target
 
 
@@ -241,7 +247,7 @@ Inside one transaction the decorator does four things in order:
 
 Checking after locking means two concurrent requests cannot both pass a policy that only one of them should pass.
 
-`locks` names foreign key paths from the target, such as `"book"` or `"book.author"`. Those rows are locked before the target and re-attached to it, so the policy and the body read locked state. List a parent path before its child. Paths must be foreign keys, because re-attaching assigns the attribute; a property such as `game.current_phase` cannot be locked this way. When a command's natural target is that row, make it the target instead.
+`locks` names paths from the target, such as `"book"`, `"book.author"` or `"current_phase"`. Those rows are locked before the target. A foreign key path is re-attached to the locked target, so the policy and the body read the locked row. A property path, such as `Game.current_phase`, cannot be assigned, so its row is locked but not re-attached. Reading the property again queries the row, and because the row is locked, that read sees its committed state and nothing else can change it until the transaction ends. A path is resolved before the target is locked, so if a property names a different row by the time the lock is taken (a phase resolves and the next one starts), the command holds the old row's lock and reads the new row. List a parent path before its child.
 
 The target is normally an instance of the manager's model. A command may take an instance of another model as its target when the operation creates a row belonging to it, for example a command on the draw proposal manager that proposes a draw in a phase. Passing that target as a primary key does not work, because a bare key is looked up on the manager's model.
 
@@ -416,13 +422,11 @@ class OutputSerializer(serializers.ModelSerializer):
 
 ```python
 from django.http import Http404
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.openapi import AutoSchema
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from .actors import scoped
 from .policies import Refused
 
 
@@ -439,8 +443,6 @@ class LoaderMixin:
 
 
 class LoaderListView(LoaderMixin, generics.ListAPIView):
-    filter_backends = [DjangoFilterBackend]
-
     def get_queryset(self):
         return self.get_loader().get_queryset(self.request.user)
 
@@ -484,14 +486,20 @@ class ActionMixin(RefusalMixin, LoaderMixin):
 
 
 class ActionView(ActionMixin, generics.GenericAPIView):
-    def get_queryset(self):
-        return scoped(super().get_queryset(), self.request.user)
+    http_method_names = ["post", "options"]
 
     def post(self, request, *args, **kwargs):
         return self.act(self.get_object())
 
+    put = post
+    patch = post
 
-class CreateActionView(ActionMixin, generics.GenericAPIView):
+    def delete(self, request, *args, **kwargs):
+        self.perform(self.get_object(), **self.get_input())
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CreateActionView(ActionMixin, generics.CreateAPIView):
     success_status = status.HTTP_201_CREATED
 
     def post(self, request, *args, **kwargs):
@@ -500,7 +508,7 @@ class CreateActionView(ActionMixin, generics.GenericAPIView):
 
 `RefusalMixin` turns a `Refused` raised anywhere in the request into a 403 with the reason as its `code`. Every refusal answers 403, whether the rule is about the actor's relationship to a row or the row's state, because both are now checks. A 400 means only that the input serializer rejected the request body.
 
-`ActionView` looks up the target through the view's queryset scoped with `visible_to`, so a row the actor cannot see is a 404 before any command runs. It validates the body with `input_serializer_class`, passes the validated values to `perform` as keyword arguments, and responds with the result loaded through the output serializer's loader. `ActionSchema` makes the OpenAPI request body the input serializer and the response the output serializer. `CreateActionView` is the same without a target, and responds 201.
+`ActionView` looks up the target with DRF's generic lookup through the view's queryset. It does not apply `visible_to`; a view whose rows must stay hidden scopes its own `get_queryset`, as described in the placement rules. It validates the body with `input_serializer_class`, passes the validated values to `perform` as keyword arguments, and responds with the result loaded through the output serializer's loader. It serves `POST` by default. A view that serves other methods declares them with `http_method_names`: `PUT` and `PATCH` respond like `POST`, and `DELETE` responds 204 with no body. `ActionSchema` makes the OpenAPI request body the input serializer and the response the output serializer. `CreateActionView` is the same without a target, and responds 201.
 
 ## The parts of an app
 
@@ -661,7 +669,7 @@ class Hold(BaseModel):
 
 A QuerySet method returns a QuerySet and is named for the rows it describes, such as `open()` or `on_shelf()`, not for the screen that uses it. QuerySets never write.
 
-Every QuerySet defines `visible_to(actor)`, which returns the rows the actor may know exist. When every row is visible to anyone who can reach the endpoint, it returns `self`. It is defined anyway, so that loaders and action views can always call it.
+Every QuerySet defines `visible_to(actor)`, which returns the rows the actor may know exist. When every row is visible to anyone who can reach the endpoint, it returns `self`. It is defined anyway, so that loaders, and views whose rows must stay hidden, can always call it.
 
 Managers are built with `Manager.from_queryset`, so QuerySet methods are available on `Model.objects` without hand-written pass-through methods.
 
@@ -718,11 +726,13 @@ A manager contains only commands. A command is one operation that a user or the 
 
 A creation command starts with `actor`.
 
-A command body is an ordered sequence of model write methods, `sync_timers` calls, `emit` calls and calls to other commands. Read it top to bottom to know everything the operation does. A body may branch when the operation has more than one outcome. It decides the branch with a policy, as `process_due` does with `RenewablePolicy`, so the rule is still a named check. When the new row has no parent model in the same app to create it, a creation command may call its own manager's `create`.
+A command body is an ordered sequence of model write methods, `sync_timers` calls, `emit` calls and calls to other commands. Read it top to bottom to know everything the operation does. A body may branch when the operation has more than one outcome. It decides the branch with a policy, as `process_due` does with `RenewablePolicy`, or with a property of the locked row, so the rule is still named. When the new row has no parent model in the same app to create it, a creation command may call its own manager's `create`.
 
 A command returns the row the response should show, which is not always the target: `borrow` takes a book and returns the new loan.
 
 Use `requires` for operations a person asks for, where a failure is something the caller needs to hear about. Use `only_if` for operations the system triggers, such as tasks and follow-on commands, where the state may have moved on since the job was scheduled and doing nothing is the correct outcome. A command can have both.
+
+A follow-on command guards itself with `only_if`, and its callers call it without a condition. `check_in` calls `offer_next_hold` whether or not a hold is waiting, and `ReadyToOfferPolicy` decides. Repeating the condition at the call site would put the rule in two places.
 
 A command that needs another app's model imports the app's own `models` module (`from . import models`) and refers to `models.Book.objects`, because the models module imports the managers.
 
@@ -845,6 +855,10 @@ Checks used only by `only_if` have no reason, because nobody sees their failure.
 
 A check reads properties of the instance and the actor. Avoid queries inside a check: checks used by `Actions` run for every row of a list response, and properties reading prefetched relations keep that cheap. Checks used only by commands may query when they need to, because they run once, under the lock.
 
+Every check keeps the signature `check(self, instance, actor)`, even when it does not read the actor, because that is the interface `Check.decide` calls.
+
+A check lives in the app that owns the data it queries beyond its target. `HasNoPendingProposalCheck` takes a game but queries draw proposals, so it lives in `draw_proposal`: the phase and game apps must not know about draw proposals. A check that reads only phase state lives in `phase/checks.py`. A check that starts from the game, such as `IsCurrentPhaseActiveCheck`, lives in `game/checks.py`, and so do the shared policies built from those checks.
+
 Constants a check depends on, such as `MAX_RENEWALS`, sit at the top of `checks.py`.
 
 ```python
@@ -954,7 +968,7 @@ class IsOfferedCheck(Check):
 
 ### Policies
 
-A policy is an ordered list of checks, and may include other policies. A policy used as `requires` is named for the permission it grants (`CanBorrowPolicy`). A policy describing a state that several commands or branches reuse is named for that state (`RenewablePolicy`, `ReadyToOfferPolicy`). A policy is never a mixin on a model, and it has no logic of its own beyond its list.
+A policy is an ordered list of checks, and may list another policy directly among them, as `CanRenewPolicy` lists `RenewablePolicy`. List the policy itself, not its `.checks`. A policy used as `requires` is named for the permission it grants (`CanBorrowPolicy`). A policy describing a state that several commands or branches reuse is named for that state (`RenewablePolicy`, `ReadyToOfferPolicy`). A policy is never a mixin on a model, and it has no logic of its own beyond its list.
 
 ```python
 from .checks import (
@@ -1273,13 +1287,14 @@ class HoldOutputSerializer(OutputSerializer):
 
 A view is declarations plus, for a write, a `perform` method that calls one command. `perform` receives the target (for `ActionView`) and the validated input values. It passes `self.request.user` as the actor and returns the command's result.
 
-Read endpoints are `LoaderListView` or `LoaderDetailView`. Write endpoints are `ActionView`, or `CreateActionView` for creation. `permission_classes` hold only rules about the user alone, as described in the placement rules above, and every other rule is in the command's policy.
+Read endpoints are `LoaderListView` or `LoaderDetailView`. Write endpoints are `ActionView`, or `CreateActionView` for creation. A list view with a FilterSet declares `filter_backends = [DjangoFilterBackend]` beside its `filterset_class`. `permission_classes` hold only rules about the user alone, as described in the placement rules above, and every other rule is in the command's policy.
 
 A view does not catch exceptions, build responses, open transactions or emit events.
 
 The example views have no docstrings. In this codebase, DRF view docstrings become operation descriptions in the OpenAPI schema, so removing them from existing views changes the schema. Converted apps keep the docstrings their views already have.
 
 ```python
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from .common.views import ActionView, CreateActionView, LoaderDetailView, LoaderListView
@@ -1298,6 +1313,7 @@ from .serializers import (
 class BookListView(LoaderListView):
     permission_classes = [AllowAny]
     serializer_class = BookOutputSerializer
+    filter_backends = [DjangoFilterBackend]
     filterset_class = BookFilterSet
 
 
@@ -1336,6 +1352,7 @@ class AuthorDetailView(LoaderDetailView):
 class LoanListView(LoaderListView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanOutputSerializer
+    filter_backends = [DjangoFilterBackend]
     filterset_class = LoanFilterSet
 
 
@@ -1395,7 +1412,7 @@ A conversion changes the code's structure, not what the API does. Shipped mobile
 
 1. The app's existing endpoint tests pass. Three kinds of change to them are allowed: updating calls to internal methods to the new command names, changing the expected status of a refusal to 403, and moving test setup that the new policies would refuse onto factories.
 2. Regenerating the OpenAPI schemas (`docker compose up codegen`, configured as described in `.claude/rules/backend/codegen.md`) produces no diff, and `npx tsc -b --noEmit` passes in `packages/web`.
-3. Where `ActionView` or `CreateActionView` would change the schema, the view stays a DRF generic view. That happens when an existing endpoint uses `PATCH` or `DELETE`, for example, or publishes a request body. The generic view's `perform_create`, `perform_update` or `perform_destroy` calls one command, and the view uses `RefusalMixin`.
+3. Converted write endpoints are action views, and they keep the existing schema. The view declares the existing endpoint's methods with `http_method_names`. Where the published schema differs from what `ActionSchema` describes, such as a request body on a create endpoint that takes no input, or a response component the endpoint does not really return, the view keeps the published schema with `@extend_schema`.
 4. Existing serializer component names are kept with `extend_schema_serializer(component_name=...)`.
 5. Every caller of the app's old internal methods in other apps is updated in the same change.
 6. Only the shared classes the app uses are added.
@@ -1421,7 +1438,7 @@ Today the rules are split across three places:
 2. Serializer validation and view code answer 400 for the state rules. These are: the member already has an active proposal this phase, another proposal is pending this phase, the phase stopped being active after locking, the proposal is not pending, the member has no vote, and the member already voted.
 3. Cancelling a proposal the member did not create, or one already cancelled, answers 404, because the cancel view's lookup filters on the creator.
 
-After conversion, the rules in the first two groups are all checks, and every refusal answers 403 with a reason code. The tests that assert 400 for a refusal change to 403. The 404 for someone else's proposal stays, because the lookup still filters on the creator. A 400 remains only for an invalid body, such as a vote without `accepted`.
+After conversion, the rules in the first two groups are all checks, and every refusal answers 403 with a reason code. The tests that assert 400 for a refusal change to 403. The cancel lookup no longer filters on the creator or on cancellation, so cancelling someone else's proposal answers 403 `not_proposer`, and cancelling one already cancelled answers 403 `not_pending`. Write lookups only find proposals in the URL's game. A 400 remains only for an invalid body, such as a vote without `accepted`.
 
 The frontend shows a generic toast on any error and does not read the error body. Refusal bodies can therefore change from DRF's message lists to `{"code": reason}`, and statuses can change from 400 to 403.
 
@@ -1441,7 +1458,7 @@ One notification test creates two proposals in the same phase through `create_pr
 
 The actor is the user, as everywhere else. The acting member is the game's member whose user is the actor, found the same way `CurrentGameMemberMixin` finds it.
 
-The game-level rules that are permission classes today become checks shared by every draw proposal command. These are an active game, not a sandbox, an active current phase, and the actor being an active player. Each check reads the game through `instance.game`, so the same checks work whether the target is a phase or a proposal. They are grouped into one shared policy that each command's policy lists first. Their eventual home is the game app, as `game/checks.py` and `game/policies.py`, new modules alongside the unconverted game code.
+The game-level rules that are permission classes today become checks shared by every draw proposal command. These are an active game, not a sandbox, an active current phase, and the actor being an active player. Each check reads the game through `game_of(instance)`, so the same checks work whether the target is the game or a proposal. They are grouped into one shared policy that each command's policy lists first. They live in the game app, as `game/checks.py` and `game/policies.py`, new modules alongside the unconverted game code.
 
 `IsActiveGamePlayer` currently has one message per way of failing. As checks, it splits into one check per reason, for example one for not being a player in the game and one for having no seat that is still active. The implementer picks the split and the reason codes.
 
@@ -1449,11 +1466,11 @@ Reads have no policy. The list endpoint's rule that the game is active or finish
 
 Proposed commands on the draw proposal manager:
 
-1. `propose(phase, actor)` targets the phase being proposed in, so the phase row is locked, replacing the current `lock_if_active` call. After the shared game policy, its policy checks that the phase is active, that the actor has no active proposal in it, and that no other proposal in it is pending. The body creates the proposal, creates its votes with a model write method, emits `draw_proposal`, and calls `conclude` in case every vote is already accepted.
-2. `vote(proposal, actor, accepted)` locks `phase` and then the proposal. After the shared game policy, its policy checks that the proposal is pending, that the actor has a vote, and that the vote has not been cast. The body records the vote, then either calls `conclude` or emits `draw_proposal_rejected`.
-3. `cancel(proposal, actor)` requires the shared game policy without the active phase check, which the cancel endpoint does not apply today, and requires the proposal to be pending. It sets `cancelled_at` through a model write method. The view's lookup keeps answering 404 for someone else's proposal.
-4. `conclude(proposal)` replaces `process_acceptance`. It locks `phase` and has an `only_if` policy that the proposal is accepted and its phase is active, so it returns `None` in the cases where `process_acceptance` returned `None` today. The body records the victory and the members who drew, finishes the game and emits the game-ended event. Recording the victory writes `Victory` and `Member` rows from another app. This is an accepted exception to the direct-children rule for model write methods, until those apps are converted.
-5. `withdraw(phase, member)` replaces `apply_withdrawal`. It is a system command whose member is an input rather than the actor. It cancels the member's own pending proposals, releases the member's vote on the others, and calls `conclude` for each.
+1. `propose(game, actor)` targets the game, which the view already has from `SelectedGameMixin`, and locks the game's current phase with `locks=["current_phase"]`, replacing the current `lock_if_active` call. Phase resolution locks the phase row, so this serializes proposing with resolution. After the shared game policy, which checks that the current phase is active, its policy checks that the actor has no active proposal in the current phase and that no other proposal in it is pending. The body creates the proposal in the current phase, creates its votes with `create_initial_votes`, emits `draw_proposal`, and calls `conclude`.
+2. `vote(proposal, actor, accepted)` locks `phase` and then the proposal. After the shared game policy, its policy checks that the proposal is pending, that the actor has a vote, and that the vote has not been cast. The body records the vote, emits `draw_proposal_rejected` if the proposal is now rejected, and calls `conclude`.
+3. `cancel(proposal, actor)` requires the shared game policy without the active phase check, which the cancel endpoint does not apply today, and requires the actor to be the proposer and the proposal to be pending. It sets `cancelled_at` through a model write method.
+4. `conclude(proposal)` replaces `process_acceptance`. It locks `phase` and has an `only_if` policy that the proposal is accepted and its phase is active, so it returns `None` in the cases where `process_acceptance` returned `None` today. `propose`, `vote` and `release_member` call it without a condition. The body calls `game.finish_with_draw(phase, members)` with the proposal's phase and included members, which records the victory, marks the members who drew and finishes the game, and then emits the game-ended event. The game method takes plain values rather than the proposal, so the game app does not depend on draw proposals.
+5. `release_member(phase, member)` replaces `apply_withdrawal`. It is a system command whose member is an input rather than the actor. It cancels the member's own pending proposals, releases the member's vote on the others, and calls `conclude` for each. The member-withdrawal command itself will live in the member or game app, but this part stays in `draw_proposal` because it writes draw proposal rows.
 
 All write paths lock the phase before any proposal. Today's withdrawal already holds the phase lock when it reaches the draw proposal code, so this order avoids a deadlock between a withdrawal and a concurrent vote, and it is the reason `lock_rows` locks paths before the target. Locking the proposal in `vote` and `cancel` also closes the window where a vote and a cancellation, or two final votes, can interleave today.
 
@@ -1463,4 +1480,4 @@ The serializer's sandbox validation duplicates `IsNotSandboxGame`, and both beco
 
 The current `with_related_data` becomes the `DrawProposalLoader` queryset, and the list, create and vote responses all go through it. The count fields become model properties over the prefetched votes. `my_vote` needs the requesting user. It becomes a hydrator, or stays a serializer method reading prefetched votes and the member from the serializer context; the implementer should choose whichever keeps the schema and the query count test unchanged.
 
-The four views stay DRF generic views, because of the schema constraints above. They use `RefusalMixin`, and `permission_classes = [IsAuthenticated]` is their only permission. Each `perform_*` method calls one command. The output and vote serializers keep their published component names.
+The list is a `LoaderListView`, create is a `CreateActionView`, and vote and cancel are `ActionView`s. Vote declares `http_method_names = ["put", "patch", "options"]` and cancel `["delete", "options"]`. Both look the proposal up with `lookup_url_kwarg = "proposal_id"` in a queryset filtered to the URL's game. `permission_classes = [IsAuthenticated]` is every view's only permission, and each `perform` calls one command. The create view keeps its published `DrawProposal` request body, and the vote view its published `DrawVoteUpdate` response, with `@extend_schema`. The output and vote serializers keep their published component names.

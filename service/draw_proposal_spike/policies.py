@@ -9,7 +9,6 @@ from .checks import (
     HasVoteCheck,
     IsAcceptedCheck,
     IsPendingCheck,
-    IsPhaseActiveCheck,
     IsProposerCheck,
 )
 
@@ -17,7 +16,6 @@ from .checks import (
 class CanProposePolicy(Policy):
     checks = [
         ActivePhasePlayerPolicy,
-        IsPhaseActiveCheck,
         HasNoActiveProposalCheck,
         HasNoPendingProposalCheck,
     ]

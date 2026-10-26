@@ -1,27 +1,20 @@
 from common.checks import Check
-from common.constants import PhaseStatus
 from draw_proposal.constants import DrawProposalStatus
-
-
-class IsPhaseActiveCheck(Check):
-    reason = "phase_not_active"
-
-    def check(self, phase, actor):
-        return phase.status == PhaseStatus.ACTIVE
 
 
 class HasNoActiveProposalCheck(Check):
     reason = "already_proposed"
 
-    def check(self, phase, actor):
-        return not phase.spike_draw_proposals.active().filter(created_by__user_id=actor.pk).exists()
+    def check(self, game, actor):
+        proposals = game.current_phase.spike_draw_proposals.active()
+        return not proposals.filter(created_by__user_id=actor.pk).exists()
 
 
 class HasNoPendingProposalCheck(Check):
     reason = "proposal_pending"
 
-    def check(self, phase, actor):
-        return not phase.spike_draw_proposals.pending().exists()
+    def check(self, game, actor):
+        return not game.current_phase.spike_draw_proposals.pending().exists()
 
 
 class IsProposerCheck(Check):
@@ -54,4 +47,5 @@ class HasNotVotedCheck(Check):
     reason = "already_voted"
 
     def check(self, proposal, actor):
-        return not proposal.votes.filter(member__user_id=actor.pk, accepted__isnull=False).exists()
+        votes = proposal.votes.filter(member__user_id=actor.pk)
+        return not votes.filter(accepted__isnull=False).exists()

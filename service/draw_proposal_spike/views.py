@@ -1,67 +1,60 @@
-from django.http import Http404
-from django.shortcuts import get_object_or_404
-from rest_framework import generics, permissions
-from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
+from rest_framework import permissions
 
-from common.actors import scoped
-from common.views import CurrentGameMemberMixin, RefusalMixin, SelectedGameMixin
+from common.views import (
+    ActionView,
+    CreateActionView,
+    CurrentGameMemberMixin,
+    LoaderListView,
+    SelectedGameMixin,
+)
 
-from .loaders import DrawProposalLoader
 from .models import DrawProposal
 from .serializers import DrawProposalOutputSerializer, VoteDrawProposalInputSerializer
 
 
-class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
+class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, LoaderListView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DrawProposalOutputSerializer
 
     def get_queryset(self):
-        return DrawProposalLoader.get_queryset(self.request.user).for_game(self.get_game()).order_by("-created_at")
+        return super().get_queryset().for_game(self.get_game()).order_by("-created_at")
 
 
-class DrawProposalCreateView(RefusalMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
+@extend_schema(request=DrawProposalOutputSerializer)
+class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, CreateActionView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DrawProposalOutputSerializer
 
-    def get_phase(self):
-        phase = self.get_game().current_phase
-        if phase is None:
-            raise Http404
-        return phase
-
-    def perform_create(self, serializer):
-        proposal = DrawProposal.objects.propose(self.get_phase(), self.request.user)
-        serializer.instance = DrawProposalLoader.get(proposal.pk, self.request.user)
+    def perform(self):
+        return DrawProposal.objects.propose(self.get_game(), self.request.user)
 
 
-class DrawProposalVoteView(RefusalMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+@extend_schema(responses=VoteDrawProposalInputSerializer)
+class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, ActionView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = VoteDrawProposalInputSerializer
-
-    def get_object(self):
-        return get_object_or_404(scoped(DrawProposal.objects.all(), self.request.user), id=self.kwargs["proposal_id"])
-
-    def update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(self.get_object(), data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        instance = DrawProposalLoader.get(serializer.instance.pk, request.user)
-        return Response(DrawProposalOutputSerializer(instance, context=self.get_serializer_context()).data)
-
-    def perform_update(self, serializer):
-        DrawProposal.objects.vote(serializer.instance, self.request.user, **serializer.validated_data)
-
-
-class DrawProposalCancelView(RefusalMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.DestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["put", "patch", "options"]
+    queryset = DrawProposal.objects.all()
+    lookup_url_kwarg = "proposal_id"
+    input_serializer_class = VoteDrawProposalInputSerializer
     serializer_class = DrawProposalOutputSerializer
 
-    def get_object(self):
-        return get_object_or_404(
-            scoped(DrawProposal.objects.active(), self.request.user),
-            id=self.kwargs["proposal_id"],
-            created_by=self.get_current_game_member(),
-        )
+    def get_queryset(self):
+        return super().get_queryset().for_game(self.get_game())
 
-    def perform_destroy(self, instance):
-        DrawProposal.objects.cancel(instance, self.request.user)
+    def perform(self, proposal, accepted):
+        return DrawProposal.objects.vote(proposal, self.request.user, accepted)
+
+
+class DrawProposalCancelView(SelectedGameMixin, ActionView):
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["delete", "options"]
+    queryset = DrawProposal.objects.all()
+    lookup_url_kwarg = "proposal_id"
+    serializer_class = DrawProposalOutputSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().for_game(self.get_game())
+
+    def perform(self, proposal):
+        return DrawProposal.objects.cancel(proposal, self.request.user)

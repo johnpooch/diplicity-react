@@ -132,7 +132,7 @@ class TestDrawProposalManager:
         other = member_factory(game=game)
         third = member_factory(game=game)
 
-        proposal = DrawProposal.objects.propose(game.current_phase, proposer.user)
+        proposal = DrawProposal.objects.propose(game, proposer.user)
 
         assert proposal.phase == phase
         assert proposal.votes.count() == 3
@@ -157,7 +157,7 @@ class TestDrawProposalManager:
         cd_member.civil_disorder_at = timezone.now()
         cd_member.save()
 
-        proposal = DrawProposal.objects.propose(game.current_phase, proposer.user)
+        proposal = DrawProposal.objects.propose(game, proposer.user)
 
         cd_vote = proposal.votes.get(member=cd_member)
         assert cd_vote.included is False
@@ -172,7 +172,7 @@ class TestDrawProposalManager:
         replacement = member_factory(game=game)
         replaced = member_factory(game=game, removed_at=timezone.now(), replaced_by=replacement)
 
-        proposal = DrawProposal.objects.propose(game.current_phase, proposer.user)
+        proposal = DrawProposal.objects.propose(game, proposer.user)
 
         assert proposal.votes.count() == 3
         assert set(proposal.votes.values_list("member_id", flat=True)) == {proposer.id, other.id, replacement.id}
@@ -186,7 +186,7 @@ class TestDrawProposalManager:
         member_factory(game=game)
         kicked = member_factory(game=game, removed_at=timezone.now())
 
-        proposal = DrawProposal.objects.propose(game.current_phase, proposer.user)
+        proposal = DrawProposal.objects.propose(game, proposer.user)
 
         vote = proposal.votes.get(member=kicked)
         assert vote.accepted is True
@@ -233,7 +233,7 @@ class TestDrawProposalManager:
         )
 
         with pytest.raises(Refused) as refused:
-            DrawProposal.objects.propose(phase, proposer.user)
+            DrawProposal.objects.propose(game, proposer.user)
 
         assert refused.value.decision.reason == "proposal_pending"
         assert DrawProposal.objects.count() == 1
@@ -324,7 +324,7 @@ class TestDrawProposalConclude:
         cd_member.civil_disorder_at = timezone.now()
         cd_member.save()
 
-        proposal = DrawProposal.objects.propose(game.current_phase, proposer.user)
+        proposal = DrawProposal.objects.propose(game, proposer.user)
         vote = proposal.votes.get(member=active_other)
         vote.accepted = True
         vote.save()
@@ -402,8 +402,8 @@ class TestDrawProposalConclude:
         assert recipients == {m1.user_id, m2.user_id}
 
 
-class TestDrawProposalWithdraw:
-    def test_withdraw_cancels_the_members_own_pending_proposal(
+class TestDrawProposalReleaseMember:
+    def test_release_member_cancels_the_members_own_pending_proposal(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
@@ -417,12 +417,12 @@ class TestDrawProposalWithdraw:
             included_member_ids=[member.id, other.id],
         )
 
-        DrawProposal.objects.withdraw(phase, member)
+        DrawProposal.objects.release_member(phase, member)
 
         proposal.refresh_from_db()
         assert proposal.cancelled is True
 
-    def test_withdraw_accepts_other_proposals_without_inclusion(
+    def test_release_member_accepts_other_proposals_without_inclusion(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
@@ -437,7 +437,7 @@ class TestDrawProposalWithdraw:
             included_member_ids=[proposer.id, member.id, other.id],
         )
 
-        DrawProposal.objects.withdraw(phase, member)
+        DrawProposal.objects.release_member(phase, member)
 
         vote = proposal.votes.get(member=member)
         assert vote.accepted is True
@@ -445,7 +445,7 @@ class TestDrawProposalWithdraw:
         game.refresh_from_db()
         assert game.status == GameStatus.ACTIVE
 
-    def test_withdraw_completes_a_draw_only_the_member_was_holding_up(
+    def test_release_member_completes_a_draw_only_the_member_was_holding_up(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
@@ -461,7 +461,7 @@ class TestDrawProposalWithdraw:
         )
         proposal.votes.filter(member=other).update(accepted=True)
 
-        DrawProposal.objects.withdraw(phase, member)
+        DrawProposal.objects.release_member(phase, member)
 
         game.refresh_from_db()
         assert game.status == GameStatus.COMPLETED
@@ -861,7 +861,7 @@ class TestDrawProposalCreateView:
 
         assert response.data == {"code": "already_proposed"}
 
-    def test_create_proposal_fails_for_game_without_phases(
+    def test_create_proposal_fails_for_game_that_has_not_started(
         self,
         authenticated_client,
         game_factory,
@@ -877,7 +877,8 @@ class TestDrawProposalCreateView:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "game_not_active"}
 
     def test_create_proposal_ends_the_game_when_every_other_seat_is_vacant(
         self,
@@ -1309,6 +1310,37 @@ class TestDrawProposalVoteView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data == {"code": "not_player"}
 
+    def test_vote_on_a_proposal_from_another_game_is_not_found(
+        self,
+        authenticated_client,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+        primary_user,
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase_factory(game=game)
+        member_factory(game=game, user=primary_user)
+        other_game = game_factory(variant__solo_victory_sc_count=18)
+        other_phase = phase_factory(game=other_game)
+        proposer = member_factory(game=other_game)
+        voter = member_factory(game=other_game)
+        proposal = draw_proposal_factory(
+            game=other_game,
+            created_by=proposer,
+            phase=other_phase,
+            included_member_ids=[proposer.id, voter.id],
+        )
+
+        response = authenticated_client.patch(
+            reverse("spike-draw-proposal-vote", args=[game.id, proposal.id]),
+            {"accepted": True},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 class TestDrawProposalCancelView:
     def _auth(self, api_client, user):
@@ -1399,7 +1431,8 @@ class TestDrawProposalCancelView:
         response = api_client.delete(
             f"/spike/games/{game.id}/draw-proposals/{proposal.id}/cancel/",
         )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "not_proposer"}
 
     def test_cannot_cancel_an_already_cancelled_proposal(
         self,
@@ -1423,7 +1456,8 @@ class TestDrawProposalCancelView:
 
         response = authenticated_client.delete(reverse("spike-draw-proposal-cancel", args=[game.id, proposal.id]))
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "not_pending"}
 
     def test_cancel_own_proposal_while_phase_is_being_resolved(
         self,
@@ -1536,7 +1570,7 @@ class TestDrawProposalListView:
         member_factory(game=game)
         member_factory(game=game, civil_disorder_at=timezone.now())
         member_factory(game=game, civil_disorder_at=timezone.now())
-        DrawProposal.objects.propose(game.current_phase, proposer.user)
+        DrawProposal.objects.propose(game, proposer.user)
 
         response = authenticated_client.get(reverse("spike-draw-proposal-list", args=[game.id]))
 

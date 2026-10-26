@@ -1101,6 +1101,15 @@ class Game(BaseModel):
                 phase.scheduled_resolution = None
                 phase.save()
 
+    def finish_with_draw(self, phase, members):
+        victory = Victory.objects.create(game=self, winning_phase=phase)
+        victory.members.set(members)
+        for member in members:
+            member.drew = True
+            member.save(update_fields=["drew", "updated_at"])
+        self.finish(GameStatus.COMPLETED)
+        return victory
+
     def emit_game_ended(self):
         try:
             victory = Victory.objects.prefetch_related("members").get(game=self)

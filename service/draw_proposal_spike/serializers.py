@@ -4,6 +4,7 @@ from rest_framework import serializers
 from common.serializers import OutputSerializer
 from member.serializers import BaseMemberSerializer
 
+from .loaders import DrawProposalLoader
 from .models import DrawProposal
 
 
@@ -38,6 +39,7 @@ class DrawProposalOutputSerializer(OutputSerializer):
 
     class Meta:
         model = DrawProposal
+        loader = DrawProposalLoader
         fields = (
             "id",
             "created_by",

@@ -21,7 +21,9 @@ def lock_rows(model, value, paths):
     target = select_for_update(target)
     for path, row in related.items():
         *parents, attribute = path.split(".")
-        setattr(reduce(getattr, parents, target), attribute, row)
+        parent = reduce(getattr, parents, target)
+        if not isinstance(getattr(type(parent), attribute, None), property):
+            setattr(parent, attribute, row)
     return target
 
 
