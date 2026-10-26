@@ -9,6 +9,9 @@ FROM_ADDRESS = "Diplicity <noreply@diplicity.com>"
 
 
 def send_email(to, subject, html):
+    if not settings.RESEND_API_KEY:
+        logger.warning("Skipped email to %s: RESEND_API_KEY is not set", to)
+        return
     resend.api_key = settings.RESEND_API_KEY
     try:
         resend.Emails.send(

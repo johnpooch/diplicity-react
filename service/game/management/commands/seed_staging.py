@@ -1,5 +1,4 @@
 import random
-from datetime import time
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
@@ -17,7 +16,6 @@ from common.constants import (
     MemberKind,
     MovementPhaseDuration,
     OrderType,
-    PhaseFrequency,
     PhaseType,
     PressType,
     UserKind,
@@ -658,11 +656,6 @@ class Command(BaseCommand):
             players=[self.players[7]],
             variant=self.italy_vs_germany,
             press_type=PressType.NO_PRESS,
-            deadline_mode=DeadlineMode.FIXED_TIME,
-            movement_phase_duration=None,
-            fixed_deadline_time=time(20, 0),
-            fixed_deadline_timezone="Europe/London",
-            movement_frequency=PhaseFrequency.DAILY,
         )
 
     def _seed_sandbox(self):

@@ -51,4 +51,7 @@ COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
 # Switch to non-root user
 USER appuser
 
+ARG GIT_SHA
+ENV GIT_SHA=$GIT_SHA
+
 ENTRYPOINT ["/entrypoint.sh"]

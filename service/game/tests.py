@@ -1,6 +1,7 @@
 import re
 from io import StringIO
 
+import psycopg
 import pytest
 from adjudicator import service as adjudication_service
 from unittest.mock import patch
@@ -8,7 +9,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
 from django.test.utils import CaptureQueriesContext, override_settings
-from django.db import connection
+from django.db import connection, connections
 from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
@@ -6533,6 +6534,117 @@ class TestSeedStagingCommand:
             joinable["Open: gunboat Italy vs Germany"]["variant_id"]
             == "italy-vs-germany"
         )
+
+    def test_every_seeded_deadline_is_at_least_two_weeks_away(self, staging):
+        self._seed()
+
+        horizon = timezone.now() + timedelta(days=13)
+        games = Game.objects.exclude(
+            status__in=[GameStatus.COMPLETED, GameStatus.ABANDONED]
+        ).exclude(sandbox=True)
+        assert games.count() > 0
+        for game in games:
+            assert game.deadline_mode == DeadlineMode.DURATION, game.name
+            assert (
+                game.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+                >= 14 * 24 * 60 * 60
+            ), game.name
+            if game.muster_deadline:
+                assert game.muster_deadline > horizon, game.name
+        phases = Phase.objects.filter(
+            status=PhaseStatus.ACTIVE, scheduled_resolution__isnull=False
+        )
+        assert phases.count() > 0
+        assert not phases.filter(scheduled_resolution__lte=horizon).exists()
+
+
+@pytest.mark.django_db
+class TestResetStagingGuard:
+    @pytest.mark.parametrize("debug", [True, False])
+    @pytest.mark.parametrize("environment", ["development", "production"])
+    def test_refuses_to_run_outside_staging(self, settings, debug, environment):
+        settings.DEBUG = debug
+        settings.ENVIRONMENT = environment
+        AuthUser.objects.create(email="survivor@example.com", username="survivor")
+
+        with pytest.raises(CommandError):
+            call_command("reset_staging", stdout=StringIO())
+
+        assert AuthUser.objects.filter(email="survivor@example.com").exists()
+
+
+class TestResetStaging:
+    @pytest.fixture
+    def scratch_database(self, django_db_blocker):
+        with django_db_blocker.unblock():
+            settings_dict = dict(connection.settings_dict)
+        name = f"{settings_dict['NAME']}_reset_scratch"
+        parameters = {
+            "dbname": settings_dict["NAME"],
+            "user": settings_dict["USER"],
+            "password": settings_dict["PASSWORD"],
+            "host": settings_dict["HOST"],
+            "port": settings_dict["PORT"],
+        }
+        parameters = {key: value for key, value in parameters.items() if value}
+
+        def connect(dbname):
+            return psycopg.connect(**{**parameters, "dbname": dbname}, autocommit=True)
+
+        with connect(settings_dict["NAME"]) as admin:
+            admin.execute(f'DROP DATABASE IF EXISTS "{name}"')
+            admin.execute(f'CREATE DATABASE "{name}"')
+        connections.databases["reset_scratch"] = {**settings_dict, "NAME": name}
+        yield lambda: connect(name)
+        connections["reset_scratch"].close()
+        del connections.databases["reset_scratch"]
+        del connections["reset_scratch"]
+        with connect(settings_dict["NAME"]) as admin:
+            admin.execute(f'DROP DATABASE "{name}" WITH (FORCE)')
+
+    def _reset(self):
+        call_command("reset_staging", "--database=reset_scratch", stdout=StringIO())
+
+    def _tables(self, connect):
+        with connect() as scratch:
+            return scratch.execute(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+            ).fetchall()
+
+    def test_drops_everything_in_the_public_schema(
+        self, settings, scratch_database, django_db_blocker
+    ):
+        settings.ENVIRONMENT = "staging"
+        with scratch_database() as scratch:
+            scratch.execute("CREATE TABLE leftover (id integer)")
+        assert self._tables(scratch_database) == [("leftover",)]
+
+        with django_db_blocker.unblock():
+            self._reset()
+
+        assert self._tables(scratch_database) == []
+
+    def test_is_safe_on_an_empty_database(
+        self, settings, scratch_database, django_db_blocker
+    ):
+        settings.ENVIRONMENT = "staging"
+
+        with django_db_blocker.unblock():
+            self._reset()
+            self._reset()
+
+        assert self._tables(scratch_database) == []
+
+    def test_terminates_other_connections(
+        self, settings, scratch_database, django_db_blocker
+    ):
+        settings.ENVIRONMENT = "staging"
+        with scratch_database() as bystander:
+            with django_db_blocker.unblock():
+                self._reset()
+
+            with pytest.raises(psycopg.OperationalError):
+                bystander.execute("SELECT 1")
 
 
 my_games_current_viewname = "my-games-current"
