@@ -18,6 +18,10 @@ Channel = apps.get_model("channel", "Channel")
 
 COMPLETED_PHASE_MAX_AGE = 60 * 60 * 24 * 7
 
+IMAGE_CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"
+)
+
 
 def resolve_game(request, game_id, lock=False):
     """Fetch the Game once per request, regardless of how many permission

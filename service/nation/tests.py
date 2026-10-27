@@ -522,6 +522,23 @@ class TestNationFlagSvgView:
         assert "immutable" in response["Cache-Control"]
         assert "max-age=31536000" in response["Cache-Control"]
 
+    def test_sets_locked_down_content_security_policy(
+        self, unauthenticated_client, primary_flag
+    ):
+        response = unauthenticated_client.get(
+            reverse(
+                "nation-flag-svg",
+                kwargs={
+                    "variant_id": "primary-draft",
+                    "nation_id": "reds",
+                    "content_hash": primary_flag.content_hash,
+                },
+            )
+        )
+        assert response["Content-Security-Policy"] == (
+            "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"
+        )
+
     def test_gzip_encoded_when_client_accepts(
         self, unauthenticated_client, draft_variant_for_primary
     ):

@@ -29,6 +29,17 @@ def test_sets_immutable_cache_control(client):
 
 
 @pytest.mark.django_db
+def test_sets_locked_down_content_security_policy(client):
+    variant_svg = VariantSvg.objects.get(variant_id="classical")
+
+    response = client.get(_url("classical", variant_svg.content_hash))
+
+    assert response["Content-Security-Policy"] == (
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"
+    )
+
+
+@pytest.mark.django_db
 def test_gzip_encoded_when_client_accepts(client):
     variant_svg = VariantSvg.objects.get(variant_id="classical")
 

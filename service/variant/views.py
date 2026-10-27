@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from common.constants import VariantStatus
 from common.etag import if_none_match
 from common.permissions import IsOwnedDraftForWrite
+from common.views import IMAGE_CONTENT_SECURITY_POLICY
 from nation.models import NationFlag
 from province.models import Province
 from .models import Variant, VariantSvg
@@ -158,4 +159,5 @@ class VariantSvgView(View):
 
         response = HttpResponse(variant_svg.svg, content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=31536000, immutable"
+        response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response

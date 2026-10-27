@@ -9,6 +9,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from common.permissions import IsOwnedDraftForWrite
+from common.views import IMAGE_CONTENT_SECURITY_POLICY
 from variant.utils import SVG_NAMESPACE
 from .models import Nation, NationFlag
 from .serializers import NationFlagUploadSerializer, NationSerializer
@@ -94,4 +95,5 @@ class NationFlagSvgView(View):
 
         response = HttpResponse(flag.svg, content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=31536000, immutable"
+        response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response
