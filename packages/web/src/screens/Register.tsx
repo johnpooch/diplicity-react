@@ -139,6 +139,16 @@ const Register: React.FC = () => {
             >
               Register
             </Button>
+            <p className="text-xs text-muted-foreground">
+              By signing up you agree to the{" "}
+              <Link
+                to="/code-of-conduct"
+                className="text-primary hover:underline"
+              >
+                Code of Conduct
+              </Link>
+              .
+            </p>
           </form>
         </Form>
 

@@ -4,17 +4,23 @@ import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { Button } from "@/components/ui/button";
 
-interface BlogLayoutProps {
+interface PublicPageLayoutProps {
+  title: string;
+  titleTo: string;
   children: React.ReactNode;
 }
 
-const BlogLayout: React.FC<BlogLayoutProps> = ({ children }) => (
+const PublicPageLayout: React.FC<PublicPageLayoutProps> = ({
+  title,
+  titleTo,
+  children,
+}) => (
   <SafeAreaView className="min-h-dvh w-full">
     <header className="border-b">
       <div className="mx-auto flex max-w-[672px] items-center justify-between px-4 py-3">
-        <Link to="/blog" className="inline-flex items-center gap-3">
+        <Link to={titleTo} className="inline-flex items-center gap-3">
           <DiplicityLogo />
-          <span className="font-semibold">Diplicity Blog</span>
+          <span className="font-semibold">{title}</span>
         </Link>
         <Button asChild variant="outline" size="sm">
           <Link to="/">App</Link>
@@ -25,4 +31,4 @@ const BlogLayout: React.FC<BlogLayoutProps> = ({ children }) => (
   </SafeAreaView>
 );
 
-export { BlogLayout };
+export { PublicPageLayout };

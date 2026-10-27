@@ -14,10 +14,11 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
+import { CodeOfConduct } from "./screens/CodeOfConduct";
 import { Blog, GameDetail, Home, Tutorial, Variants } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
-import { BlogLayout } from "./components/BlogLayout";
+import { PublicPageLayout } from "./components/PublicPageLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { GameReplaceRedirect } from "./components/GameReplaceRedirect";
@@ -72,9 +73,17 @@ const GameDetailLayoutWrapper: React.FC = () => {
 
 const BlogLayoutWrapper: React.FC = () => {
   return (
-    <BlogLayout>
+    <PublicPageLayout title="Diplicity Blog" titleTo="/blog">
       <Outlet />
-    </BlogLayout>
+    </PublicPageLayout>
+  );
+};
+
+const CodeOfConductLayoutWrapper: React.FC = () => {
+  return (
+    <PublicPageLayout title="Code of Conduct" titleTo="/code-of-conduct">
+      <Outlet />
+    </PublicPageLayout>
   );
 };
 
@@ -112,7 +121,7 @@ export const GameIndexRoute: React.FC = () => {
   );
 };
 
-const blogRoutes: RouteObject[] = [
+const publicRoutes: RouteObject[] = [
   {
     path: "/blog",
     element: <BlogLayoutWrapper />,
@@ -121,6 +130,12 @@ const blogRoutes: RouteObject[] = [
       { index: true, element: <Blog.BlogList /> },
       { path: ":slug", element: <Blog.BlogPost /> },
     ],
+  },
+  {
+    path: "/code-of-conduct",
+    element: <CodeOfConductLayoutWrapper />,
+    errorElement: <RootErrorBoundary />,
+    children: [{ index: true, element: <CodeOfConduct /> }],
   },
 ];
 
@@ -412,7 +427,7 @@ export const createAuthenticatedRoutes = (
       },
     ],
   },
-  ...blogRoutes,
+  ...publicRoutes,
   {
     path: "*",
     loader: () => redirect("/"),
@@ -449,7 +464,7 @@ export const createUnauthenticatedRoutes = (): RouteObject[] => [
       },
     ],
   },
-  ...blogRoutes,
+  ...publicRoutes,
   {
     path: "*",
     loader: ({ request }) => {
