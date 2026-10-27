@@ -23,6 +23,7 @@ from common.constants import (
 from game.models import Game
 from phase.models import Phase, PhaseState
 from user_profile.commitment import (
+    clamp_post_civil_disorder,
     commitment_allows_requirement,
     get_rated_outcomes,
     recompute_commitment,
@@ -1623,6 +1624,28 @@ class TestRecomputeCommitment:
             phase_type=PhaseType.RETREAT,
         )
         assert len(get_rated_outcomes(user)) == 4
+
+    @pytest.mark.django_db
+    def test_rated_history_does_not_load_phase_options(
+        self,
+        user_factory,
+        classical_variant,
+        classical_england_nation,
+        django_assert_num_queries,
+    ):
+        user = user_factory()
+        self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED, NMR, NMR]
+        )
+        with patch(
+            "user_profile.commitment.clamp_post_civil_disorder",
+            wraps=clamp_post_civil_disorder,
+        ) as clamp:
+            with django_assert_num_queries(1):
+                assert get_rated_outcomes(user) == [NMR, NMR, RECEIVED]
+        states = clamp.call_args.args[0]
+        assert len(states) == 3
+        assert all("options" in state.phase.get_deferred_fields() for state in states)
 
     @pytest.mark.django_db
     def test_window_spans_multiple_games(
