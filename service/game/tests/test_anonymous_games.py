@@ -9,7 +9,7 @@ from draw_proposal.models import DrawProposal, DrawVote
 from victory.models import Victory
 
 retrieve_viewname = "game-retrieve"
-channel_list_viewname = "channel-list"
+channel_message_list_viewname = "channel-message-list"
 draw_proposal_list_viewname = "draw-proposal-list"
 game_list_viewname = "game-list"
 phase_state_list_viewname = "phase-state-list"
@@ -275,16 +275,13 @@ class TestAnonymousGames:
             channel=channel, sender=primary_member, body="Hello from England"
         )
 
-        url = reverse(channel_list_viewname, args=[game.id])
+        url = reverse(channel_message_list_viewname, args=[game.id, channel.id])
         response = authenticated_client_for_secondary_user.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) >= 1
+        assert len(response.data["results"]) == 1
 
-        public_channel = next(c for c in response.data if c["name"] == "Public Press")
-        assert len(public_channel["messages"]) == 1
-
-        sender = public_channel["messages"][0]["sender"]
+        sender = response.data["results"][0]["sender"]
         assert sender["name"] == "Anonymous"
         assert sender["picture"] is None
 
@@ -319,11 +316,10 @@ class TestAnonymousGames:
             channel=channel, sender=game_master_member, body="Deadline moves to Friday."
         )
 
-        url = reverse(channel_list_viewname, args=[game.id])
+        url = reverse(channel_message_list_viewname, args=[game.id, channel.id])
         response = authenticated_client_for_secondary_user.get(url)
 
-        public_channel = next(c for c in response.data if c["name"] == "Public Press")
-        sender = public_channel["messages"][0]["sender"]
+        sender = response.data["results"][0]["sender"]
         assert sender["name"] == tertiary_user.profile.name
         assert sender["is_game_master"] is True
 

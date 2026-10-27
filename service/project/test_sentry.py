@@ -29,7 +29,6 @@ class TestTracesSampler:
         "path",
         [
             "/game/the-match-1a2b/",
-            "/games/the-match-1a2b/channels/",
             "/games/the-match-1a2b/channel-previews/",
             "/games/the-match-1a2b/channels/42/",
         ],
@@ -39,7 +38,9 @@ class TestTracesSampler:
 
     def test_writes_to_a_polled_path_are_sampled_at_the_default_rate(self):
         assert (
-            traces_sampler(_request("/games/the-match-1a2b/channels/", method="POST"))
+            traces_sampler(
+                _request("/games/the-match-1a2b/channels/42/", method="PATCH")
+            )
             == DEFAULT_TRACES_SAMPLE_RATE
         )
 

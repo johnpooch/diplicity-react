@@ -98,13 +98,6 @@ class AddableUserListView(SelectedGameMixin, generics.ListAPIView):
         return UserProfile.objects.addable_to_game(self.get_game())
 
 
-@extend_schema(exclude=True)
-class LegacyAvailableBotListView(AddableUserListView):
-    """Serves GET /game/<id>/available-bots/ for mobile builds shipped before the
-    endpoint was renamed. Kept out of the schema so codegen only ever emits the
-    current path. Remove once those builds are out of circulation."""
-
-
 class UserAccountDeleteView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 

@@ -69,21 +69,6 @@ class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
     ]
 
 
-@extend_schema(exclude=True)
-class LegacyMemberJoinView(MemberJoinView):
-    """Serves POST /game/<id>/join/ for mobile builds shipped before the seating
-    endpoints moved under /member/. Kept out of the schema so codegen only ever
-    emits the current path. Remove once those builds are out of circulation."""
-
-
-@extend_schema(exclude=True)
-class LegacyMemberCreateView(MemberCreateView):
-    """Serves POST /game/<id>/add-bot/ for mobile builds shipped before the
-    seating endpoints moved under /member/. Kept out of the schema so codegen
-    only ever emits the current path. Remove once those builds are out of
-    circulation."""
-
-
 class MemberRetrieveView(generics.RetrieveAPIView):
     """Retrieve one member's place in a game, including game masters and members
     who have left their seat, with the actions the requesting user can take on

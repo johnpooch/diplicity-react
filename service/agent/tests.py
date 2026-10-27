@@ -12,7 +12,6 @@ from rest_framework.test import APIClient
 
 from agent import registry, tasks
 from agent.api_client import ApiClient, bot_request_host
-from agent.context import fetch_context
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
@@ -21,8 +20,6 @@ from channel.models import ChannelMessage
 from common.constants import OrderType, PhaseStatus, PhaseType, UserKind
 from emit.context import build_context
 from emit.dispatch import emit
-from harness.adapter import data_to_context
-from harness.tasks import reply
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
@@ -481,37 +478,34 @@ class TestBotRequestHost:
 class TestGetChannels:
 
     @pytest.mark.django_db
-    def test_matches_the_legacy_channel_list(
+    def test_returns_every_readable_channel_with_its_full_history(
         self, bot_game_with_channel_history, bot_user
     ):
-        game, legacy_channels = bot_game_with_channel_history
+        game = bot_game_with_channel_history
 
         channels = ApiClient(bot_user).get_channels(game.id)
 
-        assert channels == legacy_channels
+        resolved = "Spring 1901, Movement has been resolved"
         assert [
-            (channel["name"], len(channel["messages"])) for channel in channels
-        ] == [
-            ("Public Press", 230),
-            ("Empty", 0),
-            ("Germany, Italy", 150),
-        ]
-
-    @pytest.mark.django_db
-    def test_context_and_reply_prompt_match_the_legacy_channel_list(
-        self, bot_game_with_channel_history, bot_user
-    ):
-        game, legacy_channels = bot_game_with_channel_history
-
-        data = fetch_context(ApiClient(bot_user), game.id)
-        context = data_to_context(data)
-        legacy_context = data_to_context({**data, "channels": legacy_channels})
-
-        assert context == legacy_context
-        for channel in legacy_channels:
-            assert reply.user_prompt(context, channel["id"]) == reply.user_prompt(
-                legacy_context, channel["id"]
+            (
+                channel["name"],
+                channel["title"],
+                channel["muted"],
+                len(channel["messages"]),
+                [event["text"] for event in channel["events"]],
             )
+            for channel in channels
+        ] == [
+            ("Public Press", "", False, 230, [resolved]),
+            ("Empty", "", False, 0, [resolved]),
+            (
+                "Germany, Italy",
+                "Allies",
+                True,
+                150,
+                [resolved, "Italy renamed the channel to Allies"],
+            ),
+        ]
 
 
 class TestBotIdentificationByProfile:

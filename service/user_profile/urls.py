@@ -25,9 +25,4 @@ urlpatterns = [
         views.AddableUserListView.as_view(),
         name="game-addable-user-list",
     ),
-    path(
-        "game/<str:game_id>/available-bots/",
-        views.LegacyAvailableBotListView.as_view(),
-        name="game-available-bots-legacy",
-    ),
 ]
