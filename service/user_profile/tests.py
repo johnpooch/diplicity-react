@@ -942,6 +942,24 @@ class TestUserProfilePictureImageView:
         assert "max-age=31536000" in response["Cache-Control"]
 
     @pytest.mark.django_db
+    def test_sets_locked_down_content_security_policy(
+        self, unauthenticated_client, primary_user, stored_picture
+    ):
+        response = unauthenticated_client.get(
+            reverse(
+                "user-picture-image",
+                kwargs={
+                    "user_id": primary_user.id,
+                    "content_hash": stored_picture.content_hash,
+                },
+            )
+        )
+
+        assert response["Content-Security-Policy"] == (
+            "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"
+        )
+
+    @pytest.mark.django_db
     def test_unknown_hash_returns_404(
         self, unauthenticated_client, primary_user, stored_picture
     ):

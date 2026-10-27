@@ -12,7 +12,7 @@ from member.models import Member
 from phase.models import PhaseState
 from common.constants import GameStatus, PhaseStatus
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame
-from common.views import SelectedGameMixin
+from common.views import IMAGE_CONTENT_SECURITY_POLICY, SelectedGameMixin
 from .models import UserProfile, UserProfilePicture, UserProfilePictureContent
 from .serializers import (
     AddableUserSerializer,
@@ -69,6 +69,7 @@ class UserProfilePictureImageView(View):
 
         response = HttpResponse(content.data, content_type=content.picture.content_type)
         response["Cache-Control"] = "public, max-age=31536000, immutable"
+        response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response
 
 
