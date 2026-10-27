@@ -58,6 +58,7 @@ def get_rated_outcomes(user):
             member__withdrawn_at__isnull=True,
         )
         .select_related("phase")
+        .defer("phase__options")
         .order_by("member_id", "phase__ordinal")
     )
 
