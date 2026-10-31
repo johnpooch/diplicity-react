@@ -113,7 +113,7 @@ describe("PlayerProfileContent", () => {
 
     render(<PlayerProfileContent userId={1} />);
 
-    const squares = screen.getAllByRole("button");
+    const squares = screen.getAllByRole("img");
     expect(squares).toHaveLength(48);
     expect(squares[0]).toHaveAccessibleName("Game 2: 0");
     expect(squares[47]).toHaveAccessibleName("Game 49: 0");

@@ -84,8 +84,6 @@ interface SquareBreakdownProps {
 const SquareBreakdown: React.FC<SquareBreakdownProps> = ({ square }) => {
   const rows = squareRows(square);
 
-  if (rows.length === 0) return <span>No phases played yet</span>;
-
   return (
     <table className="text-xs tabular-nums">
       <tbody>
@@ -132,72 +130,86 @@ export const PlayerCommitment: React.FC<PlayerCommitmentProps> = ({
   const recent = squares.slice(offset);
 
   return (
-    <div className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
-      <div className="flex flex-1 flex-col divide-y text-sm">
-        <CommitmentRow label="Commitment">
-          <span
-            className={cn(
-              "font-semibold tabular-nums",
-              total > 0 && "text-emerald-700 dark:text-emerald-400",
-              total < 0 && "text-red-700 dark:text-red-400"
-            )}
-          >
-            {formatPoints(total)}
-          </span>
-        </CommitmentRow>
-        <CommitmentRow label="Missed orders">
-          <span className="tabular-nums text-muted-foreground">
-            {missedOrders(squares)}
-          </span>
-        </CommitmentRow>
-        <CommitmentRow label="Abandoned games">
-          <span className="tabular-nums text-muted-foreground">
-            {abandonedGames(squares)}
-          </span>
-        </CommitmentRow>
-      </div>
-      <div className="flex shrink-0 justify-center px-6 py-4">
-        <div className="flex w-fit flex-col gap-1.5">
-          <span className="mb-0.5 text-xs text-muted-foreground">
-            Recent games
-          </span>
-          <div className="grid grid-flow-col grid-rows-4 justify-start gap-1">
-            {recent.map((square, index) => (
-              <Tooltip
-                key={offset + index}
-                open={openIndex === index}
-                onOpenChange={open =>
-                  setOpenIndex(current =>
-                    open ? index : current === index ? undefined : current
-                  )
-                }
-              >
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
+    <div className="@container">
+      <div className="flex flex-col divide-y @xl:flex-row @xl:divide-x @xl:divide-y-0">
+        <div className="flex flex-1 flex-col divide-y text-sm">
+          <CommitmentRow label="Commitment">
+            <span
+              className={cn(
+                "font-semibold tabular-nums",
+                total > 0 && "text-emerald-700 dark:text-emerald-400",
+                total < 0 && "text-red-700 dark:text-red-400"
+              )}
+            >
+              {formatPoints(total)}
+            </span>
+          </CommitmentRow>
+          <CommitmentRow label="Missed orders">
+            <span className="tabular-nums text-muted-foreground">
+              {missedOrders(squares)}
+            </span>
+          </CommitmentRow>
+          <CommitmentRow label="Abandoned games">
+            <span className="tabular-nums text-muted-foreground">
+              {abandonedGames(squares)}
+            </span>
+          </CommitmentRow>
+        </div>
+        <div className="flex shrink-0 justify-center px-6 py-4">
+          <div className="flex w-fit flex-col gap-1.5">
+            <span className="mb-0.5 text-xs text-muted-foreground">
+              Recent games
+            </span>
+            <div className="grid grid-flow-col grid-rows-4 justify-start gap-1">
+              {recent.map((square, index) =>
+                square.breakdown.length === 0 ? (
+                  <span
+                    key={offset + index}
+                    role="img"
                     aria-label={squareLabel(square)}
-                    onClick={() => setOpenIndex(index)}
                     className={cn(
-                      "size-5 cursor-pointer rounded-[3px]",
+                      "size-5 rounded-[3px]",
                       shadeTone[square.shade]
                     )}
                   />
-                </TooltipTrigger>
-                <TooltipContent className="px-3 py-2">
-                  <SquareBreakdown square={square} />
-                </TooltipContent>
-              </Tooltip>
-            ))}
-            {Array.from({ length: gridSlots - recent.length }, (_, index) => (
-              <span
-                key={index}
-                className="size-5 rounded-[3px] border border-border/60 bg-muted/50"
-              />
-            ))}
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Older</span>
-            <span>Newer</span>
+                ) : (
+                  <Tooltip
+                    key={offset + index}
+                    open={openIndex === index}
+                    onOpenChange={open =>
+                      setOpenIndex(current =>
+                        open ? index : current === index ? undefined : current
+                      )
+                    }
+                  >
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={squareLabel(square)}
+                        onClick={() => setOpenIndex(index)}
+                        className={cn(
+                          "size-5 cursor-pointer rounded-[3px]",
+                          shadeTone[square.shade]
+                        )}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="px-3 py-2">
+                      <SquareBreakdown square={square} />
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              )}
+              {Array.from({ length: gridSlots - recent.length }, (_, index) => (
+                <span
+                  key={index}
+                  className="size-5 rounded-[3px] border border-border/60 bg-muted/50"
+                />
+              ))}
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Older</span>
+              <span>Newer</span>
+            </div>
           </div>
         </div>
       </div>
