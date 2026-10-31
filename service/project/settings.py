@@ -364,6 +364,8 @@ SPECTACULAR_SETTINGS = {
         "CommitmentEventKindEnum": "common.constants.CommitmentEvent.KIND_CHOICES",
         "KindEnum": "common.constants.MyGameStateKind.KIND_CHOICES",
         "ReasonEnum": "report.constants.ReportReason.REASON_CHOICES",
+        "ReportStatusEnum": "report.constants.ReportStatus.STATUS_CHOICES",
+        "StatusEnum": "common.constants.PhaseStatus.STATUS_CHOICES",
     },
 }
 

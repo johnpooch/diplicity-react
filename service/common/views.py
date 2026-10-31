@@ -3,6 +3,7 @@ import hashlib
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.apps import apps
+from django.http import Http404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import conditional_page
@@ -85,6 +86,14 @@ class LoaderListView(LoaderMixin, generics.ListAPIView):
         )
         data = self.get_serializer(instances, many=True).data
         return Response(data) if page is None else self.get_paginated_response(data)
+
+
+class LoaderDetailView(LoaderMixin, generics.GenericAPIView):
+    def get(self, request, *args, **kwargs):
+        instance = self.get_loader().get(kwargs[self.lookup_field], request.user)
+        if instance is None:
+            raise Http404
+        return Response(self.get_serializer(instance).data)
 
 
 class ActionSchema(AutoSchema):

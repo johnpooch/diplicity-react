@@ -23,6 +23,7 @@ const buildUserProfile = (overrides: Partial<UserProfile> = {}): UserProfile => 
   picture: null,
   email: "jane@example.com",
   canCreateBotGames: false,
+  isModerator: false,
   commitment: "undefined",
   canCreateCommittedGame: true,
   ...overrides,

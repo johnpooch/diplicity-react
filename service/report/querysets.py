@@ -1,11 +1,12 @@
 from django.db import models
 
 from .constants import ReportDecision
+from .policies import ModeratorPolicy
 
 
 class ReportQuerySet(models.QuerySet):
     def visible_to(self, actor):
-        if actor.is_staff:
+        if ModeratorPolicy.decide(None, actor):
             return self
         if not actor.is_authenticated:
             return self.none()

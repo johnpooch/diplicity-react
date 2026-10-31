@@ -246,6 +246,18 @@ class MemberNationPreference(TypedDict):
 type MemberStatusEnum = Literal['nmr', 'civil_disorder']
 
 
+class ModerationMemberOutput(TypedDict):
+    id: int
+    user_id: int | None
+    name: str | None
+    nation: str | None
+
+
+class ModerationReviewerOutput(TypedDict):
+    user_id: int
+    name: str
+
+
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
@@ -359,6 +371,7 @@ class PatchedUserProfile(TypedDict):
     email: NotRequired[str]
     can_create_bot_games: NotRequired[bool]
     commitment: NotRequired[str]
+    is_moderator: NotRequired[bool]
     can_create_committed_game: NotRequired[bool]
 
 
@@ -411,6 +424,9 @@ class ReportReason(TypedDict):
     key: ReasonEnum
     label: str
     description: str
+
+
+type ReportStatusEnum = Literal['pending', 'approved', 'rejected']
 
 
 type ResultEnum = Literal['solo_victory', 'won_by', 'draw', 'abandoned', 'ongoing']
@@ -483,6 +499,7 @@ class UserProfile(TypedDict):
     email: str
     can_create_bot_games: bool
     commitment: str
+    is_moderator: bool
     can_create_committed_game: bool
 
 
@@ -736,6 +753,11 @@ class MemberDetail(TypedDict):
     already_reported: bool
 
 
+class ModerationReviewOutput(TypedDict):
+    reviewed_by: ModerationReviewerOutput
+    note: str
+
+
 class MyGameState(TypedDict):
     kind: KindEnum
     deadline: str | None
@@ -931,6 +953,20 @@ class GameRetrieve(TypedDict):
     total_unread_message_count: int
     actions: list[GameAction]
     player_list_actions: list[GameAction]
+
+
+class ModerationReportOutput(TypedDict):
+    id: int
+    reason: ReasonEnum
+    note: str
+    status: ReportStatusEnum
+    created_at: str
+    game_id: str
+    game_name: str
+    variant_name: str
+    reporter: ModerationMemberOutput
+    reported: ModerationMemberOutput
+    review: ModerationReviewOutput | None
 
 
 class MyGame(TypedDict):
