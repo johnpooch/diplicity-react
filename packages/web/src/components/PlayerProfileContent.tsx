@@ -44,7 +44,7 @@ interface ProfileCardProps {
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ avatar, name, joined }) => (
   <Card className="overflow-hidden py-0">
-    <CardContent className="flex items-center gap-4 p-3">
+    <CardContent className="flex items-center gap-3 p-3">
       {avatar}
       <div className="min-w-0 flex-1">
         {name}
@@ -78,9 +78,9 @@ export const PlayerCommitmentSection: React.FC<PlayerProfileContentProps> = ({
 export const PlayerProfileContentSkeleton: React.FC = () => (
   <div className="space-y-4">
     <ProfileCard
-      avatar={<Skeleton className="size-14 rounded-full" />}
-      name={<Skeleton className="my-1 h-5 w-32" />}
-      joined={<Skeleton className="mt-2 h-4 w-40" />}
+      avatar={<Skeleton className="size-12 rounded-full" />}
+      name={<Skeleton className="my-0.5 h-5 w-32" />}
+      joined={<Skeleton className="my-0.5 h-4 w-40" />}
     />
     <Section title="Games">
       <div className="divide-y">
@@ -101,18 +101,18 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
     <div className="space-y-4">
       <ProfileCard
         avatar={
-          <Avatar className="size-14">
+          <Avatar className="size-12">
             <AvatarImage src={profile.picture ?? undefined} />
-            <AvatarFallback className="text-lg">
+            <AvatarFallback>
               {profile.name[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
         }
         name={
-          <h2 className="truncate text-xl font-semibold">{profile.name}</h2>
+          <h2 className="font-medium truncate">{profile.name}</h2>
         }
         joined={
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground truncate">
             Joined{" "}
             {new Date(profile.createdAt).toLocaleDateString(undefined, {
               year: "numeric",
