@@ -56,3 +56,8 @@ class ReportStatus:
     PENDING = "pending"
     APPROVED = ReportDecision.APPROVED
     REJECTED = ReportDecision.REJECTED
+
+    STATUS_CHOICES = (
+        (PENDING, "Pending"),
+        *ReportDecision.DECISION_CHOICES,
+    )

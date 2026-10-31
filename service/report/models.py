@@ -51,3 +51,4 @@ class ReportReview(BaseModel):
         related_name="report_reviews",
         on_delete=models.CASCADE,
     )
+    note = models.CharField(max_length=1000, db_default="")

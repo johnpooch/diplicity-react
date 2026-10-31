@@ -1955,6 +1955,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMyGameList'
           description: ''
+  /moderation/reports/:
+    get:
+      operationId: moderationReportsList
+      parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - approved
+          - pending
+          - rejected
+        description: |-
+          * `pending` - Pending
+          * `approved` - Approved
+          * `rejected` - Rejected
+        required: true
+      tags:
+      - moderation
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModerationReportOutput'
+          description: ''
+  /moderation/reports/{id}/:
+    get:
+      operationId: moderationReportsRetrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - moderation
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationReportOutput'
+          description: ''
   /report/reasons/:
     get:
       operationId: reportReasonsList
@@ -4129,6 +4179,111 @@ components:
       description: |-
         * `nmr` - nmr
         * `civil_disorder` - civil_disorder
+    ModerationMemberOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          nullable: true
+        nation:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - id
+      - name
+      - nation
+      - userId
+    ModerationReportOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/ReasonEnum'
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+          maxLength: 1000
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ReportStatusEnum'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        gameId:
+          type: string
+          readOnly: true
+        gameName:
+          type: string
+          readOnly: true
+        variantName:
+          type: string
+          readOnly: true
+        reporter:
+          allOf:
+          - $ref: '#/components/schemas/ModerationMemberOutput'
+          readOnly: true
+        reported:
+          allOf:
+          - $ref: '#/components/schemas/ModerationMemberOutput'
+          readOnly: true
+        review:
+          allOf:
+          - $ref: '#/components/schemas/ModerationReviewOutput'
+          readOnly: true
+          nullable: true
+      required:
+      - createdAt
+      - gameId
+      - gameName
+      - id
+      - note
+      - reason
+      - reported
+      - reporter
+      - review
+      - status
+      - variantName
+    ModerationReviewOutput:
+      type: object
+      properties:
+        reviewedBy:
+          allOf:
+          - $ref: '#/components/schemas/ModerationReviewerOutput'
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+          maxLength: 1000
+      required:
+      - note
+      - reviewedBy
+    ModerationReviewerOutput:
+      type: object
+      properties:
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+      required:
+      - name
+      - userId
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -4682,6 +4837,9 @@ components:
         commitment:
           type: string
           readOnly: true
+        isModerator:
+          type: boolean
+          readOnly: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -4984,6 +5142,16 @@ components:
       - description
       - key
       - label
+    ReportStatusEnum:
+      enum:
+      - pending
+      - approved
+      - rejected
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `approved` - Approved
+        * `rejected` - Rejected
     ResultEnum:
       enum:
       - solo_victory
@@ -5175,11 +5343,15 @@ components:
         commitment:
           type: string
           readOnly: true
+        isModerator:
+          type: boolean
+          readOnly: true
       required:
       - canCreateBotGames
       - commitment
       - email
       - id
+      - isModerator
       - name
       - picture
       - userId

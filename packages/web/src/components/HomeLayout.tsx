@@ -18,7 +18,16 @@ import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
+import { useUserRetrieveSuspense } from "@/api/generated/endpoints";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Home,
+  Search,
+  PlusCircle,
+  MessageCircle,
+  CircleHelp,
+  ShieldAlert,
+} from "lucide-react";
 
 const navigationItems = [
   { label: "My Games", icon: Home, path: "/" },
@@ -26,6 +35,31 @@ const navigationItems = [
   { label: "Create Game", icon: PlusCircle, path: "/create-game" },
   { label: "Community", icon: MessageCircle, path: "/community" },
 ];
+
+const ModerationSidebarItem: React.FC = () => {
+  const isMobile = useIsMobile();
+  const { pathname } = useLocation();
+  const { data: userProfile } = useUserRetrieveSuspense();
+
+  if (isMobile || !userProfile.isModerator) {
+    return null;
+  }
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        tooltip="Moderation"
+        isActive={pathname.startsWith("/moderation")}
+      >
+        <Link to="/moderation">
+          <ShieldAlert />
+          <span>Moderation</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+};
 
 interface HomeLayoutProps {
   /**
@@ -98,6 +132,9 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
             </SidebarContent>
             <SidebarFooter>
               <SidebarMenu>
+                <Suspense fallback={null}>
+                  <ModerationSidebarItem />
+                </Suspense>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Learn how to play">
                     <Link to="/learn-to-play">

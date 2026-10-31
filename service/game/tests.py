@@ -41,6 +41,7 @@ from nation.models import Nation
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile, UserProfilePicture
+from report.models import ReportReview
 from login.models import AuthUser
 from member.models import CommitmentEntry, Member, NationPreference
 from channel.models import ChannelMessage
@@ -6463,7 +6464,7 @@ class TestSeedStagingCommand:
 
         client = authenticated_client_factory(AuthUser.objects.get(email=TESTER_EMAIL))
         response = client.get(f"{reverse(list_viewname)}?mine=true&page_size=100")
-        assert response.data["count"] == 23
+        assert response.data["count"] == 24
 
     def test_seeds_loginable_tester_with_games_in_each_state(
         self, staging, authenticated_client_factory, unauthenticated_client
@@ -6493,7 +6494,7 @@ class TestSeedStagingCommand:
             len(pending),
             len(mustering),
             len(joinable),
-        ) == (4, 13, 3, 3, 3)
+        ) == (4, 14, 3, 3, 3)
 
         won = finished["Finished: you won solo"]
         assert won["victory"]["type"] == "solo"
@@ -6601,6 +6602,46 @@ class TestSeedStagingCommand:
         assert (
             joinable["Open: gunboat Italy vs Germany"]["variant_id"]
             == "italy-vs-germany"
+        )
+
+    def test_seeds_moderator_tester_with_reports_in_every_state(
+        self, staging, authenticated_client_factory
+    ):
+        self._seed()
+
+        tester = AuthUser.objects.get(email=TESTER_EMAIL)
+        client = authenticated_client_factory(tester)
+        queue = {
+            report_status: client.get(
+                reverse("moderation-report-list"), {"status": report_status}
+            ).data
+            for report_status in ("pending", "approved", "rejected")
+        }
+        tester_game_ids = set(
+            Member.objects.filter(user=tester).values_list("game_id", flat=True)
+        )
+        anonymous_game_ids = set(
+            Game.objects.filter(anonymous=True).values_list("id", flat=True)
+        )
+
+        assert client.get(reverse("user-profile")).data["is_moderator"]
+        assert (
+            len(queue["pending"]),
+            len(queue["approved"]),
+            len(queue["rejected"]),
+        ) == (5, 1, 1)
+        assert len({row["reason"] for row in queue["pending"]}) >= 3
+        created = [row["created_at"] for row in queue["pending"]]
+        assert created == sorted(created)
+        assert len(set(created)) == len(created)
+        rows = [row for rows in queue.values() for row in rows]
+        assert [row["game_id"] in tester_game_ids for row in rows].count(True) == 1
+        assert [row["game_id"] in anonymous_game_ids for row in rows].count(True) == 1
+        assert set(
+            ReportReview.objects.values_list("reviewed_by_id", flat=True)
+        ) == {tester.id}
+        assert all(
+            row["review"]["note"] for row in queue["approved"] + queue["rejected"]
         )
 
     def test_every_seeded_deadline_is_at_least_two_weeks_away(self, staging):
