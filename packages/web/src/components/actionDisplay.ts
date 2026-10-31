@@ -13,7 +13,7 @@ import {
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
-import { WITHDRAW_CONFIRMATION } from "@/components/WithdrawGameAction";
+import { withdrawConfirmation } from "@/components/WithdrawGameAction";
 import type {
   BlockedReasonEnum,
   MemberActionKeyEnum,
@@ -130,7 +130,7 @@ const BLOCKED_REASONS: Record<BlockedReasonEnum, string> = {
 const confirmationFor = (
   key: MemberActionKeyEnum,
   member: ActionMember | undefined,
-  sandbox: boolean
+  game: { sandbox: boolean; isFirstYear: boolean }
 ): ActionConfirmation | null => {
   const removeTitle = `Remove ${member?.nation ?? member?.name}`;
   switch (key) {
@@ -142,7 +142,7 @@ const confirmationFor = (
         confirmLabel: "Leave",
       };
     case "withdraw":
-      return WITHDRAW_CONFIRMATION;
+      return withdrawConfirmation(game.isFirstYear);
     case "clone_to_sandbox":
       return {
         title: "Clone to sandbox",
@@ -152,8 +152,8 @@ const confirmationFor = (
       };
     case "delete":
       return {
-        title: sandbox ? "Delete sandbox game" : "Delete game",
-        description: sandbox
+        title: game.sandbox ? "Delete sandbox game" : "Delete game",
+        description: game.sandbox
           ? "This will permanently delete this sandbox game and all its data. This action cannot be undone."
           : "This will permanently delete this game. Players who have joined will be notified. This action cannot be undone.",
         confirmLabel: "Delete",

@@ -176,12 +176,12 @@ export const ActionList: React.FC<ActionListProps> = ({
     else if (key === "share_replacement_link" && replacePath) copyLink(replacePath);
     else if (key === "extend_deadline") setOpenDialog(key);
     else if (key === "join" && game.showShortGameJoinWarning) setOpenDialog(key);
-    else if (confirmationFor(key, member, game.sandbox)) setOpenDialog(key);
+    else if (confirmationFor(key, member, game)) setOpenDialog(key);
     else runMutation(key);
   };
 
   const confirmation = openDialog
-    ? confirmationFor(openDialog, member, game.sandbox)
+    ? confirmationFor(openDialog, member, game)
     : null;
   const closeDialog = (open: boolean) => !open && setOpenDialog(null);
   const primaryActions = actions.filter(action => ACTION_DISPLAY[action.key].primary);

@@ -895,6 +895,7 @@ class GameRetrieve(TypedDict):
     can_join: bool
     can_leave: bool
     can_withdraw: bool
+    is_first_year: bool
     can_delete: bool
     can_manage: bool
     can_create_channel: bool

@@ -19,16 +19,18 @@ import {
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 
-export const WITHDRAW_CONFIRMATION = {
+export const withdrawConfirmation = (isFirstYear: boolean) => ({
   title: "Withdraw from game",
-  description:
-    "Your seat will be left for another player to claim and you cannot rejoin this game. Your commitment rating is not affected.",
+  description: isFirstYear
+    ? "Withdrawing in the first year impacts your commitment score negatively. Your seat will be offered to a replacement. You cannot rejoin this game."
+    : "Your commitment rating is not affected. You cannot rejoin this game.",
   confirmLabel: "Withdraw",
-};
+});
 
 interface WithdrawGameActionProps {
   game: {
     id: string;
+    isFirstYear: boolean;
   };
 }
 
@@ -38,6 +40,7 @@ export const WithdrawGameAction: React.FC<WithdrawGameActionProps> = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
   const queryClient = useQueryClient();
   const withdrawMutation = useGameMemberWithdrawPartialUpdate();
+  const confirmation = withdrawConfirmation(game.isFirstYear);
 
   const handleWithdraw = async () => {
     setShowConfirmation(false);
@@ -66,15 +69,15 @@ export const WithdrawGameAction: React.FC<WithdrawGameActionProps> = ({
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{WITHDRAW_CONFIRMATION.title}</AlertDialogTitle>
+            <AlertDialogTitle>{confirmation.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              {WITHDRAW_CONFIRMATION.description}
+              {confirmation.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleWithdraw}>
-              {WITHDRAW_CONFIRMATION.confirmLabel}
+              {confirmation.confirmLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

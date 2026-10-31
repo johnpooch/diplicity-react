@@ -786,6 +786,7 @@ export interface GameRetrieve {
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly canWithdraw: boolean;
+  readonly isFirstYear: boolean;
   readonly canDelete: boolean;
   readonly canManage: boolean;
   readonly canCreateChannel: boolean;
