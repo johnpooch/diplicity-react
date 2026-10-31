@@ -43,8 +43,8 @@ interface ProfileCardProps {
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ avatar, name, joined }) => (
-  <Card className="py-3">
-    <CardContent className="flex items-center gap-4">
+  <Card className="overflow-hidden py-0">
+    <CardContent className="flex items-center gap-4 p-3">
       {avatar}
       <div className="min-w-0 flex-1">
         {name}
@@ -53,6 +53,27 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ avatar, name, joined }) => (
     </CardContent>
   </Card>
 );
+
+export const PlayerCommitmentSectionSkeleton: React.FC = () => (
+  <Section title="Commitment">
+    <Skeleton className="m-6 h-64" />
+  </Section>
+);
+
+export const PlayerCommitmentSection: React.FC<PlayerProfileContentProps> = ({
+  userId,
+}) => {
+  const { data: profile } = useUsersRetrieveSuspense(userId);
+
+  return (
+    <Section title="Commitment">
+      <PlayerCommitment
+        total={profile.commitmentTotal}
+        squares={profile.commitmentSquares}
+      />
+    </Section>
+  );
+};
 
 export const PlayerProfileContentSkeleton: React.FC = () => (
   <div className="space-y-4">
@@ -67,9 +88,7 @@ export const PlayerProfileContentSkeleton: React.FC = () => (
         <StatRow label="Finished" value={<Skeleton className="h-5 w-6" />} />
       </div>
     </Section>
-    <Section title="Commitment">
-      <Skeleton className="m-6 h-64" />
-    </Section>
+    <PlayerCommitmentSectionSkeleton />
   </div>
 );
 
@@ -110,12 +129,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
         </div>
       </Section>
 
-      <Section title="Commitment">
-        <PlayerCommitment
-          total={profile.commitmentTotal}
-          squares={profile.commitmentSquares}
-        />
-      </Section>
+      <PlayerCommitmentSection userId={userId} />
     </div>
   );
 };

@@ -5,6 +5,10 @@ import { GameDetailAppBar } from "./AppBar";
 import { ActionList } from "@/components/ActionList";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { Panel } from "@/components/Panel";
+import {
+  PlayerCommitmentSection,
+  PlayerCommitmentSectionSkeleton,
+} from "@/components/PlayerProfileContent";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -119,6 +123,7 @@ const MemberContent: React.FC = () => {
     phaseId: string;
     memberId: string;
   }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: member } = useGameMemberRetrieveSuspense(
     gameId,
     Number(memberId)
@@ -163,6 +168,11 @@ const MemberContent: React.FC = () => {
           <h2 className="text-sm font-medium text-muted-foreground">In this game</h2>
           <SettingsTable rows={gameRows} />
         </section>
+        {!game.anonymous && member.userId !== null && (
+          <Suspense fallback={<PlayerCommitmentSectionSkeleton />}>
+            <PlayerCommitmentSection userId={member.userId} />
+          </Suspense>
+        )}
         {member.nationPreferences !== null && (
           <section className="flex flex-col gap-2">
             <h2 className="text-sm font-medium text-muted-foreground">Your settings</h2>
@@ -224,7 +234,7 @@ const MemberScreen: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title="Player details"
+        title="Player Details"
         onNavigateBack={() =>
           navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
         }
