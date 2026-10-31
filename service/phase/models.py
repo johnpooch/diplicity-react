@@ -477,27 +477,6 @@ class PhaseManager(models.Manager):
 
         return surviving
 
-    def _recompute_commitment(self, phase):
-        from user_profile.commitment import recompute_commitment
-
-        if phase.game.sandbox or phase.game.private:
-            return
-
-        users = [
-            phase_state.member.user
-            for phase_state in phase.phase_states.select_related(
-                "member__user__profile"
-            )
-            if phase_state.has_possible_orders
-            and phase_state.member.user_id is not None
-        ]
-        for user in users:
-            try:
-                with transaction.atomic():
-                    recompute_commitment(user)
-            except Exception:
-                continue
-
     def _record_commitment(self, phase, civil_disorder_members):
         if phase.game.sandbox or phase.game.private:
             return
@@ -631,7 +610,6 @@ class PhaseManager(models.Manager):
             if phase.game.should_abandon():
                 self._notify_civil_disorder(phase, newly_cd_members)
                 self._record_commitment(phase, newly_cd_members)
-                self._recompute_commitment(phase)
                 phase.game.finish(GameStatus.ABANDONED)
                 phase.refresh_from_db()
                 return phase
@@ -645,7 +623,6 @@ class PhaseManager(models.Manager):
             self._check_eliminations(phase, new_phase)
             self._notify_civil_disorder(phase, surviving_cd_members)
             self._record_commitment(phase, surviving_cd_members)
-            self._recompute_commitment(phase)
 
             victory = Victory.objects.try_create_victory(new_phase)
 

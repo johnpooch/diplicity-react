@@ -131,11 +131,13 @@ class Command(BaseCommand):
             game.refresh_from_db()
             self.stdout.write(f"  {game.status:<10} {game.name} ({game.id})")
 
-        self.tester.profile.refresh_from_db()
+        commitment = Member.objects.commitment_totals([self.tester.id]).get(
+            self.tester.id, 0
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded {len(scenarios)} games. Log in as {TESTER_EMAIL} / {password} "
-                f"(commitment: {self.tester.profile.commitment})"
+                f"(commitment: {commitment})"
             )
         )
 

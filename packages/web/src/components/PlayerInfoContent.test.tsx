@@ -33,7 +33,6 @@ const buildMember = (overrides: Partial<Member> = {}): Member => ({
   picture: null,
   isCurrentUser: false,
   isBot: false,
-  commitment: null,
   nation: null,
   eliminated: false,
   kicked: false,

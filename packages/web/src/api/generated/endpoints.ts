@@ -114,8 +114,6 @@ export interface ChannelMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
-  /** @nullable */
-  readonly commitment: string | null;
   nation: Nation | null;
   readonly isGameMaster: boolean;
 }
@@ -340,8 +338,6 @@ export interface DrawVoteMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
-  /** @nullable */
-  readonly commitment: string | null;
   /** @nullable */
   nation: string | null;
 }
@@ -663,8 +659,6 @@ export interface Member {
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
   /** @nullable */
-  readonly commitment: string | null;
-  /** @nullable */
   readonly nation: string | null;
   readonly eliminated: boolean;
   readonly kicked: boolean;
@@ -950,8 +944,6 @@ export interface MemberDetail {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
-  /** @nullable */
-  readonly commitment: string | null;
   readonly isAdmin: boolean;
   /** @nullable */
   readonly nation: string | null;
@@ -1292,7 +1284,6 @@ export interface PatchedUserProfile {
   readonly picture?: string | null;
   readonly email?: string;
   readonly canCreateBotGames?: boolean;
-  readonly commitment?: string;
   readonly isModerator?: boolean;
   readonly canCreateCommittedGame?: boolean;
 }
@@ -1390,7 +1381,6 @@ export interface PublicUserProfile {
   readonly createdAt: string;
   readonly totalGames: number;
   readonly activeGames: number;
-  readonly commitment: string;
   readonly commitmentTotal: number;
   readonly commitmentBand: CommitmentBandEnum;
   readonly commitmentSquares: readonly CommitmentSquare[];
@@ -1456,7 +1446,6 @@ export interface UserProfile {
   readonly picture: string | null;
   readonly email: string;
   readonly canCreateBotGames: boolean;
-  readonly commitment: string;
   readonly isModerator: boolean;
   readonly canCreateCommittedGame: boolean;
 }

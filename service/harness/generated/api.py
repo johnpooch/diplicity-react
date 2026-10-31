@@ -83,7 +83,6 @@ class DrawVoteMember(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
-    commitment: str | None
     nation: str | None
 
 
@@ -370,7 +369,6 @@ class PatchedUserProfile(TypedDict):
     picture: NotRequired[str | None]
     email: NotRequired[str]
     can_create_bot_games: NotRequired[bool]
-    commitment: NotRequired[str]
     is_moderator: NotRequired[bool]
     can_create_committed_game: NotRequired[bool]
 
@@ -498,7 +496,6 @@ class UserProfile(TypedDict):
     picture: str | None
     email: str
     can_create_bot_games: bool
-    commitment: str
     is_moderator: bool
     can_create_committed_game: bool
 
@@ -589,7 +586,6 @@ class ChannelMember(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
-    commitment: str | None
     nation: Nation | None
     is_game_master: bool
 
@@ -709,7 +705,6 @@ class Member(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
-    commitment: str | None
     nation: str | None
     eliminated: bool
     kicked: bool
@@ -739,7 +734,6 @@ class MemberDetail(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
-    commitment: str | None
     is_admin: bool
     nation: str | None
     participation_status: ParticipationStatusEnum
@@ -823,7 +817,6 @@ class PublicUserProfile(TypedDict):
     created_at: str
     total_games: int
     active_games: int
-    commitment: str
     commitment_total: int
     commitment_band: CommitmentBandEnum
     commitment_squares: list[CommitmentSquare]

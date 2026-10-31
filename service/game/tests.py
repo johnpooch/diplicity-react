@@ -25,7 +25,6 @@ from common.constants import (
     OrderType,
     PhaseFrequency,
     UnitType,
-    Commitment,
     CommitmentRequirement,
     PressType,
     MemberKind,
@@ -6487,7 +6486,7 @@ class TestSeedStagingCommand:
         )
         assert login.status_code == status.HTTP_201_CREATED
         profile = client.get(reverse("user-profile"))
-        assert profile.data["commitment"] == Commitment.HIGH
+        assert profile.data["can_create_committed_game"]
         assert (
             len(finished),
             len(active),
