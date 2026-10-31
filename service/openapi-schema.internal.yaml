@@ -795,6 +795,37 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{game_id}/member/{member_id}/report/:
+    post:
+      operationId: game_member_report_create
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportMemberInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportOutput'
+          description: ''
   /game/{game_id}/member/join/:
     post:
       operationId: game_member_join_create
@@ -1923,6 +1954,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedMyGameList'
+          description: ''
+  /report/reasons/:
+    get:
+      operationId: report_reasons_list
+      tags:
+      - report
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReportReason'
           description: ''
   /sandbox-game/:
     post:
@@ -4002,8 +4049,16 @@ components:
           items:
             $ref: '#/components/schemas/MemberAction'
           readOnly: true
+        can_report:
+          type: boolean
+          readOnly: true
+        already_reported:
+          type: boolean
+          readOnly: true
       required:
       - actions
+      - already_reported
+      - can_report
       - commitment
       - id
       - is_admin
@@ -4828,6 +4883,18 @@ components:
       - picture
       - solo_wins
       - total_games
+    ReasonEnum:
+      enum:
+      - abuse_and_harassment
+      - multiple_accounts
+      - secret_teaming
+      - other
+      type: string
+      description: |-
+        * `abuse_and_harassment` - Abuse and harassment
+        * `multiple_accounts` - Multiple accounts
+        * `secret_teaming` - Secret teaming
+        * `other` - Other
     Register:
       type: object
       properties:
@@ -4846,6 +4913,65 @@ components:
       - display_name
       - email
       - password
+    ReportMemberInput:
+      type: object
+      properties:
+        reason:
+          $ref: '#/components/schemas/ReasonEnum'
+        note:
+          type: string
+          default: ''
+          maxLength: 1000
+      required:
+      - reason
+    ReportOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        reported_member:
+          type: integer
+          readOnly: true
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/ReasonEnum'
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+          maxLength: 1000
+        status:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - note
+      - reason
+      - reported_member
+      - status
+    ReportReason:
+      type: object
+      properties:
+        key:
+          allOf:
+          - $ref: '#/components/schemas/ReasonEnum'
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+      required:
+      - description
+      - key
+      - label
     ResultEnum:
       enum:
       - solo_victory

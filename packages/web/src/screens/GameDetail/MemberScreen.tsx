@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Link, useNavigate } from "react-router";
-import { ChevronRight, Star, Swords } from "lucide-react";
+import { ChevronRight, Flag, Star, Swords } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { ActionList } from "@/components/ActionList";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
@@ -8,6 +8,7 @@ import { Panel } from "@/components/Panel";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -145,44 +146,60 @@ const MemberContent: React.FC = () => {
   ];
 
   return (
-    <ActionList
-      gameId={gameId}
-      actions={member.actions}
-      member={member}
-      onMemberGone={() =>
-        navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
-      }
-    >
-      <PlayerCard
+    <div className="flex flex-col gap-4">
+      <ActionList
+        gameId={gameId}
+        actions={member.actions}
         member={member}
-        profilePath={`/game/${gameId}/phase/${phaseId}/player/${member.userId}?member=${member.id}`}
-      />
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">In this game</h2>
-        <SettingsTable rows={gameRows} />
-      </section>
-      {member.nationPreferences !== null && (
+        onMemberGone={() =>
+          navigate(`/game/${gameId}/phase/${phaseId}/player-info`)
+        }
+      >
+        <PlayerCard
+          member={member}
+          profilePath={`/game/${gameId}/phase/${phaseId}/player/${member.userId}?member=${member.id}`}
+        />
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">Your settings</h2>
-          <Card className="overflow-hidden py-0">
-            <Link
-              to={`/game/${gameId}/phase/${phaseId}/nation-preference`}
-              className="flex items-center justify-between gap-4 px-6 py-3 text-sm hover:bg-accent/50"
-            >
-              <span>Nation preferences</span>
-              <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
-                <span className="truncate">
-                  {member.nationPreferences.length > 0
-                    ? member.nationPreferences.join(", ")
-                    : "Not set"}
-                </span>
-                <ChevronRight className="size-4 shrink-0" />
-              </span>
-            </Link>
-          </Card>
+          <h2 className="text-sm font-medium text-muted-foreground">In this game</h2>
+          <SettingsTable rows={gameRows} />
         </section>
+        {member.nationPreferences !== null && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium text-muted-foreground">Your settings</h2>
+            <Card className="overflow-hidden py-0">
+              <Link
+                to={`/game/${gameId}/phase/${phaseId}/nation-preference`}
+                className="flex items-center justify-between gap-4 px-6 py-3 text-sm hover:bg-accent/50"
+              >
+                <span>Nation preferences</span>
+                <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
+                  <span className="truncate">
+                    {member.nationPreferences.length > 0
+                      ? member.nationPreferences.join(", ")
+                      : "Not set"}
+                  </span>
+                  <ChevronRight className="size-4 shrink-0" />
+                </span>
+              </Link>
+            </Card>
+          </section>
+        )}
+      </ActionList>
+      {member.canReport && (
+        <Button variant="secondary" asChild>
+          <Link to={`/game/${gameId}/phase/${phaseId}/member/${member.id}/report`}>
+            <Flag />
+            Report player
+          </Link>
+        </Button>
       )}
-    </ActionList>
+      {member.alreadyReported && (
+        <Button variant="secondary" disabled>
+          <Flag />
+          Report player
+        </Button>
+      )}
+    </div>
   );
 };
 

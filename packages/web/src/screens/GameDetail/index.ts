@@ -46,5 +46,9 @@ export const GameDetail = {
     "NationPreferenceScreen"
   ),
   MemberScreen: lazyScreen(() => import("./MemberScreen"), "MemberScreen"),
+  ReportMemberScreen: lazyScreen(
+    () => import("./ReportMemberScreen"),
+    "ReportMemberScreen"
+  ),
   ReplaceScreen: lazyScreen(() => import("./ReplaceScreen"), "ReplaceScreen"),
 };
