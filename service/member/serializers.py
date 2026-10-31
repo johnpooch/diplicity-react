@@ -115,7 +115,11 @@ class MemberSerializer(BaseMemberSerializer):
     commitment_band = serializers.SerializerMethodField()
 
     def _has_commitment(self, obj):
-        return obj.user is not None and not self._is_masked(obj)
+        return (
+            obj.user is not None
+            and not self._is_bot(obj)
+            and not self._get_game(obj).anonymous
+        )
 
     @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_commitment_total(self, obj):

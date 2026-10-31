@@ -175,6 +175,7 @@ export const PlayerInfoContent: React.FC = () => {
   };
 
   const isPending = game.status === "pending";
+  const showsCommitment = isPending || game.status === "mustering";
   const canAssignNations = game.actions.some(
     action => action.key === "assign_nations"
   );
@@ -449,11 +450,28 @@ export const PlayerInfoContent: React.FC = () => {
             </div>
           )}
 
+          {showsCommitment && member.commitmentTotal !== null && (
+            <span
+              className={cn(
+                "shrink-0 text-sm font-semibold tabular-nums",
+                member.commitmentTotal > 0 &&
+                  "text-emerald-700 dark:text-emerald-400",
+                member.commitmentTotal < 0 && "text-red-700 dark:text-red-400"
+              )}
+              aria-label={`Commitment: ${member.commitmentTotal}`}
+            >
+              {member.commitmentTotal > 0
+                ? `+${member.commitmentTotal}`
+                : member.commitmentTotal < 0
+                  ? `−${Math.abs(member.commitmentTotal)}`
+                  : "0"}
+            </span>
+          )}
+
           {path && (
             <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
           )}
         </div>
-
       </div>
     );
   };
