@@ -200,6 +200,15 @@ class CommitmentEvent:
 
     PHASE_KINDS = (SUBMITTED, NMR)
 
+    BREAKDOWN_ORDER = (
+        MUSTER_NO_SHOW,
+        SUBMITTED,
+        NMR,
+        CIVIL_DISORDER,
+        EARLY_WITHDRAWAL,
+        LATE_WITHDRAWAL,
+    )
+
 
 class CommitmentBand:
     DARK_RED = "dark_red"

@@ -17,6 +17,7 @@ from common.constants import (
     CommitmentRequirement,
     CommitmentShade,
     GameStatus,
+    MemberKind,
     PhaseStatus,
     PhaseType,
 )
@@ -126,27 +127,94 @@ class TestPublicUserProfileCommitment:
         assert response.data["commitment_band"] == CommitmentBand.RED
         assert response.data["commitment_squares"] == [
             {
+                "anonymous": False,
+                "game_name": "Commitment Game",
                 "submitted": 6,
                 "missed": 1,
-                "events": [],
+                "breakdown": [
+                    {"kind": CommitmentEvent.SUBMITTED, "count": 6, "points": 6},
+                    {"kind": CommitmentEvent.NMR, "count": 1, "points": -2},
+                ],
                 "points": 4,
                 "shade": CommitmentShade.LIGHT_GREEN,
             },
             {
+                "anonymous": False,
+                "game_name": "Commitment Game",
                 "submitted": 1,
                 "missed": 2,
-                "events": [CommitmentEvent.CIVIL_DISORDER],
+                "breakdown": [
+                    {"kind": CommitmentEvent.SUBMITTED, "count": 1, "points": 1},
+                    {"kind": CommitmentEvent.NMR, "count": 2, "points": -4},
+                    {
+                        "kind": CommitmentEvent.CIVIL_DISORDER,
+                        "count": 1,
+                        "points": -10,
+                    },
+                ],
                 "points": -13,
                 "shade": CommitmentShade.RED,
             },
             {
+                "anonymous": False,
+                "game_name": "Commitment Game",
                 "submitted": 0,
                 "missed": 0,
-                "events": [],
+                "breakdown": [],
                 "points": 0,
                 "shade": CommitmentShade.GREY,
             },
         ]
+
+    @pytest.mark.django_db
+    def test_breakdown_lists_events_in_the_order_they_happen_in_a_game(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        member = self._member(secondary_user, classical_variant)
+        self._record(
+            member,
+            CommitmentEvent.EARLY_WITHDRAWAL,
+            CommitmentEvent.NMR,
+            CommitmentEvent.SUBMITTED,
+            CommitmentEvent.MUSTER_NO_SHOW,
+        )
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert [
+            row["kind"] for row in response.data["commitment_squares"][0]["breakdown"]
+        ] == [
+            CommitmentEvent.MUSTER_NO_SHOW,
+            CommitmentEvent.SUBMITTED,
+            CommitmentEvent.NMR,
+            CommitmentEvent.EARLY_WITHDRAWAL,
+        ]
+
+    @pytest.mark.django_db
+    def test_anonymous_game_square_hides_the_game_name(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        self._member(secondary_user, classical_variant, anonymous=True)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        square = response.data["commitment_squares"][0]
+        assert square["anonymous"] is True
+        assert square["game_name"] is None
+
+    @pytest.mark.django_db
+    def test_finished_anonymous_game_square_shows_the_game_name(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        member = self._member(secondary_user, classical_variant, anonymous=True)
+        member.game.status = GameStatus.COMPLETED
+        member.game.save()
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        square = response.data["commitment_squares"][0]
+        assert square["anonymous"] is False
+        assert square["game_name"] == "Commitment Game"
 
     @pytest.mark.django_db
     @pytest.mark.parametrize("excluded", ["private", "sandbox"])
@@ -1102,358 +1170,89 @@ class TestPublicUserProfileRetrieveView:
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 0
-        assert response.data["solo_wins"] == 0
-        assert response.data["draws"] == 0
-        assert response.data["losses"] == 0
-        assert response.data["nmr_rate"] == 0.0
-        assert response.data["cd_rate"] == 0.0
+        assert response.data["active_games"] == 0
+        for removed in ["solo_wins", "draws", "losses", "nmr_rate", "cd_rate"]:
+            assert removed not in response.data
 
     @pytest.mark.django_db
-    def test_stats_with_completed_games(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
+    def test_counts_finished_and_active_games(
+        self, authenticated_client, secondary_user, classical_variant
     ):
-        user = User.objects.create_user(
-            username="statsuser", email="stats@example.com", password="testpass123"
-        )
-        UserProfile.objects.create(user=user, name="Stats User")
-
-        for i in range(10):
+        def join(game_status, **member_fields):
             game = Game.objects.create(
-                name=f"Completed Game {i}",
-                variant=classical_variant,
-                status=GameStatus.COMPLETED,
-                finished_at=timezone.now(),
+                name="Stats Game", variant=classical_variant, status=game_status
             )
-            member = game.members.create(
-                user=user,
-                nation=classical_england_nation,
-                drew=(i in [1, 2]),
-            )
-            phase = game.phases.create(
-                variant=classical_variant,
-                season="Spring",
-                year=1901,
-                type=PhaseType.MOVEMENT,
-                status=PhaseStatus.COMPLETED,
-                ordinal=1,
-            )
-            phase.phase_states.create(
-                member=member,
-                has_possible_orders=True,
-                orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
-            )
-            if i == 0:
-                victory = Victory.objects.create(game=game, winning_phase=phase)
-                victory.members.add(member)
+            return game.members.create(user=secondary_user, **member_fields)
 
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        join(GameStatus.COMPLETED)
+        join(GameStatus.COMPLETED, drew=True)
+        join(GameStatus.COMPLETED, kind=MemberKind.GAME_MASTER)
+        join(GameStatus.ACTIVE)
+        join(GameStatus.ACTIVE, civil_disorder_at=timezone.now())
+        join(GameStatus.ACTIVE, withdrawn_at=timezone.now())
+        join(GameStatus.ACTIVE, removed_at=timezone.now())
+        join(GameStatus.PENDING)
+
+        url = reverse("public-user-profile", kwargs={"user_id": secondary_user.id})
         response = authenticated_client.get(url)
 
-        assert response.data["total_games"] == 10
-        assert response.data["solo_wins"] == 1
-        assert response.data["draws"] == 2
-        assert response.data["losses"] == 7
-        assert response.data["nmr_rate"] == 0.0
-        assert response.data["cd_rate"] == 0.0
+        assert response.data["total_games"] == 2
+        assert response.data["active_games"] == 1
 
     @pytest.mark.django_db
-    def test_nmr_rate_calculation(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
-    ):
-        user = User.objects.create_user(
-            username="nmruser", email="nmr@example.com", password="testpass123"
-        )
-        UserProfile.objects.create(user=user, name="NMR User")
-
-        for i in range(10):
-            game = Game.objects.create(
-                name=f"NMR Game {i}",
-                variant=classical_variant,
-                status=GameStatus.COMPLETED,
-                finished_at=timezone.now(),
-            )
-            member = game.members.create(user=user, nation=classical_england_nation)
-            phase = game.phases.create(
-                variant=classical_variant,
-                season="Spring",
-                year=1901,
-                type=PhaseType.MOVEMENT,
-                status=PhaseStatus.COMPLETED,
-                ordinal=1,
-            )
-            outcome = (
-                PhaseState.OrdersOutcome.NMR
-                if i < 3
-                else PhaseState.OrdersOutcome.RECEIVED
-            )
-            phase.phase_states.create(
-                member=member,
-                has_possible_orders=True,
-                orders_outcome=outcome,
-            )
-
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
-        response = authenticated_client.get(url)
-
-        assert response.data["nmr_rate"] == 0.3
-
-    @pytest.mark.django_db
-    def test_cd_rate_calculation(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
-    ):
-        user = User.objects.create_user(
-            username="cduser", email="cd@example.com", password="testpass123"
-        )
-        UserProfile.objects.create(user=user, name="CD User")
-
-        for i in range(10):
-            game = Game.objects.create(
-                name=f"CD Game {i}",
-                variant=classical_variant,
-                status=GameStatus.COMPLETED,
-                finished_at=timezone.now(),
-            )
-            member = game.members.create(
-                user=user,
-                nation=classical_england_nation,
-                civil_disorder_at=timezone.now() if i < 2 else None,
-            )
-            phase = game.phases.create(
-                variant=classical_variant,
-                season="Spring",
-                year=1901,
-                type=PhaseType.MOVEMENT,
-                status=PhaseStatus.COMPLETED,
-                ordinal=1,
-            )
-            phase.phase_states.create(
-                member=member,
-                has_possible_orders=True,
-                orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
-            )
-
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
-        response = authenticated_client.get(url)
-
-        assert response.data["cd_rate"] == 0.2
-
-    @pytest.mark.django_db
+    @pytest.mark.parametrize("game_status", [GameStatus.ACTIVE, GameStatus.COMPLETED])
     def test_sandbox_games_excluded_from_stats(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
+        self, authenticated_client, secondary_user, classical_variant, game_status
     ):
-        user = User.objects.create_user(
-            username="sandboxuser", email="sandbox@example.com", password="testpass123"
-        )
-        UserProfile.objects.create(user=user, name="Sandbox User")
-
         game = Game.objects.create(
             name="Sandbox Game",
             variant=classical_variant,
-            status=GameStatus.COMPLETED,
-            finished_at=timezone.now(),
+            status=game_status,
             sandbox=True,
         )
-        member = game.members.create(user=user, nation=classical_england_nation)
-        phase = game.phases.create(
-            variant=classical_variant,
-            season="Spring",
-            year=1901,
-            type=PhaseType.MOVEMENT,
-            status=PhaseStatus.COMPLETED,
-            ordinal=1,
-        )
-        victory = Victory.objects.create(game=game, winning_phase=phase)
-        victory.members.add(member)
+        game.members.create(user=secondary_user)
 
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        url = reverse("public-user-profile", kwargs={"user_id": secondary_user.id})
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 0
-        assert response.data["solo_wins"] == 0
-
-    @pytest.mark.django_db
-    def test_draw_with_solo_victory_counted_as_draw_not_solo_win(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
-    ):
-        user = User.objects.create_user(
-            username="drawsolouser",
-            email="drawsolo@example.com",
-            password="testpass123",
-        )
-        UserProfile.objects.create(user=user, name="Draw Solo User")
-
-        game = Game.objects.create(
-            name="Draw With Solo Victory",
-            variant=classical_variant,
-            status=GameStatus.COMPLETED,
-            finished_at=timezone.now(),
-        )
-        member = game.members.create(
-            user=user,
-            nation=classical_england_nation,
-            drew=True,
-        )
-        phase = game.phases.create(
-            variant=classical_variant,
-            season="Spring",
-            year=1901,
-            type=PhaseType.MOVEMENT,
-            status=PhaseStatus.COMPLETED,
-            ordinal=1,
-        )
-        victory = Victory.objects.create(game=game, winning_phase=phase)
-        victory.members.add(member)
-
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
-        response = authenticated_client.get(url)
-
-        assert response.data["total_games"] == 1
-        assert response.data["solo_wins"] == 0
-        assert response.data["draws"] == 1
-        assert response.data["losses"] == 0
+        assert response.data["active_games"] == 0
 
     @pytest.mark.django_db
     def test_kicked_members_excluded_from_stats(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
+        self, authenticated_client, secondary_user, classical_variant
     ):
-        user = User.objects.create_user(
-            username="kickeduser", email="kicked@example.com", password="testpass123"
-        )
-        UserProfile.objects.create(user=user, name="Kicked User")
-
         game = Game.objects.create(
             name="Kicked Game",
             variant=classical_variant,
             status=GameStatus.COMPLETED,
-            finished_at=timezone.now(),
         )
-        game.members.create(
-            user=user, nation=classical_england_nation, removed_at=timezone.now()
-        )
+        game.members.create(user=secondary_user, removed_at=timezone.now())
 
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        url = reverse("public-user-profile", kwargs={"user_id": secondary_user.id})
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 0
 
     @pytest.mark.django_db
-    def test_withdrawn_game_counts_as_a_loss_and_skips_unrated_phases(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
+    def test_withdrawn_game_counts_as_finished(
+        self, authenticated_client, secondary_user, classical_variant
     ):
-        user = User.objects.create_user(
-            username="withdrawnuser",
-            email="withdrawn@example.com",
-            password="testpass123",
-        )
-        UserProfile.objects.create(user=user, name="Withdrawn User")
-
         game = Game.objects.create(
             name="Withdrawn Game",
             variant=classical_variant,
             status=GameStatus.COMPLETED,
-            finished_at=timezone.now(),
         )
-        member = game.members.create(
-            user=user,
-            nation=classical_england_nation,
+        game.members.create(
+            user=secondary_user,
             removed_at=timezone.now(),
             withdrawn_at=timezone.now(),
         )
-        for ordinal, outcome in enumerate([RECEIVED, NMR, None], start=1):
-            phase = game.phases.create(
-                variant=classical_variant,
-                season="Spring",
-                year=1900 + ordinal,
-                type=PhaseType.MOVEMENT,
-                status=PhaseStatus.COMPLETED,
-                ordinal=ordinal,
-            )
-            phase.phase_states.create(
-                member=member, has_possible_orders=True, orders_outcome=outcome
-            )
 
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        url = reverse("public-user-profile", kwargs={"user_id": secondary_user.id})
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 1
-        assert response.data["losses"] == 1
-        assert response.data["nmr_rate"] == 0.5
-        assert response.data["cd_rate"] == 0.0
-
-    @pytest.mark.django_db
-    def test_retreat_phase_nmrs_count_toward_nmr_rate(
-        self,
-        authenticated_client,
-        classical_variant,
-        classical_england_nation,
-    ):
-        user = User.objects.create_user(
-            username="movementuser",
-            email="movement@example.com",
-            password="testpass123",
-        )
-        UserProfile.objects.create(user=user, name="Movement User")
-
-        for i in range(10):
-            game = Game.objects.create(
-                name=f"Movement Game {i}",
-                variant=classical_variant,
-                status=GameStatus.COMPLETED,
-                finished_at=timezone.now(),
-            )
-            member = game.members.create(user=user, nation=classical_england_nation)
-            movement_phase = game.phases.create(
-                variant=classical_variant,
-                season="Spring",
-                year=1901,
-                type=PhaseType.MOVEMENT,
-                status=PhaseStatus.COMPLETED,
-                ordinal=1,
-            )
-            movement_phase.phase_states.create(
-                member=member,
-                has_possible_orders=True,
-                orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
-            )
-            retreat_phase = game.phases.create(
-                variant=classical_variant,
-                season="Spring",
-                year=1901,
-                type=PhaseType.RETREAT,
-                status=PhaseStatus.COMPLETED,
-                ordinal=2,
-            )
-            retreat_phase.phase_states.create(
-                member=member,
-                has_possible_orders=True,
-                orders_outcome=PhaseState.OrdersOutcome.NMR,
-            )
-
-        url = reverse("public-user-profile", kwargs={"user_id": user.id})
-        response = authenticated_client.get(url)
-
-        assert response.data["nmr_rate"] == 0.5
 
     @pytest.mark.django_db
     def test_can_view_other_users_profile(

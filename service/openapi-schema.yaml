@@ -2751,6 +2751,23 @@ components:
         * `light_green` - Light green
         * `green` - Green
         * `dark_green` - Dark green
+    CommitmentBreakdown:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/CommitmentEventKindEnum'
+          readOnly: true
+        count:
+          type: integer
+          readOnly: true
+        points:
+          type: integer
+          readOnly: true
+      required:
+      - count
+      - kind
+      - points
     CommitmentEligibilityEnum:
       enum:
       - eligible
@@ -2761,6 +2778,22 @@ components:
         * `eligible` - eligible
         * `committed_locked` - committed_locked
         * `low_locked` - low_locked
+    CommitmentEventKindEnum:
+      enum:
+      - submitted
+      - nmr
+      - civil_disorder
+      - early_withdrawal
+      - late_withdrawal
+      - muster_no_show
+      type: string
+      description: |-
+        * `submitted` - Submitted
+        * `nmr` - NMR
+        * `civil_disorder` - Civil disorder
+        * `early_withdrawal` - Early withdrawal
+        * `late_withdrawal` - Late withdrawal
+        * `muster_no_show` - Muster no-show
     CommitmentRequirementEnum:
       enum:
       - open
@@ -2772,16 +2805,23 @@ components:
     CommitmentSquare:
       type: object
       properties:
+        anonymous:
+          type: boolean
+          readOnly: true
+        gameName:
+          type: string
+          nullable: true
+          readOnly: true
         submitted:
           type: integer
           readOnly: true
         missed:
           type: integer
           readOnly: true
-        events:
+        breakdown:
           type: array
           items:
-            $ref: '#/components/schemas/EventsEnum'
+            $ref: '#/components/schemas/CommitmentBreakdown'
           readOnly: true
         points:
           type: integer
@@ -2791,7 +2831,9 @@ components:
           - $ref: '#/components/schemas/ShadeEnum'
           readOnly: true
       required:
-      - events
+      - anonymous
+      - breakdown
+      - gameName
       - missed
       - points
       - shade
@@ -2980,22 +3022,6 @@ components:
       - name
       - password
       - refreshToken
-    EventsEnum:
-      enum:
-      - submitted
-      - nmr
-      - civil_disorder
-      - early_withdrawal
-      - late_withdrawal
-      - muster_no_show
-      type: string
-      description: |-
-        * `submitted` - Submitted
-        * `nmr` - NMR
-        * `civil_disorder` - Civil disorder
-        * `early_withdrawal` - Early withdrawal
-        * `late_withdrawal` - Late withdrawal
-        * `muster_no_show` - Muster no-show
     FCMDevice:
       type: object
       properties:
@@ -4836,22 +4862,8 @@ components:
         totalGames:
           type: integer
           readOnly: true
-        soloWins:
+        activeGames:
           type: integer
-          readOnly: true
-        draws:
-          type: integer
-          readOnly: true
-        losses:
-          type: integer
-          readOnly: true
-        nmrRate:
-          type: number
-          format: double
-          readOnly: true
-        cdRate:
-          type: number
-          format: double
           readOnly: true
         commitment:
           type: string
@@ -4869,19 +4881,15 @@ components:
             $ref: '#/components/schemas/CommitmentSquare'
           readOnly: true
       required:
-      - cdRate
+      - activeGames
       - commitment
       - commitmentBand
       - commitmentSquares
       - commitmentTotal
       - createdAt
-      - draws
       - id
-      - losses
       - name
-      - nmrRate
       - picture
-      - soloWins
       - totalGames
     ReasonEnum:
       enum:
