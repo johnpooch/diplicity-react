@@ -6,11 +6,14 @@ from django.apps import apps
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import conditional_page
-from rest_framework import status
+from drf_spectacular.openapi import AutoSchema
+from rest_framework import generics, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from common.constants import PhaseStatus
 from common.etag import if_none_match
+from common.policies import Refused
 
 Phase = apps.get_model("phase", "Phase")
 Game = apps.get_model("game", "Game")
@@ -56,6 +59,85 @@ def resolve_phase(request, game_id, phase_id):
             Phase.objects.defer("options"), id=phase_id, game_id=game_id
         )
     return cache[key]
+
+
+class RefusalMixin:
+    def handle_exception(self, exc):
+        if isinstance(exc, Refused):
+            exc = PermissionDenied({"code": exc.decision.reason})
+        return super().handle_exception(exc)
+
+
+class LoaderMixin:
+    def get_loader(self):
+        return self.get_serializer_class().Meta.loader
+
+
+class LoaderListView(LoaderMixin, generics.ListAPIView):
+    def get_queryset(self):
+        return self.get_loader().get_queryset(self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        instances = self.get_loader().hydrate(
+            queryset if page is None else page, request.user
+        )
+        data = self.get_serializer(instances, many=True).data
+        return Response(data) if page is None else self.get_paginated_response(data)
+
+
+class ActionSchema(AutoSchema):
+    def get_request_serializer(self):
+        return self.view.input_serializer_class
+
+    def _get_request_for_media_type(self, serializer, direction="request"):
+        if self.method != "PATCH":
+            return super()._get_request_for_media_type(serializer, direction)
+        self.method = "PUT"
+        try:
+            return super()._get_request_for_media_type(serializer, direction)
+        finally:
+            self.method = "PATCH"
+
+
+class ActionMixin(RefusalMixin, LoaderMixin):
+    schema = ActionSchema()
+    input_serializer_class = None
+    success_status = status.HTTP_200_OK
+
+    def act(self, *args):
+        result = self.perform(*args, **self.get_input())
+        instance = self.get_loader().get(result.pk, self.request.user)
+        return Response(self.get_serializer(instance).data, status=self.success_status)
+
+    def get_input(self):
+        if self.input_serializer_class is None:
+            return {}
+        serializer = self.input_serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        return dict(serializer.validated_data)
+
+
+class ActionView(ActionMixin, generics.GenericAPIView):
+    http_method_names = ["post", "options"]
+
+    def post(self, request, *args, **kwargs):
+        return self.act(self.get_object())
+
+    put = post
+    patch = post
+
+    def delete(self, request, *args, **kwargs):
+        self.perform(self.get_object(), **self.get_input())
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CreateActionView(ActionMixin, generics.CreateAPIView):
+    success_status = status.HTTP_201_CREATED
+
+    def post(self, request, *args, **kwargs):
+        return self.act()
 
 
 class SelectedGameMixin:

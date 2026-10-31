@@ -56,6 +56,12 @@ class MemberQuerySet(models.QuerySet):
     def holding_seat(self):
         return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
 
+    def seat_of(self, user):
+        if user.pk is None:
+            return None
+        occupied = self.players().holding_seat().exclude(pk__in=self.vacant())
+        return occupied.filter(user_id=user.pk).first()
+
     def with_commitment_square(self):
         return self.annotate(
             commitment_square=commitment_points("commitment_entries__kind")
@@ -215,7 +221,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             if phase is not None:
                 self._vacate_phase(member, phase, orders_confirmed=True)
                 Phase.objects.arm_resolution(phase)
-                DrawProposal.objects.apply_withdrawal(member, phase)
+                DrawProposal.objects.release_member(phase, member)
 
             game.refresh_from_db(fields=["status"])
             if game.status == GameStatus.ACTIVE:

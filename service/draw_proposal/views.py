@@ -1,103 +1,69 @@
-from rest_framework import permissions, generics
-from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from common.permissions import (
-    IsActiveGame,
-    IsActiveOrCompletedGame,
-    IsActiveGamePlayer,
-    IsCurrentPhaseActive,
-    IsNotSandboxGame,
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework import permissions
+
+from common.views import (
+    ActionView,
+    CreateActionView,
+    CurrentGameMemberMixin,
+    LoaderListView,
+    SelectedGameMixin,
 )
-from common.views import SelectedGameMixin, CurrentGameMemberMixin
-from .constants import DrawProposalStatus
+
 from .models import DrawProposal
-from .serializers import DrawProposalSerializer, DrawVoteUpdateSerializer
+from .serializers import DrawProposalOutputSerializer, VoteDrawProposalInputSerializer
 
 
-class DrawProposalListView(
-    SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView
-):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame]
-    serializer_class = DrawProposalSerializer
+class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, LoaderListView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DrawProposalOutputSerializer
 
     def get_queryset(self):
-        return (
-            DrawProposal.objects.for_game(self.get_game())
-            .order_by("-created_at")
-            .with_related_data()
-        )
+        proposals = super().get_queryset().for_game(self.get_game())
+        return proposals.in_started_games().order_by("-created_at")
 
 
+@extend_schema(request=DrawProposalOutputSerializer)
 class DrawProposalCreateView(
-    SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView
+    SelectedGameMixin, CurrentGameMemberMixin, CreateActionView
 ):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveGame,
-        IsActiveGamePlayer,
-        IsNotSandboxGame,
-        IsCurrentPhaseActive,
-    ]
-    serializer_class = DrawProposalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DrawProposalOutputSerializer
+
+    def perform(self):
+        return DrawProposal.objects.propose(self.get_game(), self.request.user)
 
 
-class DrawProposalVoteView(
-    SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView
-):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveGame,
-        IsActiveGamePlayer,
-        IsNotSandboxGame,
-        IsCurrentPhaseActive,
-    ]
-    serializer_class = DrawVoteUpdateSerializer
+@extend_schema_view(
+    put=extend_schema(responses=VoteDrawProposalInputSerializer),
+    patch=extend_schema(
+        request=VoteDrawProposalInputSerializer(partial=True),
+        responses=VoteDrawProposalInputSerializer,
+    ),
+)
+class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, ActionView):
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["put", "patch", "options"]
+    queryset = DrawProposal.objects.all()
+    lookup_url_kwarg = "proposal_id"
+    input_serializer_class = VoteDrawProposalInputSerializer
+    serializer_class = DrawProposalOutputSerializer
 
-    def get_object(self):
-        proposal_id = self.kwargs.get("proposal_id")
-        return get_object_or_404(
-            DrawProposal.objects.with_related_data(),
-            id=proposal_id,
-        )
+    def get_queryset(self):
+        return super().get_queryset().for_game(self.get_game())
 
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        instance.refresh_from_db()
-        response_serializer = DrawProposalSerializer(
-            instance, context=self.get_serializer_context()
-        )
-        return Response(response_serializer.data)
+    def perform(self, proposal, accepted):
+        return DrawProposal.objects.vote(proposal, self.request.user, accepted)
 
 
-class DrawProposalCancelView(
-    SelectedGameMixin, CurrentGameMemberMixin, generics.DestroyAPIView
-):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveGame,
-        IsActiveGamePlayer,
-        IsNotSandboxGame,
-    ]
-    serializer_class = DrawProposalSerializer
+class DrawProposalCancelView(SelectedGameMixin, ActionView):
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["delete", "options"]
+    queryset = DrawProposal.objects.all()
+    lookup_url_kwarg = "proposal_id"
+    serializer_class = DrawProposalOutputSerializer
 
-    def get_object(self):
-        current_member = self.get_current_game_member()
-        proposal_id = self.kwargs.get("proposal_id")
-        return get_object_or_404(
-            DrawProposal,
-            id=proposal_id,
-            created_by=current_member,
-            cancelled_at__isnull=True,
-        )
+    def get_queryset(self):
+        return super().get_queryset().for_game(self.get_game())
 
-    def perform_destroy(self, instance):
-        if instance.status != DrawProposalStatus.PENDING:
-            raise ValidationError("Only a pending draw proposal can be cancelled.")
-        instance.cancelled_at = timezone.now()
-        instance.save()
+    def perform(self, proposal):
+        return DrawProposal.objects.cancel(proposal, self.request.user)

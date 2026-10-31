@@ -1,135 +1,29 @@
-from django.db import models, transaction
+from django.db import models
 from django.utils import timezone
-from django.db.models import Prefetch
+
 from common.models import BaseModel
-from common.constants import GameStatus
-from draw_proposal.constants import DrawProposalStatus
-from emit import emit
-from phase.models import Phase
-from victory.models import Victory
 
-
-class DrawProposalQuerySet(models.QuerySet):
-    def active(self):
-        return self.filter(cancelled_at__isnull=True)
-
-    def for_game(self, game):
-        return self.filter(game=game)
-
-    def pending_for_phase(self, phase):
-        return (
-            self.active()
-            .filter(phase=phase, votes__accepted__isnull=True)
-            .exclude(votes__accepted=False)
-            .distinct()
-        )
-
-    def with_related_data(self):
-        return self.select_related(
-            "game",
-            "created_by__user__profile__uploaded_picture",
-            "created_by__nation",
-            "phase",
-        ).prefetch_related(
-            Prefetch(
-                "game__phases", queryset=Phase.objects.only("id", "game_id", "ordinal")
-            ),
-            "votes__member__user__profile__uploaded_picture",
-            "votes__member__nation",
-        )
-
-
-class DrawProposalManager(models.Manager):
-    def get_queryset(self):
-        return DrawProposalQuerySet(self.model, using=self._db)
-
-    def active(self):
-        return self.get_queryset().active()
-
-    def for_game(self, game):
-        return self.get_queryset().for_game(game)
-
-    def pending_for_phase(self, phase):
-        return self.get_queryset().pending_for_phase(phase)
-
-    def with_related_data(self):
-        return self.get_queryset().with_related_data()
-
-    def create_proposal(self, game, created_by):
-        phase = game.current_phase
-
-        all_active_members = list(
-            game.members.players().not_replaced().filter(eliminated_at__isnull=True)
-        )
-
-        proposal = self.create(
-            game=game,
-            created_by=created_by,
-            phase=phase,
-        )
-
-        emit("draw_proposal", draw_proposal=proposal)
-
-        votes_to_create = []
-        for member in all_active_members:
-            if member.vacant:
-                votes_to_create.append(
-                    DrawVote(
-                        proposal=proposal,
-                        member=member,
-                        included=False,
-                        accepted=True,
-                    )
-                )
-            else:
-                votes_to_create.append(
-                    DrawVote(
-                        proposal=proposal,
-                        member=member,
-                        included=True,
-                        accepted=True if member.id == created_by.id else None,
-                    )
-                )
-
-        DrawVote.objects.bulk_create(votes_to_create)
-
-        # If every active member's vote is already True (e.g. proposer holds the
-        # only occupied seat, so all votes are auto-True), the proposal
-        # is already ACCEPTED at creation time and needs to be processed.
-        if proposal.status == DrawProposalStatus.ACCEPTED:
-            proposal.process_acceptance()
-
-        return proposal
-
-    def apply_withdrawal(self, member, phase):
-        pending = list(self.pending_for_phase(phase))
-        own = [proposal for proposal in pending if proposal.created_by_id == member.id]
-        others = [
-            proposal for proposal in pending if proposal.created_by_id != member.id
-        ]
-
-        self.filter(id__in=[proposal.id for proposal in own]).update(
-            cancelled_at=timezone.now()
-        )
-        DrawVote.objects.filter(proposal__in=others, member=member).update(
-            accepted=True, included=False
-        )
-
-        for proposal in others:
-            proposal.process_acceptance()
+from .constants import DrawProposalStatus
+from .managers import DrawProposalManager
 
 
 class DrawProposal(BaseModel):
     objects = DrawProposalManager()
 
     game = models.ForeignKey(
-        "game.Game", related_name="draw_proposals", on_delete=models.CASCADE
+        "game.Game",
+        related_name="draw_proposals",
+        on_delete=models.CASCADE,
     )
     created_by = models.ForeignKey(
-        "member.Member", related_name="created_draw_proposals", on_delete=models.CASCADE
+        "member.Member",
+        related_name="created_draw_proposals",
+        on_delete=models.CASCADE,
     )
     phase = models.ForeignKey(
-        "phase.Phase", related_name="draw_proposals", on_delete=models.CASCADE
+        "phase.Phase",
+        related_name="draw_proposals",
+        on_delete=models.CASCADE,
     )
     cancelled_at = models.DateTimeField(null=True, blank=True)
 
@@ -149,11 +43,11 @@ class DrawProposal(BaseModel):
         if self.cancelled:
             return DrawProposalStatus.CANCELLED
         votes = list(self.votes.all())
-        if any(v.accepted is False for v in votes):
+        if any(vote.accepted is False for vote in votes):
             return DrawProposalStatus.REJECTED
         if self.phase != self.game.current_phase:
             return DrawProposalStatus.EXPIRED
-        if all(v.accepted is True for v in votes):
+        if all(vote.accepted is True for vote in votes):
             return DrawProposalStatus.ACCEPTED
         return DrawProposalStatus.PENDING
 
@@ -161,38 +55,58 @@ class DrawProposal(BaseModel):
     def included_members(self):
         return [vote.member for vote in self.votes.all() if vote.included]
 
-    def process_acceptance(self):
-        if self.status != DrawProposalStatus.ACCEPTED:
-            return None
+    @property
+    def included_member_ids(self):
+        return [vote.member_id for vote in self.votes.all() if vote.included]
 
-        with transaction.atomic():
-            if Phase.objects.lock_if_active(self.phase_id) is None:
-                return None
+    @property
+    def accepted_count(self):
+        return sum(
+            1 for vote in self.votes.all() if vote.included and vote.accepted is True
+        )
 
-            victory = Victory.objects.create(
-                game=self.game,
-                winning_phase=self.phase,
+    @property
+    def rejected_count(self):
+        return sum(1 for vote in self.votes.all() if vote.accepted is False)
+
+    @property
+    def pending_count(self):
+        return sum(1 for vote in self.votes.all() if vote.accepted is None)
+
+    @property
+    def total_votes(self):
+        return sum(1 for vote in self.votes.all() if vote.included)
+
+    def create_initial_votes(self):
+        members = self.game.members.players().not_replaced()
+        votes = [
+            DrawVote(
+                proposal=self,
+                member=member,
+                included=not member.vacant,
+                accepted=(
+                    True if member.vacant or member.id == self.created_by_id else None
+                ),
             )
+            for member in members.filter(eliminated_at__isnull=True)
+        ]
+        return DrawVote.objects.bulk_create(votes)
 
-            included_members = self.included_members
-            victory.members.set(included_members)
-
-            for member in included_members:
-                member.drew = True
-                member.save()
-
-            self.game.finish(GameStatus.COMPLETED)
-            self.game.emit_game_ended()
-
-            return victory
+    def cancel(self):
+        self.cancelled_at = timezone.now()
+        self.save(update_fields=["cancelled_at", "updated_at"])
 
 
 class DrawVote(BaseModel):
     proposal = models.ForeignKey(
-        DrawProposal, related_name="votes", on_delete=models.CASCADE
+        DrawProposal,
+        related_name="votes",
+        on_delete=models.CASCADE,
     )
     member = models.ForeignKey(
-        "member.Member", related_name="draw_votes", on_delete=models.CASCADE
+        "member.Member",
+        related_name="draw_votes",
+        on_delete=models.CASCADE,
     )
     included = models.BooleanField()
     accepted = models.BooleanField(null=True)
@@ -203,3 +117,12 @@ class DrawVote(BaseModel):
             models.Index(fields=["proposal"]),
             models.Index(fields=["member"]),
         ]
+
+    def cast(self, accepted):
+        self.accepted = accepted
+        self.save(update_fields=["accepted", "updated_at"])
+
+    def release(self):
+        self.accepted = True
+        self.included = False
+        self.save(update_fields=["accepted", "included", "updated_at"])

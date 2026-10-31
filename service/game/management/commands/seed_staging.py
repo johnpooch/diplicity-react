@@ -355,11 +355,9 @@ class Command(BaseCommand):
         )
         self._start(game)
         self._civil_disorder(game, self.players[4:6])
-        proposal = DrawProposal.objects.create_proposal(
-            game=game, created_by=self._member(game, self.tester)
-        )
+        proposal = DrawProposal.objects.propose(game, self.tester)
         proposal.votes.filter(accepted__isnull=True).update(accepted=True)
-        proposal.process_acceptance()
+        DrawProposal.objects.conclude(proposal)
         return game
 
     def _seed_finished_abandoned(self):
@@ -523,13 +521,9 @@ class Command(BaseCommand):
         )
         self._start(game)
         self._advance(game)
-        rejected = DrawProposal.objects.create_proposal(
-            game=game, created_by=self._member(game, self.players[3])
-        )
+        rejected = DrawProposal.objects.propose(game, self.players[3])
         rejected.votes.filter(member__user=self.players[4]).update(accepted=False)
-        proposal = DrawProposal.objects.create_proposal(
-            game=game, created_by=self._member(game, self.players[0])
-        )
+        proposal = DrawProposal.objects.propose(game, self.players[0])
         proposal.votes.filter(member__user__in=self.players[1:3]).update(accepted=True)
         return game
 

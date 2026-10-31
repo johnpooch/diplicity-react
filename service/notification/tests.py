@@ -948,7 +948,7 @@ class TestDrawProposalNotification:
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         notification = assert_notification(
             secondary_user, "draw_proposal", title=game.name
@@ -965,7 +965,7 @@ class TestDrawProposalNotification:
         game, italy, germany = draw_notification_game_factory()
         game.anonymous = True
         game.save()
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         notification = assert_notification(
             secondary_user, "draw_proposal", body="Anonymous has proposed a draw."
@@ -980,7 +980,7 @@ class TestDrawProposalNotification:
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         assert not Notification.objects.filter(
             recipient=primary_user, event_type="draw_proposal"
@@ -996,7 +996,7 @@ class TestDrawProposalNotification:
         game, italy, germany = draw_notification_game_factory()
         game.members.create(user=tertiary_user, eliminated_at=timezone.now())
 
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         assert not Notification.objects.filter(
             recipient=tertiary_user, event_type="draw_proposal"
@@ -1012,7 +1012,7 @@ class TestDrawProposalNotification:
         game, italy, germany = draw_notification_game_factory()
         game.members.create(user=tertiary_user, civil_disorder_at=timezone.now())
 
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         assert not Notification.objects.filter(
             recipient=tertiary_user, event_type="draw_proposal"
@@ -1028,7 +1028,7 @@ class TestDrawProposalNotification:
         game, italy, germany = draw_notification_game_factory()
         game.members.create(user=tertiary_user, removed_at=timezone.now())
 
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         assert not Notification.objects.filter(
             recipient=tertiary_user, event_type="draw_proposal"
@@ -1088,7 +1088,7 @@ class TestDrawProposalNotification:
     ):
         game, italy, germany = draw_notification_game_factory()
         phase = game.current_phase
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        DrawProposal.objects.propose(game, italy.user)
 
         Phase.objects._emit_phase_resolved(phase)
 
@@ -1102,13 +1102,19 @@ class TestDrawProposalNotification:
     def test_phase_resolution_lists_every_expired_proposal(
         self,
         draw_notification_game_factory,
+        draw_proposal_factory,
         primary_user,
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
         phase = game.current_phase
-        DrawProposal.objects.create_proposal(game=game, created_by=italy)
-        DrawProposal.objects.create_proposal(game=game, created_by=germany)
+        for proposer in (italy, germany):
+            draw_proposal_factory(
+                game=game,
+                created_by=proposer,
+                phase=phase,
+                included_member_ids=[italy.id, germany.id],
+            )
 
         Phase.objects._emit_phase_resolved(phase)
 
@@ -1130,9 +1136,9 @@ class TestDrawProposalNotification:
     ):
         game, italy, germany = draw_notification_game_factory()
         phase = game.current_phase
-        rejected = DrawProposal.objects.create_proposal(game=game, created_by=italy)
+        rejected = DrawProposal.objects.propose(game, italy.user)
         rejected.votes.filter(member=germany).update(accepted=False)
-        cancelled = DrawProposal.objects.create_proposal(game=game, created_by=germany)
+        cancelled = DrawProposal.objects.propose(game, germany.user)
         cancelled.cancelled_at = timezone.now()
         cancelled.save()
 

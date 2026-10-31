@@ -2825,7 +2825,7 @@ class TestMemberWithdrawView:
         member = _non_admin_player(game)
         proposer = game.members.get(user=game.admin)
         _withdraw(game, member)
-        proposal = DrawProposal.objects.create_proposal(game=game, created_by=proposer)
+        proposal = DrawProposal.objects.propose(game, proposer.user)
 
         response = _client_for(member.user).patch(
             reverse("draw-proposal-vote", args=[game.id, proposal.id]),
@@ -2878,7 +2878,7 @@ class TestMemberWithdrawView:
     def test_withdraw_cancels_the_players_own_draw_proposal(self, active_game_factory):
         game = active_game_factory()
         member = _non_admin_player(game)
-        proposal = DrawProposal.objects.create_proposal(game=game, created_by=member)
+        proposal = DrawProposal.objects.propose(game, member.user)
 
         _withdraw(game, member)
 
@@ -2891,9 +2891,7 @@ class TestMemberWithdrawView:
     ):
         game = active_game_factory()
         member = _non_admin_player(game)
-        proposal = DrawProposal.objects.create_proposal(
-            game=game, created_by=game.members.get(user=game.admin)
-        )
+        proposal = DrawProposal.objects.propose(game, game.admin)
 
         _withdraw(game, member)
 
@@ -2909,9 +2907,7 @@ class TestMemberWithdrawView:
     ):
         game = active_game_factory()
         member = _non_admin_player(game)
-        proposal = DrawProposal.objects.create_proposal(
-            game=game, created_by=game.members.get(user=game.admin)
-        )
+        proposal = DrawProposal.objects.propose(game, game.admin)
         proposal.votes.exclude(member=member).update(accepted=True)
 
         _withdraw(game, member)
