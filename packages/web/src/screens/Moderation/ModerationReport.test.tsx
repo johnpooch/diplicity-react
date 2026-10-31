@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,7 +18,7 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
   }),
 }));
 
-vi.mock("@/components/UserAvatar", () => ({ UserAvatar: () => null }));
+vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
 
 const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOutput => ({
   id: 5,
@@ -37,8 +38,12 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
 const renderScreen = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={["/moderation/reports/5"]}>
+      <MemoryRouter
+        initialEntries={["/moderation?status=approved", "/moderation/reports/5"]}
+        initialIndex={1}
+      >
         <Routes>
+          <Route path="/moderation" element={<p>Moderation queue</p>} />
           <Route path="/moderation/reports/:reportId" element={<ModerationReport />} />
         </Routes>
       </MemoryRouter>
@@ -81,5 +86,16 @@ describe("ModerationReport", () => {
 
     expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.getByText("Mia Moderator")).toBeInTheDocument();
+  });
+
+  it("returns to the queue from the back button beside the title", async () => {
+    retrieveReport.mockReturnValue(report({}));
+    renderScreen();
+
+    expect(screen.getByRole("heading", { name: "Report" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(screen.getByText("Moderation queue")).toBeInTheDocument();
   });
 });

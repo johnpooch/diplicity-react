@@ -1,12 +1,8 @@
 import React, { Suspense } from "react";
-import { Link } from "react-router";
-import { ChevronLeft } from "lucide-react";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenContainer } from "@/components/ui/screen-container";
-import { ScreenHeader } from "@/components/ui/screen-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useModerationReportsRetrieveSuspense,
@@ -15,6 +11,7 @@ import {
 import type { ModerationMemberOutput } from "@/api/generated/endpoints";
 import { useRequiredParams } from "@/hooks";
 import { formatDateTime } from "@/util";
+import { GameDetailAppBar } from "../GameDetail/AppBar";
 
 const STATUS_LABELS = {
   pending: "Pending",
@@ -90,15 +87,7 @@ const ModerationReportSkeleton: React.FC = () => (
 
 const ModerationReportSuspense: React.FC = () => (
   <ScreenContainer>
-    <ScreenHeader title="Report" />
-    <div>
-      <Button variant="ghost" asChild>
-        <Link to="/moderation">
-          <ChevronLeft />
-          Moderation queue
-        </Link>
-      </Button>
-    </div>
+    <GameDetailAppBar title="Report" variant="secondary" />
     <ScreenCard>
       <ScreenCardContent>
         <QueryErrorBoundary>
