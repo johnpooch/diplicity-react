@@ -64,6 +64,7 @@ type MessageDisplayItem = {
     nationColor: string;
     picture: string | null;
     isGameMaster: boolean;
+    showsPicture: boolean;
   };
   isCurrentUser: boolean;
   showAvatar: boolean;
@@ -176,6 +177,7 @@ const buildThreadItems = (
         nationColor: msg.sender.nation?.color ?? NEUTRAL_SENDER_COLOR,
         picture: msg.sender.picture,
         isGameMaster: msg.sender.isGameMaster,
+        showsPicture: msg.sender.isGameMaster || msg.sender.nation === null,
       },
       isCurrentUser: msg.sender.isCurrentUser,
       showAvatar,
@@ -218,10 +220,10 @@ const ThreadMessage: React.FC<ThreadMessageProps> = ({
       <div
         className={cn(
           "size-8 shrink-0",
-          item.sender.isGameMaster && "overflow-hidden rounded-full border"
+          item.sender.showsPicture && "overflow-hidden rounded-full border"
         )}
       >
-        {item.sender.isGameMaster ? (
+        {item.sender.showsPicture ? (
           <Avatar className="size-8 rounded-none">
             <AvatarImage src={item.sender.picture ?? undefined} />
             <AvatarFallback className="rounded-none text-xs">

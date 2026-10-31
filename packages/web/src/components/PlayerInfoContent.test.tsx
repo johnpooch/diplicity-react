@@ -60,6 +60,7 @@ const buildGame = (overrides: Partial<GameRetrieve> = {}): GameRetrieve => ({
   canJoin: false,
   canLeave: false,
   canWithdraw: false,
+  isFirstYear: false,
   canDelete: false,
   canManage: false,
   canCreateChannel: false,
