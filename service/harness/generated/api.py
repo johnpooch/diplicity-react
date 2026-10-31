@@ -256,6 +256,11 @@ class ModerationMemberOutput(TypedDict):
     nation: str | None
 
 
+class ModerationReviewerOutput(TypedDict):
+    user_id: int
+    name: str
+
+
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
@@ -760,6 +765,7 @@ class ModerationReportOutput(TypedDict):
     variant_name: str
     reporter: ModerationMemberOutput
     reported: ModerationMemberOutput
+    reviewed_by: ModerationReviewerOutput | None
 
 
 class MyGameState(TypedDict):

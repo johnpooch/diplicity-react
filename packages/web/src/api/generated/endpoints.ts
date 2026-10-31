@@ -1030,6 +1030,11 @@ export const ReportStatusEnum = {
   rejected: "rejected",
 } as const;
 
+export interface ModerationReviewerOutput {
+  readonly userId: number;
+  readonly name: string;
+}
+
 export interface ModerationReportOutput {
   readonly id: number;
   readonly reason: ReasonEnum;
@@ -1042,6 +1047,7 @@ export interface ModerationReportOutput {
   readonly variantName: string;
   readonly reporter: ModerationMemberOutput;
   readonly reported: ModerationMemberOutput;
+  readonly reviewedBy: ModerationReviewerOutput | null;
 }
 
 export interface MyGameSeats {

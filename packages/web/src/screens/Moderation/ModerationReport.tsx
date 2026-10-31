@@ -45,14 +45,21 @@ const ModerationReport: React.FC = () => {
     memberLabel(report.reporter),
     memberLabel(report.reported),
   ];
+  const rows = FIELDS.map((field, index) => [field, values[index]]);
+  if (report.reviewedBy) {
+    rows.push([
+      `${STATUS_LABELS[report.status]} by`,
+      report.reviewedBy.name,
+    ]);
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
-        {FIELDS.map((field, index) => (
+        {rows.map(([field, value]) => (
           <React.Fragment key={field}>
             <dt className="text-muted-foreground">{field}</dt>
-            <dd>{values[index]}</dd>
+            <dd>{value}</dd>
           </React.Fragment>
         ))}
       </dl>

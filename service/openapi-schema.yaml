@@ -4241,6 +4241,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/ModerationMemberOutput'
           readOnly: true
+        reviewedBy:
+          allOf:
+          - $ref: '#/components/schemas/ModerationReviewerOutput'
+          readOnly: true
+          nullable: true
       required:
       - createdAt
       - gameId
@@ -4250,8 +4255,21 @@ components:
       - reason
       - reported
       - reporter
+      - reviewedBy
       - status
       - variantName
+    ModerationReviewerOutput:
+      type: object
+      properties:
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+      required:
+      - name
+      - userId
     MovementFrequencyEnum:
       enum:
       - hourly

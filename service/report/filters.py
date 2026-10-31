@@ -1,8 +1,7 @@
 from django_filters import rest_framework as filters
 
-from report.constants import ReportStatus
-
-from .models import ModerationReport
+from .constants import ReportStatus
+from .models import Report
 
 STATUS_ORDERING = {
     ReportStatus.PENDING: "created_at",
@@ -17,7 +16,7 @@ class ModerationReportFilterSet(filters.FilterSet):
     )
 
     class Meta:
-        model = ModerationReport
+        model = Report
         fields = ()
 
     def filter_status(self, queryset, name, value):

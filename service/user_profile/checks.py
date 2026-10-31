@@ -1,5 +1,6 @@
 from common.checks import Check
-from user_profile.models import UserProfile
+
+from .models import UserProfile
 
 
 class IsModeratorCheck(Check):
