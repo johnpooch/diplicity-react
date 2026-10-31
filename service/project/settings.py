@@ -360,6 +360,8 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_enums",
     ],
     "ENUM_NAME_OVERRIDES": {
+        "CommitmentEventKindEnum": "common.constants.CommitmentEvent.KIND_CHOICES",
+        "KindEnum": "common.constants.MyGameStateKind.KIND_CHOICES",
         "ReasonEnum": "report.constants.ReportReason.REASON_CHOICES",
     },
 }

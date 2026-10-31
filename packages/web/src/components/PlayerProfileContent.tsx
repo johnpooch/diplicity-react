@@ -1,34 +1,14 @@
 import React from "react";
-import { Info } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PlayerCommitment } from "@/components/PlayerCommitment";
 import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
   userId: number;
 }
-
-const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
-
-const RATED_TIER_INFO =
-  "How consistently this player submits orders, based on their last 10 rated phases.";
-
-const commitmentTiers: Record<string, { label: string; info: string }> = {
-  high: { label: "High", info: RATED_TIER_INFO },
-  medium: { label: "Medium", info: RATED_TIER_INFO },
-  low: { label: "Low", info: RATED_TIER_INFO },
-  undefined: {
-    label: "New",
-    info: "This player hasn't played enough rated phases to have a commitment rating yet. A rating appears after 10 rated phases.",
-  },
-};
 
 interface SectionProps {
   title: string;
@@ -39,9 +19,7 @@ const Section: React.FC<SectionProps> = ({ title, children }) => (
   <section className="flex flex-col gap-2">
     <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
     <Card className="overflow-hidden py-0">
-      <CardContent className="flex flex-col divide-y p-0">
-        {children}
-      </CardContent>
+      <CardContent className="p-0">{children}</CardContent>
     </Card>
   </section>
 );
@@ -49,60 +27,48 @@ const Section: React.FC<SectionProps> = ({ title, children }) => (
 interface StatRowProps {
   label: string;
   value: React.ReactNode;
-  info?: string;
 }
 
-const StatRow: React.FC<StatRowProps> = ({ label, value, info }) => (
-  <div className="flex items-center justify-between gap-4 px-6 py-3">
-    <span className="flex items-center gap-1 text-sm">
-      {label}
-      {info && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="-m-2 p-2 text-muted-foreground/60 hover:text-muted-foreground"
-              aria-label={`What is ${label}?`}
-            >
-              <Info className="size-3.5" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="text-sm">{info}</PopoverContent>
-        </Popover>
-      )}
-    </span>
-    <span className="truncate text-sm text-muted-foreground">{value}</span>
+const StatRow: React.FC<StatRowProps> = ({ label, value }) => (
+  <div className="flex items-center justify-between gap-4 px-6 py-3 text-sm">
+    <span>{label}</span>
+    <span className="tabular-nums text-muted-foreground">{value}</span>
   </div>
 );
 
-const gameStats = [
-  { label: "Total games", key: "totalGames" },
-  { label: "Solo wins", key: "soloWins" },
-  { label: "Draws", key: "draws" },
-  { label: "Losses", key: "losses" },
-] as const;
+interface ProfileCardProps {
+  avatar: React.ReactNode;
+  name: React.ReactNode;
+  joined: React.ReactNode;
+}
+
+const ProfileCard: React.FC<ProfileCardProps> = ({ avatar, name, joined }) => (
+  <Card className="py-3">
+    <CardContent className="flex items-center gap-4">
+      {avatar}
+      <div className="min-w-0 flex-1">
+        {name}
+        {joined}
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export const PlayerProfileContentSkeleton: React.FC = () => (
   <div className="space-y-4">
-    <div className="flex items-center gap-4">
-      <Skeleton className="size-16 rounded-full" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-4 w-40" />
-      </div>
-    </div>
-    <Section title="Commitment">
-      <StatRow label="Tier" value={<Skeleton className="h-5 w-12" />} />
-      <StatRow label="NMR rate" value={<Skeleton className="h-5 w-8" />} />
-    </Section>
+    <ProfileCard
+      avatar={<Skeleton className="size-14 rounded-full" />}
+      name={<Skeleton className="my-1 h-5 w-32" />}
+      joined={<Skeleton className="mt-2 h-4 w-40" />}
+    />
     <Section title="Games">
-      {gameStats.map(({ label }) => (
-        <StatRow
-          key={label}
-          label={label}
-          value={<Skeleton className="h-5 w-6" />}
-        />
-      ))}
+      <div className="divide-y">
+        <StatRow label="Active" value={<Skeleton className="h-5 w-6" />} />
+        <StatRow label="Finished" value={<Skeleton className="h-5 w-6" />} />
+      </div>
+    </Section>
+    <Section title="Commitment">
+      <Skeleton className="m-6 h-64" />
     </Section>
   </div>
 );
@@ -111,19 +77,22 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
   userId,
 }) => {
   const { data: profile } = useUsersRetrieveSuspense(userId);
-  const tier = commitmentTiers[profile.commitment];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Avatar className="size-16">
-          <AvatarImage src={profile.picture ?? undefined} />
-          <AvatarFallback className="text-lg">
-            {profile.name[0]?.toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-lg font-semibold">{profile.name}</p>
+      <ProfileCard
+        avatar={
+          <Avatar className="size-14">
+            <AvatarImage src={profile.picture ?? undefined} />
+            <AvatarFallback className="text-lg">
+              {profile.name[0]?.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        }
+        name={
+          <h2 className="truncate text-xl font-semibold">{profile.name}</h2>
+        }
+        joined={
           <p className="text-sm text-muted-foreground">
             Joined{" "}
             {new Date(profile.createdAt).toLocaleDateString(undefined, {
@@ -131,26 +100,21 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
               month: "long",
             })}
           </p>
-        </div>
-      </div>
-
-      <Section title="Commitment">
-        <StatRow
-          label="Tier"
-          value={tier?.label ?? profile.commitment}
-          info={tier?.info}
-        />
-        <StatRow
-          label="NMR rate"
-          value={formatPercent(profile.nmrRate)}
-          info="The percentage of movement phases where this player submitted no orders, based on their last 10 games."
-        />
-      </Section>
+        }
+      />
 
       <Section title="Games">
-        {gameStats.map(({ label, key }) => (
-          <StatRow key={key} label={label} value={profile[key]} />
-        ))}
+        <div className="divide-y">
+          <StatRow label="Active" value={profile.activeGames} />
+          <StatRow label="Finished" value={profile.totalGames} />
+        </div>
+      </Section>
+
+      <Section title="Commitment">
+        <PlayerCommitment
+          total={profile.commitmentTotal}
+          squares={profile.commitmentSquares}
+        />
       </Section>
     </div>
   );

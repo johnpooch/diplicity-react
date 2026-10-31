@@ -1,7 +1,6 @@
 from functools import cached_property
 
 from django.apps import apps
-from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import models, transaction
 from django.db.models import Case, Count, Q, Sum, Value, When
 from django.db.models.functions import Coalesce
@@ -81,14 +80,8 @@ class MemberQuerySet(models.QuerySet):
                     "commitment_entries",
                     filter=Q(commitment_entries__kind=CommitmentEvent.NMR),
                 ),
-                commitment_events=ArrayAgg(
-                    "commitment_entries__kind",
-                    filter=Q(commitment_entries__isnull=False)
-                    & ~Q(commitment_entries__kind__in=CommitmentEvent.PHASE_KINDS),
-                    distinct=True,
-                    default=Value([]),
-                ),
             )
+            .select_related("game")
             .order_by("created_at", "id")
         )
 
@@ -125,6 +118,28 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         totals = self.commitment_totals({member.user_id for member in members} - {None})
         for member in members:
             member.commitment_total = totals.get(member.user_id, 0)
+
+    def hydrate_commitment_breakdowns(self, members):
+        counts = (
+            CommitmentEntry.objects.filter(member__in=members)
+            .order_by()
+            .values_list("member_id", "kind")
+            .annotate(count=Count("id"))
+        )
+        breakdowns = {member.id: [] for member in members}
+        for member_id, kind, count in counts:
+            breakdowns[member_id].append(
+                {
+                    "kind": kind,
+                    "count": count,
+                    "points": CommitmentEvent.POINTS[kind] * count,
+                }
+            )
+        for member in members:
+            member.commitment_breakdown = sorted(
+                breakdowns[member.id],
+                key=lambda row: CommitmentEvent.BREAKDOWN_ORDER.index(row["kind"]),
+            )
 
     def hand_over_seat(self, member, user):
         ChannelMember = apps.get_model("channel", "ChannelMember")

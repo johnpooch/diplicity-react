@@ -52,10 +52,22 @@ class ChannelUpdate(TypedDict):
     title: str
 
 
-type CommitmentBandEnum = Literal['dark_red', 'red', 'neutral', 'light_green', 'green', 'dark_green']
+type CommitmentBandEnum = Literal[
+    'dark_red', 'red', 'neutral', 'light_green', 'green', 'dark_green'
+]
 
 
 type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
+
+
+type CommitmentEventKindEnum = Literal[
+    'submitted',
+    'nmr',
+    'civil_disorder',
+    'early_withdrawal',
+    'late_withdrawal',
+    'muster_no_show',
+]
 
 
 type CommitmentRequirementEnum = Literal['open', 'committed']
@@ -107,9 +119,6 @@ class EmailLogin(TypedDict):
     name: str
     access_token: str
     refresh_token: str
-
-
-type EventsEnum = Literal['submitted', 'nmr', 'civil_disorder', 'early_withdrawal', 'late_withdrawal', 'muster_no_show']
 
 
 class FieldValue(TypedDict):
@@ -255,7 +264,13 @@ class MyGameSeats(TypedDict):
 
 
 type MyGamesSectionKeyEnum = Literal[
-    'needs_attention', 'managing', 'active', 'mustering', 'pending', 'recently_finished', 'sandbox'
+    'needs_attention',
+    'managing',
+    'active',
+    'mustering',
+    'pending',
+    'recently_finished',
+    'sandbox',
 ]
 
 
@@ -284,10 +299,14 @@ class OrderOptionsResponse(TypedDict):
     field_order: dict[str, list[str]]
 
 
-type OrderStatusEnum = Literal['orders_required', 'orders_submitted', 'orders_not_confirmed', 'no_orders_required']
+type OrderStatusEnum = Literal[
+    'orders_required', 'orders_submitted', 'orders_not_confirmed', 'no_orders_required'
+]
 
 
-type OrderTypeEnum = Literal['Move', 'MoveViaConvoy', 'Hold', 'Support', 'Convoy', 'Build', 'Disband']
+type OrderTypeEnum = Literal[
+    'Move', 'MoveViaConvoy', 'Hold', 'Support', 'Convoy', 'Build', 'Disband'
+]
 
 
 type ParticipationStatusEnum = Literal[
@@ -402,14 +421,21 @@ type ResultEnum = Literal['solo_victory', 'won_by', 'draw', 'abandoned', 'ongoin
 type RetreatFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
-type ShadeEnum = Literal['dark_red', 'red', 'light_red', 'grey', 'light_green', 'green', 'dark_green']
+type ShadeEnum = Literal[
+    'dark_red', 'red', 'light_red', 'grey', 'light_green', 'green', 'dark_green'
+]
 
 
 type StatusEnum = Literal['pending', 'active', 'processing', 'completed', 'template']
 
 
 type StepEnum = Literal[
-    'select-order-type', 'select-unit-type', 'select-target', 'select-aux', 'select-named-coast', 'completed'
+    'select-order-type',
+    'select-unit-type',
+    'select-target',
+    'select-aux',
+    'select-named-coast',
+    'completed',
 ]
 
 
@@ -581,10 +607,18 @@ class ChannelPreview(TypedDict):
     latest_message: ChannelMessage | None
 
 
+class CommitmentBreakdown(TypedDict):
+    kind: CommitmentEventKindEnum
+    count: int
+    points: int
+
+
 class CommitmentSquare(TypedDict):
+    anonymous: bool
+    game_name: str | None
     submitted: int
     missed: int
-    events: list[EventsEnum]
+    breakdown: list[CommitmentBreakdown]
     points: int
     shade: ShadeEnum
 
@@ -767,11 +801,7 @@ class PublicUserProfile(TypedDict):
     picture: str | None
     created_at: str
     total_games: int
-    solo_wins: int
-    draws: int
-    losses: int
-    nmr_rate: float
-    cd_rate: float
+    active_games: int
     commitment: str
     commitment_total: int
     commitment_band: CommitmentBandEnum

@@ -51,16 +51,32 @@ class AddableUserSerializer(PictureUrlMixin, serializers.Serializer):
     picture = serializers.SerializerMethodField()
 
 
+class CommitmentBreakdownSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(
+        choices=CommitmentEvent.KIND_CHOICES, read_only=True
+    )
+    count = serializers.IntegerField(read_only=True)
+    points = serializers.IntegerField(read_only=True)
+
+
 class CommitmentSquareSerializer(serializers.Serializer):
+    anonymous = serializers.BooleanField(
+        source="game.anonymity_active", read_only=True
+    )
+    game_name = serializers.SerializerMethodField()
     submitted = serializers.IntegerField(read_only=True, source="commitment_submitted")
     missed = serializers.IntegerField(read_only=True, source="commitment_missed")
-    events = serializers.ListField(
-        child=serializers.ChoiceField(choices=CommitmentEvent.KIND_CHOICES),
-        read_only=True,
-        source="commitment_events",
+    breakdown = CommitmentBreakdownSerializer(
+        many=True, read_only=True, source="commitment_breakdown"
     )
     points = serializers.IntegerField(read_only=True, source="commitment_square")
     shade = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_game_name(self, obj):
+        if obj.game.anonymity_active:
+            return None
+        return obj.game.name
 
     @extend_schema_field(serializers.ChoiceField(choices=CommitmentShade.SHADE_CHOICES))
     def get_shade(self, obj):
@@ -73,11 +89,7 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     picture = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
     total_games = serializers.IntegerField(read_only=True)
-    solo_wins = serializers.IntegerField(read_only=True)
-    draws = serializers.IntegerField(read_only=True)
-    losses = serializers.IntegerField(read_only=True)
-    nmr_rate = serializers.FloatField(read_only=True)
-    cd_rate = serializers.FloatField(read_only=True)
+    active_games = serializers.IntegerField(read_only=True)
     commitment = serializers.CharField(read_only=True)
     commitment_total = serializers.IntegerField(read_only=True)
     commitment_band = serializers.SerializerMethodField()
@@ -89,9 +101,9 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
 
     @extend_schema_field(CommitmentSquareSerializer(many=True))
     def get_commitment_squares(self, obj):
-        return CommitmentSquareSerializer(
-            Member.objects.filter(user=obj.user).commitment_squares(), many=True
-        ).data
+        squares = list(Member.objects.filter(user=obj.user).commitment_squares())
+        Member.objects.hydrate_commitment_breakdowns(squares)
+        return CommitmentSquareSerializer(squares, many=True).data
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

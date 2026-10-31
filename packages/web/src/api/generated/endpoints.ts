@@ -235,6 +235,32 @@ export const CommitmentBandEnum = {
 } as const;
 
 /**
+ * * `submitted` - Submitted
+ * `nmr` - NMR
+ * `civil_disorder` - Civil disorder
+ * `early_withdrawal` - Early withdrawal
+ * `late_withdrawal` - Late withdrawal
+ * `muster_no_show` - Muster no-show
+ */
+export type CommitmentEventKindEnum =
+  (typeof CommitmentEventKindEnum)[keyof typeof CommitmentEventKindEnum];
+
+export const CommitmentEventKindEnum = {
+  submitted: "submitted",
+  nmr: "nmr",
+  civil_disorder: "civil_disorder",
+  early_withdrawal: "early_withdrawal",
+  late_withdrawal: "late_withdrawal",
+  muster_no_show: "muster_no_show",
+} as const;
+
+export interface CommitmentBreakdown {
+  readonly kind: CommitmentEventKindEnum;
+  readonly count: number;
+  readonly points: number;
+}
+
+/**
  * * `eligible` - eligible
  * `committed_locked` - committed_locked
  * `low_locked` - low_locked
@@ -261,25 +287,6 @@ export const CommitmentRequirementEnum = {
 } as const;
 
 /**
- * * `submitted` - Submitted
- * `nmr` - NMR
- * `civil_disorder` - Civil disorder
- * `early_withdrawal` - Early withdrawal
- * `late_withdrawal` - Late withdrawal
- * `muster_no_show` - Muster no-show
- */
-export type EventsEnum = (typeof EventsEnum)[keyof typeof EventsEnum];
-
-export const EventsEnum = {
-  submitted: "submitted",
-  nmr: "nmr",
-  civil_disorder: "civil_disorder",
-  early_withdrawal: "early_withdrawal",
-  late_withdrawal: "late_withdrawal",
-  muster_no_show: "muster_no_show",
-} as const;
-
-/**
  * * `dark_red` - Dark red
  * `red` - Red
  * `light_red` - Light red
@@ -301,9 +308,12 @@ export const ShadeEnum = {
 } as const;
 
 export interface CommitmentSquare {
+  readonly anonymous: boolean;
+  /** @nullable */
+  readonly gameName: string | null;
   readonly submitted: number;
   readonly missed: number;
-  readonly events: readonly EventsEnum[];
+  readonly breakdown: readonly CommitmentBreakdown[];
   readonly points: number;
   readonly shade: ShadeEnum;
 }
@@ -1325,11 +1335,7 @@ export interface PublicUserProfile {
   readonly picture: string | null;
   readonly createdAt: string;
   readonly totalGames: number;
-  readonly soloWins: number;
-  readonly draws: number;
-  readonly losses: number;
-  readonly nmrRate: number;
-  readonly cdRate: number;
+  readonly activeGames: number;
   readonly commitment: string;
   readonly commitmentTotal: number;
   readonly commitmentBand: CommitmentBandEnum;
