@@ -22,6 +22,17 @@ class IsGamePlayerCheck(Check):
         return game_of(instance).members.seat_of(actor) is not None
 
 
+class IsGameMemberCheck(Check):
+    reason = "not_member"
+
+    def check(self, instance, actor):
+        if actor.pk is None:
+            return False
+        return any(
+            member.user_id == actor.pk for member in game_of(instance).members.all()
+        )
+
+
 class IsActivePlayerCheck(Check):
     reason = "inactive_player"
 
