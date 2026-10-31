@@ -23,10 +23,8 @@ from .serializers import (
     ChannelPreviewSerializer,
     ChannelUpdateSerializer,
 )
-from .utils import channel_list_fingerprint
 from common.views import (
     ConditionalGetMixin,
-    PrecomputedConditionalGetMixin,
     SelectedGameMixin,
     SelectedChannelMixin,
     CurrentGameMemberMixin,
@@ -162,39 +160,6 @@ class ChannelMuteView(
         return ChannelMember.objects.get(
             member=self.get_current_game_member(),
             channel=self.get_channel(),
-        )
-
-
-@extend_schema(exclude=True)
-class LegacyChannelListView(
-    PrecomputedConditionalGetMixin,
-    SelectedGameMixin,
-    CurrentGameMemberMixin,
-    generics.ListAPIView,
-):
-    """Serves GET /games/<id>/channels/ with every channel's full message history
-    for mobile builds shipped before chat moved to channel previews, detail and
-    paginated history. Kept out of the schema so codegen only ever emits the
-    current reads. Remove once those builds are out of circulation."""
-
-    permission_classes = [permissions.AllowAny]
-    serializer_class = ChannelSerializer
-
-    def get_fingerprint(self):
-        return channel_list_fingerprint(
-            self.request, self.get_game(), self.get_current_game_member()
-        )
-
-    def get_queryset(self):
-        game = self.get_game()
-        user = self.request.user
-        return (
-            Channel.objects.accessible_to_member(self.get_current_game_member(), game)
-            .with_unread_counts(user)
-            .with_mute_state(user)
-            .with_related_data()
-            .with_member_names()
-            .order_for_list()
         )
 
 

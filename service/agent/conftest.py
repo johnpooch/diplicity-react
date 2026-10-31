@@ -2,12 +2,9 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
-from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APIClient
 
 from adjudicator import service as adjudication_service
-from agent.api_client import bot_request_host
 from channel.models import ChannelEvent, ChannelMessage
 from common.constants import DeadlineMode, MovementPhaseDuration
 from game.models import Game
@@ -111,10 +108,4 @@ def bot_game_with_channel_history(bot_public_channel_factory, bot_user):
         payload={"nation": "Italy", "name": "Allies"},
     )
     ChannelEvent.objects.create_for_channels("game_start", [public_channel])
-
-    legacy_client = APIClient(SERVER_NAME=bot_request_host())
-    legacy_client.force_authenticate(user=bot_user)
-    legacy_channels = list(
-        legacy_client.get(reverse("channel-list", args=[game.id])).data
-    )
-    return game, legacy_channels
+    return game

@@ -167,6 +167,8 @@ class TestNoPressChannelList:
     def test_active_no_press_game_allows_channel_list(
         self, authenticated_client, no_press_active_game_with_channel
     ):
-        url = reverse("channel-list", args=[no_press_active_game_with_channel.id])
+        url = reverse(
+            "channel-preview-list", args=[no_press_active_game_with_channel.id]
+        )
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK

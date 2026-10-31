@@ -44,18 +44,6 @@ class ChannelQuerySet(models.QuerySet):
     def with_member_names(self):
         return self.prefetch_related("members__nation", "members__user__profile")
 
-    def with_related_data(self):
-        return self.prefetch_related(
-            "messages",
-            "messages__sender",
-            "messages__sender__user",
-            "messages__sender__user__profile__uploaded_picture",
-            "members",
-            "members__user",
-            "members__user__profile__uploaded_picture",
-            models.Prefetch("events", queryset=ChannelEvent.objects.for_display()),
-        )
-
     def with_latest_message_id(self):
         latest_message = (
             ChannelMessage.objects.filter(channel=OuterRef("pk"))
@@ -182,9 +170,6 @@ class ChannelManager(models.Manager):
 
     def for_game(self, game):
         return self.get_queryset().for_game(game)
-
-    def with_related_data(self):
-        return self.get_queryset().with_related_data()
 
     def with_unread_counts(self, user):
         return self.get_queryset().with_unread_counts(user)

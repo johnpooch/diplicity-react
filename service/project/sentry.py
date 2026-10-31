@@ -13,7 +13,6 @@ UNTRACED_PATHS = [
 
 POLLED_PATHS = [
     re.compile(r"^/game/[^/]+/$"),
-    re.compile(r"^/games/[^/]+/channels/$"),
     re.compile(r"^/games/[^/]+/channel-previews/$"),
     re.compile(r"^/games/[^/]+/channels/\d+/$"),
 ]

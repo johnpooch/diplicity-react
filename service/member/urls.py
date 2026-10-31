@@ -56,14 +56,4 @@ urlpatterns = [
         views.MemberNationAssignView.as_view(),
         name="game-member-nation-assign",
     ),
-    path(
-        "game/<str:game_id>/join/",
-        views.LegacyMemberJoinView.as_view(),
-        name="game-join-legacy",
-    ),
-    path(
-        "game/<str:game_id>/add-bot/",
-        views.LegacyMemberCreateView.as_view(),
-        name="game-add-bot-legacy",
-    ),
 ]
