@@ -1,8 +1,7 @@
+import importlib
 import pytest
 from datetime import datetime, timedelta, timezone as dt_timezone
-from io import StringIO
 from unittest.mock import patch
-from django.core.management import call_command
 from django.db import connection
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -14,6 +13,7 @@ from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
 from draw_proposal.models import DrawProposal
 from game.models import Game
+from django.apps import apps
 from member.models import CommitmentEntry, Member
 from member.views import MemberCreateView, MemberJoinView
 from notification.models import Notification
@@ -34,6 +34,10 @@ from common.constants import (
 )
 
 User = get_user_model()
+
+rebuild_commitment_migration = importlib.import_module(
+    "member.migrations.0024_rebuild_commitment_entries"
+)
 
 join_viewname = "game-join"
 seat_viewname = "game-member-create"
@@ -3923,7 +3927,7 @@ class TestRebuildCommitment:
             datetime(2026, 10, 20, tzinfo=dt_timezone.utc),
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [CommitmentEvent.SUBMITTED, CommitmentEvent.NMR, CommitmentEvent.SUBMITTED]
@@ -3938,7 +3942,7 @@ class TestRebuildCommitment:
             game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == [CommitmentEvent.SUBMITTED]
 
@@ -3954,7 +3958,7 @@ class TestRebuildCommitment:
         )
         Member.objects.filter(id=member.id).update(civil_disorder_at=timezone.now())
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [
@@ -3978,7 +3982,7 @@ class TestRebuildCommitment:
             datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [
@@ -4002,7 +4006,7 @@ class TestRebuildCommitment:
             datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [CommitmentEvent.NMR, CommitmentEvent.NMR, CommitmentEvent.SUBMITTED]
@@ -4019,7 +4023,7 @@ class TestRebuildCommitment:
             datetime(2026, 6, 1, tzinfo=dt_timezone.utc),
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [CommitmentEvent.SUBMITTED, CommitmentEvent.NMR, CommitmentEvent.NMR]
@@ -4039,7 +4043,7 @@ class TestRebuildCommitment:
         )
         Member.objects.filter(id=member.id).update(civil_disorder_at=timezone.now())
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [
@@ -4060,7 +4064,7 @@ class TestRebuildCommitment:
             removed_at=started_at + timedelta(days=1, hours=12)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == [CommitmentEvent.SUBMITTED]
 
@@ -4074,7 +4078,7 @@ class TestRebuildCommitment:
             removed_at=started_at + timedelta(days=1, hours=12)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == [CommitmentEvent.SUBMITTED] * 3
 
@@ -4087,7 +4091,7 @@ class TestRebuildCommitment:
         )
         member.user.delete()
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert not member.commitment_entries.exists()
 
@@ -4100,7 +4104,7 @@ class TestRebuildCommitment:
             game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert not member.commitment_entries.exists()
 
@@ -4113,7 +4117,7 @@ class TestRebuildCommitment:
             game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert not member.commitment_entries.exists()
 
@@ -4127,7 +4131,7 @@ class TestRebuildCommitment:
             withdrawn_at=started_at + timedelta(hours=12)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [CommitmentEvent.SUBMITTED, CommitmentEvent.EARLY_WITHDRAWAL]
@@ -4143,7 +4147,7 @@ class TestRebuildCommitment:
             withdrawn_at=started_at + timedelta(days=1, hours=12)
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == sorted(
             [CommitmentEvent.SUBMITTED, CommitmentEvent.LATE_WITHDRAWAL]
@@ -4159,22 +4163,6 @@ class TestRebuildCommitment:
             mustered_at=None, removed_at=timezone.now()
         )
 
-        CommitmentEntry.objects.rebuild()
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
 
         assert self._kinds(member) == [CommitmentEvent.MUSTER_NO_SHOW]
-
-    @pytest.mark.django_db
-    def test_command_reports_what_it_wrote(self, active_game_factory):
-        game = active_game_factory()
-        member = _non_admin_player(game)
-        self._history(
-            game,
-            member,
-            [RECEIVED, NMR],
-            datetime(2026, 10, 20, tzinfo=dt_timezone.utc),
-        )
-        out = StringIO()
-
-        call_command("rebuild_commitment", stdout=out)
-
-        assert "Rebuilt 2 commitment entries for 1 player(s)." in out.getvalue()
