@@ -27,7 +27,6 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 
 import {
   Select,
@@ -397,7 +396,6 @@ interface CreateGameFormProps {
   initialPrivate?: boolean;
   initialMode?: GameMode;
   canCreateCommittedGame: boolean;
-  creatorCommitmentTotal: number;
 }
 
 const CreateGameForm: React.FC<CreateGameFormProps> = ({
@@ -409,7 +407,6 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   initialPrivate,
   initialMode,
   canCreateCommittedGame,
-  creatorCommitmentTotal,
 }) => {
   const officialVariants = variants.filter(v => v.official);
   const communityVariants = variants.filter(v => !v.official);
@@ -616,23 +613,20 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
               control={form.control}
               name="committedOnly"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0">
-                  <div className="space-y-1">
-                    <FormLabel>Committed game</FormLabel>
-                    <FormDescription>
-                      {canCreateCommittedGame
-                        ? "Only players with a commitment of 10 or more can join"
-                        : `Only players with a commitment of 10 or more can join. Yours is ${creatorCommitmentTotal}, so you can't create one yet.`}
-                    </FormDescription>
-                  </div>
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
-                    <Switch
+                    <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       disabled={isSubmitting || isSandbox || !canCreateCommittedGame}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Committed game</FormLabel>
+                    <FormDescription>
+                      Only players with a commitment of 10 or more can join
+                    </FormDescription>
+                  </div>
                 </FormItem>
               )}
             />
@@ -1150,7 +1144,6 @@ const CreateGame: React.FC = () => {
             initialPrivate={initialPrivate}
             initialMode={initialMode}
             canCreateCommittedGame={userProfile.canCreateCommittedGame}
-            creatorCommitmentTotal={userProfile.commitmentTotal}
           />
         </ScreenCardContent>
       </ScreenCard>

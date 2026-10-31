@@ -29,7 +29,6 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     email = serializers.CharField(source="user.email", read_only=True)
     can_create_bot_games = serializers.SerializerMethodField()
     commitment = serializers.CharField(read_only=True)
-    commitment_total = serializers.IntegerField(read_only=True)
     can_create_committed_game = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.BooleanField)

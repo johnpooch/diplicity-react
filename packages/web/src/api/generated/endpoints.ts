@@ -1228,7 +1228,6 @@ export interface PatchedUserProfile {
   readonly email?: string;
   readonly canCreateBotGames?: boolean;
   readonly commitment?: string;
-  readonly commitmentTotal?: number;
   readonly canCreateCommittedGame?: boolean;
 }
 
@@ -1407,7 +1406,6 @@ export interface UserProfile {
   readonly email: string;
   readonly canCreateBotGames: boolean;
   readonly commitment: string;
-  readonly commitmentTotal: number;
   readonly canCreateCommittedGame: boolean;
 }
 

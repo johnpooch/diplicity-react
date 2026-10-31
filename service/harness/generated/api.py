@@ -359,7 +359,6 @@ class PatchedUserProfile(TypedDict):
     email: NotRequired[str]
     can_create_bot_games: NotRequired[bool]
     commitment: NotRequired[str]
-    commitment_total: NotRequired[int]
     can_create_committed_game: NotRequired[bool]
 
 
@@ -484,7 +483,6 @@ class UserProfile(TypedDict):
     email: str
     can_create_bot_games: bool
     commitment: str
-    commitment_total: int
     can_create_committed_game: bool
 
 

@@ -1305,7 +1305,6 @@ class TestCanCreateCommittedGame:
         response = authenticated_client.get(reverse("user-profile"))
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["commitment_total"] == total
         assert response.data["can_create_committed_game"] is expected
 
 

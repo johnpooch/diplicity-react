@@ -4672,9 +4672,6 @@ components:
         commitment:
           type: string
           readOnly: true
-        commitment_total:
-          type: integer
-          readOnly: true
         can_create_committed_game:
           type: boolean
           readOnly: true
@@ -5171,9 +5168,6 @@ components:
         commitment:
           type: string
           readOnly: true
-        commitment_total:
-          type: integer
-          readOnly: true
         can_create_committed_game:
           type: boolean
           readOnly: true
@@ -5181,7 +5175,6 @@ components:
       - can_create_bot_games
       - can_create_committed_game
       - commitment
-      - commitment_total
       - email
       - id
       - name

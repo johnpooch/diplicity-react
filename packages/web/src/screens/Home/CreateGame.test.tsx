@@ -24,7 +24,6 @@ const buildUserProfile = (overrides: Partial<UserProfile> = {}): UserProfile => 
   email: "jane@example.com",
   canCreateBotGames: false,
   commitment: "undefined",
-  commitmentTotal: 12,
   canCreateCommittedGame: true,
   ...overrides,
 });
@@ -40,9 +39,7 @@ const renderScreen = () =>
     </QueryClientProvider>
   );
 
-const committedSwitch = () => screen.getByRole("switch", { name: "Committed game" });
-
-describe("CreateGame committed game switch", () => {
+describe("CreateGame committed game checkbox", () => {
   beforeAll(() => {
     globalThis.ResizeObserver = class {
       observe() {}
@@ -51,28 +48,29 @@ describe("CreateGame committed game switch", () => {
     };
   });
 
-  it("is enabled and off for a creator who meets the threshold", async () => {
+  it("is enabled and unchecked for a creator who meets the threshold", async () => {
     userProfile = buildUserProfile();
 
     renderScreen();
 
-    expect(await screen.findByRole("switch", { name: "Committed game" })).toBeEnabled();
-    expect(committedSwitch()).not.toBeChecked();
+    const checkbox = await screen.findByRole("checkbox", { name: "Committed game" });
+    expect(checkbox).toBeEnabled();
+    expect(checkbox).not.toBeChecked();
     expect(
       screen.getByText("Only players with a commitment of 10 or more can join")
     ).toBeInTheDocument();
   });
 
-  it("is disabled with the creator's total for a creator below the threshold", async () => {
-    userProfile = buildUserProfile({ commitmentTotal: 4, canCreateCommittedGame: false });
+  it("is disabled for a creator below the threshold", async () => {
+    userProfile = buildUserProfile({ canCreateCommittedGame: false });
 
     renderScreen();
 
-    expect(await screen.findByRole("switch", { name: "Committed game" })).toBeDisabled();
     expect(
-      screen.getByText(
-        "Only players with a commitment of 10 or more can join. Yours is 4, so you can't create one yet."
-      )
+      await screen.findByRole("checkbox", { name: "Committed game" })
+    ).toBeDisabled();
+    expect(
+      screen.getByText("Only players with a commitment of 10 or more can join")
     ).toBeInTheDocument();
   });
 });
