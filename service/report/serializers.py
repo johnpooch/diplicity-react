@@ -5,7 +5,7 @@ from member.models import Member
 
 from .constants import ReportReason, ReportStatus
 from .loaders import ModerationReportLoader, ReportLoader
-from .models import Report
+from .models import Report, ReportReview
 
 
 class ReportReasonSerializer(serializers.Serializer):
@@ -42,6 +42,14 @@ class ModerationReviewerOutputSerializer(serializers.Serializer):
     name = serializers.CharField(source="profile.name", read_only=True)
 
 
+class ModerationReviewOutputSerializer(OutputSerializer):
+    reviewed_by = ModerationReviewerOutputSerializer()
+
+    class Meta:
+        model = ReportReview
+        fields = ("reviewed_by", "note")
+
+
 class ModerationReportOutputSerializer(OutputSerializer):
     status = serializers.ChoiceField(choices=ReportStatus.STATUS_CHOICES)
     game_id = serializers.CharField(source="reporter.game_id")
@@ -49,9 +57,7 @@ class ModerationReportOutputSerializer(OutputSerializer):
     variant_name = serializers.CharField(source="reporter.game.variant.name")
     reporter = ModerationMemberOutputSerializer()
     reported = ModerationMemberOutputSerializer()
-    reviewed_by = ModerationReviewerOutputSerializer(
-        source="review.reviewed_by", allow_null=True
-    )
+    review = ModerationReviewOutputSerializer(allow_null=True)
 
     class Meta:
         model = Report
@@ -67,5 +73,5 @@ class ModerationReportOutputSerializer(OutputSerializer):
             "variant_name",
             "reporter",
             "reported",
-            "reviewed_by",
+            "review",
         )

@@ -754,18 +754,9 @@ class MemberDetail(TypedDict):
     already_reported: bool
 
 
-class ModerationReportOutput(TypedDict):
-    id: int
-    reason: ReasonEnum
+class ModerationReviewOutput(TypedDict):
+    reviewed_by: ModerationReviewerOutput
     note: str
-    status: ReportStatusEnum
-    created_at: str
-    game_id: str
-    game_name: str
-    variant_name: str
-    reporter: ModerationMemberOutput
-    reported: ModerationMemberOutput
-    reviewed_by: ModerationReviewerOutput | None
 
 
 class MyGameState(TypedDict):
@@ -963,6 +954,20 @@ class GameRetrieve(TypedDict):
     total_unread_message_count: int
     actions: list[GameAction]
     player_list_actions: list[GameAction]
+
+
+class ModerationReportOutput(TypedDict):
+    id: int
+    reason: ReasonEnum
+    note: str
+    status: ReportStatusEnum
+    created_at: str
+    game_id: str
+    game_name: str
+    variant_name: str
+    reporter: ModerationMemberOutput
+    reported: ModerationMemberOutput
+    review: ModerationReviewOutput | None
 
 
 class MyGame(TypedDict):

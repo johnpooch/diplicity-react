@@ -4,11 +4,11 @@ import { ArrowRight, ChevronRight, Inbox } from "lucide-react";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Notice } from "@/components/Notice";
+import { ViewSelector } from "@/components/ViewSelector";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ModerationReportsListStatus,
   useModerationReportsListSuspense,
@@ -20,14 +20,19 @@ import type {
 } from "@/api/generated/endpoints";
 import { formatTimeAgo } from "@/util";
 
-const TABS: { status: ModerationReportsListStatus; label: string }[] = [
-  { status: ModerationReportsListStatus.pending, label: "Pending" },
-  { status: ModerationReportsListStatus.approved, label: "Approved" },
-  { status: ModerationReportsListStatus.rejected, label: "Rejected" },
-];
+const statuses = [
+  { key: ModerationReportsListStatus.pending, label: "Pending" },
+  { key: ModerationReportsListStatus.approved, label: "Approved" },
+  { key: ModerationReportsListStatus.rejected, label: "Rejected" },
+] as const;
 
-const isStatus = (value: string | null): value is ModerationReportsListStatus =>
-  TABS.some(tab => tab.status === value);
+const useStatus = (): ModerationReportsListStatus => {
+  const requested = useSearchParams()[0].get("status");
+  return (
+    statuses.find(status => status.key === requested)?.key ??
+    ModerationReportsListStatus.pending
+  );
+};
 
 const memberLabel = (member: ModerationMemberOutput) => {
   const name = member.name ?? "Deleted account";
@@ -88,70 +93,74 @@ const ReportList: React.FC<ReportListProps> = ({ status }) => {
   }
 
   return (
-    <ul className="divide-y">
-      {reports.map(report => (
-        <ReportRow
-          key={report.id}
-          report={report}
-          reasonLabel={
-            reasons.find(reason => reason.key === report.reason)?.label ??
-            report.reason
-          }
-        />
-      ))}
-    </ul>
-  );
-};
-
-const ReportListSkeleton: React.FC = () => (
-  <ul className="divide-y">
-    {Array.from({ length: 4 }, (_, index) => (
-      <li key={index} className="flex flex-col gap-1 py-3">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-5 w-72" />
-        <Skeleton className="h-5 w-56" />
-      </li>
-    ))}
-  </ul>
-);
-
-const ModerationQueue: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const requested = searchParams.get("status");
-  const status = isStatus(requested)
-    ? requested
-    : ModerationReportsListStatus.pending;
-
-  return (
     <ScreenCard>
-      <ScreenCardContent className="flex flex-col gap-4">
-        <Tabs
-          value={status}
-          onValueChange={value => setSearchParams({ status: value })}
-        >
-          <TabsList>
-            {TABS.map(tab => (
-              <TabsTrigger key={tab.status} value={tab.status}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <Suspense fallback={<ReportListSkeleton />}>
-          <ReportList status={status} />
-        </Suspense>
+      <ScreenCardContent>
+        <ul className="divide-y">
+          {reports.map(report => (
+            <ReportRow
+              key={report.id}
+              report={report}
+              reasonLabel={
+                reasons.find(reason => reason.key === report.reason)?.label ??
+                report.reason
+              }
+            />
+          ))}
+        </ul>
       </ScreenCardContent>
     </ScreenCard>
   );
 };
 
-const ModerationQueueSuspense: React.FC = () => (
-  <ScreenContainer>
-    <ScreenHeader title="Moderation" />
-    <QueryErrorBoundary>
-      <ModerationQueue />
-    </QueryErrorBoundary>
-  </ScreenContainer>
+const ReportListSkeleton: React.FC = () => (
+  <ScreenCard>
+    <ScreenCardContent>
+      <ul className="divide-y">
+        {Array.from({ length: 4 }, (_, index) => (
+          <li key={index} className="flex flex-col gap-1 py-3">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-5 w-72" />
+            <Skeleton className="h-5 w-56" />
+          </li>
+        ))}
+      </ul>
+    </ScreenCardContent>
+  </ScreenCard>
 );
+
+const ModerationQueueSuspense: React.FC = () => {
+  const status = useStatus();
+  const [, setSearchParams] = useSearchParams();
+
+  return (
+    <ScreenContainer>
+      <ScreenHeader
+        title="Moderation"
+        actions={
+          <ViewSelector
+            options={statuses}
+            value={status}
+            defaultValue={ModerationReportsListStatus.pending}
+            onChange={next =>
+              setSearchParams(
+                next === ModerationReportsListStatus.pending
+                  ? {}
+                  : { status: next }
+              )
+            }
+            label="Choose report status"
+            title="View reports"
+            description="Choose which reports to show"
+          />
+        }
+      />
+      <QueryErrorBoundary key={status}>
+        <Suspense fallback={<ReportListSkeleton />}>
+          <ReportList status={status} />
+        </Suspense>
+      </QueryErrorBoundary>
+    </ScreenContainer>
+  );
+};
 
 export { ModerationQueueSuspense as ModerationQueue };

@@ -1,16 +1,14 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
-import { Check, CircleCheck, History, Inbox, ListFilter, Loader2 } from "lucide-react";
+import { CircleCheck, History, Inbox, Loader2 } from "lucide-react";
 
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { MyGameCard } from "@/components/MyGameCard";
+import { ViewSelector } from "@/components/ViewSelector";
 import { Notice } from "@/components/Notice";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import {
@@ -20,7 +18,6 @@ import {
   type MyGamesSectionKeyEnum,
 } from "@/api/generated/endpoints";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const views = [
   { key: "current", label: "Current" },
@@ -41,73 +38,6 @@ const sectionTitles: Record<MyGamesSectionKeyEnum, string> = {
 
 const useView = (): View =>
   useSearchParams()[0].get("view") === "finished" ? "finished" : "current";
-
-const ViewSelector: React.FC = () => {
-  const view = useView();
-  const [, setSearchParams] = useSearchParams();
-  const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
-  const selected = views.find(option => option.key === view) ?? views[0];
-  const label = `Choose game view, ${selected.label} selected`;
-
-  const handleSelect = (next: View) => {
-    setSearchParams(next === "finished" ? { view: next } : {});
-    setOpen(false);
-  };
-
-  const options = (
-    <div className="grid gap-1">
-      {views.map(option => (
-        <Button
-          key={option.key}
-          variant={view === option.key ? "secondary" : "ghost"}
-          aria-pressed={view === option.key}
-          onClick={() => handleSelect(option.key)}
-          className="justify-between"
-        >
-          {option.label}
-          {view === option.key && <Check />}
-        </Button>
-      ))}
-    </div>
-  );
-
-  if (isMobile) {
-    return (
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative" aria-label={label}>
-            <ListFilter />
-            {view === "finished" && (
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary ring-2 ring-background" />
-            )}
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className="rounded-t-lg p-2">
-          <VisuallyHidden.Root>
-            <SheetTitle>View games</SheetTitle>
-            <SheetDescription>Choose which games to show</SheetDescription>
-          </VisuallyHidden.Root>
-          {options}
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label={label}>
-          {selected.label}
-          <ListFilter />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 p-2">
-        {options}
-      </PopoverContent>
-    </Popover>
-  );
-};
 
 const CurrentGames: React.FC = () => {
   const { data } = useGamesMineCurrentRetrieveSuspense({ query: { staleTime: 0 } });
@@ -226,10 +156,24 @@ const MyGamesSkeleton: React.FC<MyGamesSkeletonProps> = ({ view }) => (
 
 const MyGamesSuspense: React.FC = () => {
   const view = useView();
+  const [, setSearchParams] = useSearchParams();
 
   return (
     <ScreenContainer>
-      <ScreenHeader title="My Games" actions={<ViewSelector />} />
+      <ScreenHeader
+        title="My Games"
+        actions={
+          <ViewSelector
+            options={views}
+            value={view}
+            defaultValue="current"
+            onChange={next => setSearchParams(next === "finished" ? { view: next } : {})}
+            label="Choose game view"
+            title="View games"
+            description="Choose which games to show"
+          />
+        }
+      />
       <QueryErrorBoundary key={view}>
         <Suspense fallback={<MyGamesSkeleton view={view} />}>
           {view === "finished" ? <FinishedGames /> : <CurrentGames />}

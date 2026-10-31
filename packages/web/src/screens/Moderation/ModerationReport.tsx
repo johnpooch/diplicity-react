@@ -43,10 +43,10 @@ const ModerationReport: React.FC = () => {
     memberLabel(report.reported),
   ];
   const rows = FIELDS.map((field, index) => [field, values[index]]);
-  if (report.reviewedBy) {
+  if (report.review) {
     rows.push([
       `${STATUS_LABELS[report.status]} by`,
-      report.reviewedBy.name,
+      report.review.reviewedBy.name,
     ]);
   }
 
@@ -61,9 +61,15 @@ const ModerationReport: React.FC = () => {
         ))}
       </dl>
       <div className="flex flex-col gap-1">
-        <h2 className="text-sm font-medium">Note</h2>
+        <h2 className="text-sm font-medium">Reporter's note</h2>
         <p className="whitespace-pre-wrap text-sm">{report.note}</p>
       </div>
+      {report.review?.note && (
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-medium">Moderator's note</h2>
+          <p className="whitespace-pre-wrap text-sm">{report.review.note}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -6640,6 +6640,9 @@ class TestSeedStagingCommand:
         assert set(
             ReportReview.objects.values_list("reviewed_by_id", flat=True)
         ) == {tester.id}
+        assert all(
+            row["review"]["note"] for row in queue["approved"] + queue["rejected"]
+        )
 
     def test_every_seeded_deadline_is_at_least_two_weeks_away(self, staging):
         self._seed()

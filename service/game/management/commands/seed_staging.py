@@ -328,14 +328,19 @@ class Command(BaseCommand):
             nation=self._member(game, successor).nation
         )
 
-    def _report(self, game, reporter, reported, reason, note, age, decision=None):
+    def _report(
+        self, game, reporter, reported, reason, note, age, decision=None, review=""
+    ):
         report = Report.objects.report(
             self._member(game, reported), reporter, reason, note
         )
         Report.objects.filter(pk=report.pk).update(created_at=timezone.now() - age)
         if decision is not None:
             ReportReview.objects.create(
-                report=report, decision=decision, reviewed_by=self.tester
+                report=report,
+                decision=decision,
+                reviewed_by=self.tester,
+                note=review,
             )
         return report
 
@@ -717,6 +722,7 @@ class Command(BaseCommand):
             "Turkey and Russia never touch each other and coordinate every move.",
             timedelta(days=9),
             decision=ReportDecision.APPROVED,
+            review="Order history shows the two powers coordinating every turn.",
         )
         self._report(
             game,
@@ -726,6 +732,7 @@ class Command(BaseCommand):
             "Stabbed me after promising an alliance.",
             timedelta(days=6),
             decision=ReportDecision.REJECTED,
+            review="Breaking an alliance is part of the game, not a breach.",
         )
         return game
 

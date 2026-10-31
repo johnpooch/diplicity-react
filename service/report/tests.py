@@ -38,6 +38,7 @@ def report_factory(db, game_factory, member_factory):
         age=timedelta(0),
         decision=None,
         reviewed_by=None,
+        review_note="Clear breach of the code of conduct.",
     ):
         game = game or game_factory()
         reporter = member_factory(game=game)
@@ -56,6 +57,7 @@ def report_factory(db, game_factory, member_factory):
                 report=report,
                 decision=decision,
                 reviewed_by=reviewed_by or reporter.user,
+                note=review_note,
             )
         return report
 
@@ -661,7 +663,7 @@ class TestModerationReportListView:
                     "name": report.reported.user.profile.name,
                     "nation": report.reported.nation.name,
                 },
-                "reviewed_by": None,
+                "review": None,
             }
         ]
 
@@ -773,20 +775,32 @@ class TestModerationReportDetailView:
         assert response.data["game_name"] == report.reporter.game.name
 
     @pytest.mark.django_db
-    def test_decided_report_shows_reviewer(
+    def test_decided_report_shows_review(
         self, moderator_client, moderator, report_factory
     ):
         report = report_factory(
-            decision=ReportDecision.REJECTED, reviewed_by=moderator
+            decision=ReportDecision.REJECTED,
+            reviewed_by=moderator,
+            review_note="Ordinary diplomacy, not a breach.",
         )
 
         response = moderator_client.get(_detail_url(report))
 
         assert response.data["status"] == "rejected"
-        assert response.data["reviewed_by"] == {
-            "user_id": moderator.id,
-            "name": "Mia Moderator",
+        assert response.data["review"] == {
+            "reviewed_by": {"user_id": moderator.id, "name": "Mia Moderator"},
+            "note": "Ordinary diplomacy, not a breach.",
         }
+
+    @pytest.mark.django_db
+    def test_review_note_defaults_to_empty(self, moderator, report_factory):
+        report = report_factory()
+        review = ReportReview.objects.create(
+            report=report, decision=ReportDecision.APPROVED, reviewed_by=moderator
+        )
+        review.refresh_from_db()
+
+        assert review.note == ""
 
     @pytest.mark.django_db
     def test_missing_report_not_found(self, moderator_client):

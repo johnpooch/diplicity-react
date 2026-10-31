@@ -8,6 +8,7 @@ import type { ModerationReportOutput } from "@/api/generated/endpoints";
 import { ModerationQueue } from "./ModerationQueue";
 
 const listReports = vi.fn();
+const isMobile = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
@@ -22,6 +23,8 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
   }),
 }));
 
+vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => isMobile() }));
+
 vi.mock("@/components/UserAvatar", () => ({ UserAvatar: () => null }));
 
 const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOutput => ({
@@ -35,7 +38,7 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
   variantName: "Classical",
   reporter: { id: 10, userId: 100, name: "Alice Moreau", nation: "England" },
   reported: { id: 11, userId: 101, name: "Bruno Keller", nation: "France" },
-  reviewedBy: null,
+  review: null,
   ...overrides,
 });
 
@@ -66,20 +69,23 @@ const renderScreen = (path = "/moderation") =>
     </QueryClientProvider>
   );
 
+const filterButton = (selected: string) =>
+  screen.getByRole("button", {
+    name: `Choose report status, ${selected} selected`,
+  });
+
 describe("ModerationQueue", () => {
   beforeEach(() => {
     listReports.mockReset();
+    isMobile.mockReturnValue(false);
   });
 
-  it("shows the pending tab by default", () => {
+  it("shows pending reports by default", () => {
     listReports.mockReturnValue([report({})]);
     renderScreen();
 
     expect(listReports).toHaveBeenCalledWith({ status: "pending" });
-    expect(screen.getByRole("tab", { name: "Pending" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(filterButton("Pending")).toHaveTextContent("Pending");
   });
 
   it("shows reason, age, reporter, reported, game and variant on each row", () => {
@@ -105,28 +111,62 @@ describe("ModerationQueue", () => {
     expect(within(rows[1]).getByText("Deleted account")).toBeInTheDocument();
   });
 
-  it("switches status through the URL", async () => {
+  it("offers pending, approved and rejected from a menu on desktop", async () => {
     listReports.mockReturnValue([]);
     renderScreen();
 
-    await userEvent.click(screen.getByRole("tab", { name: "Rejected" }));
+    await userEvent.click(filterButton("Pending"));
+    expect(screen.getByRole("button", { name: "Pending" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(screen.getByRole("button", { name: "Approved" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Rejected" }));
 
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/moderation?status=rejected"
     );
     expect(listReports).toHaveBeenLastCalledWith({ status: "rejected" });
     expect(screen.getByText("No rejected reports")).toBeInTheDocument();
+    expect(filterButton("Rejected")).toBeInTheDocument();
   });
 
-  it("reads the tab from the URL", () => {
+  it("opens the filter as a bottom sheet on mobile", async () => {
+    isMobile.mockReturnValue(true);
+    listReports.mockReturnValue([]);
+    renderScreen();
+
+    await userEvent.click(filterButton("Pending"));
+    const sheet = screen.getByRole("dialog");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Approved" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/moderation?status=approved"
+    );
+    expect(listReports).toHaveBeenLastCalledWith({ status: "approved" });
+  });
+
+  it("returns to pending without a status in the URL", async () => {
+    listReports.mockReturnValue([]);
+    renderScreen("/moderation?status=approved");
+
+    await userEvent.click(filterButton("Approved"));
+    await userEvent.click(screen.getByRole("button", { name: "Pending" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/moderation$/);
+    expect(listReports).toHaveBeenLastCalledWith({ status: "pending" });
+  });
+
+  it("reads the status from the URL", () => {
     listReports.mockReturnValue([report({ status: "approved" })]);
     renderScreen("/moderation?status=approved");
 
     expect(listReports).toHaveBeenCalledWith({ status: "approved" });
-    expect(screen.getByRole("tab", { name: "Approved" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(filterButton("Approved")).toBeInTheDocument();
   });
 
   it("falls back to pending for an unknown status", () => {
@@ -154,6 +194,6 @@ describe("ModerationQueue", () => {
     renderScreen();
 
     expect(screen.getByText("This game is no longer available")).toBeInTheDocument();
-    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 });

@@ -4241,9 +4241,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/ModerationMemberOutput'
           readOnly: true
-        reviewedBy:
+        review:
           allOf:
-          - $ref: '#/components/schemas/ModerationReviewerOutput'
+          - $ref: '#/components/schemas/ModerationReviewOutput'
           readOnly: true
           nullable: true
       required:
@@ -4255,9 +4255,23 @@ components:
       - reason
       - reported
       - reporter
-      - reviewedBy
+      - review
       - status
       - variantName
+    ModerationReviewOutput:
+      type: object
+      properties:
+        reviewedBy:
+          allOf:
+          - $ref: '#/components/schemas/ModerationReviewerOutput'
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+          maxLength: 1000
+      required:
+      - note
+      - reviewedBy
     ModerationReviewerOutput:
       type: object
       properties:

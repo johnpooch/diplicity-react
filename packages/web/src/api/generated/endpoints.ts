@@ -1035,6 +1035,12 @@ export interface ModerationReviewerOutput {
   readonly name: string;
 }
 
+export interface ModerationReviewOutput {
+  readonly reviewedBy: ModerationReviewerOutput;
+  /** @maxLength 1000 */
+  readonly note: string;
+}
+
 export interface ModerationReportOutput {
   readonly id: number;
   readonly reason: ReasonEnum;
@@ -1047,7 +1053,7 @@ export interface ModerationReportOutput {
   readonly variantName: string;
   readonly reporter: ModerationMemberOutput;
   readonly reported: ModerationMemberOutput;
-  readonly reviewedBy: ModerationReviewerOutput | null;
+  readonly review: ModerationReviewOutput | null;
 }
 
 export interface MyGameSeats {
