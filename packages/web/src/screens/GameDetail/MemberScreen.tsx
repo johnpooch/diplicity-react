@@ -186,7 +186,7 @@ const MemberContent: React.FC = () => {
         )}
       </ActionList>
       {member.canReport && (
-        <Button variant="secondary" asChild>
+        <Button variant="outline" asChild>
           <Link to={`/game/${gameId}/phase/${phaseId}/member/${member.id}/report`}>
             <Flag />
             Report player
@@ -194,7 +194,7 @@ const MemberContent: React.FC = () => {
         </Button>
       )}
       {member.alreadyReported && (
-        <Button variant="secondary" disabled>
+        <Button variant="outline" disabled>
           <Flag />
           Report player
         </Button>

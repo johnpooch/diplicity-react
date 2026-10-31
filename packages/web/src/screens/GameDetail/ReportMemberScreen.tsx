@@ -69,6 +69,7 @@ const ReportMemberForm: React.FC = () => {
       await queryClient.invalidateQueries({
         queryKey: getGameMemberRetrieveQueryKey(gameId, Number(memberId)),
       });
+      toast.success("Report submitted");
       navigate(`/game/${gameId}/phase/${phaseId}/member/${memberId}`);
     } catch {
       toast.error("Failed to submit report");
