@@ -11,6 +11,7 @@ from common.constants import (
     ParticipationStatus,
 )
 from emit import emit
+from report.checks import HasNotReportedCheck
 from user_profile.models import UserProfile
 
 from .models import Member
@@ -182,6 +183,8 @@ class MemberDetailSerializer(BaseMemberSerializer):
     )
     nation_preferences = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
+    can_report = serializers.SerializerMethodField()
+    already_reported = serializers.SerializerMethodField()
 
     def _counted_phase(self, obj):
         game = self._get_game(obj)
@@ -230,6 +233,14 @@ class MemberDetailSerializer(BaseMemberSerializer):
         return MemberActionSerializer(
             obj.actions_for(self.context["request"].user), many=True
         ).data
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_report(self, obj):
+        return obj.report_decision.allowed
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_already_reported(self, obj):
+        return obj.report_decision.reason == HasNotReportedCheck.reason
 
 
 class MemberJoinSerializer(MemberSerializer):

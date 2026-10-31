@@ -118,6 +118,7 @@ INSTALLED_APPS = [
     "health",
     "victory",
     "draw_proposal",
+    "report",
     "email_service",
     "inference",
     "agent",
@@ -358,6 +359,9 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
         "drf_spectacular.hooks.postprocess_schema_enums",
     ],
+    "ENUM_NAME_OVERRIDES": {
+        "ReasonEnum": "report.constants.ReportReason.REASON_CHOICES",
+    },
 }
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")

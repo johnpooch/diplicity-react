@@ -42,6 +42,7 @@ from common.permissions import (
 from common.views import SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
+from report.policies import CanReportPolicy
 
 
 @extend_schema(responses={201: MemberSerializer})
@@ -78,11 +79,13 @@ class MemberRetrieveView(generics.RetrieveAPIView):
     serializer_class = MemberDetailSerializer
 
     def get_object(self):
-        return get_object_or_404(
+        member = get_object_or_404(
             Member.objects.with_detail_data(),
             game_id=self.kwargs["game_id"],
             id=self.kwargs["member_id"],
         )
+        member.report_decision = CanReportPolicy.decide(member, self.request.user)
+        return member
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):

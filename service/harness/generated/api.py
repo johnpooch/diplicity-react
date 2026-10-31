@@ -365,10 +365,35 @@ class Province(TypedDict):
     named_coast_ids: list[str]
 
 
+type ReasonEnum = Literal[
+    'abuse_and_harassment', 'multiple_accounts', 'secret_teaming', 'other'
+]
+
+
 class Register(TypedDict):
     email: str
     password: str
     display_name: str
+
+
+class ReportMemberInput(TypedDict):
+    reason: ReasonEnum
+    note: NotRequired[str]
+
+
+class ReportOutput(TypedDict):
+    id: int
+    reported_member: int
+    reason: ReasonEnum
+    note: str
+    status: str
+    created_at: str
+
+
+class ReportReason(TypedDict):
+    key: ReasonEnum
+    label: str
+    description: str
 
 
 type ResultEnum = Literal['solo_victory', 'won_by', 'draw', 'abandoned', 'ongoing']
@@ -674,6 +699,8 @@ class MemberDetail(TypedDict):
     nmr_extensions_allowed: int
     nation_preferences: list[str] | None
     actions: list[MemberAction]
+    can_report: bool
+    already_reported: bool
 
 
 class MyGameState(TypedDict):

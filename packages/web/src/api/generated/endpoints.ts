@@ -968,6 +968,8 @@ export interface MemberDetail {
   /** @nullable */
   readonly nationPreferences: readonly string[] | null;
   readonly actions: readonly MemberAction[];
+  readonly canReport: boolean;
+  readonly alreadyReported: boolean;
 }
 
 export interface MemberNationAssign {
@@ -1334,11 +1336,48 @@ export interface PublicUserProfile {
   readonly commitmentSquares: readonly CommitmentSquare[];
 }
 
+/**
+ * * `abuse_and_harassment` - Abuse and harassment
+ * `multiple_accounts` - Multiple accounts
+ * `secret_teaming` - Secret teaming
+ * `other` - Other
+ */
+export type ReasonEnum = (typeof ReasonEnum)[keyof typeof ReasonEnum];
+
+export const ReasonEnum = {
+  abuse_and_harassment: "abuse_and_harassment",
+  multiple_accounts: "multiple_accounts",
+  secret_teaming: "secret_teaming",
+  other: "other",
+} as const;
+
 export interface Register {
   email: string;
   /** @minLength 8 */
   password: string;
   displayName: string;
+}
+
+export interface ReportMemberInput {
+  reason: ReasonEnum;
+  /** @maxLength 1000 */
+  note?: string;
+}
+
+export interface ReportOutput {
+  readonly id: number;
+  readonly reportedMember: number;
+  readonly reason: ReasonEnum;
+  /** @maxLength 1000 */
+  readonly note: string;
+  readonly status: string;
+  readonly createdAt: string;
+}
+
+export interface ReportReason {
+  readonly key: ReasonEnum;
+  readonly label: string;
+  readonly description: string;
 }
 
 export interface TokenRefresh {
@@ -5284,6 +5323,86 @@ export const useGameMemberNationDestroy = <
 > => {
   return useMutation(
     getGameMemberNationDestroyMutationOptions(options),
+    queryClient
+  );
+};
+
+export const gameMemberReportCreate = (
+  gameId: string,
+  memberId: number,
+  reportMemberInput: ReportMemberInput,
+  signal?: AbortSignal
+) => {
+  return customInstance<ReportOutput>({
+    url: `/game/${gameId}/member/${memberId}/report/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: reportMemberInput,
+    signal,
+  });
+};
+
+export const getGameMemberReportCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameMemberReportCreate>>,
+    TError,
+    { gameId: string; memberId: number; data: ReportMemberInput },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameMemberReportCreate>>,
+  TError,
+  { gameId: string; memberId: number; data: ReportMemberInput },
+  TContext
+> => {
+  const mutationKey = ["gameMemberReportCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameMemberReportCreate>>,
+    { gameId: string; memberId: number; data: ReportMemberInput }
+  > = props => {
+    const { gameId, memberId, data } = props ?? {};
+
+    return gameMemberReportCreate(gameId, memberId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameMemberReportCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberReportCreate>>
+>;
+export type GameMemberReportCreateMutationBody = ReportMemberInput;
+export type GameMemberReportCreateMutationError = unknown;
+
+export const useGameMemberReportCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameMemberReportCreate>>,
+      TError,
+      { gameId: string; memberId: number; data: ReportMemberInput },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameMemberReportCreate>>,
+  TError,
+  { gameId: string; memberId: number; data: ReportMemberInput },
+  TContext
+> => {
+  return useMutation(
+    getGameMemberReportCreateMutationOptions(options),
     queryClient
   );
 };
@@ -11643,6 +11762,258 @@ export function useGamesMineFinishedListSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const reportReasonsList = (signal?: AbortSignal) => {
+  return customInstance<ReportReason[]>({
+    url: `/report/reasons/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getReportReasonsListQueryKey = () => {
+  return [`/report/reasons/`] as const;
+};
+
+export const getReportReasonsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof reportReasonsList>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getReportReasonsListQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof reportReasonsList>>
+  > = ({ signal }) => reportReasonsList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof reportReasonsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReportReasonsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof reportReasonsList>>
+>;
+export type ReportReasonsListQueryError = unknown;
+
+export function useReportReasonsList<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof reportReasonsList>>,
+          TError,
+          Awaited<ReturnType<typeof reportReasonsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useReportReasonsList<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof reportReasonsList>>,
+          TError,
+          Awaited<ReturnType<typeof reportReasonsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useReportReasonsList<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useReportReasonsList<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getReportReasonsListQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getReportReasonsListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof reportReasonsList>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getReportReasonsListQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof reportReasonsList>>
+  > = ({ signal }) => reportReasonsList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof reportReasonsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReportReasonsListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof reportReasonsList>>
+>;
+export type ReportReasonsListSuspenseQueryError = unknown;
+
+export function useReportReasonsListSuspense<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useReportReasonsListSuspense<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useReportReasonsListSuspense<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useReportReasonsListSuspense<
+  TData = Awaited<ReturnType<typeof reportReasonsList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof reportReasonsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getReportReasonsListSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,
