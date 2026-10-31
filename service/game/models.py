@@ -835,10 +835,15 @@ class Game(BaseModel):
 
     @property
     def in_first_year(self):
+        if "phases" in getattr(self, "_prefetched_objects_cache", {}):
+            phases = list(self.phases.all())
+            first_phase = phases[0] if phases else None
+        else:
+            first_phase = self.phases.order_by("ordinal", "id").first()
         current_phase = self.current_phase
-        if current_phase is None:
+        if current_phase is None or first_phase is None:
             return False
-        return current_phase.year == self.phases.order_by("ordinal", "id").first().year
+        return current_phase.year == first_phase.year
 
     @property
     def movement_phase_duration_seconds(self):

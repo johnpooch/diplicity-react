@@ -982,6 +982,22 @@ class TestGameRetrieveView:
         assert len(response.data["phases"]) == 2
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize("phase_count,expected", [(1, True), (2, False)])
+    def test_retrieve_game_reports_whether_game_is_in_first_year(
+        self,
+        authenticated_client,
+        game_with_phase_history_factory,
+        phase_count,
+        expected,
+    ):
+        game = game_with_phase_history_factory(phase_count=phase_count)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_first_year"] is expected
+
+    @pytest.mark.django_db
     def test_retrieve_game_reports_order_status_from_current_phase(
         self, authenticated_client, game_with_phase_history_factory
     ):

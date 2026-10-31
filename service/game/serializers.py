@@ -350,6 +350,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
     can_withdraw = serializers.SerializerMethodField()
+    is_first_year = serializers.BooleanField(source="in_first_year", read_only=True)
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
     can_create_channel = serializers.SerializerMethodField()

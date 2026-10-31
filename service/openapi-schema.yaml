@@ -3606,6 +3606,9 @@ components:
         canWithdraw:
           type: boolean
           readOnly: true
+        isFirstYear:
+          type: boolean
+          readOnly: true
         canDelete:
           type: boolean
           readOnly: true
@@ -3770,6 +3773,7 @@ components:
       - gameMaster
       - gameMasterMemberId
       - id
+      - isFirstYear
       - isPaused
       - memberStatus
       - members
