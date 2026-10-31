@@ -1,5 +1,18 @@
 from django.db import IntegrityError, models, transaction
-from django.db.models import Q, BooleanField, Case, Count, Exists, Subquery, OuterRef, IntegerField, Value, Max, F, When
+from django.db.models import (
+    Q,
+    BooleanField,
+    Case,
+    Count,
+    Exists,
+    Subquery,
+    OuterRef,
+    IntegerField,
+    Value,
+    Max,
+    F,
+    When,
+)
 from django.contrib.auth import get_user_model
 from django.core import exceptions
 from django.utils import timezone
@@ -31,21 +44,19 @@ class ChannelQuerySet(models.QuerySet):
     def with_member_names(self):
         return self.prefetch_related("members__nation", "members__user__profile")
 
-    def with_related_data(self):
-        return self.prefetch_related(
-            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__profile__uploaded_picture", "members", "members__user", "members__user__profile__uploaded_picture",
-            models.Prefetch("events", queryset=ChannelEvent.objects.for_display()),
-        )
-
     def with_latest_message_id(self):
         latest_message = (
-            ChannelMessage.objects.filter(channel=OuterRef("pk")).order_by("-created_at", "-id").values("id")[:1]
+            ChannelMessage.objects.filter(channel=OuterRef("pk"))
+            .order_by("-created_at", "-id")
+            .values("id")[:1]
         )
         return self.annotate(latest_message_id=Subquery(latest_message))
 
     def with_first_unread_message_id(self, user):
         if not user.is_authenticated:
-            return self.annotate(first_unread_message_id=Value(None, output_field=IntegerField()))
+            return self.annotate(
+                first_unread_message_id=Value(None, output_field=IntegerField())
+            )
         first_unread_message = (
             ChannelMessage.objects.filter(channel=OuterRef("pk"))
             .unread_by(user)
@@ -56,7 +67,9 @@ class ChannelQuerySet(models.QuerySet):
 
     def with_requester_membership(self, member):
         if member is None:
-            return self.annotate(requester_is_member=Value(False, output_field=BooleanField()))
+            return self.annotate(
+                requester_is_member=Value(False, output_field=BooleanField())
+            )
         membership = ChannelMember.objects.filter(channel=OuterRef("pk"), member=member)
         return self.annotate(
             requester_is_member=Case(
@@ -68,10 +81,16 @@ class ChannelQuerySet(models.QuerySet):
 
     def with_detail_data(self):
         latest_event = (
-            ChannelEvent.objects.for_display().filter(channel=OuterRef("pk")).order_by("-created_at", "-id").values("id")[:1]
+            ChannelEvent.objects.for_display()
+            .filter(channel=OuterRef("pk"))
+            .order_by("-created_at", "-id")
+            .values("id")[:1]
         )
         return self.annotate(latest_event_id=Subquery(latest_event)).prefetch_related(
-            models.Prefetch("events", queryset=ChannelEvent.objects.for_display().select_related("phase"))
+            models.Prefetch(
+                "events",
+                queryset=ChannelEvent.objects.for_display().select_related("phase"),
+            )
         )
 
     def order_for_list(self):
@@ -83,7 +102,9 @@ class ChannelQuerySet(models.QuerySet):
 
     def with_unread_counts(self, user):
         if not user.is_authenticated:
-            return self.annotate(unread_message_count=Value(0, output_field=IntegerField()))
+            return self.annotate(
+                unread_message_count=Value(0, output_field=IntegerField())
+            )
         last_read_subquery = Subquery(
             ChannelMember.objects.filter(
                 channel=OuterRef("pk"),
@@ -122,13 +143,24 @@ class ChannelManager(models.Manager):
 
     def private_channel_exists_for_members(self, game, member_ids):
         return any(
-            {member.id for member in channel.members.all() if member.replaced_by_id is None} == set(member_ids)
-            for channel in self.filter(game=game, private=True).prefetch_related("members")
+            {
+                member.id
+                for member in channel.members.all()
+                if member.replaced_by_id is None
+            }
+            == set(member_ids)
+            for channel in self.filter(game=game, private=True).prefetch_related(
+                "members"
+            )
         )
 
     def delete_channels_left_with_one_member(self, member):
         channels = self.filter(private=True, members=member).prefetch_related("members")
-        self.filter(id__in=[channel.id for channel in channels if len(channel.members.all()) <= 2]).delete()
+        self.filter(
+            id__in=[
+                channel.id for channel in channels if len(channel.members.all()) <= 2
+            ]
+        ).delete()
 
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)
@@ -138,9 +170,6 @@ class ChannelManager(models.Manager):
 
     def for_game(self, game):
         return self.get_queryset().for_game(game)
-
-    def with_related_data(self):
-        return self.get_queryset().with_related_data()
 
     def with_unread_counts(self, user):
         return self.get_queryset().with_unread_counts(user)
@@ -152,9 +181,12 @@ class ChannelManager(models.Manager):
         return self.get_queryset().order_for_list()
 
     def hydrate_latest_messages(self, channels):
-        messages = (
-            ChannelMessage.objects.with_sender_data()
-            .in_bulk([channel.latest_message_id for channel in channels if channel.latest_message_id is not None])
+        messages = ChannelMessage.objects.with_sender_data().in_bulk(
+            [
+                channel.latest_message_id
+                for channel in channels
+                if channel.latest_message_id is not None
+            ]
         )
         for channel in channels:
             channel.latest_message = messages.get(channel.latest_message_id)
@@ -165,9 +197,13 @@ class Channel(BaseModel):
     objects = ChannelManager()
 
     name = models.CharField(max_length=1000)
-    title = models.CharField(max_length=CHANNEL_TITLE_MAX_LENGTH, blank=True, default="")
+    title = models.CharField(
+        max_length=CHANNEL_TITLE_MAX_LENGTH, blank=True, default=""
+    )
     private = models.BooleanField(default=False)
-    game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="channels")
+    game = models.ForeignKey(
+        "game.Game", on_delete=models.CASCADE, related_name="channels"
+    )
     members = models.ManyToManyField(
         "member.Member",
         through="channel.ChannelMember",
@@ -176,7 +212,9 @@ class Channel(BaseModel):
 
     def member_user_ids(self):
         members = self.members if self.private else self.game.members
-        return {m.user_id for m in members.all() if m.user_id is not None and m.occupied}
+        return {
+            m.user_id for m in members.all() if m.user_id is not None and m.occupied
+        }
 
     def notifiable_member_user_ids(self):
         muted_user_ids = set(
@@ -193,8 +231,12 @@ class ChannelMemberQuerySet(models.QuerySet):
 
 
 class ChannelMember(BaseModel):
-    member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="member_channels")
-    channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="member_channels")
+    member = models.ForeignKey(
+        "member.Member", on_delete=models.CASCADE, related_name="member_channels"
+    )
+    channel = models.ForeignKey(
+        "channel.Channel", on_delete=models.CASCADE, related_name="member_channels"
+    )
     last_read_at = models.DateTimeField(default=timezone.now)
     muted_until = models.DateTimeField(null=True, blank=True)
     muted_indefinitely = models.BooleanField(default=False)
@@ -217,7 +259,10 @@ class ChannelMessageQuerySet(models.QuerySet):
 
     def with_sender_data(self):
         return self.select_related(
-            "sender", "sender__user", "sender__user__profile__uploaded_picture", "sender__nation__flag"
+            "sender",
+            "sender__user",
+            "sender__user__profile__uploaded_picture",
+            "sender__nation__flag",
         )
 
     def page(self, *, page_size, before=None, after=None):
@@ -231,7 +276,9 @@ class ChannelMessageQuerySet(models.QuerySet):
             has_older = len(window) > page_size
             has_newer = before is not None and self.filter(id__gte=before).exists()
         return {
-            "results": sorted(window[:page_size], key=lambda message: (message.created_at, message.id)),
+            "results": sorted(
+                window[:page_size], key=lambda message: (message.created_at, message.id)
+            ),
             "has_older": has_older,
             "has_newer": has_newer,
         }
@@ -250,7 +297,10 @@ class ChannelMessageQuerySet(models.QuerySet):
 
     def create_idempotent(self, channel, sender, phase, body, client_message_id):
         if client_message_id is None:
-            return self.create(channel=channel, sender=sender, phase=phase, body=body), True
+            return (
+                self.create(channel=channel, sender=sender, phase=phase, body=body),
+                True,
+            )
         try:
             with transaction.atomic():
                 message = self.create(
@@ -262,19 +312,32 @@ class ChannelMessageQuerySet(models.QuerySet):
                 )
         except IntegrityError:
             message = self.filter(
-                channel=channel, sender=sender, client_message_id=client_message_id, body=body
+                channel=channel,
+                sender=sender,
+                client_message_id=client_message_id,
+                body=body,
             ).first()
             if message is None:
-                raise exceptions.ValidationError("This client message id has already been used for another message.")
+                raise exceptions.ValidationError(
+                    "This client message id has already been used for another message."
+                )
             return message, False
         return message, True
 
 
 class ChannelMessage(BaseModel):
-    channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="messages")
-    sender = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="sent_messages")
+    channel = models.ForeignKey(
+        "channel.Channel", on_delete=models.CASCADE, related_name="messages"
+    )
+    sender = models.ForeignKey(
+        "member.Member", on_delete=models.CASCADE, related_name="sent_messages"
+    )
     phase = models.ForeignKey(
-        "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_messages"
+        "phase.Phase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="channel_messages",
     )
     body = models.TextField()
     client_message_id = models.UUIDField(null=True, blank=True)
@@ -312,22 +375,33 @@ class ChannelEventManager(models.Manager):
         if not channels:
             return []
         return self.create_for_channels(
-            event_type, channels, phase=context.phase, payload=spec_class().build_payload(context)
+            event_type,
+            channels,
+            phase=context.phase,
+            payload=spec_class().build_payload(context),
         )
 
     def create_for_channels(self, event_type, channels, phase=None, payload=None):
         return self.bulk_create(
             [
-                self.model(channel=channel, type=event_type, phase=phase, payload=payload or {})
+                self.model(
+                    channel=channel, type=event_type, phase=phase, payload=payload or {}
+                )
                 for channel in channels
             ]
         )
 
 
 class ChannelEvent(BaseModel):
-    channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="events")
+    channel = models.ForeignKey(
+        "channel.Channel", on_delete=models.CASCADE, related_name="events"
+    )
     phase = models.ForeignKey(
-        "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_events"
+        "phase.Phase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="channel_events",
     )
     type = models.CharField(max_length=100)
     payload = models.JSONField(default=dict, blank=True)

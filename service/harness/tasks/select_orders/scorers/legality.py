@@ -1,4 +1,12 @@
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    accuracy,
+    scorer,
+    stderr,
+)
 
 from harness.tasks.select_orders.options import describe_option, same_option
 from harness.tasks.select_orders.scorers._resolve import resolve_orders
@@ -12,7 +20,11 @@ def legality():
             return failure
 
         legal = context["order_options"]
-        illegal = [order for order in orders if not any(same_option(order, option) for option in legal)]
+        illegal = [
+            order
+            for order in orders
+            if not any(same_option(order, option) for option in legal)
+        ]
 
         return Score(
             value=INCORRECT if illegal else CORRECT,

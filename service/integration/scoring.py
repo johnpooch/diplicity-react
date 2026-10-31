@@ -15,7 +15,9 @@ class GameScore:
 def sum_of_squares(phase):
     centers: dict[str, int] = {}
     for supply_center in phase.supply_centers.select_related("nation"):
-        centers[supply_center.nation.name] = centers.get(supply_center.nation.name, 0) + 1
+        centers[supply_center.nation.name] = (
+            centers.get(supply_center.nation.name, 0) + 1
+        )
 
     kinds: dict[str, str] = {}
     for member in phase.game.members.select_related("nation", "user__profile"):

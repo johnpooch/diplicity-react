@@ -74,7 +74,7 @@ const collectPoints = (layer: Element | null): Map<string, Point> => {
   return points;
 };
 
-const stripRedundantNamespace = (markup: string): string =>
+export const stripRedundantNamespace = (markup: string): string =>
   markup.split(' xmlns="http://www.w3.org/2000/svg"').join("");
 
 const collectDefs = (root: Element): string => {

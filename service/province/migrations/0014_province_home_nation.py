@@ -11,8 +11,12 @@ def backfill_home_nation(apps, schema_editor):
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
     Phase = apps.get_model("phase", "Phase")
 
-    template_phases = Phase.objects.filter(game__isnull=True, status=PhaseStatus.TEMPLATE)
-    supply_centers = SupplyCenter.objects.filter(phase__in=template_phases).select_related("province")
+    template_phases = Phase.objects.filter(
+        game__isnull=True, status=PhaseStatus.TEMPLATE
+    )
+    supply_centers = SupplyCenter.objects.filter(
+        phase__in=template_phases
+    ).select_related("province")
 
     to_update = []
     for sc in supply_centers:
@@ -30,17 +34,23 @@ def reverse_home_nation(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nation', '0008_update_canton_nation_colors'),
-        ('province', '0013_add_canton_provinces'),
-        ('supply_center', '0007_add_canton_supply_centers'),
-        ('phase', '0012_add_canton_template_phase'),
+        ("nation", "0008_update_canton_nation_colors"),
+        ("province", "0013_add_canton_provinces"),
+        ("supply_center", "0007_add_canton_supply_centers"),
+        ("phase", "0012_add_canton_template_phase"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='province',
-            name='home_nation',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='home_provinces', to='nation.nation'),
+            model_name="province",
+            name="home_nation",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="home_provinces",
+                to="nation.nation",
+            ),
         ),
         migrations.RunPython(backfill_home_nation, reverse_home_nation),
     ]

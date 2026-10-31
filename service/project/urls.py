@@ -22,7 +22,6 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from project.views import test_sentry
 from project import settings
 
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
@@ -54,7 +53,9 @@ if settings._FIREBASE_PROJECT_ID:
     urlpatterns += [
         path(
             "devices/",
-            NotificationDeviceViewSet.as_view({"get": "list", "post": "create", "put": "update"}),
+            NotificationDeviceViewSet.as_view(
+                {"get": "list", "post": "create", "put": "update"}
+            ),
             name="devices",
         ),
     ]

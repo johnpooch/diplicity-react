@@ -6,9 +6,15 @@ from common.constants import UnitType
 
 class Unit(BaseModel):
     type = models.CharField(max_length=10, choices=UnitType.UNIT_TYPE_CHOICES)
-    nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="units")
-    province = models.ForeignKey("province.Province", on_delete=models.CASCADE, related_name="units")
-    phase = models.ForeignKey("phase.Phase", on_delete=models.CASCADE, related_name="units")
+    nation = models.ForeignKey(
+        "nation.Nation", on_delete=models.CASCADE, related_name="units"
+    )
+    province = models.ForeignKey(
+        "province.Province", on_delete=models.CASCADE, related_name="units"
+    )
+    phase = models.ForeignKey(
+        "phase.Phase", on_delete=models.CASCADE, related_name="units"
+    )
     dislodged = models.BooleanField(default=False)
     dislodged_from = models.ForeignKey(
         "province.Province",
@@ -21,7 +27,8 @@ class Unit(BaseModel):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(dislodged=False, dislodged_from__isnull=True) | Q(dislodged=True),
+                condition=Q(dislodged=False, dislodged_from__isnull=True)
+                | Q(dislodged=True),
                 name="dislodged_from_requires_dislodged",
             )
         ]

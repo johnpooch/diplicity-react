@@ -13,6 +13,8 @@ class Migration(migrations.Migration):
     operations = [
         AddIndexConcurrently(
             model_name="commitmententry",
-            index=models.Index(fields=["member", "kind"], name="commitment_member_kind_idx"),
+            index=models.Index(
+                fields=["member", "kind"], name="commitment_member_kind_idx"
+            ),
         ),
     ]

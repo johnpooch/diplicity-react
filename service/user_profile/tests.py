@@ -23,6 +23,7 @@ from common.constants import (
 from game.models import Game
 from phase.models import Phase, PhaseState
 from user_profile.commitment import (
+    clamp_post_civil_disorder,
     commitment_allows_requirement,
     get_rated_outcomes,
     recompute_commitment,
@@ -58,7 +59,9 @@ class TestUserProfileRetrieveView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_retrieve_user_profile_with_null_picture(self, authenticated_client, primary_user):
+    def test_retrieve_user_profile_with_null_picture(
+        self, authenticated_client, primary_user
+    ):
         primary_user.profile.picture = None
         primary_user.profile.save()
 
@@ -77,14 +80,23 @@ class TestPublicUserProfileCommitment:
         return client.get(reverse("public-user-profile", kwargs={"user_id": user.id}))
 
     def _member(self, user, variant, **game_fields):
-        game = Game.objects.create(variant=variant, name="Commitment Game", status=GameStatus.ACTIVE, **game_fields)
+        game = Game.objects.create(
+            variant=variant,
+            name="Commitment Game",
+            status=GameStatus.ACTIVE,
+            **game_fields,
+        )
         return game.members.create(user=user)
 
     def _record(self, member, *kinds):
-        CommitmentEntry.objects.bulk_create([CommitmentEntry(member=member, kind=kind) for kind in kinds])
+        CommitmentEntry.objects.bulk_create(
+            [CommitmentEntry(member=member, kind=kind) for kind in kinds]
+        )
 
     @pytest.mark.django_db
-    def test_player_without_games_has_no_squares(self, authenticated_client, secondary_user):
+    def test_player_without_games_has_no_squares(
+        self, authenticated_client, secondary_user
+    ):
         response = self._retrieve(authenticated_client, secondary_user)
 
         assert response.status_code == status.HTTP_200_OK
@@ -113,7 +125,13 @@ class TestPublicUserProfileCommitment:
         assert response.data["commitment_total"] == -9
         assert response.data["commitment_band"] == CommitmentBand.RED
         assert response.data["commitment_squares"] == [
-            {"submitted": 6, "missed": 1, "events": [], "points": 4, "shade": CommitmentShade.LIGHT_GREEN},
+            {
+                "submitted": 6,
+                "missed": 1,
+                "events": [],
+                "points": 4,
+                "shade": CommitmentShade.LIGHT_GREEN,
+            },
             {
                 "submitted": 1,
                 "missed": 2,
@@ -121,12 +139,20 @@ class TestPublicUserProfileCommitment:
                 "points": -13,
                 "shade": CommitmentShade.RED,
             },
-            {"submitted": 0, "missed": 0, "events": [], "points": 0, "shade": CommitmentShade.GREY},
+            {
+                "submitted": 0,
+                "missed": 0,
+                "events": [],
+                "points": 0,
+                "shade": CommitmentShade.GREY,
+            },
         ]
 
     @pytest.mark.django_db
     @pytest.mark.parametrize("excluded", ["private", "sandbox"])
-    def test_unrated_games_have_no_square(self, authenticated_client, secondary_user, classical_variant, excluded):
+    def test_unrated_games_have_no_square(
+        self, authenticated_client, secondary_user, classical_variant, excluded
+    ):
         self._member(secondary_user, classical_variant, **{excluded: True})
 
         response = self._retrieve(authenticated_client, secondary_user)
@@ -188,7 +214,9 @@ class TestUserProfileUpdateView:
         assert primary_user.profile.name == new_name
 
     @pytest.mark.django_db
-    def test_update_user_profile_name_too_short(self, authenticated_client, primary_user):
+    def test_update_user_profile_name_too_short(
+        self, authenticated_client, primary_user
+    ):
         url = reverse("user-profile-update")
         response = authenticated_client.patch(url, {"name": "A"}, format="json")
 
@@ -196,7 +224,9 @@ class TestUserProfileUpdateView:
         assert "name" in response.data
 
     @pytest.mark.django_db
-    def test_update_user_profile_name_with_numbers(self, authenticated_client, primary_user):
+    def test_update_user_profile_name_with_numbers(
+        self, authenticated_client, primary_user
+    ):
         url = reverse("user-profile-update")
         response = authenticated_client.patch(url, {"name": "Name123"}, format="json")
 
@@ -204,7 +234,9 @@ class TestUserProfileUpdateView:
         assert "name" in response.data
 
     @pytest.mark.django_db
-    def test_update_user_profile_name_with_special_chars(self, authenticated_client, primary_user):
+    def test_update_user_profile_name_with_special_chars(
+        self, authenticated_client, primary_user
+    ):
         url = reverse("user-profile-update")
         response = authenticated_client.patch(url, {"name": "Name@#$"}, format="json")
 
@@ -212,7 +244,9 @@ class TestUserProfileUpdateView:
         assert "name" in response.data
 
     @pytest.mark.django_db
-    def test_update_user_profile_name_with_valid_chars(self, authenticated_client, primary_user):
+    def test_update_user_profile_name_with_valid_chars(
+        self, authenticated_client, primary_user
+    ):
         url = reverse("user-profile-update")
         valid_names = ["Mary-Jane", "O'Brien", "Jean-Pierre", "María García"]
 
@@ -224,13 +258,19 @@ class TestUserProfileUpdateView:
     @pytest.mark.django_db
     def test_update_user_profile_unauthenticated(self, unauthenticated_client):
         url = reverse("user-profile-update")
-        response = unauthenticated_client.patch(url, {"name": "New Name"}, format="json")
+        response = unauthenticated_client.patch(
+            url, {"name": "New Name"}, format="json"
+        )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_update_user_profile_strips_whitespace(self, authenticated_client, primary_user):
+    def test_update_user_profile_strips_whitespace(
+        self, authenticated_client, primary_user
+    ):
         url = reverse("user-profile-update")
-        response = authenticated_client.patch(url, {"name": "  Trimmed Name  "}, format="json")
+        response = authenticated_client.patch(
+            url, {"name": "  Trimmed Name  "}, format="json"
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == "Trimmed Name"
@@ -239,7 +279,9 @@ class TestUserProfileUpdateView:
 class TestUserAccountDelete:
 
     @pytest.mark.django_db
-    def test_delete_account_with_confirmation(self, user_factory, authenticated_client_factory):
+    def test_delete_account_with_confirmation(
+        self, user_factory, authenticated_client_factory
+    ):
         user = user_factory()
         client = authenticated_client_factory(user)
         user_id = user.id
@@ -253,7 +295,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_member_fully_removed(
-        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_pending_game_for_primary_user,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -267,7 +312,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_active_game_member_preserved_with_removal_and_null_user(
-        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_active_game_for_primary_user,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -283,7 +331,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_completed_game_member_preserved_with_removal_and_null_user(
-        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_active_game_for_primary_user,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -301,7 +352,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_member_already_off_the_seat_keeps_its_departure_time_on_delete(
-        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_active_game_for_primary_user,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -325,7 +379,10 @@ class TestUserAccountDelete:
         user = user_factory()
         client = authenticated_client_factory(user)
         game = Game.objects.create(
-            name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE, created_by=user
+            name="GM Delete Test",
+            variant=classical_variant,
+            status=GS.ACTIVE,
+            created_by=user,
         )
         member = game.members.create(user=user)
 
@@ -340,7 +397,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_with_sole_user_is_deleted(
-        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_pending_game_for_primary_user,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -355,7 +415,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_current_phase_state_no_longer_has_possible_orders(
-        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_active_game_for_primary_user,
+        base_active_phase,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -372,7 +436,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_completed_phase_state_is_untouched(
-        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_active_game_for_primary_user,
+        base_active_phase,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -391,7 +459,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_deleted_member_no_longer_blocks_early_resolution(
-        self, user_factory, authenticated_client_factory, active_game_with_confirmed_phase_state, classical_france_nation
+        self,
+        user_factory,
+        authenticated_client_factory,
+        active_game_with_confirmed_phase_state,
+        classical_france_nation,
     ):
         game = active_game_with_confirmed_phase_state
         phase = game.current_phase
@@ -409,7 +481,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_deleted_member_does_not_consume_nmr_extensions(
-        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user, base_active_phase
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_active_game_for_primary_user,
+        base_active_phase,
     ):
         user = user_factory()
         client = authenticated_client_factory(user)
@@ -429,7 +505,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_with_other_members_is_preserved(
-        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user, secondary_user
+        self,
+        user_factory,
+        authenticated_client_factory,
+        base_pending_game_for_primary_user,
+        secondary_user,
     ):
         user = user_factory()
         user_id = user.id
@@ -452,7 +532,9 @@ class TestWelcomeSandboxGameCreation:
     def test_creating_user_profile_creates_sandbox_game(
         self, adjudication_data_classical, mock_immediate_on_commit
     ):
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             user = User.objects.create_user(
                 username="newuser", email="new@example.com", password="testpass123"
             )
@@ -469,9 +551,13 @@ class TestWelcomeSandboxGameCreation:
     def test_does_not_create_duplicate_if_user_has_sandbox_game(
         self, classical_variant, adjudication_data_classical, mock_immediate_on_commit
     ):
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             user = User.objects.create_user(
-                username="existingsandbox", email="existing@example.com", password="testpass123"
+                username="existingsandbox",
+                email="existing@example.com",
+                password="testpass123",
             )
             existing_game = Game.objects.create_sandbox(
                 user=user,
@@ -485,13 +571,17 @@ class TestWelcomeSandboxGameCreation:
         assert sandbox_games.first().id == existing_game.id
 
     @pytest.mark.django_db
-    def test_user_creation_succeeds_when_variant_missing(self, mock_immediate_on_commit):
+    def test_user_creation_succeeds_when_variant_missing(
+        self, mock_immediate_on_commit
+    ):
         from variant.models import Variant
 
         with patch.object(Variant.objects, "with_game_creation_data") as mock_qs:
             mock_qs.return_value = Variant.objects.none()
             user = User.objects.create_user(
-                username="novariant", email="novariant@example.com", password="testpass123"
+                username="novariant",
+                email="novariant@example.com",
+                password="testpass123",
             )
             UserProfile.objects.create(user=user, name="No Variant User")
 
@@ -500,8 +590,12 @@ class TestWelcomeSandboxGameCreation:
         assert sandbox_games.count() == 0
 
     @pytest.mark.django_db
-    def test_user_creation_succeeds_when_game_creation_fails(self, mock_immediate_on_commit):
-        with patch.object(Game.objects, "create_sandbox", side_effect=Exception("boom")):
+    def test_user_creation_succeeds_when_game_creation_fails(
+        self, mock_immediate_on_commit
+    ):
+        with patch.object(
+            Game.objects, "create_sandbox", side_effect=Exception("boom")
+        ):
             user = User.objects.create_user(
                 username="failedgame", email="fail@example.com", password="testpass123"
             )
@@ -513,7 +607,9 @@ class TestWelcomeSandboxGameCreation:
 class TestUserProfilePictureView:
 
     @pytest.mark.django_db
-    def test_upload_picture_requires_authentication(self, unauthenticated_client, make_upload):
+    def test_upload_picture_requires_authentication(
+        self, unauthenticated_client, make_upload
+    ):
         response = unauthenticated_client.put(
             reverse("user-picture"), make_upload(), format="multipart"
         )
@@ -537,7 +633,10 @@ class TestUserProfilePictureView:
         assert response.data["picture"].endswith(
             reverse(
                 "user-picture-image",
-                kwargs={"user_id": primary_user.id, "content_hash": picture.content_hash},
+                kwargs={
+                    "user_id": primary_user.id,
+                    "content_hash": picture.content_hash,
+                },
             )
         )
         assert response.data["picture"].startswith("http://")
@@ -549,7 +648,9 @@ class TestUserProfilePictureView:
         primary_user.profile.picture = "http://example.com/google.jpg"
         primary_user.profile.save()
 
-        authenticated_client.put(reverse("user-picture"), make_upload(), format="multipart")
+        authenticated_client.put(
+            reverse("user-picture"), make_upload(), format="multipart"
+        )
         response = authenticated_client.get(
             reverse("public-user-profile", kwargs={"user_id": primary_user.id})
         )
@@ -559,7 +660,10 @@ class TestUserProfilePictureView:
         assert response.data["picture"].endswith(
             reverse(
                 "user-picture-image",
-                kwargs={"user_id": primary_user.id, "content_hash": picture.content_hash},
+                kwargs={
+                    "user_id": primary_user.id,
+                    "content_hash": picture.content_hash,
+                },
             )
         )
 
@@ -576,7 +680,9 @@ class TestUserProfilePictureView:
         assert stored.size == (PICTURE_SIZE, PICTURE_SIZE)
 
     @pytest.mark.django_db
-    def test_upload_picture_centre_crops(self, authenticated_client, primary_user, make_upload):
+    def test_upload_picture_centre_crops(
+        self, authenticated_client, primary_user, make_upload
+    ):
         authenticated_client.put(
             reverse("user-picture"), make_upload(image_format="PNG"), format="multipart"
         )
@@ -584,7 +690,11 @@ class TestUserProfilePictureView:
         picture = UserProfilePicture.objects.get(profile=primary_user.profile)
         stored = Image.open(io.BytesIO(picture.content.data)).convert("RGB")
         assert stored.getpixel((PICTURE_SIZE // 4, PICTURE_SIZE // 2)) == (255, 0, 0)
-        assert stored.getpixel((3 * PICTURE_SIZE // 4, PICTURE_SIZE // 2)) == (0, 0, 255)
+        assert stored.getpixel((3 * PICTURE_SIZE // 4, PICTURE_SIZE // 2)) == (
+            0,
+            0,
+            255,
+        )
 
     @pytest.mark.django_db
     def test_upload_picture_honours_exif_orientation(
@@ -640,7 +750,9 @@ class TestUserProfilePictureView:
 
         assert second.status_code == status.HTTP_200_OK
         assert first.data["picture"] != second.data["picture"]
-        assert UserProfilePicture.objects.filter(profile=primary_user.profile).count() == 1
+        assert (
+            UserProfilePicture.objects.filter(profile=primary_user.profile).count() == 1
+        )
 
     @pytest.mark.django_db
     def test_upload_picture_stops_serving_replaced_image(
@@ -655,8 +767,14 @@ class TestUserProfilePictureView:
             format="multipart",
         )
 
-        assert authenticated_client.get(first.data["picture"]).status_code == status.HTTP_404_NOT_FOUND
-        assert authenticated_client.get(second.data["picture"]).status_code == status.HTTP_200_OK
+        assert (
+            authenticated_client.get(first.data["picture"]).status_code
+            == status.HTTP_404_NOT_FOUND
+        )
+        assert (
+            authenticated_client.get(second.data["picture"]).status_code
+            == status.HTTP_200_OK
+        )
 
     @pytest.mark.django_db
     def test_upload_picture_preserves_png_transparency(
@@ -677,7 +795,9 @@ class TestUserProfilePictureView:
     @pytest.mark.django_db
     def test_upload_webp_picture(self, authenticated_client, primary_user, make_upload):
         response = authenticated_client.put(
-            reverse("user-picture"), make_upload(image_format="WEBP"), format="multipart"
+            reverse("user-picture"),
+            make_upload(image_format="WEBP"),
+            format="multipart",
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -697,7 +817,9 @@ class TestUserProfilePictureView:
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert not UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
+        assert not UserProfilePicture.objects.filter(
+            profile=primary_user.profile
+        ).exists()
 
     @pytest.mark.django_db
     def test_upload_gif_rejected(self, authenticated_client, make_upload):
@@ -732,7 +854,9 @@ class TestUserProfilePictureView:
         assert "too large" in str(response.data["picture"])
 
     @pytest.mark.django_db
-    def test_upload_over_dimension_limit_rejected(self, authenticated_client, make_upload):
+    def test_upload_over_dimension_limit_rejected(
+        self, authenticated_client, make_upload
+    ):
         oversized = Image.new("RGB", (PICTURE_MAX_DIMENSION + 1, 10), "#ff0000")
 
         response = authenticated_client.put(
@@ -746,7 +870,9 @@ class TestUserProfilePictureView:
 
     @pytest.mark.django_db
     def test_upload_without_a_file_rejected(self, authenticated_client):
-        response = authenticated_client.put(reverse("user-picture"), {}, format="multipart")
+        response = authenticated_client.put(
+            reverse("user-picture"), {}, format="multipart"
+        )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -756,12 +882,16 @@ class TestUserProfilePictureView:
     ):
         primary_user.profile.picture = "http://example.com/google.jpg"
         primary_user.profile.save()
-        authenticated_client.put(reverse("user-picture"), make_upload(), format="multipart")
+        authenticated_client.put(
+            reverse("user-picture"), make_upload(), format="multipart"
+        )
 
         response = authenticated_client.delete(reverse("user-picture"))
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
+        assert not UserProfilePicture.objects.filter(
+            profile=primary_user.profile
+        ).exists()
         profile_response = authenticated_client.get(reverse("user-profile"))
         assert profile_response.data["picture"] == "http://example.com/google.jpg"
 
@@ -770,7 +900,9 @@ class TestUserProfilePictureView:
         response = authenticated_client.delete(reverse("user-picture"))
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
+        assert not UserProfilePicture.objects.filter(
+            profile=primary_user.profile
+        ).exists()
 
 
 class TestUserProfilePictureImageView:
@@ -811,7 +943,27 @@ class TestUserProfilePictureImageView:
         assert "max-age=31536000" in response["Cache-Control"]
 
     @pytest.mark.django_db
-    def test_unknown_hash_returns_404(self, unauthenticated_client, primary_user, stored_picture):
+    def test_sets_locked_down_content_security_policy(
+        self, unauthenticated_client, primary_user, stored_picture
+    ):
+        response = unauthenticated_client.get(
+            reverse(
+                "user-picture-image",
+                kwargs={
+                    "user_id": primary_user.id,
+                    "content_hash": stored_picture.content_hash,
+                },
+            )
+        )
+
+        assert response["Content-Security-Policy"] == (
+            "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"
+        )
+
+    @pytest.mark.django_db
+    def test_unknown_hash_returns_404(
+        self, unauthenticated_client, primary_user, stored_picture
+    ):
         response = unauthenticated_client.get(
             reverse(
                 "user-picture-image",
@@ -861,7 +1013,9 @@ class TestUserProfileAdmin:
         response = _clear_uploaded_picture(admin_client, primary_user.profile)
 
         assert response.status_code == status.HTTP_200_OK
-        assert not UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
+        assert not UserProfilePicture.objects.filter(
+            profile=primary_user.profile
+        ).exists()
         primary_user.profile.refresh_from_db()
         assert primary_user.profile.picture_url() == "http://example.com/google.jpg"
 
@@ -871,7 +1025,10 @@ class TestUserProfileAdmin:
     ):
         url = reverse(
             "user-picture-image",
-            kwargs={"user_id": primary_user.id, "content_hash": stored_picture.content_hash},
+            kwargs={
+                "user_id": primary_user.id,
+                "content_hash": stored_picture.content_hash,
+            },
         )
         assert admin_client.get(url).status_code == status.HTTP_200_OK
 
@@ -888,14 +1045,20 @@ class TestUserProfileAdmin:
         assert UserProfilePicture.objects.filter(profile=primary_user.profile).exists()
 
     @pytest.mark.django_db
-    def test_clear_uploaded_picture_when_no_picture_uploaded(self, admin_client, secondary_user):
+    def test_clear_uploaded_picture_when_no_picture_uploaded(
+        self, admin_client, secondary_user
+    ):
         response = _clear_uploaded_picture(admin_client, secondary_user.profile)
 
         assert response.status_code == status.HTTP_200_OK
-        assert not UserProfilePicture.objects.filter(profile=secondary_user.profile).exists()
+        assert not UserProfilePicture.objects.filter(
+            profile=secondary_user.profile
+        ).exists()
 
     @pytest.mark.django_db
-    def test_clear_uploaded_picture_requires_staff(self, client, primary_user, stored_picture):
+    def test_clear_uploaded_picture_requires_staff(
+        self, client, primary_user, stored_picture
+    ):
         client.force_login(primary_user)
 
         response = _clear_uploaded_picture(client, primary_user.profile, follow=False)
@@ -920,7 +1083,9 @@ class TestPublicUserProfileRetrieveView:
         assert "email" not in response.data
 
     @pytest.mark.django_db
-    def test_retrieve_public_profile_unauthenticated(self, unauthenticated_client, primary_user):
+    def test_retrieve_public_profile_unauthenticated(
+        self, unauthenticated_client, primary_user
+    ):
         url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -1023,7 +1188,8 @@ class TestPublicUserProfileRetrieveView:
                 ordinal=1,
             )
             outcome = (
-                PhaseState.OrdersOutcome.NMR if i < 3
+                PhaseState.OrdersOutcome.NMR
+                if i < 3
                 else PhaseState.OrdersOutcome.RECEIVED
             )
             phase.phase_states.create(
@@ -1125,7 +1291,9 @@ class TestPublicUserProfileRetrieveView:
         classical_england_nation,
     ):
         user = User.objects.create_user(
-            username="drawsolouser", email="drawsolo@example.com", password="testpass123"
+            username="drawsolouser",
+            email="drawsolo@example.com",
+            password="testpass123",
         )
         UserProfile.objects.create(user=user, name="Draw Solo User")
 
@@ -1194,7 +1362,9 @@ class TestPublicUserProfileRetrieveView:
         classical_england_nation,
     ):
         user = User.objects.create_user(
-            username="withdrawnuser", email="withdrawn@example.com", password="testpass123"
+            username="withdrawnuser",
+            email="withdrawn@example.com",
+            password="testpass123",
         )
         UserProfile.objects.create(user=user, name="Withdrawn User")
 
@@ -1205,7 +1375,10 @@ class TestPublicUserProfileRetrieveView:
             finished_at=timezone.now(),
         )
         member = game.members.create(
-            user=user, nation=classical_england_nation, removed_at=timezone.now(), withdrawn_at=timezone.now()
+            user=user,
+            nation=classical_england_nation,
+            removed_at=timezone.now(),
+            withdrawn_at=timezone.now(),
         )
         for ordinal, outcome in enumerate([RECEIVED, NMR, None], start=1):
             phase = game.phases.create(
@@ -1216,7 +1389,9 @@ class TestPublicUserProfileRetrieveView:
                 status=PhaseStatus.COMPLETED,
                 ordinal=ordinal,
             )
-            phase.phase_states.create(member=member, has_possible_orders=True, orders_outcome=outcome)
+            phase.phase_states.create(
+                member=member, has_possible_orders=True, orders_outcome=outcome
+            )
 
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
         response = authenticated_client.get(url)
@@ -1234,7 +1409,9 @@ class TestPublicUserProfileRetrieveView:
         classical_england_nation,
     ):
         user = User.objects.create_user(
-            username="movementuser", email="movement@example.com", password="testpass123"
+            username="movementuser",
+            email="movement@example.com",
+            password="testpass123",
         )
         UserProfile.objects.create(user=user, name="Movement User")
 
@@ -1467,6 +1644,28 @@ class TestRecomputeCommitment:
         assert len(get_rated_outcomes(user)) == 4
 
     @pytest.mark.django_db
+    def test_rated_history_does_not_load_phase_options(
+        self,
+        user_factory,
+        classical_variant,
+        classical_england_nation,
+        django_assert_num_queries,
+    ):
+        user = user_factory()
+        self._build_history(
+            user, classical_variant, classical_england_nation, [RECEIVED, NMR, NMR]
+        )
+        with patch(
+            "user_profile.commitment.clamp_post_civil_disorder",
+            wraps=clamp_post_civil_disorder,
+        ) as clamp:
+            with django_assert_num_queries(1):
+                assert get_rated_outcomes(user) == [NMR, NMR, RECEIVED]
+        states = clamp.call_args.args[0]
+        assert len(states) == 3
+        assert all("options" in state.phase.get_deferred_fields() for state in states)
+
+    @pytest.mark.django_db
     def test_window_spans_multiple_games(
         self, user_factory, classical_variant, classical_england_nation
     ):
@@ -1554,11 +1753,15 @@ def _create_bot_seat_game(client, variant_id):
 class TestAddableUserList:
 
     @pytest.mark.django_db
-    def test_lists_bots_sorted_by_name(self, authenticated_client, classical_variant, settings):
+    def test_lists_bots_sorted_by_name(
+        self, authenticated_client, classical_variant, settings
+    ):
         settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
         game = _create_bot_seat_game(authenticated_client, classical_variant.id)
 
-        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+        response = authenticated_client.get(
+            reverse("game-addable-user-list", args=[game.id])
+        )
 
         assert response.status_code == status.HTTP_200_OK
         names = [user["name"] for user in response.data]
@@ -1566,11 +1769,15 @@ class TestAddableUserList:
         assert all(user["user_id"] for user in response.data)
 
     @pytest.mark.django_db
-    def test_excludes_humans(self, authenticated_client, classical_variant, secondary_user, settings):
+    def test_excludes_humans(
+        self, authenticated_client, classical_variant, secondary_user, settings
+    ):
         settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
         game = _create_bot_seat_game(authenticated_client, classical_variant.id)
 
-        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+        response = authenticated_client.get(
+            reverse("game-addable-user-list", args=[game.id])
+        )
 
         assert secondary_user.id not in [user["user_id"] for user in response.data]
 
@@ -1582,16 +1789,25 @@ class TestAddableUserList:
         game = _create_bot_seat_game(authenticated_client, classical_variant.id)
         game.members.create(user=bot_user)
 
-        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
+        response = authenticated_client.get(
+            reverse("game-addable-user-list", args=[game.id])
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert bot_user.id not in [user["user_id"] for user in response.data]
 
     @pytest.mark.django_db
     def test_non_manager_forbidden(
-        self, authenticated_client, authenticated_client_for_secondary_user, classical_variant, settings
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        classical_variant,
+        settings,
     ):
-        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com", "secondary@example.com"]
+        settings.BOT_OPPONENT_ALLOWLIST = [
+            "primary@example.com",
+            "secondary@example.com",
+        ]
         game = _create_bot_seat_game(authenticated_client, classical_variant.id)
 
         response = authenticated_client_for_secondary_user.get(
@@ -1601,68 +1817,19 @@ class TestAddableUserList:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_user_off_the_allowlist_forbidden(self, authenticated_client, classical_variant, settings):
+    def test_user_off_the_allowlist_forbidden(
+        self, authenticated_client, classical_variant, settings
+    ):
         settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
         game = _create_bot_seat_game(authenticated_client, classical_variant.id)
         settings.BOT_OPPONENT_ALLOWLIST = []
 
-        response = authenticated_client.get(reverse("game-addable-user-list", args=[game.id]))
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    @pytest.mark.django_db
-    def test_non_pending_game_forbidden(
-        self, authenticated_client, active_game_created_by_primary_user, settings
-    ):
-        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
-
         response = authenticated_client.get(
-            reverse("game-addable-user-list", args=[active_game_created_by_primary_user.id])
+            reverse("game-addable-user-list", args=[game.id])
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
-class TestLegacyAvailableBotListView:
-
-    def test_serves_the_path_shipped_mobile_builds_call(self):
-        assert reverse("game-available-bots-legacy", args=["abc123"]) == "/game/abc123/available-bots/"
-
-    @pytest.mark.django_db
-    def test_lists_bots_sorted_by_name(self, authenticated_client, classical_variant, settings):
-        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
-        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
-
-        response = authenticated_client.get(reverse("game-available-bots-legacy", args=[game.id]))
-
-        assert response.status_code == status.HTTP_200_OK
-        names = [user["name"] for user in response.data]
-        assert names == sorted(names)
-        assert all(user["user_id"] for user in response.data)
-
-    @pytest.mark.django_db
-    def test_excludes_bots_already_in_the_game(
-        self, authenticated_client, classical_variant, bot_user, settings
-    ):
-        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
-        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
-        game.members.create(user=bot_user)
-
-        response = authenticated_client.get(reverse("game-available-bots-legacy", args=[game.id]))
-
-        assert response.status_code == status.HTTP_200_OK
-        assert bot_user.id not in [user["user_id"] for user in response.data]
-
-    @pytest.mark.django_db
-    def test_user_off_the_allowlist_forbidden(self, authenticated_client, classical_variant, settings):
-        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
-        game = _create_bot_seat_game(authenticated_client, classical_variant.id)
-        settings.BOT_OPPONENT_ALLOWLIST = []
-
-        response = authenticated_client.get(reverse("game-available-bots-legacy", args=[game.id]))
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
     @pytest.mark.django_db
     def test_non_pending_game_forbidden(
         self, authenticated_client, active_game_created_by_primary_user, settings
@@ -1670,7 +1837,9 @@ class TestLegacyAvailableBotListView:
         settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
 
         response = authenticated_client.get(
-            reverse("game-available-bots-legacy", args=[active_game_created_by_primary_user.id])
+            reverse(
+                "game-addable-user-list", args=[active_game_created_by_primary_user.id]
+            )
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN

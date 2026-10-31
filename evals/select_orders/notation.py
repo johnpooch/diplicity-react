@@ -13,7 +13,9 @@ class Notation:
     def __init__(self, context: Context):
         self.provinces = {province["id"]: province for province in context["provinces"]}
         retreat = context["phase"]["type"] == PhaseType.RETREAT
-        units = sorted(context.get("units", []), key=lambda unit: unit["dislodged"] == retreat)
+        units = sorted(
+            context.get("units", []), key=lambda unit: unit["dislodged"] == retreat
+        )
         self.letters = {_parent(unit["province"]): unit["type"][0] for unit in units}
 
     def province(self, province_id: str) -> str:
@@ -21,12 +23,22 @@ class Notation:
         if province is None:
             return province_id
         if province["parent_id"]:
-            return self.province(province["parent_id"]) + province_id.removeprefix(province["parent_id"])
-        return province_id.upper() if province["type"] == "sea" else province_id.capitalize()
+            return self.province(province["parent_id"]) + province_id.removeprefix(
+                province["parent_id"]
+            )
+        return (
+            province_id.upper()
+            if province["type"] == "sea"
+            else province_id.capitalize()
+        )
 
     def unit(self, province_id: str) -> str:
         letter = self.letters.get(_parent(province_id))
-        return f"{letter} {self.province(province_id)}" if letter else self.province(province_id)
+        return (
+            f"{letter} {self.province(province_id)}"
+            if letter
+            else self.province(province_id)
+        )
 
     def order(self, option: OrderOption) -> str:
         source = self.unit(option["source"])

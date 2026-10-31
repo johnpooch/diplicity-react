@@ -2,7 +2,10 @@ from common.constants import GameStatus, MemberKind, PressType
 
 
 def _no_press_active(game):
-    return game.press_type == PressType.NO_PRESS and game.status not in (GameStatus.COMPLETED, GameStatus.ABANDONED)
+    return game.press_type == PressType.NO_PRESS and game.status not in (
+        GameStatus.COMPLETED,
+        GameStatus.ABANDONED,
+    )
 
 
 def can_create_channel(game, member):

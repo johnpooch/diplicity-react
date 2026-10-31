@@ -17,7 +17,9 @@ def run_due_resolution_jobs():
         if job.scheduled_at is None or job.scheduled_at <= now
     ]
     phase_ids = list(
-        Phase.objects.filter(resolution_job_id__in=ready_job_ids).values_list("id", flat=True)
+        Phase.objects.filter(resolution_job_id__in=ready_job_ids).values_list(
+            "id", flat=True
+        )
     )
     for job_id in ready_job_ids:
         procrastinate_app.job_manager.cancel_job_by_id(job_id)
@@ -36,7 +38,9 @@ def run_due_muster_jobs():
         if job.scheduled_at is None or job.scheduled_at <= now
     ]
     game_ids = list(
-        Game.objects.filter(muster_job_id__in=ready_job_ids).values_list("id", flat=True)
+        Game.objects.filter(muster_job_id__in=ready_job_ids).values_list(
+            "id", flat=True
+        )
     )
     for job_id in ready_job_ids:
         procrastinate_app.job_manager.cancel_job_by_id(job_id)

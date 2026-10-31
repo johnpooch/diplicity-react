@@ -1,6 +1,7 @@
 import re
 from io import StringIO
 
+import psycopg
 import pytest
 from adjudicator import service as adjudication_service
 from unittest.mock import patch
@@ -8,12 +9,32 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
 from django.test.utils import CaptureQueriesContext, override_settings
-from django.db import connection
+from django.db import connection, connections
 from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import CommitmentBand, CommitmentEvent, PhaseStatus, PhaseType, GameStatus, MovementPhaseDuration, DeadlineMode, OrderType, PhaseFrequency, UnitType, Commitment, CommitmentEligibility, CommitmentRequirement, PressType, MemberKind, MemberDeparture, MyGameResult, MyGamesSection, MyGameStateKind
+from common.constants import (
+    CommitmentBand,
+    CommitmentEvent,
+    PhaseStatus,
+    PhaseType,
+    GameStatus,
+    MovementPhaseDuration,
+    DeadlineMode,
+    OrderType,
+    PhaseFrequency,
+    UnitType,
+    Commitment,
+    CommitmentEligibility,
+    CommitmentRequirement,
+    PressType,
+    MemberKind,
+    MemberDeparture,
+    MyGameResult,
+    MyGamesSection,
+    MyGameStateKind,
+)
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
@@ -51,13 +72,17 @@ ORDER_STATUS_BY_SEAT = [
 def queried_phase_ids(table):
     phase_ids = set()
     for query in connection.queries:
-        for match in re.finditer(rf'"{table}"\."phase_id" IN \(([\d, ]+)\)', query["sql"]):
+        for match in re.finditer(
+            rf'"{table}"\."phase_id" IN \(([\d, ]+)\)', query["sql"]
+        ):
             phase_ids |= {int(phase_id) for phase_id in match.group(1).split(", ")}
     return phase_ids
 
 
 def channel_message_queries():
-    return [q["sql"] for q in connection.queries if '"channel_channelmessage"' in q["sql"]]
+    return [
+        q["sql"] for q in connection.queries if '"channel_channelmessage"' in q["sql"]
+    ]
 
 
 def game_queries():
@@ -76,23 +101,38 @@ def _action_keys(response, field="actions"):
 class TestGameRetrieveView:
 
     @pytest.mark.django_db
-    def test_retrieve_game_success(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_retrieve_game_success(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == pending_game_created_by_primary_user.id
         assert response.data["name"] == pending_game_created_by_primary_user.name
         assert response.data["status"] == pending_game_created_by_primary_user.status
-        assert response.data["movement_phase_duration"] == pending_game_created_by_primary_user.movement_phase_duration
+        assert (
+            response.data["movement_phase_duration"]
+            == pending_game_created_by_primary_user.movement_phase_duration
+        )
         assert response.data["can_join"] == False
         assert response.data["can_leave"] == True
         assert response.data["phase_confirmed"] == False
-        assert len(response.data["phases"]) == len(pending_game_created_by_primary_user.phases.all())
-        assert response.data["members"][0]["id"] == pending_game_created_by_primary_user.members.first().id
-        assert response.data["variant_id"] == pending_game_created_by_primary_user.variant.id
+        assert len(response.data["phases"]) == len(
+            pending_game_created_by_primary_user.phases.all()
+        )
+        assert (
+            response.data["members"][0]["id"]
+            == pending_game_created_by_primary_user.members.first().id
+        )
+        assert (
+            response.data["variant_id"]
+            == pending_game_created_by_primary_user.variant.id
+        )
 
     @pytest.mark.django_db
-    def test_retrieve_game_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
+    def test_retrieve_game_unauthenticated(
+        self, unauthenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -111,24 +151,37 @@ class TestGameRetrieveView:
         classical_variant,
     ):
         game = game_with_public_channel_and_messages
-        other_game = Game.objects.create(variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE)
+        other_game = Game.objects.create(
+            variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE
+        )
         other_member = other_game.members.create(user=secondary_user)
         CommitmentEntry.objects.bulk_create(
-            [CommitmentEntry(member=other_member, kind=CommitmentEvent.SUBMITTED) for _ in range(12)]
+            [
+                CommitmentEntry(member=other_member, kind=CommitmentEvent.SUBMITTED)
+                for _ in range(12)
+            ]
         )
-        CommitmentEntry.objects.create(member=game.members.get(user=secondary_user), kind=CommitmentEvent.SUBMITTED)
+        CommitmentEntry.objects.create(
+            member=game.members.get(user=secondary_user), kind=CommitmentEvent.SUBMITTED
+        )
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
         members = {m["user_id"]: m for m in response.data["members"]}
         assert members[secondary_user.id]["commitment_total"] == 13
-        assert members[secondary_user.id]["commitment_band"] == CommitmentBand.LIGHT_GREEN
+        assert (
+            members[secondary_user.id]["commitment_band"] == CommitmentBand.LIGHT_GREEN
+        )
         assert members[primary_user.id]["commitment_total"] == 0
         assert members[primary_user.id]["commitment_band"] == CommitmentBand.NEUTRAL
 
     @pytest.mark.django_db
     def test_retrieve_game_masks_member_commitment_in_anonymous_game(
-        self, authenticated_client, game_with_public_channel_and_messages, primary_user, secondary_user
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        primary_user,
+        secondary_user,
     ):
         game = game_with_public_channel_and_messages
         Game.objects.filter(id=game.id).update(anonymous=True)
@@ -148,7 +201,9 @@ class TestGameRetrieveView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_retrieve_game_requires_revalidation_on_every_poll(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_game_requires_revalidation_on_every_poll(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -156,7 +211,9 @@ class TestGameRetrieveView:
         assert response["ETag"].startswith('"')
 
     @pytest.mark.django_db
-    def test_retrieve_game_returns_304_when_unchanged(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_game_returns_304_when_unchanged(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         etag = authenticated_client.get(url)["ETag"]
 
@@ -180,11 +237,16 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_game_changes(
-        self, authenticated_client, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
     ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         etag = authenticated_client.get(url)["ETag"]
-        authenticated_client_for_secondary_user.post(reverse("game-join", args=[pending_game_created_by_primary_user.id]))
+        authenticated_client_for_secondary_user.post(
+            reverse("game-join", args=[pending_game_created_by_primary_user.id])
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -209,23 +271,33 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_member_departure(
-        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        secondary_user,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        game.members.filter(user=secondary_user).update(civil_disorder_at=timezone.now())
+        game.members.filter(user=secondary_user).update(
+            civil_disorder_at=timezone.now()
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        member = next(m for m in response.data["members"] if m["user_id"] == secondary_user.id)
+        member = next(
+            m for m in response.data["members"] if m["user_id"] == secondary_user.id
+        )
         assert member["civil_disorder"] is True
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_member_profile_change(
-        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        secondary_user,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
@@ -240,17 +312,24 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_member_picture_change(
-        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        secondary_user,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        UserProfilePicture.objects.store(secondary_user.profile, b"picture", "image/png")
+        UserProfilePicture.objects.store(
+            secondary_user.profile, b"picture", "image/png"
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        member = next(m for m in response.data["members"] if m["user_id"] == secondary_user.id)
+        member = next(
+            m for m in response.data["members"] if m["user_id"] == secondary_user.id
+        )
         assert "picture" in member["picture"]
         assert response["ETag"] != etag
 
@@ -262,7 +341,9 @@ class TestGameRetrieveView:
         Game.objects.filter(id=game.id).update(game_master=tertiary_user)
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        UserProfile.objects.filter(user=tertiary_user).update(name="Renamed Game Master")
+        UserProfile.objects.filter(user=tertiary_user).update(
+            name="Renamed Game Master"
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -272,7 +353,11 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_requester_commitment_change(
-        self, authenticated_client, active_game_with_phase_state, primary_user, set_commitment
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        primary_user,
+        set_commitment,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
@@ -282,11 +367,15 @@ class TestGameRetrieveView:
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["commitment_eligibility"] == CommitmentEligibility.LOW_LOCKED
+        assert (
+            response.data["commitment_eligibility"] == CommitmentEligibility.LOW_LOCKED
+        )
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
-    def test_retrieve_game_returns_200_after_new_phase(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_game_returns_200_after_new_phase(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
@@ -314,7 +403,9 @@ class TestGameRetrieveView:
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        PhaseState.objects.filter(phase=game.current_phase).update(orders_confirmed=True)
+        PhaseState.objects.filter(phase=game.current_phase).update(
+            orders_confirmed=True
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -324,7 +415,10 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_order_created(
-        self, authenticated_client, active_game_with_phase_state, classical_edinburgh_province
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_edinburgh_province,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
@@ -341,7 +435,10 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_unread_message(
-        self, authenticated_client, game_with_public_channel_and_messages, secondary_user
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        secondary_user,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
@@ -355,44 +452,70 @@ class TestGameRetrieveView:
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=first["ETag"])
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["total_unread_message_count"] == first.data["total_unread_message_count"] + 1
+        assert (
+            response.data["total_unread_message_count"]
+            == first.data["total_unread_message_count"] + 1
+        )
         assert response["ETag"] != first["ETag"]
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_member_commitment_change(
-        self, authenticated_client, game_with_public_channel_and_messages, secondary_user, classical_variant
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        secondary_user,
+        classical_variant,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        other_game = Game.objects.create(variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE)
-        CommitmentEntry.objects.create(member=other_game.members.create(user=secondary_user), kind=CommitmentEvent.NMR)
+        other_game = Game.objects.create(
+            variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE
+        )
+        CommitmentEntry.objects.create(
+            member=other_game.members.create(user=secondary_user),
+            kind=CommitmentEvent.NMR,
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        member = next(m for m in response.data["members"] if m["user_id"] == secondary_user.id)
+        member = next(
+            m for m in response.data["members"] if m["user_id"] == secondary_user.id
+        )
         assert member["commitment_total"] == -2
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_nation_preference_change(
-        self, authenticated_client, pending_game_created_by_primary_user, primary_user, classical_england_nation
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        primary_user,
+        classical_england_nation,
     ):
         game = pending_game_created_by_primary_user
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        NationPreference.objects.create(member=game.members.get(user=primary_user), nation=classical_england_nation, rank=1)
+        NationPreference.objects.create(
+            member=game.members.get(user=primary_user),
+            nation=classical_england_nation,
+            rank=1,
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        member = next(m for m in response.data["members"] if m["user_id"] == primary_user.id)
+        member = next(
+            m for m in response.data["members"] if m["user_id"] == primary_user.id
+        )
         assert member["nation_preference_ids"] == [classical_england_nation.nation_id]
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
-    def test_retrieve_game_returns_200_after_victory(self, authenticated_client, active_game_with_phase_state):
+    def test_retrieve_game_returns_200_after_victory(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
@@ -407,25 +530,36 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_etag_differs_between_users(
-        self, authenticated_client, authenticated_client_for_secondary_user, game_with_two_members
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        game_with_two_members,
     ):
         url = reverse(retrieve_viewname, args=[game_with_two_members.id])
         etag = authenticated_client.get(url)["ETag"]
 
-        response = authenticated_client_for_secondary_user.get(url, HTTP_IF_NONE_MATCH=etag)
+        response = authenticated_client_for_secondary_user.get(
+            url, HTTP_IF_NONE_MATCH=etag
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_304_after_unexposed_phase_change(
-        self, authenticated_client, active_game_with_phase_state, classical_england_nation, classical_london_province
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
         game.current_phase.units.create(
-            type=UnitType.ARMY, nation=classical_england_nation, province=classical_london_province
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_london_province,
         )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
@@ -434,19 +568,27 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_304_after_activity_in_another_game(
-        self, authenticated_client, active_game_with_phase_state, pending_game_created_by_primary_user, secondary_user
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        pending_game_created_by_primary_user,
+        secondary_user,
     ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         etag = authenticated_client.get(url)["ETag"]
         pending_game_created_by_primary_user.seat(secondary_user)
-        Game.objects.filter(id=pending_game_created_by_primary_user.id).update(name="Renamed")
+        Game.objects.filter(id=pending_game_created_by_primary_user.id).update(
+            name="Renamed"
+        )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
 
     @pytest.mark.django_db
-    def test_retrieve_game_response_structure(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_retrieve_game_response_structure(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -477,13 +619,55 @@ class TestGameRetrieveView:
     @pytest.mark.parametrize(
         ("game_kwargs", "expected"),
         [
-            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.ONE_HOUR}, True),
-            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.TWELVE_HOURS}, True),
-            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS}, False),
-            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": MovementPhaseDuration.ONE_WEEK}, False),
-            ({"deadline_mode": DeadlineMode.FIXED_TIME, "movement_frequency": PhaseFrequency.HOURLY}, True),
-            ({"deadline_mode": DeadlineMode.FIXED_TIME, "movement_frequency": PhaseFrequency.DAILY}, False),
-            ({"deadline_mode": DeadlineMode.DURATION, "movement_phase_duration": None}, False),
+            (
+                {
+                    "deadline_mode": DeadlineMode.DURATION,
+                    "movement_phase_duration": MovementPhaseDuration.ONE_HOUR,
+                },
+                True,
+            ),
+            (
+                {
+                    "deadline_mode": DeadlineMode.DURATION,
+                    "movement_phase_duration": MovementPhaseDuration.TWELVE_HOURS,
+                },
+                True,
+            ),
+            (
+                {
+                    "deadline_mode": DeadlineMode.DURATION,
+                    "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+                },
+                False,
+            ),
+            (
+                {
+                    "deadline_mode": DeadlineMode.DURATION,
+                    "movement_phase_duration": MovementPhaseDuration.ONE_WEEK,
+                },
+                False,
+            ),
+            (
+                {
+                    "deadline_mode": DeadlineMode.FIXED_TIME,
+                    "movement_frequency": PhaseFrequency.HOURLY,
+                },
+                True,
+            ),
+            (
+                {
+                    "deadline_mode": DeadlineMode.FIXED_TIME,
+                    "movement_frequency": PhaseFrequency.DAILY,
+                },
+                False,
+            ),
+            (
+                {
+                    "deadline_mode": DeadlineMode.DURATION,
+                    "movement_phase_duration": None,
+                },
+                False,
+            ),
         ],
     )
     def test_retrieve_game_shows_short_game_join_warning_for_phases_under_24_hours(
@@ -514,7 +698,9 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_can_join_true_pending_game_non_member(
-        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+        self,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
     ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client_for_secondary_user.get(url)
@@ -532,7 +718,9 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_can_join_false_active_game(
-        self, authenticated_client_for_secondary_user, active_game_created_by_primary_user
+        self,
+        authenticated_client_for_secondary_user,
+        active_game_created_by_primary_user,
     ):
         url = reverse(retrieve_viewname, args=[active_game_created_by_primary_user.id])
         response = authenticated_client_for_secondary_user.get(url)
@@ -540,7 +728,9 @@ class TestGameRetrieveView:
         assert response.data["can_join"] is False
 
     @pytest.mark.django_db
-    def test_can_leave_true_pending_game_member(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_can_leave_true_pending_game_member(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -548,7 +738,9 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_can_leave_false_pending_game_non_member(
-        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+        self,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
     ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client_for_secondary_user.get(url)
@@ -556,7 +748,9 @@ class TestGameRetrieveView:
         assert response.data["can_leave"] is False
 
     @pytest.mark.django_db
-    def test_can_leave_false_active_game(self, authenticated_client, active_game_with_phase_state):
+    def test_can_leave_false_active_game(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -571,20 +765,26 @@ class TestGameRetrieveView:
         assert response.data["can_create_channel"] is True
 
     @pytest.mark.django_db
-    def test_can_create_channel_true_active_game_player(self, authenticated_client, active_game_with_phase_state):
+    def test_can_create_channel_true_active_game_player(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         response = authenticated_client.get(url)
         assert response.data["can_create_channel"] is True
 
     @pytest.mark.django_db
-    def test_can_create_channel_false_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+    def test_can_create_channel_false_unauthenticated(
+        self, unauthenticated_client, active_game_with_phase_state
+    ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         response = unauthenticated_client.get(url)
         assert response.data["can_create_channel"] is False
 
     @pytest.mark.django_db
     def test_can_create_channel_false_non_member(
-        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+        self,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
     ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client_for_secondary_user.get(url)
@@ -599,19 +799,25 @@ class TestGameRetrieveView:
         assert response.data["can_create_channel"] is False
 
     @pytest.mark.django_db
-    def test_can_create_channel_false_game_master(self, authenticated_client, active_game_with_game_master_factory):
+    def test_can_create_channel_false_game_master(
+        self, authenticated_client, active_game_with_game_master_factory
+    ):
         game = active_game_with_game_master_factory()
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
         assert response.data["can_create_channel"] is False
 
     @pytest.mark.django_db
-    def test_can_create_channel_false_sandbox_game(self, authenticated_client, sandbox_game_factory):
+    def test_can_create_channel_false_sandbox_game(
+        self, authenticated_client, sandbox_game_factory
+    ):
         game = sandbox_game_factory()
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
         assert response.data["can_create_channel"] is False
 
     @pytest.mark.django_db
-    def test_can_create_channel_false_active_no_press_game(self, authenticated_client, active_game_with_phase_state):
+    def test_can_create_channel_false_active_no_press_game(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         active_game_with_phase_state.press_type = PressType.NO_PRESS
         active_game_with_phase_state.save(update_fields=["press_type"])
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
@@ -619,14 +825,20 @@ class TestGameRetrieveView:
         assert response.data["can_create_channel"] is False
 
     @pytest.mark.django_db
-    def test_phase_confirmed_true(self, authenticated_client, active_game_with_confirmed_phase_state):
-        url = reverse(retrieve_viewname, args=[active_game_with_confirmed_phase_state.id])
+    def test_phase_confirmed_true(
+        self, authenticated_client, active_game_with_confirmed_phase_state
+    ):
+        url = reverse(
+            retrieve_viewname, args=[active_game_with_confirmed_phase_state.id]
+        )
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["phase_confirmed"] is True
 
     @pytest.mark.django_db
-    def test_phase_confirmed_false(self, authenticated_client, active_game_with_phase_state):
+    def test_phase_confirmed_false(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -634,15 +846,21 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_phase_confirmed_false_other_user(
-        self, authenticated_client_for_secondary_user, active_game_with_confirmed_phase_state
+        self,
+        authenticated_client_for_secondary_user,
+        active_game_with_confirmed_phase_state,
     ):
-        url = reverse(retrieve_viewname, args=[active_game_with_confirmed_phase_state.id])
+        url = reverse(
+            retrieve_viewname, args=[active_game_with_confirmed_phase_state.id]
+        )
         response = authenticated_client_for_secondary_user.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["phase_confirmed"] is False
 
     @pytest.mark.django_db
-    def test_phase_confirmed_false_no_phases(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_phase_confirmed_false_no_phases(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -710,7 +928,9 @@ class TestGameRetrieveView:
             status=GameStatus.ACTIVE,
         )
         game.members.create(user=primary_user, nation=classical_england_nation)
-        replaced = game.members.create(user=secondary_user, nation=classical_france_nation)
+        replaced = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
         replacement = game.members.create(user=bot_user)
         replaced.removed_at = timezone.now()
         replaced.replaced_by = replacement
@@ -729,7 +949,11 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_game_with_multiple_phases(
-        self, authenticated_client, active_game_with_phase_state, classical_england_nation, classical_edinburgh_province
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_edinburgh_province,
     ):
         game = active_game_with_phase_state
 
@@ -742,8 +966,14 @@ class TestGameRetrieveView:
             status=PhaseStatus.COMPLETED,
             ordinal=2,
         )
-        second_phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-        second_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        second_phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        second_phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -751,13 +981,14 @@ class TestGameRetrieveView:
 
         assert len(response.data["phases"]) == 2
 
-
     @pytest.mark.django_db
     def test_retrieve_game_reports_order_status_from_current_phase(
         self, authenticated_client, game_with_phase_history_factory
     ):
         game = game_with_phase_history_factory(phase_count=3)
-        PhaseState.objects.filter(phase__game=game).exclude(phase=game.current_phase).update(orders_confirmed=True)
+        PhaseState.objects.filter(phase__game=game).exclude(
+            phase=game.current_phase
+        ).update(orders_confirmed=True)
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
@@ -783,13 +1014,14 @@ class TestGameRetrieveView:
     ):
         game = game_with_phase_history_factory(phase_count=3)
         latest_completed_phase = list(game.phases.all())[-2]
-        PhaseState.objects.filter(phase=latest_completed_phase).update(orders_outcome=PhaseState.OrdersOutcome.NMR)
+        PhaseState.objects.filter(phase=latest_completed_phase).update(
+            orders_outcome=PhaseState.OrdersOutcome.NMR
+        )
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["member_status"] == ["nmr"]
-
 
     @pytest.mark.django_db
     def test_retrieve_game_reports_the_game_masters_member(
@@ -799,13 +1031,18 @@ class TestGameRetrieveView:
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert response.data["game_master_member_id"] == game.members.get(kind=MemberKind.GAME_MASTER).id
+        assert (
+            response.data["game_master_member_id"]
+            == game.members.get(kind=MemberKind.GAME_MASTER).id
+        )
 
     @pytest.mark.django_db
     def test_retrieve_game_reports_no_game_master_member_without_a_game_master(
         self, authenticated_client, pending_game_created_by_primary_user
     ):
-        response = authenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
 
         assert response.data["game_master_member_id"] is None
 
@@ -813,13 +1050,17 @@ class TestGameRetrieveView:
     def test_retrieve_game_offers_no_actions_to_anonymous_visitors(
         self, unauthenticated_client, pending_game_created_by_primary_user
     ):
-        response = unauthenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
+        response = unauthenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
 
         assert response.data["actions"] == []
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_join_to_an_outsider(
-        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+        self,
+        authenticated_client_for_secondary_user,
+        pending_game_created_by_primary_user,
     ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = authenticated_client_for_secondary_user.get(url)
@@ -830,7 +1071,9 @@ class TestGameRetrieveView:
     def test_retrieve_game_offers_leave_to_a_pending_player(
         self, authenticated_client, pending_game_created_by_primary_user
     ):
-        response = authenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
 
         assert _action_keys(response) == ["leave"]
 
@@ -838,9 +1081,13 @@ class TestGameRetrieveView:
     def test_retrieve_game_offers_nation_preferences_on_the_player_list_to_a_pending_player(
         self, authenticated_client, pending_game_created_by_primary_user
     ):
-        response = authenticated_client.get(reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id]))
+        response = authenticated_client.get(
+            reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        )
 
-        assert _action_keys(response, "player_list_actions") == ["edit_nation_preferences"]
+        assert _action_keys(response, "player_list_actions") == [
+            "edit_nation_preferences"
+        ]
 
     @pytest.mark.django_db
     def test_retrieve_game_offers_no_player_list_actions_once_the_game_starts(
@@ -896,10 +1143,17 @@ class TestGameRetrieveView:
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        assert _action_keys(response) == ["extend_deadline", "pause", "clone_to_sandbox", "withdraw"]
+        assert _action_keys(response) == [
+            "extend_deadline",
+            "pause",
+            "clone_to_sandbox",
+            "withdraw",
+        ]
 
     @pytest.mark.django_db
-    def test_retrieve_game_omits_extend_deadline_without_a_deadline(self, authenticated_client, active_game_factory):
+    def test_retrieve_game_omits_extend_deadline_without_a_deadline(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         game.phases.update(scheduled_resolution=None)
 
@@ -926,7 +1180,9 @@ class TestGameRetrieveView:
         game = active_game_factory(creator=secondary_user)
         member = game.members.exclude(user=secondary_user).first()
 
-        response = authenticated_client_factory(member.user).get(reverse(retrieve_viewname, args=[game.id]))
+        response = authenticated_client_factory(member.user).get(
+            reverse(retrieve_viewname, args=[game.id])
+        )
 
         assert _action_keys(response) == ["clone_to_sandbox", "withdraw"]
 
@@ -936,7 +1192,9 @@ class TestGameRetrieveView:
     ):
         game = active_game_factory()
 
-        response = authenticated_client_for_tertiary_user.get(reverse(retrieve_viewname, args=[game.id]))
+        response = authenticated_client_for_tertiary_user.get(
+            reverse(retrieve_viewname, args=[game.id])
+        )
 
         assert response.data["actions"] == []
 
@@ -951,7 +1209,9 @@ class TestGameRetrieveView:
         assert _action_keys(response) == ["delete"]
 
     @pytest.mark.django_db
-    def test_retrieve_game_offers_no_actions_on_a_finished_game(self, authenticated_client, active_game_factory):
+    def test_retrieve_game_offers_no_actions_on_a_finished_game(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         game.status = GameStatus.COMPLETED
         game.paused_at = timezone.now()
@@ -965,7 +1225,9 @@ class TestGameRetrieveView:
 class TestGameRetrieveViewQueryPerformance:
 
     @pytest.mark.django_db
-    def test_retrieve_game_query_count_simple(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_retrieve_game_query_count_simple(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         connection.queries_log.clear()
 
@@ -999,13 +1261,31 @@ class TestGameRetrieveViewQueryPerformance:
                 status=PhaseStatus.COMPLETED,
                 ordinal=2 + i,
             )
-            phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-            phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
-            phase.units.create(type="Army", nation=classical_france_nation, province=classical_paris_province)
+            phase.units.create(
+                type="Fleet",
+                nation=classical_england_nation,
+                province=classical_edinburgh_province,
+            )
+            phase.units.create(
+                type="Army",
+                nation=classical_england_nation,
+                province=classical_london_province,
+            )
+            phase.units.create(
+                type="Army",
+                nation=classical_france_nation,
+                province=classical_paris_province,
+            )
 
-            phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
-            phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-            phase.supply_centers.create(nation=classical_france_nation, province=classical_paris_province)
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=classical_edinburgh_province
+            )
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=classical_london_province
+            )
+            phase.supply_centers.create(
+                nation=classical_france_nation, province=classical_paris_province
+            )
 
         url = reverse(retrieve_viewname, args=[game.id])
         connection.queries_log.clear()
@@ -1036,9 +1316,7 @@ class TestGameRetrieveViewQueryPerformance:
         users = [primary_user, secondary_user]
         for i in range(5):
             user = type(primary_user).objects.create_user(
-                username=f"user{i}",
-                email=f"user{i}@test.com",
-                password="testpass123"
+                username=f"user{i}", email=f"user{i}@test.com", password="testpass123"
             )
             UserProfile.objects.create(user=user, name=f"User {i}")
             users.append(user)
@@ -1086,7 +1364,6 @@ class TestGameRetrieveViewQueryPerformance:
         query_count = len(connection.queries)
         assert query_count == 14
 
-
     @pytest.mark.django_db
     def test_retrieve_game_does_not_select_latest_phases_across_all_games(
         self, authenticated_client, game_with_phase_history_factory
@@ -1095,7 +1372,9 @@ class TestGameRetrieveViewQueryPerformance:
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+            response = authenticated_client.get(
+                reverse(retrieve_viewname, args=[game.id])
+            )
 
         assert response.status_code == status.HTTP_200_OK
         assert all("DISTINCT ON" not in q["sql"] for q in connection.queries)
@@ -1115,7 +1394,9 @@ class TestGameRetrieveViewQueryPerformance:
         short_history = game_with_phase_history_factory(phase_count=2)
         long_history = game_with_phase_history_factory(phase_count=8)
 
-        assert conditional_query_count(long_history) == conditional_query_count(short_history)
+        assert conditional_query_count(long_history) == conditional_query_count(
+            short_history
+        )
 
     @pytest.mark.django_db
     def test_retrieve_game_phase_state_query_only_current_and_latest_completed_phases(
@@ -1126,7 +1407,9 @@ class TestGameRetrieveViewQueryPerformance:
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+            response = authenticated_client.get(
+                reverse(retrieve_viewname, args=[game.id])
+            )
 
         assert response.status_code == status.HTTP_200_OK
         phases = list(game.phases.all())
@@ -1187,7 +1470,10 @@ class TestGameListView:
         self, authenticated_client, secondary_user, classical_variant
     ):
         games = [
-            Game.objects.create(variant=classical_variant, name=f"Seat {i}", status=GameStatus.ACTIVE) for i in range(2)
+            Game.objects.create(
+                variant=classical_variant, name=f"Seat {i}", status=GameStatus.ACTIVE
+            )
+            for i in range(2)
         ]
         seats = [game.members.create(user=secondary_user) for game in games]
         CommitmentEntry.objects.create(member=seats[0], kind=CommitmentEvent.SUBMITTED)
@@ -1204,7 +1490,9 @@ class TestGameListView:
         assert totals == [-1, -1]
 
     @pytest.mark.django_db
-    def test_list_games_success(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_success(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1220,9 +1508,15 @@ class TestGameListView:
         classical_england_nation,
         bot_user,
     ):
-        game = Game.objects.create(name="Replaced Member Game", variant=classical_variant, status=GameStatus.ACTIVE)
+        game = Game.objects.create(
+            name="Replaced Member Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
         base_pending_phase(game)
-        replaced = game.members.create(user=primary_user, nation=classical_england_nation)
+        replaced = game.members.create(
+            user=primary_user, nation=classical_england_nation
+        )
         replacement = game.members.create(user=bot_user)
         replaced.removed_at = timezone.now()
         replaced.replaced_by = replacement
@@ -1238,7 +1532,9 @@ class TestGameListView:
         assert [member["id"] for member in listed["members"]] == [replacement.id]
 
     @pytest.mark.django_db
-    def test_list_games_reports_short_game_join_warning(self, authenticated_client, game_factory):
+    def test_list_games_reports_short_game_join_warning(
+        self, authenticated_client, game_factory
+    ):
         short_game = game_factory(
             status=GameStatus.PENDING,
             deadline_mode=DeadlineMode.DURATION,
@@ -1253,7 +1549,9 @@ class TestGameListView:
         response = authenticated_client.get(reverse(list_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        warnings = {g["id"]: g["show_short_game_join_warning"] for g in response.data["results"]}
+        warnings = {
+            g["id"]: g["show_short_game_join_warning"] for g in response.data["results"]
+        }
         assert warnings[short_game.id] is True
         assert warnings[long_game.id] is False
 
@@ -1263,10 +1561,12 @@ class TestGameListView:
     ):
         submitted_game = game_with_phase_history_factory(phase_count=3)
         required_game = game_with_phase_history_factory(phase_count=3)
-        PhaseState.objects.filter(phase=submitted_game.current_phase).update(orders_confirmed=True)
-        PhaseState.objects.filter(phase__game=required_game).exclude(phase=required_game.current_phase).update(
+        PhaseState.objects.filter(phase=submitted_game.current_phase).update(
             orders_confirmed=True
         )
+        PhaseState.objects.filter(phase__game=required_game).exclude(
+            phase=required_game.current_phase
+        ).update(orders_confirmed=True)
 
         response = authenticated_client.get(reverse(list_viewname))
 
@@ -1282,7 +1582,9 @@ class TestGameListView:
     ):
         game = seated_game_factory(seat)
 
-        response = authenticated_client.get(reverse(list_viewname), {"sandbox": game.sandbox})
+        response = authenticated_client.get(
+            reverse(list_viewname), {"sandbox": game.sandbox}
+        )
 
         assert response.status_code == status.HTTP_200_OK
         order_statuses = {g["id"]: g["order_status"] for g in response.data["results"]}
@@ -1294,18 +1596,24 @@ class TestGameListView:
     ):
         nmr_game = game_with_phase_history_factory(phase_count=3)
         earlier_nmr_game = game_with_phase_history_factory(phase_count=3)
-        finished_nmr_game = game_with_phase_history_factory(phase_count=3, last_status=PhaseStatus.COMPLETED)
+        finished_nmr_game = game_with_phase_history_factory(
+            phase_count=3, last_status=PhaseStatus.COMPLETED
+        )
         nmr_phases = [
             list(nmr_game.phases.all())[-2],
             list(earlier_nmr_game.phases.all())[0],
             finished_nmr_game.current_phase,
         ]
-        PhaseState.objects.filter(phase__in=nmr_phases).update(orders_outcome=PhaseState.OrdersOutcome.NMR)
+        PhaseState.objects.filter(phase__in=nmr_phases).update(
+            orders_outcome=PhaseState.OrdersOutcome.NMR
+        )
 
         response = authenticated_client.get(reverse(list_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        member_statuses = {g["id"]: g["member_status"] for g in response.data["results"]}
+        member_statuses = {
+            g["id"]: g["member_status"] for g in response.data["results"]
+        }
         assert member_statuses[nmr_game.id] == ["nmr"]
         assert member_statuses[earlier_nmr_game.id] == []
         assert member_statuses[finished_nmr_game.id] == ["nmr"]
@@ -1317,7 +1625,9 @@ class TestGameListView:
         game = game_with_phase_history_factory(phase_count=3)
         game_with_phase_history_factory(phase_count=3)
 
-        response = authenticated_client.get(reverse(list_viewname), {"page_size": 1, "page": 2})
+        response = authenticated_client.get(
+            reverse(list_viewname), {"page_size": 1, "page": 2}
+        )
 
         assert response.status_code == status.HTTP_200_OK
         [result] = response.data["results"]
@@ -1339,15 +1649,26 @@ class TestGameListView:
         now = timezone.now()
         games = [game_with_phase_history_factory(phase_count=1) for _ in range(2)]
         readers = [game.members.get(user=primary_user) for game in games]
-        senders = [game.members.create(user=secondary_user, nation=classical_france_nation) for game in games]
-        channel_with_messages_factory(readers[0], senders[0], now - timedelta(hours=3), read=1, unread=2)
-        channel_with_messages_factory(readers[0], senders[0], now - timedelta(hours=1), read=2, unread=1)
-        channel_with_messages_factory(readers[1], senders[1], now - timedelta(hours=2), read=1, unread=4)
+        senders = [
+            game.members.create(user=secondary_user, nation=classical_france_nation)
+            for game in games
+        ]
+        channel_with_messages_factory(
+            readers[0], senders[0], now - timedelta(hours=3), read=1, unread=2
+        )
+        channel_with_messages_factory(
+            readers[0], senders[0], now - timedelta(hours=1), read=2, unread=1
+        )
+        channel_with_messages_factory(
+            readers[1], senders[1], now - timedelta(hours=2), read=1, unread=4
+        )
 
         response = authenticated_client.get(reverse(list_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        unread_counts = {g["id"]: g["total_unread_message_count"] for g in response.data["results"]}
+        unread_counts = {
+            g["id"]: g["total_unread_message_count"] for g in response.data["results"]
+        }
         assert unread_counts == {games[0].id: 3, games[1].id: 4}
 
     @pytest.mark.django_db
@@ -1362,8 +1683,12 @@ class TestGameListView:
     ):
         game = game_with_phase_history_factory(phase_count=1)
         reader = game.members.get(user=primary_user)
-        sender = game.members.create(user=secondary_user, nation=classical_france_nation)
-        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2, own_unread=3)
+        sender = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        channel_with_messages_factory(
+            reader, sender, timezone.now() - timedelta(hours=1), unread=2, own_unread=3
+        )
 
         response = authenticated_client.get(reverse(list_viewname))
 
@@ -1385,13 +1710,23 @@ class TestGameListView:
         read_game = game_with_phase_history_factory(phase_count=1)
         for game, unread in [(unread_game, 1), (read_game, 0)]:
             reader = game.members.get(user=primary_user)
-            sender = game.members.create(user=secondary_user, nation=classical_france_nation)
-            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), read=2, unread=unread)
+            sender = game.members.create(
+                user=secondary_user, nation=classical_france_nation
+            )
+            channel_with_messages_factory(
+                reader,
+                sender,
+                timezone.now() - timedelta(hours=1),
+                read=2,
+                unread=unread,
+            )
 
         response = authenticated_client.get(reverse(list_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        unread_counts = {g["id"]: g["total_unread_message_count"] for g in response.data["results"]}
+        unread_counts = {
+            g["id"]: g["total_unread_message_count"] for g in response.data["results"]
+        }
         assert unread_counts == {unread_game.id: 1, read_game.id: 0}
 
     @pytest.mark.django_db
@@ -1406,8 +1741,12 @@ class TestGameListView:
     ):
         game = game_with_phase_history_factory(phase_count=1)
         reader = game.members.get(user=primary_user)
-        sender = game.members.create(user=secondary_user, nation=classical_france_nation)
-        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+        sender = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        channel_with_messages_factory(
+            reader, sender, timezone.now() - timedelta(hours=1), unread=2
+        )
 
         response = unauthenticated_client.get(reverse(list_viewname))
 
@@ -1427,13 +1766,23 @@ class TestGameListView:
         base_pending_phase,
         channel_with_messages_factory,
     ):
-        game = Game.objects.create(name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING)
+        game = Game.objects.create(
+            name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING
+        )
         base_pending_phase(game)
-        reader = game.members.create(user=secondary_user, nation=classical_france_nation)
-        sender = game.members.create(user=tertiary_user, nation=classical_germany_nation)
-        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+        reader = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        sender = game.members.create(
+            user=tertiary_user, nation=classical_germany_nation
+        )
+        channel_with_messages_factory(
+            reader, sender, timezone.now() - timedelta(hours=1), unread=2
+        )
 
-        response = authenticated_client.get(reverse(list_viewname), {"can_join": "true"})
+        response = authenticated_client.get(
+            reverse(list_viewname), {"can_join": "true"}
+        )
 
         assert response.status_code == status.HTTP_200_OK
         [result] = response.data["results"]
@@ -1441,7 +1790,9 @@ class TestGameListView:
         assert result["total_unread_message_count"] == 0
 
     @pytest.mark.django_db
-    def test_list_games_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_unauthenticated(
+        self, unauthenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname)
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1451,11 +1802,21 @@ class TestGameListView:
             assert game["can_leave"] is False
 
     @pytest.mark.django_db
-    def test_list_games_unauthenticated_excludes_private(self, unauthenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_unauthenticated_excludes_private(
+        self, unauthenticated_client, classical_variant, base_pending_phase
+    ):
         from .models import Game
-        public_game = Game.objects.create(name="Public Game", variant=classical_variant, status="pending")
+
+        public_game = Game.objects.create(
+            name="Public Game", variant=classical_variant, status="pending"
+        )
         base_pending_phase(public_game)
-        private_game = Game.objects.create(name="Private Game", variant=classical_variant, status="pending", private=True)
+        private_game = Game.objects.create(
+            name="Private Game",
+            variant=classical_variant,
+            status="pending",
+            private=True,
+        )
         base_pending_phase(private_game)
 
         url = reverse(list_viewname)
@@ -1466,14 +1827,18 @@ class TestGameListView:
         assert private_game.id not in game_ids
 
     @pytest.mark.django_db
-    def test_list_games_unauthenticated_mine_filter_returns_empty(self, unauthenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_unauthenticated_mine_filter_returns_empty(
+        self, unauthenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname) + "?mine=true"
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["results"] == []
 
     @pytest.mark.django_db
-    def test_list_games_unauthenticated_can_join_filter(self, unauthenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_unauthenticated_can_join_filter(
+        self, unauthenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname) + "?can_join=true"
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1483,7 +1848,9 @@ class TestGameListView:
             assert pending_game_created_by_primary_user.id in game_ids
 
     @pytest.mark.django_db
-    def test_list_games_response_structure(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_response_structure(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1530,7 +1897,9 @@ class TestGameListView:
             ordinal=1,
         )
         old_phase.units.create(
-            type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
         )
         current_phase = game.phases.create(
             game=game,
@@ -1542,7 +1911,9 @@ class TestGameListView:
             ordinal=2,
         )
         current_phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
         )
         current_phase.supply_centers.create(
             nation=classical_england_nation, province=classical_edinburgh_province
@@ -1555,12 +1926,18 @@ class TestGameListView:
         result = next(g for g in response.data["results"] if g["id"] == game.id)
         assert len(result["current_phase"]["units"]) == 1
         assert result["current_phase"]["units"][0]["type"] == UnitType.FLEET
-        assert result["current_phase"]["units"][0]["province"]["id"] == classical_edinburgh_province.province_id
+        assert (
+            result["current_phase"]["units"][0]["province"]["id"]
+            == classical_edinburgh_province.province_id
+        )
         assert len(result["current_phase"]["supply_centers"]) == 1
 
     @pytest.mark.django_db
     def test_list_games_filter_mine_true(
-        self, authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        pending_game_created_by_secondary_user,
     ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url, {"mine": "true"})
@@ -1572,7 +1949,10 @@ class TestGameListView:
 
     @pytest.mark.django_db
     def test_list_games_filter_mine_false(
-        self, authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        pending_game_created_by_secondary_user,
     ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url, {"mine": "false"})
@@ -1583,7 +1963,10 @@ class TestGameListView:
 
     @pytest.mark.django_db
     def test_list_games_filter_can_join_true(
-        self, authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        pending_game_created_by_secondary_user,
     ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url, {"can_join": "true"})
@@ -1593,7 +1976,9 @@ class TestGameListView:
             assert game["can_join"] is True
 
     @pytest.mark.django_db
-    def test_list_games_combined_filters(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_combined_filters(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url, {"mine": "true", "can_join": "false"})
         assert response.status_code == status.HTTP_200_OK
@@ -1615,7 +2000,9 @@ class TestGameListView:
 class TestGameListViewPagination:
 
     @pytest.mark.django_db
-    def test_list_games_returns_paginated_response(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_returns_paginated_response(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -1628,9 +2015,10 @@ class TestGameListViewPagination:
         game_ids = [g["id"] for g in response.data["results"]]
         assert pending_game_created_by_primary_user.id in game_ids
 
-
     @pytest.mark.django_db
-    def test_list_games_default_page_size(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_default_page_size(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         for i in range(25):
             game = Game.objects.create(
                 name=f"Game {i}",
@@ -1647,9 +2035,10 @@ class TestGameListViewPagination:
         assert response.data["next"] is not None
         assert response.data["previous"] is None
 
-
     @pytest.mark.django_db
-    def test_list_games_page_navigation(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_page_navigation(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         for i in range(25):
             game = Game.objects.create(
                 name=f"Game {i}",
@@ -1665,9 +2054,10 @@ class TestGameListViewPagination:
         assert response.data["previous"] is not None
         assert response.data["next"] is None
 
-
     @pytest.mark.django_db
-    def test_list_games_custom_page_size(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_custom_page_size(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         for i in range(10):
             game = Game.objects.create(
                 name=f"Game {i}",
@@ -1683,7 +2073,9 @@ class TestGameListViewPagination:
         assert response.data["count"] == 10
 
     @pytest.mark.django_db
-    def test_list_games_page_size_capped_at_max(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_page_size_capped_at_max(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         for i in range(5):
             game = Game.objects.create(
                 name=f"Game {i}",
@@ -1698,9 +2090,10 @@ class TestGameListViewPagination:
         # max_page_size is 100, but only 5 games exist, so all are returned
         assert len(response.data["results"]) == 5
 
-
     @pytest.mark.django_db
-    def test_list_games_filter_status_single(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_filter_status_single(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         active_game = Game.objects.create(
             name="Active Game",
             variant=classical_variant,
@@ -1721,9 +2114,10 @@ class TestGameListViewPagination:
         assert active_game.id in game_ids
         assert pending_game.id not in game_ids
 
-
     @pytest.mark.django_db
-    def test_list_games_filter_status_multiple(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_filter_status_multiple(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         completed_game = Game.objects.create(
             name="Completed Game",
             variant=classical_variant,
@@ -1751,9 +2145,10 @@ class TestGameListViewPagination:
         assert abandoned_game.id in game_ids
         assert active_game.id not in game_ids
 
-
     @pytest.mark.django_db
-    def test_list_games_ordered_newest_first(self, authenticated_client, classical_variant, base_pending_phase):
+    def test_list_games_ordered_newest_first(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
         first_game = Game.objects.create(
             name="First Game",
             variant=classical_variant,
@@ -1775,10 +2170,12 @@ class TestGameListViewPagination:
         assert results[0]["id"] == second_game.id
         assert results[1]["id"] == first_game.id
 
-
     @pytest.mark.django_db
     def test_list_games_existing_filters_with_pagination(
-        self, authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        pending_game_created_by_secondary_user,
     ):
         url = reverse(list_viewname)
         response = authenticated_client.get(url, {"mine": "true"})
@@ -1793,7 +2190,11 @@ class TestGameListViewFilters:
 
     @pytest.mark.django_db
     def test_list_games_filter_variant(
-        self, authenticated_client, classical_variant, italy_vs_germany_variant, base_pending_phase
+        self,
+        authenticated_client,
+        classical_variant,
+        italy_vs_germany_variant,
+        base_pending_phase,
     ):
         classical_game = Game.objects.create(
             name="Classical Game",
@@ -1835,7 +2236,9 @@ class TestGameListViewFilters:
         base_pending_phase(forty_eight_hour_game)
 
         url = reverse(list_viewname)
-        response = authenticated_client.get(url, {"movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS})
+        response = authenticated_client.get(
+            url, {"movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS}
+        )
         assert response.status_code == status.HTTP_200_OK
         game_ids = [g["id"] for g in response.data["results"]]
         assert twenty_four_hour_game.id in game_ids
@@ -1843,7 +2246,12 @@ class TestGameListViewFilters:
 
     @pytest.mark.django_db
     def test_list_games_filter_can_join_and_variant(
-        self, authenticated_client, classical_variant, italy_vs_germany_variant, base_pending_phase, secondary_user
+        self,
+        authenticated_client,
+        classical_variant,
+        italy_vs_germany_variant,
+        base_pending_phase,
+        secondary_user,
     ):
         classical_joinable_game = Game.objects.create(
             name="Classical Joinable Game",
@@ -1859,7 +2267,9 @@ class TestGameListViewFilters:
         base_pending_phase(italy_vs_germany_joinable_game)
 
         url = reverse(list_viewname)
-        response = authenticated_client.get(url, {"can_join": "true", "variant": classical_variant.id})
+        response = authenticated_client.get(
+            url, {"can_join": "true", "variant": classical_variant.id}
+        )
         assert response.status_code == status.HTTP_200_OK
         game_ids = [g["id"] for g in response.data["results"]]
         assert classical_joinable_game.id in game_ids
@@ -1872,7 +2282,12 @@ class TestGameListViewOrdering:
 
     @pytest.mark.django_db
     def test_ordering_slots_remaining_ascending(
-        self, authenticated_client, classical_variant, base_pending_phase, secondary_user, tertiary_user
+        self,
+        authenticated_client,
+        classical_variant,
+        base_pending_phase,
+        secondary_user,
+        tertiary_user,
     ):
         empty_game = Game.objects.create(
             name="Empty Game",
@@ -1941,10 +2356,16 @@ class TestGameListViewOrdering:
 
     @pytest.mark.django_db
     def test_ordering_slots_remaining_excludes_non_playable_nations(
-        self, authenticated_client, classical_variant, italy_vs_germany_variant, base_pending_phase,
+        self,
+        authenticated_client,
+        classical_variant,
+        italy_vs_germany_variant,
+        base_pending_phase,
         pending_game_with_players,
     ):
-        classical_variant.nations.create(nation_id="neutral", name="Neutral", color="#000000", non_playable=True)
+        classical_variant.nations.create(
+            nation_id="neutral", name="Neutral", color="#000000", non_playable=True
+        )
         one_seat_game = pending_game_with_players(player_count=6)
         two_seat_game = Game.objects.create(
             name="Two Seat Game",
@@ -2003,13 +2424,19 @@ class TestGameListViewOrdering:
         url = reverse(list_viewname)
         response = authenticated_client.get(
             url,
-            {"can_join": "true", "variant": classical_variant.id, "ordering": "slots_remaining"},
+            {
+                "can_join": "true",
+                "variant": classical_variant.id,
+                "ordering": "slots_remaining",
+            },
         )
         assert response.status_code == status.HTTP_200_OK
 
         ordered_ids = [g["id"] for g in response.data["results"]]
         assert italy_game.id not in ordered_ids
-        assert ordered_ids.index(classical_full.id) < ordered_ids.index(classical_empty.id)
+        assert ordered_ids.index(classical_full.id) < ordered_ids.index(
+            classical_empty.id
+        )
 
     @pytest.mark.django_db
     def test_ordering_finished_most_recently_finished_first(
@@ -2040,18 +2467,23 @@ class TestGameListViewOrdering:
 
         url = reverse(list_viewname)
         response = authenticated_client.get(
-            url, {"mine": "true", "status": "completed,abandoned", "ordering": "finished"}
+            url,
+            {"mine": "true", "status": "completed,abandoned", "ordering": "finished"},
         )
         assert response.status_code == status.HTTP_200_OK
 
         ordered_ids = [g["id"] for g in response.data["results"]]
-        assert ordered_ids.index(abandoned_later.id) < ordered_ids.index(completed_first.id)
+        assert ordered_ids.index(abandoned_later.id) < ordered_ids.index(
+            completed_first.id
+        )
 
 
 class TestGameListViewQueryPerformance:
 
     @pytest.mark.django_db
-    def test_list_games_query_count_simple(self, authenticated_client, pending_game_created_by_primary_user):
+    def test_list_games_query_count_simple(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
         url = reverse(list_viewname)
         connection.queries_log.clear()
 
@@ -2090,8 +2522,15 @@ class TestGameListViewQueryPerformance:
                     status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
                     ordinal=j + 1,
                 )
-                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.units.create(
+                    type="Fleet",
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
 
         url = reverse(list_viewname)
         connection.queries_log.clear()
@@ -2141,8 +2580,14 @@ class TestGameListViewQueryPerformance:
                     status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
                     ordinal=j + 1,
                 )
-                phase.units.create(type="Fleet", nation=nations[i], province=classical_edinburgh_province)
-                phase.supply_centers.create(nation=nations[i], province=classical_edinburgh_province)
+                phase.units.create(
+                    type="Fleet",
+                    nation=nations[i],
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=nations[i], province=classical_edinburgh_province
+                )
 
         url = reverse(list_viewname)
         connection.queries_log.clear()
@@ -2174,9 +2619,15 @@ class TestGameListViewQueryPerformance:
                 variant=classical_variant,
                 status=GameStatus.ACTIVE,
             )
-            member1 = game.members.create(user=primary_user, nation=classical_england_nation)
-            member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
-            member3 = game.members.create(user=tertiary_user, nation=classical_germany_nation)
+            member1 = game.members.create(
+                user=primary_user, nation=classical_england_nation
+            )
+            member2 = game.members.create(
+                user=secondary_user, nation=classical_france_nation
+            )
+            member3 = game.members.create(
+                user=tertiary_user, nation=classical_germany_nation
+            )
 
             phase = game.phases.create(
                 game=game,
@@ -2187,8 +2638,14 @@ class TestGameListViewQueryPerformance:
                 status=PhaseStatus.ACTIVE,
                 ordinal=1,
             )
-            phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-            phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+            phase.units.create(
+                type="Fleet",
+                nation=classical_england_nation,
+                province=classical_edinburgh_province,
+            )
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=classical_edinburgh_province
+            )
             phase.phase_states.create(member=member1)
             phase.phase_states.create(member=member2)
             phase.phase_states.create(member=member3)
@@ -2235,7 +2692,11 @@ class TestGameListViewQueryPerformance:
                     season="Spring",
                     year=1900 + ordinal,
                     type=PhaseType.MOVEMENT,
-                    status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
+                    status=(
+                        PhaseStatus.ACTIVE
+                        if ordinal == phases_per_game
+                        else PhaseStatus.COMPLETED
+                    ),
                     ordinal=ordinal,
                 )
                 for _ in range(units_per_phase):
@@ -2263,7 +2724,9 @@ class TestGameListViewQueryPerformance:
                 len(phase.units.all()) for game in games for phase in game.phases.all()
             )
             hydrated_supply_centers = sum(
-                len(phase.supply_centers.all()) for game in games for phase in game.phases.all()
+                len(phase.supply_centers.all())
+                for game in games
+                for phase in game.phases.all()
             )
 
         assert hydrated_units == games_count * units_per_phase
@@ -2288,7 +2751,11 @@ class TestGameListViewQueryPerformance:
         params,
         expected_query_count,
     ):
-        client = authenticated_client if client_name == "authenticated" else unauthenticated_client
+        client = (
+            authenticated_client
+            if client_name == "authenticated"
+            else unauthenticated_client
+        )
         url = reverse(list_viewname)
 
         def list_query_count():
@@ -2324,7 +2791,11 @@ class TestGameListViewQueryPerformance:
         client_name,
         params,
     ):
-        client = authenticated_client if client_name == "authenticated" else unauthenticated_client
+        client = (
+            authenticated_client
+            if client_name == "authenticated"
+            else unauthenticated_client
+        )
         game_with_phase_history_factory(phase_count=3)
 
         connection.queries_log.clear()
@@ -2358,17 +2829,27 @@ class TestGameListViewQueryPerformance:
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
             response = authenticated_client.get(
-                reverse(list_viewname), {"can_join": "true", "ordering": "slots_remaining"}
+                reverse(list_viewname),
+                {"can_join": "true", "ordering": "slots_remaining"},
             )
 
         assert response.status_code == status.HTTP_200_OK
         assert [g["id"] for g in response.data["results"]] == [
             games_by_member_count[member_count].id for member_count in [3, 2, 1, 0]
         ]
-        assert all(g["total_unread_message_count"] == 0 for g in response.data["results"])
-        game_queries = [q["sql"] for q in connection.queries if 'FROM "game_game"' in q["sql"]]
-        assert len([sql for sql in game_queries if sql.startswith("SELECT COUNT(*)")]) == 1
-        assert len([sql for sql in game_queries if not sql.startswith("SELECT COUNT(*)")]) == 1
+        assert all(
+            g["total_unread_message_count"] == 0 for g in response.data["results"]
+        )
+        game_queries = [
+            q["sql"] for q in connection.queries if 'FROM "game_game"' in q["sql"]
+        ]
+        assert (
+            len([sql for sql in game_queries if sql.startswith("SELECT COUNT(*)")]) == 1
+        )
+        assert (
+            len([sql for sql in game_queries if not sql.startswith("SELECT COUNT(*)")])
+            == 1
+        )
         assert all("channel_channelmessage" not in sql for sql in game_queries)
 
     @pytest.mark.django_db
@@ -2378,14 +2859,18 @@ class TestGameListViewQueryPerformance:
         ids=["false", "malformed", "absent"],
     )
     def test_list_games_counts_unread_messages_unless_can_join_is_true(
-        self, authenticated_client, game_with_public_channel_and_messages, can_join_params
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        can_join_params,
     ):
         game = game_with_public_channel_and_messages
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
             response = authenticated_client.get(
-                reverse(list_viewname), {**can_join_params, "ordering": "slots_remaining"}
+                reverse(list_viewname),
+                {**can_join_params, "ordering": "slots_remaining"},
             )
 
         assert response.status_code == status.HTTP_200_OK
@@ -2404,10 +2889,14 @@ class TestGameListViewQueryPerformance:
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(list_viewname), {"page_size": 2})
+            response = authenticated_client.get(
+                reverse(list_viewname), {"page_size": 2}
+            )
 
         assert response.status_code == status.HTTP_200_OK
-        assert {g["id"] for g in response.data["results"]} == {game.id for game in page_games}
+        assert {g["id"] for g in response.data["results"]} == {
+            game.id for game in page_games
+        }
         current_phase_ids = {game.current_phase.id for game in page_games}
         assert queried_phase_ids("unit_unit") == current_phase_ids
         assert queried_phase_ids("supply_center_supplycenter") == current_phase_ids
@@ -2418,11 +2907,15 @@ class TestGameListViewQueryPerformance:
     ):
         game_with_phase_history_factory(phase_count=4)
         active_game = game_with_phase_history_factory(phase_count=4)
-        finished_game = game_with_phase_history_factory(phase_count=4, last_status=PhaseStatus.COMPLETED)
+        finished_game = game_with_phase_history_factory(
+            phase_count=4, last_status=PhaseStatus.COMPLETED
+        )
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(list_viewname), {"page_size": 2})
+            response = authenticated_client.get(
+                reverse(list_viewname), {"page_size": 2}
+            )
 
         assert response.status_code == status.HTTP_200_OK
         active_phases = list(active_game.phases.all())
@@ -2450,20 +2943,30 @@ class TestGameListViewQueryPerformance:
         games = [game_with_phase_history_factory(phase_count=2) for _ in range(3)]
         for unread, game in enumerate(games, start=1):
             reader = game.members.get(user=primary_user)
-            sender = game.members.create(user=secondary_user, nation=classical_france_nation)
-            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=unread)
-            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=2), unread=unread)
+            sender = game.members.create(
+                user=secondary_user, nation=classical_france_nation
+            )
+            channel_with_messages_factory(
+                reader, sender, timezone.now() - timedelta(hours=1), unread=unread
+            )
+            channel_with_messages_factory(
+                reader, sender, timezone.now() - timedelta(hours=2), unread=unread
+            )
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
             response = authenticated_client.get(reverse(list_viewname), params)
 
         assert response.status_code == status.HTTP_200_OK
-        count_queries = [sql for sql in game_queries() if sql.startswith("SELECT COUNT(*)")]
+        count_queries = [
+            sql for sql in game_queries() if sql.startswith("SELECT COUNT(*)")
+        ]
         assert len(count_queries) == 1
         assert len(game_queries()) == 2
         assert all('"channel_channelmessage"' not in sql for sql in game_queries())
-        unread_counts = {g["id"]: g["total_unread_message_count"] for g in response.data["results"]}
+        unread_counts = {
+            g["id"]: g["total_unread_message_count"] for g in response.data["results"]
+        }
         [unread_query] = channel_message_queries()
         assert queried_unread_game_ids(unread_query) == set(unread_counts)
         assert {game.id: unread_counts[game.id] for game in games} == {
@@ -2483,12 +2986,18 @@ class TestGameListViewQueryPerformance:
         games = [game_with_phase_history_factory(phase_count=2) for _ in range(3)]
         for game in games:
             reader = game.members.get(user=primary_user)
-            sender = game.members.create(user=secondary_user, nation=classical_france_nation)
-            channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+            sender = game.members.create(
+                user=secondary_user, nation=classical_france_nation
+            )
+            channel_with_messages_factory(
+                reader, sender, timezone.now() - timedelta(hours=1), unread=2
+            )
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(list_viewname), {"page_size": 1, "page": 2})
+            response = authenticated_client.get(
+                reverse(list_viewname), {"page_size": 1, "page": 2}
+            )
 
         assert response.status_code == status.HTTP_200_OK
         [result] = response.data["results"]
@@ -2509,15 +3018,21 @@ class TestGameListViewQueryPerformance:
     ):
         game = game_with_phase_history_factory(phase_count=2)
         reader = game.members.get(user=primary_user)
-        sender = game.members.create(user=secondary_user, nation=classical_france_nation)
-        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+        sender = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        channel_with_messages_factory(
+            reader, sender, timezone.now() - timedelta(hours=1), unread=2
+        )
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
             response = unauthenticated_client.get(reverse(list_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        assert [g["total_unread_message_count"] for g in response.data["results"]] == [0]
+        assert [g["total_unread_message_count"] for g in response.data["results"]] == [
+            0
+        ]
         assert channel_message_queries() == []
 
     @pytest.mark.django_db
@@ -2534,18 +3049,30 @@ class TestGameListViewQueryPerformance:
         channel_with_messages_factory,
         can_join,
     ):
-        game = Game.objects.create(name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING)
+        game = Game.objects.create(
+            name="Joinable Game", variant=classical_variant, status=GameStatus.PENDING
+        )
         base_pending_phase(game)
-        reader = game.members.create(user=secondary_user, nation=classical_france_nation)
-        sender = game.members.create(user=tertiary_user, nation=classical_germany_nation)
-        channel_with_messages_factory(reader, sender, timezone.now() - timedelta(hours=1), unread=2)
+        reader = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        sender = game.members.create(
+            user=tertiary_user, nation=classical_germany_nation
+        )
+        channel_with_messages_factory(
+            reader, sender, timezone.now() - timedelta(hours=1), unread=2
+        )
 
         connection.queries_log.clear()
         with override_settings(DEBUG=True):
-            response = authenticated_client.get(reverse(list_viewname), {"can_join": can_join})
+            response = authenticated_client.get(
+                reverse(list_viewname), {"can_join": can_join}
+            )
 
         assert response.status_code == status.HTTP_200_OK
-        assert [g["total_unread_message_count"] for g in response.data["results"]] == [0]
+        assert [g["total_unread_message_count"] for g in response.data["results"]] == [
+            0
+        ]
         assert channel_message_queries() == []
 
     @pytest.mark.django_db
@@ -2664,8 +3191,12 @@ class TestGameListViewQueryPerformance:
             variant=classical_variant,
             status=GameStatus.ACTIVE,
         )
-        member1 = game.members.create(user=primary_user, nation=classical_england_nation)
-        member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
+        member1 = game.members.create(
+            user=primary_user, nation=classical_england_nation
+        )
+        member2 = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
         phases = []
         for ordinal in range(1, phases_per_game + 1):
             phase = game.phases.create(
@@ -2674,16 +3205,18 @@ class TestGameListViewQueryPerformance:
                 season="Spring",
                 year=1900 + ordinal,
                 type=PhaseType.MOVEMENT,
-                status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
+                status=(
+                    PhaseStatus.ACTIVE
+                    if ordinal == phases_per_game
+                    else PhaseStatus.COMPLETED
+                ),
                 ordinal=ordinal,
             )
             phase.phase_states.create(member=member1, has_possible_orders=True)
             phase.phase_states.create(member=member2, has_possible_orders=True)
             phases.append(phase)
 
-        hydrated = list(
-            Game.objects.filter(id=game.id).with_list_data()
-        )
+        hydrated = list(Game.objects.filter(id=game.id).with_list_data())
         Game.objects.hydrate_list_phases(hydrated)
         game_obj = hydrated[0]
 
@@ -2729,7 +3262,9 @@ class TestGameCreateView:
             assert field in response.data
 
     @pytest.mark.django_db
-    def test_create_game_unauthenticated(self, unauthenticated_client, classical_variant):
+    def test_create_game_unauthenticated(
+        self, unauthenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "New Test Game",
@@ -2790,7 +3325,9 @@ class TestGameCreateView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_create_game_creates_membership(self, authenticated_client, classical_variant, primary_user):
+    def test_create_game_creates_membership(
+        self, authenticated_client, classical_variant, primary_user
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Membership Test Game",
@@ -2806,7 +3343,9 @@ class TestGameCreateView:
         assert game.members.count() == 1
 
     @pytest.mark.django_db
-    def test_create_game_creates_public_channel(self, authenticated_client, classical_variant):
+    def test_create_game_creates_public_channel(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Channel Test Game",
@@ -2823,7 +3362,9 @@ class TestGameCreateView:
         assert channel.name == "Public Press"
 
     @pytest.mark.django_db
-    def test_create_game_creates_template_phase(self, authenticated_client, classical_variant):
+    def test_create_game_creates_template_phase(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Phase Test Game",
@@ -2859,7 +3400,9 @@ class TestGameCreateView:
         assert response1.data["id"] != response2.data["id"]
 
     @pytest.mark.django_db
-    def test_create_game_special_characters_in_name(self, authenticated_client, classical_variant):
+    def test_create_game_special_characters_in_name(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Test Game! @#$%^&*()",
@@ -2885,7 +3428,9 @@ class TestGameCreateView:
         assert response.data["name"] == payload["name"]
 
     @pytest.mark.django_db
-    def test_create_multiple_games_isolated_channels(self, authenticated_client, classical_variant):
+    def test_create_multiple_games_isolated_channels(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
 
         payload1 = {
@@ -2918,7 +3463,9 @@ class TestGameCreateView:
         assert channel2.name == "Public Press"
 
     @pytest.mark.django_db
-    def test_create_game_can_join_can_leave_values(self, authenticated_client, classical_variant):
+    def test_create_game_can_join_can_leave_values(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Join Leave Test Game",
@@ -2967,7 +3514,9 @@ class TestGameCreateView:
         assert response.data["private"] is False
 
     @pytest.mark.django_db
-    def test_create_game_default_deadline_mode_is_fixed_time(self, authenticated_client, classical_variant):
+    def test_create_game_default_deadline_mode_is_fixed_time(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Default Deadline Mode Game",
@@ -2988,7 +3537,9 @@ class TestGameCreateView:
         assert game.movement_frequency == PhaseFrequency.DAILY
 
     @pytest.mark.django_db
-    def test_create_game_fixed_time_mode_requires_time(self, authenticated_client, classical_variant):
+    def test_create_game_fixed_time_mode_requires_time(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Fixed Time Game Missing Time",
@@ -3003,7 +3554,9 @@ class TestGameCreateView:
         assert "fixed_deadline_time" in response.data
 
     @pytest.mark.django_db
-    def test_create_game_fixed_time_mode_requires_timezone(self, authenticated_client, classical_variant):
+    def test_create_game_fixed_time_mode_requires_timezone(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Fixed Time Game Missing Timezone",
@@ -3018,7 +3571,9 @@ class TestGameCreateView:
         assert "fixed_deadline_timezone" in response.data
 
     @pytest.mark.django_db
-    def test_create_game_fixed_time_mode_requires_movement_frequency(self, authenticated_client, classical_variant):
+    def test_create_game_fixed_time_mode_requires_movement_frequency(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Fixed Time Game Missing Frequency",
@@ -3033,7 +3588,9 @@ class TestGameCreateView:
         assert "movement_frequency" in response.data
 
     @pytest.mark.django_db
-    def test_create_game_fixed_time_mode_invalid_timezone(self, authenticated_client, classical_variant):
+    def test_create_game_fixed_time_mode_invalid_timezone(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Fixed Time Game Invalid Timezone",
@@ -3049,7 +3606,9 @@ class TestGameCreateView:
         assert "fixed_deadline_timezone" in response.data
 
     @pytest.mark.django_db
-    def test_create_game_fixed_time_mode_success(self, authenticated_client, classical_variant):
+    def test_create_game_fixed_time_mode_success(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Fixed Time Game Success",
@@ -3077,7 +3636,9 @@ class TestGameCreateView:
         assert game.retreat_frequency == PhaseFrequency.HOURLY
 
     @pytest.mark.django_db
-    def test_create_game_duration_mode_clears_fixed_time_fields(self, authenticated_client, classical_variant):
+    def test_create_game_duration_mode_clears_fixed_time_fields(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Duration Mode Clears Fixed Fields",
@@ -3103,7 +3664,9 @@ class TestGameCreateView:
         assert game.retreat_frequency is None
 
     @pytest.mark.django_db
-    def test_retrieve_game_includes_fixed_deadline_fields(self, authenticated_client, classical_variant):
+    def test_retrieve_game_includes_fixed_deadline_fields(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Test Fixed Deadline Fields In Response",
@@ -3148,7 +3711,9 @@ class TestGameCreateView:
 class TestGameCreateViewPerformance:
 
     @pytest.mark.django_db
-    def test_create_game_query_count_small_variant(self, authenticated_client, italy_vs_germany_variant):
+    def test_create_game_query_count_small_variant(
+        self, authenticated_client, italy_vs_germany_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Performance Test Game",
@@ -3167,7 +3732,9 @@ class TestGameCreateViewPerformance:
         assert query_count == 49
 
     @pytest.mark.django_db
-    def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
+    def test_create_game_query_count_large_variant(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Classical Performance Test",
@@ -3189,7 +3756,9 @@ class TestGameCreateViewPerformance:
 class TestGamePrivateFiltering:
 
     @pytest.mark.django_db
-    def test_private_games_excluded_from_can_join_filter(self, authenticated_client, secondary_user, classical_variant):
+    def test_private_games_excluded_from_can_join_filter(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
         # Create a private game by secondary user
         private_game = Game.objects.create_from_template(
             classical_variant,
@@ -3216,7 +3785,9 @@ class TestGamePrivateFiltering:
         assert private_game.id not in game_ids
 
     @pytest.mark.django_db
-    def test_private_games_visible_in_mine_filter(self, authenticated_client, primary_user, classical_variant):
+    def test_private_games_visible_in_mine_filter(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         # Create a private game by primary user
         private_game = Game.objects.create_from_template(
             classical_variant,
@@ -3234,7 +3805,9 @@ class TestGamePrivateFiltering:
         assert private_game.id in game_ids
 
     @pytest.mark.django_db
-    def test_private_game_accessible_via_direct_link(self, authenticated_client, secondary_user, classical_variant):
+    def test_private_game_accessible_via_direct_link(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
         # Create a private game by secondary user
         private_game = Game.objects.create_from_template(
             classical_variant,
@@ -3251,7 +3824,9 @@ class TestGamePrivateFiltering:
         assert response.data["private"] is True
 
     @pytest.mark.django_db
-    def test_game_with_48_hour_phase_duration(self, authenticated_client, classical_variant, primary_user):
+    def test_game_with_48_hour_phase_duration(
+        self, authenticated_client, classical_variant, primary_user
+    ):
         game = Game.objects.create(
             name="48 Hour Game",
             variant=classical_variant,
@@ -3277,12 +3852,16 @@ class TestGamePrivateFiltering:
         game.status = GameStatus.ACTIVE
         phase.status = PhaseStatus.ACTIVE
         now = timezone.now()
-        phase.scheduled_resolution = now + timedelta(seconds=game.movement_phase_duration_seconds)
+        phase.scheduled_resolution = now + timedelta(
+            seconds=game.movement_phase_duration_seconds
+        )
         phase.save()
         game.save()
 
         expected_resolution = now + timedelta(hours=48)
-        assert abs((phase.scheduled_resolution - expected_resolution).total_seconds()) < 1
+        assert (
+            abs((phase.scheduled_resolution - expected_resolution).total_seconds()) < 1
+        )
 
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -3290,18 +3869,24 @@ class TestGamePrivateFiltering:
         assert response.data["movement_phase_duration"] == "48 hours"
 
     @pytest.mark.django_db
-    def test_game_with_one_week_phase_duration(self, authenticated_client, active_game_with_phase_state):
+    def test_game_with_one_week_phase_duration(
+        self, authenticated_client, active_game_with_phase_state
+    ):
         game = active_game_with_phase_state
         phase = game.current_phase
         now = timezone.now()
 
         game.movement_phase_duration = MovementPhaseDuration.ONE_WEEK
-        phase.scheduled_resolution = now + timedelta(seconds=game.movement_phase_duration_seconds)
+        phase.scheduled_resolution = now + timedelta(
+            seconds=game.movement_phase_duration_seconds
+        )
         phase.save()
         game.save()
 
         expected_resolution = now + timedelta(weeks=1)
-        assert abs((phase.scheduled_resolution - expected_resolution).total_seconds()) < 1
+        assert (
+            abs((phase.scheduled_resolution - expected_resolution).total_seconds()) < 1
+        )
 
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -3312,17 +3897,22 @@ class TestGamePrivateFiltering:
 class TestGameDurationOptions:
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("duration,expected_seconds", [
-        ("1 hour", 3600),
-        ("12 hours", 43200),
-        ("24 hours", 86400),
-        ("48 hours", 172800),
-        ("3 days", 259200),
-        ("4 days", 345600),
-        ("1 week", 604800),
-        ("2 weeks", 1209600),
-    ])
-    def test_game_duration_options(self, authenticated_client, classical_variant, duration, expected_seconds):
+    @pytest.mark.parametrize(
+        "duration,expected_seconds",
+        [
+            ("1 hour", 3600),
+            ("12 hours", 43200),
+            ("24 hours", 86400),
+            ("48 hours", 172800),
+            ("3 days", 259200),
+            ("4 days", 345600),
+            ("1 week", 604800),
+            ("2 weeks", 1209600),
+        ],
+    )
+    def test_game_duration_options(
+        self, authenticated_client, classical_variant, duration, expected_seconds
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": f"Test Game {duration}",
@@ -3339,11 +3929,14 @@ class TestGameDurationOptions:
         assert game.movement_phase_duration_seconds == expected_seconds
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("duration,expected_seconds", [
-        (MovementPhaseDuration.FIVE_MINUTES, 300),
-        (MovementPhaseDuration.FIFTEEN_MINUTES, 900),
-        (MovementPhaseDuration.THIRTY_MINUTES, 1800),
-    ])
+    @pytest.mark.parametrize(
+        "duration,expected_seconds",
+        [
+            (MovementPhaseDuration.FIVE_MINUTES, 300),
+            (MovementPhaseDuration.FIFTEEN_MINUTES, 900),
+            (MovementPhaseDuration.THIRTY_MINUTES, 1800),
+        ],
+    )
     def test_private_game_short_duration_options(
         self, authenticated_client, classical_variant, duration, expected_seconds
     ):
@@ -3364,12 +3957,17 @@ class TestGameDurationOptions:
         assert game.private is True
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("duration", [
-        MovementPhaseDuration.FIVE_MINUTES,
-        MovementPhaseDuration.FIFTEEN_MINUTES,
-        MovementPhaseDuration.THIRTY_MINUTES,
-    ])
-    def test_public_game_rejects_short_duration(self, authenticated_client, classical_variant, duration):
+    @pytest.mark.parametrize(
+        "duration",
+        [
+            MovementPhaseDuration.FIVE_MINUTES,
+            MovementPhaseDuration.FIFTEEN_MINUTES,
+            MovementPhaseDuration.THIRTY_MINUTES,
+        ],
+    )
+    def test_public_game_rejects_short_duration(
+        self, authenticated_client, classical_variant, duration
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": f"Public Game {duration}",
@@ -3383,7 +3981,9 @@ class TestGameDurationOptions:
         assert "movement_phase_duration" in response.data
 
     @pytest.mark.django_db
-    def test_public_game_rejects_short_retreat_duration(self, authenticated_client, classical_variant):
+    def test_public_game_rejects_short_retreat_duration(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Public Game Short Retreat",
@@ -3398,7 +3998,9 @@ class TestGameDurationOptions:
         assert "retreat_phase_duration" in response.data
 
     @pytest.mark.django_db
-    def test_private_game_accepts_short_retreat_duration(self, authenticated_client, classical_variant):
+    def test_private_game_accepts_short_retreat_duration(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Private Game Short Retreat",
@@ -3420,7 +4022,9 @@ class TestGameDurationOptions:
 class TestRetreatPhaseDuration:
 
     @pytest.mark.django_db
-    def test_create_game_with_retreat_phase_duration(self, authenticated_client, classical_variant):
+    def test_create_game_with_retreat_phase_duration(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Game with Retreat Duration",
@@ -3436,10 +4040,15 @@ class TestRetreatPhaseDuration:
         game = Game.objects.get(id=response.data["id"])
         assert game.movement_phase_duration == MovementPhaseDuration.TWENTY_FOUR_HOURS
         assert game.retreat_phase_duration == MovementPhaseDuration.TWELVE_HOURS
-        assert response.data["retreat_phase_duration"] == MovementPhaseDuration.TWELVE_HOURS
+        assert (
+            response.data["retreat_phase_duration"]
+            == MovementPhaseDuration.TWELVE_HOURS
+        )
 
     @pytest.mark.django_db
-    def test_create_game_retreat_duration_defaults_to_none(self, authenticated_client, classical_variant):
+    def test_create_game_retreat_duration_defaults_to_none(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Game without Retreat Duration",
@@ -3453,7 +4062,9 @@ class TestRetreatPhaseDuration:
 
         game = Game.objects.get(id=response.data["id"])
         assert game.retreat_phase_duration is None
-        assert game.retreat_phase_duration_seconds == game.movement_phase_duration_seconds
+        assert (
+            game.retreat_phase_duration_seconds == game.movement_phase_duration_seconds
+        )
 
     @pytest.mark.django_db
     def test_retreat_phase_duration_seconds_fallback(self, classical_variant):
@@ -3463,7 +4074,9 @@ class TestRetreatPhaseDuration:
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             retreat_phase_duration=None,
         )
-        assert game.retreat_phase_duration_seconds == game.movement_phase_duration_seconds
+        assert (
+            game.retreat_phase_duration_seconds == game.movement_phase_duration_seconds
+        )
         assert game.retreat_phase_duration_seconds == 24 * 60 * 60
 
     @pytest.mark.django_db
@@ -3508,7 +4121,9 @@ class TestRetreatPhaseDuration:
         assert game.get_phase_duration_seconds(PhaseType.ADJUSTMENT) == 12 * 60 * 60
 
     @pytest.mark.django_db
-    def test_retreat_phase_duration_in_api_response(self, authenticated_client, classical_variant):
+    def test_retreat_phase_duration_in_api_response(
+        self, authenticated_client, classical_variant
+    ):
         game = Game.objects.create_from_template(
             classical_variant,
             name="API Response Test",
@@ -3519,7 +4134,10 @@ class TestRetreatPhaseDuration:
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["retreat_phase_duration"] == MovementPhaseDuration.TWELVE_HOURS
+        assert (
+            response.data["retreat_phase_duration"]
+            == MovementPhaseDuration.TWELVE_HOURS
+        )
 
 
 class TestGameInfinitePhaseDuration:
@@ -3534,7 +4152,9 @@ class TestGameInfinitePhaseDuration:
         assert game.movement_phase_duration is None
 
     @pytest.mark.django_db
-    def test_movement_phase_duration_seconds_returns_none_when_duration_is_none(self, classical_variant):
+    def test_movement_phase_duration_seconds_returns_none_when_duration_is_none(
+        self, classical_variant
+    ):
         game = Game.objects.create(
             name="Infinite Duration Game",
             variant=classical_variant,
@@ -3543,7 +4163,9 @@ class TestGameInfinitePhaseDuration:
         assert game.movement_phase_duration_seconds is None
 
     @pytest.mark.django_db
-    def test_game_start_with_infinite_duration_sets_scheduled_resolution_to_none(self, classical_variant, primary_user):
+    def test_game_start_with_infinite_duration_sets_scheduled_resolution_to_none(
+        self, classical_variant, primary_user
+    ):
 
         game = Game.objects.create(
             name="Infinite Duration Game",
@@ -3592,7 +4214,9 @@ class TestGameInfinitePhaseDuration:
 class TestSandboxGameCreation:
 
     @pytest.mark.django_db
-    def test_create_sandbox_game_success(self, authenticated_client, classical_variant, primary_user):
+    def test_create_sandbox_game_success(
+        self, authenticated_client, classical_variant, primary_user
+    ):
         url = reverse(sandbox_create_viewname)
         payload = {
             "name": "My Sandbox Game",
@@ -3628,13 +4252,20 @@ class TestSandboxGameCreation:
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
-        phase_url = reverse("phase-retrieve", args=[response.data["id"], response.data["current_phase_id"]])
+        phase_url = reverse(
+            "phase-retrieve",
+            args=[response.data["id"], response.data["current_phase_id"]],
+        )
         phase_response = authenticated_client.get(phase_url)
 
         assert phase_response.status_code == status.HTTP_200_OK
-        dislodged_units = [unit for unit in phase_response.data["units"] if unit["dislodged"]]
+        dislodged_units = [
+            unit for unit in phase_response.data["units"] if unit["dislodged"]
+        ]
         assert len(dislodged_units) == 1
-        assert dislodged_units[0]["province"]["id"] == template_unit.province.province_id
+        assert (
+            dislodged_units[0]["province"]["id"] == template_unit.province.province_id
+        )
         assert dislodged_units[0]["dislodged_from"]["id"] == "wal"
 
     @pytest.mark.django_db
@@ -3674,7 +4305,9 @@ class TestSandboxGameCreation:
         assert second.data["id"] != first.data["id"]
 
     @pytest.mark.django_db
-    def test_create_sandbox_game_missing_name(self, authenticated_client, classical_variant):
+    def test_create_sandbox_game_missing_name(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(sandbox_create_viewname)
         payload = {
             "variant_id": classical_variant.id,
@@ -3705,7 +4338,9 @@ class TestSandboxGameCreation:
         assert "variant_id" in response.data
 
     @pytest.mark.django_db
-    def test_create_sandbox_game_unauthenticated(self, unauthenticated_client, classical_variant):
+    def test_create_sandbox_game_unauthenticated(
+        self, unauthenticated_client, classical_variant
+    ):
         url = reverse(sandbox_create_viewname)
         payload = {
             "name": "My Sandbox Game",
@@ -3719,7 +4354,10 @@ class TestSandboxGameCreateViewPerformance:
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_small_variant(
-        self, authenticated_client, italy_vs_germany_variant, adjudication_data_italy_vs_germany
+        self,
+        authenticated_client,
+        italy_vs_germany_variant,
+        adjudication_data_italy_vs_germany,
     ):
         url = reverse(sandbox_create_viewname)
         payload = {
@@ -3763,7 +4401,9 @@ class TestSandboxGameCreateViewPerformance:
 class TestSandboxGameFiltering:
 
     @pytest.mark.django_db
-    def test_sandbox_games_excluded_from_default_list(self, authenticated_client, primary_user, classical_variant):
+    def test_sandbox_games_excluded_from_default_list(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
@@ -3789,7 +4429,9 @@ class TestSandboxGameFiltering:
         assert sandbox_game.id not in game_ids
 
     @pytest.mark.django_db
-    def test_sandbox_games_included_when_mine_filter(self, authenticated_client, primary_user, classical_variant):
+    def test_sandbox_games_included_when_mine_filter(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
@@ -3815,7 +4457,9 @@ class TestSandboxGameFiltering:
         assert sandbox_game.id in game_ids
 
     @pytest.mark.django_db
-    def test_sandbox_games_included_when_filter_true(self, authenticated_client, primary_user, classical_variant):
+    def test_sandbox_games_included_when_filter_true(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
@@ -3841,7 +4485,9 @@ class TestSandboxGameFiltering:
         assert regular_game.id not in game_ids
 
     @pytest.mark.django_db
-    def test_sandbox_filter_false_excludes_sandbox_games(self, authenticated_client, primary_user, classical_variant):
+    def test_sandbox_filter_false_excludes_sandbox_games(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         regular_game = Game.objects.create_from_template(
             classical_variant,
             name="Regular Game",
@@ -3921,8 +4567,15 @@ class TestGameAdminQueryPerformance:
                     status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
                     ordinal=j + 1,
                 )
-                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.units.create(
+                    type="Fleet",
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
 
         url = "/admin/game/game/"
         connection.queries_log.clear()
@@ -3965,11 +4618,22 @@ class TestGameAdminQueryPerformance:
                     season="Spring" if j % 2 == 0 else "Fall",
                     year=1901 + (j // 2),
                     type="Movement",
-                    status=PhaseStatus.ACTIVE if j == phase_count - 1 else PhaseStatus.COMPLETED,
+                    status=(
+                        PhaseStatus.ACTIVE
+                        if j == phase_count - 1
+                        else PhaseStatus.COMPLETED
+                    ),
                     ordinal=j + 1,
                 )
-                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.units.create(
+                    type="Fleet",
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
 
         url = "/admin/game/game/"
         connection.queries_log.clear()
@@ -3985,7 +4649,9 @@ class TestGameAdminQueryPerformance:
 class TestGameCreator:
 
     @pytest.mark.django_db
-    def test_create_game_sets_created_by(self, authenticated_client, classical_variant, primary_user):
+    def test_create_game_sets_created_by(
+        self, authenticated_client, classical_variant, primary_user
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Game Creator Test Game",
@@ -4001,7 +4667,9 @@ class TestGameCreator:
         assert game.members.filter(user=primary_user).exists()
 
     @pytest.mark.django_db
-    def test_create_game_api_response_includes_is_game_creator(self, authenticated_client, classical_variant):
+    def test_create_game_api_response_includes_is_game_creator(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = {
             "name": "Game Creator API Test",
@@ -4027,7 +4695,9 @@ class TestGameCreator:
         assert response.data["members"][0]["is_game_creator"] is True
 
     @pytest.mark.django_db
-    def test_sandbox_game_has_no_creator(self, authenticated_client, classical_variant, primary_user):
+    def test_sandbox_game_has_no_creator(
+        self, authenticated_client, classical_variant, primary_user
+    ):
         url = reverse(sandbox_create_viewname)
         payload = {
             "name": "Sandbox No GM Test",
@@ -4041,7 +4711,11 @@ class TestGameCreator:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_has_no_creator(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical, primary_user
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
+        primary_user,
     ):
         url = reverse("game-clone-to-sandbox", args=[active_game_with_phase_state.id])
         with patch("adjudicator.service.start") as mock_start:
@@ -4060,7 +4734,10 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_success(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudicator.service.start") as mock_start:
@@ -4072,7 +4749,10 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_creates_correct_name(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudicator.service.start") as mock_start:
@@ -4084,7 +4764,10 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_copies_units(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
         source_units_count = active_game_with_phase_state.current_phase.units.count()
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
@@ -4097,9 +4780,14 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_copies_supply_centers(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
-        source_sc_count = active_game_with_phase_state.current_phase.supply_centers.count()
+        source_sc_count = (
+            active_game_with_phase_state.current_phase.supply_centers.count()
+        )
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudicator.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
@@ -4110,7 +4798,10 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_preserves_phase_info(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
         source_phase = active_game_with_phase_state.current_phase
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
@@ -4126,7 +4817,11 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_creates_all_members_for_user(
-        self, authenticated_client, active_game_with_phase_state, primary_user, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        primary_user,
+        adjudication_data_classical,
     ):
         nations_count = active_game_with_phase_state.variant.nations.count()
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
@@ -4140,7 +4835,10 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_game_is_active(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudicator.service.start") as mock_start:
@@ -4151,8 +4849,12 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_deletes_oldest_when_at_limit(
-        self, authenticated_client, primary_user, classical_variant, adjudication_data_classical,
-        active_game_with_phase_state
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        adjudication_data_classical,
+        active_game_with_phase_state,
     ):
         existing_sandboxes = list(
             Game.objects.filter(sandbox=True, members__user=primary_user)
@@ -4218,7 +4920,9 @@ class TestGameCloneToSandbox:
     def test_clone_to_sandbox_pending_game(
         self, authenticated_client, pending_game_created_by_primary_user
     ):
-        url = reverse(clone_to_sandbox_viewname, args=[pending_game_created_by_primary_user.id])
+        url = reverse(
+            clone_to_sandbox_viewname, args=[pending_game_created_by_primary_user.id]
+        )
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -4229,12 +4933,16 @@ class TestGameCloneToSandbox:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_clone_from_phase_query_count_independent_of_unit_count(self, classical_variant):
+    def test_clone_from_phase_query_count_independent_of_unit_count(
+        self, classical_variant
+    ):
         nation = Nation.objects.filter(variant=classical_variant).first()
         provinces = list(Province.objects.filter(variant=classical_variant)[:20])
 
         def build_source_phase(name, count):
-            game = Game.objects.create(name=name, variant=classical_variant, status=GameStatus.ACTIVE)
+            game = Game.objects.create(
+                name=name, variant=classical_variant, status=GameStatus.ACTIVE
+            )
             phase = game.phases.create(
                 variant=classical_variant,
                 season="Spring",
@@ -4267,15 +4975,22 @@ class TestGameCloneToSandbox:
     def test_clone_to_sandbox_preserves_dislodged_unit_origin(
         self, authenticated_client, active_retreat_game_with_dislodged_unit
     ):
-        url = reverse(clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id])
+        url = reverse(
+            clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id]
+        )
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
 
-        phase_url = reverse("phase-retrieve", args=[response.data["id"], response.data["current_phase_id"]])
+        phase_url = reverse(
+            "phase-retrieve",
+            args=[response.data["id"], response.data["current_phase_id"]],
+        )
         phase_response = authenticated_client.get(phase_url)
 
         assert phase_response.status_code == status.HTTP_200_OK
-        dislodged_units = [unit for unit in phase_response.data["units"] if unit["dislodged"]]
+        dislodged_units = [
+            unit for unit in phase_response.data["units"] if unit["dislodged"]
+        ]
         assert len(dislodged_units) == 1
         assert dislodged_units[0]["province"]["id"] == "lon"
         assert dislodged_units[0]["dislodged_from"]["id"] == "wal"
@@ -4284,7 +4999,9 @@ class TestGameCloneToSandbox:
     def test_clone_to_sandbox_forbids_retreat_to_attacker_origin(
         self, authenticated_client, active_retreat_game_with_dislodged_unit
     ):
-        url = reverse(clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id])
+        url = reverse(
+            clone_to_sandbox_viewname, args=[active_retreat_game_with_dislodged_unit.id]
+        )
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -4295,14 +5012,18 @@ class TestGameCloneToSandbox:
         retreat_targets = {
             option["target"]["id"]
             for option in options_response.data["orders"]
-            if option["source"]["id"] == "lon" and option["order_type"]["id"] == OrderType.MOVE
+            if option["source"]["id"] == "lon"
+            and option["order_type"]["id"] == OrderType.MOVE
         }
         assert "wal" not in retreat_targets
         assert "yor" in retreat_targets
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_twice_creates_two_games(
-        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        adjudication_data_classical,
     ):
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudicator.service.start") as mock_start:
@@ -4349,7 +5070,9 @@ class TestGamePauseUnpause:
         assert response.data["paused_at"] is not None
 
     @pytest.mark.django_db
-    def test_pause_game_non_game_master_forbidden(self, api_client, active_game_factory, secondary_user):
+    def test_pause_game_non_game_master_forbidden(
+        self, api_client, active_game_factory, secondary_user
+    ):
         game = active_game_factory()
         game.members.create(user=secondary_user)
         api_client.force_authenticate(user=secondary_user)
@@ -4358,7 +5081,9 @@ class TestGamePauseUnpause:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_pause_game_non_member_forbidden(self, api_client, active_game_factory, secondary_user):
+    def test_pause_game_non_member_forbidden(
+        self, api_client, active_game_factory, secondary_user
+    ):
         game = active_game_factory()
         api_client.force_authenticate(user=secondary_user)
         url = reverse(pause_viewname, args=[game.id])
@@ -4366,21 +5091,27 @@ class TestGamePauseUnpause:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_pause_game_unauthenticated(self, unauthenticated_client, active_game_factory):
+    def test_pause_game_unauthenticated(
+        self, unauthenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(pause_viewname, args=[game.id])
         response = unauthenticated_client.patch(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_pause_pending_game_forbidden(self, authenticated_client, pending_game_factory):
+    def test_pause_pending_game_forbidden(
+        self, authenticated_client, pending_game_factory
+    ):
         game = pending_game_factory()
         url = reverse(pause_viewname, args=[game.id])
         response = authenticated_client.patch(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_pause_already_paused_game_returns_400(self, authenticated_client, active_game_factory):
+    def test_pause_already_paused_game_returns_400(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(pause_viewname, args=[game.id])
         authenticated_client.patch(url)
@@ -4399,7 +5130,9 @@ class TestGamePauseUnpause:
         assert response.data["paused_at"] is None
 
     @pytest.mark.django_db
-    def test_unpause_game_recalculates_deadline(self, authenticated_client, active_game_factory):
+    def test_unpause_game_recalculates_deadline(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         phase = game.current_phase
         original_deadline = phase.scheduled_resolution
@@ -4421,7 +5154,9 @@ class TestGamePauseUnpause:
         assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
 
     @pytest.mark.django_db
-    def test_unpause_not_paused_game_returns_400(self, authenticated_client, active_game_factory):
+    def test_unpause_not_paused_game_returns_400(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(unpause_viewname, args=[game.id])
         response = authenticated_client.patch(url)
@@ -4471,13 +5206,17 @@ class TestGamePauseUnpause:
         assert game.is_paused is False
 
     @pytest.mark.django_db
-    def test_pause_fields_in_game_list_response(self, authenticated_client, active_game_factory):
+    def test_pause_fields_in_game_list_response(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
-        game_data = next((g for g in response.data["results"] if g["id"] == game.id), None)
+        game_data = next(
+            (g for g in response.data["results"] if g["id"] == game.id), None
+        )
         assert game_data is not None
         assert "is_paused" in game_data
         assert "paused_at" in game_data
@@ -4485,7 +5224,9 @@ class TestGamePauseUnpause:
         assert game_data["paused_at"] is None
 
     @pytest.mark.django_db
-    def test_pause_fields_in_game_retrieve_response(self, authenticated_client, active_game_factory):
+    def test_pause_fields_in_game_retrieve_response(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -4534,7 +5275,9 @@ class TestGameExtendDeadline:
         assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
 
     @pytest.mark.django_db
-    def test_extend_deadline_non_game_master_forbidden(self, api_client, active_game_factory, secondary_user):
+    def test_extend_deadline_non_game_master_forbidden(
+        self, api_client, active_game_factory, secondary_user
+    ):
         game = active_game_factory()
         game.members.create(user=secondary_user)
         api_client.force_authenticate(user=secondary_user)
@@ -4545,7 +5288,9 @@ class TestGameExtendDeadline:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_extend_deadline_non_member_forbidden(self, api_client, active_game_factory, secondary_user):
+    def test_extend_deadline_non_member_forbidden(
+        self, api_client, active_game_factory, secondary_user
+    ):
         game = active_game_factory()
         api_client.force_authenticate(user=secondary_user)
         url = reverse(extend_deadline_viewname, args=[game.id])
@@ -4555,7 +5300,9 @@ class TestGameExtendDeadline:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_extend_deadline_unauthenticated(self, unauthenticated_client, active_game_factory):
+    def test_extend_deadline_unauthenticated(
+        self, unauthenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(extend_deadline_viewname, args=[game.id])
         response = unauthenticated_client.patch(
@@ -4564,7 +5311,9 @@ class TestGameExtendDeadline:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_extend_deadline_pending_game_forbidden(self, authenticated_client, pending_game_factory):
+    def test_extend_deadline_pending_game_forbidden(
+        self, authenticated_client, pending_game_factory
+    ):
         game = pending_game_factory()
         url = reverse(extend_deadline_viewname, args=[game.id])
         response = authenticated_client.patch(
@@ -4573,7 +5322,9 @@ class TestGameExtendDeadline:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_extend_deadline_paused_game_returns_400(self, authenticated_client, active_game_factory):
+    def test_extend_deadline_paused_game_returns_400(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         pause_url = reverse(pause_viewname, args=[game.id])
         authenticated_client.patch(pause_url)
@@ -4585,7 +5336,9 @@ class TestGameExtendDeadline:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_extend_deadline_invalid_duration_returns_400(self, authenticated_client, active_game_factory):
+    def test_extend_deadline_invalid_duration_returns_400(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(extend_deadline_viewname, args=[game.id])
         response = authenticated_client.patch(
@@ -4594,14 +5347,18 @@ class TestGameExtendDeadline:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_extend_deadline_missing_duration_returns_400(self, authenticated_client, active_game_factory):
+    def test_extend_deadline_missing_duration_returns_400(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         url = reverse(extend_deadline_viewname, args=[game.id])
         response = authenticated_client.patch(url, {}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_extend_deadline_multiple_times(self, authenticated_client, active_game_factory):
+    def test_extend_deadline_multiple_times(
+        self, authenticated_client, active_game_factory
+    ):
         game = active_game_factory()
         phase = game.current_phase
         original_deadline = phase.scheduled_resolution
@@ -4720,7 +5477,9 @@ class TestGameUnpauseNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body.startswith("The game has been resumed by the game creator. The new deadline is")
+        assert body.startswith(
+            "The game has been resumed by the game creator. The new deadline is"
+        )
         assert primary_user.profile.name not in body
 
 
@@ -4747,7 +5506,9 @@ class TestGameExtendDeadlineNotification:
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_deadline_extended"
-        assert "The deadline has been extended by the game creator" in call_kwargs["body"]
+        assert (
+            "The deadline has been extended by the game creator" in call_kwargs["body"]
+        )
         assert f"({primary_user.profile.name})" in call_kwargs["body"]
 
     @pytest.mark.django_db
@@ -4772,23 +5533,31 @@ class TestGameExtendDeadlineNotification:
 
         mock_send_notification_to_users.assert_called_once()
         body = mock_send_notification_to_users.call_args[1]["body"]
-        assert body.startswith("The deadline has been extended by the game creator. The new deadline is")
+        assert body.startswith(
+            "The deadline has been extended by the game creator. The new deadline is"
+        )
         assert primary_user.profile.name not in body
 
 
 class TestGameNmrExtensions:
 
     @pytest.mark.django_db
-    def test_create_game_with_nmr_extensions(self, authenticated_client, classical_variant):
+    def test_create_game_with_nmr_extensions(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(create_viewname)
-        response = authenticated_client.post(url, {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "movement_phase_duration": "24 hours",
-            "private": False,
-            "nmr_extensions_allowed": 2,
-            "deadline_mode": DeadlineMode.DURATION,
-        }, format="json")
+        response = authenticated_client.post(
+            url,
+            {
+                "name": "Test Game",
+                "variant_id": classical_variant.id,
+                "movement_phase_duration": "24 hours",
+                "private": False,
+                "nmr_extensions_allowed": 2,
+                "deadline_mode": DeadlineMode.DURATION,
+            },
+            format="json",
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["nmr_extensions_allowed"] == 2
 
@@ -4797,13 +5566,17 @@ class TestGameNmrExtensions:
         self, authenticated_client, classical_variant
     ):
         url = reverse(create_viewname)
-        response = authenticated_client.post(url, {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "movement_phase_duration": "24 hours",
-            "private": False,
-            "deadline_mode": DeadlineMode.DURATION,
-        }, format="json")
+        response = authenticated_client.post(
+            url,
+            {
+                "name": "Test Game",
+                "variant_id": classical_variant.id,
+                "movement_phase_duration": "24 hours",
+                "private": False,
+                "deadline_mode": DeadlineMode.DURATION,
+            },
+            format="json",
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["nmr_extensions_allowed"] == 0
 
@@ -4812,14 +5585,18 @@ class TestGameNmrExtensions:
         self, authenticated_client, classical_variant
     ):
         url = reverse(create_viewname)
-        response = authenticated_client.post(url, {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "movement_phase_duration": "24 hours",
-            "private": False,
-            "nmr_extensions_allowed": 3,
-            "deadline_mode": DeadlineMode.DURATION,
-        }, format="json")
+        response = authenticated_client.post(
+            url,
+            {
+                "name": "Test Game",
+                "variant_id": classical_variant.id,
+                "movement_phase_duration": "24 hours",
+                "private": False,
+                "nmr_extensions_allowed": 3,
+                "deadline_mode": DeadlineMode.DURATION,
+            },
+            format="json",
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
@@ -4827,14 +5604,18 @@ class TestGameNmrExtensions:
         self, authenticated_client, classical_variant
     ):
         url = reverse(create_viewname)
-        response = authenticated_client.post(url, {
-            "name": "Test Game",
-            "variant_id": classical_variant.id,
-            "movement_phase_duration": "24 hours",
-            "private": False,
-            "nmr_extensions_allowed": -1,
-            "deadline_mode": DeadlineMode.DURATION,
-        }, format="json")
+        response = authenticated_client.post(
+            url,
+            {
+                "name": "Test Game",
+                "variant_id": classical_variant.id,
+                "movement_phase_duration": "24 hours",
+                "private": False,
+                "nmr_extensions_allowed": -1,
+                "deadline_mode": DeadlineMode.DURATION,
+            },
+            format="json",
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
@@ -4983,7 +5764,9 @@ class TestCreateSandboxManagerMethod:
     def test_creates_active_sandbox_game_with_members(
         self, primary_user, classical_variant, adjudication_data_classical
     ):
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game = Game.objects.create_sandbox(
                 user=primary_user,
                 name="Test Sandbox",
@@ -5006,7 +5789,11 @@ class TestCreateSandboxManagerMethod:
     def test_accepts_custom_parameters(
         self, primary_user, italy_vs_germany_variant, adjudication_data_italy_vs_germany
     ):
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_italy_vs_germany):
+        with patch.object(
+            adjudication_service,
+            "start",
+            return_value=adjudication_data_italy_vs_germany,
+        ):
             game = Game.objects.create_sandbox(
                 user=primary_user,
                 name="Custom Sandbox",
@@ -5023,7 +5810,9 @@ class TestCreateSandboxManagerMethod:
     def test_creates_phase_states_for_all_members(
         self, primary_user, classical_variant, adjudication_data_classical
     ):
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game = Game.objects.create_sandbox(
                 user=primary_user,
                 name="Phase State Test",
@@ -5042,7 +5831,10 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = unauthenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -5051,7 +5843,10 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
@@ -5066,7 +5861,9 @@ class TestGameFindSimilarView:
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
-    def test_missing_duration_returns_null(self, authenticated_client, classical_variant):
+    def test_missing_duration_returns_null(
+        self, authenticated_client, classical_variant
+    ):
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(url, {"variant": classical_variant.id})
         assert response.status_code == status.HTTP_200_OK
@@ -5074,7 +5871,11 @@ class TestGameFindSimilarView:
 
     @pytest.mark.django_db
     def test_returns_matching_game(
-        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         match = Game.objects.create(
             name="Match",
@@ -5088,14 +5889,22 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data["game"]["id"] == match.id
 
     @pytest.mark.django_db
     def test_picks_smallest_slots_remaining(
-        self, authenticated_client, secondary_user, tertiary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        tertiary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         less_ready = Game.objects.create(
             name="Less Ready",
@@ -5119,14 +5928,21 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data["game"]["id"] == most_ready.id
 
     @pytest.mark.django_db
     def test_tie_break_by_created_at_desc(
-        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         older = Game.objects.create(
             name="Older",
@@ -5136,7 +5952,9 @@ class TestGameFindSimilarView:
         )
         base_pending_phase(older)
         older.members.create(user=secondary_user)
-        Game.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(days=2))
+        Game.objects.filter(pk=older.pk).update(
+            created_at=timezone.now() - timedelta(days=2)
+        )
 
         newer = Game.objects.create(
             name="Newer",
@@ -5150,14 +5968,21 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data["game"]["id"] == newer.id
 
     @pytest.mark.django_db
     def test_excludes_private_game(
-        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         game = Game.objects.create(
             name="Private",
@@ -5172,14 +5997,21 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
     def test_excludes_sandbox_game(
-        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         game = Game.objects.create(
             name="Sandbox",
@@ -5194,14 +6026,21 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
     def test_excludes_non_pending_game(
-        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         game = Game.objects.create(
             name="Active",
@@ -5215,7 +6054,10 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
@@ -5241,14 +6083,21 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
     def test_excludes_different_duration(
-        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
     ):
         game = Game.objects.create(
             name="Wrong Duration",
@@ -5262,7 +6111,10 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
@@ -5283,7 +6135,10 @@ class TestGameFindSimilarView:
         url = reverse(find_similar_viewname)
         response = authenticated_client.get(
             url,
-            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
@@ -5312,21 +6167,31 @@ class TestGameFastestView:
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
-    def test_returns_daily_duration_game(self, authenticated_client, pending_game_with_players):
+    def test_returns_daily_duration_game(
+        self, authenticated_client, pending_game_with_players
+    ):
         game = pending_game_with_players()
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.status_code == status.HTTP_200_OK
         assert response.data["game"]["id"] == game.id
 
     @pytest.mark.django_db
-    def test_returns_longer_duration_game(self, authenticated_client, pending_game_with_players):
-        game = pending_game_with_players(movement_phase_duration=MovementPhaseDuration.ONE_WEEK)
+    def test_returns_longer_duration_game(
+        self, authenticated_client, pending_game_with_players
+    ):
+        game = pending_game_with_players(
+            movement_phase_duration=MovementPhaseDuration.ONE_WEEK
+        )
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data["game"]["id"] == game.id
 
     @pytest.mark.django_db
-    def test_excludes_short_duration_game(self, authenticated_client, pending_game_with_players):
-        pending_game_with_players(movement_phase_duration=MovementPhaseDuration.TWELVE_HOURS)
+    def test_excludes_short_duration_game(
+        self, authenticated_client, pending_game_with_players
+    ):
+        pending_game_with_players(
+            movement_phase_duration=MovementPhaseDuration.TWELVE_HOURS
+        )
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data == {"game": None}
 
@@ -5343,7 +6208,9 @@ class TestGameFastestView:
         assert response.data["game"]["id"] == game.id
 
     @pytest.mark.django_db
-    def test_excludes_hourly_fixed_time_game(self, authenticated_client, pending_game_with_players):
+    def test_excludes_hourly_fixed_time_game(
+        self, authenticated_client, pending_game_with_players
+    ):
         pending_game_with_players(
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             **fixed_time_fields(PhaseFrequency.HOURLY),
@@ -5352,8 +6219,12 @@ class TestGameFastestView:
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
-    def test_ignores_short_retreat_phase(self, authenticated_client, pending_game_with_players):
-        game = pending_game_with_players(retreat_phase_duration=MovementPhaseDuration.ONE_HOUR)
+    def test_ignores_short_retreat_phase(
+        self, authenticated_client, pending_game_with_players
+    ):
+        game = pending_game_with_players(
+            retreat_phase_duration=MovementPhaseDuration.ONE_HOUR
+        )
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data["game"]["id"] == game.id
 
@@ -5384,19 +6255,25 @@ class TestGameFastestView:
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
-    def test_excludes_private_game(self, authenticated_client, pending_game_with_players):
+    def test_excludes_private_game(
+        self, authenticated_client, pending_game_with_players
+    ):
         pending_game_with_players(private=True)
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
-    def test_excludes_sandbox_game(self, authenticated_client, pending_game_with_players):
+    def test_excludes_sandbox_game(
+        self, authenticated_client, pending_game_with_players
+    ):
         pending_game_with_players(sandbox=True)
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data == {"game": None}
 
     @pytest.mark.django_db
-    def test_excludes_non_pending_game(self, authenticated_client, pending_game_with_players):
+    def test_excludes_non_pending_game(
+        self, authenticated_client, pending_game_with_players
+    ):
         pending_game_with_players(status=GameStatus.ACTIVE)
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data == {"game": None}
@@ -5405,12 +6282,16 @@ class TestGameFastestView:
     def test_returns_game_user_lacks_commitment_for(
         self, authenticated_client, pending_game_with_players
     ):
-        game = pending_game_with_players(commitment_requirement=CommitmentRequirement.COMMITTED)
+        game = pending_game_with_players(
+            commitment_requirement=CommitmentRequirement.COMMITTED
+        )
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data["game"]["id"] == game.id
 
     @pytest.mark.django_db
-    def test_picks_fewest_slots_remaining(self, authenticated_client, pending_game_with_players):
+    def test_picks_fewest_slots_remaining(
+        self, authenticated_client, pending_game_with_players
+    ):
         pending_game_with_players(player_count=3)
         most_ready = pending_game_with_players(player_count=5)
         response = authenticated_client.get(reverse(fastest_viewname))
@@ -5428,9 +6309,13 @@ class TestGameFastestView:
         assert response.data["game"]["id"] == long_game.id
 
     @pytest.mark.django_db
-    def test_tie_break_by_created_at_desc(self, authenticated_client, pending_game_with_players):
+    def test_tie_break_by_created_at_desc(
+        self, authenticated_client, pending_game_with_players
+    ):
         older = pending_game_with_players()
-        Game.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(days=2))
+        Game.objects.filter(pk=older.pk).update(
+            created_at=timezone.now() - timedelta(days=2)
+        )
         newer = pending_game_with_players()
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data["game"]["id"] == newer.id
@@ -5445,11 +6330,15 @@ class TestGameFastestView:
             return len(context.captured_queries)
 
         pending_game_with_players()
-        pending_game_with_players(player_count=5, movement_phase_duration=MovementPhaseDuration.ONE_HOUR)
+        pending_game_with_players(
+            player_count=5, movement_phase_duration=MovementPhaseDuration.ONE_HOUR
+        )
         baseline = query_count()
 
         for _ in range(3):
-            pending_game_with_players(player_count=5, movement_phase_duration=MovementPhaseDuration.ONE_HOUR)
+            pending_game_with_players(
+                player_count=5, movement_phase_duration=MovementPhaseDuration.ONE_HOUR
+            )
 
         assert query_count() == baseline
 
@@ -5485,16 +6374,22 @@ class TestSeedStagingCommand:
 
         assert not AuthUser.objects.filter(email=TESTER_EMAIL).exists()
 
-    def test_skip_if_seeded_leaves_existing_tester_untouched(self, staging, authenticated_client_factory):
+    def test_skip_if_seeded_leaves_existing_tester_untouched(
+        self, staging, authenticated_client_factory
+    ):
         tester = AuthUser.objects.create(email=TESTER_EMAIL, username="test-user")
         UserProfile.objects.create(user=tester, name="Existing")
 
         self._seed("--skip-if-seeded")
 
-        response = authenticated_client_factory(tester).get(f"{reverse(list_viewname)}?mine=true")
+        response = authenticated_client_factory(tester).get(
+            f"{reverse(list_viewname)}?mine=true"
+        )
         assert response.data["results"] == []
 
-    def test_reseeding_replaces_previously_seeded_games(self, staging, authenticated_client_factory):
+    def test_reseeding_replaces_previously_seeded_games(
+        self, staging, authenticated_client_factory
+    ):
         self._seed()
         self._seed()
 
@@ -5517,12 +6412,20 @@ class TestSeedStagingCommand:
         joinable = self._games_by_name(client, "can_join=true")
 
         login = unauthenticated_client.post(
-            reverse("email-login"), {"email": TESTER_EMAIL, "password": "password"}, format="json"
+            reverse("email-login"),
+            {"email": TESTER_EMAIL, "password": "password"},
+            format="json",
         )
         assert login.status_code == status.HTTP_201_CREATED
         profile = client.get(reverse("user-profile"))
         assert profile.data["commitment"] == Commitment.HIGH
-        assert (len(finished), len(active), len(pending), len(mustering), len(joinable)) == (4, 13, 3, 3, 3)
+        assert (
+            len(finished),
+            len(active),
+            len(pending),
+            len(mustering),
+            len(joinable),
+        ) == (4, 13, 3, 3, 3)
 
         won = finished["Finished: you won solo"]
         assert won["victory"]["type"] == "solo"
@@ -5538,16 +6441,25 @@ class TestSeedStagingCommand:
 
         assert finished["Finished: abandoned"]["status"] == GameStatus.ABANDONED
 
-        assert active["Active: you are in civil disorder"]["member_status"] == ["civil_disorder", "nmr"]
-        assert active["Active: you missed the last deadline"]["member_status"] == ["nmr"]
+        assert active["Active: you are in civil disorder"]["member_status"] == [
+            "civil_disorder",
+            "nmr",
+        ]
+        assert active["Active: you missed the last deadline"]["member_status"] == [
+            "nmr"
+        ]
 
         players_in_disorder = active["Active: players in civil disorder"]["members"]
-        assert [member["name"] for member in players_in_disorder if member["civil_disorder"]] == ["Bruno Keller"]
+        assert [
+            member["name"] for member in players_in_disorder if member["civil_disorder"]
+        ] == ["Bruno Keller"]
         assert "Gustav Lind" in [member["name"] for member in players_in_disorder]
 
         replaceable = spectating["Active: take over an abandoned seat"]["members"]
         assert not any(member["is_current_user"] for member in replaceable)
-        assert [member["name"] for member in replaceable if member["replaceable"]] == ["Dmitri Volkov"]
+        assert [member["name"] for member in replaceable if member["replaceable"]] == [
+            "Dmitri Volkov"
+        ]
 
         assert self._current_member(active["Active: you were eliminated"])["eliminated"]
 
@@ -5560,20 +6472,33 @@ class TestSeedStagingCommand:
         assert adjustment["order_status"] == "orders_required"
 
         mid_game = active["Active: mid-game with messages"]
-        assert (mid_game["current_phase"]["season"], mid_game["current_phase"]["year"]) == ("Fall", 1902)
+        assert (
+            mid_game["current_phase"]["season"],
+            mid_game["current_phase"]["year"],
+        ) == ("Fall", 1902)
         assert mid_game["total_unread_message_count"] == 4
         assert mid_game["nmr_extensions_allowed"] == 2
 
-        proposals = client.get(reverse("draw-proposal-list", args=[active["Active: draw proposed"]["id"]])).data
-        assert sorted((proposal["status"], proposal["my_vote"]["accepted"]) for proposal in proposals) == [
+        proposals = client.get(
+            reverse("draw-proposal-list", args=[active["Active: draw proposed"]["id"]])
+        ).data
+        assert sorted(
+            (proposal["status"], proposal["my_vote"]["accepted"])
+            for proposal in proposals
+        ) == [
             ("pending", None),
             ("rejected", None),
         ]
 
         orders_required = active["Active: orders required"]
         assert orders_required["order_status"] == "orders_required"
-        assert [member["name"] for member in orders_required["members"] if member["is_bot"]] == ["Staging Bot"]
-        assert active["Active: orders not confirmed"]["order_status"] == "orders_not_confirmed"
+        assert [
+            member["name"] for member in orders_required["members"] if member["is_bot"]
+        ] == ["Staging Bot"]
+        assert (
+            active["Active: orders not confirmed"]["order_status"]
+            == "orders_not_confirmed"
+        )
         assert active["Active: orders not confirmed"]["anonymous"]
         assert active["Active: orders confirmed"]["order_status"] == "orders_submitted"
         assert active["Active: orders confirmed"]["press_type"] == PressType.NO_PRESS
@@ -5594,24 +6519,150 @@ class TestSeedStagingCommand:
 
         waiting = self._current_member(pending["Pending: waiting for players"])
         assert waiting["nation_preference_ids"] == ["france", "england", "germany"]
-        assert pending["Pending: you are the game master"]["game_master"]["name"] == "Staging Tester"
+        assert (
+            pending["Pending: you are the game master"]["game_master"]["name"]
+            == "Staging Tester"
+        )
         assert pending["Pending: joined another player's game"]["can_leave"]
 
         assert len(joinable["Open: one seat left"]["members"]) == 6
-        assert joinable["Open: committed players only"]["commitment_requirement"] == CommitmentRequirement.COMMITTED
-        assert joinable["Open: gunboat Italy vs Germany"]["variant_id"] == "italy-vs-germany"
+        assert (
+            joinable["Open: committed players only"]["commitment_requirement"]
+            == CommitmentRequirement.COMMITTED
+        )
+        assert (
+            joinable["Open: gunboat Italy vs Germany"]["variant_id"]
+            == "italy-vs-germany"
+        )
+
+    def test_every_seeded_deadline_is_at_least_two_weeks_away(self, staging):
+        self._seed()
+
+        horizon = timezone.now() + timedelta(days=13)
+        games = Game.objects.exclude(
+            status__in=[GameStatus.COMPLETED, GameStatus.ABANDONED]
+        ).exclude(sandbox=True)
+        assert games.count() > 0
+        for game in games:
+            assert game.deadline_mode == DeadlineMode.DURATION, game.name
+            assert (
+                game.get_effective_phase_duration_seconds(PhaseType.MOVEMENT)
+                >= 14 * 24 * 60 * 60
+            ), game.name
+            if game.muster_deadline:
+                assert game.muster_deadline > horizon, game.name
+        phases = Phase.objects.filter(
+            status=PhaseStatus.ACTIVE, scheduled_resolution__isnull=False
+        )
+        assert phases.count() > 0
+        assert not phases.filter(scheduled_resolution__lte=horizon).exists()
+
+
+@pytest.mark.django_db
+class TestResetStagingGuard:
+    @pytest.mark.parametrize("debug", [True, False])
+    @pytest.mark.parametrize("environment", ["development", "production"])
+    def test_refuses_to_run_outside_staging(self, settings, debug, environment):
+        settings.DEBUG = debug
+        settings.ENVIRONMENT = environment
+        AuthUser.objects.create(email="survivor@example.com", username="survivor")
+
+        with pytest.raises(CommandError):
+            call_command("reset_staging", stdout=StringIO())
+
+        assert AuthUser.objects.filter(email="survivor@example.com").exists()
+
+
+class TestResetStaging:
+    @pytest.fixture
+    def scratch_database(self, django_db_blocker):
+        with django_db_blocker.unblock():
+            settings_dict = dict(connection.settings_dict)
+        name = f"{settings_dict['NAME']}_reset_scratch"
+        parameters = {
+            "dbname": settings_dict["NAME"],
+            "user": settings_dict["USER"],
+            "password": settings_dict["PASSWORD"],
+            "host": settings_dict["HOST"],
+            "port": settings_dict["PORT"],
+        }
+        parameters = {key: value for key, value in parameters.items() if value}
+
+        def connect(dbname):
+            return psycopg.connect(**{**parameters, "dbname": dbname}, autocommit=True)
+
+        with connect(settings_dict["NAME"]) as admin:
+            admin.execute(f'DROP DATABASE IF EXISTS "{name}"')
+            admin.execute(f'CREATE DATABASE "{name}"')
+        connections.databases["reset_scratch"] = {**settings_dict, "NAME": name}
+        yield lambda: connect(name)
+        connections["reset_scratch"].close()
+        del connections.databases["reset_scratch"]
+        del connections["reset_scratch"]
+        with connect(settings_dict["NAME"]) as admin:
+            admin.execute(f'DROP DATABASE "{name}" WITH (FORCE)')
+
+    def _reset(self):
+        call_command("reset_staging", "--database=reset_scratch", stdout=StringIO())
+
+    def _tables(self, connect):
+        with connect() as scratch:
+            return scratch.execute(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+            ).fetchall()
+
+    def test_drops_everything_in_the_public_schema(
+        self, settings, scratch_database, django_db_blocker
+    ):
+        settings.ENVIRONMENT = "staging"
+        with scratch_database() as scratch:
+            scratch.execute("CREATE TABLE leftover (id integer)")
+        assert self._tables(scratch_database) == [("leftover",)]
+
+        with django_db_blocker.unblock():
+            self._reset()
+
+        assert self._tables(scratch_database) == []
+
+    def test_is_safe_on_an_empty_database(
+        self, settings, scratch_database, django_db_blocker
+    ):
+        settings.ENVIRONMENT = "staging"
+
+        with django_db_blocker.unblock():
+            self._reset()
+            self._reset()
+
+        assert self._tables(scratch_database) == []
+
+    def test_terminates_other_connections(
+        self, settings, scratch_database, django_db_blocker
+    ):
+        settings.ENVIRONMENT = "staging"
+        with scratch_database() as bystander:
+            with django_db_blocker.unblock():
+                self._reset()
+
+            with pytest.raises(psycopg.OperationalError):
+                bystander.execute("SELECT 1")
 
 
 my_games_current_viewname = "my-games-current"
 
 
 def my_games_sections(response):
-    return [(section["key"], [game["id"] for game in section["games"]]) for section in response.data["sections"]]
+    return [
+        (section["key"], [game["id"] for game in section["games"]])
+        for section in response.data["sections"]
+    ]
 
 
 def my_game(response, game_id):
     return next(
-        game for section in response.data["sections"] for game in section["games"] if game["id"] == game_id
+        game
+        for section in response.data["sections"]
+        for game in section["games"]
+        if game["id"] == game_id
     )
 
 
@@ -5632,7 +6683,9 @@ class TestMyGamesCurrentView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_my_games_current_returns_empty_sections_without_games(self, authenticated_client):
+    def test_my_games_current_returns_empty_sections_without_games(
+        self, authenticated_client
+    ):
         response = authenticated_client.get(reverse(my_games_current_viewname))
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"sections": []}
@@ -5649,23 +6702,31 @@ class TestMyGamesCurrentView:
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [mine.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.NEEDS_ATTENTION, [mine.id])
+        ]
 
     @pytest.mark.django_db
     def test_my_games_current_does_not_read_the_commitment_ledger(
         self, authenticated_client, my_game_factory, primary_user
     ):
         game = my_game_factory()
-        CommitmentEntry.objects.create(member=game.members.get(user=primary_user), kind=CommitmentEvent.SUBMITTED)
+        CommitmentEntry.objects.create(
+            member=game.members.get(user=primary_user), kind=CommitmentEvent.SUBMITTED
+        )
 
         with CaptureQueriesContext(connection) as queries:
             response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        assert not [query for query in queries if CommitmentEntry._meta.db_table in query["sql"]]
+        assert not [
+            query for query in queries if CommitmentEntry._meta.db_table in query["sql"]
+        ]
 
     @pytest.mark.django_db
-    def test_my_games_current_places_sandbox_game_in_sandbox(self, authenticated_client, sandbox_game_factory):
+    def test_my_games_current_places_sandbox_game_in_sandbox(
+        self, authenticated_client, sandbox_game_factory
+    ):
         game = sandbox_game_factory()
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
@@ -5719,30 +6780,45 @@ class TestMyGamesCurrentView:
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.PENDING
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.WAITING_FOR_PLAYERS
+        assert (
+            my_game(response, game.id)["state"]["kind"]
+            == MyGameStateKind.WAITING_FOR_PLAYERS
+        )
         assert my_game(response, game.id)["seats"] == {"filled": 2, "total": 7}
 
     @pytest.mark.django_db
     def test_my_games_current_asks_unmustered_player_to_confirm_seat(
         self, authenticated_client, my_game_factory, member_factory
     ):
-        game = my_game_factory(status=GameStatus.MUSTERING, muster_deadline=timezone.now() + timedelta(hours=4))
+        game = my_game_factory(
+            status=GameStatus.MUSTERING,
+            muster_deadline=timezone.now() + timedelta(hours=4),
+        )
         member_factory(game=game, nation=None, mustered_at=timezone.now())
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.NEEDS_ATTENTION
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.CONFIRM_SEAT
+        assert (
+            my_game(response, game.id)["state"]["kind"] == MyGameStateKind.CONFIRM_SEAT
+        )
         assert my_game(response, game.id)["seats"] == {"filled": 1, "total": 7}
 
     @pytest.mark.django_db
-    def test_my_games_current_places_mustered_player_in_mustering(self, authenticated_client, my_game_factory):
-        game = my_game_factory(status=GameStatus.MUSTERING, seat={"mustered_at": timezone.now()})
+    def test_my_games_current_places_mustered_player_in_mustering(
+        self, authenticated_client, my_game_factory
+    ):
+        game = my_game_factory(
+            status=GameStatus.MUSTERING, seat={"mustered_at": timezone.now()}
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.MUSTERING
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SEAT_CONFIRMED
+        assert (
+            my_game(response, game.id)["state"]["kind"]
+            == MyGameStateKind.SEAT_CONFIRMED
+        )
 
     @pytest.mark.django_db
     def test_my_games_current_treats_bot_seat_as_confirmed(
@@ -5750,13 +6826,20 @@ class TestMyGamesCurrentView:
     ):
         game = my_game_factory(status=GameStatus.MUSTERING, user=bot_user)
 
-        response = authenticated_client_factory(bot_user).get(reverse(my_games_current_viewname))
+        response = authenticated_client_factory(bot_user).get(
+            reverse(my_games_current_viewname)
+        )
 
         assert my_game_section(response, game.id) == MyGamesSection.MUSTERING
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SEAT_CONFIRMED
+        assert (
+            my_game(response, game.id)["state"]["kind"]
+            == MyGameStateKind.SEAT_CONFIRMED
+        )
 
     @pytest.mark.django_db
-    def test_my_games_current_places_paused_game_in_active(self, authenticated_client, my_game_factory):
+    def test_my_games_current_places_paused_game_in_active(
+        self, authenticated_client, my_game_factory
+    ):
         game = my_game_factory(paused_at=timezone.now())
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
@@ -5773,31 +6856,52 @@ class TestMyGamesCurrentView:
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.NEEDS_ATTENTION
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SUBMIT_ORDERS
+        assert (
+            my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SUBMIT_ORDERS
+        )
         assert my_game(response, game.id)["nation"] == classical_england_nation.name
 
     @pytest.mark.django_db
     def test_my_games_current_asks_player_with_pending_draw_vote_to_vote(
-        self, authenticated_client, my_game_factory, member_factory, draw_proposal_factory
+        self,
+        authenticated_client,
+        my_game_factory,
+        member_factory,
+        draw_proposal_factory,
     ):
         game = my_game_factory(has_possible_orders=False)
-        draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
+        draw_proposal_factory(
+            game=game, created_by=member_factory(game=game), phase=game.current_phase
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.NEEDS_ATTENTION
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.VOTE_ON_DRAW
+        assert (
+            my_game(response, game.id)["state"]["kind"] == MyGameStateKind.VOTE_ON_DRAW
+        )
 
     @pytest.mark.django_db
     def test_my_games_current_ignores_rejected_and_cancelled_draw_proposals(
-        self, authenticated_client, my_game_factory, member_factory, draw_proposal_factory
+        self,
+        authenticated_client,
+        my_game_factory,
+        member_factory,
+        draw_proposal_factory,
     ):
         game = my_game_factory(has_possible_orders=False)
         draw_proposal_factory(
-            game=game, created_by=member_factory(game=game), phase=game.current_phase, cancelled_at=timezone.now()
+            game=game,
+            created_by=member_factory(game=game),
+            phase=game.current_phase,
+            cancelled_at=timezone.now(),
         )
-        rejected = draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
-        rejected.votes.exclude(member__user=game.members.first().user).update(accepted=False)
+        rejected = draw_proposal_factory(
+            game=game, created_by=member_factory(game=game), phase=game.current_phase
+        )
+        rejected.votes.exclude(member__user=game.members.first().user).update(
+            accepted=False
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
@@ -5805,21 +6909,35 @@ class TestMyGamesCurrentView:
 
     @pytest.mark.django_db
     def test_my_games_current_shows_submit_orders_before_draw_vote(
-        self, authenticated_client, my_game_factory, member_factory, draw_proposal_factory
+        self,
+        authenticated_client,
+        my_game_factory,
+        member_factory,
+        draw_proposal_factory,
     ):
         game = my_game_factory()
-        draw_proposal_factory(game=game, created_by=member_factory(game=game), phase=game.current_phase)
+        draw_proposal_factory(
+            game=game, created_by=member_factory(game=game), phase=game.current_phase
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SUBMIT_ORDERS
+        assert (
+            my_game(response, game.id)["state"]["kind"] == MyGameStateKind.SUBMIT_ORDERS
+        )
 
-        game.current_phase.phase_states.get(member__user=game.members.first().user).orders.create()
+        game.current_phase.phase_states.get(
+            member__user=game.members.first().user
+        ).orders.create()
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.VOTE_ON_DRAW
+        assert (
+            my_game(response, game.id)["state"]["kind"] == MyGameStateKind.VOTE_ON_DRAW
+        )
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("deadline_mode", [DeadlineMode.DURATION, DeadlineMode.FIXED_TIME])
+    @pytest.mark.parametrize(
+        "deadline_mode", [DeadlineMode.DURATION, DeadlineMode.FIXED_TIME]
+    )
     def test_my_games_current_places_unconfirmed_orders_in_active(
         self, authenticated_client, my_game_factory, deadline_mode
     ):
@@ -5828,16 +6946,24 @@ class TestMyGamesCurrentView:
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.ACTIVE
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.ORDERS_UNCONFIRMED
+        assert (
+            my_game(response, game.id)["state"]["kind"]
+            == MyGameStateKind.ORDERS_UNCONFIRMED
+        )
 
     @pytest.mark.django_db
-    def test_my_games_current_places_confirmed_orders_in_active(self, authenticated_client, my_game_factory):
+    def test_my_games_current_places_confirmed_orders_in_active(
+        self, authenticated_client, my_game_factory
+    ):
         game = my_game_factory(orders=1, orders_confirmed=True)
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.ACTIVE
-        assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.ORDERS_CONFIRMED
+        assert (
+            my_game(response, game.id)["state"]["kind"]
+            == MyGameStateKind.ORDERS_CONFIRMED
+        )
 
     @pytest.mark.django_db
     def test_my_games_current_shows_resolving_when_no_orders_are_possible(
@@ -5851,7 +6977,10 @@ class TestMyGamesCurrentView:
         assert my_game(response, game.id)["state"]["kind"] == MyGameStateKind.RESOLVING
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("departure", ["eliminated_at", "civil_disorder_at", "withdrawn_at", "removed_at"])
+    @pytest.mark.parametrize(
+        "departure",
+        ["eliminated_at", "civil_disorder_at", "withdrawn_at", "removed_at"],
+    )
     def test_my_games_current_excludes_active_games_the_user_departed(
         self, authenticated_client, my_game_factory, departure
     ):
@@ -5866,7 +6995,9 @@ class TestMyGamesCurrentView:
     def test_my_games_current_includes_game_finished_within_three_days(
         self, authenticated_client, my_game_factory, status
     ):
-        game = my_game_factory(status=status, finished_at=timezone.now() - timedelta(days=2))
+        game = my_game_factory(
+            status=status, finished_at=timezone.now() - timedelta(days=2)
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
@@ -5877,7 +7008,10 @@ class TestMyGamesCurrentView:
     def test_my_games_current_excludes_game_finished_more_than_three_days_ago(
         self, authenticated_client, my_game_factory
     ):
-        my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now() - timedelta(days=3, minutes=1))
+        my_game_factory(
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now() - timedelta(days=3, minutes=1),
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
@@ -5896,14 +7030,23 @@ class TestMyGamesCurrentView:
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         assert my_game_section(response, game.id) == MyGamesSection.RECENTLY_FINISHED
-        assert my_game(response, game.id)["state"]["departure"] == MemberDeparture.ELIMINATED
+        assert (
+            my_game(response, game.id)["state"]["departure"]
+            == MemberDeparture.ELIMINATED
+        )
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("departure", ["civil_disorder_at", "withdrawn_at", "removed_at"])
+    @pytest.mark.parametrize(
+        "departure", ["civil_disorder_at", "withdrawn_at", "removed_at"]
+    )
     def test_my_games_current_excludes_recently_finished_game_the_user_left(
         self, authenticated_client, my_game_factory, departure
     ):
-        my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now(), seat={departure: timezone.now()})
+        my_game_factory(
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+            seat={departure: timezone.now()},
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
@@ -5914,7 +7057,9 @@ class TestMyGamesCurrentView:
         self, authenticated_client, my_game_factory, victory_factory
     ):
         game = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
-        victory_factory(game=game, winning_phase=game.current_phase).members.add(game.members.first())
+        victory_factory(game=game, winning_phase=game.current_phase).members.add(
+            game.members.first()
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
@@ -5928,10 +7073,17 @@ class TestMyGamesCurrentView:
 
     @pytest.mark.django_db
     def test_my_games_current_reports_winner_nation_for_other_players(
-        self, authenticated_client, my_game_factory, victory_factory, member_factory, classical_france_nation
+        self,
+        authenticated_client,
+        my_game_factory,
+        victory_factory,
+        member_factory,
+        classical_france_nation,
     ):
         game = my_game_factory(
-            status=GameStatus.COMPLETED, finished_at=timezone.now(), seat={"eliminated_at": timezone.now()}
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+            seat={"eliminated_at": timezone.now()},
         )
         winner = member_factory(game=game, nation=classical_france_nation)
         victory_factory(game=game, winning_phase=game.current_phase).members.add(winner)
@@ -5959,7 +7111,9 @@ class TestMyGamesCurrentView:
         assert my_game(response, game.id)["state"]["result"] == MyGameResult.DRAW
 
     @pytest.mark.django_db
-    def test_my_games_current_reports_abandoned(self, authenticated_client, my_game_factory):
+    def test_my_games_current_reports_abandoned(
+        self, authenticated_client, my_game_factory
+    ):
         game = my_game_factory(status=GameStatus.ABANDONED, finished_at=timezone.now())
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
@@ -5967,13 +7121,18 @@ class TestMyGamesCurrentView:
         assert my_game(response, game.id)["state"]["result"] == MyGameResult.ABANDONED
 
     @pytest.mark.django_db
-    def test_my_games_current_omits_empty_sections(self, authenticated_client, my_game_factory):
+    def test_my_games_current_omits_empty_sections(
+        self, authenticated_client, my_game_factory
+    ):
         my_game_factory(status=GameStatus.PENDING)
         my_game_factory(orders=1)
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert [key for key, _ in my_games_sections(response)] == [MyGamesSection.ACTIVE, MyGamesSection.PENDING]
+        assert [key for key, _ in my_games_sections(response)] == [
+            MyGamesSection.ACTIVE,
+            MyGamesSection.PENDING,
+        ]
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(
@@ -5982,16 +7141,26 @@ class TestMyGamesCurrentView:
             (MyGameStateKind.CONFIRM_SEAT, {"status": GameStatus.MUSTERING}, "muster"),
             (
                 MyGameStateKind.SEAT_CONFIRMED,
-                {"status": GameStatus.MUSTERING, "seat": {"mustered_at": timezone.now()}},
+                {
+                    "status": GameStatus.MUSTERING,
+                    "seat": {"mustered_at": timezone.now()},
+                },
                 "muster",
             ),
             (
                 MyGameStateKind.MUSTERING,
-                {"status": GameStatus.MUSTERING, "seat": {"kind": MemberKind.GAME_MASTER}},
+                {
+                    "status": GameStatus.MUSTERING,
+                    "seat": {"kind": MemberKind.GAME_MASTER},
+                },
                 "muster",
             ),
             (MyGameStateKind.SUBMIT_ORDERS, {}, "phase"),
-            (MyGameStateKind.ORDERS_CONFIRMED, {"orders": 1, "orders_confirmed": True}, "phase"),
+            (
+                MyGameStateKind.ORDERS_CONFIRMED,
+                {"orders": 1, "orders_confirmed": True},
+                "phase",
+            ),
             (MyGameStateKind.RESOLVING, {"has_possible_orders": False}, "phase"),
             (MyGameStateKind.ORDERS_UNCONFIRMED, {"orders": 1}, None),
             (MyGameStateKind.PAUSED, {"paused_at": timezone.now()}, None),
@@ -6004,23 +7173,38 @@ class TestMyGamesCurrentView:
         muster_deadline = timezone.now() + timedelta(hours=6)
         scheduled_resolution = timezone.now() + timedelta(hours=12)
         game = my_game_factory(
-            muster_deadline=muster_deadline, scheduled_resolution=scheduled_resolution, **game_kwargs
+            muster_deadline=muster_deadline,
+            scheduled_resolution=scheduled_resolution,
+            **game_kwargs,
         )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
         state = my_game(response, game.id)["state"]
-        expected = {"muster": muster_deadline, "phase": scheduled_resolution, None: None}[deadline_source]
+        expected = {
+            "muster": muster_deadline,
+            "phase": scheduled_resolution,
+            None: None,
+        }[deadline_source]
         assert state["kind"] == kind
-        assert state["deadline"] == (expected.isoformat().replace("+00:00", "Z") if expected else None)
+        assert state["deadline"] == (
+            expected.isoformat().replace("+00:00", "Z") if expected else None
+        )
 
     @pytest.mark.django_db
     def test_my_games_current_reports_unread_message_count(
-        self, authenticated_client, my_game_factory, member_factory, channel_with_messages_factory
+        self,
+        authenticated_client,
+        my_game_factory,
+        member_factory,
+        channel_with_messages_factory,
     ):
         game = my_game_factory()
         channel_with_messages_factory(
-            game.members.first(), member_factory(game=game), timezone.now() - timedelta(hours=1), unread=3
+            game.members.first(),
+            member_factory(game=game),
+            timezone.now() - timedelta(hours=1),
+            unread=3,
         )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
@@ -6038,7 +7222,9 @@ class TestMyGamesCurrentViewOrdering:
         sandbox_game_factory()
         my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
         my_game_factory(status=GameStatus.PENDING)
-        my_game_factory(status=GameStatus.MUSTERING, seat={"mustered_at": timezone.now()})
+        my_game_factory(
+            status=GameStatus.MUSTERING, seat={"mustered_at": timezone.now()}
+        )
         my_game_factory(orders=1)
         my_game_factory(seat={"kind": MemberKind.GAME_MASTER})
         my_game_factory()
@@ -6062,28 +7248,43 @@ class TestMyGamesCurrentViewOrdering:
         now = timezone.now()
         later = my_game_factory(scheduled_resolution=now + timedelta(hours=8))
         no_deadline = my_game_factory()
-        sooner = my_game_factory(status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2))
-        missed = my_game_factory(scheduled_resolution=now + timedelta(hours=20), missed_deadline=True)
-
-        response = authenticated_client.get(reverse(my_games_current_viewname))
-
-        assert my_games_sections(response) == [
-            (MyGamesSection.NEEDS_ATTENTION, [missed.id, sooner.id, later.id, no_deadline.id])
-        ]
-
-    @pytest.mark.django_db
-    def test_my_games_current_orders_managing_by_deadline_then_pending(self, authenticated_client, my_game_factory):
-        now = timezone.now()
-        game_master = {"kind": MemberKind.GAME_MASTER}
-        pending = my_game_factory(status=GameStatus.PENDING, seat=game_master)
-        later = my_game_factory(seat=game_master, scheduled_resolution=now + timedelta(hours=8))
         sooner = my_game_factory(
-            status=GameStatus.MUSTERING, seat=game_master, muster_deadline=now + timedelta(hours=2)
+            status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2)
+        )
+        missed = my_game_factory(
+            scheduled_resolution=now + timedelta(hours=20), missed_deadline=True
         )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.MANAGING, [sooner.id, later.id, pending.id])]
+        assert my_games_sections(response) == [
+            (
+                MyGamesSection.NEEDS_ATTENTION,
+                [missed.id, sooner.id, later.id, no_deadline.id],
+            )
+        ]
+
+    @pytest.mark.django_db
+    def test_my_games_current_orders_managing_by_deadline_then_pending(
+        self, authenticated_client, my_game_factory
+    ):
+        now = timezone.now()
+        game_master = {"kind": MemberKind.GAME_MASTER}
+        pending = my_game_factory(status=GameStatus.PENDING, seat=game_master)
+        later = my_game_factory(
+            seat=game_master, scheduled_resolution=now + timedelta(hours=8)
+        )
+        sooner = my_game_factory(
+            status=GameStatus.MUSTERING,
+            seat=game_master,
+            muster_deadline=now + timedelta(hours=2),
+        )
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        assert my_games_sections(response) == [
+            (MyGamesSection.MANAGING, [sooner.id, later.id, pending.id])
+        ]
 
     @pytest.mark.django_db
     def test_my_games_current_orders_active_unconfirmed_first_and_paused_last(
@@ -6091,9 +7292,17 @@ class TestMyGamesCurrentViewOrdering:
     ):
         now = timezone.now()
         paused = my_game_factory(paused_at=now)
-        later = my_game_factory(has_possible_orders=False, scheduled_resolution=now + timedelta(hours=8))
-        unconfirmed = my_game_factory(orders=1, scheduled_resolution=now + timedelta(hours=20))
-        sooner = my_game_factory(orders=1, orders_confirmed=True, scheduled_resolution=now + timedelta(hours=2))
+        later = my_game_factory(
+            has_possible_orders=False, scheduled_resolution=now + timedelta(hours=8)
+        )
+        unconfirmed = my_game_factory(
+            orders=1, scheduled_resolution=now + timedelta(hours=20)
+        )
+        sooner = my_game_factory(
+            orders=1,
+            orders_confirmed=True,
+            scheduled_resolution=now + timedelta(hours=2),
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
@@ -6102,15 +7311,27 @@ class TestMyGamesCurrentViewOrdering:
         ]
 
     @pytest.mark.django_db
-    def test_my_games_current_orders_mustering_by_deadline(self, authenticated_client, my_game_factory):
+    def test_my_games_current_orders_mustering_by_deadline(
+        self, authenticated_client, my_game_factory
+    ):
         now = timezone.now()
         mustered = {"mustered_at": now}
-        later = my_game_factory(status=GameStatus.MUSTERING, seat=mustered, muster_deadline=now + timedelta(hours=8))
-        sooner = my_game_factory(status=GameStatus.MUSTERING, seat=mustered, muster_deadline=now + timedelta(hours=2))
+        later = my_game_factory(
+            status=GameStatus.MUSTERING,
+            seat=mustered,
+            muster_deadline=now + timedelta(hours=8),
+        )
+        sooner = my_game_factory(
+            status=GameStatus.MUSTERING,
+            seat=mustered,
+            muster_deadline=now + timedelta(hours=2),
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.MUSTERING, [sooner.id, later.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.MUSTERING, [sooner.id, later.id])
+        ]
 
     @pytest.mark.django_db
     def test_my_games_current_orders_pending_by_players_joined(
@@ -6122,69 +7343,110 @@ class TestMyGamesCurrentViewOrdering:
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.PENDING, [more.id, fewer.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.PENDING, [more.id, fewer.id])
+        ]
 
     @pytest.mark.django_db
-    def test_my_games_current_orders_recently_finished_by_finished_at(self, authenticated_client, my_game_factory):
+    def test_my_games_current_orders_recently_finished_by_finished_at(
+        self, authenticated_client, my_game_factory
+    ):
         now = timezone.now()
-        earlier = my_game_factory(status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1))
-        latest = my_game_factory(status=GameStatus.ABANDONED, finished_at=now - timedelta(hours=1))
+        earlier = my_game_factory(
+            status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1)
+        )
+        latest = my_game_factory(
+            status=GameStatus.ABANDONED, finished_at=now - timedelta(hours=1)
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.RECENTLY_FINISHED, [latest.id, earlier.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.RECENTLY_FINISHED, [latest.id, earlier.id])
+        ]
 
     @pytest.mark.django_db
-    def test_my_games_current_orders_sandbox_by_newest(self, authenticated_client, sandbox_game_factory):
+    def test_my_games_current_orders_sandbox_by_newest(
+        self, authenticated_client, sandbox_game_factory
+    ):
         older = sandbox_game_factory()
         newer = sandbox_game_factory()
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.SANDBOX, [newer.id, older.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.SANDBOX, [newer.id, older.id])
+        ]
 
     @pytest.mark.django_db
-    def test_my_games_current_breaks_ties_by_newest(self, authenticated_client, my_game_factory):
+    def test_my_games_current_breaks_ties_by_newest(
+        self, authenticated_client, my_game_factory
+    ):
         now = timezone.now()
         older = my_game_factory(created_at=now - timedelta(days=2))
         newer = my_game_factory(created_at=now - timedelta(days=1))
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [newer.id, older.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.NEEDS_ATTENTION, [newer.id, older.id])
+        ]
 
     @pytest.mark.django_db
     def test_my_games_current_ignores_unread_counts_when_ordering(
-        self, authenticated_client, my_game_factory, member_factory, channel_with_messages_factory
+        self,
+        authenticated_client,
+        my_game_factory,
+        member_factory,
+        channel_with_messages_factory,
     ):
         now = timezone.now()
         sooner = my_game_factory(scheduled_resolution=now + timedelta(hours=2))
         later = my_game_factory(scheduled_resolution=now + timedelta(hours=8))
-        channel_with_messages_factory(later.members.first(), member_factory(game=later), now, unread=5)
+        channel_with_messages_factory(
+            later.members.first(), member_factory(game=later), now, unread=5
+        )
 
         response = authenticated_client.get(reverse(my_games_current_viewname))
 
-        assert my_games_sections(response) == [(MyGamesSection.NEEDS_ATTENTION, [sooner.id, later.id])]
+        assert my_games_sections(response) == [
+            (MyGamesSection.NEEDS_ATTENTION, [sooner.id, later.id])
+        ]
 
 
 @pytest.mark.usefixtures("primary_user_without_sandbox_games")
 class TestMyGamesCurrentViewQueryPerformance:
 
     def _create_games(
-        self, my_game_factory, sandbox_game_factory, member_factory, draw_proposal_factory, victory_factory
+        self,
+        my_game_factory,
+        sandbox_game_factory,
+        member_factory,
+        draw_proposal_factory,
+        victory_factory,
     ):
         now = timezone.now()
         active = my_game_factory(scheduled_resolution=now + timedelta(hours=4))
         for _ in range(2):
             other = member_factory(game=active)
-            active.current_phase.phase_states.create(member=other, has_possible_orders=True)
-        my_game_factory(status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2))
+            active.current_phase.phase_states.create(
+                member=other, has_possible_orders=True
+            )
+        my_game_factory(
+            status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2)
+        )
         my_game_factory(seat={"kind": MemberKind.GAME_MASTER})
         sandbox_game_factory()
         finished = my_game_factory(status=GameStatus.COMPLETED, finished_at=now)
-        victory_factory(game=finished, winning_phase=finished.current_phase).members.add(finished.members.first())
+        victory_factory(
+            game=finished, winning_phase=finished.current_phase
+        ).members.add(finished.members.first())
         drawing = my_game_factory(has_possible_orders=False)
-        draw_proposal_factory(game=drawing, created_by=member_factory(game=drawing), phase=drawing.current_phase)
+        draw_proposal_factory(
+            game=drawing,
+            created_by=member_factory(game=drawing),
+            phase=drawing.current_phase,
+        )
         my_game_factory(missed_deadline=True)
 
     def _count_queries(self, client):
@@ -6203,7 +7465,13 @@ class TestMyGamesCurrentViewQueryPerformance:
         draw_proposal_factory,
         victory_factory,
     ):
-        factories = (my_game_factory, sandbox_game_factory, member_factory, draw_proposal_factory, victory_factory)
+        factories = (
+            my_game_factory,
+            sandbox_game_factory,
+            member_factory,
+            draw_proposal_factory,
+            victory_factory,
+        )
         self._create_games(*factories)
         assert self._count_queries(authenticated_client) == 12
 
@@ -6232,8 +7500,12 @@ class TestMyGamesFinishedView:
         self, authenticated_client, my_game_factory
     ):
         now = timezone.now()
-        completed = my_game_factory(status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1))
-        abandoned = my_game_factory(status=GameStatus.ABANDONED, finished_at=now - timedelta(days=2))
+        completed = my_game_factory(
+            status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1)
+        )
+        abandoned = my_game_factory(
+            status=GameStatus.ABANDONED, finished_at=now - timedelta(days=2)
+        )
         departed = my_game_factory(seat={"withdrawn_at": now - timedelta(days=3)})
         my_game_factory()
         my_game_factory(status=GameStatus.PENDING)
@@ -6242,12 +7514,20 @@ class TestMyGamesFinishedView:
         response = authenticated_client.get(reverse(my_games_finished_viewname))
 
         assert response.status_code == status.HTTP_200_OK
-        assert my_games_finished_ids(response) == [completed.id, abandoned.id, departed.id]
+        assert my_games_finished_ids(response) == [
+            completed.id,
+            abandoned.id,
+            departed.id,
+        ]
 
     @pytest.mark.django_db
-    def test_my_games_finished_excludes_sandbox_games(self, authenticated_client, sandbox_game_factory):
+    def test_my_games_finished_excludes_sandbox_games(
+        self, authenticated_client, sandbox_game_factory
+    ):
         game = sandbox_game_factory()
-        Game.objects.filter(id=game.id).update(status=GameStatus.COMPLETED, finished_at=timezone.now())
+        Game.objects.filter(id=game.id).update(
+            status=GameStatus.COMPLETED, finished_at=timezone.now()
+        )
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
 
@@ -6258,16 +7538,22 @@ class TestMyGamesFinishedView:
         self, authenticated_client, my_game_factory, secondary_user
     ):
         mine = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
-        my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now(), user=secondary_user)
+        my_game_factory(
+            status=GameStatus.COMPLETED, finished_at=timezone.now(), user=secondary_user
+        )
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
 
         assert my_games_finished_ids(response) == [mine.id]
 
     @pytest.mark.django_db
-    def test_my_games_finished_lists_game_master_game_without_a_seat(self, authenticated_client, my_game_factory):
+    def test_my_games_finished_lists_game_master_game_without_a_seat(
+        self, authenticated_client, my_game_factory
+    ):
         game = my_game_factory(
-            status=GameStatus.COMPLETED, finished_at=timezone.now(), seat={"kind": MemberKind.GAME_MASTER}
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+            seat={"kind": MemberKind.GAME_MASTER},
         )
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
@@ -6287,7 +7573,12 @@ class TestMyGamesFinishedView:
         ],
     )
     def test_my_games_finished_reports_departure_from_an_active_game(
-        self, authenticated_client, my_game_factory, classical_england_nation, departure_field, departure
+        self,
+        authenticated_client,
+        my_game_factory,
+        classical_england_nation,
+        departure_field,
+        departure,
     ):
         my_game_factory(seat={departure_field: timezone.now()})
 
@@ -6308,19 +7599,30 @@ class TestMyGamesFinishedView:
         self, authenticated_client, my_game_factory, victory_factory
     ):
         game = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
-        victory_factory(game=game, winning_phase=game.current_phase).members.add(game.members.first())
+        victory_factory(game=game, winning_phase=game.current_phase).members.add(
+            game.members.first()
+        )
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
 
-        assert response.data["results"][0]["state"]["result"] == MyGameResult.SOLO_VICTORY
+        assert (
+            response.data["results"][0]["state"]["result"] == MyGameResult.SOLO_VICTORY
+        )
         assert response.data["results"][0]["state"]["winner"] is None
 
     @pytest.mark.django_db
     def test_my_games_finished_reports_winner_nation_for_other_players(
-        self, authenticated_client, my_game_factory, victory_factory, member_factory, classical_france_nation
+        self,
+        authenticated_client,
+        my_game_factory,
+        victory_factory,
+        member_factory,
+        classical_france_nation,
     ):
         game = my_game_factory(
-            status=GameStatus.COMPLETED, finished_at=timezone.now(), seat={"eliminated_at": timezone.now()}
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+            seat={"eliminated_at": timezone.now()},
         )
         winner = member_factory(game=game, nation=classical_france_nation)
         victory_factory(game=game, winning_phase=game.current_phase).members.add(winner)
@@ -6336,7 +7638,9 @@ class TestMyGamesFinishedView:
         }
 
     @pytest.mark.django_db
-    def test_my_games_finished_reports_draw(self, authenticated_client, my_game_factory, victory_factory, member_factory):
+    def test_my_games_finished_reports_draw(
+        self, authenticated_client, my_game_factory, victory_factory, member_factory
+    ):
         game = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
         victory = victory_factory(game=game, winning_phase=game.current_phase)
         victory.members.add(game.members.first(), member_factory(game=game))
@@ -6346,7 +7650,9 @@ class TestMyGamesFinishedView:
         assert response.data["results"][0]["state"]["result"] == MyGameResult.DRAW
 
     @pytest.mark.django_db
-    def test_my_games_finished_reports_abandoned(self, authenticated_client, my_game_factory):
+    def test_my_games_finished_reports_abandoned(
+        self, authenticated_client, my_game_factory
+    ):
         my_game_factory(status=GameStatus.ABANDONED, finished_at=timezone.now())
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
@@ -6358,23 +7664,35 @@ class TestMyGamesFinishedView:
         self, authenticated_client, my_game_factory, member_factory, primary_user
     ):
         game = my_game_factory(seat={"withdrawn_at": timezone.now()})
-        Member.objects.filter(game=game, user=primary_user).update(replaced_by=member_factory(game=game))
+        Member.objects.filter(game=game, user=primary_user).update(
+            replaced_by=member_factory(game=game)
+        )
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
 
         assert my_games_finished_ids(response) == [game.id]
-        assert response.data["results"][0]["state"]["departure"] == MemberDeparture.WITHDRAWN
+        assert (
+            response.data["results"][0]["state"]["departure"]
+            == MemberDeparture.WITHDRAWN
+        )
 
     @pytest.mark.django_db
     def test_my_games_finished_orders_by_when_the_game_ended_for_the_user(
         self, authenticated_client, my_game_factory
     ):
         now = timezone.now()
-        finished_yesterday = my_game_factory(status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1))
-        departed_by_earliest_timestamp = my_game_factory(
-            seat={"withdrawn_at": now - timedelta(days=2), "civil_disorder_at": now - timedelta(days=3)}
+        finished_yesterday = my_game_factory(
+            status=GameStatus.COMPLETED, finished_at=now - timedelta(days=1)
         )
-        finished_four_days_ago = my_game_factory(status=GameStatus.COMPLETED, finished_at=now - timedelta(days=4))
+        departed_by_earliest_timestamp = my_game_factory(
+            seat={
+                "withdrawn_at": now - timedelta(days=2),
+                "civil_disorder_at": now - timedelta(days=3),
+            }
+        )
+        finished_four_days_ago = my_game_factory(
+            status=GameStatus.COMPLETED, finished_at=now - timedelta(days=4)
+        )
         eliminated_before_it_finished = my_game_factory(
             status=GameStatus.COMPLETED,
             finished_at=now,
@@ -6391,10 +7709,20 @@ class TestMyGamesFinishedView:
         ]
 
     @pytest.mark.django_db
-    def test_my_games_finished_breaks_ties_by_newest(self, authenticated_client, my_game_factory):
+    def test_my_games_finished_breaks_ties_by_newest(
+        self, authenticated_client, my_game_factory
+    ):
         now = timezone.now()
-        older = my_game_factory(status=GameStatus.COMPLETED, finished_at=now, created_at=now - timedelta(days=2))
-        newer = my_game_factory(status=GameStatus.COMPLETED, finished_at=now, created_at=now - timedelta(days=1))
+        older = my_game_factory(
+            status=GameStatus.COMPLETED,
+            finished_at=now,
+            created_at=now - timedelta(days=2),
+        )
+        newer = my_game_factory(
+            status=GameStatus.COMPLETED,
+            finished_at=now,
+            created_at=now - timedelta(days=1),
+        )
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
 
@@ -6405,7 +7733,9 @@ class TestMyGamesFinishedView:
 class TestMyGamesFinishedViewPagination:
 
     @pytest.mark.django_db
-    def test_my_games_finished_returns_paginated_response(self, authenticated_client, my_game_factory):
+    def test_my_games_finished_returns_paginated_response(
+        self, authenticated_client, my_game_factory
+    ):
         game = my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
@@ -6417,12 +7747,16 @@ class TestMyGamesFinishedViewPagination:
         assert my_games_finished_ids(response) == [game.id]
 
     @pytest.mark.django_db
-    def test_my_games_finished_default_page_size(self, authenticated_client, my_game_factory):
+    def test_my_games_finished_default_page_size(
+        self, authenticated_client, my_game_factory
+    ):
         for _ in range(21):
             my_game_factory(status=GameStatus.COMPLETED, finished_at=timezone.now())
 
         response = authenticated_client.get(reverse(my_games_finished_viewname))
-        next_page = authenticated_client.get(reverse(my_games_finished_viewname), {"page": 2})
+        next_page = authenticated_client.get(
+            reverse(my_games_finished_viewname), {"page": 2}
+        )
 
         assert response.data["count"] == 21
         assert len(response.data["results"]) == 20
@@ -6434,20 +7768,39 @@ class TestMyGamesFinishedViewPagination:
 class TestMyGamesFinishedViewQueryPerformance:
 
     def _create_games(
-        self, my_game_factory, sandbox_game_factory, member_factory, draw_proposal_factory, victory_factory
+        self,
+        my_game_factory,
+        sandbox_game_factory,
+        member_factory,
+        draw_proposal_factory,
+        victory_factory,
     ):
         now = timezone.now()
         active = my_game_factory(scheduled_resolution=now + timedelta(hours=4))
         for _ in range(2):
             other = member_factory(game=active)
-            active.current_phase.phase_states.create(member=other, has_possible_orders=True)
-        my_game_factory(status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2))
-        my_game_factory(status=GameStatus.COMPLETED, finished_at=now, seat={"kind": MemberKind.GAME_MASTER})
+            active.current_phase.phase_states.create(
+                member=other, has_possible_orders=True
+            )
+        my_game_factory(
+            status=GameStatus.MUSTERING, muster_deadline=now + timedelta(hours=2)
+        )
+        my_game_factory(
+            status=GameStatus.COMPLETED,
+            finished_at=now,
+            seat={"kind": MemberKind.GAME_MASTER},
+        )
         sandbox_game_factory()
         finished = my_game_factory(status=GameStatus.COMPLETED, finished_at=now)
-        victory_factory(game=finished, winning_phase=finished.current_phase).members.add(finished.members.first())
+        victory_factory(
+            game=finished, winning_phase=finished.current_phase
+        ).members.add(finished.members.first())
         drawing = my_game_factory(seat={"eliminated_at": now})
-        draw_proposal_factory(game=drawing, created_by=member_factory(game=drawing), phase=drawing.current_phase)
+        draw_proposal_factory(
+            game=drawing,
+            created_by=member_factory(game=drawing),
+            phase=drawing.current_phase,
+        )
         my_game_factory(missed_deadline=True, seat={"civil_disorder_at": now})
 
     def _count_queries(self, client):
@@ -6466,7 +7819,13 @@ class TestMyGamesFinishedViewQueryPerformance:
         draw_proposal_factory,
         victory_factory,
     ):
-        factories = (my_game_factory, sandbox_game_factory, member_factory, draw_proposal_factory, victory_factory)
+        factories = (
+            my_game_factory,
+            sandbox_game_factory,
+            member_factory,
+            draw_proposal_factory,
+            victory_factory,
+        )
         self._create_games(*factories)
         assert self._count_queries(authenticated_client) == 11
 

@@ -27,7 +27,9 @@ def remove_classical_template_phase(apps, schema_editor):
     Phase = apps.get_model("phase", "Phase")
 
     classical_variant = Variant.objects.get(id="classical")
-    Phase.objects.filter(game=None, variant=classical_variant, status="template").delete()
+    Phase.objects.filter(
+        game=None, variant=classical_variant, status="template"
+    ).delete()
 
 
 class Migration(migrations.Migration):

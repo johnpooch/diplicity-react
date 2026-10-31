@@ -1,5 +1,4 @@
 import random
-from datetime import time
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
@@ -17,7 +16,6 @@ from common.constants import (
     MemberKind,
     MovementPhaseDuration,
     OrderType,
-    PhaseFrequency,
     PhaseType,
     PressType,
     UserKind,
@@ -61,9 +59,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not (settings.DEBUG or settings.ENVIRONMENT == "staging"):
-            raise CommandError("seed_staging only runs with DEBUG=True or ENVIRONMENT=staging")
+            raise CommandError(
+                "seed_staging only runs with DEBUG=True or ENVIRONMENT=staging"
+            )
 
-        if options["skip_if_seeded"] and AuthUser.objects.filter(email=TESTER_EMAIL).exists():
+        if (
+            options["skip_if_seeded"]
+            and AuthUser.objects.filter(email=TESTER_EMAIL).exists()
+        ):
             self.stdout.write(f"{TESTER_EMAIL} already exists; skipping.")
             return
 
@@ -75,11 +78,15 @@ class Command(BaseCommand):
             self._user(f"staging-player-{index}@example.com", name, password_hash)
             for index, name in enumerate(PLAYER_NAMES, start=1)
         ]
-        self.bot = self._user(BOT_EMAIL, BOT_NAME, make_password(None), kind=UserKind.DUMBBOT)
+        self.bot = self._user(
+            BOT_EMAIL, BOT_NAME, make_password(None), kind=UserKind.DUMBBOT
+        )
         self._clear()
 
         self.classical = Variant.objects.with_game_creation_data().get(id="classical")
-        self.italy_vs_germany = Variant.objects.with_game_creation_data().get(id="italy-vs-germany")
+        self.italy_vs_germany = Variant.objects.with_game_creation_data().get(
+            id="italy-vs-germany"
+        )
 
         scenarios = [
             self._seed_finished_solo_win,
@@ -124,25 +131,35 @@ class Command(BaseCommand):
         )
 
     def _user(self, email, name, password_hash, kind=UserKind.HUMAN):
-        user, _ = AuthUser.objects.get_or_create(email=email, defaults={"username": email.split("@")[0]})
+        user, _ = AuthUser.objects.get_or_create(
+            email=email, defaults={"username": email.split("@")[0]}
+        )
         user.is_active = True
         user.password = password_hash
         user.save()
-        UserProfile.objects.update_or_create(user=user, defaults={"name": name, "kind": kind})
+        UserProfile.objects.update_or_create(
+            user=user, defaults={"name": name, "kind": kind}
+        )
         return user
 
     def _clear(self):
         users = [self.tester, *self.players, self.bot]
         game_ids = set(
             Game.objects.filter(
-                Q(members__user__in=users) | Q(created_by__in=users) | Q(game_master__in=users)
+                Q(members__user__in=users)
+                | Q(created_by__in=users)
+                | Q(game_master__in=users)
             ).values_list("id", flat=True)
         )
-        Member.objects.filter(game_id__in=game_ids, replaced_by__isnull=False).update(nation=None)
+        Member.objects.filter(game_id__in=game_ids, replaced_by__isnull=False).update(
+            nation=None
+        )
         Game.objects.filter(id__in=game_ids).delete()
         Notification.objects.filter(recipient__in=users).delete()
 
-    def _game(self, name, *, creator, players, variant=None, as_game_master=False, **kwargs):
+    def _game(
+        self, name, *, creator, players, variant=None, as_game_master=False, **kwargs
+    ):
         kwargs.setdefault("deadline_mode", DeadlineMode.DURATION)
         kwargs.setdefault("movement_phase_duration", MovementPhaseDuration.TWO_WEEKS)
         with transaction.atomic():
@@ -163,41 +180,69 @@ class Command(BaseCommand):
 
     def _start(self, game, nations=None):
         for user, nation_name in (nations or {}).items():
-            Member.objects.assign_nation(self._member(game, user), game.variant.nations.get(name=nation_name))
+            Member.objects.assign_nation(
+                self._member(game, user), game.variant.nations.get(name=nation_name)
+            )
         game.start()
         return game
 
     def _member(self, game, user):
-        return game.members.players().select_related("nation", "user").get(user=user, replaced_by__isnull=True)
+        return (
+            game.members.players()
+            .select_related("nation", "user")
+            .get(user=user, replaced_by__isnull=True)
+        )
 
     def _order(self, phase, user, selected, lookup=None):
-        order = Order.objects.create_from_selected(user, phase, selected, province_lookup=lookup)
+        order = Order.objects.create_from_selected(
+            user, phase, selected, province_lookup=lookup
+        )
         Order.objects.delete_existing_for_source(order.phase_state, order.source)
         order.save()
 
     def _random_orders(self, phase, phase_state, lookup):
         member = phase_state.member
-        options = orders_to_options(flatten_options(phase.transformed_options.get(member.nation.name, {}), lookup))
+        options = orders_to_options(
+            flatten_options(
+                phase.transformed_options.get(member.nation.name, {}), lookup
+            )
+        )
         by_source = {}
         for option in options:
             by_source.setdefault(option["source"], []).append(option)
         sources = sorted(by_source)
         if phase.type == PhaseType.ADJUSTMENT:
-            sources = self.rng.sample(sources, min(len(sources), phase_state.max_allowed_adjustment_orders()))
+            sources = self.rng.sample(
+                sources, min(len(sources), phase_state.max_allowed_adjustment_orders())
+            )
         for source in sources:
             choices = by_source[source]
-            moves = [option for option in choices if option["order_type"] == OrderType.MOVE]
-            option = self.rng.choice(moves if moves and self.rng.random() < 0.7 else choices)
+            moves = [
+                option for option in choices if option["order_type"] == OrderType.MOVE
+            ]
+            option = self.rng.choice(
+                moves if moves and self.rng.random() < 0.7 else choices
+            )
             self._order(phase, member.user, option_to_selected(option), lookup)
 
     def _advance(self, game, orders=None, nmr=(), random_orders=True):
         phase = game.current_phase
-        lookup = {province.province_id: province for province in phase.variant.provinces.all()}
-        orders_by_user_id = {user.id: selections for user, selections in (orders or {}).items()}
+        lookup = {
+            province.province_id: province for province in phase.variant.provinces.all()
+        }
+        orders_by_user_id = {
+            user.id: selections for user, selections in (orders or {}).items()
+        }
         nmr_user_ids = {user.id for user in nmr}
-        for phase_state in phase.phase_states.select_related("member__nation", "member__user"):
+        for phase_state in phase.phase_states.select_related(
+            "member__nation", "member__user"
+        ):
             member = phase_state.member
-            if not phase_state.has_possible_orders or member.civil_disorder or member.user_id in nmr_user_ids:
+            if (
+                not phase_state.has_possible_orders
+                or member.civil_disorder
+                or member.user_id in nmr_user_ids
+            ):
                 continue
             if member.user_id in orders_by_user_id:
                 for selected in orders_by_user_id[member.user_id]:
@@ -211,16 +256,24 @@ class Command(BaseCommand):
     def _advance_to(self, game, season, year, nmr=(), random_orders=True):
         while game.status == GameStatus.ACTIVE:
             phase = game.current_phase
-            if phase.season == season and phase.year == year and phase.type == PhaseType.MOVEMENT:
+            if (
+                phase.season == season
+                and phase.year == year
+                and phase.type == PhaseType.MOVEMENT
+            ):
                 return
             self._advance(game, nmr=nmr, random_orders=random_orders)
 
     def _confirm(self, game, users):
-        game.current_phase.phase_states.filter(member__user__in=users).update(orders_confirmed=True)
+        game.current_phase.phase_states.filter(member__user__in=users).update(
+            orders_confirmed=True
+        )
 
     def _muster(self, game, confirmed=()):
         game.start_if_full()
-        game.members.players().filter(user__in=confirmed).update(mustered_at=timezone.now())
+        game.members.players().filter(user__in=confirmed).update(
+            mustered_at=timezone.now()
+        )
         Game.objects.arm_muster(game)
         return game
 
@@ -242,51 +295,78 @@ class Command(BaseCommand):
         phase = game.current_phase
         owned = phase.supply_centers.filter(nation=member.nation).count()
         missing = count - owned
-        neutral = game.variant.provinces.filter(supply_center=True, parent__isnull=True).exclude(
-            id__in=phase.supply_centers.values("province_id")
-        )
+        neutral = game.variant.provinces.filter(
+            supply_center=True, parent__isnull=True
+        ).exclude(id__in=phase.supply_centers.values("province_id"))
         SupplyCenter.objects.bulk_create(
-            [SupplyCenter(phase=phase, nation=member.nation, province=province) for province in neutral[:missing]]
+            [
+                SupplyCenter(phase=phase, nation=member.nation, province=province)
+                for province in neutral[:missing]
+            ]
         )
         missing = count - phase.supply_centers.filter(nation=member.nation).count()
         if missing > 0:
-            taken = phase.supply_centers.exclude(nation=member.nation).values_list("id", flat=True)[:missing]
+            taken = phase.supply_centers.exclude(nation=member.nation).values_list(
+                "id", flat=True
+            )[:missing]
             SupplyCenter.objects.filter(id__in=list(taken)).update(nation=member.nation)
 
     def _eliminate(self, game, user, successor):
         member = self._member(game, user)
         phase = game.current_phase
         phase.units.filter(nation=member.nation).delete()
-        phase.supply_centers.filter(nation=member.nation).update(nation=self._member(game, successor).nation)
+        phase.supply_centers.filter(nation=member.nation).update(
+            nation=self._member(game, successor).nation
+        )
 
     def _seed_finished_solo_win(self):
-        game = self._game("Finished: you won solo", creator=self.tester, players=[self.tester, *self.players[:6]])
+        game = self._game(
+            "Finished: you won solo",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
+        )
         self._start(game, {self.tester: "France"})
-        self._give_supply_centers(game, self.tester, game.variant.solo_victory_supply_centers_for("france"))
+        self._give_supply_centers(
+            game, self.tester, game.variant.solo_victory_supply_centers_for("france")
+        )
         self._advance(game)
         return game
 
     def _seed_finished_solo_loss(self):
         game = self._game(
-            "Finished: another player won solo", creator=self.players[0], players=[self.tester, *self.players[:6]]
+            "Finished: another player won solo",
+            creator=self.players[0],
+            players=[self.tester, *self.players[:6]],
         )
         self._start(game, {self.players[0]: "Turkey"})
-        self._give_supply_centers(game, self.players[0], game.variant.solo_victory_supply_centers_for("turkey"))
+        self._give_supply_centers(
+            game,
+            self.players[0],
+            game.variant.solo_victory_supply_centers_for("turkey"),
+        )
         self._advance(game)
         return game
 
     def _seed_finished_draw(self):
-        game = self._game("Finished: five-way draw", creator=self.tester, players=[self.tester, *self.players[:6]])
+        game = self._game(
+            "Finished: five-way draw",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
+        )
         self._start(game)
         self._civil_disorder(game, self.players[4:6])
-        proposal = DrawProposal.objects.create_proposal(game=game, created_by=self._member(game, self.tester))
+        proposal = DrawProposal.objects.create_proposal(
+            game=game, created_by=self._member(game, self.tester)
+        )
         proposal.votes.filter(accepted__isnull=True).update(accepted=True)
         proposal.process_acceptance()
         return game
 
     def _seed_finished_abandoned(self):
         players = [self.tester, *self.players[:6]]
-        game = self._game("Finished: abandoned", creator=self.tester, players=players, private=True)
+        game = self._game(
+            "Finished: abandoned", creator=self.tester, players=players, private=True
+        )
         self._start(game)
         self._civil_disorder(game, players)
         return game
@@ -315,22 +395,32 @@ class Command(BaseCommand):
 
     def _seed_active_player_in_civil_disorder(self):
         game = self._game(
-            "Active: players in civil disorder", creator=self.tester, players=[self.tester, *self.players[:6]]
+            "Active: players in civil disorder",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
         )
         self._start(game)
         self._civil_disorder(game, self.players[1:3])
-        Member.objects.hand_over_seat(self._member(game, self.players[2]), self.players[6])
+        Member.objects.hand_over_seat(
+            self._member(game, self.players[2]), self.players[6]
+        )
         return game
 
     def _seed_active_replaceable_seat(self):
-        game = self._game("Active: take over an abandoned seat", creator=self.players[0], players=self.players[:7])
+        game = self._game(
+            "Active: take over an abandoned seat",
+            creator=self.players[0],
+            players=self.players[:7],
+        )
         self._start(game)
         self._civil_disorder(game, [self.players[3]])
         return game
 
     def _seed_active_tester_eliminated(self):
         game = self._game(
-            "Active: you were eliminated", creator=self.players[0], players=[self.tester, *self.players[:6]]
+            "Active: you were eliminated",
+            creator=self.players[0],
+            players=[self.tester, *self.players[:6]],
         )
         self._start(game, {self.tester: "Italy", self.players[0]: "Austria"})
         self._eliminate(game, self.tester, self.players[0])
@@ -339,18 +429,35 @@ class Command(BaseCommand):
 
     def _seed_active_retreat(self):
         austria = self.players[0]
-        game = self._game("Active: retreat phase", creator=self.tester, players=[self.tester, *self.players[:6]])
+        game = self._game(
+            "Active: retreat phase",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
+        )
         self._start(game, {self.tester: "Italy", austria: "Austria"})
-        self._advance(game, orders={austria: [["vie", OrderType.MOVE, "tyr"]]}, random_orders=False)
         self._advance(
             game,
-            orders={austria: [["tri", OrderType.MOVE, "ven"], ["tyr", OrderType.SUPPORT, "tri", "ven"]]},
+            orders={austria: [["vie", OrderType.MOVE, "tyr"]]},
+            random_orders=False,
+        )
+        self._advance(
+            game,
+            orders={
+                austria: [
+                    ["tri", OrderType.MOVE, "ven"],
+                    ["tyr", OrderType.SUPPORT, "tri", "ven"],
+                ]
+            },
             random_orders=False,
         )
         return game
 
     def _seed_active_adjustment(self):
-        game = self._game("Active: adjustment phase", creator=self.tester, players=[self.tester, *self.players[:6]])
+        game = self._game(
+            "Active: adjustment phase",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
+        )
         self._start(game, {self.tester: "Germany"})
         self._advance(
             game,
@@ -363,7 +470,11 @@ class Command(BaseCommand):
             },
             random_orders=False,
         )
-        self._advance(game, orders={self.tester: [["ruh", OrderType.MOVE, "hol"]]}, random_orders=False)
+        self._advance(
+            game,
+            orders={self.tester: [["ruh", OrderType.MOVE, "hol"]]},
+            random_orders=False,
+        )
         return game
 
     def _seed_active_mid_game(self):
@@ -375,8 +486,14 @@ class Command(BaseCommand):
         )
         self._start(game)
         public_press = game.get_public_press()
-        self._message(public_press, self.players[0], "Good luck everyone, may the best diplomat win.")
-        self._message(public_press, self.tester, "Likewise! Looking forward to a clean game.")
+        self._message(
+            public_press,
+            self.players[0],
+            "Good luck everyone, may the best diplomat win.",
+        )
+        self._message(
+            public_press, self.tester, "Likewise! Looking forward to a clean game."
+        )
         self._advance_to(game, "Fall", 1902)
         channel = Channel.objects.create_from_member_ids(
             self.tester,
@@ -384,25 +501,43 @@ class Command(BaseCommand):
             game,
             title="Western alliance",
         )
-        self._message(channel, self.players[1], "Shall we coordinate against the east this year?")
-        self._message(channel, self.players[2], "I'm in. Can you support me into Munich?")
-        self._message(public_press, self.players[3], "Anyone interested in a ceasefire in the Balkans?")
+        self._message(
+            channel, self.players[1], "Shall we coordinate against the east this year?"
+        )
+        self._message(
+            channel, self.players[2], "I'm in. Can you support me into Munich?"
+        )
+        self._message(
+            public_press,
+            self.players[3],
+            "Anyone interested in a ceasefire in the Balkans?",
+        )
         self._confirm(game, self.players[:3])
         return game
 
     def _seed_active_draw_proposed(self):
-        game = self._game("Active: draw proposed", creator=self.players[0], players=[self.tester, *self.players[:6]])
+        game = self._game(
+            "Active: draw proposed",
+            creator=self.players[0],
+            players=[self.tester, *self.players[:6]],
+        )
         self._start(game)
         self._advance(game)
-        rejected = DrawProposal.objects.create_proposal(game=game, created_by=self._member(game, self.players[3]))
+        rejected = DrawProposal.objects.create_proposal(
+            game=game, created_by=self._member(game, self.players[3])
+        )
         rejected.votes.filter(member__user=self.players[4]).update(accepted=False)
-        proposal = DrawProposal.objects.create_proposal(game=game, created_by=self._member(game, self.players[0]))
+        proposal = DrawProposal.objects.create_proposal(
+            game=game, created_by=self._member(game, self.players[0])
+        )
         proposal.votes.filter(member__user__in=self.players[1:3]).update(accepted=True)
         return game
 
     def _seed_active_orders_required(self):
         game = self._game(
-            "Active: orders required", creator=self.tester, players=[self.tester, *self.players[:5], self.bot]
+            "Active: orders required",
+            creator=self.tester,
+            players=[self.tester, *self.players[:5], self.bot],
         )
         return self._start(game)
 
@@ -434,7 +569,11 @@ class Command(BaseCommand):
         return game
 
     def _seed_active_paused(self):
-        game = self._game("Active: paused", creator=self.tester, players=[self.tester, *self.players[:6]])
+        game = self._game(
+            "Active: paused",
+            creator=self.tester,
+            players=[self.tester, *self.players[:6]],
+        )
         self._start(game)
         game.pause()
         emit("game_paused", game=game, actor=self.tester)
@@ -468,10 +607,17 @@ class Command(BaseCommand):
         return self._muster(game, confirmed=self.players[:6])
 
     def _seed_pending_created(self):
-        game = self._game("Pending: waiting for players", creator=self.tester, players=[self.tester, *self.players[:3]])
+        game = self._game(
+            "Pending: waiting for players",
+            creator=self.tester,
+            players=[self.tester, *self.players[:3]],
+        )
         Member.objects.set_nation_preferences(
             self._member(game, self.tester),
-            [game.variant.nations.get(name=name) for name in ("France", "England", "Germany")],
+            [
+                game.variant.nations.get(name=name)
+                for name in ("France", "England", "Germany")
+            ],
         )
         return game
 
@@ -491,7 +637,9 @@ class Command(BaseCommand):
         )
 
     def _seed_open_one_seat_left(self):
-        return self._game("Open: one seat left", creator=self.players[0], players=self.players[:6])
+        return self._game(
+            "Open: one seat left", creator=self.players[0], players=self.players[:6]
+        )
 
     def _seed_open_committed(self):
         return self._game(
@@ -508,12 +656,9 @@ class Command(BaseCommand):
             players=[self.players[7]],
             variant=self.italy_vs_germany,
             press_type=PressType.NO_PRESS,
-            deadline_mode=DeadlineMode.FIXED_TIME,
-            movement_phase_duration=None,
-            fixed_deadline_time=time(20, 0),
-            fixed_deadline_timezone="Europe/London",
-            movement_frequency=PhaseFrequency.DAILY,
         )
 
     def _seed_sandbox(self):
-        return Game.objects.create_sandbox(self.tester, name="Sandbox: practice game", variant=self.classical)
+        return Game.objects.create_sandbox(
+            self.tester, name="Sandbox: practice game", variant=self.classical
+        )

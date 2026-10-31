@@ -3,7 +3,14 @@ from django.db import models
 from django.db.models import Q, Prefetch
 from django.core import exceptions
 
-from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep, PhaseType
+from common.constants import (
+    UnitType,
+    OrderType,
+    PhaseStatus,
+    OrderResolutionStatus,
+    OrderCreationStep,
+    PhaseType,
+)
 from common.models import BaseModel
 
 from .utils import get_options_for_order, get_order_data_from_selected
@@ -16,7 +23,10 @@ class OrderQuerySet(models.QuerySet):
     def visible_to_user_in_phase(self, user, phase):
         return self.filter(
             Q(phase_state__phase=phase)
-            & (Q(phase_state__phase__status=PhaseStatus.COMPLETED) | Q(phase_state__member__user=user))
+            & (
+                Q(phase_state__phase__status=PhaseStatus.COMPLETED)
+                | Q(phase_state__member__user=user)
+            )
         )
 
     def for_source_in_phase(self, phase_state, source):
@@ -81,10 +91,14 @@ class OrderManager(models.Manager):
 
         source = province_lookup.get(order_data["source"])
         if not source:
-            raise exceptions.ValidationError(f"Province {order_data['source']} not found")
+            raise exceptions.ValidationError(
+                f"Province {order_data['source']} not found"
+            )
 
         phase_state = None
-        phase_states = phase.phase_states.select_related("member__nation").filter(member__user=user)
+        phase_states = phase.phase_states.select_related("member__nation").filter(
+            member__user=user
+        )
         transformed_options = phase.transformed_options
 
         for ps in phase_states:
@@ -96,7 +110,9 @@ class OrderManager(models.Manager):
                 break
 
         if not phase_state:
-            raise exceptions.ValidationError(f"Cannot create order: {source.name} is not orderable for this user")
+            raise exceptions.ValidationError(
+                f"Cannot create order: {source.name} is not orderable for this user"
+            )
 
         order = Order(phase_state=phase_state, source=source)
 
@@ -107,17 +123,23 @@ class OrderManager(models.Manager):
         if "target" in order_data:
             target = province_lookup.get(order_data["target"])
             if not target:
-                raise exceptions.ValidationError(f"Province {order_data['target']} not found")
+                raise exceptions.ValidationError(
+                    f"Province {order_data['target']} not found"
+                )
             order.target = target
         if "aux" in order_data:
             aux = province_lookup.get(order_data["aux"])
             if not aux:
-                raise exceptions.ValidationError(f"Province {order_data['aux']} not found")
+                raise exceptions.ValidationError(
+                    f"Province {order_data['aux']} not found"
+                )
             order.aux = aux
         if "named_coast" in order_data:
             named_coast = province_lookup.get(order_data["named_coast"])
             if not named_coast:
-                raise exceptions.ValidationError(f"Province {order_data['named_coast']} not found")
+                raise exceptions.ValidationError(
+                    f"Province {order_data['named_coast']} not found"
+                )
             order.named_coast = named_coast
 
         return order
@@ -127,26 +149,51 @@ class Order(BaseModel):
 
     objects = OrderManager()
 
-    phase_state = models.ForeignKey("phase.PhaseState", on_delete=models.CASCADE, related_name="orders")
-    order_type = models.CharField(max_length=50, choices=OrderType.ORDER_TYPE_CHOICES, null=True, blank=True)
+    phase_state = models.ForeignKey(
+        "phase.PhaseState", on_delete=models.CASCADE, related_name="orders"
+    )
+    order_type = models.CharField(
+        max_length=50, choices=OrderType.ORDER_TYPE_CHOICES, null=True, blank=True
+    )
     source = models.ForeignKey(
-        "province.Province", on_delete=models.CASCADE, related_name="source_orders", null=True, blank=True
+        "province.Province",
+        on_delete=models.CASCADE,
+        related_name="source_orders",
+        null=True,
+        blank=True,
     )
     target = models.ForeignKey(
-        "province.Province", on_delete=models.CASCADE, related_name="target_orders", null=True, blank=True
+        "province.Province",
+        on_delete=models.CASCADE,
+        related_name="target_orders",
+        null=True,
+        blank=True,
     )
     aux = models.ForeignKey(
-        "province.Province", on_delete=models.CASCADE, related_name="aux_orders", null=True, blank=True
+        "province.Province",
+        on_delete=models.CASCADE,
+        related_name="aux_orders",
+        null=True,
+        blank=True,
     )
-    unit_type = models.CharField(max_length=50, choices=UnitType.UNIT_TYPE_CHOICES, null=True, blank=True)
+    unit_type = models.CharField(
+        max_length=50, choices=UnitType.UNIT_TYPE_CHOICES, null=True, blank=True
+    )
     named_coast = models.ForeignKey(
-        "province.Province", on_delete=models.CASCADE, related_name="named_coast_orders", null=True, blank=True
+        "province.Province",
+        on_delete=models.CASCADE,
+        related_name="named_coast_orders",
+        null=True,
+        blank=True,
     )
     is_implicit = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["phase_state", "source"], name="unique_order_per_province_per_phase")
+            models.UniqueConstraint(
+                fields=["phase_state", "source"],
+                name="unique_order_per_province_per_phase",
+            )
         ]
 
     def __str__(self):
@@ -203,9 +250,15 @@ class Order(BaseModel):
             return None
         source_province_ids = {self.source_id}
         source_province_ids.update(coast.id for coast in self.source.named_coasts.all())
-        units = [unit for unit in self.phase.units.all() if unit.province_id in source_province_ids]
+        units = [
+            unit
+            for unit in self.phase.units.all()
+            if unit.province_id in source_province_ids
+        ]
         if self.phase.type == PhaseType.RETREAT:
-            return next((unit for unit in units if unit.dislodged), None) or (units[0] if units else None)
+            return next((unit for unit in units if unit.dislodged), None) or (
+                units[0] if units else None
+            )
         return units[0] if units else None
 
     @property
@@ -241,7 +294,10 @@ class Order(BaseModel):
         ):
             return OrderCreationStep.SELECT_NAMED_COAST
 
-        if self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY] and not self.target:
+        if (
+            self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]
+            and not self.target
+        ):
             return OrderCreationStep.SELECT_TARGET
 
         if (
@@ -288,8 +344,6 @@ class Order(BaseModel):
 
     @property
     def _support_target_display_name(self):
-        if self.aux_id == self.target_id:
-            return self._aux_display_name
         coast = self._resolved_target_coast
         if coast:
             return coast.name
@@ -302,36 +356,74 @@ class Order(BaseModel):
 
         if step == OrderCreationStep.SELECT_ORDER_TYPE:
             return f"Select order type for {source_name}"
-        elif step == OrderCreationStep.SELECT_NAMED_COAST and self.order_type == OrderType.BUILD:
+        elif (
+            step == OrderCreationStep.SELECT_NAMED_COAST
+            and self.order_type == OrderType.BUILD
+        ):
             return f"Select which coast of {self.source.name} to build a fleet on"
-        elif step == OrderCreationStep.SELECT_NAMED_COAST and self.order_type == OrderType.MOVE:
+        elif (
+            step == OrderCreationStep.SELECT_NAMED_COAST
+            and self.order_type == OrderType.MOVE
+        ):
             return f"Select which coast of {self.target.name} to move to"
-        elif step == OrderCreationStep.SELECT_UNIT_TYPE and self.order_type == OrderType.BUILD:
+        elif (
+            step == OrderCreationStep.SELECT_UNIT_TYPE
+            and self.order_type == OrderType.BUILD
+        ):
             return f"Select unit type to build in {self.source.name}"
-        elif step == OrderCreationStep.SELECT_TARGET and self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
+        elif step == OrderCreationStep.SELECT_TARGET and self.order_type in [
+            OrderType.MOVE,
+            OrderType.MOVE_VIA_CONVOY,
+        ]:
             return f"Select province to move {source_name} to"
-        elif step == OrderCreationStep.SELECT_AUX and self.order_type == OrderType.SUPPORT:
+        elif (
+            step == OrderCreationStep.SELECT_AUX
+            and self.order_type == OrderType.SUPPORT
+        ):
             return f"Select province for {source_name} to support"
-        elif step == OrderCreationStep.SELECT_AUX and self.order_type == OrderType.CONVOY:
+        elif (
+            step == OrderCreationStep.SELECT_AUX and self.order_type == OrderType.CONVOY
+        ):
             return f"Select province for {source_name} to convoy"
-        elif step == OrderCreationStep.SELECT_TARGET and self.order_type == OrderType.SUPPORT:
+        elif (
+            step == OrderCreationStep.SELECT_TARGET
+            and self.order_type == OrderType.SUPPORT
+        ):
             return f"Select destination for {source_name} to support {self.aux.name} to"
-        elif step == OrderCreationStep.SELECT_TARGET and self.order_type == OrderType.CONVOY:
+        elif (
+            step == OrderCreationStep.SELECT_TARGET
+            and self.order_type == OrderType.CONVOY
+        ):
             return f"Select destination for {source_name} to convoy {self.aux.name} to"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.HOLD:
             return f"{source_name} will hold"
-        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.DISBAND:
+        elif (
+            step == OrderCreationStep.COMPLETED and self.order_type == OrderType.DISBAND
+        ):
             return f"{source_name} will be disbanded"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.BUILD:
             if self.named_coast:
                 return f"{self.unit_type} will be built in {self.named_coast.name}"
             return f"{self.unit_type} will be built in {self.source.name}"
-        elif step == OrderCreationStep.COMPLETED and self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
-            action = "move via convoy to" if self.order_type == OrderType.MOVE_VIA_CONVOY else "move to"
+        elif step == OrderCreationStep.COMPLETED and self.order_type in [
+            OrderType.MOVE,
+            OrderType.MOVE_VIA_CONVOY,
+        ]:
+            action = (
+                "move via convoy to"
+                if self.order_type == OrderType.MOVE_VIA_CONVOY
+                else "move to"
+            )
             return f"{source_name} will {action} {self._target_display_name}"
-        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.SUPPORT:
+        elif (
+            step == OrderCreationStep.COMPLETED and self.order_type == OrderType.SUPPORT
+        ):
+            if self.aux_id == self.target_id:
+                return f"{source_name} will support {self._aux_display_name} to hold"
             return f"{source_name} will support {self._aux_display_name} to {self._support_target_display_name}"
-        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.CONVOY:
+        elif (
+            step == OrderCreationStep.COMPLETED and self.order_type == OrderType.CONVOY
+        ):
             return f"{source_name} will convoy {self.aux.name} to {self.target.name}"
 
         return None
@@ -389,8 +481,16 @@ class Order(BaseModel):
 
 
 class OrderResolution(BaseModel):
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="resolution")
-    status = models.CharField(max_length=30, choices=OrderResolutionStatus.STATUS_CHOICES)
+    order = models.OneToOneField(
+        Order, on_delete=models.CASCADE, related_name="resolution"
+    )
+    status = models.CharField(
+        max_length=30, choices=OrderResolutionStatus.STATUS_CHOICES
+    )
     by = models.ForeignKey(
-        "province.Province", on_delete=models.CASCADE, related_name="order_resolutions", null=True, blank=True
+        "province.Province",
+        on_delete=models.CASCADE,
+        related_name="order_resolutions",
+        null=True,
+        blank=True,
     )

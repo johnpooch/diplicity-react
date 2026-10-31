@@ -30,16 +30,22 @@ def game_payload(variant_id, **overrides):
 class TestGameAdminField:
 
     @pytest.mark.django_db
-    def test_admin_set_to_creator_for_regular_game(self, authenticated_client, primary_user, classical_variant):
+    def test_admin_set_to_creator_for_regular_game(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         url = reverse(create_viewname)
-        response = authenticated_client.post(url, game_payload(classical_variant.id), format="json")
+        response = authenticated_client.post(
+            url, game_payload(classical_variant.id), format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         game = Game.objects.get(id=response.data["id"])
         assert game.admin == primary_user
         assert game.admin_id == game.created_by_id
 
     @pytest.mark.django_db
-    def test_admin_set_to_game_master_for_gm_game(self, authenticated_client, primary_user, classical_variant):
+    def test_admin_set_to_game_master_for_gm_game(
+        self, authenticated_client, primary_user, classical_variant
+    ):
         url = reverse(create_viewname)
         payload = game_payload(classical_variant.id, private=True, game_master=True)
         response = authenticated_client.post(url, payload, format="json")
@@ -99,7 +105,9 @@ class TestReassignAdmin:
         assert game.admin == secondary_user
         notifications = _admin_reassigned_notifications()
         assert notifications.count() == 1
-        assert list(notifications.values_list("recipient_id", flat=True)) == [secondary_user.id]
+        assert list(notifications.values_list("recipient_id", flat=True)) == [
+            secondary_user.id
+        ]
 
     @pytest.mark.django_db
     def test_excludes_kicked_and_civil_disorder_members(
@@ -138,11 +146,15 @@ class TestMemberIsAdminField:
 
         response = api_client.get(reverse(retrieve_viewname, args=[game.id]))
 
-        member = next(m for m in response.data["members"] if m["id"] == creator_member.id)
+        member = next(
+            m for m in response.data["members"] if m["id"] == creator_member.id
+        )
         assert member["is_admin"] is True
 
     @pytest.mark.django_db
-    def test_non_admin_member_is_not_admin(self, api_client, pending_game_factory, secondary_user):
+    def test_non_admin_member_is_not_admin(
+        self, api_client, pending_game_factory, secondary_user
+    ):
         game = pending_game_factory()
         other_member = game.members.create(user=secondary_user)
 

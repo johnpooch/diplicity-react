@@ -1,7 +1,13 @@
 import django_filters
 from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 
-from common.constants import Commitment, CommitmentRequirement, GameStatus, MovementPhaseDuration, PhaseStatus
+from common.constants import (
+    Commitment,
+    CommitmentRequirement,
+    GameStatus,
+    MovementPhaseDuration,
+    PhaseStatus,
+)
 from member.models import Member
 from phase.models import Phase
 
@@ -69,7 +75,9 @@ class GameFilter(django_filters.FilterSet):
             return queryset.annotate(
                 member_count=Count("members", distinct=True),
                 seat_count=Count(
-                    "variant__nations", filter=Q(variant__nations__non_playable=False), distinct=True
+                    "variant__nations",
+                    filter=Q(variant__nations__non_playable=False),
+                    distinct=True,
                 ),
                 slots_remaining=F("seat_count") - F("member_count"),
             ).order_by("slots_remaining", "-created_at")

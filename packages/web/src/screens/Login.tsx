@@ -116,9 +116,13 @@ const Login: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const prefillTestUser = import.meta.env.VITE_PREFILL_TEST_USER === "true";
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: prefillTestUser
+      ? { email: "test-user@example.com", password: "password" }
+      : { email: "", password: "" },
   });
 
   const handleEmailLogin = async (data: LoginFormValues) => {

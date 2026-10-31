@@ -36,13 +36,17 @@ def user_prompt(context: Context, channel_id: int) -> str:
     centers_by_nation: dict[str, list[str]] = {}
     for center in context["supply_centers"]:
         if center["nation"]:
-            centers_by_nation.setdefault(center["nation"], []).append(center["province"])
+            centers_by_nation.setdefault(center["nation"], []).append(
+                center["province"]
+            )
     if centers_by_nation:
         lines.append("")
         lines.append("Supply centers:")
         for center_nation in sorted(centers_by_nation):
             provinces = sorted(centers_by_nation[center_nation])
-            lines.append(f"  {center_nation}: {len(provinces)} ({', '.join(provinces)})")
+            lines.append(
+                f"  {center_nation}: {len(provinces)} ({', '.join(provinces)})"
+            )
 
     privacy = "private" if channel["private"] else "public"
     lines.append("")

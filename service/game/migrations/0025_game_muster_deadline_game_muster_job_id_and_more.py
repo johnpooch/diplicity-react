@@ -50,6 +50,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="game",
-            index=models.Index(fields=["muster_deadline"], name="game_game_muster__ffa9b6_idx"),
+            index=models.Index(
+                fields=["muster_deadline"], name="game_game_muster__ffa9b6_idx"
+            ),
         ),
     ]

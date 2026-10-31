@@ -11,19 +11,47 @@ def add_canton_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     canton_variant = Variant.objects.get(id="canton")
-    template_phase = Phase.objects.get(game=None, variant=canton_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=canton_variant, status="template"
+    )
 
-    units_data = [{'type': 'Army', 'nation': 'Britain', 'province': 'cal'}, {'type': 'Fleet', 'nation': 'Holland', 'province': 'sum'}, {'type': 'Fleet', 'nation': 'Turkey', 'province': 'con'}, {'type': 'Fleet', 'nation': 'China', 'province': 'pek'}, {'type': 'Army', 'nation': 'Japan', 'province': 'kyo'}, {'type': 'Fleet', 'nation': 'Holland', 'province': 'jav'}, {'type': 'Army', 'nation': 'China', 'province': 'sha'}, {'type': 'Army', 'nation': 'China', 'province': 'tib'}, {'type': 'Fleet', 'nation': 'Japan', 'province': 'sas'}, {'type': 'Fleet', 'nation': 'Britain', 'province': 'mad'}, {'type': 'Army', 'nation': 'Britain', 'province': 'del'}, {'type': 'Army', 'nation': 'China', 'province': 'chu'}, {'type': 'Army', 'nation': 'France', 'province': 'han'}, {'type': 'Fleet', 'nation': 'France', 'province': 'sai'}, {'type': 'Army', 'nation': 'France', 'province': 'hue'}, {'type': 'Fleet', 'nation': 'Russia', 'province': 'kha'}, {'type': 'Fleet', 'nation': 'Holland', 'province': 'bor'}, {'type': 'Fleet', 'nation': 'Japan', 'province': 'tok'}, {'type': 'Fleet', 'nation': 'Russia', 'province': 'sev'}, {'type': 'Army', 'nation': 'Turkey', 'province': 'dam'}, {'type': 'Army', 'nation': 'Russia', 'province': 'mos'}, {'type': 'Army', 'nation': 'Russia', 'province': 'irk'}, {'type': 'Army', 'nation': 'Turkey', 'province': 'bag'}]
+    units_data = [
+        {"type": "Army", "nation": "Britain", "province": "cal"},
+        {"type": "Fleet", "nation": "Holland", "province": "sum"},
+        {"type": "Fleet", "nation": "Turkey", "province": "con"},
+        {"type": "Fleet", "nation": "China", "province": "pek"},
+        {"type": "Army", "nation": "Japan", "province": "kyo"},
+        {"type": "Fleet", "nation": "Holland", "province": "jav"},
+        {"type": "Army", "nation": "China", "province": "sha"},
+        {"type": "Army", "nation": "China", "province": "tib"},
+        {"type": "Fleet", "nation": "Japan", "province": "sas"},
+        {"type": "Fleet", "nation": "Britain", "province": "mad"},
+        {"type": "Army", "nation": "Britain", "province": "del"},
+        {"type": "Army", "nation": "China", "province": "chu"},
+        {"type": "Army", "nation": "France", "province": "han"},
+        {"type": "Fleet", "nation": "France", "province": "sai"},
+        {"type": "Army", "nation": "France", "province": "hue"},
+        {"type": "Fleet", "nation": "Russia", "province": "kha"},
+        {"type": "Fleet", "nation": "Holland", "province": "bor"},
+        {"type": "Fleet", "nation": "Japan", "province": "tok"},
+        {"type": "Fleet", "nation": "Russia", "province": "sev"},
+        {"type": "Army", "nation": "Turkey", "province": "dam"},
+        {"type": "Army", "nation": "Russia", "province": "mos"},
+        {"type": "Army", "nation": "Russia", "province": "irk"},
+        {"type": "Army", "nation": "Turkey", "province": "bag"},
+    ]
 
     for unit_data in units_data:
         nation = Nation.objects.get(variant=canton_variant, name=unit_data["nation"])
-        province = Province.objects.get(variant=canton_variant, province_id=unit_data["province"])
+        province = Province.objects.get(
+            variant=canton_variant, province_id=unit_data["province"]
+        )
 
         Unit.objects.create(
             nation=nation,
             province=province,
             phase=template_phase,
-            type=unit_data["type"]
+            type=unit_data["type"],
         )
 
 
@@ -33,7 +61,9 @@ def remove_canton_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     canton_variant = Variant.objects.get(id="canton")
-    template_phase = Phase.objects.get(game=None, variant=canton_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=canton_variant, status="template"
+    )
     Unit.objects.filter(phase=template_phase).delete()
 
 

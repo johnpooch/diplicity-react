@@ -20,7 +20,9 @@ class NotificationDeviceViewSet(FCMDeviceAuthorizedViewSet):
             user=self.request.user, type=device_type, active=True
         )
         if serializer.instance is not None:
-            other_active_devices = other_active_devices.exclude(id=serializer.instance.id)
+            other_active_devices = other_active_devices.exclude(
+                id=serializer.instance.id
+            )
 
         other_active_devices.deactivate(
             reason="new_token_registered",

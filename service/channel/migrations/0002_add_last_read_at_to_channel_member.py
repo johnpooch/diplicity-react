@@ -7,13 +7,13 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('channel', '0001_initial'),
+        ("channel", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='channelmember',
-            name='last_read_at',
+            model_name="channelmember",
+            name="last_read_at",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
     ]

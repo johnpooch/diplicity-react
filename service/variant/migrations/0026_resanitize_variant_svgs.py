@@ -14,7 +14,9 @@ def resanitize_variant_svgs(apps, schema_editor):
         try:
             sanitized = sanitize_svg(variant_svg.svg)
         except ValueError:
-            logger.warning("Deleting unsanitizable SVG for variant %s", variant_svg.variant_id)
+            logger.warning(
+                "Deleting unsanitizable SVG for variant %s", variant_svg.variant_id
+            )
             variant_svg.delete()
             continue
         if sanitized == variant_svg.svg:

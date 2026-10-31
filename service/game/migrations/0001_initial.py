@@ -9,25 +9,65 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('variant', '0001_initial'),
+        ("variant", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Game',
+            name="Game",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.CharField(max_length=150, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('active', 'Active'), ('completed', 'Completed')], default='pending', max_length=20)),
-                ('private', models.BooleanField(default=False)),
-                ('movement_phase_duration', models.CharField(choices=[('24 hours', '24 hours')], default='24 hours', max_length=20)),
-                ('nation_assignment', models.CharField(choices=[('random', 'Random'), ('ordered', 'Ordered')], default='random', max_length=20)),
-                ('variant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='games', to='variant.variant')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.CharField(max_length=150, primary_key=True, serialize=False),
+                ),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("active", "Active"),
+                            ("completed", "Completed"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                ("private", models.BooleanField(default=False)),
+                (
+                    "movement_phase_duration",
+                    models.CharField(
+                        choices=[("24 hours", "24 hours")],
+                        default="24 hours",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "nation_assignment",
+                    models.CharField(
+                        choices=[("random", "Random"), ("ordered", "Ordered")],
+                        default="random",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "variant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="games",
+                        to="variant.variant",
+                    ),
+                ),
             ],
             options={
-                'indexes': [models.Index(fields=['status'], name='game_game_status_295efa_idx'), models.Index(fields=['variant'], name='game_game_variant_24352b_idx')],
+                "indexes": [
+                    models.Index(fields=["status"], name="game_game_status_295efa_idx"),
+                    models.Index(
+                        fields=["variant"], name="game_game_variant_24352b_idx"
+                    ),
+                ],
             },
         ),
     ]

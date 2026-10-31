@@ -54,7 +54,9 @@ def _own_supports(board: Board, unit: Unit, target: str) -> list[OrderOption]:
         option
         for supporter in board.own_units()
         for option in board.unit_options(supporter)
-        if option["order_type"] == "Support" and option["aux"] == source and option["target"] == target
+        if option["order_type"] == "Support"
+        and option["aux"] == source
+        and option["target"] == target
     ]
 
 
@@ -94,9 +96,15 @@ def _orders(board: Board, unit: Unit) -> list[tuple[OrderOption, list[OrderOptio
     source = board.parent(unit["province"])
     options = board.unit_options(unit)
     moves = [
-        (option, _own_supports(board, unit, option["target"])) for option in options if option["order_type"] == "Move"
+        (option, _own_supports(board, unit, option["target"]))
+        for option in options
+        if option["order_type"] == "Move"
     ]
-    holds = [(option, _own_supports(board, unit, source)) for option in options if option["order_type"] == "Hold"]
+    holds = [
+        (option, _own_supports(board, unit, source))
+        for option in options
+        if option["order_type"] == "Hold"
+    ]
     return [*moves, *holds]
 
 
@@ -128,11 +136,17 @@ def _territory(board: Board, unit: Unit) -> list[str]:
             lines.append(f"    Support hold: {me} S {_unit(occupant)}")
         elif occupant:
             contact = f"{_unit(occupant)} ({occupant['nation'].upper()})"
-            lines.append(f"    -> {contact} can support or contest {me}’s moves and vice-versa")
+            lines.append(
+                f"    -> {contact} can support or contest {me}’s moves and vice-versa"
+            )
 
     paths = _paths(board, unit)
     lines.append("# Nearest units (not ours):")
-    reachable = [other for other in board.foreign_units() if board.parent(other["province"]) in paths]
+    reachable = [
+        other
+        for other in board.foreign_units()
+        if board.parent(other["province"]) in paths
+    ]
     reachable.sort(key=lambda other: len(paths[board.parent(other["province"])]))
     for other in reachable[:NEAREST]:
         lines.append(
@@ -154,22 +168,34 @@ def _territory(board: Board, unit: Unit) -> list[str]:
 
     lines.append(f"# Possible {me} unit movements & supports:")
     for option, supports in _orders(board, unit):
-        occupied = "" if option["order_type"] == "Hold" else f" ({_occupied(board, option['target'])})"
-        lines.append(f"  {option_id(option)}  {_order_text(board, unit, option)}{occupied}")
+        occupied = (
+            ""
+            if option["order_type"] == "Hold"
+            else f" ({_occupied(board, option['target'])})"
+        )
+        lines.append(
+            f"  {option_id(option)}  {_order_text(board, unit, option)}{occupied}"
+        )
         lines.extend(
-            f"    Available Support: {option_id(support)}  {_support_text(board, support)}" for support in supports
+            f"    Available Support: {option_id(support)}  {_support_text(board, support)}"
+            for support in supports
         )
     lines.append(f"</Territory {_code(unit['province'])}>")
     return lines
 
 
 def _summary(board: Board) -> list[str]:
-    lines = ["# Summary of possible orders (not including supports of other powers' units):"]
+    lines = [
+        "# Summary of possible orders (not including supports of other powers' units):"
+    ]
     for unit in board.own_units():
         lines.append(f"## {_unit(unit)} possible orders:")
         for option, supports in _orders(board, unit):
             lines.append(f"{option_id(option)}  {_order_text(board, unit, option)}")
-            lines.extend(f"    {option_id(support)}  {_support_text(board, support)}" for support in supports)
+            lines.extend(
+                f"    {option_id(support)}  {_support_text(board, support)}"
+                for support in supports
+            )
     return lines
 
 
@@ -182,10 +208,17 @@ def _others(board: Board) -> list[str] | None:
     }
     lines = ["Other legal orders (convoys and supports for other powers' units):"]
     for unit in board.own_units():
-        rest = [option for option in board.unit_options(unit) if option_id(option) not in shown]
+        rest = [
+            option
+            for option in board.unit_options(unit)
+            if option_id(option) not in shown
+        ]
         if rest:
             lines.append(f"## {_unit(unit)}:")
-            lines.extend(f"  {option_id(option)}  {_other_text(board, unit, option)}" for option in rest)
+            lines.extend(
+                f"  {option_id(option)}  {_other_text(board, unit, option)}"
+                for option in rest
+            )
     return lines if len(lines) > 1 else None
 
 
@@ -193,12 +226,21 @@ def _game_map(board: Board) -> list[str]:
     nations = sorted(member["nation"] for member in board.context["members"])
     lines = ["GAME MAP", "Unit Locations:"]
     for nation in nations:
-        units = sorted((unit for unit in board.units if unit["nation"] == nation), key=lambda unit: unit["province"])
+        units = sorted(
+            (unit for unit in board.units if unit["nation"] == nation),
+            key=lambda unit: unit["province"],
+        )
         if units:
-            lines.append(f"  {nation.upper()}: {len(units)} units – {', '.join(_unit(unit) for unit in units)}")
+            lines.append(
+                f"  {nation.upper()}: {len(units)} units – {', '.join(_unit(unit) for unit in units)}"
+            )
     lines.extend(["", "Supply Centers:"])
     for nation in nations:
-        centres = sorted(province_id for province_id, owner in board.owners.items() if owner == nation)
+        centres = sorted(
+            province_id
+            for province_id, owner in board.owners.items()
+            if owner == nation
+        )
         if centres:
             codes = ", ".join(_code(centre) for centre in centres)
             lines.append(f"  {nation.upper()}: {len(centres)} supply centers – {codes}")

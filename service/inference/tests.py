@@ -35,7 +35,9 @@ class TestAnthropicInferenceClient:
 
     def test_raises_when_request_fails(self):
         with patch("inference.clients.anthropic.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
+            mock_anthropic.return_value.messages.create.side_effect = RuntimeError(
+                "boom"
+            )
             with pytest.raises(InferenceError):
                 AnthropicInferenceClient("test-key").complete(
                     model="m", system="s", messages=[{"role": "user", "content": "x"}]
@@ -142,7 +144,9 @@ class TestRegistry:
 @pytest.fixture
 def phase_with_member(phase_factory, classical_england_nation):
     phase = phase_factory(
-        phase_states_config=[{"nation": classical_england_nation, "has_possible_orders": True}]
+        phase_states_config=[
+            {"nation": classical_england_nation, "has_possible_orders": True}
+        ]
     )
     return phase, phase.phase_states.get().member
 
@@ -191,7 +195,9 @@ class TestInferenceModel:
 
     def test_latency_ms_computed_from_timestamps(self):
         started = timezone.now()
-        inference = Inference(started_at=started, completed_at=started + timedelta(milliseconds=120))
+        inference = Inference(
+            started_at=started, completed_at=started + timedelta(milliseconds=120)
+        )
         assert inference.latency_ms == 120
 
     def test_latency_ms_none_without_timestamps(self):
@@ -300,7 +306,9 @@ class TestInferenceRun:
             )
 
         assert inference.user_content == "hello"
-        assert complete.call_args.kwargs["messages"] == [{"role": "user", "content": "hello"}]
+        assert complete.call_args.kwargs["messages"] == [
+            {"role": "user", "content": "hello"}
+        ]
 
     @pytest.mark.django_db
     def test_passes_schema_and_max_tokens_to_client(self, phase_with_member):

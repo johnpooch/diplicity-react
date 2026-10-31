@@ -13,7 +13,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--fixture", required=True)
         parser.add_argument("--eval-set", default=settings.EVALS_EVAL_SET)
-        parser.add_argument("--out", default=None, help="directory to write to; defaults to prompts/<fixture>")
+        parser.add_argument(
+            "--out",
+            default=None,
+            help="directory to write to; defaults to prompts/<fixture>",
+        )
 
     def handle(self, *args, **options):
         try:

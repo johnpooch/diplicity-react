@@ -49,9 +49,7 @@ class TestAdjacencyBackfill:
 
     @pytest.mark.django_db
     def test_adjacencies_are_symmetric(self):
-        variant_ids = Province.objects.values_list(
-            "variant_id", flat=True
-        ).distinct()
+        variant_ids = Province.objects.values_list("variant_id", flat=True).distinct()
         for variant_id in variant_ids:
             edges = {
                 (province.province_id, adjacency["to"], adjacency["pass"])

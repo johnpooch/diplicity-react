@@ -14,7 +14,12 @@ class Migration(migrations.Migration):
             model_name="notificationdelivery",
             name="status",
             field=models.CharField(
-                choices=[("pending", "Pending"), ("sent", "Sent"), ("failed", "Failed"), ("expired", "Expired")],
+                choices=[
+                    ("pending", "Pending"),
+                    ("sent", "Sent"),
+                    ("failed", "Failed"),
+                    ("expired", "Expired"),
+                ],
                 default="pending",
                 max_length=20,
             ),

@@ -44,19 +44,34 @@ def opening() -> dict:
     return board().game_state(
         initial["phase"],
         [
-            {"type": unit["type"], "nation": names[unit["nation"]], "province": unit["location"]}
+            {
+                "type": unit["type"],
+                "nation": names[unit["nation"]],
+                "province": unit["location"],
+            }
             for unit in initial["units"]
         ],
-        [{"nation": names[center["nation"]], "province": center["province"]} for center in initial["supplyCenters"]],
+        [
+            {"nation": names[center["nation"]], "province": center["province"]}
+            for center in initial["supplyCenters"]
+        ],
     )
 
 
 def centres(state: dict) -> dict[str, int]:
-    counts = Counter(board().nation_names[center["nation"]] for center in state["supplyCenters"])
+    counts = Counter(
+        board().nation_names[center["nation"]] for center in state["supplyCenters"]
+    )
     return {nation: counts[nation] for nation in nations()}
 
 
-def position(phase: dict, units: list[dict], supply_centers: list[dict], nation: str, options: list[dict]) -> dict:
+def position(
+    phase: dict,
+    units: list[dict],
+    supply_centers: list[dict],
+    nation: str,
+    options: list[dict],
+) -> dict:
     result = {
         "variant": VARIANT,
         "nation": nation,
@@ -119,7 +134,13 @@ def _end(state: dict, nation: str, horizon: int) -> str | None:
     return None
 
 
-async def play(policies: dict[str, Policy], nation: str, *, state: dict | None = None, horizon: int = HORIZON) -> dict:
+async def play(
+    policies: dict[str, Policy],
+    nation: str,
+    *,
+    state: dict | None = None,
+    horizon: int = HORIZON,
+) -> dict:
     state = state or opening()
     phases = []
     while (end := _end(state, nation, horizon)) is None:
@@ -128,7 +149,9 @@ async def play(policies: dict[str, Policy], nation: str, *, state: dict | None =
         supply_centers = board().fixture_supply_centers(state["supplyCenters"])
         orders, answers = {}, {}
         for player, options in sorted(board().options_by_nation(state).items()):
-            turn = await policies[player](position(phase, units, supply_centers, player, options))
+            turn = await policies[player](
+                position(phase, units, supply_centers, player, options)
+            )
             orders[player] = _submitted(options, turn["orders"])
             answer = {key: value for key, value in turn.items() if key != "orders"}
             if answer:

@@ -3,7 +3,11 @@ import pytest
 from common.constants import ProvinceType
 from province.models import Province
 from variant.models import Variant
-from variant.utils import DSVG_HIDDEN_LAYERS, DSVG_LAYER_ORDER, variant_to_canonical_dict
+from variant.utils import (
+    DSVG_HIDDEN_LAYERS,
+    DSVG_LAYER_ORDER,
+    variant_to_canonical_dict,
+)
 
 
 @pytest.fixture
@@ -30,9 +34,11 @@ def make_dsvg():
             if circle_ids is None:
                 return ""
             return "".join(
-                f'<circle id="{circle_id}" cx="0" cy="0" r="10"/>'
-                if circle_id is not None
-                else '<circle r="10"/>'
+                (
+                    f'<circle id="{circle_id}" cx="0" cy="0" r="10"/>'
+                    if circle_id is not None
+                    else '<circle r="10"/>'
+                )
                 for circle_id in circle_ids
             )
 
@@ -156,7 +162,9 @@ def dsvg_variant(db):
     france = Province.objects.create(
         province_id="fra", name="France", type=ProvinceType.COASTAL, variant=variant
     )
-    Province.objects.create(province_id="ger", name="Germany", type=ProvinceType.LAND, variant=variant)
+    Province.objects.create(
+        province_id="ger", name="Germany", type=ProvinceType.LAND, variant=variant
+    )
     Province.objects.create(
         province_id="fra/nc",
         name="France (north coast)",

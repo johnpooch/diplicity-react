@@ -53,7 +53,10 @@ class TestGameCreateView:
     def test_fixed_time_game_nulls_retreat_phase_duration(
         self, authenticated_client, classical_variant
     ):
-        payload = {**fixed_time_payload(classical_variant.id), "retreat_phase_duration": "12 hours"}
+        payload = {
+            **fixed_time_payload(classical_variant.id),
+            "retreat_phase_duration": "12 hours",
+        }
         url = reverse(create_viewname)
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -113,7 +116,10 @@ class TestDraftVariantGameCreate:
         self, authenticated_client, draft_variant_owned_by_secondary
     ):
         url = reverse(create_viewname)
-        payload = {**duration_payload(draft_variant_owned_by_secondary.id), "private": True}
+        payload = {
+            **duration_payload(draft_variant_owned_by_secondary.id),
+            "private": True,
+        }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -122,6 +128,9 @@ class TestDraftVariantGameCreate:
         self, authenticated_client, draft_variant_owned_by_primary
     ):
         url = reverse(create_viewname)
-        payload = {**duration_payload(draft_variant_owned_by_primary.id), "private": False}
+        payload = {
+            **duration_payload(draft_variant_owned_by_primary.id),
+            "private": False,
+        }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST

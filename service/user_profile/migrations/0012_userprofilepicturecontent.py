@@ -6,7 +6,9 @@ from django.db import migrations, models
 
 def copy_pictures_into_database(apps, schema_editor):
     UserProfilePicture = apps.get_model("user_profile", "UserProfilePicture")
-    UserProfilePictureContent = apps.get_model("user_profile", "UserProfilePictureContent")
+    UserProfilePictureContent = apps.get_model(
+        "user_profile", "UserProfilePictureContent"
+    )
     missing_ids = []
     for picture in UserProfilePicture.objects.all():
         try:
@@ -29,7 +31,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="UserProfilePictureContent",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("data", models.BinaryField()),

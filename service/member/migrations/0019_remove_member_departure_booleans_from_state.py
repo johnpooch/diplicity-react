@@ -28,7 +28,9 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.RemoveField(model_name="member", name="legacy_eliminated"),
                 migrations.RemoveField(model_name="member", name="legacy_kicked"),
-                migrations.RemoveField(model_name="member", name="legacy_civil_disorder"),
+                migrations.RemoveField(
+                    model_name="member", name="legacy_civil_disorder"
+                ),
             ],
         ),
     ]

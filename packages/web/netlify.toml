@@ -3,7 +3,7 @@
   publish = "dist"
 
 [context.deploy-preview]
-  command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging-pr-${REVIEW_ID}.up.railway.app npm run build"
+  command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging.up.railway.app VITE_PREFILL_TEST_USER=true npm run build"
 
 # Redirect www to apex so Apple Sign In's postMessage targetOrigin (https://diplicity.com)
 # always matches the page the user is actually on.
@@ -19,3 +19,17 @@
   for = "/*"
   [headers.values]
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Content-Security-Policy = """\
+      default-src 'self'; \
+      script-src 'self' https://appleid.cdn-apple.com https://accounts.google.com/gsi/client https://www.gstatic.com/firebasejs/ https://cdnjs.cloudflare.com/ajax/libs/pako/; \
+      style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; \
+      img-src 'self' data: blob: https://diplicity-react-production.up.railway.app https://diplicity-react-staging.up.railway.app https://*.googleusercontent.com https://play.google.com https://tools.applemediaservices.com; \
+      font-src 'self' data:; \
+      connect-src 'self' https://diplicity-react-production.up.railway.app https://diplicity-react-staging.up.railway.app https://*.sentry.io https://api.honeycomb.io https://accounts.google.com/gsi/ https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com; \
+      frame-src https://accounts.google.com/gsi/; \
+      worker-src 'self' blob:; \
+      object-src 'none'; \
+      base-uri 'self'; \
+      form-action 'self'; \
+      frame-ancestors 'none'\
+    """

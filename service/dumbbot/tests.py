@@ -84,14 +84,16 @@ class TestSelectOrders:
         with patch("dumbbot.policy.PLAY_ALTERNATIVE", 0):
             orders = select_orders(context, rng=random.Random(1))
 
-        assert orders == [{
-            "source": "pic",
-            "order_type": OrderType.MOVE,
-            "target": "par",
-            "aux": None,
-            "unit_type": None,
-            "named_coast": None,
-        }]
+        assert orders == [
+            {
+                "source": "pic",
+                "order_type": OrderType.MOVE,
+                "target": "par",
+                "aux": None,
+                "unit_type": None,
+                "named_coast": None,
+            }
+        ]
 
     def test_never_moves_to_a_province_that_needs_a_convoy(self):
         fixture = _movement_fixture(
@@ -116,7 +118,12 @@ class TestSelectOrders:
                 {"source": "ank", "order_type": "MoveViaConvoy", "target": "sev"},
                 {"source": "bla", "order_type": "Hold"},
                 {"source": "bla", "order_type": "Move", "target": "rum"},
-                {"source": "bla", "order_type": "Convoy", "aux": "ank", "target": "sev"},
+                {
+                    "source": "bla",
+                    "order_type": "Convoy",
+                    "aux": "ank",
+                    "target": "sev",
+                },
             ],
         )
         context = fixture_to_context(fixture)
@@ -147,8 +154,18 @@ class TestSelectOrders:
             ],
             order_options=[
                 {"source": "mid", "order_type": "Hold"},
-                {"source": "mid", "order_type": "Move", "target": "spa", "named_coast": "spa/nc"},
-                {"source": "mid", "order_type": "Move", "target": "spa", "named_coast": "spa/sc"},
+                {
+                    "source": "mid",
+                    "order_type": "Move",
+                    "target": "spa",
+                    "named_coast": "spa/nc",
+                },
+                {
+                    "source": "mid",
+                    "order_type": "Move",
+                    "target": "spa",
+                    "named_coast": "spa/sc",
+                },
                 {"source": "mid", "order_type": "Move", "target": "nat"},
             ],
         )
@@ -166,7 +183,12 @@ class TestSelectOrders:
             phase={"season": "Fall", "year": 1902, "type": "Retreat"},
             nation="Austria",
             units=[
-                {"type": "Army", "nation": "Austria", "province": "tri", "dislodged": True},
+                {
+                    "type": "Army",
+                    "nation": "Austria",
+                    "province": "tri",
+                    "dislodged": True,
+                },
                 {"type": "Army", "nation": "Italy", "province": "tri"},
             ],
             supply_centers=[
@@ -192,7 +214,12 @@ class TestSelectOrders:
             phase={"season": "Fall", "year": 1902, "type": "Retreat"},
             nation="Austria",
             units=[
-                {"type": "Army", "nation": "Austria", "province": "tri", "dislodged": True},
+                {
+                    "type": "Army",
+                    "nation": "Austria",
+                    "province": "tri",
+                    "dislodged": True,
+                },
                 {"type": "Army", "nation": "Italy", "province": "tri"},
                 {"type": "Army", "nation": "Italy", "province": "ser"},
                 {"type": "Army", "nation": "Italy", "province": "alb"},

@@ -20,17 +20,23 @@ def classical_dsvg(classical_variant):
     return classical_variant.svg.svg
 
 
-def _dvar_upload(dvar, dsvg, dvar_filename="upload.dvar.json", dsvg_filename="upload.svg"):
+def _dvar_upload(
+    dvar, dsvg, dvar_filename="upload.dvar.json", dsvg_filename="upload.svg"
+):
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     return {
-        "dvar": SimpleUploadedFile(dvar_filename, json.dumps(dvar).encode(), "application/json"),
+        "dvar": SimpleUploadedFile(
+            dvar_filename, json.dumps(dvar).encode(), "application/json"
+        ),
         "dsvg": SimpleUploadedFile(dsvg_filename, dsvg.encode(), "image/svg+xml"),
     }
 
 
 @pytest.mark.django_db
-def test_create_variant_unauthenticated(unauthenticated_client, classical_dvar, classical_dsvg):
+def test_create_variant_unauthenticated(
+    unauthenticated_client, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "my-draft"
     response = unauthenticated_client.post(
@@ -42,7 +48,9 @@ def test_create_variant_unauthenticated(unauthenticated_client, classical_dvar, 
 
 
 @pytest.mark.django_db
-def test_create_variant_success(authenticated_client, primary_user, classical_dvar, classical_dsvg):
+def test_create_variant_success(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "my-draft"
     dvar["name"] = "My Draft"
@@ -63,7 +71,9 @@ def test_create_variant_success(authenticated_client, primary_user, classical_dv
     assert variant.slug == "my-draft"
     assert variant.official is False
     assert variant.nations.count() == len(dvar["nations"])
-    assert variant.provinces.filter(parent__isnull=True).count() == len(dvar["provinces"])
+    assert variant.provinces.filter(parent__isnull=True).count() == len(
+        dvar["provinces"]
+    )
 
 
 @pytest.mark.django_db
@@ -169,7 +179,9 @@ def test_create_variant_rejects_malformed_dvar(authenticated_client, classical_d
         reverse("variant-list"),
         {
             "dvar": SimpleUploadedFile("bad.json", b"{not json", "application/json"),
-            "dsvg": SimpleUploadedFile("a.svg", classical_dsvg.encode(), "image/svg+xml"),
+            "dsvg": SimpleUploadedFile(
+                "a.svg", classical_dsvg.encode(), "image/svg+xml"
+            ),
         },
         format="multipart",
     )
@@ -177,7 +189,9 @@ def test_create_variant_rejects_malformed_dvar(authenticated_client, classical_d
 
 
 @pytest.mark.django_db
-def test_create_variant_rejects_schema_violation(authenticated_client, classical_dvar, classical_dsvg):
+def test_create_variant_rejects_schema_violation(
+    authenticated_client, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "missing-nations"
     dvar["nations"] = []
@@ -190,7 +204,9 @@ def test_create_variant_rejects_schema_violation(authenticated_client, classical
 
 
 @pytest.mark.django_db
-def test_create_variant_exposes_per_nation_victory_targets(authenticated_client, classical_dvar, classical_dsvg):
+def test_create_variant_exposes_per_nation_victory_targets(
+    authenticated_client, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "per-nation-targets"
     dvar["victoryConditions"] = [
@@ -204,13 +220,18 @@ def test_create_variant_exposes_per_nation_victory_targets(authenticated_client,
     )
     assert response.status_code == status.HTTP_201_CREATED, response.data
     assert response.data["victory_conditions"]["solo_victory_supply_centers"] == 18
-    targets = {nation["nation_id"]: nation["solo_victory_supply_centers"] for nation in response.data["nations"]}
+    targets = {
+        nation["nation_id"]: nation["solo_victory_supply_centers"]
+        for nation in response.data["nations"]
+    }
     assert targets.pop("england") == 15
     assert set(targets.values()) == {18}
 
 
 @pytest.mark.django_db
-def test_create_variant_with_only_nation_targets(authenticated_client, classical_dvar, classical_dsvg):
+def test_create_variant_with_only_nation_targets(
+    authenticated_client, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "override-only"
     dvar["victoryConditions"] = [
@@ -223,7 +244,10 @@ def test_create_variant_with_only_nation_targets(authenticated_client, classical
     )
     assert response.status_code == status.HTTP_201_CREATED, response.data
     assert response.data["victory_conditions"]["solo_victory_supply_centers"] is None
-    targets = {nation["nation_id"]: nation["solo_victory_supply_centers"] for nation in response.data["nations"]}
+    targets = {
+        nation["nation_id"]: nation["solo_victory_supply_centers"]
+        for nation in response.data["nations"]
+    }
     assert targets.pop("england") == 15
     assert set(targets.values()) == {None}
 
@@ -242,14 +266,28 @@ def test_create_variant_with_only_nation_targets(authenticated_client, classical
         ),
         pytest.param(
             [
-                {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"},
-                {"type": "supply-center-majority", "supplyCenters": 16, "nation": "england"},
+                {
+                    "type": "supply-center-majority",
+                    "supplyCenters": 15,
+                    "nation": "england",
+                },
+                {
+                    "type": "supply-center-majority",
+                    "supplyCenters": 16,
+                    "nation": "england",
+                },
             ],
             "DUPLICATE_VICTORY_CONDITION",
             id="duplicate_override",
         ),
         pytest.param(
-            [{"type": "supply-center-majority", "supplyCenters": 15, "nation": "atlantis"}],
+            [
+                {
+                    "type": "supply-center-majority",
+                    "supplyCenters": 15,
+                    "nation": "atlantis",
+                }
+            ],
             "UNKNOWN_NATION",
             id="unknown_nation",
         ),
@@ -316,7 +354,9 @@ def test_update_own_draft_success(authenticated_client, classical_dvar, classica
 
 
 @pytest.mark.django_db
-def test_update_published_variant_forbidden(authenticated_client, classical_dvar, classical_dsvg):
+def test_update_published_variant_forbidden(
+    authenticated_client, classical_dvar, classical_dsvg
+):
     response = authenticated_client.put(
         reverse("variant-detail", kwargs={"pk": "classical"}),
         _dvar_upload(classical_dvar, classical_dsvg),
@@ -327,7 +367,10 @@ def test_update_published_variant_forbidden(authenticated_client, classical_dvar
 
 @pytest.mark.django_db
 def test_update_other_users_draft_forbidden(
-    authenticated_client, authenticated_client_for_secondary_user, classical_dvar, classical_dsvg
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    classical_dvar,
+    classical_dsvg,
 ):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "owned-by-secondary"
@@ -344,7 +387,7 @@ def test_update_other_users_draft_forbidden(
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
-    assert update_response.status_code == status.HTTP_404_NOT_FOUND
+    assert update_response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
@@ -446,7 +489,9 @@ def test_download_then_reupload_roundtrips(
 
 
 @pytest.mark.django_db
-def test_game_create_rejects_draft_variant(authenticated_client, primary_user, classical_dvar, classical_dsvg):
+def test_game_create_rejects_draft_variant(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-game"
     create_response = authenticated_client.post(
@@ -489,10 +534,14 @@ def test_dvar_reupload_preserves_flags_for_surviving_nations(
     variant_id = create_response.data["id"]
 
     flag_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
-    flag_upload = {"flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")}
+    flag_upload = {
+        "flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")
+    }
     assert (
         authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": variant_id, "nation_id": "england"}),
+            reverse(
+                "nation-flag", kwargs={"variant_id": variant_id, "nation_id": "england"}
+            ),
             flag_upload,
             format="multipart",
         ).status_code
@@ -533,10 +582,14 @@ def test_dvar_reupload_drops_flags_for_removed_nations(
     variant_id = create_response.data["id"]
 
     flag_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'
-    flag_upload = {"flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")}
+    flag_upload = {
+        "flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")
+    }
     assert (
         authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": variant_id, "nation_id": "england"}),
+            reverse(
+                "nation-flag", kwargs={"variant_id": variant_id, "nation_id": "england"}
+            ),
             flag_upload,
             format="multipart",
         ).status_code
@@ -574,7 +627,9 @@ def test_dvar_reupload_drops_flags_for_removed_nations(
 
 
 @pytest.mark.django_db
-def test_retrieve_variant_includes_province_map_data(authenticated_client, classical_variant):
+def test_retrieve_variant_includes_province_map_data(
+    authenticated_client, classical_variant
+):
     response = authenticated_client.get(
         reverse("variant-detail", kwargs={"pk": "classical"}),
     )
@@ -624,7 +679,9 @@ def test_create_variant_preserves_unit_scaling(
     assert response.data["unit_scaling"] == 0.5
     assert Variant.objects.get(id=response.data["id"]).unit_scaling == 0.5
 
-    roundtripped = variant_to_canonical_dict(Variant.objects.get(id=response.data["id"]))
+    roundtripped = variant_to_canonical_dict(
+        Variant.objects.get(id=response.data["id"])
+    )
     assert roundtripped["unitScaling"] == 0.5
 
 
@@ -684,7 +741,9 @@ def test_create_variant_rejects_unit_scaling_above_maximum(
 
 
 @pytest.mark.django_db
-def test_sandbox_game_accepts_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
+def test_sandbox_game_accepts_draft_variant(
+    authenticated_client, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-sandbox"
     create_response = authenticated_client.post(

@@ -12,7 +12,7 @@ from member.models import Member
 from phase.models import PhaseState
 from common.constants import GameStatus, PhaseStatus
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame
-from common.views import SelectedGameMixin
+from common.views import IMAGE_CONTENT_SECURITY_POLICY, SelectedGameMixin
 from .models import UserProfile, UserProfilePicture, UserProfilePictureContent
 from .serializers import (
     AddableUserSerializer,
@@ -69,6 +69,7 @@ class UserProfilePictureImageView(View):
 
         response = HttpResponse(content.data, content_type=content.picture.content_type)
         response["Cache-Control"] = "public, max-age=31536000, immutable"
+        response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response
 
 
@@ -78,22 +79,23 @@ class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
 
     def get_object(self):
         user_id = self.kwargs["user_id"]
-        return get_object_or_404(UserProfile.objects.with_related_data().with_commitment_total(), user_id=user_id)
+        return get_object_or_404(
+            UserProfile.objects.with_related_data().with_commitment_total(),
+            user_id=user_id,
+        )
 
 
 class AddableUserListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager, CanUseBotOpponent]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingGame,
+        IsGameManager,
+        CanUseBotOpponent,
+    ]
     serializer_class = AddableUserSerializer
 
     def get_queryset(self):
         return UserProfile.objects.addable_to_game(self.get_game())
-
-
-@extend_schema(exclude=True)
-class LegacyAvailableBotListView(AddableUserListView):
-    """Serves GET /game/<id>/available-bots/ for mobile builds shipped before the
-    endpoint was renamed. Kept out of the schema so codegen only ever emits the
-    current path. Remove once those builds are out of circulation."""
 
 
 class UserAccountDeleteView(generics.DestroyAPIView):

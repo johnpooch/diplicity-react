@@ -39,7 +39,8 @@ def board_lines(context: Context, keep: set[str]) -> list[str]:
             {
                 **province,
                 "adjacencies": ", ".join(
-                    render_part("user.board.adjacency", adjacency) for adjacency in province["adjacencies"]
+                    render_part("user.board.adjacency", adjacency)
+                    for adjacency in province["adjacencies"]
                 ),
             },
         )
@@ -57,7 +58,9 @@ class Board:
         self.provinces = {province["id"]: province for province in context["provinces"]}
         self.units = [unit for unit in context["units"] if not unit["dislodged"]]
         self.unit_at = {self.parent(unit["province"]): unit for unit in self.units}
-        self.owners = {center["province"]: center["nation"] for center in context["supply_centers"]}
+        self.owners = {
+            center["province"]: center["nation"] for center in context["supply_centers"]
+        }
         self.options = context["order_options"]
 
     def name(self, province_id: str) -> str:
@@ -97,7 +100,11 @@ class Board:
         return f"{self.letter(unit)} {self.name(unit['province'])}"
 
     def owned_short(self, unit: Unit) -> str:
-        return f"your {self.short(unit)}" if self.mine(unit) else f"{unit['nation']} {self.short(unit)}"
+        return (
+            f"your {self.short(unit)}"
+            if self.mine(unit)
+            else f"{unit['nation']} {self.short(unit)}"
+        )
 
     def unit_line(self, unit: Unit) -> str:
         return render_part(
@@ -112,7 +119,11 @@ class Board:
         )
 
     def fleet_name(self, unit: Unit) -> str:
-        return self.unit_name(unit) if self.mine(unit) else f"{unit['nation']} {self.unit_name(unit)}"
+        return (
+            self.unit_name(unit)
+            if self.mine(unit)
+            else f"{unit['nation']} {self.unit_name(unit)}"
+        )
 
     def supply_centre_note(self, province_id: str) -> str | None:
         if province_id not in self.owners:
@@ -133,7 +144,11 @@ class Board:
         if unit_type == "Army":
             province = self.provinces[self.parent(node)]
         allows = unit_type.lower()
-        return [adjacency["to"] for adjacency in province["adjacencies"] if allows in adjacency["allows"]]
+        return [
+            adjacency["to"]
+            for adjacency in province["adjacencies"]
+            if allows in adjacency["allows"]
+        ]
 
     def reach(self, node: str, unit_type: str) -> list[str]:
         seen: list[str] = []
@@ -150,18 +165,24 @@ class Board:
         return [
             unit
             for unit in self.foreign_units()
-            if not any(unit is other for other in skipped) and self.can_move(unit, province_id)
+            if not any(unit is other for other in skipped)
+            and self.can_move(unit, province_id)
         ]
 
     def convoy_targets(self, unit: Unit) -> list[str]:
-        return [option["target"] for option in self.unit_options(unit) if option["order_type"] == "MoveViaConvoy"]
+        return [
+            option["target"]
+            for option in self.unit_options(unit)
+            if option["order_type"] == "MoveViaConvoy"
+        ]
 
     def _fleet_seas(self, avoid: str | None) -> set[str]:
         return {
             self.parent(unit["province"])
             for unit in self.units
             if unit["type"] == "Fleet"
-            and self.provinces.get(self.parent(unit["province"]), {}).get("type") == "sea"
+            and self.provinces.get(self.parent(unit["province"]), {}).get("type")
+            == "sea"
             and self.parent(unit["province"]) != avoid
         }
 
@@ -169,7 +190,9 @@ class Board:
         return province_id in self.reach(sea, "Fleet")
 
     def _sea_path(self, origin: str, done, seas: set[str]) -> list[str] | None:
-        queue = deque([[sea] for sea in self.neighbours(origin, "Fleet") if sea in seas])
+        queue = deque(
+            [[sea] for sea in self.neighbours(origin, "Fleet") if sea in seas]
+        )
         seen = {path[0] for path in queue}
         while queue:
             path = queue.popleft()
@@ -181,11 +204,15 @@ class Board:
                     queue.append([*path, neighbour])
         return None
 
-    def convoy_route(self, army: str, target: str, avoid: str | None = None) -> list[str] | None:
+    def convoy_route(
+        self, army: str, target: str, avoid: str | None = None
+    ) -> list[str] | None:
         seas = self._fleet_seas(avoid)
         return self._sea_path(army, lambda sea: self._touches(sea, target), seas)
 
-    def convoy_route_through(self, army: str, target: str, fleet: str) -> list[str] | None:
+    def convoy_route_through(
+        self, army: str, target: str, fleet: str
+    ) -> list[str] | None:
         seas = self._fleet_seas(None)
         to_fleet = self._sea_path(army, lambda sea: sea == fleet, seas)
         if to_fleet is None:
@@ -228,15 +255,27 @@ class Board:
 
     def near_province_ids(self, limit: int) -> list[str]:
         near = self.near(limit)
-        return [province["id"] for province in self.context["provinces"] if self.parent(province["id"]) in near]
+        return [
+            province["id"]
+            for province in self.context["provinces"]
+            if self.parent(province["id"]) in near
+        ]
 
     def near_foreign_units(self, limit: int) -> list[Unit]:
         near = self.near(limit)
-        return [unit for unit in self.foreign_units() if self.parent(unit["province"]) in near]
+        return [
+            unit
+            for unit in self.foreign_units()
+            if self.parent(unit["province"]) in near
+        ]
 
     def centre_names(self, nation: str | None) -> list[str]:
         centers = self.context["supply_centers"]
-        return [self.name(center["province"]) for center in centers if center["nation"] == nation]
+        return [
+            self.name(center["province"])
+            for center in centers
+            if center["nation"] == nation
+        ]
 
     def powers_summary(self) -> str:
         lines = ["Powers (supply centres / units):"]
@@ -250,7 +289,9 @@ class Board:
             )
         unowned = self.centre_names(None)
         if unowned:
-            lines.append(f"  Unowned: {plural(len(unowned), 'SC')} ({', '.join(unowned)})")
+            lines.append(
+                f"  Unowned: {plural(len(unowned), 'SC')} ({', '.join(unowned)})"
+            )
         return "\n".join(lines)
 
     def move_note(self, province_id: str) -> str:

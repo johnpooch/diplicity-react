@@ -57,15 +57,23 @@ def _submit_orders_from_context(api, data, game_id, user_id, label, kind):
         orders = first_legal_options(options)
     else:
         covered = {order["source"] for order in orders}
-        missing = [option for option in first_legal_options(options) if option["source"] not in covered]
+        missing = [
+            option
+            for option in first_legal_options(options)
+            if option["source"] not in covered
+        ]
         if missing:
-            logger.info(f"[{label}] filling {len(missing)} unit(s) with first-legal selection")
+            logger.info(
+                f"[{label}] filling {len(missing)} unit(s) with first-legal selection"
+            )
             orders = orders + missing
 
     phase_states = data["phase_states"]
     max_orders = phase_states[0].get("max_orders") if phase_states else None
     if max_orders is not None and len(orders) > max_orders:
-        logger.info(f"[{label}] capping {len(orders)} selection(s) to max_orders={max_orders}")
+        logger.info(
+            f"[{label}] capping {len(orders)} selection(s) to max_orders={max_orders}"
+        )
         orders = orders[:max_orders]
 
     api.submit_orders(game_id, [option_to_selected(order) for order in orders])
@@ -78,7 +86,9 @@ def plan(user_id, game_id):
     api = ApiClient.for_user(user_id)
     try:
         data = fetch_context(api, game_id)
-        _submit_orders_from_context(api, data, game_id, user_id, label, _bot_kind(user_id))
+        _submit_orders_from_context(
+            api, data, game_id, user_id, label, _bot_kind(user_id)
+        )
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
         return
@@ -96,7 +106,9 @@ def finalize(user_id, game_id):
         if data["game"].get("phase_confirmed"):
             logger.info(f"[{label}] orders already confirmed; skipping")
             return
-        _submit_orders_from_context(api, data, game_id, user_id, label, _bot_kind(user_id))
+        _submit_orders_from_context(
+            api, data, game_id, user_id, label, _bot_kind(user_id)
+        )
         api.confirm_phase(game_id)
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
@@ -134,7 +146,9 @@ def reply(user_id, game_id, channel_id):
 
     max_chars = settings.CHAT_MESSAGE_MAX_CHARS
     if len(reply_text) > max_chars:
-        logger.info(f"[{label}] reply is {len(reply_text)} chars; truncating to {max_chars}")
+        logger.info(
+            f"[{label}] reply is {len(reply_text)} chars; truncating to {max_chars}"
+        )
         reply_text = reply_text[:max_chars].rstrip()
 
     try:
@@ -159,7 +173,11 @@ def _dispatch(task):
 @app.task(name="agent.run", retry=3)
 def run(agent_task_id):
     label = f"agent.run task={agent_task_id}"
-    task = AgentTask.objects.select_related("member", "message").filter(id=agent_task_id).first()
+    task = (
+        AgentTask.objects.select_related("member", "message")
+        .filter(id=agent_task_id)
+        .first()
+    )
     if task is None:
         logger.error(f"[{label}] no agent task found; skipping")
         return

@@ -25,7 +25,11 @@ def _spring_1901():
     return [
         fixture
         for fixture in load_fixtures(OPENING)
-        if (fixture["phase"]["season"], fixture["phase"]["year"], fixture["phase"]["type"])
+        if (
+            fixture["phase"]["season"],
+            fixture["phase"]["year"],
+            fixture["phase"]["type"],
+        )
         == ("Spring", 1901, "Movement")
     ]
 
@@ -39,7 +43,9 @@ def _logged_user_prompts():
         variant = Path(args.get("user_file") or "").stem
         if args.get("fixture_id") == P2_ENGLAND and variant in VARIANTS:
             sample = read_eval_log_sample(str(path), id=P2_ENGLAND, epoch=1)
-            prompts[variant] = next(message.text for message in sample.input if message.role == "user")
+            prompts[variant] = next(
+                message.text for message in sample.input if message.role == "user"
+            )
     return prompts
 
 
@@ -55,11 +61,15 @@ class TestVariants:
         fixtures = _spring_1901()
         assert len(fixtures) == 7
         for fixture in fixtures:
-            fixture_to_sample(fixture, user=VARIANTS[variant](fixture_to_context(fixture)))
+            fixture_to_sample(
+                fixture, user=VARIANTS[variant](fixture_to_context(fixture))
+            )
 
     def test_fleet_on_a_named_coast_moves_from_that_coast(self):
         text = own_units_first.build(_context("russia_spring_1901"))
-        fleet = text.split("  Fleet St. Petersburg (SC) (stp/sc)\n")[1].split("\n  Army")[0]
+        fleet = text.split("  Fleet St. Petersburg (SC) (stp/sc)\n")[1].split(
+            "\n  Army"
+        )[0]
         assert [line.split(" [")[0].strip() for line in fleet.splitlines()[1:]] == [
             "Gulf of Bothnia (bot)",
             "Finland (fin)",
@@ -78,25 +88,48 @@ class TestBuildPrompts:
 
     def test_writes_each_variant_for_each_fixture(self, tmp_path):
         self._build(tmp_path, season="Spring", year=1901)
-        written = sorted(path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*.txt"))
-        expected = sorted(f"{fixture['id']}/{variant}.txt" for fixture in _spring_1901() for variant in VARIANTS)
+        written = sorted(
+            path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*.txt")
+        )
+        expected = sorted(
+            f"{fixture['id']}/{variant}.txt"
+            for fixture in _spring_1901()
+            for variant in VARIANTS
+        )
         assert written == expected
 
     def test_written_prompt_is_the_variant_text(self, tmp_path):
-        self._build(tmp_path, fixture="england_spring_1901", variant=["user_2_contest_table"])
-        text = (tmp_path / "england_spring_1901" / "user_2_contest_table.txt").read_text()
-        assert text == f"{VARIANTS['user_2_contest_table'](_context('england_spring_1901'))}\n"
+        self._build(
+            tmp_path, fixture="england_spring_1901", variant=["user_2_contest_table"]
+        )
+        text = (
+            tmp_path / "england_spring_1901" / "user_2_contest_table.txt"
+        ).read_text()
+        assert (
+            text
+            == f"{VARIANTS['user_2_contest_table'](_context('england_spring_1901'))}\n"
+        )
 
     def test_rebuilding_leaves_an_unchanged_prompt(self, tmp_path):
-        self._build(tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"])
-        self._build(tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"])
+        self._build(
+            tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"]
+        )
+        self._build(
+            tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"]
+        )
 
     def test_refuses_to_overwrite_an_edited_prompt(self, tmp_path):
-        self._build(tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"])
+        self._build(
+            tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"]
+        )
         path = tmp_path / "england_spring_1901" / "user_5_distance_rings.txt"
         path.write_text(path.read_text() + "Think carefully.\n")
         with pytest.raises(CommandError):
-            self._build(tmp_path, fixture="england_spring_1901", variant=["user_5_distance_rings"])
+            self._build(
+                tmp_path,
+                fixture="england_spring_1901",
+                variant=["user_5_distance_rings"],
+            )
 
     def test_no_matching_fixture_raises(self, tmp_path):
         with pytest.raises(CommandError):

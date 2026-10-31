@@ -13,7 +13,6 @@ UNTRACED_PATHS = [
 
 POLLED_PATHS = [
     re.compile(r"^/game/[^/]+/$"),
-    re.compile(r"^/games/[^/]+/channels/$"),
     re.compile(r"^/games/[^/]+/channel-previews/$"),
     re.compile(r"^/games/[^/]+/channels/\d+/$"),
 ]
@@ -27,6 +26,8 @@ def traces_sampler(sampling_context):
     path = environ.get("PATH_INFO", "")
     if any(pattern.match(path) for pattern in UNTRACED_PATHS):
         return 0
-    if environ.get("REQUEST_METHOD") == "GET" and any(pattern.match(path) for pattern in POLLED_PATHS):
+    if environ.get("REQUEST_METHOD") == "GET" and any(
+        pattern.match(path) for pattern in POLLED_PATHS
+    ):
         return POLLED_TRACES_SAMPLE_RATE
     return DEFAULT_TRACES_SAMPLE_RATE

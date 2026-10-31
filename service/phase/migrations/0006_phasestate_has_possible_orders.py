@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('phase', '0005_add_hundred_template_phase'),
+        ("phase", "0005_add_hundred_template_phase"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='phasestate',
-            name='has_possible_orders',
+            model_name="phasestate",
+            name="has_possible_orders",
             field=models.BooleanField(default=False),
         ),
     ]

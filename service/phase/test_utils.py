@@ -5,16 +5,24 @@ import pytest
 from django.utils import timezone
 
 from common.constants import PhaseFrequency
-from phase.utils import calculate_next_fixed_deadline, compress_deadline, deadline_warning_offset, FREQUENCY_INTERVALS
+from phase.utils import (
+    calculate_next_fixed_deadline,
+    compress_deadline,
+    deadline_warning_offset,
+    FREQUENCY_INTERVALS,
+)
 
 
 class TestCalculateNextFixedDeadline:
 
-    @pytest.mark.parametrize("frequency", [
-        PhaseFrequency.DAILY,
-        PhaseFrequency.EVERY_2_DAYS,
-        PhaseFrequency.WEEKLY,
-    ])
+    @pytest.mark.parametrize(
+        "frequency",
+        [
+            PhaseFrequency.DAILY,
+            PhaseFrequency.EVERY_2_DAYS,
+            PhaseFrequency.WEEKLY,
+        ],
+    )
     def test_returns_future_datetime(self, frequency):
         target_time = time(21, 0)
         tz_name = "America/New_York"
@@ -24,7 +32,9 @@ class TestCalculateNextFixedDeadline:
     def test_hourly_subsequent_advances_to_next_minute_mark(self):
         target_time = time(21, 0)
         tz_name = "America/New_York"
-        reference = datetime(2024, 6, 15, 14, 30, 0, tzinfo=ZoneInfo("America/New_York"))
+        reference = datetime(
+            2024, 6, 15, 14, 30, 0, tzinfo=ZoneInfo("America/New_York")
+        )
 
         result = calculate_next_fixed_deadline(
             target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference
@@ -51,10 +61,16 @@ class TestCalculateNextFixedDeadline:
     def test_hourly_first_phase_uses_target_time_plus_interval(self):
         target_time = time(15, 0)
         tz_name = "America/New_York"
-        reference = datetime(2024, 6, 15, 13, 47, 0, tzinfo=ZoneInfo("America/New_York"))
+        reference = datetime(
+            2024, 6, 15, 13, 47, 0, tzinfo=ZoneInfo("America/New_York")
+        )
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.HOURLY,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -65,10 +81,16 @@ class TestCalculateNextFixedDeadline:
     def test_hourly_first_phase_target_passed_advances_to_next_day(self):
         target_time = time(15, 0)
         tz_name = "America/New_York"
-        reference = datetime(2024, 6, 15, 15, 30, 0, tzinfo=ZoneInfo("America/New_York"))
+        reference = datetime(
+            2024, 6, 15, 15, 30, 0, tzinfo=ZoneInfo("America/New_York")
+        )
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.HOURLY,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -82,7 +104,11 @@ class TestCalculateNextFixedDeadline:
         reference = datetime(2024, 6, 15, 13, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.HOURLY,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -135,7 +161,11 @@ class TestCalculateNextFixedDeadline:
         reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.DAILY, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.DAILY,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -148,7 +178,11 @@ class TestCalculateNextFixedDeadline:
         reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.DAILY, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.DAILY,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -187,7 +221,11 @@ class TestCalculateNextFixedDeadline:
         reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.EVERY_2_DAYS, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.EVERY_2_DAYS,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -227,7 +265,11 @@ class TestCalculateNextFixedDeadline:
         reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
         result = calculate_next_fixed_deadline(
-            target_time, PhaseFrequency.WEEKLY, tz_name, reference_time=reference, is_first_phase=True
+            target_time,
+            PhaseFrequency.WEEKLY,
+            tz_name,
+            reference_time=reference,
+            is_first_phase=True,
         )
 
         local_result = result.astimezone(ZoneInfo(tz_name))
@@ -270,14 +312,18 @@ class TestCalculateNextFixedDeadline:
         target_time = time(21, 0)
         tz_name = "America/New_York"
 
-        result = calculate_next_fixed_deadline(target_time, PhaseFrequency.DAILY, tz_name)
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.DAILY, tz_name
+        )
         assert result > timezone.now()
 
     def test_result_is_timezone_aware(self):
         target_time = time(21, 0)
         tz_name = "America/New_York"
 
-        result = calculate_next_fixed_deadline(target_time, PhaseFrequency.DAILY, tz_name)
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.DAILY, tz_name
+        )
         assert result.tzinfo is not None
 
 
@@ -396,13 +442,18 @@ class TestCompressDeadline:
 
         assert result == NOW + timedelta(hours=200)
 
-    @pytest.mark.parametrize("frequency", [
-        PhaseFrequency.HOURLY,
-        PhaseFrequency.DAILY,
-        PhaseFrequency.EVERY_2_DAYS,
-        PhaseFrequency.WEEKLY,
-    ])
-    @pytest.mark.parametrize("cycles", [1.0, 1.1, 1.5, 1.99, 2.0, 2.5, 3.0, 3.5, 5.0, 10.0])
+    @pytest.mark.parametrize(
+        "frequency",
+        [
+            PhaseFrequency.HOURLY,
+            PhaseFrequency.DAILY,
+            PhaseFrequency.EVERY_2_DAYS,
+            PhaseFrequency.WEEKLY,
+        ],
+    )
+    @pytest.mark.parametrize(
+        "cycles", [1.0, 1.1, 1.5, 1.99, 2.0, 2.5, 3.0, 3.5, 5.0, 10.0]
+    )
     def test_result_always_lands_in_one_to_two_cycle_range(self, frequency, cycles):
         interval = FREQUENCY_INTERVALS[frequency]
         next_deadline = NOW + interval * cycles
@@ -412,12 +463,15 @@ class TestCompressDeadline:
         run = result - NOW
         assert interval <= run < 2 * interval
 
-    @pytest.mark.parametrize("frequency", [
-        PhaseFrequency.HOURLY,
-        PhaseFrequency.DAILY,
-        PhaseFrequency.EVERY_2_DAYS,
-        PhaseFrequency.WEEKLY,
-    ])
+    @pytest.mark.parametrize(
+        "frequency",
+        [
+            PhaseFrequency.HOURLY,
+            PhaseFrequency.DAILY,
+            PhaseFrequency.EVERY_2_DAYS,
+            PhaseFrequency.WEEKLY,
+        ],
+    )
     @pytest.mark.parametrize("cycles", [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 5.0, 10.0])
     def test_compression_only_subtracts_whole_intervals(self, frequency, cycles):
         interval = FREQUENCY_INTERVALS[frequency]
@@ -450,4 +504,6 @@ class TestDeadlineWarningOffset:
 
     @pytest.mark.parametrize("duration_seconds", [60, 5 * 60, 15 * 60, 30 * 60])
     def test_short_phase_is_warned_after_it_opens(self, duration_seconds):
-        assert deadline_warning_offset(duration_seconds) < timedelta(seconds=duration_seconds)
+        assert deadline_warning_offset(duration_seconds) < timedelta(
+            seconds=duration_seconds
+        )

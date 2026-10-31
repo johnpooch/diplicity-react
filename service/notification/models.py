@@ -22,7 +22,10 @@ class NotificationManager(models.Manager):
         if not recipient_ids:
             return []
         notifications = self.bulk_create(
-            [self.model(recipient_id=rid, event_type=event_type) for rid in recipient_ids]
+            [
+                self.model(recipient_id=rid, event_type=event_type)
+                for rid in recipient_ids
+            ]
         )
         NotificationDelivery.objects.broadcast(notifications, spec)
         return notifications
@@ -43,7 +46,10 @@ class Notification(BaseModel):
 class NotificationDeliveryManager(models.Manager):
     def broadcast(self, notifications, spec):
         content = spec.render()
-        deliveries = [self.model(notification=notification, **content) for notification in notifications]
+        deliveries = [
+            self.model(notification=notification, **content)
+            for notification in notifications
+        ]
         if not deliveries:
             return []
         self.bulk_create(deliveries)
@@ -58,7 +64,9 @@ class NotificationDeliveryManager(models.Manager):
         stale = [d for d in deliveries if d.created_at < cutoff]
         if not stale:
             return deliveries
-        self.filter(id__in=[d.id for d in stale]).update(status=self.model.Status.EXPIRED)
+        self.filter(id__in=[d.id for d in stale]).update(
+            status=self.model.Status.EXPIRED
+        )
         return [d for d in deliveries if d.created_at >= cutoff]
 
 
@@ -74,14 +82,18 @@ class NotificationDelivery(BaseModel):
 
     objects = NotificationDeliveryManager()
 
-    notification = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name="deliveries")
+    notification = models.ForeignKey(
+        Notification, on_delete=models.CASCADE, related_name="deliveries"
+    )
     channel = models.CharField(max_length=20, choices=Channel.choices)
     heading = models.CharField(max_length=255)
     body = models.TextField()
     link = models.CharField(max_length=500, null=True, blank=True)
     data = models.JSONField(null=True, blank=True)
     tag = models.CharField(max_length=PUSH_TAG_MAX_LENGTH, null=True, blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
     error = models.TextField(null=True, blank=True)
 
     class Meta:

@@ -90,31 +90,34 @@ Check https://status.railway.com for platform-wide incidents.
 
 # PR Staging Environments
 
-PRs can be deployed to an isolated staging environment with a copy of the production database — useful for testing migrations against real data or validating end-to-end behavior.
+Staging is one persistent Railway environment at https://diplicity-react-staging.up.railway.app. It has its own Postgres and allowlisted variables, with no production data or secrets. Never fork production or restore its database into staging.
 
 ## Deploy
 
-Add the `deploy-to-staging` label to a PR. `.github/workflows/pr-staging.yml` will:
-1. Find or create a Railway environment (`staging-pr-<number>`)
-2. Clone the production database via `pg_dump`/`pg_restore`, then delete every push device token (`fcm_django_fcmdevice`)
-3. Configure CORS/ALLOWED_HOSTS for the staging domain, and blank `FIREBASE_PROJECT_ID` on both the Django and worker services. Staging is forked from production and resolves real games' phases, so it must never be able to push to real players' phones
-4. Set `SEED_STAGING_DATA=True`, so the Django entrypoint runs `seed_staging --skip-if-seeded` before Gunicorn starts. This seeds `test-user@example.com` / `password` with games in a range of states. A container restart skips the seed; a redeploy re-clones the database and so seeds again.
-5. Deploy the PR branch
-6. Comment on the PR with the frontend preview and staging backend URLs
+Add the `deploy-to-staging` label to a same-repository PR. `.github/workflows/pr-staging.yml` resolves the target from current labels after acquiring the shared `staging` concurrency group, with cancellation disabled. The latest request wins, including requests whose queued runs were replaced.
 
-The Netlify deploy preview automatically derives the staging backend URL from the PR number (`packages/web/netlify.toml` uses `REVIEW_ID`).
+1. Build `service/Dockerfile`'s production target with the commit's `GIT_SHA`, using the GitHub Actions layer cache, and push `ghcr.io/johnpooch/diplicity-service:<full sha>`.
+2. Point the staging Django instance at the image and deploy it. Its existing pre-deploy command resets the schema; startup migrates and runs `seed_staging --skip-if-seeded`.
+3. Wait for that exact deployment to succeed, then deploy and wait for the worker at the same image tag.
+4. Smoke-test email login and the test account's paginated games list.
+5. Comment on the target PR with its branch and SHA, backend, Netlify preview and run links, plus the test login.
+
+The backend is shared by every Netlify preview (`https://deploy-preview-<number>--diplicity-react.netlify.app`). Previews pre-fill `test-user@example.com` / `password`. Email/password login is available; Google OAuth is not configured.
 
 ## Redeploy
 
-Add the `deploy-to-staging` label again — the workflow reuses the existing environment and re-clones the database.
+The label stays on the holder. Pushing to it redeploys its current head; pushing to another PR skips deployment. Deploying a different PR removes the label from every other open PR and comments on each displaced PR. Fork PRs are skipped without credentials.
 
-## Teardown
+Every deployment resets the schema before migrations and seeds fresh data. Restarts do not reset it. Failed pre-deploy, migrations or seeding fail the deployment; staging may be broken until the next successful deploy. A failed image build never changes Railway.
 
-Staging environments are automatically deleted when the PR is closed or merged.
+## Return to main
 
-## Details
+A push to `main` or a manual **PR Staging Environment** workflow run deploys `main` and removes the label from open PRs, with a moved comment. Closing or merging the holder deploys another labelled open PR if one exists, otherwise `main`. Closing a non-holder does nothing. The environment is never torn down.
 
-- Email/password login only — Google OAuth is not configured for staging
-- One staging environment per PR (no shared pool)
-- Railway GraphQL API manages environments (not the CLI)
-- Railway project ID: `39039c2c-4f5d-4a37-8c0d-f8e4279fce61`
+## Safety
+
+- Railway project: `39039c2c-4f5d-4a37-8c0d-f8e4279fce61`; staging environment: `3082daa9-9287-4eef-9439-162ab737beb8`.
+- Production environment `0372f6a0-88ab-4a58-b472-16789135ad71` is guarded against all mutations. Never delete a production repo trigger when switching staging to images.
+- The workflow uses `RAILWAY_ACCOUNT_TOKEN` for GraphQL. Do not add staging variables or change the pre-deploy command.
+- Images must be publicly pullable. If GHCR creates a private package, ask John to make it public; do not add registry credentials.
+- Do not remove `DATABASE_PUBLIC_URL` or `RAILWAY_TOKEN`; bundle releases still use them.

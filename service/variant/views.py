@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from common.constants import VariantStatus
 from common.etag import if_none_match
 from common.permissions import IsOwnedDraftForWrite
+from common.views import IMAGE_CONTENT_SECURITY_POLICY
 from nation.models import NationFlag
 from province.models import Province
 from .models import Variant, VariantSvg
@@ -57,7 +58,9 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return [AllowAny()]
 
     def get_queryset(self):
-        return Variant.objects.filter(status=VariantStatus.PUBLISHED).with_related_data()
+        return Variant.objects.filter(
+            status=VariantStatus.PUBLISHED
+        ).with_related_data()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -102,7 +105,7 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = [MultiPartParser]
 
     def get_queryset(self):
-        return Variant.objects.visible_to(self.request.user).with_related_data()
+        return Variant.objects.with_related_data()
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -132,24 +135,29 @@ class VariantDvarDownloadView(generics.GenericAPIView):
     lookup_url_kwarg = "variant_id"
 
     def get_queryset(self):
-        return Variant.objects.visible_to(self.request.user).with_related_data()
+        return Variant.objects.with_related_data()
 
     def get(self, request, *args, **kwargs):
         variant = self.get_object()
         dvar = variant_to_canonical_dict(variant)
         body = json.dumps(dvar, indent=2)
         response = HttpResponse(body, content_type="application/json")
-        response["Content-Disposition"] = f'attachment; filename="{variant.id}.dvar.json"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="{variant.id}.dvar.json"'
+        )
         return response
 
 
 class VariantSvgView(View):
     def get(self, request, variant_id, content_hash):
         try:
-            variant_svg = VariantSvg.objects.get(variant_id=variant_id, content_hash=content_hash)
+            variant_svg = VariantSvg.objects.get(
+                variant_id=variant_id, content_hash=content_hash
+            )
         except VariantSvg.DoesNotExist:
             return HttpResponseNotFound()
 
         response = HttpResponse(variant_svg.svg, content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=31536000, immutable"
+        response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response

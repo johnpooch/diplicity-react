@@ -7,22 +7,37 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('variant', '0012_variant_rules'),
+        ("variant", "0012_variant_rules"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='VariantSvg',
+            name="VariantSvg",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('svg', models.TextField()),
-                ('content_hash', models.CharField(editable=False, max_length=64)),
-                ('variant', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='svg', to='variant.variant')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("svg", models.TextField()),
+                ("content_hash", models.CharField(editable=False, max_length=64)),
+                (
+                    "variant",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="svg",
+                        to="variant.variant",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

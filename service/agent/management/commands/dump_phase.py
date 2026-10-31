@@ -17,7 +17,11 @@ MOVE_TYPES = ("Move", "MoveViaConvoy")
 
 
 def _order_state(order):
-    state = {"type": order.order_type, "nation": order.nation.name, "source": order.source.province_id}
+    state = {
+        "type": order.order_type,
+        "nation": order.nation.name,
+        "source": order.source.province_id,
+    }
     if order.order_type in MOVE_TYPES and order.named_coast:
         target = order.named_coast.province_id
     else:
@@ -32,13 +36,17 @@ def _order_state(order):
         resolution = order.resolution
     except ObjectDoesNotExist:
         resolution = None
-    state["failed"] = bool(resolution and resolution.status != OrderResolutionStatus.SUCCEEDED)
+    state["failed"] = bool(
+        resolution and resolution.status != OrderResolutionStatus.SUCCEEDED
+    )
     return state
 
 
 def _render_state(phase):
     return {
-        "nationColors": {nation.name: nation.color for nation in phase.variant.nations.all()},
+        "nationColors": {
+            nation.name: nation.color for nation in phase.variant.nations.all()
+        },
         "supplyCenters": [
             {"province": center.province.province_id, "nation": center.nation.name}
             for center in phase.supply_centers.all()
@@ -53,7 +61,10 @@ def _render_state(phase):
             }
             for unit in phase.units.all()
         ],
-        "orders": [_order_state(order) for order in Order.objects.for_phase(phase).with_related_data()],
+        "orders": [
+            _order_state(order)
+            for order in Order.objects.for_phase(phase).with_related_data()
+        ],
         "selected": [],
         "highlighted": [],
     }
@@ -64,7 +75,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--game", required=True, help="game id")
-        parser.add_argument("--phase", type=int, default=None, help="phase id; defaults to the current phase")
+        parser.add_argument(
+            "--phase",
+            type=int,
+            default=None,
+            help="phase id; defaults to the current phase",
+        )
         parser.add_argument("--out", default="phase_dumps", help="output directory")
 
     def handle(self, *args, **options):
@@ -76,11 +92,15 @@ class Command(BaseCommand):
         if options["phase"] is not None:
             phase = Phase.objects.filter(game=game, id=options["phase"]).first()
             if phase is None:
-                raise CommandError(f"game '{game.id}' has no phase with id {options['phase']}")
+                raise CommandError(
+                    f"game '{game.id}' has no phase with id {options['phase']}"
+                )
         else:
             phase = current
             if phase is None:
-                raise CommandError(f"game '{game.id}' has no current phase; pass --phase to pick one")
+                raise CommandError(
+                    f"game '{game.id}' has no current phase; pass --phase to pick one"
+                )
 
         out = Path(options["out"])
         out.mkdir(parents=True, exist_ok=True)
@@ -91,7 +111,9 @@ class Command(BaseCommand):
         self.stdout.write(f"wrote {render_path}")
 
         if current is None or phase.id != current.id:
-            self.stdout.write("phase is not the current phase; order options unavailable, skipping fixture stubs")
+            self.stdout.write(
+                "phase is not the current phase; order options unavailable, skipping fixture stubs"
+            )
             return
 
         for member in game.members.select_related("nation", "user"):

@@ -1,6 +1,10 @@
 import pytest
 
-from project.sentry import DEFAULT_TRACES_SAMPLE_RATE, POLLED_TRACES_SAMPLE_RATE, traces_sampler
+from project.sentry import (
+    DEFAULT_TRACES_SAMPLE_RATE,
+    POLLED_TRACES_SAMPLE_RATE,
+    traces_sampler,
+)
 
 
 def _request(path, method="GET"):
@@ -25,7 +29,6 @@ class TestTracesSampler:
         "path",
         [
             "/game/the-match-1a2b/",
-            "/games/the-match-1a2b/channels/",
             "/games/the-match-1a2b/channel-previews/",
             "/games/the-match-1a2b/channels/42/",
         ],
@@ -34,10 +37,21 @@ class TestTracesSampler:
         assert traces_sampler(_request(path)) == POLLED_TRACES_SAMPLE_RATE
 
     def test_writes_to_a_polled_path_are_sampled_at_the_default_rate(self):
-        assert traces_sampler(_request("/games/the-match-1a2b/channels/", method="POST")) == DEFAULT_TRACES_SAMPLE_RATE
+        assert (
+            traces_sampler(
+                _request("/games/the-match-1a2b/channels/42/", method="PATCH")
+            )
+            == DEFAULT_TRACES_SAMPLE_RATE
+        )
 
     def test_nested_game_reads_are_sampled_at_the_default_rate(self):
-        assert traces_sampler(_request("/game/the-match-1a2b/orders/")) == DEFAULT_TRACES_SAMPLE_RATE
+        assert (
+            traces_sampler(_request("/game/the-match-1a2b/orders/"))
+            == DEFAULT_TRACES_SAMPLE_RATE
+        )
 
     def test_transactions_outside_a_request_are_sampled_at_the_default_rate(self):
-        assert traces_sampler({"transaction_context": {"name": "task"}}) == DEFAULT_TRACES_SAMPLE_RATE
+        assert (
+            traces_sampler({"transaction_context": {"name": "task"}})
+            == DEFAULT_TRACES_SAMPLE_RATE
+        )

@@ -13,7 +13,11 @@ def parse_completion(completion: str, context: Context) -> list[OrderOption]:
 
     chosen: dict[str, object] = {}
     for choice in choices:
-        if isinstance(choice, dict) and "source_id" in choice and "option_index" in choice:
+        if (
+            isinstance(choice, dict)
+            and "source_id" in choice
+            and "option_index" in choice
+        ):
             chosen[choice["source_id"]] = choice["option_index"]
 
     selected: list[OrderOption] = []

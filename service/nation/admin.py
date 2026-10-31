@@ -35,7 +35,9 @@ class NationFlagAdminForm(forms.ModelForm):
             return cleaned_data
 
         if upload.size > FLAG_MAX_BYTES:
-            raise forms.ValidationError(f"Flag is too large (max {FLAG_MAX_BYTES} bytes).")
+            raise forms.ValidationError(
+                f"Flag is too large (max {FLAG_MAX_BYTES} bytes)."
+            )
 
         try:
             svg = upload.read().decode("utf-8")
@@ -47,7 +49,9 @@ class NationFlagAdminForm(forms.ModelForm):
         except etree.XMLSyntaxError as exc:
             raise forms.ValidationError(f"Could not parse SVG: {exc}.")
         if root.tag != f"{{{SVG_NAMESPACE}}}svg":
-            raise forms.ValidationError("Flag must be an <svg> element in the SVG namespace.")
+            raise forms.ValidationError(
+                "Flag must be an <svg> element in the SVG namespace."
+            )
 
         self.instance.svg = svg
         return cleaned_data

@@ -30,9 +30,13 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     def validate_name(self, value):
         value = value.strip()
         if len(value) < 2:
-            raise serializers.ValidationError("Name must be at least 2 characters long.")
+            raise serializers.ValidationError(
+                "Name must be at least 2 characters long."
+            )
         if not all(c.isalpha() or c.isspace() or c in "-'" for c in value):
-            raise serializers.ValidationError("Name can only contain letters, spaces, hyphens, and apostrophes.")
+            raise serializers.ValidationError(
+                "Name can only contain letters, spaces, hyphens, and apostrophes."
+            )
         return value
 
     def update(self, instance, validated_data):
@@ -51,7 +55,9 @@ class CommitmentSquareSerializer(serializers.Serializer):
     submitted = serializers.IntegerField(read_only=True, source="commitment_submitted")
     missed = serializers.IntegerField(read_only=True, source="commitment_missed")
     events = serializers.ListField(
-        child=serializers.ChoiceField(choices=CommitmentEvent.KIND_CHOICES), read_only=True, source="commitment_events"
+        child=serializers.ChoiceField(choices=CommitmentEvent.KIND_CHOICES),
+        read_only=True,
+        source="commitment_events",
     )
     points = serializers.IntegerField(read_only=True, source="commitment_square")
     shade = serializers.SerializerMethodField()
@@ -83,7 +89,9 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
 
     @extend_schema_field(CommitmentSquareSerializer(many=True))
     def get_commitment_squares(self, obj):
-        return CommitmentSquareSerializer(Member.objects.filter(user=obj.user).commitment_squares(), many=True).data
+        return CommitmentSquareSerializer(
+            Member.objects.filter(user=obj.user).commitment_squares(), many=True
+        ).data
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

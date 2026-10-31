@@ -1,14 +1,25 @@
 import pytest
 from django.utils import timezone
 
-from common.constants import DeadlineMode, GameStatus, MemberKind, PhaseStatus, PhaseType
+from common.constants import (
+    DeadlineMode,
+    GameStatus,
+    MemberKind,
+    PhaseStatus,
+    PhaseType,
+)
 from game.models import Game
 from phase.models import PhaseState
 
 
 @pytest.fixture
 def seated_game_factory(
-    db, primary_user, secondary_user, classical_variant, classical_england_nation, base_active_phase
+    db,
+    primary_user,
+    secondary_user,
+    classical_variant,
+    classical_england_nation,
+    base_active_phase,
 ):
     def _create(seat):
         game = Game.objects.create(
@@ -85,7 +96,9 @@ def my_game_factory(db, primary_user, classical_variant, classical_england_natio
                 ordinal=ordinal,
             )
             previous_phase.phase_states.create(
-                member=member, has_possible_orders=True, orders_outcome=PhaseState.OrdersOutcome.NMR
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=PhaseState.OrdersOutcome.NMR,
             )
             ordinal += 1
         phase_status = {

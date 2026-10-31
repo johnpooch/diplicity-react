@@ -35,7 +35,9 @@ def load_fixtures(eval_set: str | None = None) -> list[Fixture]:
     return members
 
 
-def select_fixtures(eval_set: str | None = None, fixture_id: str | None = None) -> list[Fixture]:
+def select_fixtures(
+    eval_set: str | None = None, fixture_id: str | None = None
+) -> list[Fixture]:
     fixtures = load_fixtures(eval_set)
     if fixture_id is None:
         return fixtures
@@ -45,14 +47,18 @@ def select_fixtures(eval_set: str | None = None, fixture_id: str | None = None) 
     return selected
 
 
-def fixture_to_sample(fixture: Fixture, system: str | None = None, user: str | None = None) -> Sample:
+def fixture_to_sample(
+    fixture: Fixture, system: str | None = None, user: str | None = None
+) -> Sample:
     context = fixture_to_context(fixture)
     if user is not None:
         check_option_ids(user, context)
     return Sample(
         id=fixture["id"],
         input=[
-            ChatMessageSystem(content=system_prompt(context) if system is None else system),
+            ChatMessageSystem(
+                content=system_prompt(context) if system is None else system
+            ),
             ChatMessageUser(content=user_prompt(context) if user is None else user),
         ],
         metadata={
@@ -89,7 +95,9 @@ def _variant_prompt(fixture: Fixture, variant: str | None) -> str | None:
         return None
     path = variant_path(fixture["id"], variant)
     if not path.is_file():
-        raise PromptError(f"fixture '{fixture['id']}' has no '{variant}' prompt at {path}; run build_prompts")
+        raise PromptError(
+            f"fixture '{fixture['id']}' has no '{variant}' prompt at {path}; run build_prompts"
+        )
     return path.read_text()
 
 
@@ -101,13 +109,20 @@ def _dataset(
     user_variant: str | None = None,
 ) -> MemoryDataset:
     if (system_file or user_file) and fixture_id is None:
-        raise FixtureError("a custom prompt is written for one fixture; name it with --fixture")
+        raise FixtureError(
+            "a custom prompt is written for one fixture; name it with --fixture"
+        )
     if user_file and user_variant:
         raise PromptError("pass a user prompt file or a user prompt variant, not both")
     fixtures = select_fixtures(eval_set, fixture_id)
     system, user = _read_prompt(system_file), _read_prompt(user_file)
     return MemoryDataset(
-        [fixture_to_sample(fixture, system, user or _variant_prompt(fixture, user_variant)) for fixture in fixtures]
+        [
+            fixture_to_sample(
+                fixture, system, user or _variant_prompt(fixture, user_variant)
+            )
+            for fixture in fixtures
+        ]
     )
 
 

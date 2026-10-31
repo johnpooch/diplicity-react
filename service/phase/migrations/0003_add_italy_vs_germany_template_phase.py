@@ -27,7 +27,9 @@ def remove_italy_vs_germany_template_phase(apps, schema_editor):
     Phase = apps.get_model("phase", "Phase")
 
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")
-    Phase.objects.filter(game=None, variant=italy_germany_variant, status="template").delete()
+    Phase.objects.filter(
+        game=None, variant=italy_germany_variant, status="template"
+    ).delete()
 
 
 class Migration(migrations.Migration):

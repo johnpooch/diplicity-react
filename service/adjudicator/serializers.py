@@ -33,7 +33,6 @@ from .domain import (
 )
 from .types import SUPPORTED_ADJUDICATION_MODIFIERS
 
-
 SUPPORTED_PHASE_TYPES = frozenset({Phase.MOVEMENT, Phase.RETREAT, Phase.ADJUSTMENT})
 SUPPORTED_UNIT_TYPES = frozenset({Unit.ARMY, Unit.FLEET})
 SUPPORTED_ORDER_TYPES = frozenset(
@@ -71,7 +70,9 @@ def _validate_against_schema(data: Dict[str, Any]) -> None:
         jsonschema.validate(instance=data, schema=schema)
     except jsonschema.ValidationError as exc:
         path = ".".join(str(p) for p in exc.absolute_path) or "<root>"
-        raise VariantValidationError(f"Variant schema violation at {path}: {exc.message}") from exc
+        raise VariantValidationError(
+            f"Variant schema violation at {path}: {exc.message}"
+        ) from exc
 
 
 def _validate_adjacency_symmetry(
@@ -160,7 +161,12 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
     _validate_against_schema(data)
 
     nations = tuple(
-        Nation(id=n["id"], name=n["name"], color=n["color"], non_playable=n.get("non_playable", False))
+        Nation(
+            id=n["id"],
+            name=n["name"],
+            color=n["color"],
+            non_playable=n.get("non_playable", False),
+        )
         for n in data["nations"]
     )
 
@@ -243,9 +249,7 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
     modifiers = tuple(data.get("adjudicationModifiers", []))
     for tag in modifiers:
         if tag not in SUPPORTED_ADJUDICATION_MODIFIERS:
-            raise VariantValidationError(
-                f"Unknown adjudication modifier: {tag!r}"
-            )
+            raise VariantValidationError(f"Unknown adjudication modifier: {tag!r}")
 
     return Variant(
         id=data["id"],
@@ -311,7 +315,9 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
     for sc in data.get("supplyCenters", []):
         _validate_nation(variant, sc["nation"])
         if sc["province"] not in variant.provinces:
-            raise GameStateValidationError(f"Unknown supply-center province: {sc['province']!r}")
+            raise GameStateValidationError(
+                f"Unknown supply-center province: {sc['province']!r}"
+            )
         if not variant.provinces[sc["province"]].supply_center:
             raise GameStateValidationError(
                 f"Province {sc['province']} is not a supply center"
@@ -323,7 +329,9 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
     orders: List[Order] = []
     for o in data.get("orders", []):
         if o["orderType"] not in SUPPORTED_ORDER_TYPES:
-            raise GameStateValidationError(f"Unsupported order type: {o['orderType']!r}")
+            raise GameStateValidationError(
+                f"Unsupported order type: {o['orderType']!r}"
+            )
         _validate_nation(variant, o["nation"])
         orders.append(
             Order(
@@ -398,7 +406,8 @@ def serialize_game_state(state: State) -> Dict[str, Any]:
             for u in state.units
         ],
         "supplyCenters": [
-            {"nation": sc.nation, "province": sc.province} for sc in state.supply_centers
+            {"nation": sc.nation, "province": sc.province}
+            for sc in state.supply_centers
         ],
         "orders": [
             {

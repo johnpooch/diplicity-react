@@ -6,7 +6,10 @@ from django.db import migrations
 def add_classical_variant(apps, schema_editor):
     Variant = apps.get_model("variant", "Variant")
     Variant.objects.create(
-        id="classical", name="Classical", description="The original game of Diplomacy", author="Allan B. Calhamer"
+        id="classical",
+        name="Classical",
+        description="The original game of Diplomacy",
+        author="Allan B. Calhamer",
     )
 
 

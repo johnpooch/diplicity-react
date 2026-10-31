@@ -11,19 +11,41 @@ def add_vietnam_war_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     vietnam_war_variant = Variant.objects.get(id="vietnam-war")
-    template_phase = Phase.objects.get(game=None, variant=vietnam_war_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=vietnam_war_variant, status="template"
+    )
 
-    units_data = [{'type': 'Army', 'nation': 'North Vietnam', 'province': 'thh'}, {'type': 'Fleet', 'nation': 'Thailand', 'province': 'pat'}, {'type': 'Army', 'nation': 'Thailand', 'province': 'ban'}, {'type': 'Fleet', 'nation': 'South Vietnam', 'province': 'eas'}, {'type': 'Army', 'nation': 'Cambodia', 'province': 'ang'}, {'type': 'Fleet', 'nation': 'South Vietnam', 'province': 'cam'}, {'type': 'Fleet', 'nation': 'Cambodia', 'province': 'pre'}, {'type': 'Army', 'nation': 'Laos', 'province': 'nah'}, {'type': 'Army', 'nation': 'Laos', 'province': 'pak'}, {'type': 'Army', 'nation': 'Laos', 'province': 'vie'}, {'type': 'Army', 'nation': 'North Vietnam', 'province': 'thn'}, {'type': 'Army', 'nation': 'Thailand', 'province': 'loe'}, {'type': 'Army', 'nation': 'South Vietnam', 'province': 'sag'}, {'type': 'Fleet', 'nation': 'North Vietnam', 'province': 'han'}, {'type': 'Army', 'nation': 'Cambodia', 'province': 'meo'}]
+    units_data = [
+        {"type": "Army", "nation": "North Vietnam", "province": "thh"},
+        {"type": "Fleet", "nation": "Thailand", "province": "pat"},
+        {"type": "Army", "nation": "Thailand", "province": "ban"},
+        {"type": "Fleet", "nation": "South Vietnam", "province": "eas"},
+        {"type": "Army", "nation": "Cambodia", "province": "ang"},
+        {"type": "Fleet", "nation": "South Vietnam", "province": "cam"},
+        {"type": "Fleet", "nation": "Cambodia", "province": "pre"},
+        {"type": "Army", "nation": "Laos", "province": "nah"},
+        {"type": "Army", "nation": "Laos", "province": "pak"},
+        {"type": "Army", "nation": "Laos", "province": "vie"},
+        {"type": "Army", "nation": "North Vietnam", "province": "thn"},
+        {"type": "Army", "nation": "Thailand", "province": "loe"},
+        {"type": "Army", "nation": "South Vietnam", "province": "sag"},
+        {"type": "Fleet", "nation": "North Vietnam", "province": "han"},
+        {"type": "Army", "nation": "Cambodia", "province": "meo"},
+    ]
 
     for unit_data in units_data:
-        nation = Nation.objects.get(variant=vietnam_war_variant, name=unit_data["nation"])
-        province = Province.objects.get(variant=vietnam_war_variant, province_id=unit_data["province"])
+        nation = Nation.objects.get(
+            variant=vietnam_war_variant, name=unit_data["nation"]
+        )
+        province = Province.objects.get(
+            variant=vietnam_war_variant, province_id=unit_data["province"]
+        )
 
         Unit.objects.create(
             nation=nation,
             province=province,
             phase=template_phase,
-            type=unit_data["type"]
+            type=unit_data["type"],
         )
 
 
@@ -33,7 +55,9 @@ def remove_vietnam_war_units(apps, schema_editor):
     Unit = apps.get_model("unit", "Unit")
 
     vietnam_war_variant = Variant.objects.get(id="vietnam-war")
-    template_phase = Phase.objects.get(game=None, variant=vietnam_war_variant, status="template")
+    template_phase = Phase.objects.get(
+        game=None, variant=vietnam_war_variant, status="template"
+    )
     Unit.objects.filter(phase=template_phase).delete()
 
 

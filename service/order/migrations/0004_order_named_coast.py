@@ -7,14 +7,20 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('province', '0009_set_named_coast_parents_italy_vs_germany'),
-        ('order', '0003_alter_order_order_type'),
+        ("province", "0009_set_named_coast_parents_italy_vs_germany"),
+        ("order", "0003_alter_order_order_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='named_coast',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='named_coast_orders', to='province.province'),
+            model_name="order",
+            name="named_coast",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="named_coast_orders",
+                to="province.province",
+            ),
         ),
     ]

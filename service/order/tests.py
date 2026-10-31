@@ -8,11 +8,23 @@ from django.db import connection
 from django.test import TestCase
 from django.core import exceptions
 from rest_framework import status
-from common.constants import PhaseStatus, OrderType, UnitType, OrderCreationStep, OrderResolutionStatus, PhaseType
+from common.constants import (
+    PhaseStatus,
+    OrderType,
+    UnitType,
+    OrderCreationStep,
+    OrderResolutionStatus,
+    PhaseType,
+)
 from phase.models import Phase
 
 from .models import Order, OrderResolution
-from .utils import get_options_for_order, get_order_data_from_selected, flatten_options, FIELD_ORDER
+from .utils import (
+    get_options_for_order,
+    get_order_data_from_selected,
+    flatten_options,
+    FIELD_ORDER,
+)
 
 
 class TestOrderListView:
@@ -42,7 +54,13 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
 
-        assert response.data[0]["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data[0]["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data[0]["order_type"] == OrderType.MOVE
 
         assert response.data[0]["source"]["id"] == "lon"
@@ -114,9 +132,13 @@ class TestOrderListView:
             source=classical_paris_province,
             target=classical_burgundy_province,
         )
-        OrderResolution.objects.create(order=primary_order, status=OrderResolutionStatus.SUCCEEDED, by=None)
         OrderResolution.objects.create(
-            order=secondary_order, status=OrderResolutionStatus.BOUNCED, by=classical_burgundy_province
+            order=primary_order, status=OrderResolutionStatus.SUCCEEDED, by=None
+        )
+        OrderResolution.objects.create(
+            order=secondary_order,
+            status=OrderResolutionStatus.BOUNCED,
+            by=classical_burgundy_province,
         )
 
         phase.status = PhaseStatus.COMPLETED
@@ -206,7 +228,9 @@ class TestOrderListView:
 class TestOrderListViewCompletedPhaseCaching:
 
     @pytest.mark.django_db
-    def test_active_phase_response_is_not_cached(self, authenticated_client, order_active_game):
+    def test_active_phase_response_is_not_cached(
+        self, authenticated_client, order_active_game
+    ):
         game = order_active_game
         phase = game.current_phase
         url = reverse("order-list", args=[game.id, phase.id])
@@ -218,7 +242,9 @@ class TestOrderListViewCompletedPhaseCaching:
         assert "Cache-Control" not in response
 
     @pytest.mark.django_db
-    def test_completed_phase_response_has_cache_headers(self, authenticated_client, order_active_game):
+    def test_completed_phase_response_has_cache_headers(
+        self, authenticated_client, order_active_game
+    ):
         game = order_active_game
         phase = game.current_phase
         phase.status = PhaseStatus.COMPLETED
@@ -232,7 +258,9 @@ class TestOrderListViewCompletedPhaseCaching:
         assert response["Cache-Control"] == "private, max-age=604800"
 
     @pytest.mark.django_db
-    def test_completed_phase_matching_etag_returns_304(self, authenticated_client, order_active_game):
+    def test_completed_phase_matching_etag_returns_304(
+        self, authenticated_client, order_active_game
+    ):
         game = order_active_game
         phase = game.current_phase
         phase.status = PhaseStatus.COMPLETED
@@ -249,7 +277,9 @@ class TestOrderListViewCompletedPhaseCaching:
         assert second["Cache-Control"] == "private, max-age=604800"
 
     @pytest.mark.django_db
-    def test_completed_phase_stale_etag_returns_200(self, authenticated_client, order_active_game):
+    def test_completed_phase_stale_etag_returns_200(
+        self, authenticated_client, order_active_game
+    ):
         game = order_active_game
         phase = game.current_phase
         phase.status = PhaseStatus.COMPLETED
@@ -262,7 +292,9 @@ class TestOrderListViewCompletedPhaseCaching:
         assert response["ETag"] != '"stale"'
 
     @pytest.mark.django_db
-    def test_completed_phase_weakened_etag_returns_304(self, authenticated_client, order_active_game):
+    def test_completed_phase_weakened_etag_returns_304(
+        self, authenticated_client, order_active_game
+    ):
         game = order_active_game
         phase = game.current_phase
         phase.status = PhaseStatus.COMPLETED
@@ -276,7 +308,9 @@ class TestOrderListViewCompletedPhaseCaching:
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
 
     @pytest.mark.django_db
-    def test_sandbox_completed_phase_response_is_not_cached(self, authenticated_client, sandbox_game_with_three_phases):
+    def test_sandbox_completed_phase_response_is_not_cached(
+        self, authenticated_client, sandbox_game_with_three_phases
+    ):
         game = sandbox_game_with_three_phases
         phase = game.phases.get(ordinal=1)
         url = reverse("order-list", args=[game.id, phase.id])
@@ -298,7 +332,9 @@ class TestOrderCreateView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_order_create_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud"]}
@@ -310,7 +346,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is False
         assert response.data["order_type"] is None
         assert response.data["unit_type"] is None
@@ -321,14 +363,18 @@ class TestOrderCreateView:
         assert response.data["title"] == "Select order type for Budapest"
 
     @pytest.mark.django_db
-    def test_order_create_invalid_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_invalid_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["invalid"]}
         response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_order_create_invalid_order_type(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_invalid_order_type(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Invalid"]}
@@ -336,7 +382,9 @@ class TestOrderCreateView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_order_create_move_with_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_move_with_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Move"]}
@@ -348,7 +396,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Move"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Move"
         assert response.data["unit_type"] is None
@@ -358,7 +412,9 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
         assert response.data["title"] == "Select province to move Budapest to"
 
-    def test_order_create_move_with_source_and_target(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_move_with_source_and_target(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Move", "gal"]}
@@ -369,7 +425,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Move", "gal"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Move"
         assert response.data["unit_type"] is None
@@ -380,14 +442,18 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will move to Galicia"
 
-    def test_order_create_move_with_invalid_target(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_move_with_invalid_target(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Move", "invalid"]}
         response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_order_create_support_with_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_support_with_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Support"]}
@@ -398,7 +464,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -408,7 +480,9 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.SELECT_AUX
         assert response.data["title"] == "Select province for Budapest to support"
 
-    def test_order_create_support_with_source_and_aux(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_support_with_source_and_aux(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Support", "vie"]}
@@ -420,7 +494,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support", "vie"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -429,9 +509,14 @@ class TestOrderCreateView:
         assert response.data["aux"]["name"] == "Vienna"
         assert response.data["resolution"] is None
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
-        assert response.data["title"] == "Select destination for Budapest to support Vienna to"
+        assert (
+            response.data["title"]
+            == "Select destination for Budapest to support Vienna to"
+        )
 
-    def test_order_create_support_with_invalid_aux(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_support_with_invalid_aux(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Support", "invalid"]}
@@ -451,7 +536,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support", "vie", "tri"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -463,7 +554,71 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will support Vienna to Trieste"
 
-    def test_order_create_hold_with_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_support_hold_title(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "Support", "vie", "vie"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.COMPLETED
+        assert response.data["title"] == "Budapest will support Vienna to hold"
+        assert response.data["summary"] == "Support Vienna to hold"
+
+    def test_order_create_support_hold_title_for_unit_on_named_coast(
+        self,
+        authenticated_client,
+        game_with_options,
+        primary_user,
+        classical_england_nation,
+        classical_spain_sc_province,
+    ):
+        game = game_with_options
+        phase = game.current_phase
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_spain_sc_province,
+        )
+        phase.options = {
+            "England": {
+                "por": {
+                    "Next": {
+                        "Support": {
+                            "Next": {
+                                "por": {
+                                    "Next": {
+                                        "spa": {
+                                            "Next": {
+                                                "spa": {"Next": {}, "Type": "Province"}
+                                            },
+                                            "Type": "Province",
+                                        },
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["por", "Support", "spa", "spa"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.COMPLETED
+        assert response.data["title"] == "Portugal will support Spain (SC) to hold"
+        assert response.data["summary"] == "Support Spain (SC) to hold"
+
+    def test_order_create_hold_with_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Hold"]}
@@ -474,7 +629,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Hold"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Hold"
         assert response.data["unit_type"] is None
@@ -484,7 +645,9 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will hold"
 
-    def test_order_create_build_with_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_build_with_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         phase = game_with_options.current_phase
         sample_options = {
             "England": {
@@ -514,7 +677,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Build"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Build"
         assert response.data["unit_type"] is None
@@ -523,7 +692,9 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.SELECT_UNIT_TYPE
         assert response.data["title"] == "Select unit type to build in Budapest"
 
-    def test_order_create_build_with_source_and_unit_type(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_build_with_source_and_unit_type(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         phase = game_with_options.current_phase
         sample_options = {
             "England": {
@@ -553,7 +724,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Build", "Army"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Build"
         assert response.data["unit_type"] == "Army"
@@ -563,13 +740,17 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Army will be built in Budapest"
 
-    def test_order_create_move_via_convoy_with_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_move_via_convoy_with_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
 
         # Update options to include MoveViaConvoy
         phase = game.current_phase
         sample_options = phase.options.copy()
-        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
+        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options[
+            "England"
+        ]["bud"]["Next"]["Move"]
         phase.options = sample_options
         phase.save()
 
@@ -583,7 +764,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "MoveViaConvoy"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is False
         assert response.data["order_type"] == "MoveViaConvoy"
         assert response.data["unit_type"] is None
@@ -601,7 +788,9 @@ class TestOrderCreateView:
         # Update options to include MoveViaConvoy
         phase = game.current_phase
         sample_options = phase.options.copy()
-        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
+        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options[
+            "England"
+        ]["bud"]["Next"]["Move"]
         phase.options = sample_options
         phase.save()
 
@@ -614,7 +803,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "MoveViaConvoy", "gal"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is True
         assert response.data["order_type"] == "MoveViaConvoy"
         assert response.data["unit_type"] is None
@@ -633,7 +828,9 @@ class TestOrderCreateView:
         # Update options to include MoveViaConvoy
         phase = game.current_phase
         sample_options = phase.options.copy()
-        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
+        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options[
+            "England"
+        ]["bud"]["Next"]["Move"]
         phase.options = sample_options
         phase.save()
 
@@ -642,7 +839,9 @@ class TestOrderCreateView:
         response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_order_create_disband_with_source(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_disband_with_source(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         phase = game_with_options.current_phase
         sample_options = {
             "England": {
@@ -671,7 +870,13 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Disband"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "non_playable": False, "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg"}
+        assert response.data["nation"] == {
+            "nation_id": "england",
+            "name": "England",
+            "color": "#2196F3",
+            "non_playable": False,
+            "flag_url": "http://testserver/variants/classical/nations/england/flag/2da7f8c93e3ec840a5a045f3b62a65c06d0318a9cf6d13ac4f308e3e4103fe08.svg",
+        }
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Disband"
         assert response.data["unit_type"] is None
@@ -725,7 +930,9 @@ class TestOrderCreateView:
         data = {"selected": ["bud"]}
         response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-        assert Order.objects.count() == 1  # Original order still exists since partial orders are not saved
+        assert (
+            Order.objects.count() == 1
+        )  # Original order still exists since partial orders are not saved
 
         # Complete the new order - this should replace the existing order
         data = {"selected": ["bud", "Hold"]}
@@ -744,12 +951,18 @@ class TestOrderCreateView:
         game = game_with_options
         url = reverse("order-create", args=[game.id])
 
-        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Hold"]}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
-        Phase.objects.filter(pk=game.current_phase.pk).update(status=PhaseStatus.PROCESSING)
+        Phase.objects.filter(pk=game.current_phase.pk).update(
+            status=PhaseStatus.PROCESSING
+        )
 
-        response = authenticated_client.post(url, {"selected": ["bud", "Move", "gal"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Move", "gal"]}, format="json"
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 1
@@ -757,13 +970,20 @@ class TestOrderCreateView:
 
     @pytest.mark.django_db
     def test_order_create_sandbox_with_eliminated_nation(
-        self, authenticated_client, sandbox_game_with_phase_options, classical_austria_nation
+        self,
+        authenticated_client,
+        sandbox_game_with_phase_options,
+        classical_austria_nation,
     ):
         game = sandbox_game_with_phase_options
-        game.members.filter(nation=classical_austria_nation).update(eliminated_at=timezone.now())
+        game.members.filter(nation=classical_austria_nation).update(
+            eliminated_at=timezone.now()
+        )
 
         url = reverse("order-create", args=[game.id])
-        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Hold"]}, format="json"
+        )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert Order.objects.count() == 1
@@ -776,27 +996,41 @@ class TestOrderCreateView:
         game.members.filter(user=primary_user).update(eliminated_at=timezone.now())
 
         url = reverse("order-create", args=[game.id])
-        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Hold"]}, format="json"
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 0
 
     @pytest.mark.django_db
-    def test_order_create_rejected_for_eliminated_player(self, authenticated_client, game_with_options, primary_user):
-        game_with_options.members.filter(user=primary_user).update(eliminated_at=timezone.now())
+    def test_order_create_rejected_for_eliminated_player(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(
+            eliminated_at=timezone.now()
+        )
 
         url = reverse("order-create", args=[game_with_options.id])
-        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Hold"]}, format="json"
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 0
 
     @pytest.mark.django_db
-    def test_order_create_rejected_for_kicked_player(self, authenticated_client, game_with_options, primary_user):
-        game_with_options.members.filter(user=primary_user).update(removed_at=timezone.now())
+    def test_order_create_rejected_for_kicked_player(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game_with_options.members.filter(user=primary_user).update(
+            removed_at=timezone.now()
+        )
 
         url = reverse("order-create", args=[game_with_options.id])
-        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Hold"]}, format="json"
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 0
@@ -805,10 +1039,14 @@ class TestOrderCreateView:
     def test_order_create_rejected_for_civil_disorder_player(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(civil_disorder_at=timezone.now())
+        game_with_options.members.filter(user=primary_user).update(
+            civil_disorder_at=timezone.now()
+        )
 
         url = reverse("order-create", args=[game_with_options.id])
-        response = authenticated_client.post(url, {"selected": ["bud", "Hold"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["bud", "Hold"]}, format="json"
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Order.objects.count() == 0
@@ -916,7 +1154,9 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 8  # was 8 before resolve_game cache + transformed_options cached_property
+        assert (
+            len(connection.queries) == 8
+        )  # was 8 before resolve_game cache + transformed_options cached_property
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -1059,7 +1299,9 @@ class TestOrderListViewQueryPerformance:
             source=classical_london_province,
             target=classical_english_channel_province,
         )
-        OrderResolution.objects.create(order=order1, status=OrderResolutionStatus.SUCCEEDED)
+        OrderResolution.objects.create(
+            order=order1, status=OrderResolutionStatus.SUCCEEDED
+        )
 
         order2 = Order.objects.create(
             phase_state=primary_phase_state,
@@ -1067,7 +1309,9 @@ class TestOrderListViewQueryPerformance:
             source=classical_liverpool_province,
             target=classical_irish_sea_province,
         )
-        OrderResolution.objects.create(order=order2, status=OrderResolutionStatus.SUCCEEDED)
+        OrderResolution.objects.create(
+            order=order2, status=OrderResolutionStatus.SUCCEEDED
+        )
 
         order3 = Order.objects.create(
             phase_state=primary_phase_state,
@@ -1075,7 +1319,9 @@ class TestOrderListViewQueryPerformance:
             source=classical_edinburgh_province,
             target=classical_wales_province,
         )
-        OrderResolution.objects.create(order=order3, status=OrderResolutionStatus.BOUNCED)
+        OrderResolution.objects.create(
+            order=order3, status=OrderResolutionStatus.BOUNCED
+        )
 
         order4 = Order.objects.create(
             phase_state=secondary_phase_state,
@@ -1083,7 +1329,9 @@ class TestOrderListViewQueryPerformance:
             source=classical_paris_province,
             target=classical_burgundy_province,
         )
-        OrderResolution.objects.create(order=order4, status=OrderResolutionStatus.SUCCEEDED)
+        OrderResolution.objects.create(
+            order=order4, status=OrderResolutionStatus.SUCCEEDED
+        )
 
         order5 = Order.objects.create(
             phase_state=secondary_phase_state,
@@ -1091,7 +1339,9 @@ class TestOrderListViewQueryPerformance:
             source=classical_budapest_province,
             target=classical_trieste_province,
         )
-        OrderResolution.objects.create(order=order5, status=OrderResolutionStatus.BOUNCED)
+        OrderResolution.objects.create(
+            order=order5, status=OrderResolutionStatus.BOUNCED
+        )
 
         order6 = Order.objects.create(
             phase_state=secondary_phase_state,
@@ -1099,7 +1349,9 @@ class TestOrderListViewQueryPerformance:
             source=classical_vienna_province,
             target=classical_galicia_province,
         )
-        OrderResolution.objects.create(order=order6, status=OrderResolutionStatus.SUCCEEDED)
+        OrderResolution.objects.create(
+            order=order6, status=OrderResolutionStatus.SUCCEEDED
+        )
 
         url = reverse("order-list", args=[game.id, phase.id])
         connection.queries_log.clear()
@@ -1136,10 +1388,14 @@ class TestOrderListViewQueryPerformance:
 
         # Fleets sit on named coasts; each order's source is the parent province.
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_spain_sc_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_spain_sc_province,
         )
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_stp_nc_province,
         )
 
         url = reverse("order-list", args=[game.id, phase.id])
@@ -1191,7 +1447,9 @@ class TestOrderCreateViewQueryPerformance:
         assert query_count == 20
 
     @pytest.mark.django_db
-    def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
+    def test_order_create_query_count_with_support_order(
+        self, authenticated_client, game_with_options
+    ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Support", "vie", "gal"]}
@@ -1206,7 +1464,9 @@ class TestOrderCreateViewQueryPerformance:
         assert query_count == 20
 
     @pytest.mark.django_db
-    def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
+    def test_order_create_query_count_with_many_phase_states(
+        self, authenticated_client, game_with_many_phase_states
+    ):
         game = game_with_many_phase_states
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Move", "gal"]}
@@ -1258,17 +1518,31 @@ class TestOrderDeleteViewQueryPerformance:
 class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
-    def test_no_source_returns_nation_provinces(self, sample_options, primary_phase_state):
-        order = Order(phase_state=primary_phase_state, source=None, order_type=None, target=None, aux=None)
+    def test_no_source_returns_nation_provinces(
+        self, sample_options, primary_phase_state
+    ):
+        order = Order(
+            phase_state=primary_phase_state,
+            source=None,
+            order_type=None,
+            target=None,
+            aux=None,
+        )
         options = get_options_for_order(transform_options(sample_options), order)
         assert "bud" in options
         assert "tri" in options
         assert len(options) == 2
 
     @pytest.mark.django_db
-    def test_with_source_only_returns_order_types(self, sample_options, primary_phase_state, classical_budapest_province):
+    def test_with_source_only_returns_order_types(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
         order = Order(
-            phase_state=primary_phase_state, source=classical_budapest_province, order_type=None, target=None, aux=None
+            phase_state=primary_phase_state,
+            source=classical_budapest_province,
+            order_type=None,
+            target=None,
+            aux=None,
         )
         options = get_options_for_order(transform_options(sample_options), order)
         assert "Hold" in options
@@ -1281,7 +1555,11 @@ class TestGetOptionsForOrder:
         self, sample_options, primary_phase_state, classical_budapest_province
     ):
         order = Order(
-            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Move", target=None, aux=None
+            phase_state=primary_phase_state,
+            source=classical_budapest_province,
+            order_type="Move",
+            target=None,
+            aux=None,
         )
         options = get_options_for_order(transform_options(sample_options), order)
         assert "gal" in options
@@ -1296,14 +1574,22 @@ class TestGetOptionsForOrder:
         self, sample_options, primary_phase_state, classical_budapest_province
     ):
         order = Order(
-            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Hold", target=None, aux=None
+            phase_state=primary_phase_state,
+            source=classical_budapest_province,
+            order_type="Hold",
+            target=None,
+            aux=None,
         )
         options = get_options_for_order(transform_options(sample_options), order)
         assert options == []
 
     @pytest.mark.django_db
     def test_move_order_with_all_fields_returns_empty_list(
-        self, sample_options, primary_phase_state, classical_budapest_province, classical_trieste_province
+        self,
+        sample_options,
+        primary_phase_state,
+        classical_budapest_province,
+        classical_trieste_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1317,7 +1603,11 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_support_order_with_all_fields_returns_empty_list(
-        self, sample_options, primary_phase_state, classical_budapest_province, classical_trieste_province
+        self,
+        sample_options,
+        primary_phase_state,
+        classical_budapest_province,
+        classical_trieste_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1330,15 +1620,25 @@ class TestGetOptionsForOrder:
         assert options == []
 
     @pytest.mark.django_db
-    def test_invalid_source_raises_error(self, sample_options, primary_phase_state, classical_london_province):
+    def test_invalid_source_raises_error(
+        self, sample_options, primary_phase_state, classical_london_province
+    ):
         order = Order(
-            phase_state=primary_phase_state, source=classical_london_province, order_type=None, target=None, aux=None
+            phase_state=primary_phase_state,
+            source=classical_london_province,
+            order_type=None,
+            target=None,
+            aux=None,
         )
-        with pytest.raises(ValueError, match="Source province lon not found in options"):
+        with pytest.raises(
+            ValueError, match="Source province lon not found in options"
+        ):
             get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
-    def test_invalid_order_type_raises_error(self, sample_options, primary_phase_state, classical_budapest_province):
+    def test_invalid_order_type_raises_error(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_budapest_province,
@@ -1346,12 +1646,18 @@ class TestGetOptionsForOrder:
             target=None,
             aux=None,
         )
-        with pytest.raises(ValueError, match="Order type InvalidType not found in options"):
+        with pytest.raises(
+            ValueError, match="Order type InvalidType not found in options"
+        ):
             get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
     def test_invalid_target_raises_error(
-        self, sample_options, primary_phase_state, classical_budapest_province, classical_london_province
+        self,
+        sample_options,
+        primary_phase_state,
+        classical_budapest_province,
+        classical_london_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1360,7 +1666,9 @@ class TestGetOptionsForOrder:
             target=classical_london_province,
             aux=None,
         )
-        with pytest.raises(ValueError, match="Target province lon not found in options"):
+        with pytest.raises(
+            ValueError, match="Target province lon not found in options"
+        ):
             get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
@@ -1379,11 +1687,15 @@ class TestGetOptionsForOrder:
             target=classical_trieste_province,
             aux=classical_london_province,
         )
-        with pytest.raises(ValueError, match="Auxiliary province lon not found in options"):
+        with pytest.raises(
+            ValueError, match="Auxiliary province lon not found in options"
+        ):
             get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
-    def test_nested_support_order_options(self, sample_options, primary_phase_state, classical_budapest_province):
+    def test_nested_support_order_options(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_budapest_province,
@@ -1399,7 +1711,11 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_support_order_target_selection_after_aux(
-        self, sample_options, primary_phase_state, classical_budapest_province, classical_vienna_province
+        self,
+        sample_options,
+        primary_phase_state,
+        classical_budapest_province,
+        classical_vienna_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1415,19 +1731,34 @@ class TestGetOptionsForOrder:
         assert len(options) == 3
 
     @pytest.mark.django_db
-    def test_empty_options_structure(self, primary_phase_state, classical_budapest_province):
+    def test_empty_options_structure(
+        self, primary_phase_state, classical_budapest_province
+    ):
         empty_options = {}
-        order = Order(phase_state=primary_phase_state, source=None, order_type=None, target=None, aux=None)
+        order = Order(
+            phase_state=primary_phase_state,
+            source=None,
+            order_type=None,
+            target=None,
+            aux=None,
+        )
 
         with pytest.raises(KeyError):
             get_options_for_order(transform_options(empty_options), order)
 
     @pytest.mark.django_db
-    def test_convoy_order_structure(self, sample_options, primary_phase_state, classical_budapest_province):
+    def test_convoy_order_structure(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
         sample_options["England"]["bud"]["Next"]["Convoy"] = {
             "Next": {
                 "bud": {
-                    "Next": {"sev": {"Next": {"rum": {"Next": {}, "Type": "Province"}}, "Type": "Province"}},
+                    "Next": {
+                        "sev": {
+                            "Next": {"rum": {"Next": {}, "Type": "Province"}},
+                            "Type": "Province",
+                        }
+                    },
                     "Type": "SrcProvince",
                 }
             },
@@ -1445,11 +1776,16 @@ class TestGetOptionsForOrder:
         assert len(options) == 1
 
     @pytest.mark.django_db
-    def test_build_order_structure(self, sample_options, primary_phase_state, classical_budapest_province):
+    def test_build_order_structure(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
         sample_options["England"]["bud"]["Next"]["Build"] = {
             "Next": {
                 "bud": {
-                    "Next": {"Army": {"Next": {}, "Type": "UnitType"}, "Fleet": {"Next": {}, "Type": "UnitType"}},
+                    "Next": {
+                        "Army": {"Next": {}, "Type": "UnitType"},
+                        "Fleet": {"Next": {}, "Type": "UnitType"},
+                    },
                     "Type": "SrcProvince",
                 }
             },
@@ -1468,7 +1804,9 @@ class TestGetOptionsForOrder:
         assert len(options) == 2
 
     @pytest.mark.django_db
-    def test_disband_order_structure(self, sample_options, primary_phase_state, classical_budapest_province):
+    def test_disband_order_structure(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
         sample_options["England"]["bud"]["Next"]["Disband"] = {
             "Next": {"bud": {"Next": {}, "Type": "SrcProvince"}},
             "Type": "OrderType",
@@ -1488,37 +1826,57 @@ class TestOrderManagerMethods:
 
     @pytest.mark.django_db
     def test_for_source_in_phase_returns_correct_orders(
-        self, primary_phase_state, classical_budapest_province, classical_trieste_province
+        self,
+        primary_phase_state,
+        classical_budapest_province,
+        classical_trieste_province,
     ):
         order1 = Order.objects.create(
-            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Hold"
+            phase_state=primary_phase_state,
+            source=classical_budapest_province,
+            order_type="Hold",
         )
         order2 = Order.objects.create(
-            phase_state=primary_phase_state, source=classical_trieste_province, order_type="Hold"
+            phase_state=primary_phase_state,
+            source=classical_trieste_province,
+            order_type="Hold",
         )
 
-        budapest_orders = Order.objects.for_source_in_phase(primary_phase_state, classical_budapest_province)
+        budapest_orders = Order.objects.for_source_in_phase(
+            primary_phase_state, classical_budapest_province
+        )
         assert budapest_orders.count() == 1
         assert budapest_orders.first() == order1
 
-        trieste_orders = Order.objects.for_source_in_phase(primary_phase_state, classical_trieste_province)
+        trieste_orders = Order.objects.for_source_in_phase(
+            primary_phase_state, classical_trieste_province
+        )
         assert trieste_orders.count() == 1
         assert trieste_orders.first() == order2
 
     @pytest.mark.django_db
     def test_delete_existing_for_source_removes_correct_orders(
-        self, primary_phase_state, classical_budapest_province, classical_trieste_province
+        self,
+        primary_phase_state,
+        classical_budapest_province,
+        classical_trieste_province,
     ):
         order1 = Order.objects.create(
-            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Hold"
+            phase_state=primary_phase_state,
+            source=classical_budapest_province,
+            order_type="Hold",
         )
         order2 = Order.objects.create(
-            phase_state=primary_phase_state, source=classical_trieste_province, order_type="Hold"
+            phase_state=primary_phase_state,
+            source=classical_trieste_province,
+            order_type="Hold",
         )
 
         assert Order.objects.count() == 2
 
-        Order.objects.delete_existing_for_source(primary_phase_state, classical_budapest_province)
+        Order.objects.delete_existing_for_source(
+            primary_phase_state, classical_budapest_province
+        )
 
         assert Order.objects.count() == 1
         remaining_order = Order.objects.first()
@@ -1529,18 +1887,33 @@ class TestOrderManagerMethods:
 class TestOrderComplete:
 
     @pytest.mark.django_db
-    def test_hold_order_is_always_complete(self, primary_phase_state, classical_london_province):
-        order = Order(phase_state=primary_phase_state, order_type=OrderType.HOLD, source=classical_london_province)
+    def test_hold_order_is_always_complete(
+        self, primary_phase_state, classical_london_province
+    ):
+        order = Order(
+            phase_state=primary_phase_state,
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
         assert order.complete is True
 
     @pytest.mark.django_db
-    def test_disband_order_is_always_complete(self, primary_phase_state, classical_london_province):
-        order = Order(phase_state=primary_phase_state, order_type=OrderType.DISBAND, source=classical_london_province)
+    def test_disband_order_is_always_complete(
+        self, primary_phase_state, classical_london_province
+    ):
+        order = Order(
+            phase_state=primary_phase_state,
+            order_type=OrderType.DISBAND,
+            source=classical_london_province,
+        )
         assert order.complete is True
 
     @pytest.mark.django_db
     def test_move_order_complete_when_target_set(
-        self, primary_phase_state, classical_london_province, classical_english_channel_province
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1579,7 +1952,11 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_move_fleet_order_incomplete_when_named_coast_missing(
-        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_england_nation,
     ):
         """Test that MOVE Fleet orders are incomplete when named coast is missing."""
         phase = primary_phase_state.phase
@@ -1599,14 +1976,21 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_move_order_incomplete_when_target_none(self, primary_phase_state, classical_london_province):
+    def test_move_order_incomplete_when_target_none(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
-            phase_state=primary_phase_state, order_type=OrderType.MOVE, source=classical_london_province, target=None
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=None,
         )
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_build_order_complete_when_unit_type_set(self, primary_phase_state, classical_london_province):
+    def test_build_order_complete_when_unit_type_set(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             order_type=OrderType.BUILD,
@@ -1638,7 +2022,9 @@ class TestOrderComplete:
         assert order.complete is True
 
     @pytest.mark.django_db
-    def test_build_fleet_order_incomplete_when_named_coast_missing(self, primary_phase_state, classical_spain_province):
+    def test_build_fleet_order_incomplete_when_named_coast_missing(
+        self, primary_phase_state, classical_spain_province
+    ):
         """Test that BUILD Fleet orders are incomplete when named coast is missing."""
         order = Order(
             phase_state=primary_phase_state,
@@ -1649,15 +2035,24 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_build_order_incomplete_when_unit_type_none(self, primary_phase_state, classical_london_province):
+    def test_build_order_incomplete_when_unit_type_none(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
-            phase_state=primary_phase_state, order_type=OrderType.BUILD, source=classical_london_province, unit_type=None
+            phase_state=primary_phase_state,
+            order_type=OrderType.BUILD,
+            source=classical_london_province,
+            unit_type=None,
         )
         assert order.complete is False
 
     @pytest.mark.django_db
     def test_support_order_complete_when_target_and_aux_set(
-        self, primary_phase_state, classical_london_province, classical_english_channel_province, classical_spain_province
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
+        classical_spain_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1683,7 +2078,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_support_order_incomplete_when_aux_none(
-        self, primary_phase_state, classical_london_province, classical_english_channel_province
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1695,7 +2093,9 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_support_order_incomplete_when_both_target_and_aux_none(self, primary_phase_state, classical_london_province):
+    def test_support_order_incomplete_when_both_target_and_aux_none(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             order_type=OrderType.SUPPORT,
@@ -1707,7 +2107,11 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_complete_when_target_and_aux_set(
-        self, primary_phase_state, classical_english_channel_province, classical_london_province, classical_spain_province
+        self,
+        primary_phase_state,
+        classical_english_channel_province,
+        classical_london_province,
+        classical_spain_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1720,7 +2124,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_incomplete_when_target_none(
-        self, primary_phase_state, classical_english_channel_province, classical_spain_province
+        self,
+        primary_phase_state,
+        classical_english_channel_province,
+        classical_spain_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1733,7 +2140,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_incomplete_when_aux_none(
-        self, primary_phase_state, classical_english_channel_province, classical_london_province
+        self,
+        primary_phase_state,
+        classical_english_channel_province,
+        classical_london_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1746,7 +2156,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_move_via_convoy_order_complete_when_target_set(
-        self, primary_phase_state, classical_london_province, classical_english_channel_province
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -1757,7 +2170,9 @@ class TestOrderComplete:
         assert order.complete is True
 
     @pytest.mark.django_db
-    def test_move_via_convoy_order_incomplete_when_target_none(self, primary_phase_state, classical_london_province):
+    def test_move_via_convoy_order_incomplete_when_target_none(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             order_type=OrderType.MOVE_VIA_CONVOY,
@@ -1780,8 +2195,14 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_order_complete_with_none_order_type(self, primary_phase_state, classical_london_province):
-        order = Order(phase_state=primary_phase_state, order_type=None, source=classical_london_province)
+    def test_order_complete_with_none_order_type(
+        self, primary_phase_state, classical_london_province
+    ):
+        order = Order(
+            phase_state=primary_phase_state,
+            order_type=None,
+            source=classical_london_province,
+        )
         assert order.complete is False
 
 
@@ -1811,7 +2232,11 @@ class TestGetOrderDataFromSelected:
 
     def test_build_order_complete(self):
         result = get_order_data_from_selected(["ber", OrderType.BUILD, UnitType.ARMY])
-        expected = {"source": "ber", "order_type": OrderType.BUILD, "unit_type": UnitType.ARMY}
+        expected = {
+            "source": "ber",
+            "order_type": OrderType.BUILD,
+            "unit_type": UnitType.ARMY,
+        }
         assert result == expected
 
     def test_build_order_incomplete(self):
@@ -1821,7 +2246,12 @@ class TestGetOrderDataFromSelected:
 
     def test_support_order_complete(self):
         result = get_order_data_from_selected(["ber", OrderType.SUPPORT, "pru", "war"])
-        expected = {"source": "ber", "order_type": OrderType.SUPPORT, "aux": "pru", "target": "war"}
+        expected = {
+            "source": "ber",
+            "order_type": OrderType.SUPPORT,
+            "aux": "pru",
+            "target": "war",
+        }
         assert result == expected
 
     def test_support_order_partial_aux_only(self):
@@ -1836,7 +2266,12 @@ class TestGetOrderDataFromSelected:
 
     def test_convoy_order_complete(self):
         result = get_order_data_from_selected(["eng", OrderType.CONVOY, "lon", "bre"])
-        expected = {"source": "eng", "order_type": OrderType.CONVOY, "aux": "lon", "target": "bre"}
+        expected = {
+            "source": "eng",
+            "order_type": OrderType.CONVOY,
+            "aux": "lon",
+            "target": "bre",
+        }
         assert result == expected
 
     def test_convoy_order_partial_aux_only(self):
@@ -1856,7 +2291,11 @@ class TestGetOrderDataFromSelected:
 
     def test_move_via_convoy_order_complete(self):
         result = get_order_data_from_selected(["ber", OrderType.MOVE_VIA_CONVOY, "kie"])
-        expected = {"source": "ber", "order_type": OrderType.MOVE_VIA_CONVOY, "target": "kie"}
+        expected = {
+            "source": "ber",
+            "order_type": OrderType.MOVE_VIA_CONVOY,
+            "target": "kie",
+        }
         assert result == expected
 
     def test_move_via_convoy_order_incomplete(self):
@@ -1870,7 +2309,9 @@ class TestGetOrderDataFromSelected:
         assert result == expected
 
     def test_build_order_with_named_coast(self):
-        result = get_order_data_from_selected(["spa", OrderType.BUILD, UnitType.FLEET, "spa/nc"])
+        result = get_order_data_from_selected(
+            ["spa", OrderType.BUILD, UnitType.FLEET, "spa/nc"]
+        )
         expected = {
             "source": "spa",
             "order_type": OrderType.BUILD,
@@ -1881,12 +2322,24 @@ class TestGetOrderDataFromSelected:
 
     def test_move_order_with_named_coast(self):
         result = get_order_data_from_selected(["lon", OrderType.MOVE, "spa", "spa/nc"])
-        expected = {"source": "lon", "order_type": OrderType.MOVE, "target": "spa", "named_coast": "spa/nc"}
+        expected = {
+            "source": "lon",
+            "order_type": OrderType.MOVE,
+            "target": "spa",
+            "named_coast": "spa/nc",
+        }
         assert result == expected
 
     def test_move_via_convoy_order_with_named_coast(self):
-        result = get_order_data_from_selected(["lon", OrderType.MOVE_VIA_CONVOY, "spa", "spa/nc"])
-        expected = {"source": "lon", "order_type": OrderType.MOVE_VIA_CONVOY, "target": "spa", "named_coast": "spa/nc"}
+        result = get_order_data_from_selected(
+            ["lon", OrderType.MOVE_VIA_CONVOY, "spa", "spa/nc"]
+        )
+        expected = {
+            "source": "lon",
+            "order_type": OrderType.MOVE_VIA_CONVOY,
+            "target": "spa",
+            "named_coast": "spa/nc",
+        }
         assert result == expected
 
 
@@ -1923,14 +2376,26 @@ class TestOrderValidationLimits:
         phase.save()
 
         # Nation can build 1 order (2 supply centers, 1 unit)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
 
         # Should be able to create one order without validation error
-        order = Order(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+        order = Order(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
         # This should not raise ValidationError
         order.clean()
 
@@ -1971,28 +2436,46 @@ class TestOrderValidationLimits:
         phase.save()
 
         # Nation can build 1 order (2 supply centers, 1 unit)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
 
         # Create first order (at limit)
         first_order = Order.objects.create(
-            phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
         )
 
         # Try to create second order - should raise ValidationError
-        second_order = Order(phase_state=phase_state, source=classical_paris_province, order_type=OrderType.BUILD)
+        second_order = Order(
+            phase_state=phase_state,
+            source=classical_paris_province,
+            order_type=OrderType.BUILD,
+        )
 
         with pytest.raises(
-            exceptions.ValidationError, match="Cannot create order: nation has reached maximum of 1 orders"
+            exceptions.ValidationError,
+            match="Cannot create order: nation has reached maximum of 1 orders",
         ):
             second_order.clean()
 
     @pytest.mark.django_db
     def test_validation_balanced_nation_no_orders_allowed(
-        self, active_game_with_phase_state, classical_england_nation, classical_london_province
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
     ):
         """Test that balanced nations cannot create any orders."""
         phase = active_game_with_phase_state.current_phase
@@ -2014,16 +2497,27 @@ class TestOrderValidationLimits:
         phase.save()
 
         # Nation has balanced supply centers and units (0 orders allowed)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
 
         # Try to create order - should raise ValidationError
-        order = Order(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+        order = Order(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
 
         with pytest.raises(
-            exceptions.ValidationError, match="Cannot create order: nation has reached maximum of 0 orders"
+            exceptions.ValidationError,
+            match="Cannot create order: nation has reached maximum of 0 orders",
         ):
             order.clean()
 
@@ -2059,15 +2553,25 @@ class TestOrderValidationLimits:
         phase.save()
 
         # Nation can build 1 order (2 supply centers, 1 unit)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         phase_state = phase.phase_states.first()
 
         # Create order (at limit)
         existing_order = Order.objects.create(
-            phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
         )
 
         # Update the existing order - should not raise ValidationError
@@ -2121,24 +2625,42 @@ class TestOrderValidationLimits:
         phase.save()
 
         # Nation has 3 supply centers but 0 units (can build 3)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
 
         phase_state = phase.phase_states.first()
 
         # Should be able to create first order
-        order1 = Order(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+        order1 = Order(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
         order1.clean()  # Should pass
         order1.save()
 
         # Should be able to create second order
-        order2 = Order(phase_state=phase_state, source=classical_paris_province, order_type=OrderType.BUILD)
+        order2 = Order(
+            phase_state=phase_state,
+            source=classical_paris_province,
+            order_type=OrderType.BUILD,
+        )
         order2.clean()  # Should pass
         order2.save()
 
         # Should be able to create third order
-        order3 = Order(phase_state=phase_state, source=classical_edinburgh_province, order_type=OrderType.BUILD)
+        order3 = Order(
+            phase_state=phase_state,
+            source=classical_edinburgh_province,
+            order_type=OrderType.BUILD,
+        )
         order3.clean()  # Should pass
 
     @pytest.mark.django_db
@@ -2178,22 +2700,41 @@ class TestOrderValidationLimits:
         phase.save()
 
         # Nation has 1 supply center but 2 units (must disband 1)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Army", nation=classical_england_nation, province=classical_paris_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.units.create(
+            type="Fleet",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+        phase.units.create(
+            type="Army",
+            nation=classical_england_nation,
+            province=classical_paris_province,
+        )
 
         phase_state = phase.phase_states.first()
 
         # Should be able to create one disband order
-        order1 = Order(phase_state=phase_state, source=classical_london_province, order_type=OrderType.DISBAND)
+        order1 = Order(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.DISBAND,
+        )
         order1.clean()  # Should pass
         order1.save()
 
         # Try to create second disband order - should raise ValidationError
-        order2 = Order(phase_state=phase_state, source=classical_paris_province, order_type=OrderType.DISBAND)
+        order2 = Order(
+            phase_state=phase_state,
+            source=classical_paris_province,
+            order_type=OrderType.DISBAND,
+        )
 
         with pytest.raises(
-            exceptions.ValidationError, match="Cannot create order: nation has reached maximum of 1 orders"
+            exceptions.ValidationError,
+            match="Cannot create order: nation has reached maximum of 1 orders",
         ):
             order2.clean()
 
@@ -2238,16 +2779,28 @@ class TestOrderCreateViewAdjustmentCap:
         }
         phase.save()
         # 3 SCs (edi from fixture, lon, par), 2 units (edi from fixture, lon) → 1 build allowed
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_london_province
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_paris_province
+        )
+        phase.units.create(
+            type="Army",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         url = reverse("order-create", args=[game.id])
 
-        response = authenticated_client.post(url, {"selected": ["lon", "Build", "Army"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["lon", "Build", "Army"]}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
-        response = authenticated_client.post(url, {"selected": ["par", "Build", "Army"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["par", "Build", "Army"]}, format="json"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
@@ -2287,14 +2840,22 @@ class TestOrderCreateViewAdjustmentCap:
         }
         phase.save()
         # 1 SC (edi from fixture), 2 units (edi from fixture, lon) → 1 disband needed
-        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(
+            type="Army",
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
 
         url = reverse("order-create", args=[game.id])
 
-        response = authenticated_client.post(url, {"selected": ["edi", "Disband"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["edi", "Disband"]}, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
 
-        response = authenticated_client.post(url, {"selected": ["lon", "Disband"]}, format="json")
+        response = authenticated_client.post(
+            url, {"selected": ["lon", "Disband"]}, format="json"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -2315,7 +2876,9 @@ class TestOrderNamedCoastStep:
         assert order.step == OrderCreationStep.SELECT_NAMED_COAST
 
     @pytest.mark.django_db
-    def test_build_army_step_does_not_select_named_coast(self, primary_phase_state, classical_spain_province):
+    def test_build_army_step_does_not_select_named_coast(
+        self, primary_phase_state, classical_spain_province
+    ):
         """Test that BUILD Army orders do not require named coast selection."""
         order = Order(
             phase_state=primary_phase_state,
@@ -2357,7 +2920,11 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_move_fleet_step_selects_named_coast_when_target_has_named_coasts(
-        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_england_nation,
     ):
         """Test that MOVE Fleet orders require named coast selection when target has named coasts."""
         phase = primary_phase_state.phase
@@ -2379,7 +2946,11 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_move_army_step_does_not_select_named_coast(
-        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_england_nation,
     ):
         """Test that MOVE Army orders do not require named coast selection."""
         phase = primary_phase_state.phase
@@ -2429,7 +3000,11 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_move_fleet_step_does_not_select_named_coast_when_target_has_no_named_coasts(
-        self, primary_phase_state, classical_london_province, classical_paris_province, classical_england_nation
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_paris_province,
+        classical_england_nation,
     ):
         """Test that MOVE Fleet orders do not require named coast selection when target has no named coasts."""
         phase = primary_phase_state.phase
@@ -2482,7 +3057,9 @@ class TestOrderNamedCoastStep:
 class TestOrderNamedCoastTitles:
 
     @pytest.mark.django_db
-    def test_build_named_coast_title(self, primary_phase_state, classical_spain_province):
+    def test_build_named_coast_title(
+        self, primary_phase_state, classical_spain_province
+    ):
         """Test title generation for BUILD named coast selection."""
         order = Order(
             phase_state=primary_phase_state,
@@ -2495,7 +3072,11 @@ class TestOrderNamedCoastTitles:
 
     @pytest.mark.django_db
     def test_move_named_coast_title(
-        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_england_nation,
     ):
         """Test title generation for MOVE named coast selection."""
         phase = primary_phase_state.phase
@@ -2536,7 +3117,11 @@ class TestOrderNamedCoastSelectedProperty:
 
     @pytest.mark.django_db
     def test_selected_includes_named_coast_for_move_order(
-        self, primary_phase_state, classical_london_province, classical_spain_province, classical_spain_nc_province
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_spain_nc_province,
     ):
         """Test that selected property includes named_coast for MOVE orders."""
         order = Order(
@@ -2682,7 +3267,11 @@ class TestOrderNamedCoastCreation:
 
     @pytest.mark.django_db
     def test_order_create_build_fleet_step_by_step(
-        self, authenticated_client, game_with_options, primary_user, classical_spain_province
+        self,
+        authenticated_client,
+        game_with_options,
+        primary_user,
+        classical_spain_province,
     ):
         """Test creating a BUILD Fleet order step by step with named coast selection."""
         game = game_with_options
@@ -2731,7 +3320,9 @@ class TestOrderNamedCoastCreation:
         response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["step"] == OrderCreationStep.SELECT_NAMED_COAST
-        assert response.data["title"] == "Select which coast of Spain to build a fleet on"
+        assert (
+            response.data["title"] == "Select which coast of Spain to build a fleet on"
+        )
 
         # Step 4: Select named coast
         data = {"selected": ["spa", "Build", "Fleet", "spa/nc"]}
@@ -2754,7 +3345,9 @@ class TestOrderSummary:
         assert order.summary == "Hold"
 
     @pytest.mark.django_db
-    def test_disband_order_summary(self, primary_phase_state, classical_london_province):
+    def test_disband_order_summary(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -2763,7 +3356,9 @@ class TestOrderSummary:
         assert order.summary == "Disband"
 
     @pytest.mark.django_db
-    def test_build_army_order_summary(self, primary_phase_state, classical_london_province):
+    def test_build_army_order_summary(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -2773,7 +3368,9 @@ class TestOrderSummary:
         assert order.summary == "Build army"
 
     @pytest.mark.django_db
-    def test_build_fleet_order_summary(self, primary_phase_state, classical_london_province):
+    def test_build_fleet_order_summary(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -2796,7 +3393,12 @@ class TestOrderSummary:
         assert order.summary == "Build fleet"
 
     @pytest.mark.django_db
-    def test_move_order_summary(self, primary_phase_state, classical_london_province, classical_english_channel_province):
+    def test_move_order_summary(
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -2806,7 +3408,9 @@ class TestOrderSummary:
         assert order.summary == "Move to English Channel"
 
     @pytest.mark.django_db
-    def test_move_via_convoy_order_summary(self, primary_phase_state, classical_london_province, classical_paris_province):
+    def test_move_via_convoy_order_summary(
+        self, primary_phase_state, classical_london_province, classical_paris_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -2817,7 +3421,10 @@ class TestOrderSummary:
 
     @pytest.mark.django_db
     def test_support_hold_order_summary(
-        self, primary_phase_state, classical_london_province, classical_english_channel_province
+        self,
+        primary_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
     ):
         order = Order(
             phase_state=primary_phase_state,
@@ -2863,7 +3470,9 @@ class TestOrderSummary:
         assert order.summary == "Convoy London to Paris"
 
     @pytest.mark.django_db
-    def test_incomplete_order_summary_is_none(self, primary_phase_state, classical_london_province):
+    def test_incomplete_order_summary_is_none(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -2873,7 +3482,9 @@ class TestOrderSummary:
         assert order.summary is None
 
     @pytest.mark.django_db
-    def test_no_order_type_summary_is_none(self, primary_phase_state, classical_london_province):
+    def test_no_order_type_summary_is_none(
+        self, primary_phase_state, classical_london_province
+    ):
         order = Order(
             phase_state=primary_phase_state,
             source=classical_london_province,
@@ -3085,7 +3696,10 @@ class TestFlattenOptions:
         options = {"lon": {"MoveViaConvoy": {"bel": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
-        assert result[0]["order_type"] == {"id": "MoveViaConvoy", "label": "MoveViaConvoy"}
+        assert result[0]["order_type"] == {
+            "id": "MoveViaConvoy",
+            "label": "MoveViaConvoy",
+        }
         assert result[0]["target"] == {"id": "bel", "label": "Belgium"}
 
     def test_support(self):
@@ -3123,8 +3737,14 @@ class TestFlattenOptions:
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 2
         assert result[0]["unit_type"] == {"id": "Fleet", "label": "Fleet"}
-        assert result[0]["named_coast"] == {"id": "stp/nc", "label": "St. Petersburg (NC)"}
-        assert result[1]["named_coast"] == {"id": "stp/sc", "label": "St. Petersburg (SC)"}
+        assert result[0]["named_coast"] == {
+            "id": "stp/nc",
+            "label": "St. Petersburg (NC)",
+        }
+        assert result[1]["named_coast"] == {
+            "id": "stp/sc",
+            "label": "St. Petersburg (SC)",
+        }
 
     def test_multiple_order_types(self):
         options = {"lon": {"Hold": {}, "Move": {"eng": {}}}}
@@ -3168,7 +3788,14 @@ class TestFlattenOptions:
     def test_all_fields_present(self):
         options = {"lon": {"Hold": {}}}
         result = flatten_options(options, MOCK_PROVINCES)
-        expected_keys = {"source", "order_type", "target", "aux", "unit_type", "named_coast"}
+        expected_keys = {
+            "source",
+            "order_type",
+            "target",
+            "aux",
+            "unit_type",
+            "named_coast",
+        }
         assert set(result[0].keys()) == expected_keys
 
     def test_empty_options(self):
@@ -3198,7 +3825,9 @@ class TestOrderOptionsView:
     def test_kicked_member_returns_no_options(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(removed_at=timezone.now())
+        game_with_options.members.filter(user=primary_user).update(
+            removed_at=timezone.now()
+        )
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -3208,7 +3837,9 @@ class TestOrderOptionsView:
     def test_eliminated_member_returns_no_options(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(eliminated_at=timezone.now())
+        game_with_options.members.filter(user=primary_user).update(
+            eliminated_at=timezone.now()
+        )
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -3218,7 +3849,9 @@ class TestOrderOptionsView:
     def test_civil_disorder_member_returns_no_options(
         self, authenticated_client, game_with_options, primary_user
     ):
-        game_with_options.members.filter(user=primary_user).update(civil_disorder_at=timezone.now())
+        game_with_options.members.filter(user=primary_user).update(
+            civil_disorder_at=timezone.now()
+        )
         url = reverse("order-options", args=[game_with_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -3243,7 +3876,14 @@ class TestOrderOptionsView:
         assert response.status_code == status.HTTP_200_OK
 
         order = response.data["orders"][0]
-        expected_keys = {"source", "order_type", "target", "aux", "unit_type", "named_coast"}
+        expected_keys = {
+            "source",
+            "order_type",
+            "target",
+            "aux",
+            "unit_type",
+            "named_coast",
+        }
         assert set(order.keys()) == expected_keys
 
         assert "id" in order["source"]
@@ -3282,7 +3922,14 @@ class TestOrderOptionsView:
         assert response.status_code == status.HTTP_200_OK
 
         for order in response.data["orders"]:
-            for field_name in ["source", "order_type", "target", "aux", "unit_type", "named_coast"]:
+            for field_name in [
+                "source",
+                "order_type",
+                "target",
+                "aux",
+                "unit_type",
+                "named_coast",
+            ]:
                 field = order[field_name]
                 if field is not None:
                     assert "id" in field
@@ -3291,26 +3938,36 @@ class TestOrderOptionsView:
                     assert isinstance(field["label"], str)
 
     @pytest.mark.django_db
-    def test_sandbox_returns_all_nations(self, authenticated_client, sandbox_game_with_phase_options):
+    def test_sandbox_returns_all_nations(
+        self, authenticated_client, sandbox_game_with_phase_options
+    ):
         url = reverse("order-options", args=[sandbox_game_with_phase_options.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data["orders"]) > 0
 
     @pytest.mark.django_db
-    def test_response_has_revalidation_headers(self, authenticated_client, game_with_options):
-        response = authenticated_client.get(reverse("order-options", args=[game_with_options.id]))
+    def test_response_has_revalidation_headers(
+        self, authenticated_client, game_with_options
+    ):
+        response = authenticated_client.get(
+            reverse("order-options", args=[game_with_options.id])
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"]
         assert response["Cache-Control"] == "private, no-cache"
 
     @pytest.mark.django_db
     @pytest.mark.parametrize("weaken", [False, True])
-    def test_unchanged_options_return_304(self, authenticated_client, game_with_options, weaken):
+    def test_unchanged_options_return_304(
+        self, authenticated_client, game_with_options, weaken
+    ):
         url = reverse("order-options", args=[game_with_options.id])
         etag = authenticated_client.get(url)["ETag"]
 
-        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=f"W/{etag}" if weaken else etag)
+        response = authenticated_client.get(
+            url, HTTP_IF_NONE_MATCH=f"W/{etag}" if weaken else etag
+        )
 
         assert response.status_code == status.HTTP_304_NOT_MODIFIED
         assert response.content == b""
@@ -3318,7 +3975,9 @@ class TestOrderOptionsView:
         assert response["Cache-Control"] == "private, no-cache"
 
     @pytest.mark.django_db
-    def test_new_phase_returns_200_with_new_etag(self, authenticated_client, game_with_options, sample_options):
+    def test_new_phase_returns_200_with_new_etag(
+        self, authenticated_client, game_with_options, sample_options
+    ):
         game = game_with_options
         url = reverse("order-options", args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
@@ -3341,7 +4000,9 @@ class TestOrderOptionsView:
         assert response["ETag"] != etag
 
     @pytest.mark.django_db
-    def test_losing_a_nation_returns_200_with_new_etag(self, authenticated_client, game_with_options, primary_user):
+    def test_losing_a_nation_returns_200_with_new_etag(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         url = reverse("order-options", args=[game_with_options.id])
         etag = authenticated_client.get(url)["ETag"]
         member = game_with_options.members.get(user=primary_user)
@@ -3356,12 +4017,18 @@ class TestOrderOptionsView:
 
     @pytest.mark.django_db
     def test_etag_differs_between_nations(
-        self, authenticated_client, game_with_options, secondary_user, authenticated_client_factory
+        self,
+        authenticated_client,
+        game_with_options,
+        secondary_user,
+        authenticated_client_factory,
     ):
         url = reverse("order-options", args=[game_with_options.id])
         etag = authenticated_client.get(url)["ETag"]
 
-        response = authenticated_client_factory(secondary_user).get(url, HTTP_IF_NONE_MATCH=etag)
+        response = authenticated_client_factory(secondary_user).get(
+            url, HTTP_IF_NONE_MATCH=etag
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"] != etag
@@ -3449,7 +4116,9 @@ class TestOrderNamedCoastDisplay:
         primary_phase_state = phase.phase_states.get(member__user=primary_user)
 
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_stp_nc_province,
         )
         Order.objects.create(
             phase_state=primary_phase_state,
@@ -3484,10 +4153,14 @@ class TestOrderNamedCoastDisplay:
         primary_phase_state = phase.phase_states.get(member__user=primary_user)
 
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_stp_nc_province,
         )
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_wales_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_wales_province,
         )
         Order.objects.create(
             phase_state=primary_phase_state,
@@ -3511,7 +4184,9 @@ class TestOrderNamedCoastDisplay:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        support_data = next(o for o in response.data if o["source"]["id"] == support.source.province_id)
+        support_data = next(
+            o for o in response.data if o["source"]["id"] == support.source.province_id
+        )
         assert support_data["target_coast"]["id"] == "spa/sc"
         assert support_data["summary"] == "Support St. Petersburg (NC) to Spain (SC)"
 
@@ -3535,10 +4210,14 @@ class TestOrderNamedCoastDisplay:
         secondary_phase_state = phase.phase_states.get(member__user=secondary_user)
 
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_france_nation, province=classical_stp_province
+            type=UnitType.FLEET,
+            nation=classical_france_nation,
+            province=classical_stp_province,
         )
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_wales_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_wales_province,
         )
         Order.objects.create(
             phase_state=secondary_phase_state,
@@ -3580,10 +4259,14 @@ class TestOrderNamedCoastDisplay:
         primary_phase_state = phase.phase_states.get(member__user=primary_user)
 
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_spain_sc_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_spain_sc_province,
         )
         phase.units.create(
-            type=UnitType.FLEET, nation=classical_england_nation, province=classical_wales_province
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_wales_province,
         )
         Order.objects.create(
             phase_state=primary_phase_state,

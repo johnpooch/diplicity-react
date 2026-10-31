@@ -28,7 +28,10 @@ def commitment_points(kind_lookup):
     return Coalesce(
         Sum(
             Case(
-                *[When(**{kind_lookup: kind}, then=Value(points)) for kind, points in CommitmentEvent.POINTS.items()],
+                *[
+                    When(**{kind_lookup: kind}, then=Value(points))
+                    for kind, points in CommitmentEvent.POINTS.items()
+                ],
                 output_field=models.IntegerField(),
             )
         ),
@@ -54,7 +57,9 @@ class MemberQuerySet(models.QuerySet):
         return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
 
     def with_commitment_square(self):
-        return self.annotate(commitment_square=commitment_points("commitment_entries__kind"))
+        return self.annotate(
+            commitment_square=commitment_points("commitment_entries__kind")
+        )
 
     def commitment_squares(self):
         return (
@@ -63,9 +68,13 @@ class MemberQuerySet(models.QuerySet):
             .with_commitment_square()
             .annotate(
                 commitment_submitted=Count(
-                    "commitment_entries", filter=Q(commitment_entries__kind=CommitmentEvent.SUBMITTED)
+                    "commitment_entries",
+                    filter=Q(commitment_entries__kind=CommitmentEvent.SUBMITTED),
                 ),
-                commitment_missed=Count("commitment_entries", filter=Q(commitment_entries__kind=CommitmentEvent.NMR)),
+                commitment_missed=Count(
+                    "commitment_entries",
+                    filter=Q(commitment_entries__kind=CommitmentEvent.NMR),
+                ),
                 commitment_events=ArrayAgg(
                     "commitment_entries__kind",
                     filter=Q(commitment_entries__isnull=False)
@@ -102,7 +111,9 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         )
 
     def hydrate_commitment_totals(self, members):
-        members = [member for member in members if "commitment_total" not in member.__dict__]
+        members = [
+            member for member in members if "commitment_total" not in member.__dict__
+        ]
         if not members:
             return
         totals = self.commitment_totals({member.user_id for member in members} - {None})
@@ -118,7 +129,9 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             ChannelMember.objects.bulk_create(
                 [
                     ChannelMember(member=replacement, channel_id=channel_id)
-                    for channel_id in member.member_channels.values_list("channel_id", flat=True)
+                    for channel_id in member.member_channels.values_list(
+                        "channel_id", flat=True
+                    )
                 ]
             )
 
@@ -136,7 +149,8 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                 PhaseState.objects.create(
                     member=replacement,
                     phase=phase,
-                    has_possible_orders=member.nation.name in phase.nations_with_possible_orders,
+                    has_possible_orders=member.nation.name
+                    in phase.nations_with_possible_orders,
                 )
                 Phase = apps.get_model("phase", "Phase")
                 Phase.objects.arm_resolution(phase)
@@ -190,7 +204,11 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             member.save(update_fields=["withdrawn_at"])
             CommitmentEntry.objects.record(
                 member,
-                CommitmentEvent.EARLY_WITHDRAWAL if game.in_first_year else CommitmentEvent.LATE_WITHDRAWAL,
+                (
+                    CommitmentEvent.EARLY_WITHDRAWAL
+                    if game.in_first_year
+                    else CommitmentEvent.LATE_WITHDRAWAL
+                ),
             )
 
             phase = self._lock_active_phase(game)
@@ -206,7 +224,12 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                 if game.should_abandon():
                     game.finish(GameStatus.ABANDONED)
 
-            emit("withdrawal", game=game, actor=member.user, nation_name=member.nation.name)
+            emit(
+                "withdrawal",
+                game=game,
+                actor=member.user,
+                nation_name=member.nation.name,
+            )
 
         return member
 
@@ -228,10 +251,22 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
 class Member(BaseModel):
     objects = MemberManager()
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="members")
-    game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="members")
-    kind = models.CharField(max_length=20, choices=MemberKind.KIND_CHOICES, default=MemberKind.PLAYER)
-    nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members", null=True, blank=True)
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="members"
+    )
+    game = models.ForeignKey(
+        "game.Game", on_delete=models.CASCADE, related_name="members"
+    )
+    kind = models.CharField(
+        max_length=20, choices=MemberKind.KIND_CHOICES, default=MemberKind.PLAYER
+    )
+    nation = models.ForeignKey(
+        "nation.Nation",
+        on_delete=models.CASCADE,
+        related_name="members",
+        null=True,
+        blank=True,
+    )
     sandbox = models.BooleanField(default=False)
     won = models.BooleanField(default=False)
     drew = models.BooleanField(default=False)
@@ -318,7 +353,9 @@ class Member(BaseModel):
 
     @property
     def vacant(self):
-        return self.replaced_by_id is None and (self.civil_disorder or self.removed or self.withdrawn)
+        return self.replaced_by_id is None and (
+            self.civil_disorder or self.removed or self.withdrawn
+        )
 
     @property
     def occupied(self):
@@ -344,7 +381,11 @@ class Member(BaseModel):
         if victory is not None:
             victor_ids = [member.id for member in victory.members.all()]
             if self.id in victor_ids:
-                return ParticipationStatus.WON if len(victor_ids) == 1 else ParticipationStatus.DREW
+                return (
+                    ParticipationStatus.WON
+                    if len(victor_ids) == 1
+                    else ParticipationStatus.DREW
+                )
         if self.eliminated:
             return ParticipationStatus.ELIMINATED
         if self.civil_disorder:
@@ -388,22 +429,35 @@ class Member(BaseModel):
         actions = []
         if active and self.replaceable:
             user_is_player = any(
-                member.user_id == user.id and not member.is_game_master for member in game.members.all()
+                member.user_id == user.id and not member.is_game_master
+                for member in game.members.all()
             )
-            user_is_game_master = game.game_master_id is not None and game.game_master_id == user.id
+            user_is_game_master = (
+                game.game_master_id is not None and game.game_master_id == user.id
+            )
             if not user_is_player and not user_is_game_master:
-                eligible = game.commitment_eligibility(user) == CommitmentEligibility.ELIGIBLE
-                actions.append({
-                    "key": MemberActionKey.TAKE_OVER,
-                    "blocked_reason": None if eligible else ActionBlockedReason.COMMITMENT_TOO_LOW,
-                })
-            actions.append({"key": MemberActionKey.SHARE_REPLACEMENT_LINK, "blocked_reason": None})
+                eligible = (
+                    game.commitment_eligibility(user) == CommitmentEligibility.ELIGIBLE
+                )
+                actions.append(
+                    {
+                        "key": MemberActionKey.TAKE_OVER,
+                        "blocked_reason": (
+                            None if eligible else ActionBlockedReason.COMMITMENT_TOO_LOW
+                        ),
+                    }
+                )
+            actions.append(
+                {"key": MemberActionKey.SHARE_REPLACEMENT_LINK, "blocked_reason": None}
+            )
         if (
             manages
             and game.status in (GameStatus.PENDING, GameStatus.MUSTERING)
             and game.can_remove_member(self)
         ):
-            actions.append({"key": MemberActionKey.REMOVE_FROM_LOBBY, "blocked_reason": None})
+            actions.append(
+                {"key": MemberActionKey.REMOVE_FROM_LOBBY, "blocked_reason": None}
+            )
         if (
             manages
             and active
@@ -413,10 +467,16 @@ class Member(BaseModel):
             and not self.withdrawn
             and not (self.eliminated and self.civil_disorder)
         ):
-            actions.append({
-                "key": MemberActionKey.REMOVE_FROM_GAME,
-                "blocked_reason": None if game.can_remove_member(self) else ActionBlockedReason.NO_MISSED_ORDERS,
-            })
+            actions.append(
+                {
+                    "key": MemberActionKey.REMOVE_FROM_GAME,
+                    "blocked_reason": (
+                        None
+                        if game.can_remove_member(self)
+                        else ActionBlockedReason.NO_MISSED_ORDERS
+                    ),
+                }
+            )
         return actions
 
     def __str__(self):
@@ -425,8 +485,12 @@ class Member(BaseModel):
 
 
 class NationPreference(BaseModel):
-    member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="nation_preferences")
-    nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="member_preferences")
+    member = models.ForeignKey(
+        "member.Member", on_delete=models.CASCADE, related_name="nation_preferences"
+    )
+    nation = models.ForeignKey(
+        "nation.Nation", on_delete=models.CASCADE, related_name="member_preferences"
+    )
     rank = models.PositiveSmallIntegerField()
 
     class Meta:
@@ -449,7 +513,9 @@ class CommitmentEntryManager(models.Manager):
 
 class CommitmentEntry(BaseModel):
     objects = CommitmentEntryManager()
-    member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="commitment_entries")
+    member = models.ForeignKey(
+        "member.Member", on_delete=models.CASCADE, related_name="commitment_entries"
+    )
     kind = models.CharField(max_length=20, choices=CommitmentEvent.KIND_CHOICES)
 
     class Meta:

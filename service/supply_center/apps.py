@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class SupplyCenterConfig(AppConfig):
-    name = 'supply_center'
+    name = "supply_center"

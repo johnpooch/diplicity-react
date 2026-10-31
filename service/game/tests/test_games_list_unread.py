@@ -39,7 +39,9 @@ class TestGamesListUnreadCount:
         game = game_with_public_channel_and_messages
         primary_member = game.members.first()
         channel = Channel.objects.get(game=game, name="Public Press")
-        ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
+        ChannelMessage.objects.create(
+            channel=channel, sender=primary_member, body="Own message"
+        )
 
         response = authenticated_client.get(reverse("game-list") + "?mine=1")
 
@@ -53,7 +55,9 @@ class TestGamesListUnreadCount:
         game = game_with_public_channel_and_messages
         channel = Channel.objects.get(game=game, name="Public Press")
 
-        authenticated_client.post(reverse("channel-mark-read", args=[game.id, channel.id]))
+        authenticated_client.post(
+            reverse("channel-mark-read", args=[game.id, channel.id])
+        )
 
         response = authenticated_client.get(reverse("game-list") + "?mine=1")
 

@@ -13,12 +13,16 @@ class UpdateCheckResponseSerializer(serializers.Serializer):
 
 
 class UpdateCheckSerializer(serializers.Serializer):
-    platform = serializers.ChoiceField(choices=BundlePlatform.PLATFORM_CHOICES, write_only=True)
+    platform = serializers.ChoiceField(
+        choices=BundlePlatform.PLATFORM_CHOICES, write_only=True
+    )
     version_build = serializers.CharField(write_only=True)
     version_name = serializers.CharField(write_only=True)
 
     def create(self, validated_data):
-        bundle = Bundle.objects.latest_for(validated_data["platform"], validated_data["version_build"])
+        bundle = Bundle.objects.latest_for(
+            validated_data["platform"], validated_data["version_build"]
+        )
         if bundle is None or bundle.version == validated_data["version_name"]:
             return {
                 "kind": UpdateResponseKind.UP_TO_DATE,

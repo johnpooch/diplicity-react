@@ -24,7 +24,9 @@ def arm_resolution_jobs(apps, schema_editor):
             )
         )
         resolvable = bool(states) and all(
-            confirmed for has_possible_orders, confirmed in states if has_possible_orders
+            confirmed
+            for has_possible_orders, confirmed in states
+            if has_possible_orders
         )
 
         should_arm = resolvable or scheduled_resolution is not None

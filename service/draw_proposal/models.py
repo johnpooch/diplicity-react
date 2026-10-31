@@ -31,7 +31,9 @@ class DrawProposalQuerySet(models.QuerySet):
             "created_by__nation",
             "phase",
         ).prefetch_related(
-            Prefetch("game__phases", queryset=Phase.objects.only("id", "game_id", "ordinal")),
+            Prefetch(
+                "game__phases", queryset=Phase.objects.only("id", "game_id", "ordinal")
+            ),
             "votes__member__user__profile__uploaded_picture",
             "votes__member__nation",
         )
@@ -56,9 +58,9 @@ class DrawProposalManager(models.Manager):
     def create_proposal(self, game, created_by):
         phase = game.current_phase
 
-        all_active_members = list(game.members.players().not_replaced().filter(
-            eliminated_at__isnull=True
-        ))
+        all_active_members = list(
+            game.members.players().not_replaced().filter(eliminated_at__isnull=True)
+        )
 
         proposal = self.create(
             game=game,
@@ -99,14 +101,19 @@ class DrawProposalManager(models.Manager):
 
         return proposal
 
-
     def apply_withdrawal(self, member, phase):
         pending = list(self.pending_for_phase(phase))
         own = [proposal for proposal in pending if proposal.created_by_id == member.id]
-        others = [proposal for proposal in pending if proposal.created_by_id != member.id]
+        others = [
+            proposal for proposal in pending if proposal.created_by_id != member.id
+        ]
 
-        self.filter(id__in=[proposal.id for proposal in own]).update(cancelled_at=timezone.now())
-        DrawVote.objects.filter(proposal__in=others, member=member).update(accepted=True, included=False)
+        self.filter(id__in=[proposal.id for proposal in own]).update(
+            cancelled_at=timezone.now()
+        )
+        DrawVote.objects.filter(proposal__in=others, member=member).update(
+            accepted=True, included=False
+        )
 
         for proposal in others:
             proposal.process_acceptance()

@@ -89,7 +89,14 @@ _VALIDATOR = Draft202012Validator(SNAPSHOT_SCHEMA)
 
 
 def validate_snapshot(snapshot: dict) -> dict:
-    error = next(iter(sorted(_VALIDATOR.iter_errors(snapshot), key=lambda e: list(e.absolute_path))), None)
+    error = next(
+        iter(
+            sorted(
+                _VALIDATOR.iter_errors(snapshot), key=lambda e: list(e.absolute_path)
+            )
+        ),
+        None,
+    )
     if error is not None:
         location = ".".join(str(part) for part in error.absolute_path) or "<root>"
         raise HarvestError(f"snapshot violates schema at {location}: {error.message}")

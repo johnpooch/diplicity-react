@@ -16,7 +16,9 @@ from .models import DrawProposal
 from .serializers import DrawProposalSerializer, DrawVoteUpdateSerializer
 
 
-class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView):
+class DrawProposalListView(
+    SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView
+):
     permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame]
     serializer_class = DrawProposalSerializer
 
@@ -28,7 +30,9 @@ class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, generics.L
         )
 
 
-class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
+class DrawProposalCreateView(
+    SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView
+):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
@@ -39,7 +43,9 @@ class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics
     serializer_class = DrawProposalSerializer
 
 
-class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
+class DrawProposalVoteView(
+    SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView
+):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
@@ -69,7 +75,9 @@ class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
         return Response(response_serializer.data)
 
 
-class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics.DestroyAPIView):
+class DrawProposalCancelView(
+    SelectedGameMixin, CurrentGameMemberMixin, generics.DestroyAPIView
+):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,

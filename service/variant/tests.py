@@ -17,8 +17,12 @@ from variant.models import Variant, default_phase_progression
 from variant.utils import normalize_dsvg, variant_to_canonical_dict
 
 IN_DB_VARIANT_IDS = {
-    "classical", "italy-vs-germany", "hundred",
-    "youngstown-redux", "vietnam-war", "canton",
+    "classical",
+    "italy-vs-germany",
+    "hundred",
+    "youngstown-redux",
+    "vietnam-war",
+    "canton",
 }
 
 viewname = "variant-list"
@@ -61,10 +65,15 @@ def test_list_variants_success(authenticated_client, classical_variant):
 
 
 @pytest.mark.django_db
-def test_list_variants_unauthenticated(unauthenticated_client, classical_variant, user_factory):
+def test_list_variants_unauthenticated(
+    unauthenticated_client, classical_variant, user_factory
+):
     draft_variant = Variant.objects.create(
-        id="vis-draft", name="Visibility Draft", description="",
-        status=VariantStatus.DRAFT, owner=user_factory(),
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=user_factory(),
     )
     url = reverse(viewname)
     response = unauthenticated_client.get(url)
@@ -96,14 +105,18 @@ def test_list_variants_returns_304_when_weakened_etag_matches(authenticated_clie
     response1 = authenticated_client.get(reverse(viewname))
     etag = response1["ETag"]
 
-    response2 = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH=f"W/{etag}")
+    response2 = authenticated_client.get(
+        reverse(viewname), HTTP_IF_NONE_MATCH=f"W/{etag}"
+    )
 
     assert response2.status_code == status.HTTP_304_NOT_MODIFIED
 
 
 @pytest.mark.django_db
 def test_list_variants_returns_200_when_weakened_etag_is_stale(authenticated_client):
-    response = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH='W/"stale"')
+    response = authenticated_client.get(
+        reverse(viewname), HTTP_IF_NONE_MATCH='W/"stale"'
+    )
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -130,7 +143,13 @@ def test_list_variants_includes_svg_url(authenticated_client):
 
 @pytest.mark.django_db
 def test_svg_url_is_null_when_variant_has_no_svg(authenticated_client):
-    Variant.objects.create(id="no-svg", name="No SVG", description="", author="", status=VariantStatus.PUBLISHED)
+    Variant.objects.create(
+        id="no-svg",
+        name="No SVG",
+        description="",
+        author="",
+        status=VariantStatus.PUBLISHED,
+    )
 
     response = authenticated_client.get(reverse(viewname))
 
@@ -141,7 +160,9 @@ def test_svg_url_is_null_when_variant_has_no_svg(authenticated_client):
 class TestVariantListViewQueryPerformance:
 
     @pytest.mark.django_db
-    def test_list_variants_query_count_with_all_variants(self, authenticated_client, classical_variant):
+    def test_list_variants_query_count_with_all_variants(
+        self, authenticated_client, classical_variant
+    ):
         """Test query count when listing all variants (classical + italy-vs-germany)."""
         url = reverse(viewname)
         connection.queries_log.clear()
@@ -161,7 +182,9 @@ class TestVariantListViewQueryPerformance:
         assert query_count == 20
 
     @pytest.mark.django_db
-    def test_list_variants_query_count_with_single_variant(self, authenticated_client, classical_variant):
+    def test_list_variants_query_count_with_single_variant(
+        self, authenticated_client, classical_variant
+    ):
         """Test query count when only one variant exists (by creating a fresh test)."""
         # Create a new variant to test with a single variant scenario
 
@@ -176,7 +199,12 @@ class TestVariantListViewQueryPerformance:
 
         # Create a template phase for the test variant
         Phase.objects.create(
-            variant=test_variant, season="Spring", year=1901, type="Movement", status=PhaseStatus.TEMPLATE, ordinal=1
+            variant=test_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.TEMPLATE,
+            ordinal=1,
         )
 
         url = reverse(viewname)
@@ -209,8 +237,7 @@ class TestPhaseProgressionBackfill:
         assert progression["seasons"] == ["Year"]
 
         adjustment_to_movement = next(
-            t for t in progression["transitions"]
-            if t["from"]["type"] == "Adjustment"
+            t for t in progression["transitions"] if t["from"]["type"] == "Adjustment"
         )
         assert adjustment_to_movement["to"]["type"] == "Movement"
         assert adjustment_to_movement["to"]["yearDelta"] == 5
@@ -267,7 +294,10 @@ class TestSupplyCenterTargetDeserialization:
             {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"}
         )
         variant = deserialize_variant(canonical)
-        assert [(c.supply_centers, c.nation) for c in variant.victory_conditions] == [(18, None), (15, "england")]
+        assert [(c.supply_centers, c.nation) for c in variant.victory_conditions] == [
+            (18, None),
+            (15, "england"),
+        ]
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(
@@ -280,20 +310,36 @@ class TestSupplyCenterTargetDeserialization:
             ),
             pytest.param(
                 [
-                    {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"},
-                    {"type": "supply-center-majority", "supplyCenters": 16, "nation": "england"},
+                    {
+                        "type": "supply-center-majority",
+                        "supplyCenters": 15,
+                        "nation": "england",
+                    },
+                    {
+                        "type": "supply-center-majority",
+                        "supplyCenters": 16,
+                        "nation": "england",
+                    },
                 ],
                 "Duplicate supply-center-majority victory condition for nation 'england'",
                 id="duplicate_override",
             ),
             pytest.param(
-                [{"type": "supply-center-majority", "supplyCenters": 15, "nation": "atlantis"}],
+                [
+                    {
+                        "type": "supply-center-majority",
+                        "supplyCenters": 15,
+                        "nation": "atlantis",
+                    }
+                ],
                 "unknown nation 'atlantis'",
                 id="unknown_nation",
             ),
         ],
     )
-    def test_invalid_supply_center_targets_rejected(self, classical_variant, extra, match):
+    def test_invalid_supply_center_targets_rejected(
+        self, classical_variant, extra, match
+    ):
         canonical = copy.deepcopy(variant_to_canonical_dict(classical_variant))
         canonical["victoryConditions"].extend(extra)
         with pytest.raises(VariantValidationError, match=match):
@@ -308,7 +354,9 @@ class TestSupplyCenterTargetDeserialization:
         canonical["victoryConditions"].append(
             {"type": "supply-center-majority", "supplyCenters": 15, "nation": "england"}
         )
-        with pytest.raises(VariantValidationError, match="non-playable nation 'england'"):
+        with pytest.raises(
+            VariantValidationError, match="non-playable nation 'england'"
+        ):
             deserialize_variant(canonical)
 
 
@@ -342,10 +390,17 @@ class TestVariantToCanonicalDict:
         from game.models import Game
 
         for i in range(5):
-            game = Game.objects.create(variant=classical_variant, name=f"g{i}", status=GameStatus.ACTIVE)
+            game = Game.objects.create(
+                variant=classical_variant, name=f"g{i}", status=GameStatus.ACTIVE
+            )
             Phase.objects.create(
-                game=game, variant=classical_variant, ordinal=1,
-                season="Spring", year=1901, type="Movement", status=PhaseStatus.ACTIVE,
+                game=game,
+                variant=classical_variant,
+                ordinal=1,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
             )
 
         connection.queries_log.clear()
@@ -368,15 +423,30 @@ class TestVariantToCanonicalDict:
         province_types = {p["type"] for p in canonical["provinces"]}
         assert province_types <= {"land", "sea", "coastal"}
         named_coast_ids = {nc["id"] for nc in canonical["namedCoasts"]}
-        assert named_coast_ids == {"stp/nc", "stp/sc", "bul/ec", "bul/sc", "spa/nc", "spa/sc"}
+        assert named_coast_ids == {
+            "stp/nc",
+            "stp/sc",
+            "bul/ec",
+            "bul/sc",
+            "spa/nc",
+            "spa/sc",
+        }
         for named_coast in canonical["namedCoasts"]:
             assert named_coast["parentProvince"] == named_coast["id"].split("/")[0]
 
-        home_nations = {p["id"]: p["homeNation"] for p in canonical["provinces"] if "homeNation" in p}
+        home_nations = {
+            p["id"]: p["homeNation"]
+            for p in canonical["provinces"]
+            if "homeNation" in p
+        }
         assert home_nations["par"] == "france"
 
         initial_state = canonical["initialState"]
-        assert initial_state["phase"] == {"season": "Spring", "year": 1901, "type": "Movement"}
+        assert initial_state["phase"] == {
+            "season": "Spring",
+            "year": 1901,
+            "type": "Movement",
+        }
         assert len(initial_state["units"]) == 22
         assert len(initial_state["supplyCenters"]) == 22
 
@@ -396,7 +466,9 @@ class TestVariantToCanonicalDict:
     def test_unknown_modifier_raises_variant_validation_error(self, classical_variant):
         canonical = variant_to_canonical_dict(classical_variant)
         canonical["adjudicationModifiers"] = ["not-a-real-modifier"]
-        with pytest.raises(VariantValidationError, match="Unknown adjudication modifier"):
+        with pytest.raises(
+            VariantValidationError, match="Unknown adjudication modifier"
+        ):
             deserialize_variant(canonical)
 
 
@@ -413,8 +485,11 @@ def test_own_draft_hidden_from_list(user_factory, authenticated_client_factory):
     owner = user_factory()
     owner_client = authenticated_client_factory(owner)
     draft_variant = Variant.objects.create(
-        id="vis-draft", name="Visibility Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
     response = owner_client.get(reverse(viewname))
     ids = {v["id"] for v in response.data}
@@ -425,8 +500,11 @@ def test_own_draft_hidden_from_list(user_factory, authenticated_client_factory):
 def test_other_users_draft_hidden_from_list(authenticated_client, user_factory):
     owner = user_factory()
     draft_variant = Variant.objects.create(
-        id="vis-draft", name="Visibility Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
     response = authenticated_client.get(reverse(viewname))
     ids = {v["id"] for v in response.data}
@@ -434,20 +512,61 @@ def test_other_users_draft_hidden_from_list(authenticated_client, user_factory):
 
 
 @pytest.mark.django_db
-def test_other_users_draft_returns_404_on_detail(authenticated_client, user_factory):
+def test_any_user_can_retrieve_other_users_draft(authenticated_client, user_factory):
     owner = user_factory()
     draft_variant = Variant.objects.create(
-        id="vis-draft", name="Visibility Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
-    response = authenticated_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_any_user_can_retrieve_archived_variant(authenticated_client):
+    archived_variant = Variant.objects.create(
+        id="vis-archived",
+        name="Visibility Archived",
+        description="",
+        status=VariantStatus.ARCHIVED,
+    )
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": archived_variant.id})
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_non_owner_cannot_delete_other_users_draft(authenticated_client, user_factory):
+    owner = user_factory()
+    draft_variant = Variant.objects.create(
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
+    )
+    response = authenticated_client.delete(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    retrieved = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+    assert retrieved.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db
 def test_archived_variant_hidden_from_list(authenticated_client):
     Variant.objects.create(
-        id="vis-archived", name="Visibility Archived", description="",
+        id="vis-archived",
+        name="Visibility Archived",
+        description="",
         status=VariantStatus.ARCHIVED,
     )
     response = authenticated_client.get(reverse(viewname))
@@ -463,8 +582,11 @@ def test_member_of_draft_variant_game_does_not_see_variant_in_list(
     other_user = user_factory()
     other_client = authenticated_client_factory(other_user)
     draft_variant = Variant.objects.create(
-        id="vis-draft", name="Visibility Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
     game = game_factory(variant=draft_variant, private=True)
     member_factory(game=game, user=other_user)
@@ -481,12 +603,17 @@ def test_member_of_draft_variant_game_can_retrieve_variant(
     other_user = user_factory()
     other_client = authenticated_client_factory(other_user)
     draft_variant = Variant.objects.create(
-        id="vis-draft", name="Visibility Draft", description="",
-        status=VariantStatus.DRAFT, owner=owner,
+        id="vis-draft",
+        name="Visibility Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
     )
     game = game_factory(variant=draft_variant, private=True)
     member_factory(game=game, user=other_user)
-    response = other_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
+    response = other_client.get(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
     assert response.status_code == status.HTTP_200_OK
 
 
@@ -507,23 +634,40 @@ class TestNationColor:
         assert nations_by_id["italy"]["color"] == "#4CAF50"
 
 
-COMMITTED_DSVGS = sorted((Path(__file__).resolve().parent / "data" / "svg").glob("*.d.svg"))
+COMMITTED_DSVGS = sorted(
+    (Path(__file__).resolve().parent / "data" / "svg").glob("*.d.svg")
+)
 
 UNSAFE_DSVG_PAYLOADS = [
-    ('<a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="java&#x09;script:alert(1)"><rect/></a>', "alert("),
+    (
+        '<a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="java&#x09;script:alert(1)"><rect/></a>',
+        "alert(",
+    ),
     ('<animate attributeName="href" values="javascript:alert(1)"/>', "alert("),
     ('<set attributeName="href" from="javascript:alert(1)"/>', "alert("),
     ('<rect onclick="alert(1)"/>', "alert("),
     ("<script>alert(1)</script>", "alert("),
-    ('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>', "alert("),
+    (
+        '<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">alert(1)</div></foreignObject>',
+        "alert(",
+    ),
     ('<a href="data:text/html,alert(1)"><rect/></a>', "alert("),
     ('<use href="https://evil.example/sprite.svg#a"/>', "evil.example"),
     ('<rect style="fill:url(https://evil.example/a.png)"/>', "evil.example"),
     ("<style>@import url(https://evil.example/x.css);</style>", "evil.example"),
-    ('<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
-    ('<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>', "evil.example"),
+    (
+        '<style>.a{fill:url(https://evil.example/a.png)}</style><rect class="a"/>',
+        "evil.example",
+    ),
+    (
+        '<style>.a{fill:u\\72l(https://evil.example/a.png)}</style><rect class="a"/>',
+        "evil.example",
+    ),
     ('<style>.a{fill:expression(alert(1))}</style><rect class="a"/>', "alert("),
-    ('<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>', "evil.example"),
+    (
+        '<style>@import url(https://evil.example/x.css);.a{fill:#fff}</style><rect class="a"/>',
+        "evil.example",
+    ),
     ('<style>.a{fill:#fff}body{fill:#123456}</style><rect class="a"/>', "#123456"),
     ('<style>.a{fill:#fff}*{fill:#654321}</style><rect class="a"/>', "#654321"),
 ]
@@ -541,14 +685,19 @@ FONT_FACE_WITH_UNICODE_RANGE = """
 
 def _variant_upload(dvar, dsvg):
     return {
-        "dvar": SimpleUploadedFile("upload.dvar.json", json.dumps(dvar).encode(), "application/json"),
+        "dvar": SimpleUploadedFile(
+            "upload.dvar.json", json.dumps(dvar).encode(), "application/json"
+        ),
         "dsvg": SimpleUploadedFile("upload.svg", dsvg.encode(), "image/svg+xml"),
     }
 
 
 def _with_foreground_content(dsvg, content):
     injected, count = re.subn(
-        r'(<g\b[^>]*\bid="foreground"[^>]*>)', lambda match: match.group(1) + content, dsvg, count=1
+        r'(<g\b[^>]*\bid="foreground"[^>]*>)',
+        lambda match: match.group(1) + content,
+        dsvg,
+        count=1,
     )
     assert count == 1
     return injected
@@ -569,7 +718,8 @@ class TestVariantListCreateView:
         response = authenticated_client.post(
             reverse("variant-list"),
             _variant_upload(
-                _draft_dvar(classical_dvar, "unsafe-draft"), _with_foreground_content(classical_dsvg, payload)
+                _draft_dvar(classical_dvar, "unsafe-draft"),
+                _with_foreground_content(classical_dsvg, payload),
             ),
             format="multipart",
         )
@@ -592,7 +742,8 @@ class TestVariantListCreateView:
         response = authenticated_client.post(
             reverse("variant-list"),
             _variant_upload(
-                _draft_dvar(classical_dvar, "styled-draft"), _with_foreground_content(classical_dsvg, content)
+                _draft_dvar(classical_dvar, "styled-draft"),
+                _with_foreground_content(classical_dsvg, content),
             ),
             format="multipart",
         )
@@ -608,23 +759,34 @@ class TestVariantListCreateView:
             '<path id="label-path" d="M0 0h1" style="text-anchor:middle;paint-order:stroke;stroke:none;'
             'stroke-linejoin:round;fill:#FFCD00;stroke-width:5.448"/>'
         ) in served
-        assert '<filter id="label-filter" color-interpolation-filters="sRGB" shape-rendering="crispEdges"/>' in served
+        assert (
+            '<filter id="label-filter" color-interpolation-filters="sRGB" shape-rendering="crispEdges"/>'
+            in served
+        )
         assert "class=" not in served
 
     def test_create_rejects_non_svg_root(self, authenticated_client, classical_dvar):
         response = authenticated_client.post(
             reverse("variant-list"),
-            _variant_upload(_draft_dvar(classical_dvar, "html-draft"), '<html xmlns="http://www.w3.org/1999/xhtml"/>'),
+            _variant_upload(
+                _draft_dvar(classical_dvar, "html-draft"),
+                '<html xmlns="http://www.w3.org/1999/xhtml"/>',
+            ),
             format="multipart",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["dsvg"] == [
-            {"code": "INVALID_ROOT", "message": "Root element must be <svg> in the SVG namespace."}
+            {
+                "code": "INVALID_ROOT",
+                "message": "Root element must be <svg> in the SVG namespace.",
+            }
         ]
 
     @pytest.mark.parametrize("dsvg_path", COMMITTED_DSVGS, ids=lambda path: path.name)
-    def test_committed_maps_keep_their_rendering(self, authenticated_client, svg_rendering_signature, dsvg_path):
+    def test_committed_maps_keep_their_rendering(
+        self, authenticated_client, svg_rendering_signature, dsvg_path
+    ):
         variant_id = dsvg_path.name.removesuffix(".d.svg")
         dvar = variant_to_canonical_dict(Variant.objects.get(id=variant_id))
         source = dsvg_path.read_text()
@@ -637,7 +799,9 @@ class TestVariantListCreateView:
         assert response.status_code == status.HTTP_201_CREATED, response.data
 
         served = authenticated_client.get(response.data["svg_url"]).content.decode()
-        assert svg_rendering_signature(served) == svg_rendering_signature(normalize_dsvg(source))
+        assert svg_rendering_signature(served) == svg_rendering_signature(
+            normalize_dsvg(source)
+        )
 
 
 @pytest.mark.django_db
@@ -648,7 +812,9 @@ class TestVariantDetailView:
     ):
         dvar = _draft_dvar(classical_dvar, "updated-draft")
         created = authenticated_client.post(
-            reverse("variant-list"), _variant_upload(dvar, classical_dsvg), format="multipart"
+            reverse("variant-list"),
+            _variant_upload(dvar, classical_dsvg),
+            format="multipart",
         )
         assert created.status_code == status.HTTP_201_CREATED, created.data
 

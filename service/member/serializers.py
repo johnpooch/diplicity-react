@@ -95,7 +95,9 @@ class BaseMemberSerializer(serializers.Serializer):
 
 
 class MemberSerializer(BaseMemberSerializer):
-    nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
+    nation = serializers.CharField(
+        allow_null=True, read_only=True, source="nation.name"
+    )
     eliminated = serializers.BooleanField(read_only=True)
     kicked = serializers.BooleanField(read_only=True, source="left_seat")
     is_game_creator = serializers.SerializerMethodField()
@@ -120,7 +122,9 @@ class MemberSerializer(BaseMemberSerializer):
             return None
         return obj.commitment_total
 
-    @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES, allow_null=True))
+    @extend_schema_field(
+        serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES, allow_null=True)
+    )
     def get_commitment_band(self, obj):
         if not self._has_commitment(obj):
             return None
@@ -134,7 +138,9 @@ class MemberSerializer(BaseMemberSerializer):
     def get_nation_preference_ids(self, obj):
         if not self._is_current_user(obj):
             return []
-        return [preference.nation.nation_id for preference in obj.nation_preferences.all()]
+        return [
+            preference.nation.nation_id for preference in obj.nation_preferences.all()
+        ]
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):
@@ -162,18 +168,27 @@ class MemberActionSerializer(serializers.Serializer):
 
 class MemberDetailSerializer(BaseMemberSerializer):
     is_admin = serializers.SerializerMethodField()
-    nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
-    participation_status = serializers.ChoiceField(choices=ParticipationStatus.STATUS_CHOICES, read_only=True)
+    nation = serializers.CharField(
+        allow_null=True, read_only=True, source="nation.name"
+    )
+    participation_status = serializers.ChoiceField(
+        choices=ParticipationStatus.STATUS_CHOICES, read_only=True
+    )
     supply_center_count = serializers.SerializerMethodField()
     unit_count = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
-    nmr_extensions_allowed = serializers.IntegerField(read_only=True, source="game.nmr_extensions_allowed")
+    nmr_extensions_allowed = serializers.IntegerField(
+        read_only=True, source="game.nmr_extensions_allowed"
+    )
     nation_preferences = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
 
     def _counted_phase(self, obj):
         game = self._get_game(obj)
-        if obj.nation_id is None or game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
+        if obj.nation_id is None or game.status in (
+            GameStatus.PENDING,
+            GameStatus.MUSTERING,
+        ):
             return None
         return game.current_phase
 
@@ -198,15 +213,23 @@ class MemberDetailSerializer(BaseMemberSerializer):
             return None
         return phase.units.filter(nation_id=obj.nation_id).count()
 
-    @extend_schema_field(serializers.ListField(child=serializers.CharField(), allow_null=True))
+    @extend_schema_field(
+        serializers.ListField(child=serializers.CharField(), allow_null=True)
+    )
     def get_nation_preferences(self, obj):
-        if not self._is_current_user(obj) or obj.is_game_master or self._get_game(obj).status != GameStatus.PENDING:
+        if (
+            not self._is_current_user(obj)
+            or obj.is_game_master
+            or self._get_game(obj).status != GameStatus.PENDING
+        ):
             return None
         return [preference.nation.name for preference in obj.nation_preferences.all()]
 
     @extend_schema_field(MemberActionSerializer(many=True))
     def get_actions(self, obj):
-        return MemberActionSerializer(obj.actions_for(self.context["request"].user), many=True).data
+        return MemberActionSerializer(
+            obj.actions_for(self.context["request"].user), many=True
+        ).data
 
 
 class MemberJoinSerializer(MemberSerializer):
@@ -226,7 +249,11 @@ class MemberCreateSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(write_only=True)
 
     def _resolve_addable_user(self, user_id):
-        profile = UserProfile.objects.addable_to_game(self.context["game"]).filter(user_id=user_id).first()
+        profile = (
+            UserProfile.objects.addable_to_game(self.context["game"])
+            .filter(user_id=user_id)
+            .first()
+        )
         if profile is None:
             raise serializers.ValidationError("This user cannot be added to this game.")
         return profile.user
@@ -236,7 +263,9 @@ class MemberCreateSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        return self.context["game"].seat(self._resolve_addable_user(validated_data["user_id"]))
+        return self.context["game"].seat(
+            self._resolve_addable_user(validated_data["user_id"])
+        )
 
     def to_representation(self, instance):
         return MemberSerializer(instance, context=self.context).data
@@ -249,7 +278,9 @@ class MemberNationPreferenceSerializer(serializers.Serializer):
         if len(value) != len(set(value)):
             raise serializers.ValidationError("Duplicate nations in preference list.")
         game = self.context["game"]
-        nations = {n.nation_id: n for n in game.variant.nations.all() if not n.non_playable}
+        nations = {
+            n.nation_id: n for n in game.variant.nations.all() if not n.non_playable
+        }
         invalid = [nation_id for nation_id in value if nation_id not in nations]
         if invalid:
             raise serializers.ValidationError(
@@ -276,7 +307,9 @@ class MemberNationAssignSerializer(serializers.Serializer):
 
     def validate_nation_id(self, value):
         game = self.context["game"]
-        nations = {n.nation_id: n for n in game.variant.nations.all() if not n.non_playable}
+        nations = {
+            n.nation_id: n for n in game.variant.nations.all() if not n.non_playable
+        }
         nation = nations.get(value)
         if nation is None:
             raise serializers.ValidationError("Invalid nation for this variant.")
@@ -287,7 +320,9 @@ class MemberNationAssignSerializer(serializers.Serializer):
             .exists()
         )
         if taken:
-            raise serializers.ValidationError("This nation is already assigned to another player.")
+            raise serializers.ValidationError(
+                "This nation is already assigned to another player."
+            )
         self._validated_nation = nation
         return value
 
@@ -316,7 +351,9 @@ class MemberReplaceSerializer(serializers.Serializer):
                 pk=self.context["replaced_member"].pk
             )
             if not member.replaceable:
-                raise serializers.ValidationError("This seat is not open for replacement.")
+                raise serializers.ValidationError(
+                    "This seat is not open for replacement."
+                )
             nation_name = member.nation.name if member.nation else None
             replacement = Member.objects.hand_over_seat(member, user)
             emit("seat_filled", game=game, actor=user, nation_name=nation_name)

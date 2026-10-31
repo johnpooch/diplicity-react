@@ -1,4 +1,12 @@
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    accuracy,
+    scorer,
+    stderr,
+)
 
 from harness.tasks.select_orders.options import describe_option, same_option
 from harness.tasks.select_orders.scorers._resolve import resolve_orders
@@ -22,7 +30,11 @@ def quality_strong():
         if failure is not None:
             return failure
 
-        found = [order for order in orders if any(same_option(order, option) for option in good)]
+        found = [
+            order
+            for order in orders
+            if any(same_option(order, option) for option in good)
+        ]
         return Score(
             value=CORRECT if found else INCORRECT,
             answer=state.output.completion,
@@ -47,7 +59,11 @@ def quality_avoidance():
         if failure is not None:
             return failure
 
-        hit = [order for order in orders if any(same_option(order, option) for option in bad)]
+        hit = [
+            order
+            for order in orders
+            if any(same_option(order, option) for option in bad)
+        ]
         return Score(
             value=INCORRECT if hit else CORRECT,
             answer=state.output.completion,

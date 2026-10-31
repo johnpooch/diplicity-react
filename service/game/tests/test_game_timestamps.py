@@ -7,7 +7,13 @@ from game.models import Game
 from phase.models import Phase, PhaseState
 from member.models import Member
 from draw_proposal.models import DrawProposal, DrawVote
-from common.constants import GameStatus, PhaseStatus, PhaseType, MovementPhaseDuration, DeadlineMode
+from common.constants import (
+    GameStatus,
+    PhaseStatus,
+    PhaseType,
+    MovementPhaseDuration,
+    DeadlineMode,
+)
 from adjudicator import service as adjudication_service
 from user_profile.models import UserProfile
 
@@ -69,16 +75,35 @@ def active_phase_with_orders(
         status=PhaseStatus.ACTIVE,
     )
     ps_italy = phase.phase_states.create(member=italy_member, has_possible_orders=True)
-    ps_germany = phase.phase_states.create(member=germany_member, has_possible_orders=True)
+    ps_germany = phase.phase_states.create(
+        member=germany_member, has_possible_orders=True
+    )
 
-    for province in [italy_vs_germany_venice_province, italy_vs_germany_rome_province, italy_vs_germany_naples_province]:
-        phase.supply_centers.create(province=province, nation=italy_vs_germany_italy_nation)
-        phase.units.create(province=province, type="Army", nation=italy_vs_germany_italy_nation)
-    for province in [italy_vs_germany_kiel_province, italy_vs_germany_berlin_province, italy_vs_germany_munich_province]:
-        phase.supply_centers.create(province=province, nation=italy_vs_germany_germany_nation)
-        phase.units.create(province=province, type="Army", nation=italy_vs_germany_germany_nation)
+    for province in [
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        italy_vs_germany_naples_province,
+    ]:
+        phase.supply_centers.create(
+            province=province, nation=italy_vs_germany_italy_nation
+        )
+        phase.units.create(
+            province=province, type="Army", nation=italy_vs_germany_italy_nation
+        )
+    for province in [
+        italy_vs_germany_kiel_province,
+        italy_vs_germany_berlin_province,
+        italy_vs_germany_munich_province,
+    ]:
+        phase.supply_centers.create(
+            province=province, nation=italy_vs_germany_germany_nation
+        )
+        phase.units.create(
+            province=province, type="Army", nation=italy_vs_germany_germany_nation
+        )
 
     from order.models import Order
+
     ps_italy.orders.create(source=italy_vs_germany_venice_province, order_type="Hold")
     ps_germany.orders.create(source=italy_vs_germany_kiel_province, order_type="Hold")
 
@@ -99,12 +124,48 @@ BASIC_ADJUDICATION_DATA = {
         {"province": "mun", "nation": "Germany"},
     ],
     "units": [
-        {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
-        {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
-        {"type": "Army", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
-        {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
-        {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
-        {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+        {
+            "type": "Army",
+            "nation": "Italy",
+            "province": "ven",
+            "dislodged": False,
+            "dislodged_by": None,
+        },
+        {
+            "type": "Army",
+            "nation": "Italy",
+            "province": "rom",
+            "dislodged": False,
+            "dislodged_by": None,
+        },
+        {
+            "type": "Army",
+            "nation": "Italy",
+            "province": "nap",
+            "dislodged": False,
+            "dislodged_by": None,
+        },
+        {
+            "type": "Army",
+            "nation": "Germany",
+            "province": "kie",
+            "dislodged": False,
+            "dislodged_by": None,
+        },
+        {
+            "type": "Army",
+            "nation": "Germany",
+            "province": "ber",
+            "dislodged": False,
+            "dislodged_by": None,
+        },
+        {
+            "type": "Army",
+            "nation": "Germany",
+            "province": "mun",
+            "dislodged": False,
+            "dislodged_by": None,
+        },
     ],
     "resolutions": [
         {"province": "ven", "result": "OK", "by": None},
@@ -115,7 +176,9 @@ BASIC_ADJUDICATION_DATA = {
 
 class TestGameStartedAt:
     @pytest.mark.django_db
-    def test_started_at_set_when_game_starts(self, db, classical_variant, adjudication_data_classical):
+    def test_started_at_set_when_game_starts(
+        self, db, classical_variant, adjudication_data_classical
+    ):
         game = Game.objects.create_from_template(
             classical_variant,
             name="Test Start Timestamp",
@@ -131,7 +194,9 @@ class TestGameStartedAt:
             members.append(m)
 
         before = timezone.now()
-        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+        with patch.object(
+            adjudication_service, "start", return_value=adjudication_data_classical
+        ):
             game.start(members=members)
         after = timezone.now()
 
@@ -159,7 +224,10 @@ class TestGameFinishedAtSoloVictory:
         before = timezone.now()
         mock_victory = MagicMock()
         with patch("phase.models.resolve", return_value=BASIC_ADJUDICATION_DATA):
-            with patch("phase.models.Victory.objects.try_create_victory", return_value=mock_victory):
+            with patch(
+                "phase.models.Victory.objects.try_create_victory",
+                return_value=mock_victory,
+            ):
                 Phase.objects.resolve(phase)
         after = timezone.now()
 
@@ -181,7 +249,9 @@ class TestGameFinishedAtAbandonment:
 
         before = timezone.now()
         with patch("phase.models.resolve", return_value=BASIC_ADJUDICATION_DATA):
-            with patch("phase.models.Victory.objects.try_create_victory", return_value=None):
+            with patch(
+                "phase.models.Victory.objects.try_create_victory", return_value=None
+            ):
                 Phase.objects.resolve(phase)
         after = timezone.now()
 
@@ -214,8 +284,12 @@ class TestGameFinishedAtDraw:
         m2 = game.members.create(user=make_user("draw_p2"), nation=germany_nation)
 
         proposal = DrawProposal.objects.create(game=game, created_by=m1, phase=phase)
-        DrawVote.objects.create(proposal=proposal, member=m1, included=True, accepted=True)
-        DrawVote.objects.create(proposal=proposal, member=m2, included=True, accepted=True)
+        DrawVote.objects.create(
+            proposal=proposal, member=m1, included=True, accepted=True
+        )
+        DrawVote.objects.create(
+            proposal=proposal, member=m2, included=True, accepted=True
+        )
 
         before = timezone.now()
         proposal.process_acceptance()

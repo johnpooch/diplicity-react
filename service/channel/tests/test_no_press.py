@@ -22,13 +22,17 @@ def no_press_active_game(db, primary_user, classical_variant, classical_england_
 
 @pytest.fixture
 def no_press_active_game_with_channel(no_press_active_game):
-    channel = Channel.objects.create(game=no_press_active_game, name="Public Press", private=False)
+    channel = Channel.objects.create(
+        game=no_press_active_game, name="Public Press", private=False
+    )
     channel.members.add(no_press_active_game.members.first())
     return no_press_active_game
 
 
 @pytest.fixture
-def no_press_completed_game(db, primary_user, classical_variant, classical_england_nation):
+def no_press_completed_game(
+    db, primary_user, classical_variant, classical_england_nation
+):
     Game = apps.get_model("game", "Game")
     Phase = apps.get_model("phase", "Phase")
     game = Game.objects.create(
@@ -51,7 +55,9 @@ def no_press_completed_game(db, primary_user, classical_variant, classical_engla
 
 
 @pytest.fixture
-def no_press_completed_game_with_channel(no_press_completed_game, secondary_user, classical_france_nation):
+def no_press_completed_game_with_channel(
+    no_press_completed_game, secondary_user, classical_france_nation
+):
     game = no_press_completed_game
     game.members.create(user=secondary_user, nation=classical_france_nation)
     channel = Channel.objects.create(game=game, name="Public Press", private=False)
@@ -72,7 +78,11 @@ class TestNoPressChannelCreate:
 
     @pytest.mark.django_db
     def test_completed_no_press_game_allows_channel_creation(
-        self, authenticated_client, no_press_completed_game, secondary_user, classical_france_nation
+        self,
+        authenticated_client,
+        no_press_completed_game,
+        secondary_user,
+        classical_france_nation,
     ):
         other_member = no_press_completed_game.members.create(
             user=secondary_user, nation=classical_france_nation
@@ -84,7 +94,11 @@ class TestNoPressChannelCreate:
 
     @pytest.mark.django_db
     def test_full_press_active_game_allows_channel_creation(
-        self, authenticated_client, active_game_with_phase_state, secondary_user, classical_france_nation
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        secondary_user,
+        classical_france_nation,
     ):
         other_member = active_game_with_phase_state.members.create(
             user=secondary_user, nation=classical_france_nation
@@ -135,7 +149,9 @@ class TestNoPressChannelMessageCreate:
         mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
-        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        channel = Channel.objects.get(
+            game=active_game_with_private_channel, private=True
+        )
         url = reverse(
             "channel-message-create",
             args=[active_game_with_private_channel.id, channel.id],
@@ -151,6 +167,8 @@ class TestNoPressChannelList:
     def test_active_no_press_game_allows_channel_list(
         self, authenticated_client, no_press_active_game_with_channel
     ):
-        url = reverse("channel-list", args=[no_press_active_game_with_channel.id])
+        url = reverse(
+            "channel-preview-list", args=[no_press_active_game_with_channel.id]
+        )
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK

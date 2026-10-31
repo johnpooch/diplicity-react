@@ -12,7 +12,6 @@ from rest_framework.test import APIClient
 
 from agent import registry, tasks
 from agent.api_client import ApiClient, bot_request_host
-from agent.context import fetch_context
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
@@ -21,8 +20,6 @@ from channel.models import ChannelMessage
 from common.constants import OrderType, PhaseStatus, PhaseType, UserKind
 from emit.context import build_context
 from emit.dispatch import emit
-from harness.adapter import data_to_context
-from harness.tasks import reply
 from inference.clients.base import InferenceResult
 from inference.constants import InferenceStatus
 from inference.models import Inference
@@ -31,7 +28,9 @@ from phase.models import Phase
 from user_profile.models import UserProfile
 
 
-def _option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+def _option(
+    source, order_type, target=None, aux=None, unit_type=None, named_coast=None
+):
     def field(value):
         return {"id": value, "label": value} if value is not None else None
 
@@ -45,7 +44,9 @@ def _option(source, order_type, target=None, aux=None, unit_type=None, named_coa
     }
 
 
-def _flat_option(source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
+def _flat_option(
+    source, order_type, target=None, aux=None, unit_type=None, named_coast=None
+):
     return {
         "source": source,
         "order_type": order_type,
@@ -95,20 +96,30 @@ class TestFirstLegalOptions:
 class TestOptionToSelected:
 
     def test_hold(self):
-        assert option_to_selected(_flat_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
+        assert option_to_selected(_flat_option("lon", OrderType.HOLD)) == [
+            "lon",
+            OrderType.HOLD,
+        ]
 
     def test_disband(self):
-        assert option_to_selected(_flat_option("lon", OrderType.DISBAND)) == ["lon", OrderType.DISBAND]
+        assert option_to_selected(_flat_option("lon", OrderType.DISBAND)) == [
+            "lon",
+            OrderType.DISBAND,
+        ]
 
     def test_move(self):
-        assert option_to_selected(_flat_option("lon", OrderType.MOVE, target="nth")) == [
+        assert option_to_selected(
+            _flat_option("lon", OrderType.MOVE, target="nth")
+        ) == [
             "lon",
             OrderType.MOVE,
             "nth",
         ]
 
     def test_move_with_named_coast(self):
-        assert option_to_selected(_flat_option("mao", OrderType.MOVE, target="spa", named_coast="spa/nc")) == [
+        assert option_to_selected(
+            _flat_option("mao", OrderType.MOVE, target="spa", named_coast="spa/nc")
+        ) == [
             "mao",
             OrderType.MOVE,
             "spa",
@@ -116,14 +127,20 @@ class TestOptionToSelected:
         ]
 
     def test_build(self):
-        assert option_to_selected(_flat_option("lon", OrderType.BUILD, unit_type="Army")) == [
+        assert option_to_selected(
+            _flat_option("lon", OrderType.BUILD, unit_type="Army")
+        ) == [
             "lon",
             OrderType.BUILD,
             "Army",
         ]
 
     def test_build_with_named_coast(self):
-        assert option_to_selected(_flat_option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")) == [
+        assert option_to_selected(
+            _flat_option(
+                "stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc"
+            )
+        ) == [
             "stp",
             OrderType.BUILD,
             "Fleet",
@@ -131,7 +148,9 @@ class TestOptionToSelected:
         ]
 
     def test_support(self):
-        assert option_to_selected(_flat_option("lon", OrderType.SUPPORT, aux="wal", target="yor")) == [
+        assert option_to_selected(
+            _flat_option("lon", OrderType.SUPPORT, aux="wal", target="yor")
+        ) == [
             "lon",
             OrderType.SUPPORT,
             "wal",
@@ -139,7 +158,9 @@ class TestOptionToSelected:
         ]
 
     def test_convoy(self):
-        assert option_to_selected(_flat_option("nth", OrderType.CONVOY, aux="lon", target="nwy")) == [
+        assert option_to_selected(
+            _flat_option("nth", OrderType.CONVOY, aux="lon", target="nwy")
+        ) == [
             "nth",
             OrderType.CONVOY,
             "lon",
@@ -237,14 +258,23 @@ class TestAdjustmentOrderLimit:
         assert fake_client.post.call_count == 3
 
     @pytest.mark.django_db
-    def test_plan_fills_units_missing_from_response_with_first_legal(self, settings, bot_user):
+    def test_plan_fills_units_missing_from_response_with_first_legal(
+        self, settings, bot_user
+    ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         fake_client = self._fake_client(max_orders=None)
 
-        response = json.dumps({"reasoning": "build in London", "choices": [{"source_id": "lon", "option_index": 0}]})
+        response = json.dumps(
+            {
+                "reasoning": "build in London",
+                "choices": [{"source_id": "lon", "option_index": 0}],
+            }
+        )
         inference_client = _mock_inference_client(response)
         with patch("agent.api_client.APIClient", return_value=fake_client):
-            with patch("inference.models.get_inference_client", return_value=inference_client):
+            with patch(
+                "inference.models.get_inference_client", return_value=inference_client
+            ):
                 tasks.plan(user_id=bot_user.id, game_id="some-game")
 
         assert fake_client.post.call_count == 3
@@ -253,7 +283,9 @@ class TestAdjustmentOrderLimit:
 class TestPlanTask:
 
     @pytest.mark.django_db
-    def test_plan_creates_orders_without_confirming(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_plan_creates_orders_without_confirming(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
 
@@ -265,12 +297,19 @@ class TestPlanTask:
         assert bot_phase_state.orders_confirmed is False
 
     @pytest.mark.django_db
-    def test_plan_records_success_inference(self, bot_game_factory, in_memory_procrastinate, settings, bot_user):
+    def test_plan_records_success_inference(
+        self, bot_game_factory, in_memory_procrastinate, settings, bot_user
+    ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
 
-        response = json.dumps({"reasoning": "hold everything", "choices": [{"source_id": "rom", "option_index": 0}]})
+        response = json.dumps(
+            {
+                "reasoning": "hold everything",
+                "choices": [{"source_id": "rom", "option_index": 0}],
+            }
+        )
         client = _mock_inference_client(response)
         with patch("inference.models.get_inference_client", return_value=client):
             tasks.plan(user_id=bot_user.id, game_id=game.id)
@@ -292,7 +331,9 @@ class TestPlanTask:
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
 
         with patch("inference.clients.anthropic.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
+            mock_anthropic.return_value.messages.create.side_effect = RuntimeError(
+                "boom"
+            )
             tasks.plan(user_id=bot_user.id, game_id=game.id)
 
         inference = Inference.objects.get(task="select_orders")
@@ -303,7 +344,9 @@ class TestPlanTask:
         assert bot_phase_state.orders.count() > 0
 
     @pytest.mark.django_db
-    def test_plan_falls_back_when_parse_fails(self, bot_game_factory, in_memory_procrastinate, settings, bot_user):
+    def test_plan_falls_back_when_parse_fails(
+        self, bot_game_factory, in_memory_procrastinate, settings, bot_user
+    ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game = bot_game_factory()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -333,7 +376,10 @@ class TestDumbbotRouting:
 
     @pytest.mark.django_db
     def test_plan_for_dumbbot_submits_orders_without_inference(
-        self, bot_game_factory, in_memory_procrastinate, settings,
+        self,
+        bot_game_factory,
+        in_memory_procrastinate,
+        settings,
         bot_user,
     ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
@@ -352,7 +398,9 @@ class TestDumbbotRouting:
         assert Inference.objects.count() == 0
 
     @pytest.mark.django_db
-    def test_finalize_for_dumbbot_submits_and_confirms(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_finalize_for_dumbbot_submits_and_confirms(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         UserProfile.objects.filter(user=bot_user).update(kind=UserKind.DUMBBOT)
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
@@ -365,15 +413,21 @@ class TestDumbbotRouting:
         assert Inference.objects.count() == 0
 
     @pytest.mark.django_db
-    def test_dumbbot_gets_plan_task_on_phase_activation(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_dumbbot_gets_plan_task_on_phase_activation(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         UserProfile.objects.filter(user=bot_user).update(kind=UserKind.DUMBBOT)
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
 
-        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).exists()
+        assert AgentTask.objects.filter(
+            kind=AgentTaskKind.PLAN, member=bot_member
+        ).exists()
 
     @pytest.mark.django_db
-    def test_dumbbot_gets_finalize_task_when_humans_confirm(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_dumbbot_gets_finalize_task_when_humans_confirm(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         UserProfile.objects.filter(user=bot_user).update(kind=UserKind.DUMBBOT)
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
@@ -383,7 +437,9 @@ class TestDumbbotRouting:
         response = human_client.put(reverse("game-confirm-phase", args=[game.id]))
         assert response.status_code == status.HTTP_200_OK
 
-        assert AgentTask.objects.filter(kind=AgentTaskKind.FINALIZE, member=bot_member).exists()
+        assert AgentTask.objects.filter(
+            kind=AgentTaskKind.FINALIZE, member=bot_member
+        ).exists()
 
     @pytest.mark.django_db
     def test_human_message_does_not_defer_reply_for_dumbbot(
@@ -422,36 +478,45 @@ class TestBotRequestHost:
 class TestGetChannels:
 
     @pytest.mark.django_db
-    def test_matches_the_legacy_channel_list(self, bot_game_with_channel_history, bot_user):
-        game, legacy_channels = bot_game_with_channel_history
+    def test_returns_every_readable_channel_with_its_full_history(
+        self, bot_game_with_channel_history, bot_user
+    ):
+        game = bot_game_with_channel_history
 
         channels = ApiClient(bot_user).get_channels(game.id)
 
-        assert channels == legacy_channels
-        assert [(channel["name"], len(channel["messages"])) for channel in channels] == [
-            ("Public Press", 230),
-            ("Empty", 0),
-            ("Germany, Italy", 150),
+        resolved = "Spring 1901, Movement has been resolved"
+        assert [
+            (
+                channel["name"],
+                channel["title"],
+                channel["muted"],
+                len(channel["messages"]),
+                [event["text"] for event in channel["events"]],
+            )
+            for channel in channels
+        ] == [
+            ("Public Press", "", False, 230, [resolved]),
+            ("Empty", "", False, 0, [resolved]),
+            (
+                "Germany, Italy",
+                "Allies",
+                True,
+                150,
+                [resolved, "Italy renamed the channel to Allies"],
+            ),
         ]
-
-    @pytest.mark.django_db
-    def test_context_and_reply_prompt_match_the_legacy_channel_list(self, bot_game_with_channel_history, bot_user):
-        game, legacy_channels = bot_game_with_channel_history
-
-        data = fetch_context(ApiClient(bot_user), game.id)
-        context = data_to_context(data)
-        legacy_context = data_to_context({**data, "channels": legacy_channels})
-
-        assert context == legacy_context
-        for channel in legacy_channels:
-            assert reply.user_prompt(context, channel["id"]) == reply.user_prompt(legacy_context, channel["id"])
 
 
 class TestBotIdentificationByProfile:
 
     @pytest.mark.django_db
-    def test_roster_bots_are_identified_as_bots(self, phase_factory, classical_england_nation, bot_user):
-        phase = phase_factory(phase_states_config=[{"nation": classical_england_nation, "user": bot_user}])
+    def test_roster_bots_are_identified_as_bots(
+        self, phase_factory, classical_england_nation, bot_user
+    ):
+        phase = phase_factory(
+            phase_states_config=[{"nation": classical_england_nation, "user": bot_user}]
+        )
 
         assert {member.user_id for member in phase.game.bot_members} == {bot_user.id}
 
@@ -459,7 +524,9 @@ class TestBotIdentificationByProfile:
 class TestFinalizeTask:
 
     @pytest.mark.django_db
-    def test_finalize_submits_and_confirms(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_finalize_submits_and_confirms(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
 
@@ -470,7 +537,9 @@ class TestFinalizeTask:
         assert bot_phase_state.orders_confirmed is True
 
     @pytest.mark.django_db
-    def test_finalize_does_not_double_toggle_when_confirmed(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_finalize_does_not_double_toggle_when_confirmed(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
 
@@ -486,7 +555,9 @@ def _agent_run_jobs(connector):
 
 
 def _run_jobs_for(connector, task):
-    return [j for j in _agent_run_jobs(connector) if j["args"] == {"agent_task_id": task.id}]
+    return [
+        j for j in _agent_run_jobs(connector) if j["args"] == {"agent_task_id": task.id}
+    ]
 
 
 class TestPlanTrigger:
@@ -508,7 +579,9 @@ class TestPlanTrigger:
         assert jobs[0]["args"] == {"agent_task_id": task.id}
 
     @pytest.mark.django_db
-    def test_saving_active_phase_does_not_create_task(self, bot_game_factory, in_memory_procrastinate):
+    def test_saving_active_phase_does_not_create_task(
+        self, bot_game_factory, in_memory_procrastinate
+    ):
         game = bot_game_factory()
         phase = game.current_phase
 
@@ -519,7 +592,9 @@ class TestPlanTrigger:
         assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN).count() == 1
 
     @pytest.mark.django_db
-    def test_non_bot_game_does_not_defer_plan(self, active_game_factory, in_memory_procrastinate):
+    def test_non_bot_game_does_not_defer_plan(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         active_game_factory()
         assert len(_agent_run_jobs(in_memory_procrastinate)) == 0
         assert not AgentTask.objects.exists()
@@ -528,7 +603,9 @@ class TestPlanTrigger:
 class TestFinalizeTrigger:
 
     @pytest.mark.django_db
-    def test_human_confirm_creates_task_and_defers_run(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_human_confirm_creates_task_and_defers_run(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
 
@@ -557,8 +634,16 @@ class TestFinalizeTrigger:
     ):
         phase = phase_factory(
             phase_states_config=[
-                {"nation": classical_england_nation, "user": bot_user, "has_possible_orders": True},
-                {"nation": classical_france_nation, "user": user_factory(), "has_possible_orders": False},
+                {
+                    "nation": classical_england_nation,
+                    "user": bot_user,
+                    "has_possible_orders": True,
+                },
+                {
+                    "nation": classical_france_nation,
+                    "user": user_factory(),
+                    "has_possible_orders": False,
+                },
             ]
         )
 
@@ -578,14 +663,19 @@ class TestReplyTask:
 
     @pytest.mark.django_db
     def test_reply_posts_message_in_private_channel(
-        self, bot_private_channel_factory, in_memory_procrastinate, settings,
+        self,
+        bot_private_channel_factory,
+        in_memory_procrastinate,
+        settings,
         bot_user,
     ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_private_channel_factory()
         bot_member = game.members.get(user=bot_user)
         human_member = game.members.get(user=game.created_by)
-        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Just between us")
+        ChannelMessage.objects.create(
+            channel=channel, sender=human_member, body="Just between us"
+        )
 
         client = _mock_inference_client(_reply_response("Understood."))
         with patch("inference.models.get_inference_client", return_value=client):
@@ -600,7 +690,9 @@ class TestReplyTask:
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         human_member = game.members.get(user=game.created_by)
-        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+        ChannelMessage.objects.create(
+            channel=channel, sender=human_member, body="Hi bot"
+        )
 
         client = _mock_inference_client(_reply_response("Hello, human!"))
         with patch("inference.models.get_inference_client", return_value=client):
@@ -612,14 +704,19 @@ class TestReplyTask:
 
     @pytest.mark.django_db
     def test_reply_truncates_message_over_char_limit(
-        self, bot_public_channel_factory, in_memory_procrastinate, settings,
+        self,
+        bot_public_channel_factory,
+        in_memory_procrastinate,
+        settings,
         bot_user,
     ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         bot_member = game.members.get(user=bot_user)
         human_member = game.members.get(user=game.created_by)
-        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+        ChannelMessage.objects.create(
+            channel=channel, sender=human_member, body="Hi bot"
+        )
 
         overlong = "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 50)
         client = _mock_inference_client(_reply_response(overlong))
@@ -631,13 +728,18 @@ class TestReplyTask:
 
     @pytest.mark.django_db
     def test_reply_posts_nothing_when_message_empty(
-        self, bot_public_channel_factory, in_memory_procrastinate, settings,
+        self,
+        bot_public_channel_factory,
+        in_memory_procrastinate,
+        settings,
         bot_user,
     ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         human_member = game.members.get(user=game.created_by)
-        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+        ChannelMessage.objects.create(
+            channel=channel, sender=human_member, body="Hi bot"
+        )
 
         client = _mock_inference_client(_reply_response("   "))
         with patch("inference.models.get_inference_client", return_value=client):
@@ -647,16 +749,23 @@ class TestReplyTask:
 
     @pytest.mark.django_db
     def test_reply_posts_nothing_when_inference_fails(
-        self, bot_public_channel_factory, in_memory_procrastinate, settings,
+        self,
+        bot_public_channel_factory,
+        in_memory_procrastinate,
+        settings,
         bot_user,
     ):
         settings.BOT_ANTHROPIC_API_KEY = "test-key"
         game, channel = bot_public_channel_factory()
         human_member = game.members.get(user=game.created_by)
-        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+        ChannelMessage.objects.create(
+            channel=channel, sender=human_member, body="Hi bot"
+        )
 
         with patch("inference.clients.anthropic.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
+            mock_anthropic.return_value.messages.create.side_effect = RuntimeError(
+                "boom"
+            )
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender__user=bot_user).count() == 0
@@ -666,7 +775,9 @@ class TestReplyTrigger:
 
     @pytest.mark.django_db
     def test_human_public_message_creates_task_and_defers_run(
-        self, bot_public_channel_factory, in_memory_procrastinate,
+        self,
+        bot_public_channel_factory,
+        in_memory_procrastinate,
         bot_user,
     ):
         game, channel = bot_public_channel_factory()
@@ -691,7 +802,9 @@ class TestReplyTrigger:
         assert jobs[0]["lock"] == f"agent-task-{task.id}"
 
     @pytest.mark.django_db
-    def test_bot_message_does_not_defer_reply(self, bot_public_channel_factory, in_memory_procrastinate, bot_user):
+    def test_bot_message_does_not_defer_reply(
+        self, bot_public_channel_factory, in_memory_procrastinate, bot_user
+    ):
         game, channel = bot_public_channel_factory()
 
         bot_client = APIClient()
@@ -706,7 +819,9 @@ class TestReplyTrigger:
         assert not AgentTask.objects.filter(kind=AgentTaskKind.REPLY).exists()
 
     @pytest.mark.django_db
-    def test_private_channel_message_defers_reply(self, bot_public_channel_factory, in_memory_procrastinate, bot_user):
+    def test_private_channel_message_defers_reply(
+        self, bot_public_channel_factory, in_memory_procrastinate, bot_user
+    ):
         game, _ = bot_public_channel_factory()
         bot_member = game.members.get(user=bot_user)
         human_member = game.members.get(user=game.created_by)
@@ -754,7 +869,9 @@ class TestReplyTrigger:
         assert not AgentTask.objects.filter(kind=AgentTaskKind.REPLY).exists()
 
     @pytest.mark.django_db
-    def test_non_bot_game_does_not_defer_reply(self, active_game_factory, in_memory_procrastinate):
+    def test_non_bot_game_does_not_defer_reply(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         channel = game.channels.create(name="Public Press", private=False)
         member = game.members.get(user=game.created_by)
@@ -776,7 +893,9 @@ class TestReplyTrigger:
 class TestAgentTaskRun:
 
     @pytest.mark.django_db
-    def test_run_executes_plan_and_marks_succeeded(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_run_executes_plan_and_marks_succeeded(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
         bot_phase_state = game.current_phase.phase_states.get(member=bot_member)
@@ -793,11 +912,15 @@ class TestAgentTaskRun:
         assert bot_phase_state.orders.count() > 0
 
     @pytest.mark.django_db
-    def test_run_executes_finalize_and_confirms(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_run_executes_finalize_and_confirms(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
         bot_phase_state = game.current_phase.phase_states.get(member=bot_member)
-        task = AgentTask.objects.create(kind=AgentTaskKind.FINALIZE, member=bot_member, phase=game.current_phase)
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.FINALIZE, member=bot_member, phase=game.current_phase
+        )
 
         tasks.run(agent_task_id=task.id)
 
@@ -807,7 +930,9 @@ class TestAgentTaskRun:
         assert bot_phase_state.orders_confirmed is True
 
     @pytest.mark.django_db
-    def test_run_marks_failed_and_reraises_on_error(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_run_marks_failed_and_reraises_on_error(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
         task = AgentTask.objects.get(kind=AgentTaskKind.PLAN, member=bot_member)
@@ -826,19 +951,31 @@ class TestAgentTaskRun:
         tasks.run(agent_task_id=999999)
 
     @pytest.mark.django_db
-    def test_enqueue_is_idempotent_for_same_phase_and_member(self, bot_game_factory, in_memory_procrastinate, bot_user):
+    def test_enqueue_is_idempotent_for_same_phase_and_member(
+        self, bot_game_factory, in_memory_procrastinate, bot_user
+    ):
         game = bot_game_factory()
         bot_member = game.members.get(user=bot_user)
 
-        task = AgentTask.objects.enqueue(kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase)
+        task = AgentTask.objects.enqueue(
+            kind=AgentTaskKind.PLAN, member=bot_member, phase=game.current_phase
+        )
 
-        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).count() == 1
+        assert (
+            AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=bot_member).count()
+            == 1
+        )
         assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
 
     @pytest.mark.django_db
-    def test_run_skips_already_succeeded_task(self, member_factory, in_memory_procrastinate):
+    def test_run_skips_already_succeeded_task(
+        self, member_factory, in_memory_procrastinate
+    ):
         task = AgentTask.objects.create(
-            kind=AgentTaskKind.PLAN, member=member_factory(), status=AgentTaskStatus.SUCCEEDED, attempts=1
+            kind=AgentTaskKind.PLAN,
+            member=member_factory(),
+            status=AgentTaskStatus.SUCCEEDED,
+            attempts=1,
         )
 
         with patch("agent.tasks._dispatch") as dispatch:
@@ -865,11 +1002,17 @@ class TestPhaseStartedSpec:
         return phase_factory(phase_states_config=config)
 
     def _descriptors(self, phase):
-        return registry.PhaseStartedSpec(build_context("phase_started", phase=phase)).get_tasks()
+        return registry.PhaseStartedSpec(
+            build_context("phase_started", phase=phase)
+        ).get_tasks()
 
     @pytest.mark.django_db
     def test_plan_only_while_a_human_is_pending(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
         bot_user,
     ):
         phase = self._phase(
@@ -888,7 +1031,11 @@ class TestPhaseStartedSpec:
 
     @pytest.mark.django_db
     def test_finalize_when_no_human_has_possible_orders(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
         bot_user,
     ):
         phase = self._phase(
@@ -907,7 +1054,11 @@ class TestPhaseStartedSpec:
 
     @pytest.mark.django_db
     def test_finalize_when_every_human_is_already_confirmed(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
         bot_user,
     ):
         phase = self._phase(
@@ -926,7 +1077,11 @@ class TestPhaseStartedSpec:
 
     @pytest.mark.django_db
     def test_bot_without_possible_orders_plans_alongside_a_finalizing_bot(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
         bot_user,
     ):
         idle_bot_user = user_factory()
@@ -948,7 +1103,11 @@ class TestPhaseStartedSpec:
 
     @pytest.mark.django_db
     def test_confirmed_bot_is_not_asked_to_finalize_again(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
         bot_user,
     ):
         phase = self._phase(
@@ -970,14 +1129,24 @@ class TestPhaseStateConfirmedSpec:
 
     def _phase(self, phase_factory, states):
         config = [
-            {"nation": nation, "user": user, "has_possible_orders": True, "orders_confirmed": confirmed}
+            {
+                "nation": nation,
+                "user": user,
+                "has_possible_orders": True,
+                "orders_confirmed": confirmed,
+            }
             for nation, user, confirmed in states
         ]
         return phase_factory(phase_states_config=config)
 
     @pytest.mark.django_db
     def test_no_finalize_while_a_human_is_pending(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation, classical_germany_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
         bot_user,
     ):
         phase = self._phase(
@@ -994,7 +1163,12 @@ class TestPhaseStateConfirmedSpec:
 
     @pytest.mark.django_db
     def test_finalize_for_bot_once_all_humans_confirmed(
-        self, phase_factory, user_factory, classical_england_nation, classical_france_nation, classical_germany_nation,
+        self,
+        phase_factory,
+        user_factory,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
         bot_user,
     ):
         phase = self._phase(
@@ -1018,8 +1192,12 @@ class TestAgentTaskReconcile:
 
     @pytest.mark.django_db
     def test_redrives_stale_pending_task(self, member_factory, in_memory_procrastinate):
-        task = AgentTask.objects.create(kind=AgentTaskKind.PLAN, member=member_factory())
-        AgentTask.objects.filter(pk=task.pk).update(created_at=timezone.now() - timedelta(minutes=5))
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN, member=member_factory()
+        )
+        AgentTask.objects.filter(pk=task.pk).update(
+            created_at=timezone.now() - timedelta(minutes=5)
+        )
 
         redriven = AgentTask.objects.reconcile()
 
@@ -1028,7 +1206,9 @@ class TestAgentTaskReconcile:
 
     @pytest.mark.django_db
     def test_skips_fresh_pending_task(self, member_factory, in_memory_procrastinate):
-        task = AgentTask.objects.create(kind=AgentTaskKind.PLAN, member=member_factory())
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN, member=member_factory()
+        )
 
         assert AgentTask.objects.reconcile() == []
         assert _run_jobs_for(in_memory_procrastinate, task) == []
@@ -1036,9 +1216,13 @@ class TestAgentTaskReconcile:
     @pytest.mark.django_db
     def test_redrives_stuck_running_task(self, member_factory, in_memory_procrastinate):
         task = AgentTask.objects.create(
-            kind=AgentTaskKind.PLAN, member=member_factory(), status=AgentTaskStatus.RUNNING
+            kind=AgentTaskKind.PLAN,
+            member=member_factory(),
+            status=AgentTaskStatus.RUNNING,
         )
-        AgentTask.objects.filter(pk=task.pk).update(started_at=timezone.now() - timedelta(minutes=15))
+        AgentTask.objects.filter(pk=task.pk).update(
+            started_at=timezone.now() - timedelta(minutes=15)
+        )
 
         redriven = AgentTask.objects.reconcile()
 
@@ -1048,17 +1232,27 @@ class TestAgentTaskReconcile:
     @pytest.mark.django_db
     def test_skips_recent_running_task(self, member_factory, in_memory_procrastinate):
         task = AgentTask.objects.create(
-            kind=AgentTaskKind.PLAN, member=member_factory(), status=AgentTaskStatus.RUNNING
+            kind=AgentTaskKind.PLAN,
+            member=member_factory(),
+            status=AgentTaskStatus.RUNNING,
         )
-        AgentTask.objects.filter(pk=task.pk).update(started_at=timezone.now() - timedelta(minutes=1))
+        AgentTask.objects.filter(pk=task.pk).update(
+            started_at=timezone.now() - timedelta(minutes=1)
+        )
 
         assert AgentTask.objects.reconcile() == []
 
     @pytest.mark.django_db
-    def test_skips_succeeded_and_failed_tasks(self, member_factory, in_memory_procrastinate):
+    def test_skips_succeeded_and_failed_tasks(
+        self, member_factory, in_memory_procrastinate
+    ):
         for status_value in (AgentTaskStatus.SUCCEEDED, AgentTaskStatus.FAILED):
-            task = AgentTask.objects.create(kind=AgentTaskKind.PLAN, member=member_factory(), status=status_value)
-            AgentTask.objects.filter(pk=task.pk).update(created_at=timezone.now() - timedelta(minutes=30))
+            task = AgentTask.objects.create(
+                kind=AgentTaskKind.PLAN, member=member_factory(), status=status_value
+            )
+            AgentTask.objects.filter(pk=task.pk).update(
+                created_at=timezone.now() - timedelta(minutes=30)
+            )
 
         assert AgentTask.objects.reconcile() == []
 
@@ -1077,7 +1271,9 @@ class TestReplaceMemberWithBotCommand:
         )
 
     @pytest.mark.django_db
-    def test_seats_the_bot_in_a_new_member_and_removes_the_original(self, active_game_factory, in_memory_procrastinate):
+    def test_seats_the_bot_in_a_new_member_and_removes_the_original(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
 
@@ -1093,7 +1289,9 @@ class TestReplaceMemberWithBotCommand:
         assert member.user is not None
 
     @pytest.mark.django_db
-    def test_replacement_joins_every_channel_the_original_was_in(self, active_game_factory, in_memory_procrastinate):
+    def test_replacement_joins_every_channel_the_original_was_in(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
         public = game.channels.create(name="Public Press", private=False)
@@ -1104,11 +1302,18 @@ class TestReplaceMemberWithBotCommand:
         self._replace(game, member)
 
         replacement = game.members.get(user__username="dealmakerbot")
-        assert set(replacement.member_channels.values_list("channel_id", flat=True)) == {public.id, private.id}
-        assert set(member.member_channels.values_list("channel_id", flat=True)) == {public.id, private.id}
+        assert set(
+            replacement.member_channels.values_list("channel_id", flat=True)
+        ) == {public.id, private.id}
+        assert set(member.member_channels.values_list("channel_id", flat=True)) == {
+            public.id,
+            private.id,
+        }
 
     @pytest.mark.django_db
-    def test_moves_the_current_phase_state_to_the_replacement(self, active_game_factory, in_memory_procrastinate):
+    def test_moves_the_current_phase_state_to_the_replacement(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
 
@@ -1126,14 +1331,20 @@ class TestReplaceMemberWithBotCommand:
         game = active_game_factory()
         member = game.members.first()
         phase_state = game.current_phase.phase_states.get(member=member)
-        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.HOLD)
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.HOLD,
+        )
 
         self._replace(game, member)
 
         assert not Order.objects.filter(phase_state__member=member).exists()
 
     @pytest.mark.django_db
-    def test_defers_plan_task_for_the_replacement(self, active_game_factory, in_memory_procrastinate):
+    def test_defers_plan_task_for_the_replacement(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
 
@@ -1146,7 +1357,9 @@ class TestReplaceMemberWithBotCommand:
         assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
 
     @pytest.mark.django_db
-    def test_matches_nation_case_insensitively(self, active_game_factory, in_memory_procrastinate):
+    def test_matches_nation_case_insensitively(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
 
@@ -1160,10 +1373,14 @@ class TestReplaceMemberWithBotCommand:
             "dealmakerbot",
         )
 
-        assert game.members.filter(user__username="dealmakerbot", nation=member.nation).exists()
+        assert game.members.filter(
+            user__username="dealmakerbot", nation=member.nation
+        ).exists()
 
     @pytest.mark.django_db
-    def test_replaces_a_seat_abandoned_by_account_deletion(self, active_game_factory, in_memory_procrastinate):
+    def test_replaces_a_seat_abandoned_by_account_deletion(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
         member.user = None
@@ -1176,7 +1393,9 @@ class TestReplaceMemberWithBotCommand:
         assert member.replaced_by == game.members.get(user__username="dealmakerbot")
 
     @pytest.mark.django_db
-    def test_rejects_a_seat_already_played_by_a_bot(self, active_game_factory, in_memory_procrastinate):
+    def test_rejects_a_seat_already_played_by_a_bot(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.first()
         self._replace(game, member)
@@ -1187,7 +1406,9 @@ class TestReplaceMemberWithBotCommand:
         assert not game.members.filter(user__username="bearbot").exists()
 
     @pytest.mark.django_db
-    def test_rejects_bot_already_in_the_game(self, active_game_factory, in_memory_procrastinate):
+    def test_rejects_bot_already_in_the_game(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         seated, other = game.members.all()[:2]
         self._replace(game, seated)
@@ -1231,7 +1452,11 @@ class TestReplaceMemberWithBotCommand:
 class TestReplanMemberCommand:
 
     def _seat_bot(self, game, primary_user):
-        member = game.members.exclude(user=primary_user).select_related("nation", "user").first()
+        member = (
+            game.members.exclude(user=primary_user)
+            .select_related("nation", "user")
+            .first()
+        )
         UserProfile.objects.filter(user=member.user).update(kind=UserKind.LLM)
         return member
 
@@ -1239,7 +1464,9 @@ class TestReplanMemberCommand:
         call_command("replan_member", "--game", game.id, "--nation", member.nation.name)
 
     @pytest.mark.django_db
-    def test_queues_a_plan_task_for_the_current_phase(self, active_game_factory, primary_user, in_memory_procrastinate):
+    def test_queues_a_plan_task_for_the_current_phase(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
 
@@ -1268,7 +1495,10 @@ class TestReplanMemberCommand:
         self._replan(game, member)
 
         existing.refresh_from_db()
-        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=member).count() == 1
+        assert (
+            AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=member).count()
+            == 1
+        )
         assert existing.status == AgentTaskStatus.PENDING
         assert existing.last_error == ""
         assert existing.completed_at is None
@@ -1276,19 +1506,29 @@ class TestReplanMemberCommand:
 
     @pytest.mark.django_db
     def test_discards_the_orders_the_bot_already_submitted(
-        self, active_game_factory, primary_user, in_memory_procrastinate, classical_london_province
+        self,
+        active_game_factory,
+        primary_user,
+        in_memory_procrastinate,
+        classical_london_province,
     ):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
         phase_state = game.current_phase.phase_states.get(member=member)
-        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.HOLD)
+        Order.objects.create(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.HOLD,
+        )
 
         self._replan(game, member)
 
         assert not Order.objects.filter(phase_state__member=member).exists()
 
     @pytest.mark.django_db
-    def test_rejects_a_member_not_played_by_a_bot(self, active_game_factory, in_memory_procrastinate):
+    def test_rejects_a_member_not_played_by_a_bot(
+        self, active_game_factory, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = game.members.select_related("nation").first()
 
@@ -1298,7 +1538,9 @@ class TestReplanMemberCommand:
         assert not AgentTask.objects.filter(member=member).exists()
 
     @pytest.mark.django_db
-    def test_rejects_a_kicked_member(self, active_game_factory, primary_user, in_memory_procrastinate):
+    def test_rejects_a_kicked_member(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
         member.removed_at = timezone.now()
@@ -1310,7 +1552,9 @@ class TestReplanMemberCommand:
         assert not AgentTask.objects.filter(member=member).exists()
 
     @pytest.mark.django_db
-    def test_rejects_a_game_without_an_active_phase(self, active_game_factory, primary_user, in_memory_procrastinate):
+    def test_rejects_a_game_without_an_active_phase(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
         phase = game.current_phase
@@ -1321,10 +1565,14 @@ class TestReplanMemberCommand:
             self._replan(game, member)
 
     @pytest.mark.django_db
-    def test_rejects_a_game_whose_phase_is_processing(self, active_game_factory, primary_user, in_memory_procrastinate):
+    def test_rejects_a_game_whose_phase_is_processing(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
-        Phase.objects.filter(pk=game.current_phase.pk).update(status=PhaseStatus.PROCESSING)
+        Phase.objects.filter(pk=game.current_phase.pk).update(
+            status=PhaseStatus.PROCESSING
+        )
 
         with pytest.raises(CommandError, match="no active phase"):
             self._replan(game, member)
@@ -1332,11 +1580,15 @@ class TestReplanMemberCommand:
         assert not AgentTask.objects.filter(member=member).exists()
 
     @pytest.mark.django_db
-    def test_matches_nation_case_insensitively(self, active_game_factory, primary_user, in_memory_procrastinate):
+    def test_matches_nation_case_insensitively(
+        self, active_game_factory, primary_user, in_memory_procrastinate
+    ):
         game = active_game_factory()
         member = self._seat_bot(game, primary_user)
 
-        call_command("replan_member", "--game", game.id, "--nation", member.nation.name.lower())
+        call_command(
+            "replan_member", "--game", game.id, "--nation", member.nation.name.lower()
+        )
 
         assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=member).exists()
 
@@ -1347,13 +1599,21 @@ class TestReplanMemberCommand:
         game = active_game_factory()
         member = game.members.select_related("nation").first()
         call_command(
-            "replace_member_with_bot", "--game", game.id, "--nation", member.nation.name, "--bot", "dealmakerbot"
+            "replace_member_with_bot",
+            "--game",
+            game.id,
+            "--nation",
+            member.nation.name,
+            "--bot",
+            "dealmakerbot",
         )
         replacement = game.members.get(user__username="dealmakerbot")
 
         self._replan(game, member)
 
-        assert AgentTask.objects.filter(kind=AgentTaskKind.PLAN, member=replacement).exists()
+        assert AgentTask.objects.filter(
+            kind=AgentTaskKind.PLAN, member=replacement
+        ).exists()
 
     @pytest.mark.django_db
     def test_rejects_unknown_nation(self, active_game_factory, in_memory_procrastinate):

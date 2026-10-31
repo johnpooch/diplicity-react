@@ -12,7 +12,9 @@ def backfill_public_channel_members(apps, schema_editor):
     rows_to_create = []
     for channel in public_channels:
         existing_member_ids = set(
-            ChannelMember.objects.filter(channel=channel).values_list("member_id", flat=True)
+            ChannelMember.objects.filter(channel=channel).values_list(
+                "member_id", flat=True
+            )
         )
         game_members = channel.game.members.all()
         for member in game_members:
