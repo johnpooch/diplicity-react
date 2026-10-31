@@ -1,4 +1,6 @@
+import importlib
 import pytest
+from datetime import datetime, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 from django.db import connection
 from django.test.utils import override_settings
@@ -11,7 +13,8 @@ from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
 from draw_proposal.models import DrawProposal
 from game.models import Game
-from member.models import Member
+from django.apps import apps
+from member.models import CommitmentEntry, Member
 from member.views import MemberCreateView, MemberJoinView
 from notification.models import Notification
 from order.models import Order
@@ -26,10 +29,15 @@ from common.constants import (
     MemberKind,
     OrderType,
     PhaseStatus,
+    PhaseType,
     UserKind,
 )
 
 User = get_user_model()
+
+rebuild_commitment_migration = importlib.import_module(
+    "member.migrations.0024_rebuild_commitment_entries"
+)
 
 join_viewname = "game-join"
 seat_viewname = "game-member-create"
@@ -3860,3 +3868,301 @@ class TestMemberRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
         assert query_count == 8
+
+
+RECEIVED = PhaseState.OrdersOutcome.RECEIVED
+NMR = PhaseState.OrdersOutcome.NMR
+
+
+class TestRebuildCommitment:
+
+    @staticmethod
+    def _history(game, member, outcomes, started_at):
+        first = game.current_phase
+        for index, outcome in enumerate(outcomes):
+            phase = first
+            if index > 0:
+                phase = Phase.objects.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring",
+                    year=first.year + index,
+                    type=PhaseType.MOVEMENT,
+                    ordinal=first.ordinal + index,
+                )
+            Phase.objects.filter(id=phase.id).update(
+                status=PhaseStatus.COMPLETED,
+                created_at=started_at + timedelta(days=index),
+            )
+            PhaseState.objects.update_or_create(
+                phase=phase,
+                member=member,
+                defaults={"has_possible_orders": True, "orders_outcome": outcome},
+            )
+        current = Phase.objects.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=first.year + len(outcomes),
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=first.ordinal + len(outcomes),
+        )
+        Phase.objects.filter(id=current.id).update(
+            created_at=started_at + timedelta(days=len(outcomes))
+        )
+
+    @staticmethod
+    def _kinds(member):
+        return sorted(member.commitment_entries.values_list("kind", flat=True))
+
+    @pytest.mark.django_db
+    def test_writes_one_entry_per_rated_phase(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game,
+            member,
+            [RECEIVED, NMR, RECEIVED],
+            datetime(2026, 10, 20, tzinfo=dt_timezone.utc),
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [CommitmentEvent.SUBMITTED, CommitmentEvent.NMR, CommitmentEvent.SUBMITTED]
+        )
+
+    @pytest.mark.django_db
+    def test_replaces_existing_entries(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        CommitmentEntry.objects.create(member=member, kind=CommitmentEvent.NMR)
+        self._history(
+            game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == [CommitmentEvent.SUBMITTED]
+
+    @pytest.mark.django_db
+    def test_flagged_civil_disorder_stops_at_the_trigger(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game,
+            member,
+            [RECEIVED, NMR, NMR, NMR, NMR],
+            datetime(2026, 10, 20, tzinfo=dt_timezone.utc),
+        )
+        Member.objects.filter(id=member.id).update(civil_disorder_at=timezone.now())
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [
+                CommitmentEvent.SUBMITTED,
+                CommitmentEvent.NMR,
+                CommitmentEvent.NMR,
+                CommitmentEvent.CIVIL_DISORDER,
+            ]
+        )
+
+    @pytest.mark.django_db
+    def test_derives_civil_disorder_from_a_trailing_nmr_run_before_detection(
+        self, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game,
+            member,
+            [RECEIVED, NMR, NMR, NMR],
+            datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [
+                CommitmentEvent.SUBMITTED,
+                CommitmentEvent.NMR,
+                CommitmentEvent.NMR,
+                CommitmentEvent.CIVIL_DISORDER,
+            ]
+        )
+
+    @pytest.mark.django_db
+    def test_keeps_nmrs_before_detection_when_the_player_submitted_later(
+        self, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game,
+            member,
+            [NMR, NMR, RECEIVED],
+            datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [CommitmentEvent.NMR, CommitmentEvent.NMR, CommitmentEvent.SUBMITTED]
+        )
+
+    @pytest.mark.django_db
+    def test_does_not_derive_civil_disorder_after_detection(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game,
+            member,
+            [RECEIVED, NMR, NMR],
+            datetime(2026, 6, 1, tzinfo=dt_timezone.utc),
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [CommitmentEvent.SUBMITTED, CommitmentEvent.NMR, CommitmentEvent.NMR]
+        )
+
+    @pytest.mark.django_db
+    def test_legacy_civil_disorder_flag_without_nmr_run_is_recorded_after_the_last_phase(
+        self, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game,
+            member,
+            [RECEIVED, NMR, RECEIVED],
+            datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
+        )
+        Member.objects.filter(id=member.id).update(civil_disorder_at=timezone.now())
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [
+                CommitmentEvent.SUBMITTED,
+                CommitmentEvent.NMR,
+                CommitmentEvent.SUBMITTED,
+                CommitmentEvent.CIVIL_DISORDER,
+            ]
+        )
+
+    @pytest.mark.django_db
+    def test_trusted_removal_drops_phases_resolved_after_it(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        started_at = datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        self._history(game, member, [RECEIVED, RECEIVED, RECEIVED], started_at)
+        Member.objects.filter(id=member.id).update(
+            removed_at=started_at + timedelta(days=1, hours=12)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == [CommitmentEvent.SUBMITTED]
+
+    @pytest.mark.django_db
+    def test_untrusted_removal_keeps_every_rated_phase(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        started_at = datetime(2026, 9, 1, tzinfo=dt_timezone.utc)
+        self._history(game, member, [RECEIVED, RECEIVED, RECEIVED], started_at)
+        Member.objects.filter(id=member.id).update(
+            removed_at=started_at + timedelta(days=1, hours=12)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == [CommitmentEvent.SUBMITTED] * 3
+
+    @pytest.mark.django_db
+    def test_skips_members_whose_user_was_deleted(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        self._history(
+            game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        )
+        member.user.delete()
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert not member.commitment_entries.exists()
+
+    @pytest.mark.django_db
+    def test_skips_private_games(self, active_game_factory):
+        game = active_game_factory()
+        Game.objects.filter(id=game.id).update(private=True)
+        member = _non_admin_player(game)
+        self._history(
+            game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert not member.commitment_entries.exists()
+
+    @pytest.mark.django_db
+    def test_skips_bots(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        UserProfile.objects.filter(user=member.user).update(kind=UserKind.DUMBBOT)
+        self._history(
+            game, member, [RECEIVED], datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert not member.commitment_entries.exists()
+
+    @pytest.mark.django_db
+    def test_withdrawal_in_the_first_year_is_early(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        started_at = datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        self._history(game, member, [RECEIVED], started_at)
+        Member.objects.filter(id=member.id).update(
+            withdrawn_at=started_at + timedelta(hours=12)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [CommitmentEvent.SUBMITTED, CommitmentEvent.EARLY_WITHDRAWAL]
+        )
+
+    @pytest.mark.django_db
+    def test_withdrawal_after_the_first_year_is_late(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+        started_at = datetime(2026, 10, 20, tzinfo=dt_timezone.utc)
+        self._history(game, member, [RECEIVED], started_at)
+        Member.objects.filter(id=member.id).update(
+            withdrawn_at=started_at + timedelta(days=1, hours=12)
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == sorted(
+            [CommitmentEvent.SUBMITTED, CommitmentEvent.LATE_WITHDRAWAL]
+        )
+
+    @pytest.mark.django_db
+    def test_unmustered_removal_is_a_muster_no_show(self, active_game_factory):
+        game = active_game_factory()
+        Game.objects.filter(id=game.id).update(muster_required=True)
+        game.members.players().update(mustered_at=timezone.now())
+        member = _non_admin_player(game)
+        Member.objects.filter(id=member.id).update(
+            mustered_at=None, removed_at=timezone.now()
+        )
+
+        rebuild_commitment_migration.rebuild_commitment_entries(apps, None)
+
+        assert self._kinds(member) == [CommitmentEvent.MUSTER_NO_SHOW]
