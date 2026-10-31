@@ -191,8 +191,60 @@ class TestGameRetrieveView:
         members = {m["is_current_user"]: m for m in response.data["members"]}
         assert members[False]["commitment_total"] is None
         assert members[False]["commitment_band"] is None
-        assert members[True]["commitment_total"] == 0
-        assert members[True]["commitment_band"] == CommitmentBand.NEUTRAL
+        assert members[True]["commitment_total"] is None
+        assert members[True]["commitment_band"] is None
+
+    @pytest.mark.django_db
+    def test_retrieve_game_masks_bot_commitment_in_anonymous_game(
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        bot_user,
+    ):
+        game = game_with_public_channel_and_messages
+        Game.objects.filter(id=game.id).update(anonymous=True)
+        game.members.create(user=bot_user)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert [m["commitment_total"] for m in response.data["members"]] == [
+            None
+        ] * len(response.data["members"])
+
+    @pytest.mark.django_db
+    def test_retrieve_game_omits_bot_commitment(
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        bot_user,
+    ):
+        game = game_with_public_channel_and_messages
+        game.members.create(user=bot_user)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members = {m["is_bot"]: m for m in response.data["members"]}
+        assert members[True]["commitment_total"] is None
+        assert members[True]["commitment_band"] is None
+        assert members[False]["commitment_total"] == 0
+
+    @pytest.mark.django_db
+    def test_retrieve_game_omits_game_master_commitment(
+        self,
+        authenticated_client,
+        pending_game_with_game_master_factory,
+        primary_user,
+        secondary_user,
+    ):
+        game = pending_game_with_game_master_factory()
+        game.members.create(user=secondary_user)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert [m["user_id"] for m in response.data["members"]] == [secondary_user.id]
+        assert response.data["members"][0]["commitment_total"] == 0
+        assert response.data["game_master"]["user_id"] == primary_user.id
+        assert "commitment_total" not in response.data["game_master"]
 
     @pytest.mark.django_db
     def test_retrieve_game_not_found(self, authenticated_client):
