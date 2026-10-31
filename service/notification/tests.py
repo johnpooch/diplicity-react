@@ -1102,13 +1102,19 @@ class TestDrawProposalNotification:
     def test_phase_resolution_lists_every_expired_proposal(
         self,
         draw_notification_game_factory,
+        draw_proposal_factory,
         primary_user,
         in_memory_procrastinate,
     ):
         game, italy, germany = draw_notification_game_factory()
         phase = game.current_phase
-        DrawProposal.objects.propose(game, italy.user)
-        DrawProposal.objects.propose(game, germany.user)
+        for proposer in (italy, germany):
+            draw_proposal_factory(
+                game=game,
+                created_by=proposer,
+                phase=phase,
+                included_member_ids=[italy.id, germany.id],
+            )
 
         Phase.objects._emit_phase_resolved(phase)
 

@@ -11,7 +11,7 @@ def select_for_update(instance):
     return type(instance)._default_manager.select_for_update().get(pk=instance.pk)
 
 
-MAX_PROPERTY_LOCKS = 3
+MAX_LOCK_ATTEMPTS = 3
 
 
 def lock_rows(model, value, paths):
@@ -20,6 +20,17 @@ def lock_rows(model, value, paths):
         if isinstance(value, models.Model)
         else model._default_manager.get(pk=value)
     )
+    for _ in range(MAX_LOCK_ATTEMPTS):
+        with transaction.atomic():
+            locked = try_lock_rows(target, paths)
+            if locked is not None:
+                return locked
+            transaction.set_rollback(True)
+        target = type(target)._default_manager.get(pk=target.pk)
+    raise RuntimeError(f"{', '.join(paths)} kept changing while being locked")
+
+
+def try_lock_rows(target, paths):
     related = {}
     for path in paths:
         row = reduce(getattr, path.split("."), target)
@@ -29,19 +40,11 @@ def lock_rows(model, value, paths):
         *parents, attribute = path.split(".")
         parent = reduce(getattr, parents, target)
         if isinstance(getattr(type(parent), attribute, None), property):
-            confirm_property_lock(parent, attribute, row)
+            if getattr(parent, attribute) != row:
+                return None
         elif row is not None:
             setattr(parent, attribute, row)
     return target
-
-
-def confirm_property_lock(parent, attribute, row):
-    for _ in range(MAX_PROPERTY_LOCKS):
-        current = getattr(parent, attribute)
-        if current == row:
-            return
-        row = None if current is None else select_for_update(current)
-    raise RuntimeError(f"{attribute} kept changing while it was being locked")
 
 
 def command(requires=None, only_if=None, locks=()):

@@ -1,3 +1,6 @@
+import threading
+import time
+
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -5,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from common import commands
 from common.constants import GameStatus, PhaseStatus
 from common.policies import Refused
 from draw_proposal.models import DrawProposal, DrawVote
@@ -842,7 +846,7 @@ class TestDrawProposalCreateView:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data == {"code": "inactive_player"}
+        assert response.data == {"code": "not_player"}
         assert DrawProposal.objects.count() == 0
 
     def test_create_proposal_fails_in_finished_game(
@@ -971,6 +975,109 @@ class TestDrawProposalCreateView:
             )
         )
         assert recipients == {other.user_id}
+
+    def test_concurrent_proposals_across_a_phase_rollover_create_only_one(
+        self,
+        committed_draw_game,
+        authenticated_client_factory,
+        in_memory_procrastinate,
+        django_db_blocker,
+        monkeypatch,
+    ):
+        game, old_phase, (first_user, second_user) = committed_draw_game
+        url = reverse("draw-proposal-create", args=[game.id])
+        select_for_update = commands.select_for_update
+        first_read_phase = threading.Event()
+        rolled_over = threading.Event()
+        first_holds_game = threading.Event()
+        second_locking = threading.Event()
+        second_blocked = threading.Event()
+        backend_pids = {}
+        first_locks = []
+        responses = {}
+        errors = {}
+
+        def paused_select_for_update(instance):
+            name = threading.current_thread().name
+            if name not in backend_pids:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    backend_pids[name] = cursor.fetchone()[0]
+            if name != "first":
+                second_locking.set()
+                return select_for_update(instance)
+            first_locks.append(instance)
+            if len(first_locks) == 1:
+                first_read_phase.set()
+                rolled_over.wait(10)
+            row = select_for_update(instance)
+            if len(first_locks) == 2:
+                first_holds_game.set()
+                second_blocked.wait(10)
+            return row
+
+        def propose(user):
+            name = threading.current_thread().name
+            try:
+                client = authenticated_client_factory(user)
+                responses[name] = client.post(url, {}, format="json")
+            except Exception as error:
+                errors[name] = error
+            finally:
+                connection.close()
+
+        def second_waits_on_first():
+            if not second_locking.wait(10):
+                return False
+            deadline = time.monotonic() + 10
+            with connection.cursor() as cursor:
+                while time.monotonic() < deadline:
+                    cursor.execute(
+                        "SELECT %s = ANY(pg_blocking_pids(%s))",
+                        [backend_pids["first"], backend_pids["second"]],
+                    )
+                    if cursor.fetchone()[0]:
+                        return True
+            return False
+
+        monkeypatch.setattr(commands, "select_for_update", paused_select_for_update)
+        first = threading.Thread(target=propose, args=[first_user], name="first")
+        second = threading.Thread(target=propose, args=[second_user], name="second")
+
+        with django_db_blocker.unblock():
+            first.start()
+            assert first_read_phase.wait(10)
+            Phase.objects.filter(pk=old_phase.pk).update(status=PhaseStatus.COMPLETED)
+            new_phase = Phase.objects.create(
+                game=game,
+                variant=game.variant,
+                season="Fall",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
+                ordinal=2,
+            )
+            rolled_over.set()
+            assert first_holds_game.wait(10)
+            second.start()
+            assert second_waits_on_first()
+            second_blocked.set()
+            first.join(30)
+            second.join(30)
+
+            listing = authenticated_client_factory(first_user).get(
+                reverse("draw-proposal-list", args=[game.id])
+            )
+
+        assert not first.is_alive() and not second.is_alive()
+        assert errors == {}
+        assert responses["second"].status_code == status.HTTP_201_CREATED
+        assert responses["first"].status_code == status.HTTP_403_FORBIDDEN
+        assert responses["first"].data == {"code": "proposal_pending"}
+        assert [
+            (proposal["phase_id"], proposal["created_by"]["nation"])
+            for proposal in listing.data
+        ] == [(new_phase.id, "Germany")]
 
 
 class TestDrawProposalVoteView:

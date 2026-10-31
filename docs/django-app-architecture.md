@@ -66,7 +66,7 @@ The code below is the shared code in full. It differs from the throwaway example
 
 1. `lock_rows` now locks the related rows before the target. This keeps a consistent parent-before-child lock order.
 2. `lock_rows` accepts a target instance of a model other than the manager's own.
-3. `lock_rows` accepts a property path, such as `current_phase`. It locks the row, and once the target is locked it re-reads the property until it names the row it holds.
+3. `lock_rows` accepts a property path, such as `current_phase`. It locks the row and then the target, and if the property has moved by then it releases both and starts again.
 4. The conversion of `Refused` into an HTTP error has moved into a `RefusalMixin`.
 5. `ActionView` serves `POST`, `PUT`, `PATCH` and `DELETE`, limited per view by `http_method_names`, and does not scope its lookup with `visible_to`.
 6. `CreateActionView` extends `CreateAPIView`, so the schema publishes its 201.
@@ -191,11 +191,22 @@ def select_for_update(instance):
     return type(instance)._default_manager.select_for_update().get(pk=instance.pk)
 
 
-MAX_PROPERTY_LOCKS = 3
+MAX_LOCK_ATTEMPTS = 3
 
 
 def lock_rows(model, value, paths):
     target = value if isinstance(value, models.Model) else model._default_manager.get(pk=value)
+    for _ in range(MAX_LOCK_ATTEMPTS):
+        with transaction.atomic():
+            locked = try_lock_rows(target, paths)
+            if locked is not None:
+                return locked
+            transaction.set_rollback(True)
+        target = type(target)._default_manager.get(pk=target.pk)
+    raise RuntimeError(f"{', '.join(paths)} kept changing while being locked")
+
+
+def try_lock_rows(target, paths):
     related = {}
     for path in paths:
         row = reduce(getattr, path.split("."), target)
@@ -205,19 +216,11 @@ def lock_rows(model, value, paths):
         *parents, attribute = path.split(".")
         parent = reduce(getattr, parents, target)
         if isinstance(getattr(type(parent), attribute, None), property):
-            confirm_property_lock(parent, attribute, row)
+            if getattr(parent, attribute) != row:
+                return None
         elif row is not None:
             setattr(parent, attribute, row)
     return target
-
-
-def confirm_property_lock(parent, attribute, row):
-    for _ in range(MAX_PROPERTY_LOCKS):
-        current = getattr(parent, attribute)
-        if current == row:
-            return
-        row = None if current is None else select_for_update(current)
-    raise RuntimeError(f"{attribute} kept changing while it was being locked")
 
 
 def command(requires=None, only_if=None, locks=()):
@@ -260,7 +263,7 @@ Inside one transaction the decorator does four things in order:
 
 Checking after locking means two concurrent requests cannot both pass a policy that only one of them should pass.
 
-`locks` names paths from the target, such as `"book"`, `"book.author"` or `"current_phase"`. Those rows are locked before the target. A foreign key path is re-attached to the locked target, so the policy and the body read the locked row. A property path, such as `Game.current_phase`, cannot be assigned, so its row is locked but not re-attached, and reading the property again queries the row. A path is resolved before anything is locked, so a property can name a different row by the time the lock is taken: a phase resolves and the next one starts. After the target is locked, `confirm_property_lock` re-reads each property path and compares it with the row it locked. If the property names a different row, it locks that row and checks again, up to `MAX_PROPERTY_LOCKS` times, and then raises. When it returns, the property names a row the command holds, so the policy and the body read the locked row. Every path's first lock still comes before the target. Only a replacement row, locked because the property moved, comes after it. List a parent path before its child.
+`locks` names paths from the target, such as `"book"`, `"book.author"` or `"current_phase"`. Those rows are locked before the target. A foreign key path is re-attached to the locked target, so the policy and the body read the locked row. A property path, such as `Game.current_phase`, cannot be assigned, so its row is locked but not re-attached, and reading the property again queries the row. A path is resolved before anything is locked, so a property can name a different row by the time the lock is taken: a phase resolves and the next one starts. After the target is locked, `try_lock_rows` re-reads each property path and compares it with the row it locked. If the property names a different row, locking that row now would take it after the target, while a request that read the new row first takes it before the target, and the two can deadlock. So `lock_rows` takes each attempt inside a savepoint, rolls the savepoint back when a property has moved, which releases every lock the attempt took, reloads the target, and starts again in the same order. It gives up and raises after `MAX_LOCK_ATTEMPTS`. When it returns, every path was locked before the target and the property names a row the command holds, so the policy and the body read the locked row. Rolling back a savepoint releases only the locks taken inside it, so a nested command whose outer command already holds the target does not get this guarantee, and should not take a property path the outer command has not locked. List a parent path before its child.
 
 The target is normally an instance of the manager's model. A command may take an instance of another model as its target when the operation creates a row belonging to it, for example a command on the draw proposal manager that proposes a draw in a phase. Passing that target as a primary key does not work, because a bare key is looked up on the manager's model.
 
