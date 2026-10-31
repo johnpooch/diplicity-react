@@ -23,7 +23,12 @@ from .serializers import (
     MyGamesCurrentSerializer,
     MyGameSerializer,
 )
-from common.views import PrecomputedConditionalGetMixin, SelectedGameMixin, resolve_game
+from common.views import (
+    PrecomputedConditionalGetMixin,
+    RefusalMixin,
+    SelectedGameMixin,
+    resolve_game,
+)
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGamePlayer, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
@@ -104,7 +109,7 @@ class MyGamesFinishedView(generics.ListAPIView):
         return MyGamesService(self.request.user).finished()
 
 
-class GameCreateView(generics.CreateAPIView):
+class GameCreateView(RefusalMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = GameCreateSerializer
 

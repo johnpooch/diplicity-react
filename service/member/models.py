@@ -8,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from common.constants import (
     ActionBlockedReason,
-    CommitmentEligibility,
     CommitmentEvent,
     GameStatus,
     MemberActionKey,
@@ -18,6 +17,7 @@ from common.constants import (
     UserKind,
 )
 from common.models import BaseModel
+from .checks import MeetsCommitmentRequirementCheck
 from emit import emit
 
 User = get_user_model()
@@ -457,15 +457,12 @@ class Member(BaseModel):
                 game.game_master_id is not None and game.game_master_id == user.id
             )
             if not user_is_player and not user_is_game_master:
-                eligible = (
-                    game.commitment_eligibility(user) == CommitmentEligibility.ELIGIBLE
-                )
                 actions.append(
                     {
                         "key": MemberActionKey.TAKE_OVER,
-                        "blocked_reason": (
-                            None if eligible else ActionBlockedReason.COMMITMENT_TOO_LOW
-                        ),
+                        "blocked_reason": MeetsCommitmentRequirementCheck.decide(
+                            game, user
+                        ).reason,
                     }
                 )
             actions.append(

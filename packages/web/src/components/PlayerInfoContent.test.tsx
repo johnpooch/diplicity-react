@@ -90,7 +90,7 @@ const buildGame = (overrides: Partial<GameRetrieve> = {}): GameRetrieve => ({
   retreatFrequency: null,
   pressType: "full_press",
   commitmentRequirement: "none",
-  commitmentEligibility: null,
+  joinBlockedReason: null,
   musterRequired: false,
   musterDeadline: null,
   musterStatus: null,

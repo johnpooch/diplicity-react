@@ -2,8 +2,9 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
 from common.constants import GameStatus, PressType, VariantStatus
+from common.policies import Refused
 from common.views import resolve_game
-from user_profile.commitment import commitment_allows_requirement
+from member.checks import MeetsCommitmentRequirementCheck
 from user_profile.utils import user_can_use_bot_opponent
 
 Game = apps.get_model("game", "Game")
@@ -162,15 +163,12 @@ class IsSpaceAvailable(BasePermission):
 
 
 class MeetsCommitmentRequirement(BasePermission):
-    message = "Your commitment rating does not meet this game's requirement."
-
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        if not request.user.is_authenticated:
-            return False
-        return commitment_allows_requirement(
-            request.user.profile.commitment, game.commitment_requirement, game.private
-        )
+        decision = MeetsCommitmentRequirementCheck.decide(game, request.user)
+        if not decision:
+            raise Refused(decision)
+        return True
 
 
 class IsCurrentPhaseActive(BasePermission):

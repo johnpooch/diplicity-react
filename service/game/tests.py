@@ -26,7 +26,6 @@ from common.constants import (
     PhaseFrequency,
     UnitType,
     Commitment,
-    CommitmentEligibility,
     CommitmentRequirement,
     PressType,
     MemberKind,
@@ -407,21 +406,22 @@ class TestGameRetrieveView:
     def test_retrieve_game_returns_200_after_requester_commitment_change(
         self,
         authenticated_client,
-        active_game_with_phase_state,
+        pending_game_created_by_secondary_user,
         primary_user,
-        set_commitment,
+        set_commitment_total,
     ):
-        game = active_game_with_phase_state
+        game = pending_game_created_by_secondary_user
+        game.commitment_requirement = CommitmentRequirement.COMMITTED
+        game.save(update_fields=["commitment_requirement"])
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        set_commitment(primary_user, Commitment.LOW)
+        set_commitment_total(primary_user, 10)
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
         assert response.status_code == status.HTTP_200_OK
-        assert (
-            response.data["commitment_eligibility"] == CommitmentEligibility.LOW_LOCKED
-        )
+        assert response.data["can_join"] is True
+        assert response.data["join_blocked_reason"] is None
         assert response["ETag"] != etag
 
     @pytest.mark.django_db

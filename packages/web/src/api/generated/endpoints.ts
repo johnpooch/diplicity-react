@@ -261,20 +261,6 @@ export interface CommitmentBreakdown {
 }
 
 /**
- * * `eligible` - eligible
- * `committed_locked` - committed_locked
- * `low_locked` - low_locked
- */
-export type CommitmentEligibilityEnum =
-  (typeof CommitmentEligibilityEnum)[keyof typeof CommitmentEligibilityEnum];
-
-export const CommitmentEligibilityEnum = {
-  eligible: "eligible",
-  committed_locked: "committed_locked",
-  low_locked: "low_locked",
-} as const;
-
-/**
  * * `open` - Open
  * `committed` - Committed
  */
@@ -762,7 +748,7 @@ export interface GameList {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly commitmentRequirement: string;
-  readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
+  readonly joinBlockedReason: BlockedReasonEnum | NullEnum | null;
   readonly musterRequired: boolean;
   /** @nullable */
   readonly musterDeadline: string | null;
@@ -826,7 +812,7 @@ export interface GameRetrieve {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly commitmentRequirement: string;
-  readonly commitmentEligibility: CommitmentEligibilityEnum | NullEnum | null;
+  readonly joinBlockedReason: BlockedReasonEnum | NullEnum | null;
   readonly musterRequired: boolean;
   /** @nullable */
   readonly musterDeadline: string | null;
@@ -1242,6 +1228,8 @@ export interface PatchedUserProfile {
   readonly email?: string;
   readonly canCreateBotGames?: boolean;
   readonly commitment?: string;
+  readonly commitmentTotal?: number;
+  readonly canCreateCommittedGame?: boolean;
 }
 
 export interface PatchedVariantWrite {
@@ -1419,6 +1407,8 @@ export interface UserProfile {
   readonly email: string;
   readonly canCreateBotGames: boolean;
   readonly commitment: string;
+  readonly commitmentTotal: number;
+  readonly canCreateCommittedGame: boolean;
 }
 
 export interface UserProfilePicture {

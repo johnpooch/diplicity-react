@@ -26,8 +26,6 @@ from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from procrastinate.contrib.django import app as procrastinate_app
 from common.constants import (
-    Commitment,
-    CommitmentEligibility,
     CommitmentEvent,
     CommitmentRequirement,
     DeadlineMode,
@@ -45,6 +43,7 @@ from common.constants import (
     UserKind,
     duration_to_seconds,
 )
+from common.checks import Decision
 from common.models import BaseModel
 from emit import emit
 from phase.models import Phase, PhaseState
@@ -53,6 +52,7 @@ from phase.utils import (
     deadline_warning_offset,
     FREQUENCY_INTERVALS,
 )
+from member.checks import MeetsCommitmentRequirementCheck
 from member.models import CommitmentEntry, Member, NationPreference
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -66,7 +66,7 @@ tracer = trace.get_tracer(__name__)
 
 FASTEST_START_MIN_PLAYERS = 3
 
-GAME_RETRIEVE_REPRESENTATION_VERSION = 2
+GAME_RETRIEVE_REPRESENTATION_VERSION = 3
 
 
 class GameQuerySet(models.QuerySet):
@@ -943,29 +943,20 @@ class Game(BaseModel):
                 return timezone.now() + timedelta(seconds=phase_duration_seconds)
             return None
 
-    def can_join(self, user):
-        with tracer.start_as_current_span("game.models.can_join"):
+    def join_decision(self, user):
+        with tracer.start_as_current_span("game.models.join_decision"):
             if self.game_master_id is not None and self.game_master_id == user.id:
-                return False
+                return Decision(False)
             user_is_member = any(
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
             )
-            game_is_pending = self.status == GameStatus.PENDING
-            return not user_is_member and game_is_pending
+            if user_is_member or self.status != GameStatus.PENDING:
+                return Decision(False)
+            return MeetsCommitmentRequirementCheck.decide(self, user)
 
-    def commitment_eligibility(self, user):
-        if not user.is_authenticated:
-            return None
-        commitment = user.profile.commitment
-        if commitment == Commitment.LOW and not self.private:
-            return CommitmentEligibility.LOW_LOCKED
-        if (
-            self.commitment_requirement == CommitmentRequirement.COMMITTED
-            and commitment != Commitment.HIGH
-        ):
-            return CommitmentEligibility.COMMITTED_LOCKED
-        return CommitmentEligibility.ELIGIBLE
+    def can_join(self, user):
+        return self.join_decision(user).allowed
 
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):
@@ -1036,10 +1027,16 @@ class Game(BaseModel):
     def _actions_from(self, user, keys):
         if not user.is_authenticated:
             return []
-        available = self._action_availability(user)
-        return [{"key": key, "blocked_reason": None} for key in keys if available[key]]
+        join = self.join_decision(user)
+        available = self._action_availability(user, join)
+        blocked = {GameActionKey.JOIN: join.reason}
+        return [
+            {"key": key, "blocked_reason": blocked.get(key)}
+            for key in keys
+            if available[key] or blocked.get(key)
+        ]
 
-    def _action_availability(self, user):
+    def _action_availability(self, user, join):
         manages = self.can_manage(user)
         active = self.status == GameStatus.ACTIVE
         current_phase = self.current_phase
@@ -1053,7 +1050,7 @@ class Game(BaseModel):
             self.game_master_id is not None and self.game_master_id == user.id
         )
         return {
-            GameActionKey.JOIN: self.can_join(user),
+            GameActionKey.JOIN: join.allowed,
             GameActionKey.CONFIRM_SEAT: self.muster_status(user)
             == MusterStatus.CONFIRMATION_REQUIRED,
             GameActionKey.EDIT_NATION_PREFERENCES: self.status == GameStatus.PENDING

@@ -2768,16 +2768,6 @@ components:
       - count
       - kind
       - points
-    CommitmentEligibilityEnum:
-      enum:
-      - eligible
-      - committed_locked
-      - low_locked
-      type: string
-      description: |-
-        * `eligible` - eligible
-        * `committed_locked` - committed_locked
-        * `low_locked` - low_locked
     CommitmentEventKindEnum:
       enum:
       - submitted
@@ -3393,11 +3383,11 @@ components:
         commitmentRequirement:
           type: string
           readOnly: true
-        commitmentEligibility:
+        joinBlockedReason:
           nullable: true
           readOnly: true
           oneOf:
-          - $ref: '#/components/schemas/CommitmentEligibilityEnum'
+          - $ref: '#/components/schemas/BlockedReasonEnum'
           - $ref: '#/components/schemas/NullEnum'
         musterRequired:
           type: boolean
@@ -3424,7 +3414,6 @@ components:
       - canLeave
       - canManage
       - canWithdraw
-      - commitmentEligibility
       - commitmentRequirement
       - createdAt
       - currentPhase
@@ -3435,6 +3424,7 @@ components:
       - gameMaster
       - id
       - isPaused
+      - joinBlockedReason
       - memberStatus
       - members
       - movementFrequency
@@ -3721,11 +3711,11 @@ components:
         commitmentRequirement:
           type: string
           readOnly: true
-        commitmentEligibility:
+        joinBlockedReason:
           nullable: true
           readOnly: true
           oneOf:
-          - $ref: '#/components/schemas/CommitmentEligibilityEnum'
+          - $ref: '#/components/schemas/BlockedReasonEnum'
           - $ref: '#/components/schemas/NullEnum'
         musterRequired:
           type: boolean
@@ -3763,7 +3753,6 @@ components:
       - canLeave
       - canManage
       - canWithdraw
-      - commitmentEligibility
       - commitmentRequirement
       - createdAt
       - currentPhaseId
@@ -3775,6 +3764,7 @@ components:
       - id
       - isFirstYear
       - isPaused
+      - joinBlockedReason
       - memberStatus
       - members
       - movementFrequency
@@ -4682,6 +4672,12 @@ components:
         commitment:
           type: string
           readOnly: true
+        commitmentTotal:
+          type: integer
+          readOnly: true
+        canCreateCommittedGame:
+          type: boolean
+          readOnly: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -5175,9 +5171,17 @@ components:
         commitment:
           type: string
           readOnly: true
+        commitmentTotal:
+          type: integer
+          readOnly: true
+        canCreateCommittedGame:
+          type: boolean
+          readOnly: true
       required:
       - canCreateBotGames
+      - canCreateCommittedGame
       - commitment
+      - commitmentTotal
       - email
       - id
       - name

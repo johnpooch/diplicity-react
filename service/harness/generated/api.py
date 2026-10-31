@@ -57,9 +57,6 @@ type CommitmentBandEnum = Literal[
 ]
 
 
-type CommitmentEligibilityEnum = Literal['eligible', 'committed_locked', 'low_locked']
-
-
 type CommitmentEventKindEnum = Literal[
     'submitted',
     'nmr',
@@ -362,6 +359,8 @@ class PatchedUserProfile(TypedDict):
     email: NotRequired[str]
     can_create_bot_games: NotRequired[bool]
     commitment: NotRequired[str]
+    commitment_total: NotRequired[int]
+    can_create_committed_game: NotRequired[bool]
 
 
 class PatchedVariantWrite(TypedDict):
@@ -485,6 +484,8 @@ class UserProfile(TypedDict):
     email: str
     can_create_bot_games: bool
     commitment: str
+    commitment_total: int
+    can_create_committed_game: bool
 
 
 class UserProfilePicture(TypedDict):
@@ -880,7 +881,7 @@ class GameList(TypedDict):
     retreat_frequency: str | None
     press_type: str
     commitment_requirement: str
-    commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    join_blocked_reason: BlockedReasonEnum | NullEnum | None
     muster_required: bool
     muster_deadline: str | None
     muster_status: MusterStatusEnum | NullEnum | None
@@ -925,7 +926,7 @@ class GameRetrieve(TypedDict):
     retreat_frequency: str | None
     press_type: str
     commitment_requirement: str
-    commitment_eligibility: CommitmentEligibilityEnum | NullEnum | None
+    join_blocked_reason: BlockedReasonEnum | NullEnum | None
     muster_required: bool
     muster_deadline: str | None
     muster_status: MusterStatusEnum | NullEnum | None

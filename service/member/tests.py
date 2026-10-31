@@ -1021,6 +1021,42 @@ class TestMemberReplace:
         assert member.replaced_by == replacement
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "total,commitment_requirement,allowed",
+        [
+            (-20, CommitmentRequirement.OPEN, True),
+            (9, CommitmentRequirement.COMMITTED, False),
+            (10, CommitmentRequirement.COMMITTED, True),
+        ],
+    )
+    def test_take_over_follows_the_join_commitment_requirement(
+        self,
+        authenticated_client_for_tertiary_user,
+        active_game_factory,
+        tertiary_user,
+        set_commitment_total,
+        total,
+        commitment_requirement,
+        allowed,
+    ):
+        game = active_game_factory()
+        game.commitment_requirement = commitment_requirement
+        game.save(update_fields=["commitment_requirement"])
+        member = self._open_seat(game)
+        set_commitment_total(tertiary_user, total)
+
+        url = reverse(replace_viewname, args=[game.id, member.id])
+        response = authenticated_client_for_tertiary_user.post(url)
+
+        if allowed:
+            assert response.status_code == status.HTTP_201_CREATED
+            assert game.members.filter(user=tertiary_user).exists()
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data == {"code": "commitment_too_low"}
+            assert not game.members.filter(user=tertiary_user).exists()
+
+    @pytest.mark.django_db
     def test_replaced_member_is_swapped_out_of_the_members_list(
         self,
         authenticated_client,
@@ -1595,26 +1631,27 @@ class TestReplaceableSerialization:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "commitment,commitment_requirement,private,allowed",
+    "total,commitment_requirement,private,allowed",
     [
-        (Commitment.HIGH, CommitmentRequirement.OPEN, False, True),
-        (Commitment.HIGH, CommitmentRequirement.COMMITTED, False, True),
-        (Commitment.MEDIUM, CommitmentRequirement.OPEN, False, True),
-        (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False, False),
-        (Commitment.UNDEFINED, CommitmentRequirement.OPEN, False, True),
-        (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False, False),
-        (Commitment.LOW, CommitmentRequirement.OPEN, False, False),
-        (Commitment.LOW, CommitmentRequirement.COMMITTED, False, False),
-        (Commitment.LOW, CommitmentRequirement.OPEN, True, True),
-        (Commitment.LOW, CommitmentRequirement.COMMITTED, True, False),
+        (-20, CommitmentRequirement.OPEN, False, True),
+        (0, CommitmentRequirement.OPEN, False, True),
+        (9, CommitmentRequirement.OPEN, False, True),
+        (-20, CommitmentRequirement.COMMITTED, False, False),
+        (0, CommitmentRequirement.COMMITTED, False, False),
+        (9, CommitmentRequirement.COMMITTED, False, False),
+        (10, CommitmentRequirement.COMMITTED, False, True),
+        (11, CommitmentRequirement.COMMITTED, False, True),
+        (-20, CommitmentRequirement.OPEN, True, True),
+        (9, CommitmentRequirement.COMMITTED, True, False),
+        (10, CommitmentRequirement.COMMITTED, True, True),
     ],
 )
 def test_join_game_commitment_requirement(
     authenticated_client,
     primary_user,
     pending_game_created_by_secondary_user,
-    set_commitment,
-    commitment,
+    set_commitment_total,
+    total,
     commitment_requirement,
     private,
     allowed,
@@ -1623,15 +1660,34 @@ def test_join_game_commitment_requirement(
     game.commitment_requirement = commitment_requirement
     game.private = private
     game.save(update_fields=["commitment_requirement", "private"])
-    set_commitment(primary_user, commitment)
+    set_commitment_total(primary_user, total)
     url = reverse(join_viewname, args=[game.id])
 
     response = authenticated_client.post(url)
 
     if allowed:
         assert response.status_code == status.HTTP_201_CREATED
+        assert game.members.filter(user=primary_user).exists()
     else:
         assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "commitment_too_low"}
+        assert not game.members.filter(user=primary_user).exists()
+
+
+@pytest.mark.django_db
+def test_low_tier_player_can_join_an_open_public_game(
+    authenticated_client,
+    primary_user,
+    pending_game_created_by_secondary_user,
+    set_commitment,
+):
+    game = pending_game_created_by_secondary_user
+    set_commitment(primary_user, Commitment.LOW)
+
+    response = authenticated_client.post(reverse(join_viewname, args=[game.id]))
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert game.members.filter(user=primary_user).exists()
 
 
 class TestBotMemberSerialization:
@@ -3561,44 +3617,49 @@ class TestMemberRetrieveView:
         ]
 
     @pytest.mark.django_db
-    def test_take_over_blocked_when_commitment_is_too_low(
+    def test_take_over_offered_with_a_negative_total_in_an_open_game(
         self,
         authenticated_client_for_tertiary_user,
         active_game_factory,
         tertiary_user,
-        set_commitment,
+        set_commitment_total,
     ):
         game = active_game_factory()
         member = self._other_member(game)
         Member.objects.remove(member)
-        set_commitment(tertiary_user, Commitment.LOW)
+        set_commitment_total(tertiary_user, -20)
 
         response = self._retrieve(authenticated_client_for_tertiary_user, member)
 
         assert _actions(response) == [
-            ("take_over", "commitment_too_low"),
+            ("take_over", None),
             ("share_replacement_link", None),
         ]
 
     @pytest.mark.django_db
-    def test_take_over_blocked_when_the_game_requires_committed_players(
+    @pytest.mark.parametrize(
+        "total,blocked_reason", [(9, "commitment_too_low"), (10, None)]
+    )
+    def test_take_over_in_a_committed_game_follows_the_threshold(
         self,
         authenticated_client_for_tertiary_user,
         active_game_factory,
         tertiary_user,
-        set_commitment,
+        set_commitment_total,
+        total,
+        blocked_reason,
     ):
         game = active_game_factory()
         game.commitment_requirement = CommitmentRequirement.COMMITTED
         game.save()
         member = self._other_member(game)
         Member.objects.remove(member)
-        set_commitment(tertiary_user, Commitment.MEDIUM)
+        set_commitment_total(tertiary_user, total)
 
         response = self._retrieve(authenticated_client_for_tertiary_user, member)
 
         assert _actions(response) == [
-            ("take_over", "commitment_too_low"),
+            ("take_over", blocked_reason),
             ("share_replacement_link", None),
         ]
 
