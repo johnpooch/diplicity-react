@@ -306,16 +306,12 @@ class CommitmentRequirement:
     OPEN = "open"
     COMMITTED = "committed"
 
+    COMMITTED_THRESHOLD = 10
+
     COMMITMENT_REQUIREMENT_CHOICES = (
         (OPEN, "Open"),
         (COMMITTED, "Committed"),
     )
-
-
-class CommitmentEligibility:
-    ELIGIBLE = "eligible"
-    COMMITTED_LOCKED = "committed_locked"
-    LOW_LOCKED = "low_locked"
 
 
 class MusterStatus:

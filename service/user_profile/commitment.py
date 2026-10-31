@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from common.constants import Commitment, CommitmentRequirement, PhaseStatus, PhaseType
+from common.constants import Commitment, PhaseStatus, PhaseType
 from phase.models import PhaseState
 
 COMMITMENT_PHASE_WINDOW = 10
@@ -82,11 +82,3 @@ def recompute_commitment(user):
     profile.commitment = score_commitment(get_rated_outcomes(user))
     profile.save(update_fields=["commitment", "updated_at"])
     return profile.commitment
-
-
-def commitment_allows_requirement(commitment, commitment_requirement, private):
-    if commitment == Commitment.LOW and not private:
-        return False
-    if commitment_requirement == CommitmentRequirement.COMMITTED:
-        return commitment == Commitment.HIGH
-    return True

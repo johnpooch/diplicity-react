@@ -27,6 +27,7 @@ import { GameInfoContent } from "@/components/GameInfoContent";
 import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
+import { LockedJoinTooltip } from "@/components/LockedJoinTooltip";
 import { copyLink } from "@/utils/copyLink";
 import { countPlayableNations } from "@/utils/playableNations";
 
@@ -110,6 +111,12 @@ const GameInfo: React.FC = () => {
       >
         Join game
       </Button>
+    ) : game.joinBlockedReason === "commitment_too_low" ? (
+      <LockedJoinTooltip className="w-full sm:w-auto">
+        <Button disabled className="w-full">
+          Join game
+        </Button>
+      </LockedJoinTooltip>
     ) : game.canLeave || canAddBots ? (
       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
         {canAddBots && (

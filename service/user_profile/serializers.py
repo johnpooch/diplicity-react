@@ -1,7 +1,14 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from common.constants import CommitmentBand, CommitmentEvent, CommitmentShade
+from common.constants import (
+    CommitmentBand,
+    CommitmentEvent,
+    CommitmentRequirement,
+    CommitmentShade,
+)
+from game.models import Game
+from member.checks import MeetsCommitmentRequirementCheck
 from member.models import Member
 
 from .models import UserProfilePicture
@@ -23,10 +30,17 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     can_create_bot_games = serializers.SerializerMethodField()
     commitment = serializers.CharField(read_only=True)
     is_moderator = serializers.BooleanField(read_only=True)
+    can_create_committed_game = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_create_bot_games(self, obj):
         return user_can_use_bot_opponent(obj.user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_create_committed_game(self, obj):
+        return MeetsCommitmentRequirementCheck.decide(
+            Game(commitment_requirement=CommitmentRequirement.COMMITTED), obj.user
+        ).allowed
 
     def validate_name(self, value):
         value = value.strip()

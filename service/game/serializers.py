@@ -8,8 +8,6 @@ from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import (
     ActionBlockedReason,
-    Commitment,
-    CommitmentEligibility,
     CommitmentRequirement,
     DeadlineMode,
     GameActionKey,
@@ -33,6 +31,8 @@ from emit import emit
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
+from common.policies import Refused
+from member.checks import MeetsCommitmentRequirementCheck
 from member.models import Member
 from .models import Game
 
@@ -131,7 +131,7 @@ class GameListSerializer(serializers.Serializer):
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
-    commitment_eligibility = serializers.SerializerMethodField()
+    join_blocked_reason = serializers.SerializerMethodField()
     muster_required = serializers.BooleanField(read_only=True)
     muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
     muster_status = serializers.SerializerMethodField()
@@ -176,16 +176,14 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(
         serializers.ChoiceField(
-            choices=[
-                CommitmentEligibility.ELIGIBLE,
-                CommitmentEligibility.COMMITTED_LOCKED,
-                CommitmentEligibility.LOW_LOCKED,
-            ],
-            allow_null=True,
+            choices=ActionBlockedReason.REASON_CHOICES, allow_null=True
         )
     )
-    def get_commitment_eligibility(self, obj):
-        return obj.commitment_eligibility(self.context["request"].user)
+    def get_join_blocked_reason(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        return obj.join_decision(user).reason
 
     @extend_schema_field(
         serializers.ChoiceField(
@@ -380,7 +378,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     commitment_requirement = serializers.CharField(read_only=True)
-    commitment_eligibility = serializers.SerializerMethodField()
+    join_blocked_reason = serializers.SerializerMethodField()
     muster_required = serializers.BooleanField(read_only=True)
     muster_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
     muster_status = serializers.SerializerMethodField()
@@ -390,16 +388,14 @@ class GameRetrieveSerializer(serializers.Serializer):
 
     @extend_schema_field(
         serializers.ChoiceField(
-            choices=[
-                CommitmentEligibility.ELIGIBLE,
-                CommitmentEligibility.COMMITTED_LOCKED,
-                CommitmentEligibility.LOW_LOCKED,
-            ],
-            allow_null=True,
+            choices=ActionBlockedReason.REASON_CHOICES, allow_null=True
         )
     )
-    def get_commitment_eligibility(self, obj):
-        return obj.commitment_eligibility(self.context["request"].user)
+    def get_join_blocked_reason(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        return obj.join_decision(user).reason
 
     @extend_schema_field(
         serializers.ChoiceField(
@@ -694,23 +690,12 @@ class GameCreateSerializer(serializers.Serializer):
             )
 
         if not attrs.get("game_master"):
-            request = self.context["request"]
-            commitment = request.user.profile.commitment
-            if commitment == Commitment.LOW and not attrs.get("private"):
-                raise serializers.ValidationError(
-                    {
-                        "commitment_requirement": "Your commitment rating does not allow creating public games."
-                    }
-                )
-            if (
-                attrs["commitment_requirement"] == CommitmentRequirement.COMMITTED
-                and commitment != Commitment.HIGH
-            ):
-                raise serializers.ValidationError(
-                    {
-                        "commitment_requirement": "Only players with high commitment can require committed players."
-                    }
-                )
+            decision = MeetsCommitmentRequirementCheck.decide(
+                Game(commitment_requirement=attrs["commitment_requirement"]),
+                self.context["request"].user,
+            )
+            if not decision:
+                raise Refused(decision)
 
         deadline_mode = attrs["deadline_mode"]
 

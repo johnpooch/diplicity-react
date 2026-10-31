@@ -122,8 +122,7 @@ const ACTION_DISPLAY: Record<MemberActionKeyEnum, ActionDisplay> = {
 };
 
 const BLOCKED_REASONS: Record<BlockedReasonEnum, string> = {
-  commitment_too_low:
-    "Your commitment rating does not meet this game's requirement.",
+  commitment_too_low: "Your commitment is too low to join this game",
   no_missed_orders: "This player has not missed any orders.",
 };
 

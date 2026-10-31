@@ -2,12 +2,12 @@ import django_filters
 from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 
 from common.constants import (
-    Commitment,
     CommitmentRequirement,
     GameStatus,
     MovementPhaseDuration,
     PhaseStatus,
 )
+from member.checks import MeetsCommitmentRequirementCheck
 from member.models import Member
 from phase.models import Phase
 
@@ -50,10 +50,10 @@ class GameFilter(django_filters.FilterSet):
     def filter_eligible_only(self, queryset, name, value):
         if not value or not self.request.user.is_authenticated:
             return queryset
-        commitment = self.request.user.profile.commitment
-        if commitment == Commitment.LOW:
-            return queryset.none()
-        if commitment == Commitment.HIGH:
+        if MeetsCommitmentRequirementCheck.decide(
+            Game(commitment_requirement=CommitmentRequirement.COMMITTED),
+            self.request.user,
+        ):
             return queryset
         return queryset.filter(commitment_requirement=CommitmentRequirement.OPEN)
 

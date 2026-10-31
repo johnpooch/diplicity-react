@@ -92,7 +92,8 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           {
             key: "commitment",
             icon: ShieldPlus,
-            label: "High commitment players",
+            label: "Committed game",
+            info: "Only players with a commitment of 10 or more can join",
           },
         ]
       : []),

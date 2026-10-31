@@ -3,10 +3,11 @@ import hashlib
 from django.contrib.auth.models import User
 from django.db import models, transaction
 from django.urls import reverse
+from django.utils.functional import cached_property
 
 from common.constants import Commitment, UserKind
 from common.models import BaseModel
-from member.models import commitment_points
+from member.models import Member, commitment_points
 
 
 class UserProfileQuerySet(models.QuerySet):
@@ -63,6 +64,10 @@ class UserProfile(BaseModel):
     @property
     def is_bot(self):
         return self.kind != UserKind.HUMAN
+
+    @cached_property
+    def commitment_total(self):
+        return Member.objects.commitment_totals([self.user_id]).get(self.user_id, 0)
 
     @property
     def has_uploaded_picture(self) -> bool:

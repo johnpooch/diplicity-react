@@ -27,7 +27,6 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 
 import {
   Select,
@@ -316,7 +315,7 @@ function getBrowserTimezone(): string {
 const STEPS = ["General", "Deadlines", "Advanced"] as const;
 
 const STEP_FIELDS: Record<number, (keyof GameFormValues)[]> = {
-  0: ["name", "variantId", "mode", "private", "gameMaster"],
+  0: ["name", "variantId", "mode", "private", "committedOnly", "gameMaster"],
   1: [
     "deadlineMode",
     "movementPhaseDuration",
@@ -326,7 +325,7 @@ const STEP_FIELDS: Record<number, (keyof GameFormValues)[]> = {
     "movementFrequency",
     "retreatFrequency",
   ],
-  2: ["nmrExtensionsAllowed", "committedOnly"],
+  2: ["nmrExtensionsAllowed"],
 };
 
 interface StepperStep {
@@ -396,7 +395,7 @@ interface CreateGameFormProps {
   initialVariantId?: string;
   initialPrivate?: boolean;
   initialMode?: GameMode;
-  creatorCommitment: string;
+  canCreateCommittedGame: boolean;
 }
 
 const CreateGameForm: React.FC<CreateGameFormProps> = ({
@@ -407,7 +406,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   initialVariantId,
   initialPrivate,
   initialMode,
-  creatorCommitment,
+  canCreateCommittedGame,
 }) => {
   const officialVariants = variants.filter(v => v.official);
   const communityVariants = variants.filter(v => !v.official);
@@ -576,9 +575,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                       checked={field.value}
                       onCheckedChange={checked => {
                         field.onChange(checked);
-                        if (checked) {
-                          form.setValue("committedOnly", false);
-                        } else {
+                        if (!checked) {
                           form.setValue("gameMaster", false);
                           if (
                             PRIVATE_ONLY_DURATION_VALUES.has(
@@ -606,6 +603,28 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                     <FormDescription>
                       Make this game private (only accessible via direct link,
                       not shown in public listings)
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="committedOnly"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isSubmitting || isSandbox || !canCreateCommittedGame}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Committed game</FormLabel>
+                    <FormDescription>
+                      Only players with a commitment of 10 or more can join
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -924,33 +943,6 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                 </FormItem>
               )}
             />
-
-            {!isPrivate && (
-              <FormField
-                control={form.control}
-                name="committedOnly"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isSubmitting || creatorCommitment !== "high"}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Committed players only</FormLabel>
-                      <FormDescription>
-                        {creatorCommitment === "high"
-                          ? "Only players with high commitment can join. Fills slower, but reduces the risk of abandoned seats."
-                          : "Only available to players with high commitment."}
-                      </FormDescription>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
           </div>
         )}
 
@@ -1151,7 +1143,7 @@ const CreateGame: React.FC = () => {
             initialVariantId={initialVariantId}
             initialPrivate={initialPrivate}
             initialMode={initialMode}
-            creatorCommitment={userProfile.commitment}
+            canCreateCommittedGame={userProfile.canCreateCommittedGame}
           />
         </ScreenCardContent>
       </ScreenCard>

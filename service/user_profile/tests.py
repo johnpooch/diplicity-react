@@ -14,7 +14,6 @@ from common.constants import (
     Commitment,
     CommitmentBand,
     CommitmentEvent,
-    CommitmentRequirement,
     CommitmentShade,
     GameStatus,
     MemberKind,
@@ -25,7 +24,6 @@ from game.models import Game
 from phase.models import Phase, PhaseState
 from user_profile.commitment import (
     clamp_post_civil_disorder,
-    commitment_allows_requirement,
     get_rated_outcomes,
     recompute_commitment,
     score_commitment,
@@ -1322,31 +1320,21 @@ class TestScoreCommitment:
         assert score_commitment(outcomes) == expected
 
 
-class TestCommitmentAllowsRequirement:
+class TestCanCreateCommittedGame:
 
+    @pytest.mark.django_db
     @pytest.mark.parametrize(
-        "commitment,commitment_requirement,private,expected",
-        [
-            (Commitment.HIGH, CommitmentRequirement.OPEN, False, True),
-            (Commitment.HIGH, CommitmentRequirement.COMMITTED, False, True),
-            (Commitment.MEDIUM, CommitmentRequirement.OPEN, False, True),
-            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, False, False),
-            (Commitment.UNDEFINED, CommitmentRequirement.OPEN, False, True),
-            (Commitment.UNDEFINED, CommitmentRequirement.COMMITTED, False, False),
-            (Commitment.LOW, CommitmentRequirement.OPEN, False, False),
-            (Commitment.LOW, CommitmentRequirement.COMMITTED, False, False),
-            (Commitment.LOW, CommitmentRequirement.OPEN, True, True),
-            (Commitment.LOW, CommitmentRequirement.COMMITTED, True, False),
-            (Commitment.MEDIUM, CommitmentRequirement.COMMITTED, True, False),
-        ],
+        "total,expected", [(-3, False), (0, False), (9, False), (10, True), (11, True)]
     )
-    def test_commitment_allows_requirement(
-        self, commitment, commitment_requirement, private, expected
+    def test_profile_reports_whether_user_can_create_committed_game(
+        self, authenticated_client, primary_user, set_commitment_total, total, expected
     ):
-        assert (
-            commitment_allows_requirement(commitment, commitment_requirement, private)
-            is expected
-        )
+        set_commitment_total(primary_user, total)
+
+        response = authenticated_client.get(reverse("user-profile"))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_create_committed_game"] is expected
 
 
 class TestRecomputeCommitment:

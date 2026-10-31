@@ -16,6 +16,7 @@ from lxml import etree
 from adjudicator import service as adjudication_service
 from channel.models import Channel, ChannelMember, ChannelMessage
 from common.constants import (
+    CommitmentEvent,
     DeadlineMode,
     GameStatus,
     MemberKind,
@@ -30,7 +31,7 @@ from common.constants import (
 from draw_proposal.models import DrawProposal, DrawVote
 from game import models
 from game.models import Game
-from member.models import Member
+from member.models import CommitmentEntry, Member
 from nation.models import Nation
 from order.models import OrderResolution
 from phase.models import Phase
@@ -245,6 +246,25 @@ def set_commitment(db):
 
     for profile, original in touched:
         profile.commitment = original
+
+
+@pytest.fixture
+def set_commitment_total(db, classical_variant):
+    def _set(user, total):
+        delta = total - Member.objects.commitment_totals([user.id]).get(user.id, 0)
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Commitment History",
+            status=GameStatus.COMPLETED,
+        )
+        member = game.members.create(user=user)
+        kind = CommitmentEvent.SUBMITTED if delta > 0 else CommitmentEvent.MUSTER_NO_SHOW
+        CommitmentEntry.objects.bulk_create(
+            [CommitmentEntry(member=member, kind=kind) for _ in range(abs(delta))]
+        )
+        user.profile.__dict__.pop("commitment_total", None)
+
+    return _set
 
 
 # ---------------------------------------------------------------------------

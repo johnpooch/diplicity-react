@@ -39,7 +39,7 @@ from common.permissions import (
     IsSpaceAvailable,
     MeetsCommitmentRequirement,
 )
-from common.views import SeatClaimMixin, SelectedGameMixin
+from common.views import RefusalMixin, SeatClaimMixin, SelectedGameMixin
 from emit import emit
 from game.models import Game
 from report.policies import CanReportPolicy
@@ -58,7 +58,7 @@ class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
 
 
 @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
-class MemberJoinView(SeatClaimMixin, generics.CreateAPIView):
+class MemberJoinView(RefusalMixin, SeatClaimMixin, generics.CreateAPIView):
     serializer_class = MemberJoinSerializer
     permission_classes = [
         permissions.IsAuthenticated,
@@ -147,7 +147,7 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
                 emit(event_type, game=game, recipients=[user_id])
 
 
-class MemberReplaceView(SelectedGameMixin, generics.CreateAPIView):
+class MemberReplaceView(RefusalMixin, SelectedGameMixin, generics.CreateAPIView):
     serializer_class = MemberReplaceSerializer
     permission_classes = [
         permissions.IsAuthenticated,
