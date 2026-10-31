@@ -15,16 +15,7 @@ class ReportReasonSerializer(serializers.Serializer):
 
 class ReportMemberInputSerializer(serializers.Serializer):
     reason = serializers.ChoiceField(choices=ReportReason.REASON_CHOICES)
-    note = serializers.CharField(
-        max_length=1000, allow_blank=True, required=False, default=""
-    )
-
-    def validate(self, attrs):
-        if attrs["reason"] == ReportReason.OTHER and not attrs["note"].strip():
-            raise serializers.ValidationError(
-                {"note": "Add a note explaining what happened."}
-            )
-        return attrs
+    note = serializers.CharField(max_length=1000)
 
 
 class ReportOutputSerializer(OutputSerializer):
@@ -33,4 +24,4 @@ class ReportOutputSerializer(OutputSerializer):
     class Meta:
         model = Report
         loader = ReportLoader
-        fields = ("id", "reported_member", "reason", "note", "status", "created_at")
+        fields = ("id", "reported", "reason", "note", "status", "created_at")

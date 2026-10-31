@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportMemberScreen } from "./ReportMemberScreen";
@@ -20,7 +19,7 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
       {
         key: "other",
         label: "Other",
-        description: "Explain what happened in the note.",
+        description: "This player broke the code of conduct in a way not listed here.",
       },
     ],
   }),
@@ -28,15 +27,6 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
 }));
 
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
-
-const forbidden = (code: string) =>
-  new AxiosError("Forbidden", "403", undefined, undefined, {
-    status: 403,
-    statusText: "Forbidden",
-    headers: {},
-    config: { headers: new AxiosHeaders() },
-    data: { code },
-  });
 
 const renderScreen = () =>
   render(
@@ -101,15 +91,27 @@ describe("ReportMemberScreen", () => {
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("shows why the backend refused the report", async () => {
-    mutateAsync.mockRejectedValue(forbidden("already_reported"));
+  it("does not submit without a note", async () => {
     renderScreen();
 
     await userEvent.click(screen.getByRole("radio", { name: /Abuse and harassment/ }));
     await userEvent.click(screen.getByRole("button", { name: "Submit report" }));
 
     expect(
-      await screen.findByText("You have already reported this player in this game.")
+      await screen.findByText("Add a note describing what happened")
     ).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("stays on the screen when the report fails", async () => {
+    mutateAsync.mockRejectedValue(new Error("Forbidden"));
+    renderScreen();
+
+    await userEvent.click(screen.getByRole("radio", { name: /Abuse and harassment/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "Slurs in press");
+    await userEvent.click(screen.getByRole("button", { name: "Submit report" }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "Submit report" })).toBeInTheDocument();
   });
 });

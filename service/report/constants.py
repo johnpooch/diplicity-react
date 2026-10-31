@@ -34,8 +34,7 @@ class ReportReason:
             "key": OTHER,
             "label": "Other",
             "description": (
-                "This player broke the code of conduct in a way not listed here. "
-                "Explain what happened in the note."
+                "This player broke the code of conduct in a way not listed here."
             ),
         },
     )

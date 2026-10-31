@@ -4,13 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { AlertCircle, ShieldAlert } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -35,29 +32,16 @@ import {
 
 const NOTE_MAX_LENGTH = 1000;
 
-const REFUSALS: Record<string, string> = {
-  already_reported: "You have already reported this player in this game.",
-  own_member: "You can't report yourself.",
-  not_member: "Only members of this game can report its players.",
-  sandbox_game: "Players can't be reported in sandbox games.",
-  user_deleted: "This player's account has been deleted.",
-};
-
 const reportSchema = z.object({
   reason: z.nativeEnum(ReasonEnum, { message: "Pick a reason" }),
   note: z
     .string()
+    .trim()
+    .min(1, "Add a note describing what happened")
     .max(NOTE_MAX_LENGTH, `Notes cannot be longer than ${NOTE_MAX_LENGTH} characters.`),
 });
 
 type ReportFormValues = z.infer<typeof reportSchema>;
-
-type ReportErrorData = {
-  reason?: string[];
-  note?: string[];
-  detail?: string;
-  code?: string;
-};
 
 const ReportMemberForm: React.FC = () => {
   const { gameId, phaseId, memberId } = useRequiredParams<{
@@ -86,24 +70,18 @@ const ReportMemberForm: React.FC = () => {
         queryKey: getGameMemberRetrieveQueryKey(gameId, Number(memberId)),
       });
       navigate(`/game/${gameId}/phase/${phaseId}/member/${memberId}`);
-    } catch (error) {
-      const data = (error as AxiosError<ReportErrorData>).response?.data;
-      if (data?.reason) form.setError("reason", { message: data.reason[0] });
-      if (data?.note) form.setError("note", { message: data.note[0] });
-      const message = data?.detail ?? (data?.code ? REFUSALS[data.code] : undefined);
-      if (message) form.setError("root", { message });
+    } catch {
       toast.error("Failed to submit report");
     }
   };
 
   const isSubmitting = reportMutation.isPending;
-  const rootError = form.formState.errors.root?.message;
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleReport)}
-        className="flex flex-col gap-4 px-3 py-4 md:p-2"
+        className="flex flex-col gap-4"
       >
         <FormField
           control={form.control}
@@ -160,12 +138,6 @@ const ReportMemberForm: React.FC = () => {
             </FormItem>
           )}
         />
-        {rootError && (
-          <Alert variant="destructive">
-            <AlertCircle />
-            <AlertDescription>{rootError}</AlertDescription>
-          </Alert>
-        )}
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
           Submit report
         </Button>
@@ -175,7 +147,7 @@ const ReportMemberForm: React.FC = () => {
 };
 
 const ReportMemberFormSkeleton: React.FC = () => (
-  <div className="flex flex-col gap-4 px-3 py-4 md:p-2">
+  <div className="flex flex-col gap-4">
     <Skeleton className="h-4 w-16" />
     <Skeleton className="h-[300px] w-full rounded-xl" />
     <Skeleton className="h-4 w-12" />
@@ -203,9 +175,8 @@ const ReportMemberScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Alert className="border-x-0 border-t-0 rounded-none bg-transparent">
-            <ShieldAlert />
-            <AlertDescription>
+          <Panel.Content className="flex flex-col gap-4 px-3 py-4 md:p-2">
+            <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <p>
                 Reports are confidential. The reported player isn't told who
                 reported them, and the moderation team checks every report.
@@ -218,9 +189,7 @@ const ReportMemberScreen: React.FC = () => {
                 </Link>
                 .
               </p>
-            </AlertDescription>
-          </Alert>
-          <Panel.Content>
+            </div>
             <QueryErrorBoundary>
               <Suspense fallback={<ReportMemberFormSkeleton />}>
                 <ReportMemberForm />
