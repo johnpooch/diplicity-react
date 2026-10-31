@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportMemberScreen } from "./ReportMemberScreen";
 
@@ -28,6 +29,8 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
 
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
 
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
 const renderScreen = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -49,6 +52,8 @@ const renderScreen = () =>
 describe("ReportMemberScreen", () => {
   beforeEach(() => {
     mutateAsync.mockReset();
+    vi.mocked(toast.success).mockReset();
+    vi.mocked(toast.error).mockReset();
   });
 
   it("shows each reason with its description", () => {
@@ -80,6 +85,7 @@ describe("ReportMemberScreen", () => {
       })
     );
     expect(await screen.findByText("Player details")).toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith("Report submitted");
   });
 
   it("does not submit without a reason", async () => {
@@ -103,7 +109,7 @@ describe("ReportMemberScreen", () => {
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("stays on the screen when the report fails", async () => {
+  it("shows an error toast and stays on the screen when the report fails", async () => {
     mutateAsync.mockRejectedValue(new Error("Forbidden"));
     renderScreen();
 
@@ -111,7 +117,8 @@ describe("ReportMemberScreen", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "Slurs in press");
     await userEvent.click(screen.getByRole("button", { name: "Submit report" }));
 
-    await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to submit report"));
+    expect(toast.success).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Submit report" })).toBeInTheDocument();
   });
 });
