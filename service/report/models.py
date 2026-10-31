@@ -10,34 +10,24 @@ from .managers import ReportManager
 class Report(BaseModel):
     objects = ReportManager()
 
-    game = models.ForeignKey(
-        "game.Game",
-        related_name="reports",
-        on_delete=models.CASCADE,
-    )
     reporter = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        "member.Member",
         related_name="reports_made",
         on_delete=models.CASCADE,
     )
-    reported_member = models.ForeignKey(
+    reported = models.ForeignKey(
         "member.Member",
-        related_name="reports",
-        on_delete=models.CASCADE,
-    )
-    reported_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
         related_name="reports_received",
         on_delete=models.CASCADE,
     )
     reason = models.CharField(max_length=32, choices=ReportReason.REASON_CHOICES)
-    note = models.CharField(max_length=1000, blank=True)
+    note = models.CharField(max_length=1000)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["game", "reporter", "reported_user"],
-                name="report_unique_per_reporter_per_user_per_game",
+                fields=["reporter", "reported"],
+                name="report_unique_per_reporter_per_reported",
             ),
         ]
 

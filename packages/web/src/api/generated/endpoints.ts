@@ -1361,12 +1361,12 @@ export interface Register {
 export interface ReportMemberInput {
   reason: ReasonEnum;
   /** @maxLength 1000 */
-  note?: string;
+  note: string;
 }
 
 export interface ReportOutput {
   readonly id: number;
-  readonly reportedMember: number;
+  readonly reported: number;
   readonly reason: ReasonEnum;
   /** @maxLength 1000 */
   readonly note: string;

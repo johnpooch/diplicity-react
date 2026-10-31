@@ -16,11 +16,10 @@ def report_factory(db, game_factory, member_factory):
         reporter = member_factory(game=game)
         reported = member_factory(game=game)
         report = Report.objects.create(
-            game=game,
-            reporter=reporter.user,
-            reported_member=reported,
-            reported_user=reported.user,
+            reporter=reporter,
+            reported=reported,
             reason=ReportReason.ABUSE_AND_HARASSMENT,
+            note="Insults in press.",
         )
         if decision is not None:
             ReportReview.objects.create(
@@ -62,21 +61,17 @@ class TestReportModel:
 
 class TestReportCommand:
     @pytest.mark.django_db
-    def test_report_records_the_user_behind_the_seat(
-        self, game_factory, member_factory
-    ):
+    def test_report_records_the_reporting_member(self, game_factory, member_factory):
         game = game_factory()
         reporter = member_factory(game=game)
         reported = member_factory(game=game)
 
         report = Report.objects.report(
-            reported, reporter.user, ReportReason.SECRET_TEAMING, ""
+            reported, reporter.user, ReportReason.SECRET_TEAMING, "Same IP"
         )
 
-        assert report.game == game
-        assert report.reporter == reporter.user
-        assert report.reported_member == reported
-        assert report.reported_user == reported.user
+        assert report.reporter == reporter
+        assert report.reported == reported
 
     @pytest.mark.django_db
     def test_report_refuses_duplicate(self, game_factory, member_factory):
@@ -120,8 +115,16 @@ class TestReportCreateView:
         game_id = member.game_id if game is None else game.id
         return reverse("game-member-report", args=[game_id, member.id])
 
-    def _report(self, client, member, reason=ReportReason.ABUSE_AND_HARASSMENT, **data):
-        return client.post(self._url(member), {"reason": reason, **data}, format="json")
+    def _report(
+        self,
+        client,
+        member,
+        reason=ReportReason.ABUSE_AND_HARASSMENT,
+        note="Insults in press.",
+    ):
+        return client.post(
+            self._url(member), {"reason": reason, "note": note}, format="json"
+        )
 
     @pytest.fixture
     def game(self, game_factory):
@@ -142,7 +145,7 @@ class TestReportCreateView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
-    def test_creates_report(self, authenticated_client, reported, primary_user):
+    def test_creates_report(self, authenticated_client, reporter, reported):
         response = self._report(
             authenticated_client, reported, note="Called me names in press."
         )
@@ -152,9 +155,8 @@ class TestReportCreateView:
         assert response.data["note"] == "Called me names in press."
         assert response.data["status"] == "pending"
         report = Report.objects.get()
-        assert report.reporter == primary_user
-        assert report.reported_member == reported
-        assert report.reported_user == reported.user
+        assert report.reporter == reporter
+        assert report.reported == reported
 
     @pytest.mark.django_db
     def test_response_in_anonymous_game_does_not_identify_the_user(
@@ -169,13 +171,13 @@ class TestReportCreateView:
         assert response.status_code == status.HTTP_201_CREATED
         assert set(response.data) == {
             "id",
-            "reported_member",
+            "reported",
             "reason",
             "note",
             "status",
             "created_at",
         }
-        assert response.data["reported_member"] == reported.id
+        assert response.data["reported"] == reported.id
 
     @pytest.mark.django_db
     def test_self_report_refused(self, authenticated_client, reporter):
@@ -207,18 +209,6 @@ class TestReportCreateView:
         assert first.status_code == status.HTTP_201_CREATED
         assert second.status_code == status.HTTP_201_CREATED
         assert Report.objects.count() == 2
-
-    @pytest.mark.django_db
-    def test_another_seat_held_by_the_same_user_is_a_duplicate(
-        self, authenticated_client, game, reported, member_factory
-    ):
-        other_seat = member_factory(game=game, user=reported.user, sandbox=True)
-        self._report(authenticated_client, reported)
-
-        response = self._report(authenticated_client, other_seat)
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["code"] == "already_reported"
 
     @pytest.mark.django_db
     def test_sandbox_game_refused(
@@ -277,7 +267,7 @@ class TestReportCreateView:
 
         response = authenticated_client.post(
             self._url(reported, game=other_game),
-            {"reason": ReportReason.MULTIPLE_ACCOUNTS},
+            {"reason": ReportReason.MULTIPLE_ACCOUNTS, "note": "Same IP"},
             format="json",
         )
 
@@ -358,25 +348,15 @@ class TestReportCreateView:
         assert response.data["code"] == "user_deleted"
 
     @pytest.mark.django_db
-    def test_note_required_for_other(self, authenticated_client, reported):
+    @pytest.mark.parametrize("reason", [r["key"] for r in ReportReason.REASONS])
+    def test_note_required(self, authenticated_client, reported, reason):
         response = self._report(
-            authenticated_client, reported, reason=ReportReason.OTHER, note="  "
+            authenticated_client, reported, reason=reason, note="  "
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "note" in response.data
         assert Report.objects.count() == 0
-
-    @pytest.mark.django_db
-    def test_other_with_note(self, authenticated_client, reported):
-        response = self._report(
-            authenticated_client,
-            reported,
-            reason=ReportReason.OTHER,
-            note="Spamming links in every channel.",
-        )
-
-        assert response.status_code == status.HTTP_201_CREATED
 
     @pytest.mark.django_db
     def test_note_over_limit_rejected(self, authenticated_client, reported):

@@ -378,12 +378,12 @@ class Register(TypedDict):
 
 class ReportMemberInput(TypedDict):
     reason: ReasonEnum
-    note: NotRequired[str]
+    note: str
 
 
 class ReportOutput(TypedDict):
     id: int
-    reported_member: int
+    reported: int
     reason: ReasonEnum
     note: str
     status: str

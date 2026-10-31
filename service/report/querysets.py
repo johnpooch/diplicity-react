@@ -9,7 +9,7 @@ class ReportQuerySet(models.QuerySet):
             return self
         if not actor.is_authenticated:
             return self.none()
-        return self.filter(reporter_id=actor.pk)
+        return self.filter(reporter__user_id=actor.pk)
 
     def pending(self):
         return self.filter(review__isnull=True)

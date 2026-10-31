@@ -4920,9 +4920,9 @@ components:
           $ref: '#/components/schemas/ReasonEnum'
         note:
           type: string
-          default: ''
           maxLength: 1000
       required:
+      - note
       - reason
     ReportOutput:
       type: object
@@ -4930,7 +4930,7 @@ components:
         id:
           type: integer
           readOnly: true
-        reportedMember:
+        reported:
           type: integer
           readOnly: true
         reason:
@@ -4953,7 +4953,7 @@ components:
       - id
       - note
       - reason
-      - reportedMember
+      - reported
       - status
     ReportReason:
       type: object

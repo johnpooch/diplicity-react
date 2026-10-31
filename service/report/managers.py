@@ -10,10 +10,8 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
     @command(requires=CanReportPolicy, locks=["game"])
     def report(self, member, actor, reason, note):
         return self.create(
-            game=member.game,
-            reporter=actor,
-            reported_member=member,
-            reported_user=member.user,
+            reporter=member.game.members.get(user_id=actor.pk),
+            reported=member,
             reason=reason,
             note=note,
         )
