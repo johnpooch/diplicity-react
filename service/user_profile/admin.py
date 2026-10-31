@@ -6,8 +6,14 @@ from .models import UserProfile, UserProfilePicture
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("name",)
+    list_display = ("name", "is_moderator")
+    list_filter = ("is_moderator",)
     actions = ["clear_uploaded_picture"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return ()
+        return ("is_moderator",)
 
     def clear_uploaded_picture(self, request, queryset):
         pictures = UserProfilePicture.objects.filter(

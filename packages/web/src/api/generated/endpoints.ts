@@ -991,6 +991,59 @@ export interface MemberNationPreference {
   nationIds: string[];
 }
 
+export interface ModerationMemberOutput {
+  readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
+  /** @nullable */
+  readonly name: string | null;
+  /** @nullable */
+  readonly nation: string | null;
+}
+
+/**
+ * * `abuse_and_harassment` - Abuse and harassment
+ * `multiple_accounts` - Multiple accounts
+ * `secret_teaming` - Secret teaming
+ * `other` - Other
+ */
+export type ReasonEnum = (typeof ReasonEnum)[keyof typeof ReasonEnum];
+
+export const ReasonEnum = {
+  abuse_and_harassment: "abuse_and_harassment",
+  multiple_accounts: "multiple_accounts",
+  secret_teaming: "secret_teaming",
+  other: "other",
+} as const;
+
+/**
+ * * `pending` - Pending
+ * `approved` - Approved
+ * `rejected` - Rejected
+ */
+export type ReportStatusEnum =
+  (typeof ReportStatusEnum)[keyof typeof ReportStatusEnum];
+
+export const ReportStatusEnum = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface ModerationReportOutput {
+  readonly id: number;
+  readonly reason: ReasonEnum;
+  /** @maxLength 1000 */
+  readonly note: string;
+  readonly status: ReportStatusEnum;
+  readonly createdAt: string;
+  readonly gameId: string;
+  readonly gameName: string;
+  readonly variantName: string;
+  readonly reporter: ModerationMemberOutput;
+  readonly reported: ModerationMemberOutput;
+}
+
 export interface MyGameSeats {
   readonly filled: number;
   readonly total: number;
@@ -1242,6 +1295,7 @@ export interface PatchedUserProfile {
   readonly email?: string;
   readonly canCreateBotGames?: boolean;
   readonly commitment?: string;
+  readonly isModerator?: boolean;
 }
 
 export interface PatchedVariantWrite {
@@ -1343,21 +1397,6 @@ export interface PublicUserProfile {
   readonly commitmentSquares: readonly CommitmentSquare[];
 }
 
-/**
- * * `abuse_and_harassment` - Abuse and harassment
- * `multiple_accounts` - Multiple accounts
- * `secret_teaming` - Secret teaming
- * `other` - Other
- */
-export type ReasonEnum = (typeof ReasonEnum)[keyof typeof ReasonEnum];
-
-export const ReasonEnum = {
-  abuse_and_harassment: "abuse_and_harassment",
-  multiple_accounts: "multiple_accounts",
-  secret_teaming: "secret_teaming",
-  other: "other",
-} as const;
-
 export interface Register {
   email: string;
   /** @minLength 8 */
@@ -1419,6 +1458,7 @@ export interface UserProfile {
   readonly email: string;
   readonly canCreateBotGames: boolean;
   readonly commitment: string;
+  readonly isModerator: boolean;
 }
 
 export interface UserProfilePicture {
@@ -1738,6 +1778,24 @@ export type GamesMineFinishedListParams = {
    */
   page_size?: number;
 };
+
+export type ModerationReportsListParams = {
+  /**
+   * * `pending` - Pending
+   * `approved` - Approved
+   * `rejected` - Rejected
+   */
+  status: ModerationReportsListStatus;
+};
+
+export type ModerationReportsListStatus =
+  (typeof ModerationReportsListStatus)[keyof typeof ModerationReportsListStatus];
+
+export const ModerationReportsListStatus = {
+  approved: "approved",
+  pending: "pending",
+  rejected: "rejected",
+} as const;
 
 /**
  * OpenApi3 schema for this API. Format can be selected via content negotiation.
@@ -11767,6 +11825,559 @@ export function useGamesMineFinishedListSuspense<
 } {
   const queryOptions = getGamesMineFinishedListSuspenseQueryOptions(
     params,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const moderationReportsList = (
+  params: ModerationReportsListParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<ModerationReportOutput[]>({
+    url: `/moderation/reports/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getModerationReportsListQueryKey = (
+  params?: ModerationReportsListParams
+) => {
+  return [`/moderation/reports/`, ...(params ? [params] : [])] as const;
+};
+
+export const getModerationReportsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getModerationReportsListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof moderationReportsList>>
+  > = ({ signal }) => moderationReportsList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof moderationReportsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ModerationReportsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsList>>
+>;
+export type ModerationReportsListQueryError = unknown;
+
+export function useModerationReportsList<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof moderationReportsList>>,
+          TError,
+          Awaited<ReturnType<typeof moderationReportsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsList<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof moderationReportsList>>,
+          TError,
+          Awaited<ReturnType<typeof moderationReportsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsList<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useModerationReportsList<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getModerationReportsListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getModerationReportsListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getModerationReportsListQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof moderationReportsList>>
+  > = ({ signal }) => moderationReportsList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof moderationReportsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ModerationReportsListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsList>>
+>;
+export type ModerationReportsListSuspenseQueryError = unknown;
+
+export function useModerationReportsListSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsListSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsListSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useModerationReportsListSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsList>>,
+  TError = unknown,
+>(
+  params: ModerationReportsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getModerationReportsListSuspenseQueryOptions(
+    params,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const moderationReportsRetrieve = (id: number, signal?: AbortSignal) => {
+  return customInstance<ModerationReportOutput>({
+    url: `/moderation/reports/${id}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getModerationReportsRetrieveQueryKey = (id: number) => {
+  return [`/moderation/reports/${id}/`] as const;
+};
+
+export const getModerationReportsRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getModerationReportsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof moderationReportsRetrieve>>
+  > = ({ signal }) => moderationReportsRetrieve(id, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ModerationReportsRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsRetrieve>>
+>;
+export type ModerationReportsRetrieveQueryError = unknown;
+
+export function useModerationReportsRetrieve<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof moderationReportsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsRetrieve<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof moderationReportsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsRetrieve<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useModerationReportsRetrieve<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getModerationReportsRetrieveQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getModerationReportsRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getModerationReportsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof moderationReportsRetrieve>>
+  > = ({ signal }) => moderationReportsRetrieve(id, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ModerationReportsRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsRetrieve>>
+>;
+export type ModerationReportsRetrieveSuspenseQueryError = unknown;
+
+export function useModerationReportsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useModerationReportsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useModerationReportsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof moderationReportsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getModerationReportsRetrieveSuspenseQueryOptions(
+    id,
     options
   );
 

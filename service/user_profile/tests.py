@@ -52,6 +52,20 @@ class TestUserProfileRetrieveView:
         assert response.data["name"] == primary_user.profile.name
         assert response.data["picture"] == primary_user.profile.picture
         assert response.data["email"] == primary_user.email
+        assert response.data["is_moderator"] is False
+
+    @pytest.mark.django_db
+    def test_retrieve_user_profile_moderator(
+        self, user_factory, authenticated_client_factory
+    ):
+        user = user_factory(username="moderator")
+        user.profile.is_moderator = True
+        user.profile.save()
+
+        response = authenticated_client_factory(user).get(reverse("user-profile"))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_moderator"] is True
 
     @pytest.mark.django_db
     def test_retrieve_user_profile_unauthenticated(self, unauthenticated_client):
@@ -1149,6 +1163,21 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["picture"] == primary_user.profile.picture
         assert "created_at" in response.data
         assert "email" not in response.data
+
+    @pytest.mark.django_db
+    def test_public_profile_omits_moderator_flag(
+        self, user_factory, authenticated_client
+    ):
+        user = user_factory(username="moderator")
+        user.profile.is_moderator = True
+        user.profile.save()
+
+        response = authenticated_client.get(
+            reverse("public-user-profile", kwargs={"user_id": user.id})
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "is_moderator" not in response.data
 
     @pytest.mark.django_db
     def test_retrieve_public_profile_unauthenticated(

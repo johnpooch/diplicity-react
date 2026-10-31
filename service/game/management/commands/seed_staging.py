@@ -1,4 +1,5 @@
 import random
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
@@ -30,6 +31,8 @@ from notification.models import Notification
 from order.models import Order
 from order.utils import flatten_options
 from phase.models import Phase
+from report.constants import ReportDecision, ReportReason
+from report.models import Report, ReportReview
 from supply_center.models import SupplyCenter
 from user_profile.models import UserProfile
 from variant.models import Variant
@@ -74,6 +77,7 @@ class Command(BaseCommand):
         self.rng = random.Random(0)
         password_hash = make_password(password)
         self.tester = self._user(TESTER_EMAIL, TESTER_NAME, password_hash)
+        UserProfile.objects.filter(user=self.tester).update(is_moderator=True)
         self.players = [
             self._user(f"staging-player-{index}@example.com", name, password_hash)
             for index, name in enumerate(PLAYER_NAMES, start=1)
@@ -116,6 +120,11 @@ class Command(BaseCommand):
             self._seed_open_committed,
             self._seed_open_gunboat,
             self._seed_sandbox,
+            self._seed_reported_abuse,
+            self._seed_reported_decided,
+            self._seed_reported_two_player,
+            self._seed_reported_anonymous,
+            self._seed_reported_in_tester_game,
         ]
         for scenario in scenarios:
             game = scenario()
@@ -318,6 +327,17 @@ class Command(BaseCommand):
         phase.supply_centers.filter(nation=member.nation).update(
             nation=self._member(game, successor).nation
         )
+
+    def _report(self, game, reporter, reported, reason, note, age, decision=None):
+        report = Report.objects.report(
+            self._member(game, reported), reporter, reason, note
+        )
+        Report.objects.filter(pk=report.pk).update(created_at=timezone.now() - age)
+        if decision is not None:
+            ReportReview.objects.create(
+                report=report, decision=decision, reviewed_by=self.tester
+            )
+        return report
 
     def _seed_finished_solo_win(self):
         game = self._game(
@@ -656,3 +676,108 @@ class Command(BaseCommand):
         return Game.objects.create_sandbox(
             self.tester, name="Sandbox: practice game", variant=self.classical
         )
+
+    def _seed_reported_abuse(self):
+        game = self._game(
+            "Reported: abuse in press",
+            creator=self.players[0],
+            players=self.players[:7],
+        )
+        self._start(game)
+        self._report(
+            game,
+            self.players[0],
+            self.players[1],
+            ReportReason.ABUSE_AND_HARASSMENT,
+            "Called me a slur in public press after I took Munich.",
+            timedelta(days=4),
+        )
+        self._report(
+            game,
+            self.players[2],
+            self.players[1],
+            ReportReason.ABUSE_AND_HARASSMENT,
+            "Keeps sending insulting messages in private press.",
+            timedelta(hours=5),
+        )
+        return game
+
+    def _seed_reported_decided(self):
+        game = self._game(
+            "Reported: decided reports",
+            creator=self.players[1],
+            players=self.players[1:8],
+        )
+        self._start(game)
+        self._report(
+            game,
+            self.players[3],
+            self.players[4],
+            ReportReason.SECRET_TEAMING,
+            "Turkey and Russia never touch each other and coordinate every move.",
+            timedelta(days=9),
+            decision=ReportDecision.APPROVED,
+        )
+        self._report(
+            game,
+            self.players[5],
+            self.players[6],
+            ReportReason.OTHER,
+            "Stabbed me after promising an alliance.",
+            timedelta(days=6),
+            decision=ReportDecision.REJECTED,
+        )
+        return game
+
+    def _seed_reported_two_player(self):
+        game = self._game(
+            "Reported: multiple accounts",
+            creator=self.players[6],
+            players=[self.players[6], self.players[7]],
+            variant=self.italy_vs_germany,
+        )
+        self._start(game)
+        self._report(
+            game,
+            self.players[6],
+            self.players[7],
+            ReportReason.MULTIPLE_ACCOUNTS,
+            "Same play style and timing as an account I was banned alongside.",
+            timedelta(days=2),
+        )
+        return game
+
+    def _seed_reported_anonymous(self):
+        game = self._game(
+            "Reported: anonymous game",
+            creator=self.players[2],
+            players=self.players[:7],
+            anonymous=True,
+        )
+        self._start(game)
+        self._report(
+            game,
+            self.players[4],
+            self.players[5],
+            ReportReason.SECRET_TEAMING,
+            "England and France share every order before the deadline.",
+            timedelta(days=1),
+        )
+        return game
+
+    def _seed_reported_in_tester_game(self):
+        game = self._game(
+            "Active: player reported",
+            creator=self.players[3],
+            players=[self.tester, *self.players[:6]],
+        )
+        self._start(game)
+        self._report(
+            game,
+            self.players[3],
+            self.players[0],
+            ReportReason.ABUSE_AND_HARASSMENT,
+            "Threatened to find me outside the game.",
+            timedelta(minutes=30),
+        )
+        return game

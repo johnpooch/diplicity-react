@@ -15,7 +15,14 @@ import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
 import { CodeOfConduct } from "./screens/CodeOfConduct";
-import { Blog, GameDetail, Home, Tutorial, Variants } from "./screens";
+import {
+  Blog,
+  GameDetail,
+  Home,
+  Moderation,
+  Tutorial,
+  Variants,
+} from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { PublicPageLayout } from "./components/PublicPageLayout";
@@ -250,6 +257,22 @@ export const createAuthenticatedRoutes = (
             element: (
               <Suspense fallback={<RouteFallback />}>
                 <Home.PlayerProfileScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: "moderation",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Moderation.ModerationQueue />
+              </Suspense>
+            ),
+          },
+          {
+            path: "moderation/reports/:reportId",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Moderation.ModerationReport />
               </Suspense>
             ),
           },

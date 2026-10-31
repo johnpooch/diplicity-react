@@ -58,6 +58,7 @@ class UserProfile(BaseModel):
         choices=UserKind.KIND_CHOICES,
         default=UserKind.HUMAN,
     )
+    is_moderator = models.BooleanField(default=False, db_default=False)
 
     @property
     def is_bot(self):

@@ -249,6 +249,13 @@ class MemberNationPreference(TypedDict):
 type MemberStatusEnum = Literal['nmr', 'civil_disorder']
 
 
+class ModerationMemberOutput(TypedDict):
+    id: int
+    user_id: int | None
+    name: str | None
+    nation: str | None
+
+
 type MovementFrequencyEnum = Literal['hourly', 'daily', 'every_2_days', 'weekly']
 
 
@@ -362,6 +369,7 @@ class PatchedUserProfile(TypedDict):
     email: NotRequired[str]
     can_create_bot_games: NotRequired[bool]
     commitment: NotRequired[str]
+    is_moderator: NotRequired[bool]
 
 
 class PatchedVariantWrite(TypedDict):
@@ -413,6 +421,9 @@ class ReportReason(TypedDict):
     key: ReasonEnum
     label: str
     description: str
+
+
+type ReportStatusEnum = Literal['pending', 'approved', 'rejected']
 
 
 type ResultEnum = Literal['solo_victory', 'won_by', 'draw', 'abandoned', 'ongoing']
@@ -485,6 +496,7 @@ class UserProfile(TypedDict):
     email: str
     can_create_bot_games: bool
     commitment: str
+    is_moderator: bool
 
 
 class UserProfilePicture(TypedDict):
@@ -735,6 +747,19 @@ class MemberDetail(TypedDict):
     actions: list[MemberAction]
     can_report: bool
     already_reported: bool
+
+
+class ModerationReportOutput(TypedDict):
+    id: int
+    reason: ReasonEnum
+    note: str
+    status: ReportStatusEnum
+    created_at: str
+    game_id: str
+    game_name: str
+    variant_name: str
+    reporter: ModerationMemberOutput
+    reported: ModerationMemberOutput
 
 
 class MyGameState(TypedDict):
