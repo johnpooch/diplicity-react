@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from game.models import Game
-from common.constants import Commitment, CommitmentRequirement, GameStatus
+from common.constants import CommitmentRequirement, GameStatus
 
 create_viewname = "game-create"
 list_viewname = "game-list"
@@ -110,17 +110,6 @@ class TestGameCreateCommitmentRequirement:
         assert response.status_code == status.HTTP_201_CREATED
         game = Game.objects.get(id=response.data["id"])
         assert game.members.filter(user=primary_user).exists()
-
-    @pytest.mark.django_db
-    def test_low_tier_creator_can_create_public_game(
-        self, authenticated_client, primary_user, classical_variant, set_commitment
-    ):
-        set_commitment(primary_user, Commitment.LOW)
-        url = reverse(create_viewname)
-        response = authenticated_client.post(
-            url, create_payload(classical_variant.id), format="json"
-        )
-        assert response.status_code == status.HTTP_201_CREATED
 
     @pytest.mark.django_db
     def test_invalid_value_rejected(self, authenticated_client, classical_variant):

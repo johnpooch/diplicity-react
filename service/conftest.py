@@ -233,22 +233,6 @@ def authenticated_client_factory():
 
 
 @pytest.fixture
-def set_commitment(db):
-    touched = []
-
-    def _set(user, commitment):
-        profile = user.profile
-        touched.append((profile, profile.commitment))
-        profile.commitment = commitment
-        profile.save(update_fields=["commitment"])
-
-    yield _set
-
-    for profile, original in touched:
-        profile.commitment = original
-
-
-@pytest.fixture
 def set_commitment_total(db, classical_variant):
     def _set(user, total):
         delta = total - Member.objects.commitment_totals([user.id]).get(user.id, 0)

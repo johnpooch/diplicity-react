@@ -36,7 +36,6 @@ const buildProfile = (
   createdAt: "2025-01-15T00:00:00Z",
   totalGames: 15,
   activeGames: 3,
-  commitment: "high",
   commitmentTotal: 0,
   commitmentBand: "neutral",
   commitmentSquares: [],

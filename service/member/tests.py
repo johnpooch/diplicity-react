@@ -22,7 +22,6 @@ from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile
 from victory.models import Victory
 from common.constants import (
-    Commitment,
     CommitmentEvent,
     CommitmentRequirement,
     GameStatus,
@@ -1672,22 +1671,6 @@ def test_join_game_commitment_requirement(
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data == {"code": "commitment_too_low"}
         assert not game.members.filter(user=primary_user).exists()
-
-
-@pytest.mark.django_db
-def test_low_tier_player_can_join_an_open_public_game(
-    authenticated_client,
-    primary_user,
-    pending_game_created_by_secondary_user,
-    set_commitment,
-):
-    game = pending_game_created_by_secondary_user
-    set_commitment(primary_user, Commitment.LOW)
-
-    response = authenticated_client.post(reverse(join_viewname, args=[game.id]))
-
-    assert response.status_code == status.HTTP_201_CREATED
-    assert game.members.filter(user=primary_user).exists()
 
 
 class TestBotMemberSerialization:

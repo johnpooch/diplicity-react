@@ -158,20 +158,6 @@ class PressType:
     )
 
 
-class Commitment:
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-    UNDEFINED = "undefined"
-
-    COMMITMENT_CHOICES = (
-        (HIGH, "High"),
-        (MEDIUM, "Medium"),
-        (LOW, "Low"),
-        (UNDEFINED, "New"),
-    )
-
-
 class CommitmentEvent:
     SUBMITTED = "submitted"
     NMR = "nmr"

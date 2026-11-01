@@ -28,7 +28,6 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     picture = serializers.SerializerMethodField()
     email = serializers.CharField(source="user.email", read_only=True)
     can_create_bot_games = serializers.SerializerMethodField()
-    commitment = serializers.CharField(read_only=True)
     is_moderator = serializers.BooleanField(read_only=True)
     can_create_committed_game = serializers.SerializerMethodField()
 
@@ -105,7 +104,6 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     total_games = serializers.IntegerField(read_only=True)
     active_games = serializers.IntegerField(read_only=True)
-    commitment = serializers.CharField(read_only=True)
     commitment_total = serializers.IntegerField(read_only=True)
     commitment_band = serializers.SerializerMethodField()
     commitment_squares = serializers.SerializerMethodField()

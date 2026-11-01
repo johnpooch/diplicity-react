@@ -5,7 +5,7 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils.functional import cached_property
 
-from common.constants import Commitment, UserKind
+from common.constants import UserKind
 from common.models import BaseModel
 from member.models import Member, commitment_points
 
@@ -49,11 +49,6 @@ class UserProfile(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     name = models.CharField(max_length=255)
     picture = models.URLField(null=True, blank=True)
-    commitment = models.CharField(
-        max_length=20,
-        choices=Commitment.COMMITMENT_CHOICES,
-        default=Commitment.UNDEFINED,
-    )
     kind = models.CharField(
         max_length=20,
         choices=UserKind.KIND_CHOICES,

@@ -78,7 +78,6 @@ def _member(index: int, nation: str, is_current_user: bool) -> ApiMember:
         "picture": None,
         "is_current_user": is_current_user,
         "is_bot": is_current_user,
-        "commitment": None,
         "nation": nation,
         "eliminated": False,
         "kicked": False,

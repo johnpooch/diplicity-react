@@ -2659,10 +2659,6 @@ components:
         is_bot:
           type: boolean
           readOnly: true
-        commitment:
-          type: string
-          nullable: true
-          readOnly: true
         nation:
           allOf:
           - $ref: '#/components/schemas/Nation'
@@ -2671,7 +2667,6 @@ components:
           type: boolean
           readOnly: true
       required:
-      - commitment
       - id
       - is_bot
       - is_current_user
@@ -2979,15 +2974,10 @@ components:
         is_bot:
           type: boolean
           readOnly: true
-        commitment:
-          type: string
-          nullable: true
-          readOnly: true
         nation:
           type: string
           nullable: true
       required:
-      - commitment
       - id
       - is_bot
       - is_current_user
@@ -3918,10 +3908,6 @@ components:
         is_bot:
           type: boolean
           readOnly: true
-        commitment:
-          type: string
-          nullable: true
-          readOnly: true
         nation:
           type: string
           readOnly: true
@@ -3977,7 +3963,6 @@ components:
           - $ref: '#/components/schemas/NullEnum'
       required:
       - civil_disorder
-      - commitment
       - commitment_band
       - commitment_total
       - eliminated
@@ -4079,10 +4064,6 @@ components:
         is_bot:
           type: boolean
           readOnly: true
-        commitment:
-          type: string
-          nullable: true
-          readOnly: true
         is_admin:
           type: boolean
           readOnly: true
@@ -4129,7 +4110,6 @@ components:
       - actions
       - already_reported
       - can_report
-      - commitment
       - id
       - is_admin
       - is_bot
@@ -4824,9 +4804,6 @@ components:
         can_create_bot_games:
           type: boolean
           readOnly: true
-        commitment:
-          type: string
-          readOnly: true
         is_moderator:
           type: boolean
           readOnly: true
@@ -5020,9 +4997,6 @@ components:
         active_games:
           type: integer
           readOnly: true
-        commitment:
-          type: string
-          readOnly: true
         commitment_total:
           type: integer
           readOnly: true
@@ -5037,7 +5011,6 @@ components:
           readOnly: true
       required:
       - active_games
-      - commitment
       - commitment_band
       - commitment_squares
       - commitment_total
@@ -5333,9 +5306,6 @@ components:
         can_create_bot_games:
           type: boolean
           readOnly: true
-        commitment:
-          type: string
-          readOnly: true
         is_moderator:
           type: boolean
           readOnly: true
@@ -5345,7 +5315,6 @@ components:
       required:
       - can_create_bot_games
       - can_create_committed_game
-      - commitment
       - email
       - id
       - is_moderator

@@ -75,7 +75,6 @@ const buildSender = (overrides: Partial<ChannelMember> = {}): ChannelMember => (
   picture: null,
   isCurrentUser: false,
   isBot: false,
-  commitment: null,
   nation: null,
   isGameMaster: false,
   ...overrides,
