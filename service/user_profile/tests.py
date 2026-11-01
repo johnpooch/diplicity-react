@@ -1076,6 +1076,51 @@ def _clear_uploaded_picture(client, profile, follow=True):
 class TestUserProfileAdmin:
 
     @pytest.mark.django_db
+    def test_search_by_username(self, admin_client, user_factory):
+        match = user_factory(username="searchtarget", email="a@example.com")
+        other = user_factory(username="unrelated", email="b@example.com")
+
+        response = admin_client.get(
+            reverse("admin:user_profile_userprofile_changelist"),
+            {"q": "searchtarget"},
+        )
+
+        results = list(response.context["cl"].result_list)
+        assert match.profile in results
+        assert other.profile not in results
+
+    @pytest.mark.django_db
+    def test_search_by_email(self, admin_client, user_factory):
+        match = user_factory(username="first", email="findme@example.org")
+        other = user_factory(username="second", email="other@example.com")
+
+        response = admin_client.get(
+            reverse("admin:user_profile_userprofile_changelist"),
+            {"q": "findme@example.org"},
+        )
+
+        results = list(response.context["cl"].result_list)
+        assert match.profile in results
+        assert other.profile not in results
+
+    @pytest.mark.django_db
+    def test_profiles_ordered_by_email(self, admin_client, user_factory):
+        user_factory(username="amy", email="zzz-last@example.com")
+        user_factory(username="zed", email="aaa-first@example.com")
+
+        response = admin_client.get(
+            reverse("admin:user_profile_userprofile_changelist")
+        )
+
+        emails = [
+            profile.user.email for profile in response.context["cl"].result_list
+        ]
+        assert emails == sorted(emails)
+        assert emails.index("aaa-first@example.com") < emails.index(
+            "zzz-last@example.com"
+        )
+
+    @pytest.mark.django_db
     def test_clear_uploaded_picture_falls_back_to_google_url(
         self, admin_client, primary_user, stored_picture
     ):
