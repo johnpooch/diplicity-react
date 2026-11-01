@@ -1104,6 +1104,30 @@ class TestUserProfileAdmin:
         assert other.profile not in results
 
     @pytest.mark.django_db
+    def test_changelist_shows_email(self, admin_client, user_factory):
+        user_factory(username="listed", email="listed-user@example.org")
+
+        response = admin_client.get(
+            reverse("admin:user_profile_userprofile_changelist")
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "listed-user@example.org" in response.content.decode()
+
+    @pytest.mark.django_db
+    def test_change_page_shows_email(self, admin_client, user_factory):
+        user = user_factory(username="detail", email="detail-user@example.org")
+
+        response = admin_client.get(
+            reverse(
+                "admin:user_profile_userprofile_change", args=[user.profile.pk]
+            )
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "detail-user@example.org" in response.content.decode()
+
+    @pytest.mark.django_db
     def test_profiles_ordered_by_email(self, admin_client, user_factory):
         user_factory(username="amy", email="zzz-last@example.com")
         user_factory(username="zed", email="aaa-first@example.com")
