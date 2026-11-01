@@ -8,6 +8,8 @@ from .models import UserProfile, UserProfilePicture
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("name", "is_moderator")
     list_filter = ("is_moderator",)
+    search_fields = ("user__username", "user__email")
+    ordering = ("user__email",)
     actions = ["clear_uploaded_picture"]
 
     def get_readonly_fields(self, request, obj=None):
