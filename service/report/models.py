@@ -4,7 +4,7 @@ from django.db import models
 from common.models import BaseModel
 
 from .constants import ReportDecision, ReportReason, ReportStatus
-from .managers import ReportManager
+from .managers import MarkManager, ReportManager
 
 
 class Report(BaseModel):
@@ -82,6 +82,8 @@ class ReportReview(BaseModel):
 
 
 class Mark(BaseModel):
+    objects = MarkManager()
+
     member = models.ForeignKey(
         "member.Member",
         related_name="marks",

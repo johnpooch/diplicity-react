@@ -5,12 +5,10 @@ from user_profile.checks import IsModeratorCheck
 
 from .checks import (
     HasNotReportedCheck,
-    IsApprovedCheck,
     IsAssignedInGameCheck,
     IsAssigneeCheck,
     IsPendingCheck,
     IsUnassignedCheck,
-    IsUnmarkedCheck,
 )
 
 
@@ -64,10 +62,7 @@ class CanDecidePolicy(Policy):
 
 
 class MarkablePolicy(Policy):
-    checks = [
-        IsApprovedCheck,
-        IsUnmarkedCheck,
-    ]
+    checks = []
 
 
 class CanModerateGamePolicy(Policy):

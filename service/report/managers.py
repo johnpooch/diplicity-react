@@ -9,7 +9,6 @@ from .policies import (
     CanDecidePolicy,
     CanReportPolicy,
     CanUnassignPolicy,
-    MarkablePolicy,
 )
 from .querysets import ReportQuerySet
 
@@ -37,7 +36,9 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
     @command(requires=CanDecidePolicy, locks=["reported"])
     def approve(self, report, actor, note):
         report.decide(ReportDecision.APPROVED, actor, note)
-        self.mark(report)
+        models.Mark.objects.create_idempotent(
+            member=report.reported, reason=report.reason
+        )
         return report
 
     @command(requires=CanDecidePolicy, locks=["reported"])
@@ -45,6 +46,7 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
         report.decide(ReportDecision.REJECTED, actor, note)
         return report
 
-    @command(only_if=MarkablePolicy, locks=["reported"])
-    def mark(self, report):
-        return models.Mark.objects.create(member=report.reported, reason=report.reason)
+
+class MarkManager(Manager):
+    def create_idempotent(self, member, reason):
+        return self.get_or_create(member=member, reason=reason)[0]

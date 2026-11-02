@@ -1407,37 +1407,29 @@ class TestModerationReportDecisionViews:
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
-class TestMarkCommand:
+class TestMarkManager:
     @pytest.mark.django_db
-    def test_skips_pending_report(self, report_factory):
+    def test_create_idempotent_creates_mark(self, report_factory):
         report = report_factory()
 
-        assert Report.objects.mark(report) is None
-        assert not Mark.objects.exists()
-
-    @pytest.mark.django_db
-    def test_skips_rejected_report(self, moderator, report_factory):
-        report = report_factory(decision=ReportDecision.REJECTED, reviewed_by=moderator)
-
-        assert Report.objects.mark(report) is None
-        assert not Mark.objects.exists()
-
-    @pytest.mark.django_db
-    def test_skips_existing_mark(self, moderator, report_factory):
-        report = report_factory(decision=ReportDecision.APPROVED, reviewed_by=moderator)
-        Mark.objects.create(member=report.reported, reason=report.reason)
-
-        assert Report.objects.mark(report) is None
-        assert Mark.objects.count() == 1
-
-    @pytest.mark.django_db
-    def test_marks_approved_report(self, moderator, report_factory):
-        report = report_factory(decision=ReportDecision.APPROVED, reviewed_by=moderator)
-
-        mark = Report.objects.mark(report)
+        mark = Mark.objects.create_idempotent(
+            member=report.reported, reason=report.reason
+        )
 
         assert mark.member == report.reported
         assert mark.reason == report.reason
+
+    @pytest.mark.django_db
+    def test_create_idempotent_returns_existing_mark(self, report_factory):
+        report = report_factory()
+        existing = Mark.objects.create(member=report.reported, reason=report.reason)
+
+        mark = Mark.objects.create_idempotent(
+            member=report.reported, reason=report.reason
+        )
+
+        assert mark == existing
+        assert Mark.objects.count() == 1
 
 
 class TestModerationQueueAssignment:
