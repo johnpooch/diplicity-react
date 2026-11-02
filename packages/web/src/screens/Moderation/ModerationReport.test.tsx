@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
@@ -10,6 +10,8 @@ import { ModerationReport } from "./ModerationReport";
 const retrieveReport = vi.fn();
 const assignReport = vi.fn();
 const unassignReport = vi.fn();
+const approveReport = vi.fn();
+const rejectReport = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
@@ -22,6 +24,14 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
   }),
   useModerationReportsUnassignCreate: () => ({
     mutateAsync: unassignReport,
+    isPending: false,
+  }),
+  useModerationReportsApproveCreate: () => ({
+    mutateAsync: approveReport,
+    isPending: false,
+  }),
+  useModerationReportsRejectCreate: () => ({
+    mutateAsync: rejectReport,
     isPending: false,
   }),
   useReportReasonsListSuspense: () => ({
@@ -78,6 +88,8 @@ describe("ModerationReport", () => {
     retrieveReport.mockReset();
     assignReport.mockReset();
     unassignReport.mockReset();
+    approveReport.mockReset();
+    rejectReport.mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
@@ -113,6 +125,7 @@ describe("ModerationReport", () => {
         review: {
           reviewedBy: { userId: 7, name: "Mia Moderator" },
           note: "Checked the press history.",
+          createdAt: "2026-10-02T12:00:00Z",
         },
       })
     );
@@ -128,7 +141,11 @@ describe("ModerationReport", () => {
     retrieveReport.mockReturnValue(
       report({
         status: "approved",
-        review: { reviewedBy: { userId: 7, name: "Mia Moderator" }, note: "" },
+        review: {
+          reviewedBy: { userId: 7, name: "Mia Moderator" },
+          note: "",
+          createdAt: "2026-10-02T12:00:00Z",
+        },
       })
     );
     renderScreen();
@@ -230,7 +247,11 @@ describe("ModerationReport", () => {
     retrieveReport.mockReturnValue(
       report({
         status: "approved",
-        review: { reviewedBy: { userId: 7, name: "Mia Moderator" }, note: "" },
+        review: {
+          reviewedBy: { userId: 7, name: "Mia Moderator" },
+          note: "",
+          createdAt: "2026-10-02T12:00:00Z",
+        },
         actions: [
           { key: "assign", blockedReason: "already_reviewed" },
           { key: "unassign", blockedReason: "already_reviewed" },
@@ -291,5 +312,136 @@ describe("ModerationReport", () => {
     renderScreen();
 
     expect(screen.queryByRole("link", { name: "View game" })).not.toBeInTheDocument();
+  });
+
+  describe("deciding", () => {
+    const assigned = () =>
+      report({
+        assignedTo: { userId: 300, name: "Mia Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: null },
+          { key: "approve", blockedReason: null },
+          { key: "reject", blockedReason: null },
+        ],
+      });
+
+    it("approves with a note after confirming", async () => {
+      retrieveReport.mockReturnValue(assigned());
+      renderScreen();
+
+      await userEvent.type(
+        screen.getByLabelText("Moderator's note"),
+        "Slurs in global press."
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+      expect(approveReport).not.toHaveBeenCalled();
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByText(
+          "Decisions are final. Bruno Keller gets a mark for Abuse and harassment in this game."
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+
+      expect(approveReport).toHaveBeenCalledWith({
+        id: 5,
+        data: { note: "Slurs in global press." },
+      });
+      expect(rejectReport).not.toHaveBeenCalled();
+    });
+
+    it("rejects without a note after confirming", async () => {
+      retrieveReport.mockReturnValue(assigned());
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Reject" }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByText(
+          "Decisions are final. Nothing is added to Bruno Keller's profile."
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(dialog).getByRole("button", { name: "Reject" }));
+
+      expect(rejectReport).toHaveBeenCalledWith({ id: 5, data: { note: "" } });
+      expect(approveReport).not.toHaveBeenCalled();
+    });
+
+    it("saves nothing when the moderator cancels", async () => {
+      retrieveReport.mockReturnValue(assigned());
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+      await userEvent.click(
+        within(await screen.findByRole("alertdialog")).getByRole("button", {
+          name: "Cancel",
+        })
+      );
+
+      expect(approveReport).not.toHaveBeenCalled();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+    it("shows an error when deciding fails", async () => {
+      approveReport.mockRejectedValue(new Error("already_reviewed"));
+      retrieveReport.mockReturnValue(assigned());
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+      await userEvent.click(
+        within(await screen.findByRole("alertdialog")).getByRole("button", {
+          name: "Approve",
+        })
+      );
+
+      expect(toast.error).toHaveBeenCalledWith("Failed to approve report");
+    });
+
+    it("offers no decision to a moderator who isn't assigned", () => {
+      retrieveReport.mockReturnValue(
+        report({
+          assignedTo: { userId: 200, name: "Sam Moderator" },
+          actions: [
+            { key: "assign", blockedReason: "already_assigned" },
+            { key: "unassign", blockedReason: "not_assignee" },
+            { key: "approve", blockedReason: "not_assignee" },
+            { key: "reject", blockedReason: "not_assignee" },
+          ],
+        })
+      );
+      renderScreen();
+
+      expect(screen.queryByLabelText("Moderator's note")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    });
+
+    it("shows who decided a report and when", () => {
+      retrieveReport.mockReturnValue(
+        report({
+          status: "approved",
+          review: {
+            reviewedBy: { userId: 300, name: "Mia Moderator" },
+            note: "",
+            createdAt: "2026-10-02T12:00:00Z",
+          },
+          actions: [
+            { key: "assign", blockedReason: "already_reviewed" },
+            { key: "unassign", blockedReason: "already_reviewed" },
+            { key: "approve", blockedReason: "already_reviewed" },
+            { key: "reject", blockedReason: "already_reviewed" },
+          ],
+        })
+      );
+      renderScreen();
+
+      expect(screen.getByText("Approved by")).toBeInTheDocument();
+      expect(screen.getByText("Decided")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    });
   });
 });

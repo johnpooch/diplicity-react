@@ -25,6 +25,7 @@ import { useRequiredParams } from "@/hooks";
 import { formatDateTime } from "@/util";
 import { GameDetailAppBar } from "../GameDetail/AppBar";
 import { assignmentLabel } from "./assignment";
+import { ReportDecision } from "./ReportDecision";
 
 const STATUS_LABELS = {
   pending: "Pending",
@@ -67,14 +68,15 @@ const ReportAssignment: React.FC<ReportAssignmentProps> = ({ report }) => {
   const unassignMutation = useModerationReportsUnassignCreate();
   const label = assignmentLabel(report);
   const available = report.actions.filter(
-    action => action.blockedReason === null
+    (action): action is typeof action & { key: keyof typeof ACTIONS } =>
+      action.key in ACTIONS && action.blockedReason === null
   );
 
   if (label === null && available.length === 0) {
     return null;
   }
 
-  const handleAction = async (key: ModerationReportActionKeyEnum) => {
+  const handleAction = async (key: keyof typeof ACTIONS) => {
     const mutation =
       key === ModerationReportActionKeyEnum.assign
         ? assignMutation
@@ -124,9 +126,11 @@ const ModerationReport: React.FC = () => {
   );
   const { data: reasons } = useReportReasonsListSuspense();
 
-  const values = [
+  const reasonLabel =
     reasons.find(reason => reason.key === report.reason)?.label ??
-      report.reason,
+    report.reason;
+  const values = [
+    reasonLabel,
     STATUS_LABELS[report.status],
     formatDateTime(report.createdAt),
     `${report.gameName} · ${report.variantName}`,
@@ -139,6 +143,7 @@ const ModerationReport: React.FC = () => {
       `${STATUS_LABELS[report.status]} by`,
       report.review.reviewedBy.name,
     ]);
+    rows.push(["Decided", formatDateTime(report.review.createdAt)]);
   }
 
   return (
@@ -156,6 +161,11 @@ const ModerationReport: React.FC = () => {
         <h2 className="text-sm font-medium">Reporter's note</h2>
         <p className="whitespace-pre-wrap text-sm">{report.note}</p>
       </div>
+      <ReportDecision
+        report={report}
+        reportedName={report.reported.name ?? "Deleted account"}
+        reasonLabel={reasonLabel}
+      />
       {report.review?.note && (
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium">Moderator's note</h2>

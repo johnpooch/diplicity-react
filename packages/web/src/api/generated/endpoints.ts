@@ -982,6 +982,8 @@ export interface ModerationMemberOutput {
 /**
  * * `assign` - assign
  * `unassign` - unassign
+ * `approve` - approve
+ * `reject` - reject
  */
 export type ModerationReportActionKeyEnum =
   (typeof ModerationReportActionKeyEnum)[keyof typeof ModerationReportActionKeyEnum];
@@ -989,6 +991,8 @@ export type ModerationReportActionKeyEnum =
 export const ModerationReportActionKeyEnum = {
   assign: "assign",
   unassign: "unassign",
+  approve: "approve",
+  reject: "reject",
 } as const;
 
 /**
@@ -1052,6 +1056,7 @@ export interface ModerationReviewOutput {
   readonly reviewedBy: ModerationReviewerOutput;
   /** @maxLength 1000 */
   readonly note: string;
+  readonly createdAt: string;
 }
 
 export interface ModerationReportOutput {
@@ -1429,6 +1434,11 @@ export interface Register {
   /** @minLength 8 */
   password: string;
   displayName: string;
+}
+
+export interface ReportDecisionInput {
+  /** @maxLength 1000 */
+  note?: string;
 }
 
 export interface ReportMemberInput {
@@ -12418,6 +12428,88 @@ export function useModerationReportsRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const moderationReportsApproveCreate = (
+  id: number,
+  reportDecisionInput: ReportDecisionInput,
+  signal?: AbortSignal
+) => {
+  return customInstance<ModerationReportOutput>({
+    url: `/moderation/reports/${id}/approve/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: reportDecisionInput,
+    signal,
+  });
+};
+
+export const getModerationReportsApproveCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
+    TError,
+    { id: number; data: ReportDecisionInput },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
+  TError,
+  { id: number; data: ReportDecisionInput },
+  TContext
+> => {
+  const mutationKey = ["moderationReportsApproveCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
+    { id: number; data: ReportDecisionInput }
+  > = props => {
+    const { id, data } = props ?? {};
+
+    return moderationReportsApproveCreate(id, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ModerationReportsApproveCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsApproveCreate>>
+>;
+export type ModerationReportsApproveCreateMutationBody = ReportDecisionInput;
+export type ModerationReportsApproveCreateMutationError = unknown;
+
+export const useModerationReportsApproveCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
+      TError,
+      { id: number; data: ReportDecisionInput },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
+  TError,
+  { id: number; data: ReportDecisionInput },
+  TContext
+> => {
+  return useMutation(
+    getModerationReportsApproveCreateMutationOptions(options),
+    queryClient
+  );
+};
+
 export const moderationReportsAssignCreate = (
   id: number,
   signal?: AbortSignal
@@ -12493,6 +12585,88 @@ export const useModerationReportsAssignCreate = <
 > => {
   return useMutation(
     getModerationReportsAssignCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const moderationReportsRejectCreate = (
+  id: number,
+  reportDecisionInput: ReportDecisionInput,
+  signal?: AbortSignal
+) => {
+  return customInstance<ModerationReportOutput>({
+    url: `/moderation/reports/${id}/reject/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: reportDecisionInput,
+    signal,
+  });
+};
+
+export const getModerationReportsRejectCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderationReportsRejectCreate>>,
+    TError,
+    { id: number; data: ReportDecisionInput },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moderationReportsRejectCreate>>,
+  TError,
+  { id: number; data: ReportDecisionInput },
+  TContext
+> => {
+  const mutationKey = ["moderationReportsRejectCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moderationReportsRejectCreate>>,
+    { id: number; data: ReportDecisionInput }
+  > = props => {
+    const { id, data } = props ?? {};
+
+    return moderationReportsRejectCreate(id, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ModerationReportsRejectCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsRejectCreate>>
+>;
+export type ModerationReportsRejectCreateMutationBody = ReportDecisionInput;
+export type ModerationReportsRejectCreateMutationError = unknown;
+
+export const useModerationReportsRejectCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof moderationReportsRejectCreate>>,
+      TError,
+      { id: number; data: ReportDecisionInput },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof moderationReportsRejectCreate>>,
+  TError,
+  { id: number; data: ReportDecisionInput },
+  TContext
+> => {
+  return useMutation(
+    getModerationReportsRejectCreateMutationOptions(options),
     queryClient
   );
 };

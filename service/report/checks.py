@@ -1,6 +1,6 @@
 from common.checks import Check
 
-from .constants import ReportStatus
+from .constants import ReportDecision, ReportStatus
 
 
 class HasNotReportedCheck(Check):
@@ -42,3 +42,17 @@ class IsAssignedInGameCheck(Check):
                 reports_received__review__isnull=True,
             ).exists()
         )
+
+
+class IsApprovedCheck(Check):
+    reason = "not_approved"
+
+    def check(self, report, actor):
+        return report.status == ReportDecision.APPROVED
+
+
+class IsUnmarkedCheck(Check):
+    reason = "already_marked"
+
+    def check(self, report, actor):
+        return not report.reported.marks.filter(reason=report.reason).exists()

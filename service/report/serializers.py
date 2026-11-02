@@ -21,6 +21,10 @@ class ReportMemberInputSerializer(serializers.Serializer):
     note = serializers.CharField(max_length=1000)
 
 
+class ReportDecisionInputSerializer(serializers.Serializer):
+    note = serializers.CharField(max_length=1000, allow_blank=True, default="")
+
+
 class ReportOutputSerializer(OutputSerializer):
     status = serializers.CharField()
 
@@ -49,7 +53,7 @@ class ModerationReviewOutputSerializer(OutputSerializer):
 
     class Meta:
         model = ReportReview
-        fields = ("reviewed_by", "note")
+        fields = ("reviewed_by", "note", "created_at")
 
 
 class ModerationReportOutputSerializer(OutputSerializer):
@@ -61,7 +65,12 @@ class ModerationReportOutputSerializer(OutputSerializer):
     reported = ModerationMemberOutputSerializer()
     review = ModerationReviewOutputSerializer(allow_null=True)
     assigned_to = ModerationReviewerOutputSerializer(allow_null=True)
-    actions = Actions(assign=Report.objects.assign, unassign=Report.objects.unassign)
+    actions = Actions(
+        assign=Report.objects.assign,
+        unassign=Report.objects.unassign,
+        approve=Report.objects.approve,
+        reject=Report.objects.reject,
+    )
     can_view_game = serializers.SerializerMethodField()
 
     class Meta:
