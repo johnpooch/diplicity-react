@@ -33,4 +33,14 @@ urlpatterns = [
         views.ModerationReportUnassignView.as_view(),
         name="moderation-report-unassign",
     ),
+    path(
+        "moderation/reports/<int:pk>/approve/",
+        views.ModerationReportApproveView.as_view(),
+        name="moderation-report-approve",
+    ),
+    path(
+        "moderation/reports/<int:pk>/reject/",
+        views.ModerationReportRejectView.as_view(),
+        name="moderation-report-reject",
+    ),
 ]

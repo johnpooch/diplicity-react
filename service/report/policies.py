@@ -52,6 +52,19 @@ class CanViewReportedGamePolicy(Policy):
     ]
 
 
+class CanDecidePolicy(Policy):
+    checks = [
+        ModeratorPolicy,
+        IsPendingCheck,
+        IsAssigneeCheck,
+        IsNotGameMemberCheck,
+    ]
+
+
+class MarkablePolicy(Policy):
+    checks = []
+
+
 class CanModerateGamePolicy(Policy):
     checks = [
         ModeratorPolicy,

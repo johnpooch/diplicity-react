@@ -77,6 +77,13 @@ const ReportRow: React.FC<ReportRowProps> = ({ report, reasonLabel }) => {
           {assignment && (
             <span className="text-sm text-muted-foreground">{assignment}</span>
           )}
+          {report.review && (
+            <span className="text-sm text-muted-foreground">
+              {statuses.find(status => status.key === report.status)?.label} by{" "}
+              {report.review.reviewedBy.name} ·{" "}
+              {formatTimeAgo(report.review.createdAt)}
+            </span>
+          )}
         </div>
         <ChevronRight className="size-4 text-muted-foreground" />
       </Link>

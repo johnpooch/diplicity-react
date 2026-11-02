@@ -1,0 +1,198 @@
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ModerationReportActionKeyEnum,
+  getModerationReportsListQueryKey,
+  getModerationReportsRetrieveQueryKey,
+  useModerationReportsApproveCreate,
+  useModerationReportsRejectCreate,
+} from "@/api/generated/endpoints";
+import type { ModerationReportOutput } from "@/api/generated/endpoints";
+
+const NOTE_MAX_LENGTH = 1000;
+
+const decisionSchema = z.object({
+  note: z
+    .string()
+    .trim()
+    .max(
+      NOTE_MAX_LENGTH,
+      `Notes cannot be longer than ${NOTE_MAX_LENGTH} characters.`
+    ),
+});
+
+type DecisionFormValues = z.infer<typeof decisionSchema>;
+
+type Decision =
+  | typeof ModerationReportActionKeyEnum.approve
+  | typeof ModerationReportActionKeyEnum.reject;
+
+interface ReportDecisionProps {
+  report: ModerationReportOutput;
+  reportedName: string;
+  reasonLabel: string;
+}
+
+const ReportDecision: React.FC<ReportDecisionProps> = ({
+  report,
+  reportedName,
+  reasonLabel,
+}) => {
+  const queryClient = useQueryClient();
+  const approveMutation = useModerationReportsApproveCreate();
+  const rejectMutation = useModerationReportsRejectCreate();
+  const [pending, setPending] = useState<Decision | null>(null);
+
+  const form = useForm<DecisionFormValues>({
+    resolver: zodResolver(decisionSchema),
+    defaultValues: { note: "" },
+  });
+
+  const decisions = {
+    [ModerationReportActionKeyEnum.approve]: {
+      label: "Approve",
+      title: "Approve this report?",
+      description: `Decisions are final. ${reportedName} gets a mark for ${reasonLabel} in this game.`,
+      failure: "Failed to approve report",
+      mutation: approveMutation,
+    },
+    [ModerationReportActionKeyEnum.reject]: {
+      label: "Reject",
+      title: "Reject this report?",
+      description: `Decisions are final. Nothing is added to ${reportedName}'s profile.`,
+      failure: "Failed to reject report",
+      mutation: rejectMutation,
+    },
+  };
+
+  const available = report.actions.some(
+    action => action.key in decisions && action.blockedReason === null
+  );
+
+  if (!available) {
+    return null;
+  }
+
+  const handleDecide = async (
+    decision: Decision,
+    values: DecisionFormValues
+  ) => {
+    try {
+      await decisions[decision].mutation.mutateAsync({
+        id: report.id,
+        data: values,
+      });
+    } catch {
+      toast.error(decisions[decision].failure);
+    }
+    queryClient.invalidateQueries({
+      queryKey: getModerationReportsListQueryKey(),
+    });
+    queryClient.invalidateQueries({
+      queryKey: getModerationReportsRetrieveQueryKey(report.id),
+    });
+  };
+
+  const handleConfirm = () => {
+    const decision = pending;
+    if (decision === null) return;
+    form.handleSubmit(values => handleDecide(decision, values))();
+  };
+
+  const isSubmitting = approveMutation.isPending || rejectMutation.isPending;
+  const confirmation = pending ? decisions[pending] : null;
+
+  return (
+    <Form {...form}>
+      <div className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="note"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Moderator's note</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Why did you decide this way? (optional)"
+                  maxLength={NOTE_MAX_LENGTH}
+                  disabled={isSubmitting}
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>Only moderators see this note.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={form.handleSubmit(() =>
+              setPending(ModerationReportActionKeyEnum.reject)
+            )}
+          >
+            Reject
+          </Button>
+          <Button
+            type="button"
+            disabled={isSubmitting}
+            onClick={form.handleSubmit(() =>
+              setPending(ModerationReportActionKeyEnum.approve)
+            )}
+          >
+            Approve
+          </Button>
+        </div>
+      </div>
+      <AlertDialog
+        open={confirmation !== null}
+        onOpenChange={open => !open && setPending(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmation?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmation?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm}>
+              {confirmation?.label}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Form>
+  );
+};
+
+export { ReportDecision };

@@ -261,7 +261,7 @@ type ModerationReportActionBlockedReasonEnum = Literal[
 ]
 
 
-type ModerationReportActionKeyEnum = Literal['assign', 'unassign']
+type ModerationReportActionKeyEnum = Literal['assign', 'unassign', 'approve', 'reject']
 
 
 class ModerationReviewerOutput(TypedDict):
@@ -414,6 +414,10 @@ class Register(TypedDict):
     email: str
     password: str
     display_name: str
+
+
+class ReportDecisionInput(TypedDict):
+    note: NotRequired[str]
 
 
 class ReportMemberInput(TypedDict):
@@ -767,6 +771,7 @@ class ModerationReportAction(TypedDict):
 class ModerationReviewOutput(TypedDict):
     reviewed_by: ModerationReviewerOutput
     note: str
+    created_at: str
 
 
 class MyGameState(TypedDict):

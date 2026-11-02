@@ -287,4 +287,24 @@ describe("ModerationQueue", () => {
 
     expect(screen.queryByText(/Assigned to/)).not.toBeInTheDocument();
   });
+
+  it("shows who decided a report and when", () => {
+    listReports.mockReturnValue([
+      report({
+        status: "rejected",
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        review: {
+          reviewedBy: { userId: 300, name: "Mia Moderator" },
+          note: "",
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        },
+      }),
+    ]);
+    renderScreen("/moderation?status=rejected");
+
+    const row = within(screen.getByRole("list")).getByRole("link");
+    expect(
+      within(row).getByText(/Rejected by Mia Moderator · 2 hours ago/)
+    ).toBeInTheDocument();
+  });
 });

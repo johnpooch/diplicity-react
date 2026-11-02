@@ -4,7 +4,7 @@ from django.db import models
 from common.models import BaseModel
 
 from .constants import ReportDecision, ReportReason, ReportStatus
-from .managers import ReportManager
+from .managers import MarkManager, ReportManager
 
 
 class Report(BaseModel):
@@ -60,6 +60,11 @@ class Report(BaseModel):
         self.assigned_to = None
         self.save(update_fields=["assigned_to", "updated_at"])
 
+    def decide(self, decision, user, note):
+        self.review = ReportReview.objects.create(
+            report=self, decision=decision, reviewed_by=user, note=note
+        )
+
 
 class ReportReview(BaseModel):
     report = models.OneToOneField(
@@ -74,3 +79,22 @@ class ReportReview(BaseModel):
         on_delete=models.CASCADE,
     )
     note = models.CharField(max_length=1000, db_default="")
+
+
+class Mark(BaseModel):
+    objects = MarkManager()
+
+    member = models.ForeignKey(
+        "member.Member",
+        related_name="marks",
+        on_delete=models.CASCADE,
+    )
+    reason = models.CharField(max_length=32, choices=ReportReason.REASON_CHOICES)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["member", "reason"],
+                name="mark_unique_per_member_per_reason",
+            ),
+        ]

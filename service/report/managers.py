@@ -2,7 +2,14 @@ from django.db.models import Manager
 
 from common.commands import command
 
-from .policies import CanAssignPolicy, CanReportPolicy, CanUnassignPolicy
+from . import models
+from .constants import ReportDecision
+from .policies import (
+    CanAssignPolicy,
+    CanDecidePolicy,
+    CanReportPolicy,
+    CanUnassignPolicy,
+)
 from .querysets import ReportQuerySet
 
 
@@ -25,3 +32,21 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
     def unassign(self, report, actor):
         report.unassign()
         return report
+
+    @command(requires=CanDecidePolicy, locks=["reported"])
+    def approve(self, report, actor, note):
+        report.decide(ReportDecision.APPROVED, actor, note)
+        models.Mark.objects.create_idempotent(
+            member=report.reported, reason=report.reason
+        )
+        return report
+
+    @command(requires=CanDecidePolicy, locks=["reported"])
+    def reject(self, report, actor, note):
+        report.decide(ReportDecision.REJECTED, actor, note)
+        return report
+
+
+class MarkManager(Manager):
+    def create_idempotent(self, member, reason):
+        return self.get_or_create(member=member, reason=reason)[0]
