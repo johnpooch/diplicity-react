@@ -89,8 +89,11 @@ axiosInstance.interceptors.response.use(
         );
 
         if (refreshResult.data?.access) {
-          const { access } = refreshResult.data;
-          tokenStorage.updateAccessToken(access);
+          const { access, refresh } = refreshResult.data;
+          tokenStorage.updateRefreshedTokens({
+            accessToken: access,
+            refreshToken: refresh,
+          });
 
           processQueue(null);
           isRefreshing = false;
