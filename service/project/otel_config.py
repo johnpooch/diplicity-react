@@ -6,7 +6,6 @@ from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, DEPLOYMENT_ENVIRONMENT
 from opentelemetry.instrumentation.django import DjangoInstrumentor
-from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 TRACE_SAMPLE_RATE = 10
@@ -78,8 +77,6 @@ def configure_opentelemetry():
     trace.set_tracer_provider(tracer_provider)
 
     DjangoInstrumentor().instrument(request_hook=client_version_request_hook)
-
-    PsycopgInstrumentor().instrument(enable_commenter=True)
 
     RequestsInstrumentor().instrument()
 

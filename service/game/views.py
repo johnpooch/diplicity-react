@@ -4,7 +4,6 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from opentelemetry import trace
 
 from common.constants import GameStatus
 from .models import Game
@@ -34,8 +33,6 @@ from common.permissions import IsActiveGame, IsGamePlayer, IsGameManager, CanDel
 from common.pagination import StandardPageNumberPagination
 from emit import emit
 from .filters import GameFilter
-
-tracer = trace.get_tracer(__name__)
 
 
 class GameRetrieveView(PrecomputedConditionalGetMixin, generics.RetrieveAPIView):
