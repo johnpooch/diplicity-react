@@ -1445,47 +1445,6 @@ def game_with_options(active_game, sample_options):
     return game
 
 
-@pytest.fixture
-def adjustment_game_with_one_build(
-    active_game_with_phase_state,
-    classical_england_nation,
-    classical_london_province,
-    classical_liverpool_province,
-    classical_wales_province,
-):
-    game = active_game_with_phase_state
-    phase = game.current_phase
-    phase.type = PhaseType.ADJUSTMENT
-    phase.season = "Winter"
-    phase.options = {
-        "England": {
-            province_id: {
-                "Next": {
-                    "Build": {
-                        "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
-                        "Type": "OrderType",
-                    },
-                },
-                "Type": "Province",
-            }
-            for province_id in ["lon", "lvp"]
-        },
-    }
-    phase.save()
-    phase.supply_centers.create(
-        nation=classical_england_nation, province=classical_london_province
-    )
-    phase.supply_centers.create(
-        nation=classical_england_nation, province=classical_liverpool_province
-    )
-    phase.units.create(
-        type=UnitType.FLEET,
-        nation=classical_england_nation,
-        province=classical_wales_province,
-    )
-    return game
-
-
 # ---------------------------------------------------------------------------
 # Order scenario fixtures
 # ---------------------------------------------------------------------------

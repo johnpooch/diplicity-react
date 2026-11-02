@@ -27,12 +27,13 @@ import {
   useGameOrdersDeleteDestroy,
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
-  getGameOptionsRetrieveQueryKey,
   useGameOptionsRetrieve,
+  useGamePhaseStatesList,
   type Order,
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
 import { canEnterOrdersForPhase } from "../utils/orderEntry";
+import { filterOrderableOptions } from "../utils/orderableOptions";
 
 function useBanner(duration = 3000) {
   const [message, setMessage] = useState<string | null>(null);
@@ -97,6 +98,9 @@ const GameMap: React.FC = () => {
   const { data: optionsData } = useGameOptionsRetrieve(gameId, {
     query: { enabled: canEnterOrders },
   });
+  const { data: phaseStates } = useGamePhaseStatesList(gameId, {
+    query: { enabled: canEnterOrders },
+  });
 
   const publishedVariant = variants?.find((v) => v.id === game?.variantId);
   const { data: fetchedVariant } = useVariantsRetrieve(
@@ -116,7 +120,13 @@ const GameMap: React.FC = () => {
   const createOrderMutation = useGameOrdersCreate();
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
 
-  const orderOptions = canEnterOrders ? (optionsData?.orders ?? []) : [];
+  const orderOptions = useMemo(
+    () =>
+      canEnterOrders
+        ? filterOrderableOptions(optionsData?.orders ?? [], phaseStates ?? [])
+        : [],
+    [canEnterOrders, optionsData?.orders, phaseStates]
+  );
   const wizard = useOrderWizard(orderOptions, optionsData?.fieldOrder ?? {});
 
   const variant = publishedVariant ?? fetchedVariant;
@@ -175,9 +185,6 @@ const GameMap: React.FC = () => {
         queryClient.invalidateQueries({
           queryKey: getGamePhaseStatesListQueryKey(gameId),
         });
-        queryClient.invalidateQueries({
-          queryKey: getGameOptionsRetrieveQueryKey(gameId),
-        });
         setPendingOrder(null);
         toast.success(order.title ?? "Order created");
         wizard.reset();
@@ -218,9 +225,6 @@ const GameMap: React.FC = () => {
       );
       queryClient.invalidateQueries({
         queryKey: getGamePhaseStatesListQueryKey(gameId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: getGameOptionsRetrieveQueryKey(gameId),
       });
     } catch {
       toast.error("Failed to clear order");
