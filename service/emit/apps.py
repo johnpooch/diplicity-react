@@ -7,4 +7,5 @@ class EmitConfig(AppConfig):
     def ready(self):
         import agent.registry
         import channel.registry
+        import discord_service.registry
         import notification.registry
