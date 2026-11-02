@@ -979,6 +979,7 @@ class ModerationReportOutput(TypedDict):
     review: ModerationReviewOutput | None
     assigned_to: ModerationReviewerOutput | None
     actions: list[ModerationReportAction]
+    can_view_game: bool
 
 
 class MyGame(TypedDict):

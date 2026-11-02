@@ -9,6 +9,7 @@ from common.permissions import (
     IsNotSandboxGame,
     IsNotNoPressActiveGame,
 )
+from report.policies import CanModerateGamePolicy
 
 from .models import Channel, ChannelMember, ChannelMessage
 from .permissions import CanCreateChannel, CanMuteChannel, CanRenameChannel
@@ -31,6 +32,16 @@ from common.views import (
 )
 
 
+class ReadableChannelsMixin:
+    def get_readable_channels(self):
+        game = self.get_game()
+        if CanModerateGamePolicy.decide(game, self.request.user):
+            return Channel.objects.for_game(game)
+        return Channel.objects.accessible_to_member(
+            self.get_current_game_member(), game
+        )
+
+
 class ChannelCreateView(
     SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView
 ):
@@ -40,6 +51,7 @@ class ChannelCreateView(
 
 class ChannelRetrieveUpdateView(
     ConditionalGetMixin,
+    ReadableChannelsMixin,
     SelectedGameMixin,
     CurrentGameMemberMixin,
     generics.RetrieveUpdateAPIView,
@@ -63,7 +75,7 @@ class ChannelRetrieveUpdateView(
         user = self.request.user
         member = self.get_current_game_member()
         return (
-            Channel.objects.accessible_to_member(member, game)
+            self.get_readable_channels()
             .with_unread_counts(user)
             .with_mute_state(user)
             .with_requester_membership(member)
@@ -86,7 +98,10 @@ class ChannelRetrieveUpdateView(
 
 @extend_schema(parameters=[ChannelMessagePageQuerySerializer])
 class ChannelMessageListView(
-    SelectedGameMixin, CurrentGameMemberMixin, generics.RetrieveAPIView
+    ReadableChannelsMixin,
+    SelectedGameMixin,
+    CurrentGameMemberMixin,
+    generics.RetrieveAPIView,
 ):
     """List a page of a channel's messages, oldest to newest, bounded by message ID with `before` or `after`."""
 
@@ -95,10 +110,7 @@ class ChannelMessageListView(
 
     def get_object(self):
         channel = get_object_or_404(
-            Channel.objects.accessible_to_member(
-                self.get_current_game_member(), self.get_game()
-            ),
-            id=self.kwargs["channel_id"],
+            self.get_readable_channels(), id=self.kwargs["channel_id"]
         )
         query = ChannelMessagePageQuerySerializer(data=self.request.query_params)
         query.is_valid(raise_exception=True)
@@ -164,7 +176,11 @@ class ChannelMuteView(
 
 
 class ChannelPreviewListView(
-    ConditionalGetMixin, SelectedGameMixin, CurrentGameMemberMixin, generics.ListAPIView
+    ConditionalGetMixin,
+    ReadableChannelsMixin,
+    SelectedGameMixin,
+    CurrentGameMemberMixin,
+    generics.ListAPIView,
 ):
     """List the channels the requester can read, each with only its latest message."""
 
@@ -174,9 +190,7 @@ class ChannelPreviewListView(
     def get_queryset(self):
         user = self.request.user
         channels = list(
-            Channel.objects.accessible_to_member(
-                self.get_current_game_member(), self.get_game()
-            )
+            self.get_readable_channels()
             .with_unread_counts(user)
             .with_mute_state(user)
             .with_latest_message_id()

@@ -12,6 +12,7 @@ from common.constants import (
 )
 from emit import emit
 from report.checks import HasNotReportedCheck
+from report.policies import CanModerateGamePolicy
 from user_profile.models import UserProfile
 
 from .models import Member
@@ -46,7 +47,18 @@ class BaseMemberSerializer(serializers.Serializer):
             return False
         if self._is_bot(obj):
             return False
-        return not self._is_current_user(obj)
+        return not self._is_current_user(obj) and not self._is_moderating(game)
+
+    def _is_moderating(self, game):
+        request = self.context.get("request")
+        if not request:
+            return False
+        moderated = self.context.setdefault("moderated_game_ids", {})
+        if game.id not in moderated:
+            moderated[game.id] = CanModerateGamePolicy.decide(
+                game, request.user
+            ).allowed
+        return moderated[game.id]
 
     def _get_game(self, obj):
         if "game" in self.context:

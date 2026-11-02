@@ -1,18 +1,22 @@
 from datetime import timedelta
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
+from channel.models import Channel, ChannelMessage
 from common.actors import SYSTEM
-from common.constants import GameStatus, MemberKind
+from common.constants import GameStatus, MemberKind, OrderType
 from common.policies import Refused
+from order.models import Order
 from report.constants import ReportDecision, ReportReason, ReportStatus
+from report.checks import IsAssignedInGameCheck
 from report.models import Report, ReportReview
-from report.policies import ModeratorPolicy
+from report.policies import CanModerateGamePolicy, ModeratorPolicy
 
 LIST_URL = reverse("moderation-report-list")
 
@@ -669,6 +673,7 @@ class TestModerationReportListView:
                     {"key": "assign", "blocked_reason": None},
                     {"key": "unassign", "blocked_reason": "not_assignee"},
                 ],
+                "can_view_game": False,
             }
         ]
 
@@ -1166,3 +1171,415 @@ class TestModerationQueueAssignment:
             response = moderator_client.get(LIST_URL, {"status": "pending"})
 
         assert len(response.data) == 5
+
+
+@pytest.fixture
+def moderated_game(
+    game_factory,
+    phase_factory,
+    member_factory,
+    report_factory,
+    moderator,
+    classical_variant,
+    classical_london_province,
+):
+    game = game_factory(variant=classical_variant, anonymous=True)
+    phase = phase_factory(game=game)
+    report = report_factory(game=game)
+    Report.objects.filter(pk=report.pk).update(assigned_to=moderator)
+    bystander = member_factory(game=game)
+    private_channel = Channel.objects.create(
+        game=game, name="Private Channel", private=True
+    )
+    private_channel.members.set([report.reporter, report.reported])
+    ChannelMessage.objects.create(
+        channel=private_channel, sender=report.reported, body="Secret plan"
+    )
+    public_channel = Channel.objects.create(
+        game=game, name="Public Press", private=False
+    )
+    phase_state = phase.phase_states.create(member=report.reported)
+    Order.objects.create(
+        phase_state=phase_state,
+        order_type=OrderType.HOLD,
+        source=classical_london_province,
+    )
+    report.refresh_from_db()
+    report.bystander = bystander
+    report.private_channel = private_channel
+    report.public_channel = public_channel
+    report.phase = phase
+    return report
+
+
+@pytest.fixture
+def other_moderator_client(user_factory, authenticated_client_factory):
+    other = user_factory(username="other", name="Sam Moderator")
+    other.profile.is_moderator = True
+    other.profile.save()
+    return authenticated_client_factory(other)
+
+
+def _channel_ids(client, report):
+    response = client.get(reverse("channel-preview-list", args=[report.game.id]))
+    return {channel["id"] for channel in response.data}
+
+
+def _member_names(client, game):
+    response = client.get(reverse("game-retrieve", args=[game.id]))
+    return sorted(member["name"] for member in response.data["members"])
+
+
+def _messages_url(channel):
+    return reverse("channel-message-list", args=[channel.game_id, channel.id])
+
+
+class TestCanModerateGamePolicy:
+    @pytest.mark.django_db
+    def test_assignee_of_pending_report_allowed(self, moderated_game, moderator):
+        assert CanModerateGamePolicy.decide(moderated_game.game, moderator)
+
+    @pytest.mark.django_db
+    def test_moderator_without_report_in_game_refused(
+        self, moderated_game, user_factory
+    ):
+        other = user_factory(username="other", name="Sam Moderator")
+        other.profile.is_moderator = True
+        other.profile.save()
+
+        decision = CanModerateGamePolicy.decide(moderated_game.game, other)
+
+        assert decision.reason == "not_assignee"
+
+    @pytest.mark.django_db
+    def test_unassigned_report_refused(self, moderated_game, moderator):
+        moderated_game.unassign()
+
+        decision = CanModerateGamePolicy.decide(moderated_game.game, moderator)
+
+        assert decision.reason == "not_assignee"
+
+    @pytest.mark.django_db
+    def test_reviewed_report_refused(self, moderated_game, moderator):
+        ReportReview.objects.create(
+            report=moderated_game,
+            decision=ReportDecision.REJECTED,
+            reviewed_by=moderator,
+        )
+
+        decision = CanModerateGamePolicy.decide(moderated_game.game, moderator)
+
+        assert decision.reason == "not_assignee"
+
+    @pytest.mark.django_db
+    def test_moderator_who_joined_game_refused(
+        self, moderated_game, moderator, member_factory
+    ):
+        member_factory(game=moderated_game.game, user=moderator)
+
+        decision = CanModerateGamePolicy.decide(moderated_game.game, moderator)
+
+        assert decision.reason == "game_member"
+
+    @pytest.mark.django_db
+    def test_former_moderator_refused(self, moderated_game, moderator):
+        moderator.profile.is_moderator = False
+        moderator.profile.save()
+
+        decision = CanModerateGamePolicy.decide(moderated_game.game, moderator)
+
+        assert decision.reason == "not_moderator"
+
+    @pytest.mark.django_db
+    def test_unassigned_report_does_not_match_anonymous_user(self, report_factory):
+        report = report_factory()
+
+        assert not IsAssignedInGameCheck.decide(report.game, AnonymousUser())
+
+
+class TestModerationReportCanViewGame:
+    @pytest.mark.django_db
+    def test_assignee_can_view_game(self, moderator_client, moderated_game):
+        response = moderator_client.get(_detail_url(moderated_game))
+
+        assert response.data["can_view_game"] is True
+
+    @pytest.mark.django_db
+    def test_unassigned_report_cannot_view_game(
+        self, moderator_client, report_factory
+    ):
+        response = moderator_client.get(_detail_url(report_factory()))
+
+        assert response.data["can_view_game"] is False
+
+    @pytest.mark.django_db
+    def test_another_moderators_report_cannot_view_game(
+        self, other_moderator_client, moderated_game
+    ):
+        response = other_moderator_client.get(_detail_url(moderated_game))
+
+        assert response.data["can_view_game"] is False
+
+    @pytest.mark.django_db
+    def test_reviewed_report_cannot_view_game(
+        self, moderator_client, moderator, moderated_game
+    ):
+        ReportReview.objects.create(
+            report=moderated_game,
+            decision=ReportDecision.APPROVED,
+            reviewed_by=moderator,
+        )
+
+        response = moderator_client.get(_detail_url(moderated_game))
+
+        assert response.data["can_view_game"] is False
+
+    @pytest.mark.django_db
+    def test_queue_query_count_does_not_grow(
+        self,
+        moderator_client,
+        moderator,
+        report_factory,
+        django_assert_max_num_queries,
+    ):
+        for _ in range(5):
+            report = report_factory()
+            Report.objects.filter(pk=report.pk).update(assigned_to=moderator)
+
+        with django_assert_max_num_queries(4):
+            response = moderator_client.get(LIST_URL, {"status": "pending"})
+
+        assert [row["can_view_game"] for row in response.data] == [True] * 5
+
+
+class TestModeratorGameChannels:
+    @pytest.mark.django_db
+    def test_assignee_sees_private_channels(self, moderator_client, moderated_game):
+        ids = _channel_ids(moderator_client, moderated_game)
+
+        assert ids == {
+            moderated_game.public_channel.id,
+            moderated_game.private_channel.id,
+        }
+
+    @pytest.mark.django_db
+    def test_other_moderator_sees_only_public_channels(
+        self, other_moderator_client, moderated_game
+    ):
+        ids = _channel_ids(other_moderator_client, moderated_game)
+
+        assert ids == {moderated_game.public_channel.id}
+
+    @pytest.mark.django_db
+    def test_access_ends_on_unassign(self, moderator_client, moderated_game):
+        moderator_client.post(_unassign_url(moderated_game))
+
+        ids = _channel_ids(moderator_client, moderated_game)
+
+        assert ids == {moderated_game.public_channel.id}
+
+    @pytest.mark.django_db
+    def test_access_ends_on_decision(
+        self, moderator_client, moderator, moderated_game
+    ):
+        ReportReview.objects.create(
+            report=moderated_game,
+            decision=ReportDecision.APPROVED,
+            reviewed_by=moderator,
+        )
+
+        ids = _channel_ids(moderator_client, moderated_game)
+
+        assert ids == {moderated_game.public_channel.id}
+
+    @pytest.mark.django_db
+    def test_assignee_reads_private_messages(self, moderator_client, moderated_game):
+        response = moderator_client.get(_messages_url(moderated_game.private_channel))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [message["body"] for message in response.data["results"]] == [
+            "Secret plan"
+        ]
+        assert response.data["results"][0]["sender"]["user_id"] == (
+            moderated_game.reported.user_id
+        )
+
+    @pytest.mark.django_db
+    def test_other_moderator_cannot_read_private_messages(
+        self, other_moderator_client, moderated_game
+    ):
+        response = other_moderator_client.get(
+            _messages_url(moderated_game.private_channel)
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_assignee_retrieves_private_channel_read_only(
+        self, moderator_client, moderated_game
+    ):
+        channel = moderated_game.private_channel
+
+        response = moderator_client.get(
+            reverse("channel-update", args=[channel.game_id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_mute"] is False
+        assert response.data["can_rename"] is False
+
+    @pytest.mark.django_db
+    def test_assignee_cannot_send_message(self, moderator_client, moderated_game):
+        channel = moderated_game.private_channel
+
+        response = moderator_client.post(
+            reverse("channel-message-create", args=[channel.game_id, channel.id]),
+            {"body": "Hello"},
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert channel.messages.count() == 1
+
+    @pytest.mark.django_db
+    def test_assignee_cannot_mark_channel_read(
+        self, moderator_client, moderated_game
+    ):
+        channel = moderated_game.private_channel
+
+        response = moderator_client.post(
+            reverse("channel-mark-read", args=[channel.game_id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_assignee_cannot_create_channel(self, moderator_client, moderated_game):
+        game = moderated_game.game
+
+        response = moderator_client.post(
+            reverse("channel-create", args=[game.id]),
+            {"member_ids": [moderated_game.reported.id]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert game.channels.count() == 2
+
+
+class TestModeratorGameRetrieve:
+    @pytest.mark.django_db
+    def test_assignee_sees_real_identities(self, moderator_client, moderated_game):
+        report = moderated_game
+
+        names = _member_names(moderator_client, report.game)
+
+        assert names == sorted(
+            member.user.profile.name
+            for member in (report.reporter, report.reported, report.bystander)
+        )
+
+    @pytest.mark.django_db
+    def test_other_moderator_sees_anonymous_players(
+        self, other_moderator_client, moderated_game
+    ):
+        names = _member_names(other_moderator_client, moderated_game.game)
+
+        assert names == ["Anonymous"] * 3
+
+    @pytest.mark.django_db
+    def test_identities_hidden_again_after_unassign(
+        self, moderator_client, moderated_game
+    ):
+        moderator_client.post(_unassign_url(moderated_game))
+
+        names = _member_names(moderator_client, moderated_game.game)
+
+        assert names == ["Anonymous"] * 3
+
+    @pytest.mark.django_db
+    def test_assignee_sees_real_identity_on_member(
+        self, moderator_client, moderated_game
+    ):
+        reported = moderated_game.reported
+
+        response = moderator_client.get(
+            reverse("game-member-retrieve", args=[reported.game_id, reported.id])
+        )
+
+        assert response.data["name"] == reported.user.profile.name
+        assert response.data["can_report"] is False
+
+    @pytest.mark.django_db
+    def test_players_see_no_sign_of_moderator(
+        self, authenticated_client_factory, moderator_client, moderator, moderated_game
+    ):
+        game = moderated_game.game
+        moderator_client.get(reverse("game-retrieve", args=[game.id]))
+        moderator_client.get(_messages_url(moderated_game.private_channel))
+
+        response = authenticated_client_factory(moderated_game.reported.user).get(
+            reverse("game-retrieve", args=[game.id])
+        )
+
+        assert moderator.id not in {
+            member["user_id"] for member in response.data["members"]
+        }
+        assert game.members.count() == 3
+
+    @pytest.mark.django_db
+    def test_etag_changes_when_assigned(
+        self, authenticated_client_factory, moderator, report_factory, game_factory
+    ):
+        report = report_factory(game=game_factory(anonymous=True))
+        client = authenticated_client_factory(moderator)
+        url = reverse("game-retrieve", args=[report.game.id])
+        etag = client.get(url)["ETag"]
+        client.post(_assign_url(report))
+
+        response = client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_etag_changes_when_decided(
+        self, moderator_client, moderator, moderated_game
+    ):
+        url = reverse("game-retrieve", args=[moderated_game.game.id])
+        etag = moderator_client.get(url)["ETag"]
+        ReportReview.objects.create(
+            report=moderated_game,
+            decision=ReportDecision.REJECTED,
+            reviewed_by=moderator,
+        )
+
+        response = moderator_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+
+
+class TestModeratorGameOrders:
+    @pytest.mark.django_db
+    def test_unresolved_orders_hidden(self, moderator_client, moderated_game):
+        phase = moderated_game.phase
+
+        response = moderator_client.get(
+            reverse("order-list", args=[phase.game_id, phase.id])
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+    @pytest.mark.django_db
+    def test_assignee_cannot_create_order(self, moderator_client, moderated_game):
+        game = moderated_game.game
+
+        response = moderator_client.post(
+            reverse("order-create", args=[game.id]),
+            {"selected": ["lon", "Hold"]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Order.objects.filter(phase_state__phase=moderated_game.phase).count() == 1

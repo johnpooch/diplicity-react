@@ -1069,6 +1069,7 @@ export interface ModerationReportOutput {
   readonly review: ModerationReviewOutput | null;
   readonly assignedTo: ModerationReviewerOutput | null;
   readonly actions: readonly ModerationReportAction[];
+  readonly canViewGame: boolean;
 }
 
 export interface MyGameSeats {
