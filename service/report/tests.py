@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.urls import reverse
 from django.utils import timezone
@@ -66,6 +67,14 @@ def report_factory(db, game_factory, member_factory):
         return report
 
     return _create
+
+
+def _discord_jobs(connector):
+    return [
+        job
+        for job in connector.jobs.values()
+        if job["task_name"] == "discord_service.post"
+    ]
 
 
 def _detail_url(report):
@@ -203,6 +212,30 @@ class TestReportCreateView:
         report = Report.objects.get()
         assert report.reporter == reporter
         assert report.reported == reported
+
+    @pytest.mark.django_db
+    def test_creating_report_posts_to_discord(
+        self, authenticated_client, game, reported, in_memory_procrastinate
+    ):
+        self._report(authenticated_client, reported)
+
+        report = Report.objects.get()
+        assert [job["args"] for job in _discord_jobs(in_memory_procrastinate)] == [
+            {
+                "content": (
+                    f"New report: Abuse and harassment in {game.name}\n"
+                    f"{settings.FRONTEND_URL}/moderation/reports/{report.id}"
+                )
+            }
+        ]
+
+    @pytest.mark.django_db
+    def test_refused_report_does_not_post_to_discord(
+        self, authenticated_client, reporter, in_memory_procrastinate
+    ):
+        self._report(authenticated_client, reporter)
+
+        assert _discord_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
     def test_response_in_anonymous_game_does_not_identify_the_user(

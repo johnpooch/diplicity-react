@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     "draw_proposal",
     "report",
     "email_service",
+    "discord_service",
     "inference",
     "agent",
     "harness",
@@ -370,6 +371,8 @@ SPECTACULAR_SETTINGS = {
 }
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+
+DISCORD_MODERATION_WEBHOOK_URL = os.getenv("DISCORD_MODERATION_WEBHOOK_URL", "")
 
 R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
