@@ -1158,6 +1158,20 @@ class TestGameRetrieveView:
         ]
 
     @pytest.mark.django_db
+    def test_retrieve_game_offers_nation_preferences_on_the_player_list_to_a_mustering_player(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert _action_keys(response, "player_list_actions") == [
+            "edit_nation_preferences"
+        ]
+
+    @pytest.mark.django_db
     def test_retrieve_game_offers_no_player_list_actions_once_the_game_starts(
         self, authenticated_client, active_game_factory
     ):

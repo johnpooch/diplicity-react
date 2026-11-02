@@ -96,6 +96,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   const isActive = game.status === "active";
   const isPending = game.status === "pending";
+  const isMustering = game.status === "mustering";
   const isAbandoned = game.status === "abandoned";
   const isFinished = game.status === "completed" || isAbandoned;
   const currentMember = members.find(m => m.isCurrentUser);
@@ -301,7 +302,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   const nationPill = !game.sandbox &&
     currentMember &&
-    (isPending ? (
+    (isPending || isMustering ? (
       <NationSeatPill
         nations={variant.nations}
         nation={playerNation}

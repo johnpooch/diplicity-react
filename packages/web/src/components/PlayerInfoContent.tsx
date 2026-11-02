@@ -179,6 +179,9 @@ export const PlayerInfoContent: React.FC = () => {
   const canAssignNations = game.actions.some(
     action => action.key === "assign_nations"
   );
+  const canEditNationPreferences = game.playerListActions.some(
+    action => action.key === "edit_nation_preferences"
+  );
   const playableSeats = variant ? countPlayableNations(variant.nations) : 0;
   const openSeats = isPending
     ? Math.max(0, playableSeats - game.members.length)
@@ -244,7 +247,7 @@ export const PlayerInfoContent: React.FC = () => {
     const supplyCenterCount = getSupplyCenterCount(member);
     const supplyCenterTarget = getSupplyCenterTarget(member);
     const unitCount = getUnitCount(member);
-    const showNationSeat = isPending && member.isCurrentUser;
+    const showNationSeat = canEditNationPreferences && member.isCurrentUser;
     const path = rowPath(member);
     const isDimmed =
       member.eliminated || member.civilDisorder || member.withdrawn;
@@ -412,7 +415,7 @@ export const PlayerInfoContent: React.FC = () => {
               </div>
             )}
 
-            {member.isCurrentUser && isPending && (
+            {member.isCurrentUser && canEditNationPreferences && (
               <button
                 onClick={e => {
                   stopRowClick(e);

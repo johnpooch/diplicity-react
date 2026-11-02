@@ -1040,7 +1040,8 @@ class Game(BaseModel):
             GameActionKey.JOIN: join.allowed,
             GameActionKey.CONFIRM_SEAT: self.muster_status(user)
             == MusterStatus.CONFIRMATION_REQUIRED,
-            GameActionKey.EDIT_NATION_PREFERENCES: self.status == GameStatus.PENDING
+            GameActionKey.EDIT_NATION_PREFERENCES: self.status
+            in (GameStatus.PENDING, GameStatus.MUSTERING)
             and is_player,
             GameActionKey.ASSIGN_NATIONS: self.status == GameStatus.PENDING
             and is_game_master,

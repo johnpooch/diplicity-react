@@ -2251,6 +2251,21 @@ class TestMemberNationPreferenceView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
+    def test_put_and_get_roundtrip_while_mustering(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = GameStatus.MUSTERING
+        game.save()
+        url = reverse(preference_viewname, args=[game.id])
+        response = authenticated_client.put(
+            url, {"nation_ids": ["france", "england"]}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        response = authenticated_client.get(url)
+        assert response.data["nation_ids"] == ["france", "england"]
+
+    @pytest.mark.django_db
     def test_active_game_forbidden(
         self, authenticated_client, active_game_with_phase_state
     ):
