@@ -154,14 +154,6 @@ class ChannelManager(models.Manager):
             )
         )
 
-    def delete_channels_left_with_one_member(self, member):
-        channels = self.filter(private=True, members=member).prefetch_related("members")
-        self.filter(
-            id__in=[
-                channel.id for channel in channels if len(channel.members.all()) <= 2
-            ]
-        ).delete()
-
     def accessible_to_user(self, user, game):
         return self.get_queryset().accessible_to_user(user, game)
 

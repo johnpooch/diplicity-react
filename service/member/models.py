@@ -100,6 +100,8 @@ class MemberQuerySet(models.QuerySet):
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
+    def get_queryset(self):
+        return super().get_queryset().filter(left_at__isnull=True)
 
     def commitment_totals(self, user_ids):
         return dict(
@@ -196,13 +198,23 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         member.nation = None
         member.save(update_fields=["nation"])
 
+    def leave(self, member):
+        with transaction.atomic():
+            member.left_at = timezone.now()
+            member.nation = None
+            member.mustered_at = None
+            member.save(update_fields=["left_at", "nation", "mustered_at"])
+            member.game.return_to_pending()
+
+    def rejoin(self, member, kind):
+        member.left_at = None
+        member.kind = kind
+        member.save(update_fields=["left_at", "kind"])
+        return member
+
     def remove(self, member):
         if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
-            Channel = apps.get_model("channel", "Channel")
-            with transaction.atomic():
-                Channel.objects.delete_channels_left_with_one_member(member)
-                member.delete()
-                member.game.return_to_pending()
+            self.leave(member)
             return
 
         with transaction.atomic():
@@ -272,6 +284,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
 class Member(BaseModel):
     objects = MemberManager()
+    all_objects = models.Manager.from_queryset(MemberQuerySet)()
     user = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="members"
     )
@@ -298,6 +311,7 @@ class Member(BaseModel):
     civil_disorder_at = models.DateTimeField(null=True, blank=True)
     removed_at = models.DateTimeField(null=True, blank=True)
     withdrawn_at = models.DateTimeField(null=True, blank=True)
+    left_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
         null=True,
@@ -351,6 +365,10 @@ class Member(BaseModel):
     @property
     def withdrawn(self):
         return self.withdrawn_at is not None
+
+    @property
+    def left(self):
+        return self.left_at is not None
 
     @property
     def removed(self):
