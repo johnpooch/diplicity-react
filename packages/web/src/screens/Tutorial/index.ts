@@ -1,7 +1,8 @@
-import { lazy } from "react";
+import { lazyScreen } from "../../utils/lazyScreen";
 
 export const Tutorial = {
-  TutorialScreen: lazy(() =>
-    import("./TutorialScreen").then(m => ({ default: m.TutorialScreen }))
+  TutorialScreen: lazyScreen(
+    () => import("./TutorialScreen"),
+    "TutorialScreen"
   ),
 };
