@@ -252,6 +252,18 @@ class ModerationMemberOutput(TypedDict):
     nation: str | None
 
 
+type ModerationReportActionBlockedReasonEnum = Literal[
+    'already_assigned',
+    'already_reviewed',
+    'game_member',
+    'not_assignee',
+    'not_moderator',
+]
+
+
+type ModerationReportActionKeyEnum = Literal['assign', 'unassign']
+
+
 class ModerationReviewerOutput(TypedDict):
     user_id: int
     name: str
@@ -747,6 +759,11 @@ class MemberDetail(TypedDict):
     already_reported: bool
 
 
+class ModerationReportAction(TypedDict):
+    key: ModerationReportActionKeyEnum
+    blocked_reason: ModerationReportActionBlockedReasonEnum | NullEnum | None
+
+
 class ModerationReviewOutput(TypedDict):
     reviewed_by: ModerationReviewerOutput
     note: str
@@ -960,6 +977,8 @@ class ModerationReportOutput(TypedDict):
     reporter: ModerationMemberOutput
     reported: ModerationMemberOutput
     review: ModerationReviewOutput | None
+    assigned_to: ModerationReviewerOutput | None
+    actions: list[ModerationReportAction]
 
 
 class MyGame(TypedDict):

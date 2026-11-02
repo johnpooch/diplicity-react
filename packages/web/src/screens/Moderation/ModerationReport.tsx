@@ -1,17 +1,30 @@
 import React, { Suspense } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Button } from "@/components/ui/button";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  ModerationReportActionKeyEnum,
+  getModerationReportsListQueryKey,
+  getModerationReportsRetrieveQueryKey,
+  useModerationReportsAssignCreate,
   useModerationReportsRetrieveSuspense,
+  useModerationReportsUnassignCreate,
   useReportReasonsListSuspense,
 } from "@/api/generated/endpoints";
-import type { ModerationMemberOutput } from "@/api/generated/endpoints";
+import type {
+  ModerationMemberOutput,
+  ModerationReportOutput,
+} from "@/api/generated/endpoints";
 import { useRequiredParams } from "@/hooks";
 import { formatDateTime } from "@/util";
 import { GameDetailAppBar } from "../GameDetail/AppBar";
+import { assignmentLabel } from "./assignment";
 
 const STATUS_LABELS = {
   pending: "Pending",
@@ -24,7 +37,78 @@ const memberLabel = (member: ModerationMemberOutput) => {
   return member.nation ? `${name} (${member.nation})` : name;
 };
 
-const FIELDS = ["Reason", "Status", "Submitted", "Game", "Reporter", "Reported"];
+const FIELDS = [
+  "Reason",
+  "Status",
+  "Submitted",
+  "Game",
+  "Reporter",
+  "Reported",
+];
+
+const ACTIONS = {
+  [ModerationReportActionKeyEnum.assign]: {
+    label: "Assign to me",
+    failure: "Failed to assign report",
+  },
+  [ModerationReportActionKeyEnum.unassign]: {
+    label: "Unassign",
+    failure: "Failed to unassign report",
+  },
+};
+
+interface ReportAssignmentProps {
+  report: ModerationReportOutput;
+}
+
+const ReportAssignment: React.FC<ReportAssignmentProps> = ({ report }) => {
+  const queryClient = useQueryClient();
+  const assignMutation = useModerationReportsAssignCreate();
+  const unassignMutation = useModerationReportsUnassignCreate();
+  const label = assignmentLabel(report);
+  const available = report.actions.filter(
+    action => action.blockedReason === null
+  );
+
+  if (label === null && available.length === 0) {
+    return null;
+  }
+
+  const handleAction = async (key: ModerationReportActionKeyEnum) => {
+    const mutation =
+      key === ModerationReportActionKeyEnum.assign
+        ? assignMutation
+        : unassignMutation;
+    try {
+      await mutation.mutateAsync({ id: report.id });
+    } catch {
+      toast.error(ACTIONS[key].failure);
+    }
+    queryClient.invalidateQueries({
+      queryKey: getModerationReportsListQueryKey(),
+    });
+    queryClient.invalidateQueries({
+      queryKey: getModerationReportsRetrieveQueryKey(report.id),
+    });
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      {available.map(action => (
+        <Button
+          key={action.key}
+          size="sm"
+          variant="outline"
+          disabled={assignMutation.isPending || unassignMutation.isPending}
+          onClick={() => handleAction(action.key)}
+        >
+          {ACTIONS[action.key].label}
+        </Button>
+      ))}
+    </div>
+  );
+};
 
 const ModerationReport: React.FC = () => {
   const { reportId } = useRequiredParams<{ reportId: string }>();
@@ -52,6 +136,7 @@ const ModerationReport: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
+      <ReportAssignment report={report} />
       <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
         {rows.map(([field, value]) => (
           <React.Fragment key={field}>
@@ -91,19 +176,30 @@ const ModerationReportSkeleton: React.FC = () => (
   </div>
 );
 
-const ModerationReportSuspense: React.FC = () => (
-  <ScreenContainer>
-    <GameDetailAppBar title="Report" variant="secondary" />
-    <ScreenCard>
-      <ScreenCardContent>
-        <QueryErrorBoundary>
-          <Suspense fallback={<ModerationReportSkeleton />}>
-            <ModerationReport />
-          </Suspense>
-        </QueryErrorBoundary>
-      </ScreenCardContent>
-    </ScreenCard>
-  </ScreenContainer>
-);
+const ModerationReportSuspense: React.FC = () => {
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const queueSearch =
+    typeof state?.queueSearch === "string" ? state.queueSearch : "";
+
+  return (
+    <ScreenContainer>
+      <GameDetailAppBar
+        title="Report"
+        variant="secondary"
+        onNavigateBack={() => navigate(`/moderation${queueSearch}`)}
+      />
+      <ScreenCard>
+        <ScreenCardContent>
+          <QueryErrorBoundary>
+            <Suspense fallback={<ModerationReportSkeleton />}>
+              <ModerationReport />
+            </Suspense>
+          </QueryErrorBoundary>
+        </ScreenCardContent>
+      </ScreenCard>
+    </ScreenContainer>
+  );
+};
 
 export { ModerationReportSuspense as ModerationReport };

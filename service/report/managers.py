@@ -2,7 +2,7 @@ from django.db.models import Manager
 
 from common.commands import command
 
-from .policies import CanReportPolicy
+from .policies import CanAssignPolicy, CanReportPolicy, CanUnassignPolicy
 from .querysets import ReportQuerySet
 
 
@@ -15,3 +15,13 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
             reason=reason,
             note=note,
         )
+
+    @command(requires=CanAssignPolicy)
+    def assign(self, report, actor):
+        report.assign(actor)
+        return report
+
+    @command(requires=CanUnassignPolicy)
+    def unassign(self, report, actor):
+        report.unassign()
+        return report

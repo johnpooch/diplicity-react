@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { ArrowRight, ChevronRight, Inbox } from "lucide-react";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -19,6 +19,7 @@ import type {
   ModerationReportOutput,
 } from "@/api/generated/endpoints";
 import { formatTimeAgo } from "@/util";
+import { assignmentLabel } from "./assignment";
 
 const statuses = [
   { key: ModerationReportsListStatus.pending, label: "Pending" },
@@ -44,35 +45,44 @@ interface ReportRowProps {
   reasonLabel: string;
 }
 
-const ReportRow: React.FC<ReportRowProps> = ({ report, reasonLabel }) => (
-  <li>
-    <Link
-      to={`/moderation/reports/${report.id}`}
-      className="flex items-center gap-4 py-3 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <div className="flex flex-1 flex-col gap-1">
-        <div className="flex items-baseline justify-between gap-4">
-          <span className="font-semibold">{reasonLabel}</span>
+const ReportRow: React.FC<ReportRowProps> = ({ report, reasonLabel }) => {
+  const { search } = useLocation();
+  const assignment = assignmentLabel(report);
+
+  return (
+    <li>
+      <Link
+        to={`/moderation/reports/${report.id}`}
+        state={{ queueSearch: search }}
+        className="flex items-center gap-4 py-3 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <div className="flex flex-1 flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="font-semibold">{reasonLabel}</span>
+            <span className="text-sm text-muted-foreground">
+              {formatTimeAgo(report.createdAt)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span>{memberLabel(report.reporter)}</span>
+            <ArrowRight
+              className="size-4 text-muted-foreground"
+              aria-label="reported"
+            />
+            <span>{memberLabel(report.reported)}</span>
+          </div>
           <span className="text-sm text-muted-foreground">
-            {formatTimeAgo(report.createdAt)}
+            {report.gameName} · {report.variantName}
           </span>
+          {assignment && (
+            <span className="text-sm text-muted-foreground">{assignment}</span>
+          )}
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span>{memberLabel(report.reporter)}</span>
-          <ArrowRight
-            className="size-4 text-muted-foreground"
-            aria-label="reported"
-          />
-          <span>{memberLabel(report.reported)}</span>
-        </div>
-        <span className="text-sm text-muted-foreground">
-          {report.gameName} · {report.variantName}
-        </span>
-      </div>
-      <ChevronRight className="size-4 text-muted-foreground" />
-    </Link>
-  </li>
-);
+        <ChevronRight className="size-4 text-muted-foreground" />
+      </Link>
+    </li>
+  );
+};
 
 interface ReportListProps {
   status: ModerationReportsListStatus;

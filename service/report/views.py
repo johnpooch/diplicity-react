@@ -3,7 +3,12 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions
 
-from common.views import CreateActionView, LoaderDetailView, LoaderListView
+from common.views import (
+    ActionView,
+    CreateActionView,
+    LoaderDetailView,
+    LoaderListView,
+)
 from member.models import Member
 
 from .constants import ReportReason
@@ -55,3 +60,21 @@ class ModerationReportListView(ModeratorOnlyMixin, LoaderListView):
 class ModerationReportDetailView(ModeratorOnlyMixin, LoaderDetailView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ModerationReportOutputSerializer
+
+
+class ModerationReportAssignView(ModeratorOnlyMixin, ActionView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Report.objects.all()
+    serializer_class = ModerationReportOutputSerializer
+
+    def perform(self, report):
+        return Report.objects.assign(report, self.request.user)
+
+
+class ModerationReportUnassignView(ModeratorOnlyMixin, ActionView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Report.objects.all()
+    serializer_class = ModerationReportOutputSerializer
+
+    def perform(self, report):
+        return Report.objects.unassign(report, self.request.user)

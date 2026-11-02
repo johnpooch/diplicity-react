@@ -15,6 +15,7 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
   useModerationReportsListSuspense: (params: { status: string }) => ({
     data: listReports(params),
   }),
+
   useReportReasonsListSuspense: () => ({
     data: [
       { key: "abuse_and_harassment", label: "Abuse and harassment", description: "" },
@@ -39,6 +40,11 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
   reporter: { id: 10, userId: 100, name: "Alice Moreau", nation: "England" },
   reported: { id: 11, userId: 101, name: "Bruno Keller", nation: "France" },
   review: null,
+  assignedTo: null,
+  actions: [
+    { key: "assign", blockedReason: null },
+    { key: "unassign", blockedReason: "not_assignee" },
+  ],
   ...overrides,
 });
 
@@ -56,13 +62,18 @@ const LocationProbe: React.FC = () => {
   return <p data-testid="location">{location.pathname + location.search}</p>;
 };
 
+const ReportPageProbe: React.FC = () => {
+  const { state } = useLocation();
+  return <p>Report page {state?.queueSearch}</p>;
+};
+
 const renderScreen = (path = "/moderation") =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/moderation" element={<ModerationQueue />} />
-          <Route path="/moderation/reports/:reportId" element={<p>Report page</p>} />
+          <Route path="/moderation/reports/:reportId" element={<ReportPageProbe />} />
         </Routes>
         <LocationProbe />
       </MemoryRouter>
@@ -186,6 +197,15 @@ describe("ModerationQueue", () => {
     expect(screen.getByText("Report page")).toBeInTheDocument();
   });
 
+  it("passes the queue filter to the report page", async () => {
+    listReports.mockReturnValue([report({ status: "approved" })]);
+    renderScreen("/moderation?status=approved");
+
+    await userEvent.click(within(screen.getByRole("list")).getByRole("link"));
+
+    expect(screen.getByText("Report page ?status=approved")).toBeInTheDocument();
+  });
+
   it("renders the not-found notice when the API answers 404", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     listReports.mockImplementation(() => {
@@ -195,5 +215,75 @@ describe("ModerationQueue", () => {
 
     expect(screen.getByText("This game is no longer available")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("says nothing about assignment on a free report", () => {
+    listReports.mockReturnValue([report({})]);
+    renderScreen();
+
+    expect(screen.queryByText(/Assigned to/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
+  });
+
+  it("shows who has a report another moderator took", () => {
+    listReports.mockReturnValue([
+      report({
+        assignedTo: { userId: 200, name: "Sam Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: "not_assignee" },
+        ],
+      }),
+    ]);
+    renderScreen();
+
+    const row = within(screen.getByRole("list")).getByRole("link");
+    expect(within(row).getByText("Assigned to Sam Moderator")).toBeInTheDocument();
+  });
+
+  it("shows a report the moderator took as theirs", () => {
+    listReports.mockReturnValue([
+      report({
+        assignedTo: { userId: 300, name: "Mia Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: null },
+        ],
+      }),
+    ]);
+    renderScreen();
+
+    expect(screen.getByText("Assigned to you")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
+  });
+
+  it("explains a report from a game the moderator is in", () => {
+    listReports.mockReturnValue([
+      report({
+        actions: [
+          { key: "assign", blockedReason: "game_member" },
+          { key: "unassign", blockedReason: "not_assignee" },
+        ],
+      }),
+    ]);
+    renderScreen();
+
+    expect(screen.getByText("You're in this game")).toBeInTheDocument();
+  });
+
+  it("says nothing about assignment on a reviewed report", () => {
+    listReports.mockReturnValue([
+      report({
+        status: "approved",
+        assignedTo: { userId: 200, name: "Sam Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_reviewed" },
+          { key: "unassign", blockedReason: "already_reviewed" },
+        ],
+      }),
+    ]);
+    renderScreen("/moderation?status=approved");
+
+    expect(screen.queryByText(/Assigned to/)).not.toBeInTheDocument();
   });
 });
