@@ -2,6 +2,7 @@ import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -27,10 +28,12 @@ import {
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
   useGameOptionsRetrieve,
+  useGamePhaseStatesList,
   type Order,
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
 import { canEnterOrdersForPhase } from "../utils/orderEntry";
+import { filterOrderableOptions } from "../utils/orderableOptions";
 
 function useBanner(duration = 3000) {
   const [message, setMessage] = useState<string | null>(null);
@@ -69,6 +72,14 @@ const ORDER_TYPE_KEYS: Record<string, string> = {
   Build: "B",
 };
 
+const createOrderErrorMessage = (error: unknown) => {
+  const data = (
+    error as AxiosError<string[] | { selected?: string[]; detail?: string }>
+  ).response?.data;
+  if (Array.isArray(data)) return data[0] ?? "Failed to create order";
+  return data?.selected?.[0] ?? data?.detail ?? "Failed to create order";
+};
+
 const GameMap: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
@@ -85,6 +96,9 @@ const GameMap: React.FC = () => {
   const canEnterOrders =
     !!game && !!phase && canEnterOrdersForPhase(game, phase, selectedPhase);
   const { data: optionsData } = useGameOptionsRetrieve(gameId, {
+    query: { enabled: canEnterOrders },
+  });
+  const { data: phaseStates } = useGamePhaseStatesList(gameId, {
     query: { enabled: canEnterOrders },
   });
 
@@ -106,7 +120,13 @@ const GameMap: React.FC = () => {
   const createOrderMutation = useGameOrdersCreate();
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
 
-  const orderOptions = canEnterOrders ? (optionsData?.orders ?? []) : [];
+  const orderOptions = useMemo(
+    () =>
+      canEnterOrders
+        ? filterOrderableOptions(optionsData?.orders ?? [], phaseStates ?? [])
+        : [],
+    [canEnterOrders, optionsData?.orders, phaseStates]
+  );
   const wizard = useOrderWizard(orderOptions, optionsData?.fieldOrder ?? {});
 
   const variant = publishedVariant ?? fetchedVariant;
@@ -170,9 +190,9 @@ const GameMap: React.FC = () => {
         wizard.reset();
         setMenuPosition(null);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         setPendingOrder(null);
-        toast.error("Failed to create order");
+        toast.error(createOrderErrorMessage(error));
         wizard.reset();
         setMenuPosition(null);
       });
