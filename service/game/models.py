@@ -174,6 +174,9 @@ class GameQuerySet(models.QuerySet):
     def filter_mine(self, user):
         return self.filter(id__in=Member.objects.filter(user=user).values("game_id"))
 
+    def exclude_mine(self, user):
+        return self.exclude(id__in=Member.objects.filter(user=user).values("game_id"))
+
     def with_my_games_data(self):
         return self.with_list_data().prefetch_related("variant__nations")
 
@@ -429,10 +432,15 @@ class GameManager(models.Manager):
     def fastest_start(self, user):
         candidates = (
             self.filter(status=GameStatus.PENDING, private=False, sandbox=False)
-            .exclude(members__user=user)
+            .exclude_mine(user)
             .annotate(
                 player_count=Count(
-                    "members", filter=Q(members__kind=MemberKind.PLAYER), distinct=True
+                    "members",
+                    filter=Q(
+                        members__kind=MemberKind.PLAYER,
+                        members__left_lobby_at__isnull=True,
+                    ),
+                    distinct=True,
                 ),
                 seat_count=Count(
                     "variant__nations",
@@ -1063,6 +1071,9 @@ class Game(BaseModel):
         return self.channels.get(private=False)
 
     def seat(self, user, kind=MemberKind.PLAYER):
+        previous = Member.all_objects.filter(game=self, user=user).first()
+        if previous is not None and previous.left_lobby:
+            return Member.objects.rejoin_lobby(previous, kind)
         member = self.members.create(user=user, kind=kind)
         self.get_public_press().member_channels.create(member=member)
         return member

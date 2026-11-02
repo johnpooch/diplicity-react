@@ -137,7 +137,7 @@ class GameFindSimilarView(generics.GenericAPIView):
                 variant_id=variant,
                 movement_phase_duration=duration,
             )
-            .exclude(members__user=request.user)
+            .exclude_mine(request.user)
         )
 
         if not candidates:

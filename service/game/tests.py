@@ -2346,6 +2346,70 @@ class TestGameListViewFilters:
             assert game["can_join"] is True
 
 
+class TestGameListViewLeftLobby:
+
+    @pytest.mark.django_db
+    def test_mine_excludes_game_user_left(
+        self, authenticated_client, pending_game_created_by_secondary_user, primary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+
+        response = authenticated_client.get(reverse(list_viewname), {"mine": "true"})
+
+        assert game.id not in [g["id"] for g in response.data["results"]]
+
+    @pytest.mark.django_db
+    def test_can_join_includes_game_user_left(
+        self, authenticated_client, pending_game_created_by_secondary_user, primary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+
+        response = authenticated_client.get(
+            reverse(list_viewname), {"can_join": "true"}
+        )
+
+        assert game.id in [g["id"] for g in response.data["results"]]
+
+    @pytest.mark.django_db
+    def test_ordering_slots_remaining_ignores_left_members(
+        self,
+        authenticated_client,
+        classical_variant,
+        base_pending_phase,
+        secondary_user,
+        tertiary_user,
+    ):
+        left_game = Game.objects.create(
+            name="Left Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(left_game)
+        left_game.members.create(user=secondary_user)
+        left_game.members.create(user=tertiary_user, left_lobby_at=timezone.now())
+
+        two_member_game = Game.objects.create(
+            name="Two Member Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(two_member_game)
+        two_member_game.members.create(user=secondary_user)
+        two_member_game.members.create(user=tertiary_user)
+        Game.objects.filter(id=two_member_game.id).update(
+            created_at=timezone.now() - timedelta(days=1)
+        )
+
+        response = authenticated_client.get(
+            reverse(list_viewname), {"ordering": "slots_remaining"}
+        )
+
+        ordered_ids = [g["id"] for g in response.data["results"]]
+        assert ordered_ids.index(two_member_game.id) < ordered_ids.index(left_game.id)
+
+
 class TestGameListViewOrdering:
 
     @pytest.mark.django_db
@@ -6211,6 +6275,28 @@ class TestGameFindSimilarView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"game": None}
 
+    @pytest.mark.django_db
+    def test_includes_game_user_left(
+        self, authenticated_client, primary_user, classical_variant, base_pending_phase
+    ):
+        game = Game.objects.create(
+            name="Left",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(game)
+        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+
+        response = authenticated_client.get(
+            reverse(find_similar_viewname),
+            {
+                "variant": classical_variant.id,
+                "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            },
+        )
+        assert response.data["game"]["id"] == game.id
+
 
 def fixed_time_fields(frequency):
     return {
@@ -6319,6 +6405,24 @@ class TestGameFastestView:
     ):
         game = pending_game_with_players()
         game.members.create(user=primary_user)
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_includes_game_user_left(
+        self, authenticated_client, pending_game_with_players, primary_user
+    ):
+        game = pending_game_with_players()
+        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+        response = authenticated_client.get(reverse(fastest_viewname))
+        assert response.data["game"]["id"] == game.id
+
+    @pytest.mark.django_db
+    def test_does_not_count_left_members_toward_minimum(
+        self, authenticated_client, pending_game_with_players, user_factory
+    ):
+        game = pending_game_with_players(player_count=2)
+        game.members.create(user=user_factory(), left_lobby_at=timezone.now())
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data == {"game": None}
 

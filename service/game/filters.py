@@ -35,7 +35,8 @@ class GameFilter(django_filters.FilterSet):
             if not self.request.user.is_authenticated:
                 return queryset.none()
             return queryset.filter(
-                Q(members__user=self.request.user) | Q(game_master=self.request.user)
+                Q(members__user=self.request.user, members__left_lobby_at__isnull=True)
+                | Q(game_master=self.request.user)
             ).distinct()
         return queryset
 
@@ -43,7 +44,7 @@ class GameFilter(django_filters.FilterSet):
         if value:
             queryset = queryset.filter(status=GameStatus.PENDING, private=False)
             if self.request.user.is_authenticated:
-                queryset = queryset.exclude(members__user=self.request.user)
+                queryset = queryset.exclude_mine(self.request.user)
             return queryset.with_zero_unread_counts()
         return queryset
 
@@ -70,10 +71,12 @@ class GameFilter(django_filters.FilterSet):
 
     def filter_ordering(self, queryset, name, value):
         if value == "slots_remaining":
-            # No kick filter on members: pending games only lose members on
-            # account deletion, so every member row counts toward fill.
             return queryset.annotate(
-                member_count=Count("members", distinct=True),
+                member_count=Count(
+                    "members",
+                    filter=Q(members__left_lobby_at__isnull=True),
+                    distinct=True,
+                ),
                 seat_count=Count(
                     "variant__nations",
                     filter=Q(variant__nations__non_playable=False),
