@@ -69,12 +69,12 @@ function ViewSelector<K extends string>({
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="rounded-t-lg p-2">
+        <SheetContent side="bottom" className="rounded-t-lg">
           <VisuallyHidden.Root>
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </VisuallyHidden.Root>
-          {optionButtons}
+          <div className="p-2">{optionButtons}</div>
         </SheetContent>
       </Sheet>
     );
