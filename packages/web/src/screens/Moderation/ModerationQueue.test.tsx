@@ -3,29 +3,19 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
-import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModerationReportOutput } from "@/api/generated/endpoints";
 import { ModerationQueue } from "./ModerationQueue";
 
 const listReports = vi.fn();
 const isMobile = vi.fn();
-const assignReport = vi.fn();
-const unassignReport = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
   useModerationReportsListSuspense: (params: { status: string }) => ({
     data: listReports(params),
   }),
-  useModerationReportsAssignCreate: () => ({
-    mutateAsync: assignReport,
-    isPending: false,
-  }),
-  useModerationReportsUnassignCreate: () => ({
-    mutateAsync: unassignReport,
-    isPending: false,
-  }),
+
   useReportReasonsListSuspense: () => ({
     data: [
       { key: "abuse_and_harassment", label: "Abuse and harassment", description: "" },
@@ -37,8 +27,6 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => isMobile() }));
 
 vi.mock("@/components/UserAvatar", () => ({ UserAvatar: () => null }));
-
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOutput => ({
   id: 1,
@@ -74,13 +62,18 @@ const LocationProbe: React.FC = () => {
   return <p data-testid="location">{location.pathname + location.search}</p>;
 };
 
+const ReportPageProbe: React.FC = () => {
+  const { state } = useLocation();
+  return <p>Report page {state?.queueSearch}</p>;
+};
+
 const renderScreen = (path = "/moderation") =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/moderation" element={<ModerationQueue />} />
-          <Route path="/moderation/reports/:reportId" element={<p>Report page</p>} />
+          <Route path="/moderation/reports/:reportId" element={<ReportPageProbe />} />
         </Routes>
         <LocationProbe />
       </MemoryRouter>
@@ -95,9 +88,6 @@ const filterButton = (selected: string) =>
 describe("ModerationQueue", () => {
   beforeEach(() => {
     listReports.mockReset();
-    assignReport.mockReset();
-    unassignReport.mockReset();
-    vi.mocked(toast.error).mockReset();
     isMobile.mockReturnValue(false);
   });
 
@@ -207,6 +197,15 @@ describe("ModerationQueue", () => {
     expect(screen.getByText("Report page")).toBeInTheDocument();
   });
 
+  it("passes the queue filter to the report page", async () => {
+    listReports.mockReturnValue([report({ status: "approved" })]);
+    renderScreen("/moderation?status=approved");
+
+    await userEvent.click(within(screen.getByRole("list")).getByRole("link"));
+
+    expect(screen.getByText("Report page ?status=approved")).toBeInTheDocument();
+  });
+
   it("renders the not-found notice when the API answers 404", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     listReports.mockImplementation(() => {
@@ -218,14 +217,12 @@ describe("ModerationQueue", () => {
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
-  it("assigns a report nobody has taken", async () => {
-    listReports.mockReturnValue([report({ id: 7 })]);
+  it("says nothing about assignment on a free report", () => {
+    listReports.mockReturnValue([report({})]);
     renderScreen();
 
-    await userEvent.click(screen.getByRole("button", { name: "Assign to me" }));
-
-    expect(assignReport).toHaveBeenCalledWith({ id: 7 });
-    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Assigned to/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
   });
 
   it("shows who has a report another moderator took", () => {
@@ -240,15 +237,13 @@ describe("ModerationQueue", () => {
     ]);
     renderScreen();
 
-    expect(screen.getByText("Assigned to Sam Moderator")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
+    const row = within(screen.getByRole("list")).getByRole("link");
+    expect(within(row).getByText("Assigned to Sam Moderator")).toBeInTheDocument();
   });
 
-  it("lets the assigned moderator unassign themselves", async () => {
+  it("shows a report the moderator took as theirs", () => {
     listReports.mockReturnValue([
       report({
-        id: 8,
         assignedTo: { userId: 300, name: "Mia Moderator" },
         actions: [
           { key: "assign", blockedReason: "already_assigned" },
@@ -259,9 +254,7 @@ describe("ModerationQueue", () => {
     renderScreen();
 
     expect(screen.getByText("Assigned to you")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Unassign" }));
-
-    expect(unassignReport).toHaveBeenCalledWith({ id: 8 });
+    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
   });
 
   it("explains a report from a game the moderator is in", () => {
@@ -276,7 +269,6 @@ describe("ModerationQueue", () => {
     renderScreen();
 
     expect(screen.getByText("You're in this game")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
   });
 
   it("says nothing about assignment on a reviewed report", () => {
@@ -293,17 +285,5 @@ describe("ModerationQueue", () => {
     renderScreen("/moderation?status=approved");
 
     expect(screen.queryByText(/Assigned to/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
-  });
-
-  it("shows an error when assigning fails", async () => {
-    assignReport.mockRejectedValue(new Error("already_assigned"));
-    listReports.mockReturnValue([report({})]);
-    renderScreen();
-
-    await userEvent.click(screen.getByRole("button", { name: "Assign to me" }));
-
-    expect(toast.error).toHaveBeenCalledWith("Failed to assign report");
   });
 });
