@@ -4301,9 +4301,13 @@ components:
           items:
             $ref: '#/components/schemas/ModerationReportAction'
           readOnly: true
+        canViewGame:
+          type: boolean
+          readOnly: true
       required:
       - actions
       - assignedTo
+      - canViewGame
       - createdAt
       - gameId
       - gameName

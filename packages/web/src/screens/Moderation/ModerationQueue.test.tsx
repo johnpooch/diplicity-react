@@ -45,6 +45,7 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
     { key: "assign", blockedReason: null },
     { key: "unassign", blockedReason: "not_assignee" },
   ],
+  canViewGame: false,
   ...overrides,
 });
 

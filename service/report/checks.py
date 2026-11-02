@@ -29,3 +29,16 @@ class IsAssigneeCheck(Check):
 
     def check(self, report, actor):
         return report.assigned_to_id is not None and report.assigned_to_id == actor.pk
+
+
+class IsAssignedInGameCheck(Check):
+    reason = "not_assignee"
+
+    def check(self, game, actor):
+        return (
+            actor.pk is not None
+            and game.members.filter(
+                reports_received__assigned_to_id=actor.pk,
+                reports_received__review__isnull=True,
+            ).exists()
+        )

@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -95,17 +95,24 @@ const ReportAssignment: React.FC<ReportAssignmentProps> = ({ report }) => {
   return (
     <div className="flex items-center justify-between gap-4 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      {available.map(action => (
-        <Button
-          key={action.key}
-          size="sm"
-          variant="outline"
-          disabled={assignMutation.isPending || unassignMutation.isPending}
-          onClick={() => handleAction(action.key)}
-        >
-          {ACTIONS[action.key].label}
-        </Button>
-      ))}
+      <div className="flex gap-2">
+        {report.canViewGame && (
+          <Button asChild size="sm" variant="outline">
+            <Link to={`/game/${report.gameId}`}>View game</Link>
+          </Button>
+        )}
+        {available.map(action => (
+          <Button
+            key={action.key}
+            size="sm"
+            variant="outline"
+            disabled={assignMutation.isPending || unassignMutation.isPending}
+            onClick={() => handleAction(action.key)}
+          >
+            {ACTIONS[action.key].label}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 };

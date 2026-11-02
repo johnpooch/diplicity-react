@@ -381,6 +381,20 @@ class GameManager(models.Manager):
             .order_by("id")
             .values("id", "victory_id", "member_id", "victory__winning_phase_id")
         )
+        assigned_reports = (
+            list(
+                Member.objects.filter(
+                    game_id=game_id, reports_received__assigned_to_id=user.id
+                )
+                .order_by("reports_received__id")
+                .values("reports_received__id", "reports_received__review__id")
+            )
+            if any(
+                profile["user_id"] == user.id and profile["is_moderator"]
+                for profile in profiles
+            )
+            else []
+        )
         projection = [
             GAME_RETRIEVE_REPRESENTATION_VERSION,
             user.id,
@@ -392,6 +406,7 @@ class GameManager(models.Manager):
             phase_states,
             nation_preferences,
             victory_members,
+            assigned_reports,
             sorted(Member.objects.commitment_totals(user_ids - {None}).items()),
         ]
         canonical = json.dumps(projection, sort_keys=True, default=str)

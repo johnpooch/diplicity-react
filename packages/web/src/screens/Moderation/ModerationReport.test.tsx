@@ -47,6 +47,7 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
   review: null,
   assignedTo: null,
   actions: [],
+  canViewGame: false,
   ...overrides,
 });
 
@@ -65,6 +66,7 @@ const renderScreen = (
       <MemoryRouter initialEntries={initialEntries}>
         <Routes>
           <Route path="/moderation" element={<LocationProbe />} />
+          <Route path="/game/:gameId" element={<LocationProbe />} />
           <Route path="/moderation/reports/:reportId" element={<ModerationReport />} />
         </Routes>
       </MemoryRouter>
@@ -256,5 +258,38 @@ describe("ModerationReport", () => {
     await userEvent.click(screen.getByRole("button", { name: "Assign to me" }));
 
     expect(toast.error).toHaveBeenCalledWith("Failed to assign report");
+  });
+
+  it("opens the game for the assigned moderator", async () => {
+    retrieveReport.mockReturnValue(
+      report({
+        assignedTo: { userId: 300, name: "Mia Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: null },
+        ],
+        canViewGame: true,
+      })
+    );
+    renderScreen();
+
+    await userEvent.click(screen.getByRole("link", { name: "View game" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/game\/g1$/);
+  });
+
+  it("hides the game from a moderator who cannot view it", () => {
+    retrieveReport.mockReturnValue(
+      report({
+        assignedTo: { userId: 200, name: "Sam Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: "not_assignee" },
+        ],
+      })
+    );
+    renderScreen();
+
+    expect(screen.queryByRole("link", { name: "View game" })).not.toBeInTheDocument();
   });
 });
