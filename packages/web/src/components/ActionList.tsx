@@ -101,7 +101,9 @@ export const ActionList: React.FC<ActionListProps> = ({
       case "confirm_seat":
         return musterMutation.mutateAsync({ gameId });
       case "leave":
-        return leaveMutation.mutateAsync({ gameId });
+        await leaveMutation.mutateAsync({ gameId });
+        navigate("/");
+        return;
       case "withdraw":
         return withdrawMutation.mutateAsync({ gameId });
       case "pause":
