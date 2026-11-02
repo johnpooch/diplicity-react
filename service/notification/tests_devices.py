@@ -1,5 +1,11 @@
+from types import SimpleNamespace
+
 import pytest
 from django.conf import settings
+from fcm_django.types import FirebaseResponseDict
+from firebase_admin.messaging import ThirdPartyAuthError
+
+from notification.utils import deactivate_revoked_web_tokens, unexpected_rejections
 
 pytestmark = pytest.mark.skipif(
     not settings._FIREBASE_PROJECT_ID,
@@ -17,6 +23,21 @@ def fcm_device_factory(db):
         )
 
     return _create
+
+
+def _rejected_result(rejections):
+    return FirebaseResponseDict(
+        response=SimpleNamespace(
+            responses=[
+                SimpleNamespace(exception=exception)
+                for exception in rejections.values()
+            ],
+            success_count=0,
+            failure_count=len(rejections),
+        ),
+        registration_ids_sent=list(rejections),
+        deactivated_registration_ids=[],
+    )
 
 
 class TestNotificationDeviceViewSet:
@@ -159,3 +180,50 @@ class TestDeactivateStaleDevicesCommand:
         inactive_device.refresh_from_db()
         assert active_device.active is True
         assert inactive_device.active is False
+
+
+class TestDeactivateRevokedWebTokens:
+    @pytest.mark.django_db
+    def test_deactivates_a_web_token_rejected_with_third_party_auth_error(
+        self, primary_user, fcm_device_factory
+    ):
+        device = fcm_device_factory(primary_user, "web", "web-token")
+        result = _rejected_result({"web-token": ThirdPartyAuthError("Auth error")})
+
+        result = deactivate_revoked_web_tokens(result)
+
+        device.refresh_from_db()
+        assert device.active is False
+        assert result.deactivated_registration_ids == ["web-token"]
+        assert unexpected_rejections(result) == []
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("device_type", ["ios", "android"])
+    def test_keeps_a_native_token_rejected_with_third_party_auth_error_active(
+        self, primary_user, fcm_device_factory, device_type
+    ):
+        device = fcm_device_factory(primary_user, device_type, "native-token")
+        rejection = ThirdPartyAuthError("Auth error")
+        result = _rejected_result({"native-token": rejection})
+
+        result = deactivate_revoked_web_tokens(result)
+
+        device.refresh_from_db()
+        assert device.active is True
+        assert result.deactivated_registration_ids == []
+        assert unexpected_rejections(result) == [rejection]
+
+    @pytest.mark.django_db
+    def test_keeps_a_web_token_rejected_with_another_error_active(
+        self, primary_user, fcm_device_factory
+    ):
+        device = fcm_device_factory(primary_user, "web", "web-token")
+        result = _rejected_result(
+            {"web-token": Exception("Request contains an invalid argument.")}
+        )
+
+        result = deactivate_revoked_web_tokens(result)
+
+        device.refresh_from_db()
+        assert device.active is True
+        assert result.deactivated_registration_ids == []

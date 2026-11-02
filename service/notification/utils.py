@@ -83,6 +83,30 @@ def push_results_by_user(user_ids, tokens_by_user, result):
     return results
 
 
+def deactivate_revoked_web_tokens(result):
+    from fcm_django.models import DeviceType, FCMDevice
+    from firebase_admin.messaging import ThirdPartyAuthError
+
+    revoked = [
+        registration_id
+        for registration_id, exception in zip(
+            result.failed_registration_ids, result.failed_exceptions
+        )
+        if isinstance(exception, ThirdPartyAuthError)
+    ]
+    if not revoked:
+        return result
+    deactivated = FCMDevice.objects.filter(
+        registration_id__in=revoked, type=DeviceType.WEB
+    ).deactivate(reason="web_push_subscription_revoked", source="send_message")
+    return result._replace(
+        deactivated_registration_ids=[
+            *result.deactivated_registration_ids,
+            *deactivated,
+        ]
+    )
+
+
 def unexpected_rejections(result):
     deactivated = set(result.deactivated_registration_ids)
     return [
@@ -124,6 +148,7 @@ def send_notification_to_users(
             for user_id in user_ids
         }
 
+    result = deactivate_revoked_web_tokens(result)
     logger.info(
         f"Sent {notification_type} notification to {len(result.registration_ids_sent)} device(s) "
         f"for {len(user_ids)} user(s): {result.success_count} delivered to FCM, "
