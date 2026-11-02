@@ -32,6 +32,8 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
   reporter: { id: 10, userId: 100, name: "Alice Moreau", nation: "England" },
   reported: { id: 11, userId: 101, name: "Bruno Keller", nation: "France" },
   review: null,
+  assignedTo: null,
+  actions: [],
   ...overrides,
 });
 

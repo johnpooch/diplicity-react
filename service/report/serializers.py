@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from common.serializers import OutputSerializer
+from common.serializers import Actions, OutputSerializer
 from member.models import Member
 
 from .constants import ReportReason, ReportStatus
@@ -58,6 +58,8 @@ class ModerationReportOutputSerializer(OutputSerializer):
     reporter = ModerationMemberOutputSerializer()
     reported = ModerationMemberOutputSerializer()
     review = ModerationReviewOutputSerializer(allow_null=True)
+    assigned_to = ModerationReviewerOutputSerializer(allow_null=True)
+    actions = Actions(assign=Report.objects.assign, unassign=Report.objects.unassign)
 
     class Meta:
         model = Report
@@ -74,4 +76,6 @@ class ModerationReportOutputSerializer(OutputSerializer):
             "reporter",
             "reported",
             "review",
+            "assigned_to",
+            "actions",
         )

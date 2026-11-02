@@ -3,17 +3,28 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModerationReportOutput } from "@/api/generated/endpoints";
 import { ModerationQueue } from "./ModerationQueue";
 
 const listReports = vi.fn();
 const isMobile = vi.fn();
+const assignReport = vi.fn();
+const unassignReport = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
   useModerationReportsListSuspense: (params: { status: string }) => ({
     data: listReports(params),
+  }),
+  useModerationReportsAssignCreate: () => ({
+    mutateAsync: assignReport,
+    isPending: false,
+  }),
+  useModerationReportsUnassignCreate: () => ({
+    mutateAsync: unassignReport,
+    isPending: false,
   }),
   useReportReasonsListSuspense: () => ({
     data: [
@@ -27,6 +38,8 @@ vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => isMobile() }));
 
 vi.mock("@/components/UserAvatar", () => ({ UserAvatar: () => null }));
 
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
 const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOutput => ({
   id: 1,
   reason: "abuse_and_harassment",
@@ -39,6 +52,11 @@ const report = (overrides: Partial<ModerationReportOutput>): ModerationReportOut
   reporter: { id: 10, userId: 100, name: "Alice Moreau", nation: "England" },
   reported: { id: 11, userId: 101, name: "Bruno Keller", nation: "France" },
   review: null,
+  assignedTo: null,
+  actions: [
+    { key: "assign", blockedReason: null },
+    { key: "unassign", blockedReason: "not_assignee" },
+  ],
   ...overrides,
 });
 
@@ -77,6 +95,9 @@ const filterButton = (selected: string) =>
 describe("ModerationQueue", () => {
   beforeEach(() => {
     listReports.mockReset();
+    assignReport.mockReset();
+    unassignReport.mockReset();
+    vi.mocked(toast.error).mockReset();
     isMobile.mockReturnValue(false);
   });
 
@@ -195,5 +216,94 @@ describe("ModerationQueue", () => {
 
     expect(screen.getByText("This game is no longer available")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("assigns a report nobody has taken", async () => {
+    listReports.mockReturnValue([report({ id: 7 })]);
+    renderScreen();
+
+    await userEvent.click(screen.getByRole("button", { name: "Assign to me" }));
+
+    expect(assignReport).toHaveBeenCalledWith({ id: 7 });
+    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
+  });
+
+  it("shows who has a report another moderator took", () => {
+    listReports.mockReturnValue([
+      report({
+        assignedTo: { userId: 200, name: "Sam Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: "not_assignee" },
+        ],
+      }),
+    ]);
+    renderScreen();
+
+    expect(screen.getByText("Assigned to Sam Moderator")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
+  });
+
+  it("lets the assigned moderator unassign themselves", async () => {
+    listReports.mockReturnValue([
+      report({
+        id: 8,
+        assignedTo: { userId: 300, name: "Mia Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_assigned" },
+          { key: "unassign", blockedReason: null },
+        ],
+      }),
+    ]);
+    renderScreen();
+
+    expect(screen.getByText("Assigned to you")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Unassign" }));
+
+    expect(unassignReport).toHaveBeenCalledWith({ id: 8 });
+  });
+
+  it("explains a report from a game the moderator is in", () => {
+    listReports.mockReturnValue([
+      report({
+        actions: [
+          { key: "assign", blockedReason: "game_member" },
+          { key: "unassign", blockedReason: "not_assignee" },
+        ],
+      }),
+    ]);
+    renderScreen();
+
+    expect(screen.getByText("You're in this game")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
+  });
+
+  it("says nothing about assignment on a reviewed report", () => {
+    listReports.mockReturnValue([
+      report({
+        status: "approved",
+        assignedTo: { userId: 200, name: "Sam Moderator" },
+        actions: [
+          { key: "assign", blockedReason: "already_reviewed" },
+          { key: "unassign", blockedReason: "already_reviewed" },
+        ],
+      }),
+    ]);
+    renderScreen("/moderation?status=approved");
+
+    expect(screen.queryByText(/Assigned to/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assign to me" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unassign" })).not.toBeInTheDocument();
+  });
+
+  it("shows an error when assigning fails", async () => {
+    assignReport.mockRejectedValue(new Error("already_assigned"));
+    listReports.mockReturnValue([report({})]);
+    renderScreen();
+
+    await userEvent.click(screen.getByRole("button", { name: "Assign to me" }));
+
+    expect(toast.error).toHaveBeenCalledWith("Failed to assign report");
   });
 });

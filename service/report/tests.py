@@ -664,6 +664,11 @@ class TestModerationReportListView:
                     "nation": report.reported.nation.name,
                 },
                 "review": None,
+                "assigned_to": None,
+                "actions": [
+                    {"key": "assign", "blocked_reason": None},
+                    {"key": "unassign", "blocked_reason": "not_assignee"},
+                ],
             }
         ]
 
@@ -851,3 +856,313 @@ class TestModerationReportDetailView:
         response = client.get(_detail_url(report))
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def _assign_url(report):
+    return reverse("moderation-report-assign", args=[report.id])
+
+
+def _unassign_url(report):
+    return reverse("moderation-report-unassign", args=[report.id])
+
+
+def _blocked_reasons(data):
+    return {action["key"]: action["blocked_reason"] for action in data["actions"]}
+
+
+class TestModerationReportAssignView:
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, report_factory):
+        response = unauthenticated_client.post(_assign_url(report_factory()))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_non_moderator_not_found(self, authenticated_client, report_factory):
+        report = report_factory()
+
+        response = authenticated_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        report.refresh_from_db()
+        assert report.assigned_to is None
+
+    @pytest.mark.django_db
+    def test_missing_report_not_found(self, moderator_client):
+        response = moderator_client.post(
+            reverse("moderation-report-assign", args=[999999])
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_moderator_takes_unassigned_report(
+        self, moderator_client, moderator, report_factory
+    ):
+        report = report_factory()
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == report.id
+        assert response.data["assigned_to"] == {
+            "user_id": moderator.id,
+            "name": "Mia Moderator",
+        }
+        assert _blocked_reasons(response.data) == {
+            "assign": "already_assigned",
+            "unassign": None,
+        }
+        report.refresh_from_db()
+        assert report.assigned_to == moderator
+
+    @pytest.mark.django_db
+    def test_report_taken_by_another_moderator_refused(
+        self, moderator_client, user_factory, report_factory
+    ):
+        other = user_factory(username="other", name="Sam Moderator")
+        report = report_factory()
+        Report.objects.filter(pk=report.pk).update(assigned_to=other)
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "already_assigned"
+        report.refresh_from_db()
+        assert report.assigned_to == other
+
+    @pytest.mark.django_db
+    def test_report_already_taken_by_self_refused(
+        self, moderator_client, moderator, report_factory
+    ):
+        report = report_factory()
+        Report.objects.filter(pk=report.pk).update(assigned_to=moderator)
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "already_assigned"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "decision", [ReportDecision.APPROVED, ReportDecision.REJECTED]
+    )
+    def test_reviewed_report_refused(
+        self, moderator_client, moderator, report_factory, decision
+    ):
+        report = report_factory(decision=decision, reviewed_by=moderator)
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "already_reviewed"
+
+    @pytest.mark.django_db
+    def test_moderator_in_game_refused(
+        self, moderator_client, moderator, game_factory, member_factory, report_factory
+    ):
+        game = game_factory()
+        member_factory(game=game, user=moderator)
+        report = report_factory(game=game)
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "game_member"
+        report.refresh_from_db()
+        assert report.assigned_to is None
+
+    @pytest.mark.django_db
+    def test_game_master_moderator_refused(
+        self, moderator_client, moderator, game_factory, member_factory, report_factory
+    ):
+        game = game_factory()
+        game_master = member_factory(game=game, user=moderator)
+        game_master.nation = None
+        game_master.save()
+        report = report_factory(game=game)
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "game_member"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "departure",
+        [{"eliminated_at": timezone.now()}, {"removed_at": timezone.now()}],
+    )
+    def test_moderator_who_left_game_refused(
+        self,
+        moderator_client,
+        moderator,
+        game_factory,
+        member_factory,
+        report_factory,
+        departure,
+    ):
+        game = game_factory()
+        member_factory(game=game, user=moderator, **departure)
+        report = report_factory(game=game)
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "game_member"
+
+    @pytest.mark.django_db
+    def test_membership_of_another_game_allowed(
+        self, moderator_client, moderator, member_factory, report_factory
+    ):
+        member_factory(user=moderator)
+        report = report_factory()
+
+        response = moderator_client.post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_get_not_allowed(self, moderator_client, report_factory):
+        response = moderator_client.get(_assign_url(report_factory()))
+
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+class TestModerationReportUnassignView:
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, report_factory):
+        response = unauthenticated_client.post(_unassign_url(report_factory()))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_non_moderator_not_found(self, authenticated_client, report_factory):
+        response = authenticated_client.post(_unassign_url(report_factory()))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_assignee_unassigns(self, moderator_client, moderator, report_factory):
+        report = report_factory()
+        Report.objects.filter(pk=report.pk).update(assigned_to=moderator)
+
+        response = moderator_client.post(_unassign_url(report))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["assigned_to"] is None
+        assert _blocked_reasons(response.data) == {
+            "assign": None,
+            "unassign": "not_assignee",
+        }
+        report.refresh_from_db()
+        assert report.assigned_to is None
+
+    @pytest.mark.django_db
+    def test_unassigned_report_can_be_taken_by_another_moderator(
+        self, moderator_client, moderator, user_factory, authenticated_client_factory, report_factory
+    ):
+        report = report_factory()
+        moderator_client.post(_assign_url(report))
+        moderator_client.post(_unassign_url(report))
+        other = user_factory(username="other", name="Sam Moderator")
+        other.profile.is_moderator = True
+        other.profile.save()
+
+        response = authenticated_client_factory(other).post(_assign_url(report))
+
+        assert response.status_code == status.HTTP_200_OK
+        report.refresh_from_db()
+        assert report.assigned_to == other
+
+    @pytest.mark.django_db
+    def test_another_moderators_report_refused(
+        self, moderator_client, user_factory, report_factory
+    ):
+        other = user_factory(username="other", name="Sam Moderator")
+        report = report_factory()
+        Report.objects.filter(pk=report.pk).update(assigned_to=other)
+
+        response = moderator_client.post(_unassign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "not_assignee"
+        report.refresh_from_db()
+        assert report.assigned_to == other
+
+    @pytest.mark.django_db
+    def test_unassigned_report_refused(self, moderator_client, report_factory):
+        response = moderator_client.post(_unassign_url(report_factory()))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "not_assignee"
+
+    @pytest.mark.django_db
+    def test_reviewed_report_refused(
+        self, moderator_client, moderator, report_factory
+    ):
+        report = report_factory(
+            decision=ReportDecision.APPROVED, reviewed_by=moderator
+        )
+        Report.objects.filter(pk=report.pk).update(assigned_to=moderator)
+
+        response = moderator_client.post(_unassign_url(report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "already_reviewed"
+
+
+class TestModerationQueueAssignment:
+    @pytest.mark.django_db
+    def test_shows_who_has_each_report(
+        self, moderator_client, user_factory, report_factory
+    ):
+        other = user_factory(username="other", name="Sam Moderator")
+        taken = report_factory(age=timedelta(days=1))
+        free = report_factory()
+        Report.objects.filter(pk=taken.pk).update(assigned_to=other)
+
+        response = moderator_client.get(LIST_URL, {"status": "pending"})
+
+        rows = {row["id"]: row for row in response.data}
+        assert rows[taken.id]["assigned_to"] == {
+            "user_id": other.id,
+            "name": "Sam Moderator",
+        }
+        assert _blocked_reasons(rows[taken.id]) == {
+            "assign": "already_assigned",
+            "unassign": "not_assignee",
+        }
+        assert rows[free.id]["assigned_to"] is None
+        assert _blocked_reasons(rows[free.id])["assign"] is None
+
+    @pytest.mark.django_db
+    def test_lists_reports_from_own_game_with_reason(
+        self, moderator_client, moderator, game_factory, member_factory, report_factory
+    ):
+        game = game_factory()
+        member_factory(game=game, user=moderator)
+        report = report_factory(game=game)
+
+        response = moderator_client.get(LIST_URL, {"status": "pending"})
+
+        assert [row["id"] for row in response.data] == [report.id]
+        assert _blocked_reasons(response.data[0])["assign"] == "game_member"
+
+    @pytest.mark.django_db
+    def test_query_count_does_not_grow(
+        self,
+        moderator_client,
+        moderator,
+        user_factory,
+        report_factory,
+        django_assert_max_num_queries,
+    ):
+        other = user_factory(username="other", name="Sam Moderator")
+        for _ in range(5):
+            report = report_factory()
+            Report.objects.filter(pk=report.pk).update(assigned_to=other)
+
+        with django_assert_max_num_queries(4):
+            response = moderator_client.get(LIST_URL, {"status": "pending"})
+
+        assert len(response.data) == 5

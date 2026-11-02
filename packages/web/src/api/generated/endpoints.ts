@@ -980,6 +980,41 @@ export interface ModerationMemberOutput {
 }
 
 /**
+ * * `assign` - assign
+ * `unassign` - unassign
+ */
+export type ModerationReportActionKeyEnum =
+  (typeof ModerationReportActionKeyEnum)[keyof typeof ModerationReportActionKeyEnum];
+
+export const ModerationReportActionKeyEnum = {
+  assign: "assign",
+  unassign: "unassign",
+} as const;
+
+/**
+ * * `already_assigned` - already_assigned
+ * `already_reviewed` - already_reviewed
+ * `game_member` - game_member
+ * `not_assignee` - not_assignee
+ * `not_moderator` - not_moderator
+ */
+export type ModerationReportActionBlockedReasonEnum =
+  (typeof ModerationReportActionBlockedReasonEnum)[keyof typeof ModerationReportActionBlockedReasonEnum];
+
+export const ModerationReportActionBlockedReasonEnum = {
+  already_assigned: "already_assigned",
+  already_reviewed: "already_reviewed",
+  game_member: "game_member",
+  not_assignee: "not_assignee",
+  not_moderator: "not_moderator",
+} as const;
+
+export interface ModerationReportAction {
+  key: ModerationReportActionKeyEnum;
+  blockedReason: ModerationReportActionBlockedReasonEnum | NullEnum | null;
+}
+
+/**
  * * `abuse_and_harassment` - Abuse and harassment
  * `multiple_accounts` - Multiple accounts
  * `secret_teaming` - Secret teaming
@@ -1032,6 +1067,8 @@ export interface ModerationReportOutput {
   readonly reporter: ModerationMemberOutput;
   readonly reported: ModerationMemberOutput;
   readonly review: ModerationReviewOutput | null;
+  readonly assignedTo: ModerationReviewerOutput | null;
+  readonly actions: readonly ModerationReportAction[];
 }
 
 export interface MyGameSeats {
@@ -12379,6 +12416,164 @@ export function useModerationReportsRetrieveSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+export const moderationReportsAssignCreate = (
+  id: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<ModerationReportOutput>({
+    url: `/moderation/reports/${id}/assign/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getModerationReportsAssignCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderationReportsAssignCreate>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moderationReportsAssignCreate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["moderationReportsAssignCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moderationReportsAssignCreate>>,
+    { id: number }
+  > = props => {
+    const { id } = props ?? {};
+
+    return moderationReportsAssignCreate(id);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ModerationReportsAssignCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsAssignCreate>>
+>;
+
+export type ModerationReportsAssignCreateMutationError = unknown;
+
+export const useModerationReportsAssignCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof moderationReportsAssignCreate>>,
+      TError,
+      { id: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof moderationReportsAssignCreate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(
+    getModerationReportsAssignCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const moderationReportsUnassignCreate = (
+  id: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<ModerationReportOutput>({
+    url: `/moderation/reports/${id}/unassign/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getModerationReportsUnassignCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderationReportsUnassignCreate>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moderationReportsUnassignCreate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["moderationReportsUnassignCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moderationReportsUnassignCreate>>,
+    { id: number }
+  > = props => {
+    const { id } = props ?? {};
+
+    return moderationReportsUnassignCreate(id);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ModerationReportsUnassignCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsUnassignCreate>>
+>;
+
+export type ModerationReportsUnassignCreateMutationError = unknown;
+
+export const useModerationReportsUnassignCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof moderationReportsUnassignCreate>>,
+      TError,
+      { id: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof moderationReportsUnassignCreate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(
+    getModerationReportsUnassignCreateMutationOptions(options),
+    queryClient
+  );
+};
 
 export const reportReasonsList = (signal?: AbortSignal) => {
   return customInstance<ReportReason[]>({

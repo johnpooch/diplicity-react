@@ -1,9 +1,14 @@
 from common.policies import Policy
-from game.checks import IsGameMemberCheck, IsNotSandboxGameCheck
+from game.checks import IsGameMemberCheck, IsNotGameMemberCheck, IsNotSandboxGameCheck
 from member.checks import HasUserCheck, IsNotOwnMemberCheck
 from user_profile.checks import IsModeratorCheck
 
-from .checks import HasNotReportedCheck
+from .checks import (
+    HasNotReportedCheck,
+    IsAssigneeCheck,
+    IsPendingCheck,
+    IsUnassignedCheck,
+)
 
 
 class CanReportPolicy(Policy):
@@ -19,4 +24,21 @@ class CanReportPolicy(Policy):
 class ModeratorPolicy(Policy):
     checks = [
         IsModeratorCheck,
+    ]
+
+
+class CanAssignPolicy(Policy):
+    checks = [
+        ModeratorPolicy,
+        IsPendingCheck,
+        IsUnassignedCheck,
+        IsNotGameMemberCheck,
+    ]
+
+
+class CanUnassignPolicy(Policy):
+    checks = [
+        ModeratorPolicy,
+        IsPendingCheck,
+        IsAssigneeCheck,
     ]

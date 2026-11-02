@@ -22,6 +22,13 @@ class Report(BaseModel):
     )
     reason = models.CharField(max_length=32, choices=ReportReason.REASON_CHOICES)
     note = models.CharField(max_length=1000)
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="assigned_reports",
+        on_delete=models.SET_NULL,
+        null=True,
+        db_index=False,
+    )
 
     class Meta:
         constraints = [
@@ -30,6 +37,13 @@ class Report(BaseModel):
                 name="report_unique_per_reporter_per_reported",
             ),
         ]
+        indexes = [
+            models.Index(fields=["assigned_to"], name="report_assigned_to_idx"),
+        ]
+
+    @property
+    def game(self):
+        return self.reporter.game
 
     @property
     def status(self):
@@ -37,6 +51,14 @@ class Report(BaseModel):
         if review is None:
             return ReportStatus.PENDING
         return review.decision
+
+    def assign(self, user):
+        self.assigned_to = user
+        self.save(update_fields=["assigned_to", "updated_at"])
+
+    def unassign(self):
+        self.assigned_to = None
+        self.save(update_fields=["assigned_to", "updated_at"])
 
 
 class ReportReview(BaseModel):

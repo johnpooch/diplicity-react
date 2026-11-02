@@ -23,4 +23,14 @@ urlpatterns = [
         views.ModerationReportDetailView.as_view(),
         name="moderation-report-detail",
     ),
+    path(
+        "moderation/reports/<int:pk>/assign/",
+        views.ModerationReportAssignView.as_view(),
+        name="moderation-report-assign",
+    ),
+    path(
+        "moderation/reports/<int:pk>/unassign/",
+        views.ModerationReportUnassignView.as_view(),
+        name="moderation-report-unassign",
+    ),
 ]

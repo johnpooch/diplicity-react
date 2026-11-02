@@ -54,3 +54,12 @@ class IsCurrentPhaseActiveCheck(Check):
     def check(self, instance, actor):
         phase = game_of(instance).current_phase
         return phase is not None and phase.status == PhaseStatus.ACTIVE
+
+
+class IsNotGameMemberCheck(Check):
+    reason = "game_member"
+
+    def check(self, instance, actor):
+        return all(
+            member.user_id != actor.pk for member in game_of(instance).members.all()
+        )

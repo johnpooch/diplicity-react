@@ -430,7 +430,7 @@ class OutputSerializer(serializers.ModelSerializer):
         return fields
 ```
 
-`Actions` lists the commands a client could offer on a row, with a `blocked_reason` for each, taken from the command's own policy. The client never re-implements a rule to decide whether to show a button. The reason codes become an enum in the OpenAPI schema. The `bind` override names the generated component after the parent serializer, such as `BookAction`. Without it, every `Actions` field produces a component called `Action` with different enums, and drf-spectacular reports a collision. This override has not been run against drf-spectacular yet and should be checked when the first app uses `Actions`.
+`Actions` lists the commands a client could offer on a row, with a `blocked_reason` for each, taken from the command's own policy. The client never re-implements a rule to decide whether to show a button. The reason codes become an enum in the OpenAPI schema. The `bind` override names the generated component after the parent serializer, such as `BookAction`. Without it, every `Actions` field produces a component called `Action` with different enums, and drf-spectacular reports a collision. `report` is the first app to use `Actions`, and its schema publishes `ModerationReportAction` with `ModerationReportActionKeyEnum` and `ModerationReportActionBlockedReasonEnum`.
 
 `OutputSerializer` is a `ModelSerializer` whose fields are all read-only, so field types come from the model and an output serializer cannot be used for input by mistake.
 
