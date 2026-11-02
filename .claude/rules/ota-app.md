@@ -7,6 +7,7 @@ paths:
   - ".github/workflows/bundle-release.yml"
   - "packages/web/index.html"
   - "packages/web/src/components/UpdateGate.tsx"
+  - "packages/web/src/Router.tsx"
 ---
 
 # OTA updates in the app
@@ -53,6 +54,14 @@ as iOS suspends the app. Anything that holds up the first render shows as a blan
 - `UpdateGate` bounds its checks with a timeout and fails open, and it is what hides the splash screen,
   once it has settled. Do not hide the splash on `App` mount: that uncovers a page the gate is still
   holding blank.
+
+## The routes matched at launch have no loader
+
+On native, the router first renders inside `UpdateGate`'s Suspense retry, and React holds that commit back
+for up to 300ms. A route `loader` matched at launch can finish inside that window. `RouterProvider`
+subscribes to the router only after it commits, so it misses the update and renders nothing for good,
+behind a splash that is already hidden (#1677). Prefetch launch data with TanStack Query instead.
+`src/Router.test.tsx` checks that both route trees start initialized.
 
 ## Native builds report to Sentry
 

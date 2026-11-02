@@ -7,7 +7,7 @@ import {
   useRouteError,
   type RouteObject,
 } from "react-router";
-import { QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
 import { Register } from "./screens/Register";
 import { CheckEmail } from "./screens/CheckEmail";
@@ -58,10 +58,6 @@ const RootErrorBoundary: React.FC = () => {
   return <ErrorFallbackUI error={error} />;
 };
 
-const createVariantsLoader = (queryClient: QueryClient) => async () => {
-  return queryClient.fetchQuery(getVariantsListQueryOptions());
-};
-
 const HomeLayoutWrapper: React.FC = () => {
   return (
     <HomeLayout>
@@ -95,6 +91,10 @@ const CodeOfConductLayoutWrapper: React.FC = () => {
 };
 
 const AuthenticatedRoot: React.FC = () => {
+  const queryClient = useQueryClient();
+  React.useEffect(() => {
+    queryClient.prefetchQuery(getVariantsListQueryOptions());
+  }, [queryClient]);
   useDeepLink();
   return <Outlet />;
 };
@@ -148,18 +148,14 @@ const publicRoutes: RouteObject[] = [
 
 interface RouterProps {
   loggedIn: boolean;
-  queryClient: QueryClient;
 }
 
-export const createAuthenticatedRoutes = (
-  queryClient: QueryClient
-): RouteObject[] => [
+export const createAuthenticatedRoutes = (): RouteObject[] => [
   {
     id: "root",
     path: "/",
     element: <AuthenticatedRoot />,
     errorElement: <RootErrorBoundary />,
-    loader: createVariantsLoader(queryClient),
     children: [
       {
         element: <HomeLayoutWrapper />,
@@ -509,13 +505,13 @@ export const createUnauthenticatedRoutes = (): RouteObject[] => [
   },
 ];
 
-const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
+const Router: React.FC<RouterProps> = ({ loggedIn }) => {
   const router = React.useMemo(
     () =>
       loggedIn
-        ? createBrowserRouter(createAuthenticatedRoutes(queryClient))
+        ? createBrowserRouter(createAuthenticatedRoutes())
         : createBrowserRouter(createUnauthenticatedRoutes()),
-    [loggedIn, queryClient]
+    [loggedIn]
   );
 
   return <RouterProvider router={router} />;
