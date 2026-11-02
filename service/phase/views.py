@@ -3,7 +3,6 @@ from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
 from common.permissions import (
     IsActiveGame,
-    IsActiveOrCompletedGame,
     IsActiveGamePlayer,
     IsCurrentPhaseActive,
     IsUserPhaseStateExists,
@@ -49,10 +48,7 @@ class PhaseStateUpdateView(
 
 
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-    ]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PhaseStateSerializer
 
     def get_queryset(self):
@@ -62,10 +58,7 @@ class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
 
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-    ]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PhaseListSerializer
 
     def get_queryset(self):

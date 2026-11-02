@@ -171,6 +171,20 @@ def test_list_orderable_provinces_not_member(
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("game_status", [GameStatus.PENDING, GameStatus.MUSTERING])
+def test_list_phase_states_unstarted_game(
+    authenticated_client, pending_game_created_by_primary_user, game_status
+):
+    game = pending_game_created_by_primary_user
+    game.status = game_status
+    game.save()
+    url = reverse("phase-state-list", args=[game.id])
+    response = authenticated_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == []
+
+
+@pytest.mark.django_db
 def test_phase_with_no_actionable_states_is_due(active_game_with_phase_state):
     phase = active_game_with_phase_state.current_phase
     phase.phase_states.update(has_possible_orders=False)
@@ -2253,6 +2267,25 @@ class TestPhaseListView:
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
+
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "game_status", [GameStatus.PENDING, GameStatus.MUSTERING]
+    )
+    def test_list_phases_unstarted_game(
+        self, authenticated_client, pending_game_created_by_primary_user, game_status
+    ):
+        game = pending_game_created_by_primary_user
+        game.status = game_status
+        game.save()
+
+        url = reverse("phase-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == game.current_phase.id
 
 
 class TestPhaseListViewPerformance:
