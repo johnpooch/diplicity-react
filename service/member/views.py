@@ -103,7 +103,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         game = instance.game
         user_id = instance.user_id
         with transaction.atomic():
-            Member.objects.leave_lobby(instance)
+            Member.objects.leave(instance)
             if user_id == game.admin_id:
                 game.reassign_admin()
             game.delete_if_empty_pending()

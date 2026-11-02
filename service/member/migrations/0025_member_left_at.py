@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="member",
-            name="left_lobby_at",
+            name="left_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

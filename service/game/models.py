@@ -438,7 +438,7 @@ class GameManager(models.Manager):
                     "members",
                     filter=Q(
                         members__kind=MemberKind.PLAYER,
-                        members__left_lobby_at__isnull=True,
+                        members__left_at__isnull=True,
                     ),
                     distinct=True,
                 ),
@@ -1072,8 +1072,8 @@ class Game(BaseModel):
 
     def seat(self, user, kind=MemberKind.PLAYER):
         previous = Member.all_objects.filter(game=self, user=user).first()
-        if previous is not None and previous.left_lobby:
-            return Member.objects.rejoin_lobby(previous, kind)
+        if previous is not None and previous.left:
+            return Member.objects.rejoin(previous, kind)
         member = self.members.create(user=user, kind=kind)
         self.get_public_press().member_channels.create(member=member)
         return member

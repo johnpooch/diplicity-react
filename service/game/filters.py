@@ -35,7 +35,7 @@ class GameFilter(django_filters.FilterSet):
             if not self.request.user.is_authenticated:
                 return queryset.none()
             return queryset.filter(
-                Q(members__user=self.request.user, members__left_lobby_at__isnull=True)
+                Q(members__user=self.request.user, members__left_at__isnull=True)
                 | Q(game_master=self.request.user)
             ).distinct()
         return queryset
@@ -74,7 +74,7 @@ class GameFilter(django_filters.FilterSet):
             return queryset.annotate(
                 member_count=Count(
                     "members",
-                    filter=Q(members__left_lobby_at__isnull=True),
+                    filter=Q(members__left_at__isnull=True),
                     distinct=True,
                 ),
                 seat_count=Count(

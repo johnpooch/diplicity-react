@@ -2346,14 +2346,14 @@ class TestGameListViewFilters:
             assert game["can_join"] is True
 
 
-class TestGameListViewLeftLobby:
+class TestGameListViewLeftMember:
 
     @pytest.mark.django_db
     def test_mine_excludes_game_user_left(
         self, authenticated_client, pending_game_created_by_secondary_user, primary_user
     ):
         game = pending_game_created_by_secondary_user
-        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+        game.members.create(user=primary_user, left_at=timezone.now())
 
         response = authenticated_client.get(reverse(list_viewname), {"mine": "true"})
 
@@ -2364,7 +2364,7 @@ class TestGameListViewLeftLobby:
         self, authenticated_client, pending_game_created_by_secondary_user, primary_user
     ):
         game = pending_game_created_by_secondary_user
-        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+        game.members.create(user=primary_user, left_at=timezone.now())
 
         response = authenticated_client.get(
             reverse(list_viewname), {"can_join": "true"}
@@ -2388,7 +2388,7 @@ class TestGameListViewLeftLobby:
         )
         base_pending_phase(left_game)
         left_game.members.create(user=secondary_user)
-        left_game.members.create(user=tertiary_user, left_lobby_at=timezone.now())
+        left_game.members.create(user=tertiary_user, left_at=timezone.now())
 
         two_member_game = Game.objects.create(
             name="Two Member Game",
@@ -6286,7 +6286,7 @@ class TestGameFindSimilarView:
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         )
         base_pending_phase(game)
-        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+        game.members.create(user=primary_user, left_at=timezone.now())
 
         response = authenticated_client.get(
             reverse(find_similar_viewname),
@@ -6413,7 +6413,7 @@ class TestGameFastestView:
         self, authenticated_client, pending_game_with_players, primary_user
     ):
         game = pending_game_with_players()
-        game.members.create(user=primary_user, left_lobby_at=timezone.now())
+        game.members.create(user=primary_user, left_at=timezone.now())
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data["game"]["id"] == game.id
 
@@ -6422,7 +6422,7 @@ class TestGameFastestView:
         self, authenticated_client, pending_game_with_players, user_factory
     ):
         game = pending_game_with_players(player_count=2)
-        game.members.create(user=user_factory(), left_lobby_at=timezone.now())
+        game.members.create(user=user_factory(), left_at=timezone.now())
         response = authenticated_client.get(reverse(fastest_viewname))
         assert response.data == {"game": None}
 

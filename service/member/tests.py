@@ -522,7 +522,7 @@ def test_leave_pending_game_keeps_member_row(
     authenticated_client.delete(reverse(leave_viewname, args=[game.id]))
 
     member = Member.all_objects.get(id=member.id)
-    assert member.left_lobby
+    assert member.left
     assert not game.members.filter(user=primary_user).exists()
 
 
@@ -734,7 +734,7 @@ class TestKickMember:
             reverse("channel-preview-list", args=[game.id])
         ).data
         assert channel_id in [channel["id"] for channel in channels]
-        assert Member.all_objects.get(id=member.id).left_lobby
+        assert Member.all_objects.get(id=member.id).left
 
     @pytest.mark.django_db
     def test_kick_member_non_game_master_forbidden(

@@ -101,7 +101,7 @@ class MemberQuerySet(models.QuerySet):
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
     def get_queryset(self):
-        return super().get_queryset().filter(left_lobby_at__isnull=True)
+        return super().get_queryset().filter(left_at__isnull=True)
 
     def commitment_totals(self, user_ids):
         return dict(
@@ -198,23 +198,23 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
         member.nation = None
         member.save(update_fields=["nation"])
 
-    def leave_lobby(self, member):
+    def leave(self, member):
         with transaction.atomic():
-            member.left_lobby_at = timezone.now()
+            member.left_at = timezone.now()
             member.nation = None
             member.mustered_at = None
-            member.save(update_fields=["left_lobby_at", "nation", "mustered_at"])
+            member.save(update_fields=["left_at", "nation", "mustered_at"])
             member.game.return_to_pending()
 
-    def rejoin_lobby(self, member, kind):
-        member.left_lobby_at = None
+    def rejoin(self, member, kind):
+        member.left_at = None
         member.kind = kind
-        member.save(update_fields=["left_lobby_at", "kind"])
+        member.save(update_fields=["left_at", "kind"])
         return member
 
     def remove(self, member):
         if member.game.status in (GameStatus.PENDING, GameStatus.MUSTERING):
-            self.leave_lobby(member)
+            self.leave(member)
             return
 
         with transaction.atomic():
@@ -311,7 +311,7 @@ class Member(BaseModel):
     civil_disorder_at = models.DateTimeField(null=True, blank=True)
     removed_at = models.DateTimeField(null=True, blank=True)
     withdrawn_at = models.DateTimeField(null=True, blank=True)
-    left_lobby_at = models.DateTimeField(null=True, blank=True)
+    left_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",
         null=True,
@@ -367,8 +367,8 @@ class Member(BaseModel):
         return self.withdrawn_at is not None
 
     @property
-    def left_lobby(self):
-        return self.left_lobby_at is not None
+    def left(self):
+        return self.left_at is not None
 
     @property
     def removed(self):
