@@ -42,6 +42,14 @@ export function initializeSentry() {
     ],
 
     beforeSend(event) {
+      const fromGoogleSignIn = event.exception?.values?.some(exception =>
+        exception.stacktrace?.frames?.some(frame =>
+          frame.filename?.includes("accounts.google.com/gsi")
+        )
+      );
+      if (fromGoogleSignIn) {
+        return null;
+      }
       if (event.request?.headers) {
         delete event.request.headers.Authorization;
       }
