@@ -714,6 +714,11 @@ class GameListCurrentPhase(TypedDict):
     supply_centers: list[GameListSupplyCenter]
 
 
+class Mark(TypedDict):
+    reason: ReasonEnum
+    created_at: str
+
+
 class Member(TypedDict):
     id: int
     user_id: int | None
@@ -842,6 +847,7 @@ class PublicUserProfile(TypedDict):
     commitment_total: int
     commitment_band: CommitmentBandEnum
     commitment_squares: list[CommitmentSquare]
+    marks: list[Mark]
 
 
 class VariantProvince(TypedDict):

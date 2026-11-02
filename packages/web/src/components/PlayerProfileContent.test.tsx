@@ -39,6 +39,7 @@ const buildProfile = (
   commitmentTotal: 0,
   commitmentBand: "neutral",
   commitmentSquares: [],
+  marks: [],
   ...overrides,
 });
 
@@ -171,5 +172,29 @@ describe("PlayerProfileContent", () => {
     expect(tooltip.getByText("Anonymous game")).toBeInTheDocument();
     expect(tooltip.queryByText("Submitted 5 phases")).not.toBeInTheDocument();
     expect(tooltip.queryByText("Total")).not.toBeInTheDocument();
+  });
+
+  it("says there is no bad conduct when the player has no marks", () => {
+    render(<PlayerProfileContent userId={1} />);
+
+    expect(
+      screen.getByRole("heading", { name: "Conduct history" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("No bad conduct")).toBeInTheDocument();
+  });
+
+  it("lists each mark with its reason and date", () => {
+    profile = buildProfile({
+      marks: [
+        { reason: "abuse_and_harassment", createdAt: "2026-11-01T12:00:00Z" },
+        { reason: "other", createdAt: "2026-08-14T12:00:00Z" },
+      ],
+    });
+
+    render(<PlayerProfileContent userId={1} />);
+
+    expect(screen.queryByText("No bad conduct")).not.toBeInTheDocument();
+    expect(rowValue("Abuse and harassment")).toBe("Nov 1, 2026");
+    expect(rowValue("Other conduct violation")).toBe("Aug 14, 2026");
   });
 });

@@ -857,6 +857,26 @@ export const KindEnum = {
 } as const;
 
 /**
+ * * `abuse_and_harassment` - Abuse and harassment
+ * `multiple_accounts` - Multiple accounts
+ * `secret_teaming` - Secret teaming
+ * `other` - Other
+ */
+export type ReasonEnum = (typeof ReasonEnum)[keyof typeof ReasonEnum];
+
+export const ReasonEnum = {
+  abuse_and_harassment: "abuse_and_harassment",
+  multiple_accounts: "multiple_accounts",
+  secret_teaming: "secret_teaming",
+  other: "other",
+} as const;
+
+export interface Mark {
+  readonly reason: ReasonEnum;
+  readonly createdAt: string;
+}
+
+/**
  * * `join` - Join
  * `confirm_seat` - Confirm seat
  * `edit_nation_preferences` - Edit nation preferences
@@ -1017,21 +1037,6 @@ export interface ModerationReportAction {
   key: ModerationReportActionKeyEnum;
   blockedReason: ModerationReportActionBlockedReasonEnum | NullEnum | null;
 }
-
-/**
- * * `abuse_and_harassment` - Abuse and harassment
- * `multiple_accounts` - Multiple accounts
- * `secret_teaming` - Secret teaming
- * `other` - Other
- */
-export type ReasonEnum = (typeof ReasonEnum)[keyof typeof ReasonEnum];
-
-export const ReasonEnum = {
-  abuse_and_harassment: "abuse_and_harassment",
-  multiple_accounts: "multiple_accounts",
-  secret_teaming: "secret_teaming",
-  other: "other",
-} as const;
 
 /**
  * * `pending` - Pending
@@ -1427,6 +1432,7 @@ export interface PublicUserProfile {
   readonly commitmentTotal: number;
   readonly commitmentBand: CommitmentBandEnum;
   readonly commitmentSquares: readonly CommitmentSquare[];
+  readonly marks: readonly Mark[];
 }
 
 export interface Register {

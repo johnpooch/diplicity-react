@@ -23,6 +23,8 @@ from phase.models import Phase, PhaseState
 from user_profile.models import UserProfile, UserProfilePicture
 from user_profile.utils import PICTURE_MAX_BYTES, PICTURE_MAX_DIMENSION, PICTURE_SIZE
 from member.models import CommitmentEntry, Member
+from report.constants import ReportReason
+from report.models import Mark, Report
 from victory.models import Victory
 
 User = get_user_model()
@@ -230,6 +232,89 @@ class TestPublicUserProfileCommitment:
         response = self._retrieve(authenticated_client, secondary_user)
 
         assert response.data["commitment_squares"] == []
+
+
+class TestPublicUserProfileMarks:
+
+    def _retrieve(self, client, user):
+        return client.get(reverse("public-user-profile", kwargs={"user_id": user.id}))
+
+    def _member(self, user, variant):
+        game = Game.objects.create(
+            variant=variant, name="Marked Game", status=GameStatus.ACTIVE
+        )
+        return game.members.create(user=user)
+
+    def _mark(self, member, reason, days_ago):
+        mark = Mark.objects.create(member=member, reason=reason)
+        Mark.objects.filter(pk=mark.pk).update(
+            created_at=timezone.now() - timedelta(days=days_ago)
+        )
+
+    @pytest.mark.django_db
+    def test_player_without_marks_has_none(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        self._member(secondary_user, classical_variant)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["marks"] == []
+
+    @pytest.mark.django_db
+    def test_lists_marks_across_games_most_recent_first(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        first = self._member(secondary_user, classical_variant)
+        second = self._member(secondary_user, classical_variant)
+        self._mark(first, ReportReason.SECRET_TEAMING, days_ago=30)
+        self._mark(second, ReportReason.ABUSE_AND_HARASSMENT, days_ago=1)
+        self._mark(first, ReportReason.OTHER, days_ago=10)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert [mark["reason"] for mark in response.data["marks"]] == [
+            ReportReason.ABUSE_AND_HARASSMENT,
+            ReportReason.OTHER,
+            ReportReason.SECRET_TEAMING,
+        ]
+
+    @pytest.mark.django_db
+    def test_excludes_other_players_marks(
+        self, authenticated_client, primary_user, secondary_user, classical_variant
+    ):
+        self._mark(
+            self._member(primary_user, classical_variant),
+            ReportReason.ABUSE_AND_HARASSMENT,
+            days_ago=1,
+        )
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["marks"] == []
+
+    @pytest.mark.django_db
+    def test_mark_does_not_reveal_the_report(
+        self, authenticated_client, primary_user, secondary_user, classical_variant
+    ):
+        reported = self._member(secondary_user, classical_variant)
+        reporter = reported.game.members.create(user=primary_user)
+        Report.objects.create(
+            reporter=reporter,
+            reported=reported,
+            reason=ReportReason.ABUSE_AND_HARASSMENT,
+            note="Called me names in the press channel",
+        )
+        Mark.objects.create(member=reported, reason=ReportReason.ABUSE_AND_HARASSMENT)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert [set(mark) for mark in response.data["marks"]] == [
+            {"reason", "created_at"}
+        ]
+        assert "Called me names" not in response.content.decode()
+        assert primary_user.profile.name not in response.content.decode()
 
 
 class TestCommitmentBands:
