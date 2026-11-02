@@ -5,7 +5,6 @@ from django.db import transaction
 from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
-from opentelemetry import trace
 from common.constants import (
     ActionBlockedReason,
     CommitmentRequirement,
@@ -38,8 +37,6 @@ from .models import Game
 
 ChannelMember = apps.get_model("channel", "ChannelMember")
 ChannelMessage = apps.get_model("channel", "ChannelMessage")
-
-tracer = trace.get_tracer(__name__)
 
 
 def _phase_state_order_count(phase_state):
@@ -139,19 +136,17 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_can_join"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.can_join(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_join(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_leave(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_can_leave"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.can_leave(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_leave(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_withdraw(self, obj):
@@ -210,11 +205,10 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_phase_confirmed(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.phase_confirmed(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.phase_confirmed(user)
 
     @extend_schema_field(
         serializers.ChoiceField(
@@ -457,19 +451,17 @@ class GameRetrieveSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_can_join"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.can_join(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_join(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_leave(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_can_leave"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.can_leave(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_leave(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_withdraw(self, obj):
@@ -518,11 +510,10 @@ class GameRetrieveSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_phase_confirmed(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
-            user = self.context["request"].user
-            if not user.is_authenticated:
-                return False
-            return obj.phase_confirmed(user)
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.phase_confirmed(user)
 
     @extend_schema_field(
         serializers.ChoiceField(
@@ -589,12 +580,6 @@ class GameRetrieveSerializer(serializers.Serializer):
                         statuses.append("nmr")
                     break
         return statuses
-
-    def to_representation(self, instance):
-        with tracer.start_as_current_span("game.serializers.to_representation") as span:
-            span.set_attribute("game.id", instance.id)
-            span.set_attribute("game.status", instance.status)
-            return super().to_representation(instance)
 
 
 class GameCreateSerializer(serializers.Serializer):

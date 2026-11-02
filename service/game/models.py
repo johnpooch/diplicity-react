@@ -23,7 +23,6 @@ from django.db.models import (
     prefetch_related_objects,
 )
 from django.db.models.functions import Coalesce
-from opentelemetry import trace
 from procrastinate.contrib.django import app as procrastinate_app
 from common.constants import (
     CommitmentEvent,
@@ -61,8 +60,6 @@ from channel.models import ChannelMessage
 from user_profile.models import UserProfile
 from adjudicator import service as adjudication_service
 from game.utils import assign_nations
-
-tracer = trace.get_tracer(__name__)
 
 FASTEST_START_MIN_PLAYERS = 3
 
@@ -822,16 +819,15 @@ class Game(BaseModel):
 
     @property
     def current_phase(self):
-        with tracer.start_as_current_span("game.models.current_phase"):
-            # Use prefetched data if available
-            if hasattr(self, "active_phases_list"):
-                return self.active_phases_list[-1] if self.active_phases_list else None
+        # Use prefetched data if available
+        if hasattr(self, "active_phases_list"):
+            return self.active_phases_list[-1] if self.active_phases_list else None
 
-            if "phases" in getattr(self, "_prefetched_objects_cache", {}):
-                phases = list(self.phases.all())
-                return phases[-1] if phases else None
+        if "phases" in getattr(self, "_prefetched_objects_cache", {}):
+            phases = list(self.phases.all())
+            return phases[-1] if phases else None
 
-            return self.phases.order_by("ordinal", "id").last()
+        return self.phases.order_by("ordinal", "id").last()
 
     @property
     def in_first_year(self):
@@ -887,18 +883,15 @@ class Game(BaseModel):
 
     @cached_property
     def nmrd_member_ids(self):
-        with tracer.start_as_current_span("game.models.nmrd_member_ids"):
-            completed = [
-                p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED
-            ]
-            if not completed:
-                return set()
-            latest = max(completed, key=lambda p: p.ordinal)
-            return {
-                phase_state.member_id
-                for phase_state in latest.phase_states.all()
-                if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
-            }
+        completed = [p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED]
+        if not completed:
+            return set()
+        latest = max(completed, key=lambda p: p.ordinal)
+        return {
+            phase_state.member_id
+            for phase_state in latest.phase_states.all()
+            if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
+        }
 
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
@@ -944,76 +937,70 @@ class Game(BaseModel):
             return None
 
     def join_decision(self, user):
-        with tracer.start_as_current_span("game.models.join_decision"):
-            if self.game_master_id is not None and self.game_master_id == user.id:
-                return Decision(False)
-            user_is_member = any(
-                member.user_id is not None and member.user_id == user.id
-                for member in self.members.all()
-            )
-            if user_is_member or self.status != GameStatus.PENDING:
-                return Decision(False)
-            return MeetsCommitmentRequirementCheck.decide(self, user)
+        if self.game_master_id is not None and self.game_master_id == user.id:
+            return Decision(False)
+        user_is_member = any(
+            member.user_id is not None and member.user_id == user.id
+            for member in self.members.all()
+        )
+        if user_is_member or self.status != GameStatus.PENDING:
+            return Decision(False)
+        return MeetsCommitmentRequirementCheck.decide(self, user)
 
     def can_join(self, user):
         return self.join_decision(user).allowed
 
     def can_leave(self, user):
-        with tracer.start_as_current_span("game.models.can_leave"):
-            user_is_player = any(
-                member.user_id is not None and member.user_id == user.id
-                for member in self.members.all()
-                if not member.is_game_master
-            )
-            game_is_unstarted = self.status in (
-                GameStatus.PENDING,
-                GameStatus.MUSTERING,
-            )
-            return user_is_player and game_is_unstarted
+        user_is_player = any(
+            member.user_id is not None and member.user_id == user.id
+            for member in self.members.all()
+            if not member.is_game_master
+        )
+        game_is_unstarted = self.status in (
+            GameStatus.PENDING,
+            GameStatus.MUSTERING,
+        )
+        return user_is_player and game_is_unstarted
 
     def can_withdraw(self, user):
-        with tracer.start_as_current_span("game.models.can_withdraw"):
-            if self.status != GameStatus.ACTIVE or self.sandbox:
-                return False
-            return any(
-                member.user_id is not None
-                and member.user_id == user.id
-                and not member.is_game_master
-                and not member.eliminated
-                and member.occupied
-                for member in self.members.all()
-            )
+        if self.status != GameStatus.ACTIVE or self.sandbox:
+            return False
+        return any(
+            member.user_id is not None
+            and member.user_id == user.id
+            and not member.is_game_master
+            and not member.eliminated
+            and member.occupied
+            for member in self.members.all()
+        )
 
     def can_delete(self, user):
-        with tracer.start_as_current_span("game.models.can_delete"):
-            if (
-                self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
-                and self.game_master_id is not None
-                and self.game_master_id == user.id
-            ):
-                return True
-            if not self.sandbox:
-                return False
-            return any(
-                member.user_id is not None and member.user_id == user.id
-                for member in self.members.all()
-            )
+        if (
+            self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
+            and self.game_master_id is not None
+            and self.game_master_id == user.id
+        ):
+            return True
+        if not self.sandbox:
+            return False
+        return any(
+            member.user_id is not None and member.user_id == user.id
+            for member in self.members.all()
+        )
 
     def can_manage(self, user):
-        with tracer.start_as_current_span("game.models.can_manage"):
-            return self.admin_id == user.id
+        return self.admin_id == user.id
 
     def can_remove_member(self, member):
-        with tracer.start_as_current_span("game.models.can_remove_member"):
-            if member.is_game_master or member.left_seat or member.withdrawn:
-                return False
-            if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
-                return True
-            if self.status != GameStatus.ACTIVE:
-                return False
-            if member.is_bot:
-                return True
-            return member.civil_disorder or member.id in self.nmrd_member_ids
+        if member.is_game_master or member.left_seat or member.withdrawn:
+            return False
+        if self.status in (GameStatus.PENDING, GameStatus.MUSTERING):
+            return True
+        if self.status != GameStatus.ACTIVE:
+            return False
+        if member.is_bot:
+            return True
+        return member.civil_disorder or member.id in self.nmrd_member_ids
 
     def actions_for(self, user):
         return self._actions_from(user, GameActionKey.GAME_INFO_KEYS)
@@ -1081,22 +1068,21 @@ class Game(BaseModel):
         return member
 
     def reassign_admin(self):
-        with tracer.start_as_current_span("game.models.reassign_admin"):
-            candidates = [
-                member
-                for member in self.members.players()
-                .filter(user__isnull=False)
-                .exclude(user_id=self.admin_id)
-                if member.occupied
-            ]
-            if not candidates:
-                return
+        candidates = [
+            member
+            for member in self.members.players()
+            .filter(user__isnull=False)
+            .exclude(user_id=self.admin_id)
+            if member.occupied
+        ]
+        if not candidates:
+            return
 
-            new_admin = random.choice(candidates).user
-            self.admin = new_admin
-            self.save(update_fields=["admin"])
+        new_admin = random.choice(candidates).user
+        self.admin = new_admin
+        self.save(update_fields=["admin"])
 
-            emit("game_admin_reassigned", game=self)
+        emit("game_admin_reassigned", game=self)
 
     def _with_game_master(self, user_ids):
         result = set(user_ids)
@@ -1137,18 +1123,17 @@ class Game(BaseModel):
         return {m.user_id for m in self.winner_members() if m.user_id is not None}
 
     def phase_confirmed(self, user):
-        with tracer.start_as_current_span("game.models.phase_confirmed"):
-            current_phase = self.current_phase
-            if current_phase is None:
-                return False
-            for phase_state in current_phase.phase_states.all():
-                if (
-                    phase_state.member.user_id is not None
-                    and phase_state.member.user_id == user.id
-                    and phase_state.orders_confirmed
-                ):
-                    return True
+        current_phase = self.current_phase
+        if current_phase is None:
             return False
+        for phase_state in current_phase.phase_states.all():
+            if (
+                phase_state.member.user_id is not None
+                and phase_state.member.user_id == user.id
+                and phase_state.orders_confirmed
+            ):
+                return True
+        return False
 
     def start(self, current_phase=None, members=None, notify_user_ids=None):
         if self.status not in (GameStatus.PENDING, GameStatus.MUSTERING):
