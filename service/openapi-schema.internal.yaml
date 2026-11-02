@@ -3975,6 +3975,20 @@ components:
         * `paused` - Paused
         * `sandbox` - Sandbox
         * `finished` - Finished
+    Mark:
+      type: object
+      properties:
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/ReasonEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - reason
     Member:
       type: object
       properties:
@@ -5159,6 +5173,11 @@ components:
           items:
             $ref: '#/components/schemas/CommitmentSquare'
           readOnly: true
+        marks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mark'
+          readOnly: true
       required:
       - active_games
       - commitment_band
@@ -5166,6 +5185,7 @@ components:
       - commitment_total
       - created_at
       - id
+      - marks
       - name
       - picture
       - total_games

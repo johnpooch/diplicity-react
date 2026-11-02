@@ -8,6 +8,8 @@ import { Panel } from "@/components/Panel";
 import {
   PlayerCommitmentSection,
   PlayerCommitmentSectionSkeleton,
+  PlayerConductSection,
+  PlayerConductSectionSkeleton,
 } from "@/components/PlayerProfileContent";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
@@ -169,8 +171,16 @@ const MemberContent: React.FC = () => {
           <SettingsTable rows={gameRows} />
         </section>
         {!game.anonymous && member.userId !== null && (
-          <Suspense fallback={<PlayerCommitmentSectionSkeleton />}>
+          <Suspense
+            fallback={
+              <>
+                <PlayerCommitmentSectionSkeleton />
+                <PlayerConductSectionSkeleton />
+              </>
+            }
+          >
             <PlayerCommitmentSection userId={member.userId} />
+            <PlayerConductSection userId={member.userId} />
           </Suspense>
         )}
         {member.nationPreferences !== null && (

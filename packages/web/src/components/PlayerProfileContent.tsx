@@ -4,7 +4,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerCommitment } from "@/components/PlayerCommitment";
-import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
+import {
+  useUsersRetrieveSuspense,
+  type ReasonEnum,
+} from "@/api/generated/endpoints";
 
 interface PlayerProfileContentProps {
   userId: number;
@@ -75,6 +78,47 @@ export const PlayerCommitmentSection: React.FC<PlayerProfileContentProps> = ({
   );
 };
 
+const markLabel: Record<ReasonEnum, string> = {
+  abuse_and_harassment: "Abuse and harassment",
+  multiple_accounts: "Multiple accounts",
+  secret_teaming: "Secret teaming",
+  other: "Other conduct violation",
+};
+
+export const PlayerConductSectionSkeleton: React.FC = () => (
+  <Section title="Conduct history">
+    <Skeleton className="mx-6 my-3 h-5" />
+  </Section>
+);
+
+export const PlayerConductSection: React.FC<PlayerProfileContentProps> = ({
+  userId,
+}) => {
+  const { data: profile } = useUsersRetrieveSuspense(userId);
+
+  return (
+    <Section title="Conduct history">
+      {profile.marks.length === 0 ? (
+        <p className="px-6 py-3 text-sm">No bad conduct</p>
+      ) : (
+        <div className="divide-y">
+          {profile.marks.map(mark => (
+            <StatRow
+              key={`${mark.reason}-${mark.createdAt}`}
+              label={markLabel[mark.reason]}
+              value={new Date(mark.createdAt).toLocaleDateString(undefined, {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            />
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+};
+
 export const PlayerProfileContentSkeleton: React.FC = () => (
   <div className="space-y-4">
     <ProfileCard
@@ -89,6 +133,7 @@ export const PlayerProfileContentSkeleton: React.FC = () => (
       </div>
     </Section>
     <PlayerCommitmentSectionSkeleton />
+    <PlayerConductSectionSkeleton />
   </div>
 );
 
@@ -130,6 +175,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
       </Section>
 
       <PlayerCommitmentSection userId={userId} />
+      <PlayerConductSection userId={userId} />
     </div>
   );
 };

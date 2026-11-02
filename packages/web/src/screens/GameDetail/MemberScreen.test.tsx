@@ -22,6 +22,7 @@ const profile: PublicUserProfile = {
   commitmentTotal: 434,
   commitmentBand: "neutral",
   commitmentSquares: [],
+  marks: [],
 };
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
@@ -147,12 +148,30 @@ describe("MemberScreen", () => {
     expect(screen.getByText("+434")).toBeInTheDocument();
   });
 
+  it("shows the player's conduct history", () => {
+    renderScreen();
+
+    expect(
+      screen.getByRole("heading", { name: "Conduct history" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("No bad conduct")).toBeInTheDocument();
+  });
+
   it("hides commitment in an anonymous game", () => {
     game = buildGame({ anonymous: true });
     renderScreen();
 
     expect(
       screen.queryByRole("heading", { name: "Commitment" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides conduct history in an anonymous game", () => {
+    game = buildGame({ anonymous: true });
+    renderScreen();
+
+    expect(
+      screen.queryByRole("heading", { name: "Conduct history" })
     ).not.toBeInTheDocument();
   });
 

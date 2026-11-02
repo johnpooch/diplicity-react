@@ -10,6 +10,8 @@ from common.constants import (
 from game.models import Game
 from member.checks import MeetsCommitmentRequirementCheck
 from member.models import Member
+from report.constants import ReportReason
+from report.models import Mark
 
 from .models import UserProfilePicture
 from .utils import get_player_stats, normalise_picture, user_can_use_bot_opponent
@@ -97,6 +99,13 @@ class CommitmentSquareSerializer(serializers.Serializer):
         return CommitmentShade.for_points(obj.commitment_square)
 
 
+class MarkSerializer(serializers.Serializer):
+    reason = serializers.ChoiceField(
+        choices=ReportReason.REASON_CHOICES, read_only=True
+    )
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
@@ -107,6 +116,7 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     commitment_total = serializers.IntegerField(read_only=True)
     commitment_band = serializers.SerializerMethodField()
     commitment_squares = serializers.SerializerMethodField()
+    marks = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES))
     def get_commitment_band(self, obj):
@@ -117,6 +127,11 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
         squares = list(Member.objects.filter(user=obj.user).commitment_squares())
         Member.objects.hydrate_commitment_breakdowns(squares)
         return CommitmentSquareSerializer(squares, many=True).data
+
+    @extend_schema_field(MarkSerializer(many=True))
+    def get_marks(self, obj):
+        marks = Mark.objects.filter(member__user=obj.user).order_by("-created_at")
+        return MarkSerializer(marks, many=True).data
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
