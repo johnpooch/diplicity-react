@@ -45,7 +45,7 @@ function AppContent() {
       <Suspense fallback={null}>
         <NotificationPermissionPrompter />
       </Suspense>
-      <Router loggedIn={loggedIn} queryClient={queryClient} />
+      <Router loggedIn={loggedIn} />
     </>
   );
 }
