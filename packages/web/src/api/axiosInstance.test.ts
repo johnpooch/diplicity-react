@@ -128,3 +128,63 @@ describe("client version header", () => {
     );
   });
 });
+
+describe("token refresh", () => {
+  const defaultAdapter = axios.defaults.adapter;
+
+  afterEach(() => {
+    axios.defaults.adapter = defaultAdapter;
+    tokenStorage.clearTokens();
+  });
+
+  const refreshWith = async (data: unknown) => {
+    tokenStorage.setTokens({
+      accessToken: "expired",
+      refreshToken: "original-refresh",
+      email: "player@example.com",
+      name: "Player",
+    });
+    let rejected = false;
+    axiosInstance.defaults.adapter = async config => {
+      const response = {
+        status: rejected ? 200 : 401,
+        statusText: "",
+        data: [],
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse;
+      if (rejected) return response;
+      rejected = true;
+      throw new AxiosError("Unauthorized", "401", config, null, response);
+    };
+    axios.defaults.adapter = async config =>
+      ({
+        status: 200,
+        statusText: "",
+        data,
+        headers: new AxiosHeaders(),
+        config,
+      }) as AxiosResponse;
+
+    await customInstance({ url: "/variants/" });
+  };
+
+  it("stores the rotated refresh token when the response includes one", async () => {
+    await refreshWith({ access: "fresh", refresh: "rotated-refresh" });
+
+    expect(tokenStorage.getTokenState()).toMatchObject({
+      accessToken: "fresh",
+      refreshToken: "rotated-refresh",
+    });
+    expect(localStorage.getItem("refreshToken")).toBe("rotated-refresh");
+  });
+
+  it("keeps the existing refresh token when the response omits one", async () => {
+    await refreshWith({ access: "fresh" });
+
+    expect(tokenStorage.getTokenState()).toMatchObject({
+      accessToken: "fresh",
+      refreshToken: "original-refresh",
+    });
+  });
+});

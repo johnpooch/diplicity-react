@@ -43,8 +43,14 @@ const setTokens = (tokens: {
   notifyListeners();
 };
 
-const updateAccessToken = (accessToken: string) => {
-  localStorage.setItem("accessToken", accessToken);
+const updateRefreshedTokens = (tokens: {
+  accessToken: string;
+  refreshToken?: string;
+}) => {
+  localStorage.setItem("accessToken", tokens.accessToken);
+  if (tokens.refreshToken) {
+    localStorage.setItem("refreshToken", tokens.refreshToken);
+  }
   updateCachedState();
   notifyListeners();
 };
@@ -74,7 +80,7 @@ const isLoggedIn = () => !!localStorage.getItem("accessToken");
 export const tokenStorage = {
   getTokenState,
   setTokens,
-  updateAccessToken,
+  updateRefreshedTokens,
   clearTokens,
   subscribe,
   isLoggedIn,
