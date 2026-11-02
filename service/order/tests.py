@@ -4033,6 +4033,87 @@ class TestOrderOptionsView:
         assert response.status_code == status.HTTP_200_OK
         assert response["ETag"] != etag
 
+    @pytest.mark.django_db
+    def test_adjustment_below_limit_returns_all_sources(
+        self, authenticated_client, adjustment_game_with_one_build
+    ):
+        url = reverse("order-options", args=[adjustment_game_with_one_build.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        sources = {o["source"]["id"] for o in response.data["orders"]}
+        assert sources == {"lon", "lvp"}
+
+    @pytest.mark.django_db
+    def test_adjustment_at_limit_returns_only_ordered_sources(
+        self,
+        authenticated_client,
+        adjustment_game_with_one_build,
+        classical_london_province,
+    ):
+        game = adjustment_game_with_one_build
+        Order.objects.create(
+            phase_state=game.current_phase.phase_states.get(),
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.ARMY,
+        )
+        url = reverse("order-options", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        sources = {o["source"]["id"] for o in response.data["orders"]}
+        assert sources == {"lon"}
+
+    @pytest.mark.django_db
+    def test_adjustment_create_order_returns_200_with_new_etag(
+        self, authenticated_client, adjustment_game_with_one_build
+    ):
+        game = adjustment_game_with_one_build
+        url = reverse("order-options", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        create_response = authenticated_client.post(
+            reverse("order-create", args=[game.id]),
+            {"selected": ["lon", "Build", "Army"]},
+            format="json",
+        )
+        assert create_response.status_code == status.HTTP_201_CREATED
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+        sources = {o["source"]["id"] for o in response.data["orders"]}
+        assert sources == {"lon"}
+
+    @pytest.mark.django_db
+    def test_adjustment_delete_order_returns_200_with_new_etag(
+        self,
+        authenticated_client,
+        adjustment_game_with_one_build,
+        classical_london_province,
+    ):
+        game = adjustment_game_with_one_build
+        Order.objects.create(
+            phase_state=game.current_phase.phase_states.get(),
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.ARMY,
+        )
+        url = reverse("order-options", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        delete_response = authenticated_client.delete(
+            reverse("order-delete", args=[game.id, "lon"])
+        )
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+        sources = {o["source"]["id"] for o in response.data["orders"]}
+        assert sources == {"lon", "lvp"}
+
 
 class TestSourceCoast:
 

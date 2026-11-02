@@ -2,6 +2,7 @@ import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -26,6 +27,7 @@ import {
   useGameOrdersDeleteDestroy,
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
+  getGameOptionsRetrieveQueryKey,
   useGameOptionsRetrieve,
   type Order,
 } from "../api/generated/endpoints";
@@ -67,6 +69,14 @@ const ORDER_TYPE_KEYS: Record<string, string> = {
   Fleet: "F",
   Disband: "D",
   Build: "B",
+};
+
+const createOrderErrorMessage = (error: unknown) => {
+  const data = (
+    error as AxiosError<string[] | { selected?: string[]; detail?: string }>
+  ).response?.data;
+  if (Array.isArray(data)) return data[0] ?? "Failed to create order";
+  return data?.selected?.[0] ?? data?.detail ?? "Failed to create order";
 };
 
 const GameMap: React.FC = () => {
@@ -165,14 +175,17 @@ const GameMap: React.FC = () => {
         queryClient.invalidateQueries({
           queryKey: getGamePhaseStatesListQueryKey(gameId),
         });
+        queryClient.invalidateQueries({
+          queryKey: getGameOptionsRetrieveQueryKey(gameId),
+        });
         setPendingOrder(null);
         toast.success(order.title ?? "Order created");
         wizard.reset();
         setMenuPosition(null);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         setPendingOrder(null);
-        toast.error("Failed to create order");
+        toast.error(createOrderErrorMessage(error));
         wizard.reset();
         setMenuPosition(null);
       });
@@ -205,6 +218,9 @@ const GameMap: React.FC = () => {
       );
       queryClient.invalidateQueries({
         queryKey: getGamePhaseStatesListQueryKey(gameId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGameOptionsRetrieveQueryKey(gameId),
       });
     } catch {
       toast.error("Failed to clear order");

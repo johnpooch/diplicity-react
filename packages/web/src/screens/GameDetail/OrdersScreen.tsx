@@ -546,6 +546,9 @@ const OrdersScreen: React.FC = () => {
       queryClient.invalidateQueries({
         queryKey: getGamePhaseStatesListQueryKey(gameId),
       });
+      queryClient.invalidateQueries({
+        queryKey: getGameOptionsRetrieveQueryKey(gameId),
+      });
       toast.success("Order deleted");
     } catch {
       toast.error("Failed to delete order");

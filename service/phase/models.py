@@ -1141,17 +1141,21 @@ class PhaseState(BaseModel):
             "named_coasts"
         )
 
-        if self.phase.type == PhaseType.ADJUSTMENT:
-            max_orders = self.max_allowed_adjustment_orders()
-            current_orders = self.orders.count()
-
-            if current_orders >= max_orders:
-                provinces_with_orders = self.orders.values_list(
-                    "source__province_id", flat=True
-                )
-                return base_provinces.filter(province_id__in=provinces_with_orders)
+        if self.adjustment_limit_reached():
+            return base_provinces.filter(
+                province_id__in=self.ordered_source_province_ids()
+            )
 
         return base_provinces
+
+    def adjustment_limit_reached(self):
+        return (
+            self.phase.type == PhaseType.ADJUSTMENT
+            and self.orders.count() >= self.max_allowed_adjustment_orders()
+        )
+
+    def ordered_source_province_ids(self):
+        return list(self.orders.values_list("source__province_id", flat=True))
 
     @property
     def orderable_provinces(self):

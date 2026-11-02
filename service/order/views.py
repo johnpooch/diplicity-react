@@ -18,7 +18,7 @@ from common.views import (
 )
 from common.serializers import EmptySerializer
 
-ORDER_OPTIONS_REPRESENTATION_VERSION = 1
+ORDER_OPTIONS_REPRESENTATION_VERSION = 2
 
 
 class OrderListView(CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.ListAPIView):
@@ -61,29 +61,57 @@ class OrderOptionsView(
             self._phase = super().get_phase()
         return self._phase
 
-    def get_nation_names(self):
-        if not hasattr(self, "_nation_names"):
+    def get_phase_states(self):
+        if not hasattr(self, "_phase_states"):
+            phase = self.get_phase()
             members = (
-                self.get_phase()
-                .game.members.players()
+                phase.game.members.players()
                 .select_related("nation")
                 .filter(user=self.request.user, eliminated_at__isnull=True)
             )
-            self._nation_names = [m.nation.name for m in members if m.occupied]
-        return self._nation_names
+            member_ids = [m.id for m in members if m.occupied]
+            self._phase_states = list(
+                phase.phase_states.select_related("member__nation", "phase")
+                .filter(member_id__in=member_ids)
+                .order_by("member__nation__name")
+            )
+        return self._phase_states
+
+    def get_limited_sources(self):
+        if not hasattr(self, "_limited_sources"):
+            self._limited_sources = {
+                phase_state.id: sorted(phase_state.ordered_source_province_ids())
+                for phase_state in self.get_phase_states()
+                if phase_state.adjustment_limit_reached()
+            }
+        return self._limited_sources
 
     def get_fingerprint(self):
-        key = f"{ORDER_OPTIONS_REPRESENTATION_VERSION}|{self.get_phase().id}|{','.join(self.get_nation_names())}"
+        limited_sources = self.get_limited_sources()
+        nations = ",".join(
+            f"{phase_state.member.nation.name}:{'+'.join(limited_sources[phase_state.id])}"
+            if phase_state.id in limited_sources
+            else phase_state.member.nation.name
+            for phase_state in self.get_phase_states()
+        )
+        key = f"{ORDER_OPTIONS_REPRESENTATION_VERSION}|{self.get_phase().id}|{nations}"
         return hashlib.sha256(key.encode()).hexdigest()[:32]
 
     def retrieve(self, request, *args, **kwargs):
         phase = self.get_phase()
         province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
         transformed = phase.transformed_options or {}
+        limited_sources = self.get_limited_sources()
 
         all_orders = []
-        for nation_name in self.get_nation_names():
-            nation_options = transformed.get(nation_name, {})
+        for phase_state in self.get_phase_states():
+            nation_options = transformed.get(phase_state.member.nation.name, {})
+            if phase_state.id in limited_sources:
+                nation_options = {
+                    source: options
+                    for source, options in nation_options.items()
+                    if source in limited_sources[phase_state.id]
+                }
             all_orders.extend(flatten_options(nation_options, province_lookup))
 
         data = {"orders": all_orders, "field_order": FIELD_ORDER}
