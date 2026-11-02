@@ -156,6 +156,33 @@ describe("PlayerInfoContent", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers nation preferences to the current player while mustering", () => {
+    game = buildGame({
+      status: "mustering",
+      members: [buildMember({ isCurrentUser: true })],
+      playerListActions: [
+        { key: "edit_nation_preferences", blockedReason: null },
+      ],
+    });
+    renderContent();
+
+    expect(
+      screen.getByRole("button", { name: "Choose nation preferences" })
+    ).toBeInTheDocument();
+  });
+
+  it("offers no nation preferences without the action", () => {
+    game = buildGame({
+      status: "mustering",
+      members: [buildMember({ isCurrentUser: true })],
+    });
+    renderContent();
+
+    expect(
+      screen.queryByRole("button", { name: "Choose nation preferences" })
+    ).not.toBeInTheDocument();
+  });
+
   it("shows no commitment when the API omits it", () => {
     game = buildGame({
       anonymous: true,

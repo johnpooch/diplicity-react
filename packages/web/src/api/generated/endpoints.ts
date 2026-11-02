@@ -5578,7 +5578,7 @@ export const useGameMemberJoinCreate = <TError = unknown, TContext = unknown>(
 
 /**
  * Read or replace the requesting member's ranked nation preferences for a
-pending game. Array position determines rank; an empty list means no
+game that has not started. Array position determines rank; an empty list means no
 preference.
  */
 export const gameMemberNationPreferenceRetrieve = (
@@ -5867,7 +5867,7 @@ export function useGameMemberNationPreferenceRetrieveSuspense<
 
 /**
  * Read or replace the requesting member's ranked nation preferences for a
-pending game. Array position determines rank; an empty list means no
+game that has not started. Array position determines rank; an empty list means no
 preference.
  */
 export const gameMemberNationPreferenceUpdate = (

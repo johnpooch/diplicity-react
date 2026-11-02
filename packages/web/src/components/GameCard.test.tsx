@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { GameList } from "@/api/generated/endpoints";
+import type { GameList, Member } from "@/api/generated/endpoints";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GameCard } from "./GameCard";
 
@@ -54,6 +54,30 @@ const buildGame = (overrides: Partial<GameList> = {}): GameList => ({
   totalUnreadMessageCount: 0,
   ...overrides,
 });
+
+const currentMember: Member = {
+  id: 1,
+  userId: 1,
+  name: "Jane Doe",
+  picture: null,
+  isCurrentUser: true,
+  isBot: false,
+  nation: null,
+  eliminated: false,
+  kicked: false,
+  isGameCreator: false,
+  isAdmin: false,
+  nmrExtensionsRemaining: 0,
+  civilDisorder: false,
+  withdrawn: false,
+  seekingReplacement: false,
+  replaceable: false,
+  seatConfirmed: false,
+  removable: false,
+  nationPreferenceIds: [],
+  commitmentTotal: 0,
+  commitmentBand: "neutral",
+};
 
 const renderCard = (game: GameList) =>
   render(
@@ -128,6 +152,20 @@ describe("GameCard", () => {
     await user.pointer({ keys: "[TouchA]", target: document.body });
 
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("offers nation preferences to a player while mustering", () => {
+    renderCard(
+      buildGame({
+        status: "mustering",
+        canJoin: false,
+        members: [currentMember],
+      })
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Choose nation" })
+    ).toBeInTheDocument();
   });
 
   it("shows no Join when the viewer cannot join for another reason", () => {

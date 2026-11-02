@@ -212,11 +212,15 @@ class MemberWithdrawView(SelectedGameMixin, generics.UpdateAPIView):
 
 class MemberNationPreferenceView(SelectedGameMixin, generics.GenericAPIView):
     """Read or replace the requesting member's ranked nation preferences for a
-    pending game. Array position determines rank; an empty list means no
+    game that has not started. Array position determines rank; an empty list means no
     preference."""
 
     serializer_class = MemberNationPreferenceSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGamePlayer]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingOrMusteringGame,
+        IsGamePlayer,
+    ]
 
     def get_object(self):
         game = self.get_game()
