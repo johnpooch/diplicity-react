@@ -24,16 +24,14 @@ order for submission.
 
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
-from .convoy import convoy_path_exists, convoy_path_through_fleet
-from .domain import OrderOption, Phase, ProvinceType, State, Unit
+from .convoy import convoy_endpoints_through_fleet, convoy_path_exists
+from .domain import ConvoyOption, OrderOption, Phase, ProvinceType, State, Unit
 from .types import (
     AdjudicationState,
     AdjustmentDisbandOrder,
     BuildOrder,
-    ConvoyFleetReachesEndpointsCheck,
-    ConvoyOrder,
     MoveOrder,
     MoveTargetIsReachableCheck,
     OrderType,
@@ -50,6 +48,16 @@ def get_options(state: State) -> List[OrderOption]:
     eligible units across every nation. Callers filter by nation if
     needed. Raises NotImplementedError for phase types other than
     Movement, Retreat, or Adjustment."""
+    options: List[OrderOption] = []
+    for option in get_compact_options(state):
+        if isinstance(option, ConvoyOption):
+            options.extend(_expand_convoy_option(option))
+        else:
+            options.append(option)
+    return options
+
+
+def get_compact_options(state: State) -> List[Union[OrderOption, ConvoyOption]]:
     adj = AdjudicationState(
         variant=state.variant,
         phase=state.phase,
@@ -72,8 +80,8 @@ def get_options(state: State) -> List[OrderOption]:
 # === Movement phase ===
 
 
-def _movement_options(view: StateView) -> List[OrderOption]:
-    options: List[OrderOption] = []
+def _movement_options(view: StateView) -> List[Union[OrderOption, ConvoyOption]]:
+    options: List[Union[OrderOption, ConvoyOption]] = []
     variant = view.variant()
     units_view = view.units()
     standing_items = tuple(sorted(units_view.standing_by_loc().items()))
@@ -142,7 +150,7 @@ def _movement_options(view: StateView) -> List[OrderOption]:
             and view.province(variant.parent_of(source_loc)).is_sea()
         ):
             options.extend(
-                _convoy_options(view, unit, source_loc, sea_fleet_locs, standing_items)
+                _convoy_options(view, source_loc, sea_fleet_locs, standing_items)
             )
     return options
 
@@ -308,76 +316,62 @@ def _supported_can_convoy(
 
 def _convoy_options(
     view: StateView,
-    fleet: Unit,
     source_loc: str,
     sea_fleet_locs: Tuple[str, ...],
     standing_items: Tuple[Tuple[str, Unit], ...],
-) -> List[OrderOption]:
-    options: List[OrderOption] = []
+) -> List[ConvoyOption]:
     variant = view.variant()
     army_source_parents = sorted(
-        {variant.parent_of(loc) for loc, u in standing_items if u.type == Unit.ARMY}
+        {
+            variant.parent_of(loc)
+            for loc, u in standing_items
+            if u.type == Unit.ARMY
+            and view.province(variant.parent_of(loc)).is_coastal()
+        }
     )
     coastal_parents = sorted(
         pid
         for pid, p in variant.provinces.items()
         if p.type != ProvinceType.SEA and variant.has_fleet_access(pid)
     )
-    for army_source in army_source_parents:
-        for army_target in coastal_parents:
-            if army_source == army_target:
-                continue
-            order = ConvoyOrder(
-                nation=fleet.nation,
-                source=source_loc,
-                army_source=army_source,
-                army_target=army_target,
-                unit_type=fleet.type,
-            )
-            if _convoy_is_orderable(view, order, sea_fleet_locs):
-                options.append(
-                    OrderOption(
-                        source=source_loc,
-                        order_type=OrderType.CONVOY,
-                        target=army_target,
-                        aux=army_source,
-                        unit_type=None,
-                        named_coast=None,
-                    )
-                )
-    return options
-
-
-def _convoy_is_orderable(
-    view: StateView, order: ConvoyOrder, sea_fleet_locs: Tuple[str, ...]
-) -> bool:
-    # ConvoyFleetReachesEndpointsCheck is the engine's order-legality
-    # check: a purely topological reachability test that is intentionally
-    # lenient. Options instead require a convoy chain through the fleets
-    # actually on the board, with this fleet on it — strictly stronger,
-    # so it fully replaces the topological check rather than supplementing
-    # it. See the module docstring and docs/options-design.md.
-    for check_cls in ConvoyOrder.LEGALITY_CHECKS:
-        if check_cls is ConvoyFleetReachesEndpointsCheck:
-            continue
-        if not check_cls.check(view, order):
-            return False
-    return _convoy_has_real_path(view, order, sea_fleet_locs)
-
-
-def _convoy_has_real_path(
-    view: StateView, order: ConvoyOrder, sea_fleet_locs: Tuple[str, ...]
-) -> bool:
-    if not sea_fleet_locs:
-        return False
-    variant = view.variant()
-    return convoy_path_through_fleet(
-        view,
-        variant.parent_of(order.army_source),
-        variant.parent_of(order.army_target),
-        order.source,
-        sea_fleet_locs,
+    army_sources, army_targets = convoy_endpoints_through_fleet(
+        view, source_loc, sea_fleet_locs, army_source_parents, coastal_parents
     )
+    paired_sources = tuple(
+        source
+        for source in army_sources
+        if any(target != source for target in army_targets)
+    )
+    paired_targets = tuple(
+        target
+        for target in army_targets
+        if any(source != target for source in army_sources)
+    )
+    if not paired_sources:
+        return []
+    return [
+        ConvoyOption(
+            source=source_loc,
+            army_sources=paired_sources,
+            army_targets=paired_targets,
+        )
+    ]
+
+
+def _expand_convoy_option(option: ConvoyOption) -> List[OrderOption]:
+    return [
+        OrderOption(
+            source=option.source,
+            order_type=OrderType.CONVOY,
+            target=army_target,
+            aux=army_source,
+            unit_type=None,
+            named_coast=None,
+        )
+        for army_source in option.army_sources
+        for army_target in option.army_targets
+        if army_source != army_target
+    ]
 
 
 # === Retreat phase ===

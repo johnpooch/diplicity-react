@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -93,6 +94,31 @@ def build_notification_body(
             f"Your units don't have orders yet. "
             f"{nmr_suffix}"
         )
+
+
+class ConvoyOptions(Mapping):
+    def __init__(self, army_sources, army_targets):
+        self._army_sources = tuple(army_sources)
+        self._army_source_set = frozenset(self._army_sources)
+        self._army_targets = tuple(army_targets)
+
+    def __getitem__(self, army_source):
+        if army_source not in self._army_source_set:
+            raise KeyError(army_source)
+        return {
+            army_target: {}
+            for army_target in self._army_targets
+            if army_target != army_source
+        }
+
+    def __contains__(self, army_source):
+        return army_source in self._army_source_set
+
+    def __iter__(self):
+        return iter(self._army_sources)
+
+    def __len__(self):
+        return len(self._army_sources)
 
 
 def transform_options(raw_options):
@@ -262,6 +288,9 @@ def _transform_order_type_options(order_data):
     """
     if not isinstance(order_data, dict):
         return {}
+
+    if order_data.get("Type") == "ConvoyProduct":
+        return ConvoyOptions(order_data["Aux"], order_data["Target"])
 
     # Get the next level
     next_level = order_data.get("Next", {})

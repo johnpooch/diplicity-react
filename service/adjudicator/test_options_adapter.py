@@ -1,5 +1,6 @@
 from adjudicator.domain import (
     Adjacency,
+    ConvoyOption,
     NamedCoast,
     Nation,
     OrderOption,
@@ -179,6 +180,68 @@ def test_convoy_option_nests_army_target_under_army_source():
             "Next": {"bre": {"Type": "Province", "Next": {}}},
         },
     }
+
+
+def test_convoy_option_stored_as_product_of_army_sources_and_targets():
+    variant = _make_variant(
+        provinces=[_coastal("eng"), _coastal("lon"), _coastal("bre")]
+    )
+    options = [
+        ConvoyOption(
+            source="eng", army_sources=("bre", "lon"), army_targets=("bre", "lon")
+        )
+    ]
+    units = [Unit(nation="ENG", type=Unit.FLEET, location="eng")]
+
+    result = python_options_to_godip_dict(options, units, [], variant, "Movement")
+
+    assert result["England"]["eng"]["Next"]["Convoy"] == {
+        "Type": "ConvoyProduct",
+        "Aux": ["bre", "lon"],
+        "Target": ["bre", "lon"],
+    }
+
+
+def test_convoy_product_transforms_to_the_expanded_convoy_tree():
+    variant = _make_variant(
+        provinces=[_coastal(p) for p in ("eng", "lon", "bre", "wal", "pic")]
+    )
+    units = [Unit(nation="ENG", type=Unit.FLEET, location="eng")]
+    compact = [
+        ConvoyOption(
+            source="eng",
+            army_sources=("bre", "lon"),
+            army_targets=("bre", "lon", "pic", "wal"),
+        )
+    ]
+    expanded = [
+        OrderOption(
+            source="eng",
+            order_type="Convoy",
+            target=target,
+            aux=aux,
+            unit_type=None,
+            named_coast=None,
+        )
+        for aux in ("bre", "lon")
+        for target in ("bre", "lon", "pic", "wal")
+        if aux != target
+    ]
+
+    compact_tree = transform_options(
+        python_options_to_godip_dict(compact, units, [], variant, "Movement")
+    )
+    expanded_tree = transform_options(
+        python_options_to_godip_dict(expanded, units, [], variant, "Movement")
+    )
+
+    assert compact_tree == expanded_tree
+    assert list(compact_tree["England"]["eng"]["Convoy"]) == ["bre", "lon"]
+    assert list(compact_tree["England"]["eng"]["Convoy"]["lon"]) == [
+        "bre",
+        "pic",
+        "wal",
+    ]
 
 
 def test_build_army_keyed_by_supply_center_owner():

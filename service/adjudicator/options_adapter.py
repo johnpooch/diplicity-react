@@ -20,23 +20,27 @@ Quirks worth knowing:
     is what folds those back into a single parent-level entry.
   - For everything except multi-coast Builds the top-level province key
     is the parent province — even when the unit sits on a named coast.
+  - A fleet's Convoy options are stored as a ``ConvoyProduct`` node
+    holding its ``Aux`` army sources and ``Target`` coasts rather than
+    godip's expanded tree; ``transform_options`` expands pairs on read.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
-from .domain import OrderOption, SupplyCenter, Unit, Variant
+from .domain import ConvoyOption, OrderOption, SupplyCenter, Unit, Variant
 
 _PROVINCE = "Province"
 _ORDER_TYPE = "OrderType"
 _SRC_PROVINCE = "SrcProvince"
 _UNIT_TYPE = "UnitType"
+_CONVOY_PRODUCT = "ConvoyProduct"
 
 
 def python_options_to_godip_dict(
-    options: Iterable[OrderOption],
+    options: Iterable[Union[OrderOption, ConvoyOption]],
     units: Iterable[Unit],
     supply_centers: Iterable[SupplyCenter],
     variant: Variant,
@@ -60,6 +64,15 @@ def python_options_to_godip_dict(
 
     build_options: List[OrderOption] = []
     for option in options:
+        if isinstance(option, ConvoyOption):
+            _add_convoy_option(
+                result,
+                option,
+                variant,
+                standing_nation_by_loc,
+                nation_name_by_id,
+            )
+            continue
         if option.order_type == "Build":
             build_options.append(option)
             continue
@@ -133,6 +146,29 @@ def _add_movement_option(
             option.aux, {"Next": {}, "Type": _PROVINCE}
         )
         aux_tree["Next"].setdefault(option.target, {"Next": {}, "Type": _PROVINCE})
+
+
+def _add_convoy_option(
+    result: Dict[str, Any],
+    option: ConvoyOption,
+    variant: Variant,
+    standing_by_loc: Dict[str, str],
+    nation_name_by_id: Dict[str, str],
+) -> None:
+    nation_id = standing_by_loc.get(option.source)
+    if nation_id is None:
+        return
+    nation_name = nation_name_by_id.get(nation_id, nation_id)
+    godip_source = variant.parent_of(option.source)
+    nation_tree = result.setdefault(nation_name, {})
+    province_tree = nation_tree.setdefault(
+        godip_source, {"Next": {}, "Type": _PROVINCE}
+    )
+    province_tree["Next"]["Convoy"] = {
+        "Type": _CONVOY_PRODUCT,
+        "Aux": list(option.army_sources),
+        "Target": list(option.army_targets),
+    }
 
 
 def _add_build_options(

@@ -7,14 +7,14 @@ disrupted at resolution time if any fleet in the path is dislodged.
 This module answers the static question; C3 will integrate the dynamic
 question into the Decision graph.
 
-Public symbols: `convoy_path_exists`, `convoy_path_through_fleet`,
+Public symbols: `convoy_path_exists`, `convoy_endpoints_through_fleet`,
 `is_convoy_redundant`, and `fleet_reaches_coast`. Everything else is
 module-private.
 """
 
 from __future__ import annotations
 
-from typing import Collection, Optional, Set
+from typing import Collection, Dict, Iterable, Optional, Set, Tuple
 
 from .domain import Unit
 from .types import StateView
@@ -85,77 +85,73 @@ def convoy_path_exists(
     return False
 
 
-def convoy_path_through_fleet(
+def convoy_endpoints_through_fleet(
     state: StateView,
-    army_source: str,
-    army_target: str,
     fleet_location: str,
     convoying_fleet_locations: Collection[str],
-) -> bool:
-    """Return True iff a convoy chain from `army_source` to `army_target`
-    through `convoying_fleet_locations` exists that the fleet at
-    `fleet_location` is actually part of.
-
-    `convoy_path_exists` answers whether *some* chain connects the two
-    coasts; this answers the stricter question godip's option generator
-    needs — whether a chain exists that this specific fleet is on
-    (godip's `ConvoyPathFinder` path-finds from the convoying fleet's
-    own location). A chain A→B through F exists iff F is reachable from
-    `army_source` and `army_target` is reachable from F, both restricted
-    to the given on-board fleet set."""
-    if army_source == army_target:
-        return False
+    army_sources: Iterable[str],
+    army_targets: Iterable[str],
+) -> Tuple[Tuple[str, ...], Tuple[str, ...]]:
     variant = state.variant()
     fleet_parent = variant.parent_of(fleet_location)
-    if not state.province(fleet_parent).is_sea():
-        return False
     allowed_interior: Set[str] = {
         variant.parent_of(loc) for loc in convoying_fleet_locations
     }
-    if fleet_parent not in allowed_interior:
-        return False
-    return _sea_chain_connects(
-        state, _sea_neighbours(state, army_source), {fleet_parent}, allowed_interior
-    ) and _sea_chain_connects(
-        state, {fleet_parent}, _sea_neighbours(state, army_target), allowed_interior
+    if (
+        not state.province(fleet_parent).is_sea()
+        or fleet_parent not in allowed_interior
+    ):
+        return (), ()
+    forward = _sea_chain_edges(state, allowed_interior)
+    backward: Dict[str, Set[str]] = {node: set() for node in allowed_interior}
+    for node, neighbours in forward.items():
+        for neighbour in neighbours:
+            backward[neighbour].add(node)
+    embark = _sea_chain_component(fleet_parent, backward)
+    disembark = _sea_chain_component(fleet_parent, forward)
+    return (
+        tuple(
+            source for source in army_sources if _sea_neighbours(state, source) & embark
+        ),
+        tuple(
+            target
+            for target in army_targets
+            if _sea_neighbours(state, target) & disembark
+        ),
     )
 
 
-def _sea_chain_connects(
-    state: StateView,
-    start_set: Set[str],
-    end_set: Set[str],
-    allowed_interior: Set[str],
-) -> bool:
-    """BFS over fleet-passable sea adjacency: True iff some node in
-    `end_set` is reachable from `start_set`, with every visited node
-    constrained to `allowed_interior`. Only nodes in `allowed_interior`
-    are ever checked against `end_set`, matching `convoy_path_exists` —
-    the first and last sea province in a convoy chain must each hold a
-    convoying fleet."""
-    visited: Set[str] = set()
-    frontier: Set[str] = start_set & allowed_interior
+def _sea_chain_edges(
+    state: StateView, allowed_interior: Set[str]
+) -> Dict[str, Set[str]]:
     variant = state.variant()
+    edges: Dict[str, Set[str]] = {}
+    for node in allowed_interior:
+        edges[node] = set()
+        for adjacency in variant.adjacencies_of(node):
+            if not adjacency.allows(Unit.FLEET):
+                continue
+            neighbour = variant.parent_of(adjacency.to)
+            if neighbour not in allowed_interior:
+                continue
+            if not state.province(neighbour).is_sea():
+                continue
+            edges[node].add(neighbour)
+    return edges
+
+
+def _sea_chain_component(start: str, edges: Dict[str, Set[str]]) -> Set[str]:
+    visited: Set[str] = {start}
+    frontier: Set[str] = {start}
     while frontier:
         next_frontier: Set[str] = set()
         for node in frontier:
-            if node in visited:
-                continue
-            visited.add(node)
-            if node in end_set:
-                return True
-            for adjacency in variant.adjacencies_of(node):
-                if not adjacency.allows(Unit.FLEET):
-                    continue
-                neighbour = variant.parent_of(adjacency.to)
-                if neighbour in visited:
-                    continue
-                if not state.province(neighbour).is_sea():
-                    continue
-                if neighbour in allowed_interior:
+            for neighbour in edges[node]:
+                if neighbour not in visited:
+                    visited.add(neighbour)
                     next_frontier.add(neighbour)
         frontier = next_frontier
-    return False
+    return visited
 
 
 def is_convoy_redundant(

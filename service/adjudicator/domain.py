@@ -292,3 +292,10 @@ class OrderOption:
     aux: Optional[str]
     unit_type: Optional[str]
     named_coast: Optional[str]
+
+
+@dataclass
+class ConvoyOption:
+    source: str
+    army_sources: Tuple[str, ...]
+    army_targets: Tuple[str, ...]

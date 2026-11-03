@@ -27,7 +27,7 @@ from variant.utils import variant_to_canonical_dict
 
 from .domain import Phase, State, Variant
 from .engine import Engine
-from .options import get_options
+from .options import get_compact_options
 from .options_adapter import python_options_to_godip_dict
 from .serializers import deserialize_game_state, deserialize_variant
 
@@ -43,7 +43,7 @@ def start(phase) -> Dict[str, Any]:
         span.set_attribute("variant.id", phase.variant.id)
 
         state, variant = _build_state(phase)
-        options = get_options(state)
+        options = get_compact_options(state)
         godip_options = python_options_to_godip_dict(
             options,
             state.units,
@@ -130,7 +130,7 @@ def resolve(phase) -> Dict[str, Any]:
         # skipping out of scope by contract, so skipping is orchestrated
         # here. Skipped phases are never persisted -- only the final
         # interactive phase is written by create_from_adjudication_data.
-        next_options = get_options(next_state) if len(states) > 1 else []
+        next_options = get_compact_options(next_state) if len(states) > 1 else []
         _skip_count = 0
         _MAX_SKIP = 10
         while len(states) > 1 and _should_skip(
@@ -152,7 +152,7 @@ def resolve(phase) -> Dict[str, Any]:
                 break
             states = Engine().adjudicate(next_state)
             next_state = states[1] if len(states) > 1 else states[0]
-            next_options = get_options(next_state) if len(states) > 1 else []
+            next_options = get_compact_options(next_state) if len(states) > 1 else []
 
         if len(states) > 1:
             godip_options = python_options_to_godip_dict(
