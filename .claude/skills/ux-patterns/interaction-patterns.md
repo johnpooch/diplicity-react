@@ -57,7 +57,7 @@ Other screens (profile, settings, variants) do not need pull-to-refresh — data
 
 ## Touch Targets
 
-Minimum 48×48dp for all interactive elements on mobile. If a visual element is smaller (e.g. a 16×16 icon), expand the hit area with padding. The `size="icon"` variant on `<Button>` handles this for icon buttons — do not reduce it.
+Minimum 48×48dp for all interactive elements on mobile. If a visual element is smaller (e.g. a 16×16 icon), expand the hit area with padding. `IconButton` and `AppBarIconButton` handle this for icon buttons — do not reduce their size.
 
 ---
 
@@ -83,7 +83,7 @@ All empty states include: icon + title + description + primary CTA (action to re
   icon={Users}
   title="No games found"
   message="Try a different filter or create your own game."
-  actions={<Button>Create Game</Button>}
+  actions={<PrimaryButton>Create Game</PrimaryButton>}
 />
 ```
 

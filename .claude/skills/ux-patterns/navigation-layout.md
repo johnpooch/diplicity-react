@@ -70,7 +70,7 @@ When a Sheet or Dialog opens, focus moves to the first interactive element (Radi
 | Context | Layout |
 |---------|--------|
 | Mobile, single action | Full-width button |
-| Mobile, primary + secondary | Full-width primary, secondary as ghost/text link below |
+| Mobile, primary + secondary | Full-width primary, full-width secondary below |
 | Desktop, form with Back/Next | Side-by-side equal-width buttons in a flex row |
 | Mobile, form with Back/Next | Full-width stack (Back above Next), or full-width Next only with Back as text link |
 

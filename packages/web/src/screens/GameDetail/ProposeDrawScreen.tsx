@@ -6,7 +6,7 @@ import { useRequiredParams } from "@/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -144,14 +144,14 @@ const ProposeDrawScreen: React.FC = () => {
             </ItemGroup>
           </Panel.Content>
           <Panel.Footer>
-            <Button
+            <PrimaryButton
               disabled={isSubmitting}
               onClick={handleSubmit}
               className="w-full"
             >
               <Handshake className="mr-2 h-4 w-4" />
               Propose Draw
-            </Button>
+            </PrimaryButton>
           </Panel.Footer>
         </Panel>
       </div>

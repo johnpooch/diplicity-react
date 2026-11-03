@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckSquare, Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import {
   getGameRetrieveQueryKey,
   useGameConfirmPhasePartialUpdate,
@@ -49,14 +49,14 @@ const ConfirmOrdersButton: React.FC<ConfirmOrdersButtonProps> = ({
   const label = confirmed ? "Confirmed" : "Confirm";
 
   return (
-    <Button
+    <PrimaryButton
       disabled={confirmOrdersMutation.isPending}
       onClick={handleConfirmOrders}
       className={className}
     >
       {confirmed ? <CheckSquare /> : <Square />}
       {count ? `${label} (${count.submitted}/${count.total})` : label}
-    </Button>
+    </PrimaryButton>
   );
 };
 

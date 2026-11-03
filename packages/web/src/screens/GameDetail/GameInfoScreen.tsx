@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Share2 } from "lucide-react";
 import { GameDetailAppBar } from "./AppBar";
 import { ActionList } from "@/components/ActionList";
-import { Button } from "@/components/ui/button";
+import { AppBarIconButton } from "@/components/ui/role-buttons";
 import {
   Tooltip,
   TooltipContent,
@@ -31,14 +31,12 @@ const GameInfoScreen: React.FC = () => {
         rightButton={
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
+              <AppBarIconButton
                 aria-label="Share game"
                 onClick={() => copyLink(`/game/${gameId}`)}
               >
                 <Share2 />
-              </Button>
+              </AppBarIconButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">Share game</TooltipContent>
           </Tooltip>

@@ -1,5 +1,6 @@
 import { Hand, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { cn } from "@/lib/utils";
 import type { TutorialEngine } from "../useTutorialEngine";
 
@@ -84,12 +85,12 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <Button
+            <PrimaryButton
               onClick={primaryAction.run}
               className="flex-1 short:h-8 short:px-3"
             >
               {primaryAction.label}
-            </Button>
+            </PrimaryButton>
             {isFirstStep && (
               <Button
                 variant="ghost"

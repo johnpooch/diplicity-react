@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import {
   Form,
   FormControl,
@@ -151,17 +151,16 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
           )}
         />
         <div className="flex justify-end gap-2">
-          <Button
+          <SecondaryButton
             type="button"
-            variant="outline"
             disabled={isSubmitting}
             onClick={form.handleSubmit(() =>
               setPending(ModerationReportActionKeyEnum.reject)
             )}
           >
             Reject
-          </Button>
-          <Button
+          </SecondaryButton>
+          <PrimaryButton
             type="button"
             disabled={isSubmitting}
             onClick={form.handleSubmit(() =>
@@ -169,7 +168,7 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
             )}
           >
             Approve
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
       <AlertDialog

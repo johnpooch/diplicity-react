@@ -1,7 +1,7 @@
 import React from "react";
 import * as Sentry from "@sentry/react";
 import { DiplicityLogo } from "./DiplicityLogo";
-import { Button } from "@/components/ui/button";
+import { SecondaryButton } from "@/components/ui/role-buttons";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineNotice } from "./OfflineNotice";
 import { NotFoundNotice } from "./NotFoundNotice";
@@ -37,9 +37,9 @@ export const ErrorFallbackUI: React.FC<ErrorFallbackUIProps> = ({ error }) => {
             <pre className="text-xs whitespace-pre-wrap">{error.toString()}</pre>
           </div>
         )}
-        <Button variant="outline" onClick={() => window.location.href = "/"}>
+        <SecondaryButton onClick={() => window.location.href = "/"}>
           Go Home
-        </Button>
+        </SecondaryButton>
       </SafeAreaView>
     </div>
   );

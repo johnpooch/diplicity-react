@@ -7,6 +7,7 @@ import {
 } from "@/api/generated/endpoints";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { Notice } from "@/components/Notice";
 import { Navigation } from "@/components/Navigation";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -99,15 +100,12 @@ const Tutorial: React.FC<TutorialProps> = ({ variant }) => {
                   while discussing your first moves.
                 </p>
                 <div className="flex flex-col gap-2">
-                  <Button onClick={() => navigate("/find-games")}>
+                  <PrimaryButton onClick={() => navigate("/find-games")}>
                     Find a game
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/learn-to-play")}
-                  >
+                  </PrimaryButton>
+                  <SecondaryButton onClick={() => navigate("/learn-to-play")}>
                     Read the detailed rules
-                  </Button>
+                  </SecondaryButton>
                   <Button variant="ghost" onClick={engine.restart}>
                     Replay the tutorial
                   </Button>

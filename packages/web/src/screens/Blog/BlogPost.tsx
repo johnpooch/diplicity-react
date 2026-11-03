@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import { SearchX } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import {
   QueryErrorBoundary,
   QueryErrorFallback,
@@ -63,9 +63,9 @@ const renderFallback = (error: Error, onReset: () => void) =>
       title="Post not found"
       message="It may have been removed or the link may be wrong."
       actions={
-        <Button asChild>
+        <PrimaryButton asChild>
           <Link to="/blog">See all posts</Link>
-        </Button>
+        </PrimaryButton>
       }
     />
   ) : (

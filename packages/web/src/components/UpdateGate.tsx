@@ -7,7 +7,7 @@ import {
   useVersionRetrieveSuspense,
   versionRetrieve,
 } from "@/api/generated/endpoints";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Notice } from "@/components/Notice";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/constants";
@@ -49,7 +49,7 @@ const UpdateRequired: React.FC = () => (
         title="Update required"
         message="This version of Diplicity is no longer supported. Update to the latest version to keep playing."
         actions={
-          <Button asChild>
+          <PrimaryButton asChild>
             <a
               href={isIosPlatform() ? APP_STORE_URL : PLAY_STORE_URL}
               target="_blank"
@@ -57,7 +57,7 @@ const UpdateRequired: React.FC = () => (
             >
               Update Diplicity
             </a>
-          </Button>
+          </PrimaryButton>
         }
       />
     </SafeAreaView>

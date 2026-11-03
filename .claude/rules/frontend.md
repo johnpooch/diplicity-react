@@ -142,6 +142,24 @@ Images embedded in blog posts are committed to `packages/web/public/blog-images/
 // BAD: <div className="text-center text-muted-foreground p-8"><p>No games found</p></div>
 ```
 
+### Buttons
+
+Pick the button by its role from `@/components/ui/role-buttons`, never by setting `variant` or `size` on `Button`. The role components do not accept either prop.
+
+| Role | Component | Renders | Examples |
+| --- | --- | --- | --- |
+| The one main action of a screen, panel, form or empty state | `PrimaryButton` | `default` | Submit report, Accept, Find games |
+| Any other action, including full-width panel actions and the alternative beside a primary | `SecondaryButton` | `outline` | Cancel proposal, Report player, Reject, Log out |
+| An entry point to a destructive flow that sits among secondary actions | `SecondaryButton destructive` | `outline`, destructive text | Delete account on `Account` |
+| The button that performs an irreversible action itself | `DestructiveButton` | `destructive` | Delete Account on `DeleteAccount` |
+| Icon-only action in `GameDetailAppBar` (`rightButton`, the phase stepper, the game menu trigger) | `AppBarIconButton` | `outline`, `icon` | Share game, Create channel |
+| Icon-only action inline with content or in a `ScreenHeader` | `IconButton` | `ghost`, `icon` | Edit name, Delete order, Toggle filters |
+| A row in a `divide-y` card list that is itself the action | `RowActionButton` | full-width row, `destructive` for red | `ActionList` rows, Mute notifications, View my profile |
+
+Layout stays with the caller: a column parent stretches buttons full width, and `className="flex-1"` or `w-full` sizes them in a row. Icon buttons take a required `aria-label`. Confirmation dialogs use `AlertDialogAction` and `AlertDialogCancel`, not these.
+
+`Button` is only for controls none of these roles describe, such as map overlays, segmented options, and compact `size="sm"` toolbars on admin screens. If a new screen needs a role that is not listed, add a component here rather than choosing a variant ad hoc.
+
 ### Game and member actions
 
 The backend decides which game and member actions appear, on which screen, in what order, and whether each is blocked. Each screen renders the list the response gives it for that screen (game info renders `actions`, the players screen renders `playerListActions`, the member screen renders the member's `actions`) with `ActionList`, unchanged; never filter, reorder or decide availability on the client. If a screen needs a different set, the backend returns a new list. A new action key gets its label, icon, copy and confirmation in `actionDisplay.ts` and its handler in `ActionList`.

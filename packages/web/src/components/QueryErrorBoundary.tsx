@@ -1,7 +1,7 @@
 import React, { Component, ReactNode } from "react";
 import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Notice } from "@/components/Notice";
 import { OfflineNotice } from "@/components/OfflineNotice";
 import { NotFoundNotice } from "@/components/NotFoundNotice";
@@ -43,7 +43,7 @@ const QueryErrorFallback: React.FC<QueryErrorFallbackProps> = ({
         icon={AlertCircle}
         title="Something went wrong"
         message="We couldn't load this content. Please try again."
-        actions={<Button onClick={onReset}>Try Again</Button>}
+        actions={<PrimaryButton onClick={onReset}>Try Again</PrimaryButton>}
       />
       {import.meta.env.MODE === "development" && (
         <div className="mt-4 p-4 bg-destructive/10 rounded-md text-left w-full max-w-md">

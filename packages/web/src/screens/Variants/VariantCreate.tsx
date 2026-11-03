@@ -8,6 +8,7 @@ import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -152,9 +153,9 @@ const VariantUploadForm: React.FC<VariantUploadFormProps> = ({
       </div>
       {renderErrors(errors)}
       <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting || !dvar || !dsvg}>
+        <PrimaryButton type="submit" disabled={isSubmitting || !dvar || !dsvg}>
           {isSubmitting ? "Uploading…" : submitLabel}
-        </Button>
+        </PrimaryButton>
       </div>
     </form>
   );

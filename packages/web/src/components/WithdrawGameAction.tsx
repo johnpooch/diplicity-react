@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SecondaryButton } from "@/components/ui/role-buttons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,14 +57,13 @@ export const WithdrawGameAction: React.FC<WithdrawGameActionProps> = ({
 
   return (
     <>
-      <Button
-        variant="outline"
+      <SecondaryButton
         disabled={withdrawMutation.isPending}
         onClick={() => setShowConfirmation(true)}
       >
         <LogOut />
         Withdraw from game
-      </Button>
+      </SecondaryButton>
 
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <AlertDialogContent>

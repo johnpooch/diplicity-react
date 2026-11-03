@@ -13,7 +13,7 @@ import {
   findNationColor,
   findNationFlagUrl,
 } from "@/components/NationFlag";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ScreenCard,
@@ -183,7 +183,7 @@ const ReplaceContent: React.FC = () => {
         />
 
         <div className="pt-4">
-          <Button
+          <PrimaryButton
             className="w-full"
             disabled={replaceMutation.isPending}
             onClick={handleTakeOver}
@@ -192,7 +192,7 @@ const ReplaceContent: React.FC = () => {
               <Loader2 className="size-4 animate-spin" />
             )}
             Join as {nation}
-          </Button>
+          </PrimaryButton>
         </div>
       </ScreenCardContent>
     </ScreenCard>

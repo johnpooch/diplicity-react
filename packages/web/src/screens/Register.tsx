@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useAuthRegisterCreate } from "../api/generated/endpoints";
 import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "../utils/network";
 import { AuthLayout } from "@/components/AuthLayout";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import {
   Form,
@@ -132,13 +132,13 @@ const Register: React.FC = () => {
                 </FormItem>
               )}
             />
-            <Button
+            <PrimaryButton
               type="submit"
               className="w-full"
               disabled={registerMutation.isPending}
             >
               Register
-            </Button>
+            </PrimaryButton>
             <p className="text-xs text-muted-foreground">
               By signing up you agree to the{" "}
               <Link

@@ -6,7 +6,7 @@ import {
   MessageAvatar,
   MessageContent,
 } from "@/components/ui/message";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { cn } from "@/lib/utils";
 import type { ScriptedMessage } from "../types";
 
@@ -96,9 +96,8 @@ const ScriptedChat: React.FC<ScriptedChatProps> = ({
 
       <div className="border-t p-4">
         {canSend && (
-          <Button
+          <SecondaryButton
             className="h-auto w-full justify-between whitespace-normal py-2 text-left"
-            variant="outline"
             onClick={() => setRevealed(r => r + 1)}
           >
             <span>{next.body}</span>
@@ -106,12 +105,12 @@ const ScriptedChat: React.FC<ScriptedChatProps> = ({
               <Send className="size-4" />
               <span className="text-[10px] leading-none">send</span>
             </span>
-          </Button>
+          </SecondaryButton>
         )}
         {done && (
-          <Button className="w-full" onClick={onContinue}>
+          <PrimaryButton className="w-full" onClick={onContinue}>
             {continueLabel}
-          </Button>
+          </PrimaryButton>
         )}
       </div>
     </div>

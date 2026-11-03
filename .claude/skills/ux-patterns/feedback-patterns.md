@@ -61,7 +61,7 @@ When a form submission fails (server error), show an inline error banner inside 
     <AlertDescription>{submitError}</AlertDescription>
   </Alert>
 )}
-<Button type="submit">Create Game</Button>
+<PrimaryButton type="submit">Create Game</PrimaryButton>
 ```
 
 ---
@@ -91,10 +91,10 @@ Description: "You will be eliminated. Your units are disbanded and your supply c
 When an action is in progress, show a spinner before the button's label and disable the button. Keep the label — do not change it to "Creating..." or "Loading...".
 
 ```tsx
-<Button disabled={isPending}>
+<PrimaryButton disabled={isPending}>
   {isPending && <Loader2 className="size-4 animate-spin" />}
   Create Game
-</Button>
+</PrimaryButton>
 ```
 
 ---

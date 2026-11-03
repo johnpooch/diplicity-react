@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, RowActionButton } from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -23,7 +23,6 @@ import {
   confirmationFor,
   type ActionMember,
 } from "@/components/actionDisplay";
-import { cn } from "@/lib/utils";
 import {
   useGameCloneToSandboxCreate,
   useGameDeleteDestroy,
@@ -204,14 +203,14 @@ export const ActionList: React.FC<ActionListProps> = ({
         const display = ACTION_DISPLAY[action.key];
         return (
           <div key={action.key} className="flex items-center gap-3">
-            <Button
+            <PrimaryButton
               className="flex-1"
               disabled={action.blockedReason !== null || runningKey !== null}
               onClick={() => handleClick(action.key)}
             >
               <display.icon />
               {display.label}
-            </Button>
+            </PrimaryButton>
             {blockedInfo(action)}
           </div>
         );
@@ -226,18 +225,14 @@ export const ActionList: React.FC<ActionListProps> = ({
               const display = ACTION_DISPLAY[action.key];
               return (
                 <div key={action.key} className="flex items-center">
-                  <button
-                    type="button"
+                  <RowActionButton
+                    destructive={display.destructive}
                     disabled={action.blockedReason !== null || runningKey !== null}
                     onClick={() => handleClick(action.key)}
-                    className={cn(
-                      "flex flex-1 items-center gap-3 px-6 py-3 text-left text-sm hover:bg-accent/50 disabled:pointer-events-none disabled:text-muted-foreground",
-                      display.destructive && "text-destructive"
-                    )}
                   >
-                    <display.icon className="size-4 shrink-0" />
+                    <display.icon />
                     {display.label}
-                  </button>
+                  </RowActionButton>
                   {blockedInfo(action, "mr-4")}
                 </div>
               );

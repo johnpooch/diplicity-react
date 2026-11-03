@@ -1,7 +1,7 @@
 import React from "react";
 import { WifiOff } from "lucide-react";
 import { DiplicityLogo } from "./DiplicityLogo";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { Notice } from "@/components/Notice";
 import { useNetworkStatus } from "@/hooks";
@@ -32,9 +32,9 @@ const OfflineNotice: React.FC<OfflineNoticeProps> = ({ onRetry, fullScreen }) =>
             Diplicity needs a connection to load. Check your connection and try
             again.
           </p>
-          <Button variant="outline" onClick={onRetry}>
+          <SecondaryButton onClick={onRetry}>
             Try Again
-          </Button>
+          </SecondaryButton>
         </SafeAreaView>
       </div>
     );
@@ -45,7 +45,7 @@ const OfflineNotice: React.FC<OfflineNoticeProps> = ({ onRetry, fullScreen }) =>
       icon={WifiOff}
       title="No internet connection"
       message="Check your connection and try again."
-      actions={<Button onClick={onRetry}>Try Again</Button>}
+      actions={<PrimaryButton onClick={onRetry}>Try Again</PrimaryButton>}
     />
   );
 };

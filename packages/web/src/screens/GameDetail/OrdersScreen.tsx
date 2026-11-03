@@ -26,7 +26,11 @@ import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  IconButton,
+  PrimaryButton,
+  SecondaryButton,
+} from "@/components/ui/role-buttons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -251,15 +255,13 @@ const OrderRow: React.FC<{
       }
       trailingAction={
         canDelete && item.order ? (
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
             aria-label={`Delete order for ${title}`}
             disabled={deletePending}
             onClick={onDelete}
           >
             <Trash2 className="size-4" />
-          </Button>
+          </IconButton>
         ) : undefined
       }
     />
@@ -462,14 +464,13 @@ const RevertPhaseButton: React.FC<RevertPhaseButtonProps> = ({ gameId, phase }) 
 
   return (
     <>
-      <Button
-        variant="outline"
+      <SecondaryButton
         disabled={revertPhaseMutation.isPending}
         onClick={() => setShowConfirmation(true)}
       >
         <History className="size-4" />
         Revert to this phase
-      </Button>
+      </SecondaryButton>
 
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <AlertDialogContent>
@@ -592,10 +593,10 @@ const OrdersScreen: React.FC = () => {
     if (!canModifyOrders) return null;
     if (game.sandbox)
       return (
-        <Button disabled={resolvePhaseMutation.isPending} onClick={handleResolvePhase}>
+        <PrimaryButton disabled={resolvePhaseMutation.isPending} onClick={handleResolvePhase}>
           <Play className="size-4" />
           Resolve phase
-        </Button>
+        </PrimaryButton>
       );
     if (hasContent)
       return (
@@ -606,10 +607,10 @@ const OrdersScreen: React.FC = () => {
         />
       );
     return (
-      <Button disabled>
+      <PrimaryButton disabled>
         <CheckSquare className="size-4" />
         Confirmed
-      </Button>
+      </PrimaryButton>
     );
   })();
 
@@ -695,8 +696,7 @@ const OrdersScreen: React.FC = () => {
               <div className="flex w-full items-center">
                 <div className="flex-1">
                   {showDrawProposalsButton && (
-                    <Button
-                      variant="outline"
+                    <SecondaryButton
                       onClick={handleNavigateToDrawProposals}
                       className="relative"
                     >
@@ -708,7 +708,7 @@ const OrdersScreen: React.FC = () => {
                           currentMemberId={currentMember?.id}
                         />
                       </Suspense>
-                    </Button>
+                    </SecondaryButton>
                   )}
                 </div>
                 {rightFooterButton}

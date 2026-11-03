@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { NationFlag } from "@/components/NationFlag";
 import { Notice } from "@/components/Notice";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import {
   useGameRetrieveSuspense,
@@ -118,13 +118,13 @@ export const NationPreferenceContent: React.FC<NationPreferenceContentProps> = (
         </ScreenCardContent>
       </ScreenCard>
 
-      <Button
+      <PrimaryButton
         onClick={handleSave}
         disabled={updateMutation.isPending}
         className="w-full"
       >
         Save preferences
-      </Button>
+      </PrimaryButton>
     </>
   );
 };
