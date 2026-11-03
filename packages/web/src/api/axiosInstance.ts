@@ -61,7 +61,9 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const { refreshToken } = tokenStorage.getTokenState();
+
+    if (error.response?.status === 401 && !originalRequest._retry && refreshToken) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -76,8 +78,6 @@ axiosInstance.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
-
-      const { refreshToken } = tokenStorage.getTokenState();
 
       try {
         const refreshResult = await axios.post(

@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/Notice";
 import { OfflineNotice } from "@/components/OfflineNotice";
 import { NotFoundNotice } from "@/components/NotFoundNotice";
-import { isNetworkError, isNotFoundError } from "@/utils/network";
+import {
+  isNetworkError,
+  isNotFoundError,
+  isUnauthorizedError,
+} from "@/utils/network";
 import { AlertCircle } from "lucide-react";
 
 interface QueryErrorFallbackProps {
@@ -74,7 +78,11 @@ class ErrorBoundaryClass extends Component<
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryClassState {
-    if (!isNetworkError(error) && !isNotFoundError(error)) {
+    if (
+      !isNetworkError(error) &&
+      !isNotFoundError(error) &&
+      !isUnauthorizedError(error)
+    ) {
       Sentry.captureException(error);
     }
     return { hasError: true, error };

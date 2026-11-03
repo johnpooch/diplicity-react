@@ -38,7 +38,11 @@ import {
 import { isUnstartedGameStatus } from "./util";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
-import { isNetworkError, isNotFoundError } from "./utils/network";
+import {
+  isNetworkError,
+  isNotFoundError,
+  isUnauthorizedError,
+} from "./utils/network";
 
 const RouteFallback: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
@@ -50,7 +54,12 @@ const RootErrorBoundary: React.FC = () => {
   const error = useRouteError() as Error;
 
   React.useEffect(() => {
-    if (error && !isNetworkError(error) && !isNotFoundError(error)) {
+    if (
+      error &&
+      !isNetworkError(error) &&
+      !isNotFoundError(error) &&
+      !isUnauthorizedError(error)
+    ) {
       Sentry.captureException(error);
     }
   }, [error]);
