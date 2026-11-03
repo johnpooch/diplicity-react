@@ -6,7 +6,11 @@ import { useRequiredParams } from "@/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import {
+  AppBarIconButton,
+  PrimaryButton,
+  SecondaryButton,
+} from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -140,24 +144,20 @@ const ProposalRow: React.FC<ProposalRowProps> = ({
       </div>
       {canVoteOn(proposal) && (
         <div className="flex gap-2">
-          <Button className="flex-1" onClick={() => onVote(true)}>
+          <PrimaryButton className="flex-1" onClick={() => onVote(true)}>
             <Check />
             Accept
-          </Button>
-          <Button
-            className="flex-1"
-            variant="outline"
-            onClick={() => onVote(false)}
-          >
+          </PrimaryButton>
+          <SecondaryButton className="flex-1" onClick={() => onVote(false)}>
             <X />
             Reject
-          </Button>
+          </SecondaryButton>
         </div>
       )}
       {canCancel && (
-        <Button variant="outline" onClick={onCancel} disabled={isCancelling}>
+        <SecondaryButton onClick={onCancel} disabled={isCancelling}>
           Cancel proposal
-        </Button>
+        </SecondaryButton>
       )}
     </div>
   );
@@ -258,16 +258,11 @@ const DrawProposalsScreen: React.FC = () => {
         }
         rightButton={
           canProposeDraw ? (
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Propose draw"
-              asChild
-            >
+            <AppBarIconButton aria-label="Propose draw" asChild>
               <Link to={proposeDrawPath}>
                 <Handshake />
               </Link>
-            </Button>
+            </AppBarIconButton>
           ) : undefined
         }
       />
@@ -298,12 +293,12 @@ const DrawProposalsScreen: React.FC = () => {
               </Card>
             )}
             {canProposeDraw && (
-              <Button className="w-full" size="lg" asChild>
+              <PrimaryButton className="w-full" asChild>
                 <Link to={proposeDrawPath}>
                   <Handshake />
                   Propose Draw
                 </Link>
-              </Button>
+              </PrimaryButton>
             )}
           </Panel.Content>
         </Panel>

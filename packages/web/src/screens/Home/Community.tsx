@@ -4,7 +4,7 @@ import { ExternalLink, Map } from "lucide-react";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 
 const VARIANT_CREATOR_URL = "http://variantcreator.diplicity.com";
 
@@ -60,10 +60,10 @@ const Community: React.FC = () => {
             the game or a seasoned veteran, there's a place for you — and you
             can chat directly with the developers.
           </p>
-          <Button onClick={openDiscord} className="w-full">
+          <PrimaryButton onClick={openDiscord} className="w-full">
             <ExternalLink className="size-4" />
             Open Discord
-          </Button>
+          </PrimaryButton>
         </ScreenCardContent>
       </ScreenCard>
 
@@ -81,10 +81,10 @@ const Community: React.FC = () => {
             strongly advised to join the Discord so you can get guidance and
             help.
           </p>
-          <Button onClick={openVariantCreator} className="w-full">
+          <PrimaryButton onClick={openVariantCreator} className="w-full">
             <ExternalLink className="size-4" />
             Open Variant Creator
-          </Button>
+          </PrimaryButton>
         </ScreenCardContent>
       </ScreenCard>
 
@@ -102,10 +102,10 @@ const Community: React.FC = () => {
             report and suggestion genuinely helps. You can also browse the code
             and contribute directly, or with our help.
           </p>
-          <Button onClick={openDiscussions} className="w-full">
+          <PrimaryButton onClick={openDiscussions} className="w-full">
             <ExternalLink className="size-4" />
             Open GitHub Discussions
-          </Button>
+          </PrimaryButton>
         </ScreenCardContent>
       </ScreenCard>
     </div>

@@ -3,6 +3,7 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Check, ListFilter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/role-buttons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -62,12 +63,12 @@ function ViewSelector<K extends string>({
     return (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative" aria-label={triggerLabel}>
+          <IconButton className="relative" aria-label={triggerLabel}>
             <ListFilter />
             {value !== defaultValue && (
               <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary ring-2 ring-background" />
             )}
-          </Button>
+          </IconButton>
         </SheetTrigger>
         <SheetContent side="bottom" className="rounded-t-lg">
           <VisuallyHidden.Root>

@@ -24,7 +24,7 @@ import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -948,19 +948,18 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
 
         <div className="flex gap-3">
           {step > 0 && (
-            <Button
+            <SecondaryButton
               type="button"
-              variant="outline"
               onClick={handleBack}
               disabled={isSubmitting}
               className="flex-1"
             >
               <ArrowLeft />
               Back
-            </Button>
+            </SecondaryButton>
           )}
           {step < lastStep ? (
-            <Button
+            <PrimaryButton
               key="next"
               type="button"
               onClick={handleNext}
@@ -968,9 +967,9 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
             >
               Next
               <ArrowRight />
-            </Button>
+            </PrimaryButton>
           ) : (
-            <Button
+            <PrimaryButton
               key="submit"
               type="button"
               onClick={() => handleFormSubmit()}
@@ -978,7 +977,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
               disabled={isSubmitting}
             >
               {isSubmitting ? "Creating..." : "Create Game"}
-            </Button>
+            </PrimaryButton>
           )}
         </div>
       </form>

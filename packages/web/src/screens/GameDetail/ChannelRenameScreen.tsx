@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import {
   Form,
@@ -119,14 +119,13 @@ const ChannelRenameScreen: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                <Button
+                <PrimaryButton
                   type="submit"
                   className="w-full cursor-pointer"
-                  size="lg"
                   disabled={renameMutation.isPending}
                 >
                   Rename channel
-                </Button>
+                </PrimaryButton>
               </form>
             </Form>
           </Panel.Content>

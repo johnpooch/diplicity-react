@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -139,9 +139,9 @@ const ReportMemberForm: React.FC = () => {
             </FormItem>
           )}
         />
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <PrimaryButton type="submit" className="w-full" disabled={isSubmitting}>
           Submit report
-        </Button>
+        </PrimaryButton>
       </form>
     </Form>
   );

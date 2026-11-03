@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Check, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AppBarIconButton } from "@/components/ui/role-buttons";
 import {
   Popover,
   PopoverContent,
@@ -156,24 +156,20 @@ const PhaseStepperActions: React.FC = () => {
 
   return (
     <div className="flex items-center gap-1">
-      <Button
-        variant="outline"
-        size="icon"
+      <AppBarIconButton
         onClick={goToPrevious}
         disabled={phase.previousPhaseId === null}
         aria-label="Previous phase"
       >
         <ChevronLeft />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
+      </AppBarIconButton>
+      <AppBarIconButton
         onClick={goToNext}
         disabled={phase.nextPhaseId === null}
         aria-label="Next phase"
       >
         <ChevronRight />
-      </Button>
+      </AppBarIconButton>
     </div>
   );
 };

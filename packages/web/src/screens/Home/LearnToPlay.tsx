@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Play } from "lucide-react";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { GuideContent } from "@/components/GuideContent";
 
 const LearnToPlay: React.FC = () => {
@@ -22,13 +22,13 @@ const LearnToPlay: React.FC = () => {
           usual sense. The board is a stage; the real game is the conversation
           around it.
         </p>
-        <Button
+        <PrimaryButton
           className="mb-8"
           onClick={() => navigate("/learn-to-play/tutorial")}
         >
           <Play />
           Start the interactive tutorial
-        </Button>
+        </PrimaryButton>
       </div>
 
       <GuideContent />

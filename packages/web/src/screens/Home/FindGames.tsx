@@ -7,7 +7,7 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/role-buttons";
 import {
   Select,
   SelectContent,
@@ -197,14 +197,12 @@ const FindGamesSuspense: React.FC = () => {
       <ScreenHeader
         title="Find Games"
         actions={
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
             onClick={() => setIsFilterOpen(prev => !prev)}
             aria-label="Toggle filters"
           >
             <SlidersHorizontal />
-          </Button>
+          </IconButton>
         }
       />
       <QueryErrorBoundary>

@@ -17,6 +17,7 @@ The stack is **React 19 + Tailwind v4 + Radix UI (shadcn/ui style) + react-hook-
 - Sheets vs dialogs, screen structure, navigation? → [./navigation-layout.md](./navigation-layout.md)
 - When and how to explain things to users? → [./progressive-disclosure.md](./progressive-disclosure.md)
 - Button labels, error copy, help text, tone? → [./microcopy.md](./microcopy.md)
+- Which button style for an action? → the role components in `packages/web/src/components/ui/role-buttons.tsx`, listed under **Buttons** in `.claude/rules/frontend.md`
 - Optimistic updates, undo, live data, mobile? → [./interaction-patterns.md](./interaction-patterns.md)
 
 ## Non-Negotiable Principles

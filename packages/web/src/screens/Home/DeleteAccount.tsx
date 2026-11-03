@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { DestructiveButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
@@ -58,21 +58,19 @@ const DeleteAccount: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button
-            variant="outline"
+          <SecondaryButton
             onClick={() => navigate("/account")}
             className="flex-1"
           >
             Cancel
-          </Button>
-          <Button
-            variant="destructive"
+          </SecondaryButton>
+          <DestructiveButton
             disabled={!isConfirmed || deleteMutation.isPending}
             onClick={handleDelete}
             className="flex-1"
           >
             {deleteMutation.isPending ? "Deleting..." : "Delete Account"}
-          </Button>
+          </DestructiveButton>
         </div>
       </ScreenCardContent>
     </ScreenCard>

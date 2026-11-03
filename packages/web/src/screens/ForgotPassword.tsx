@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useAuthPasswordResetCreate } from "@/api/generated/endpoints";
 import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/utils/network";
 import { AuthLayout } from "@/components/AuthLayout";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import {
   Form,
@@ -88,13 +88,13 @@ const ForgotPassword: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                <Button
+                <PrimaryButton
                   type="submit"
                   className="w-full"
                   disabled={mutation.isPending}
                 >
                   Send Reset Link
-                </Button>
+                </PrimaryButton>
               </form>
             </Form>
           </>

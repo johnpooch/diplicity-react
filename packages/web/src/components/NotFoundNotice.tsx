@@ -1,7 +1,7 @@
 import React from "react";
 import { SearchX } from "lucide-react";
 import { DiplicityLogo } from "./DiplicityLogo";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { Notice } from "@/components/Notice";
 
@@ -24,9 +24,7 @@ const NotFoundNotice: React.FC<NotFoundNoticeProps> = ({ fullScreen }) => {
           <DiplicityLogo />
           <h1 className="text-2xl font-bold text-center">{title}</h1>
           <p className="text-muted-foreground">{message}</p>
-          <Button variant="outline" onClick={goHome}>
-            Go to my games
-          </Button>
+          <SecondaryButton onClick={goHome}>Go to my games</SecondaryButton>
         </SafeAreaView>
       </div>
     );
@@ -37,7 +35,7 @@ const NotFoundNotice: React.FC<NotFoundNoticeProps> = ({ fullScreen }) => {
       icon={SearchX}
       title={title}
       message={message}
-      actions={<Button onClick={goHome}>Go to my games</Button>}
+      actions={<PrimaryButton onClick={goHome}>Go to my games</PrimaryButton>}
     />
   );
 };

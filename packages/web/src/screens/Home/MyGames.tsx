@@ -6,6 +6,7 @@ import { CircleCheck, History, Inbox, Loader2 } from "lucide-react";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MyGameCard } from "@/components/MyGameCard";
 import { ViewSelector } from "@/components/ViewSelector";
@@ -51,12 +52,12 @@ const CurrentGames: React.FC = () => {
         actions={
           <>
             <div className="flex gap-2">
-              <Button asChild>
+              <PrimaryButton asChild>
                 <Link to="/find-games">Find games</Link>
-              </Button>
-              <Button asChild variant="outline">
+              </PrimaryButton>
+              <SecondaryButton asChild>
                 <Link to="/create-game">Create a game</Link>
-              </Button>
+              </SecondaryButton>
             </div>
             <Button asChild variant="link">
               <Link to="?view=finished">Show finished games</Link>

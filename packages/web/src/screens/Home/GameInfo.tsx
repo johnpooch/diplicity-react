@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { WithdrawGameAction } from "@/components/WithdrawGameAction";
@@ -104,44 +104,43 @@ const GameInfo: React.FC = () => {
 
   const pendingAction = game.status === "pending" ? (
     game.canJoin ? (
-      <Button
+      <PrimaryButton
         onClick={handleClickJoinGame}
         disabled={joinGameMutation.isPending}
         className="w-full sm:w-auto"
       >
         Join game
-      </Button>
+      </PrimaryButton>
     ) : game.joinBlockedReason === "commitment_too_low" ? (
       <LockedJoinTooltip className="w-full sm:w-auto">
-        <Button disabled className="w-full">
+        <PrimaryButton disabled className="w-full">
           Join game
-        </Button>
+        </PrimaryButton>
       </LockedJoinTooltip>
     ) : game.canLeave || canAddBots ? (
       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
         {canAddBots && (
-          <Button
+          <PrimaryButton
             onClick={() => setAddBotOpen(true)}
             className="flex-1 sm:flex-none"
           >
             <Bot className="size-4" />
             Add AI player
-          </Button>
+          </PrimaryButton>
         )}
         {game.canLeave && (
-          <Button
+          <SecondaryButton
             onClick={handleLeaveGame}
             disabled={leaveGameMutation.isPending}
-            variant="outline"
             className="flex-1 sm:flex-none"
           >
             Leave
-          </Button>
+          </SecondaryButton>
         )}
-        <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleShare}>
+        <SecondaryButton className="flex-1 sm:flex-none" onClick={handleShare}>
           <Share className="size-4" />
           Share &amp; invite
-        </Button>
+        </SecondaryButton>
       </div>
     ) : null
   ) : null;

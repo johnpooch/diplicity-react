@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { Button } from "@/components/ui/button";
+import { AppBarIconButton } from "@/components/ui/role-buttons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,14 +78,9 @@ export function GameDropdownMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Game menu"
-          className="relative"
-        >
+        <AppBarIconButton aria-label="Game menu" className="relative">
           <MoreHorizontal />
-        </Button>
+        </AppBarIconButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {onNavigateToGameInfo && (

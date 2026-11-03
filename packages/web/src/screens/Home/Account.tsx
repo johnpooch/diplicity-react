@@ -17,6 +17,11 @@ import { toast } from "sonner";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  IconButton,
+  RowActionButton,
+  SecondaryButton,
+} from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -259,9 +264,7 @@ const Account: React.FC = () => {
                       }
                     }}
                   />
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  <IconButton
                     onClick={handleSaveName}
                     disabled={
                       updateProfileMutation.isPending ||
@@ -270,30 +273,26 @@ const Account: React.FC = () => {
                     aria-label="Save"
                   >
                     <Check />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  </IconButton>
+                  <IconButton
                     onClick={handleCancelEditName}
                     disabled={updateProfileMutation.isPending}
                     aria-label="Cancel"
                   >
                     <X />
-                  </Button>
+                  </IconButton>
                 </>
               ) : (
                 <>
                   <h2 className="flex-1 truncate font-medium">
                     {userProfile.name}
                   </h2>
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  <IconButton
                     onClick={handleStartEditName}
                     aria-label="Edit name"
                   >
                     <Pencil />
-                  </Button>
+                  </IconButton>
                 </>
               )}
             </div>
@@ -303,13 +302,12 @@ const Account: React.FC = () => {
               </p>
             )}
           </div>
-          <Link
-            to={`/player/${userProfile.userId}`}
-            className="flex items-center justify-between gap-4 px-6 py-3 text-sm hover:bg-accent/50"
-          >
-            View my profile
-            <ChevronRight className="size-4 text-muted-foreground" />
-          </Link>
+          <RowActionButton asChild>
+            <Link to={`/player/${userProfile.userId}`}>
+              <span className="flex-1">View my profile</span>
+              <ChevronRight className="text-muted-foreground" />
+            </Link>
+          </RowActionButton>
         </CardContent>
       </Card>
 
@@ -351,20 +349,16 @@ const Account: React.FC = () => {
       </Section>
 
       <div className="flex flex-col gap-4">
-        <Button variant="outline" onClick={logout}>
+        <SecondaryButton onClick={logout}>
           <LogOut />
           Log out
-        </Button>
-        <Button
-          variant="outline"
-          className="text-destructive hover:text-destructive"
-          asChild
-        >
+        </SecondaryButton>
+        <SecondaryButton destructive asChild>
           <Link to="/delete-account">
             <Trash2 />
             Delete account
           </Link>
-        </Button>
+        </SecondaryButton>
       </div>
     </div>
   );

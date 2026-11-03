@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { NationFlag, getContrastColor } from "@/components/NationFlag";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { RowActionButton } from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Panel } from "@/components/Panel";
 import { useRequiredParams } from "@/hooks";
@@ -122,45 +122,37 @@ const ChannelOptionsScreen: React.FC = () => {
               <Card className="w-full overflow-hidden py-0">
                 <CardContent className="flex flex-col divide-y p-0">
                   {channel.canRename && (
-                    <Button
-                      variant="ghost"
-                      className="h-auto w-full cursor-pointer justify-start rounded-none px-4 py-4"
-                      asChild
-                    >
+                    <RowActionButton asChild>
                       <Link
                         to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}/rename`}
                       >
                         <Pencil />
-                        <span className="flex-1 text-left">Rename channel</span>
+                        <span className="flex-1">Rename channel</span>
                         <ChevronRight className="text-muted-foreground" />
                       </Link>
-                    </Button>
+                    </RowActionButton>
                   )}
                   {channel.canMute &&
                     (channel.muted ? (
-                      <Button
-                        variant="ghost"
-                        className="h-auto w-full cursor-pointer justify-start rounded-none px-4 py-4"
+                      <RowActionButton
                         onClick={handleUnmute}
                         disabled={muteMutation.isPending}
                       >
                         <Bell />
-                        <span className="flex-1 text-left">
+                        <span className="flex-1">
                           Unmute notifications
                         </span>
-                      </Button>
+                      </RowActionButton>
                     ) : (
-                      <Button
-                        variant="ghost"
-                        className="h-auto w-full cursor-pointer justify-start rounded-none px-4 py-4"
+                      <RowActionButton
                         onClick={handleMute}
                         disabled={muteMutation.isPending}
                       >
                         <BellOff />
-                        <span className="flex-1 text-left">
+                        <span className="flex-1">
                           Mute notifications
                         </span>
-                      </Button>
+                      </RowActionButton>
                     ))}
                 </CardContent>
               </Card>

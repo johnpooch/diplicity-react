@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
@@ -224,14 +224,13 @@ const ChannelCreateScreen: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                <Button
+                <PrimaryButton
                   type="submit"
                   className="w-full"
-                  size="lg"
                   disabled={form.watch("memberIds").length === 0 || isSubmitting}
                 >
                   Create channel
-                </Button>
+                </PrimaryButton>
               </form>
             </Form>
           </Panel.Content>

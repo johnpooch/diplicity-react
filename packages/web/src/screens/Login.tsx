@@ -17,7 +17,7 @@ import { isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/utils/network";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -360,13 +360,13 @@ const Login: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                <Button
+                <PrimaryButton
                   type="submit"
                   className="w-full"
                   disabled={emailLoginMutation.isPending}
                 >
                   Sign In
-                </Button>
+                </PrimaryButton>
               </form>
             </Form>
 
@@ -386,13 +386,13 @@ const Login: React.FC = () => {
             <div className="flex flex-col items-center gap-3">
               {isNativePlatform() ? (
                 <>
-                  <Button variant="outline" onClick={handleNativeLogin}>
+                  <SecondaryButton onClick={handleNativeLogin}>
                     Sign in with Google
-                  </Button>
+                  </SecondaryButton>
                   {isIosPlatform() && (
-                    <Button variant="outline" onClick={handleAppleLogin}>
+                    <SecondaryButton onClick={handleAppleLogin}>
                       Sign in with Apple
-                    </Button>
+                    </SecondaryButton>
                   )}
                 </>
               ) : (
@@ -402,13 +402,12 @@ const Login: React.FC = () => {
                     onSuccess={handleWebLoginSuccess}
                     onError={handleWebLoginError}
                   />
-                  <Button
-                    variant="outline"
+                  <SecondaryButton
                     className="w-[220px]"
                     onClick={handleWebAppleLogin}
                   >
                     Sign in with Apple
-                  </Button>
+                  </SecondaryButton>
                 </>
               )}
             </div>

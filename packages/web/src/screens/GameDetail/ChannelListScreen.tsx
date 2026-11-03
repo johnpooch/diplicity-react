@@ -9,7 +9,7 @@ import {
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Button } from "@/components/ui/button";
+import { AppBarIconButton, PrimaryButton } from "@/components/ui/role-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/Notice";
@@ -62,11 +62,11 @@ const ChannelListScreen: React.FC = () => {
         title="Chats"
         rightButton={
           game.canCreateChannel ? (
-            <Button variant="outline" size="icon" aria-label="Create channel" asChild>
+            <AppBarIconButton aria-label="Create channel" asChild>
               <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
                 <MessageSquarePlus />
               </Link>
-            </Button>
+            </AppBarIconButton>
           ) : undefined
         }
       />
@@ -137,12 +137,12 @@ const ChannelListScreen: React.FC = () => {
               </Card>
             )}
             {game.canCreateChannel && (
-              <Button className="w-full" size="lg" asChild>
+              <PrimaryButton className="w-full" asChild>
                 <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
                   <MessageSquarePlus />
                   Create Channel
                 </Link>
-              </Button>
+              </PrimaryButton>
             )}
           </Panel.Content>
         </Panel>

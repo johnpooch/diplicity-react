@@ -38,9 +38,9 @@ Any button whose only content is an icon (no visible text label) must have both 
 ```tsx
 <Tooltip>
   <TooltipTrigger asChild>
-    <Button size="icon" variant="ghost" aria-label="Edit name" onClick={handleEdit}>
+    <IconButton aria-label="Edit name" onClick={handleEdit}>
       <Pencil className="size-4" />
-    </Button>
+    </IconButton>
   </TooltipTrigger>
   <TooltipContent>Edit name</TooltipContent>
 </Tooltip>

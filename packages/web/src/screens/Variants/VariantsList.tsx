@@ -8,6 +8,7 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -254,9 +255,9 @@ const VariantsList: React.FC = () => {
         message="Upload a new variant draft to get started."
         icon={FilePlus}
         actions={
-          <Button asChild>
+          <PrimaryButton asChild>
             <Link to="/variants/create">Upload variant</Link>
-          </Button>
+          </PrimaryButton>
         }
       />
     );

@@ -14,7 +14,7 @@ import {
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { SecondaryButton } from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -206,18 +206,18 @@ const MemberContent: React.FC = () => {
         )}
       </ActionList>
       {member.canReport && (
-        <Button variant="outline" asChild>
+        <SecondaryButton asChild>
           <Link to={`/game/${gameId}/phase/${phaseId}/member/${member.id}/report`}>
             <Flag />
             Report player
           </Link>
-        </Button>
+        </SecondaryButton>
       )}
       {member.alreadyReported && (
-        <Button variant="outline" disabled>
+        <SecondaryButton disabled>
           <Flag />
           Report player
-        </Button>
+        </SecondaryButton>
       )}
     </div>
   );
