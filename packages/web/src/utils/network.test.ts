@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { AxiosError, AxiosHeaders } from "axios";
 import type { AxiosResponse } from "axios";
-import { isNetworkError, isNotFoundError, isRateLimitedError } from "./network";
+import {
+  isNetworkError,
+  isNotFoundError,
+  isRateLimitedError,
+  isUnauthorizedError,
+} from "./network";
 
 const responseError = (status: number) => {
   const config = { headers: new AxiosHeaders() };
@@ -65,6 +70,20 @@ describe("isNotFoundError", () => {
 
   it("returns false for a non-axios error", () => {
     expect(isNotFoundError(new Error("Not Found"))).toBe(false);
+  });
+});
+
+describe("isUnauthorizedError", () => {
+  it("returns true for an axios error with a 401 response", () => {
+    expect(isUnauthorizedError(responseError(401))).toBe(true);
+  });
+
+  it("returns false for an axios error with a 400 response", () => {
+    expect(isUnauthorizedError(responseError(400))).toBe(false);
+  });
+
+  it("returns false for a non-axios error", () => {
+    expect(isUnauthorizedError(new Error("Unauthorized"))).toBe(false);
   });
 });
 

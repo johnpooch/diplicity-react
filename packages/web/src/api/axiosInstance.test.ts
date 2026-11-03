@@ -187,4 +187,33 @@ describe("token refresh", () => {
       refreshToken: "original-refresh",
     });
   });
+
+  it("rejects with the original 401 without refreshing when there is no refresh token", async () => {
+    axiosInstance.defaults.adapter = async config => {
+      const response = {
+        status: 401,
+        statusText: "",
+        data: [],
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse;
+      throw new AxiosError("Unauthorized", "401", config, null, response);
+    };
+    let refreshed = false;
+    axios.defaults.adapter = async config => {
+      refreshed = true;
+      return {
+        status: 400,
+        statusText: "",
+        data: {},
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse;
+    };
+
+    await expect(customInstance({ url: "/user/" })).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(refreshed).toBe(false);
+  });
 });
