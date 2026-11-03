@@ -35,8 +35,12 @@ Don't enter a game with a friend or anyone who you have a connection with outsid
 
 ## Reporting
 
-If someone violates the code of conduct, report them and pick the reason that fits. Add a short note on what happened.
+If someone violates the code of conduct, report them and pick the reason that fits: abuse and harassment, multiple accounts, secret teaming, or other. Add a short note on what happened.
 
-Reports are reviewed by the moderation team. Depending on what happened, a player may get a warning or be banned. Reports are confidential, and the reported player isn't told who made them.
+A moderator reviews each report. If they approve it, a mark is added to the reported player's profile. If they reject it, nothing happens.
+
+A mark shows the reason for the report and the date it was approved. Marks are visible to other players, so you can check a player's record before you join a game with them. A mark doesn't stop anyone from playing.
+
+Reports are confidential, and the reported player isn't told who made them.
 
 Please don't report things in Part 1. False or retaliatory reports are themselves a breach of this code.
