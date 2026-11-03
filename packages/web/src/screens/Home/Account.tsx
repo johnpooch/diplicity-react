@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Camera,
   Loader2,
+  LogOut,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -16,13 +17,13 @@ import { toast } from "sonner";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { Input } from "@/components/ui/input";
@@ -34,10 +35,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/theme/useTheme";
 import { useLogout } from "@/hooks/useLogout";
-import { useNavigate } from "react-router";
 import { useMessaging } from "@/hooks/useMessaging";
 import { downscaleImage } from "@/utils/downscaleImage";
 import {
@@ -56,6 +57,20 @@ const pictureErrorMessage = (error: unknown, fallback: string) => {
     .response?.data;
   return data?.picture?.[0] ?? data?.detail ?? fallback;
 };
+
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, children }) => (
+  <section className="flex flex-col gap-2">
+    <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
+    <Card className="overflow-hidden py-0">
+      <CardContent className="p-0">{children}</CardContent>
+    </Card>
+  </section>
+);
 
 interface ProfilePictureEditorProps {
   userId: number;
@@ -163,7 +178,6 @@ const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
 const Account: React.FC = () => {
   const queryClient = useQueryClient();
   const logout = useLogout();
-  const navigate = useNavigate();
   const { data: userProfile } = useUserRetrieveSuspense();
   const updateProfileMutation = useUserUpdatePartialUpdate();
 
@@ -219,34 +233,24 @@ const Account: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <ScreenCard>
-        <ScreenCardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">User</h2>
-            <Button
-              variant="outline"
-              onClick={logout}
-              className="hidden sm:inline-flex"
-            >
-              Log out
-            </Button>
-          </div>
-          <div className="flex items-center gap-4">
-            <ProfilePictureEditor
-              userId={userProfile.userId}
-              name={userProfile.name}
-              picture={userProfile.picture}
-            />
-
-            <div className="flex-1">
+      <Card className="overflow-hidden py-0">
+        <CardContent className="flex flex-col divide-y p-0">
+          <div className="p-3">
+            <div className="flex items-center gap-3">
+              <ProfilePictureEditor
+                userId={userProfile.userId}
+                name={userProfile.name}
+                picture={userProfile.picture}
+              />
               {isEditingName ? (
-                <div className="flex items-center gap-2">
+                <>
                   <Input
                     value={editedName}
                     onChange={e => setEditedName(e.target.value)}
                     autoFocus
                     disabled={updateProfileMutation.isPending}
-                    className="max-w-xs"
+                    aria-label="Name"
+                    className="flex-1"
                     onKeyDown={e => {
                       if (e.key === "Enter") {
                         handleSaveName();
@@ -261,12 +265,11 @@ const Account: React.FC = () => {
                     onClick={handleSaveName}
                     disabled={
                       updateProfileMutation.isPending ||
-                      !editedName ||
                       editedName.trim().length < 2
                     }
                     aria-label="Save"
                   >
-                    <Check className="size-4" />
+                    <Check />
                   </Button>
                   <Button
                     size="icon"
@@ -275,105 +278,130 @@ const Account: React.FC = () => {
                     disabled={updateProfileMutation.isPending}
                     aria-label="Cancel"
                   >
-                    <X className="size-4" />
+                    <X />
                   </Button>
-                </div>
+                </>
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-medium">
-                    {userProfile?.name}
-                  </span>
+                <>
+                  <h2 className="flex-1 truncate font-medium">
+                    {userProfile.name}
+                  </h2>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={handleStartEditName}
                     aria-label="Edit name"
                   >
-                    <Pencil className="size-4" />
+                    <Pencil />
                   </Button>
-                </div>
-              )}
-              {saveNameError && (
-                <p className="text-sm text-destructive mt-1">
-                  Failed to update name. Please try again.
-                </p>
+                </>
               )}
             </div>
+            {saveNameError && (
+              <p className="mt-2 text-sm text-destructive">
+                Failed to update name. Please try again.
+              </p>
+            )}
           </div>
-
-          <Link to={`/player/${userProfile.userId}`}>
-            <Button variant="outline" className="w-full gap-2">
-              View my profile
-              <ChevronRight className="size-4" />
-            </Button>
+          <Link
+            to={`/player/${userProfile.userId}`}
+            className="flex items-center justify-between gap-4 px-6 py-3 text-sm hover:bg-accent/50"
+          >
+            View my profile
+            <ChevronRight className="size-4 text-muted-foreground" />
           </Link>
+        </CardContent>
+      </Card>
 
-          <Button variant="outline" onClick={logout} className="sm:hidden">
-            Log out
-          </Button>
+      <Section title="Appearance">
+        <div className="flex items-center justify-between gap-4 px-6 py-3 text-sm">
+          <Label htmlFor="theme-select">Theme</Label>
+          <Select value={preference} onValueChange={setPreference}>
+            <SelectTrigger id="theme-select" size="sm" className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Light</SelectItem>
+              <SelectItem value="dark">Dark</SelectItem>
+              <SelectItem value="system">System</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Section>
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Appearance</h2>
-            <div className="flex items-center gap-4">
-              <Label htmlFor="theme-select">Theme</Label>
-              <Select value={preference} onValueChange={setPreference}>
-                <SelectTrigger id="theme-select" className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <Section title="Notifications">
+        <div className="px-6 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="push-notifications">Push notifications</Label>
+            <Switch
+              id="push-notifications"
+              checked={!permissionDenied && enabled}
+              disabled={permissionDenied}
+              onCheckedChange={handleTogglePushNotifications}
+            />
           </div>
+          {permissionDenied && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Reset permissions for this app or website before notifications can
+              be turned on.
+            </p>
+          )}
+          {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
+        </div>
+      </Section>
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Notifications</h2>
-
-            <div className="space-y-2">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="push-notifications"
-                    checked={!permissionDenied && enabled}
-                    disabled={permissionDenied}
-                    onCheckedChange={handleTogglePushNotifications}
-                  />
-                  <Label htmlFor="push-notifications">Push Notifications</Label>
-                </div>
-                {permissionDenied && (
-                  <p className="text-sm text-muted-foreground">
-                    Reset permissions for this app or website before
-                    notifications can be turned on.
-                  </p>
-                )}
-                {error && <p className="text-sm text-destructive">{error}</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <Button
-              variant="destructive"
-              onClick={() => navigate("/delete-account")}
-            >
-              Delete Account
-            </Button>
-          </div>
-        </ScreenCardContent>
-      </ScreenCard>
+      <div className="flex flex-col gap-4">
+        <Button variant="outline" onClick={logout}>
+          <LogOut />
+          Log out
+        </Button>
+        <Button
+          variant="outline"
+          className="text-destructive hover:text-destructive"
+          asChild
+        >
+          <Link to="/delete-account">
+            <Trash2 />
+            Delete account
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 };
+
+const AccountSkeleton: React.FC = () => (
+  <div className="space-y-4">
+    <Card className="overflow-hidden py-0">
+      <CardContent className="flex flex-col divide-y p-0">
+        <div className="flex items-center gap-3 p-3">
+          <Skeleton className="size-12 rounded-full" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+        <div className="px-6 py-3">
+          <Skeleton className="h-5 w-28" />
+        </div>
+      </CardContent>
+    </Card>
+    <Section title="Appearance">
+      <Skeleton className="mx-6 my-3 h-8" />
+    </Section>
+    <Section title="Notifications">
+      <Skeleton className="mx-6 my-3 h-5" />
+    </Section>
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-9" />
+      <Skeleton className="h-9" />
+    </div>
+  </div>
+);
 
 const AccountSuspense: React.FC = () => {
   return (
     <ScreenContainer>
       <ScreenHeader title="Account" />
       <QueryErrorBoundary>
-        <Suspense fallback={<div></div>}>
+        <Suspense fallback={<AccountSkeleton />}>
           <Account />
         </Suspense>
       </QueryErrorBoundary>
