@@ -20,6 +20,7 @@ import pytest
 from .convoy import convoy_path_exists
 from .domain import (
     Adjacency,
+    ConvoyOption,
     NamedCoast,
     Nation,
     Order as RawOrder,
@@ -50,8 +51,10 @@ from .serializers import (
     deserialize_variant,
     serialize_game_state,
 )
+from .options import get_compact_options
 from .types import (
     AdjudicationState,
+    ConvoyFleetReachesEndpointsCheck,
     ConvoyOrder,
     HoldOrder,
     MoveOrder,
@@ -10797,6 +10800,198 @@ def test_options_movement_convoy_only_for_coasts_reachable_via_on_board_fleets()
         if o.order_type == "Convoy"
     }
     assert ("home", "far") in convoys_with_s2
+
+
+def _convoy_options_long_chain_variant() -> Variant:
+    seas = [f"s{i:02d}" for i in range(12)]
+    coasts = [f"c{i:02d}" for i in range(12)]
+    edges = _edges(
+        *[(coast, sea, Pass.FLEET) for coast, sea in zip(coasts, seas)],
+        *[(coast, seas[i + 1], Pass.FLEET) for i, coast in enumerate(coasts[:-1])],
+        *[(a, b, Pass.FLEET) for a, b in zip(seas, seas[1:])],
+        *[(a, b, Pass.BOTH) for a, b in zip(coasts, coasts[1:])],
+        ("inland", "c00", Pass.ARMY),
+        ("lone", "lsea", Pass.FLEET),
+    )
+    provinces = {
+        **{
+            pid: _province(pid, ProvinceType.SEA, adj=edges.get(pid, ()))
+            for pid in [*seas, "lsea"]
+        },
+        **{
+            pid: _province(pid, ProvinceType.COASTAL, adj=edges.get(pid, ()))
+            for pid in [*coasts, "lone"]
+        },
+        "inland": _province("inland", ProvinceType.LAND, adj=edges["inland"]),
+    }
+    return replace(
+        _convoy_options_two_sea_variant(),
+        id="convoy-options-long-chain",
+        name="Convoy Options Long Chain",
+        provinces=provinces,
+    )
+
+
+def _convoy_options_long_chain_state() -> State:
+    variant = _convoy_options_long_chain_variant()
+    fleet_seas = [f"s{i:02d}" for i in range(12) if i != 6] + ["lsea"]
+    army_coasts = ["c00", "c02", "c05", "c08", "c11", "lone", "inland"]
+    return make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            *[
+                Unit(nation=(NORTH, SOUTH)[i % 2], type=Unit.FLEET, location=sea)
+                for i, sea in enumerate(fleet_seas)
+            ],
+            *[
+                Unit(nation=(SOUTH, NORTH)[i % 2], type=Unit.ARMY, location=coast)
+                for i, coast in enumerate(army_coasts)
+            ],
+            Unit(nation=NORTH, type=Unit.FLEET, location="c03"),
+        ],
+    )
+
+
+def _fleet_neighbour_seas(variant: Variant, location: str) -> set:
+    parent = variant.parent_of(location)
+    return {
+        variant.parent_of(adjacency.to)
+        for loc in (parent, *variant.coasts_of(parent))
+        for adjacency in variant.adjacencies_of(loc)
+        if adjacency.allows(Unit.FLEET)
+        and variant.provinces[variant.parent_of(adjacency.to)].type == ProvinceType.SEA
+    }
+
+
+def _sea_chain_reaches(variant: Variant, starts: set, goals: set, fleet_seas: set):
+    frontier = starts & fleet_seas
+    visited: set = set()
+    while frontier:
+        node = frontier.pop()
+        if node in goals:
+            return True
+        visited.add(node)
+        for adjacency in variant.adjacencies_of(node):
+            neighbour = variant.parent_of(adjacency.to)
+            if (
+                adjacency.allows(Unit.FLEET)
+                and neighbour in fleet_seas
+                and neighbour not in visited
+            ):
+                frontier.add(neighbour)
+    return False
+
+
+def _cross_product_convoy_options(state: State) -> List[Tuple[str, str, str]]:
+    variant = state.variant
+    view = StateView(
+        AdjudicationState(
+            variant=variant,
+            phase=state.phase,
+            units=tuple(state.units),
+            supply_centers=tuple(state.supply_centers),
+            raw_orders=(),
+            contested_provinces=(),
+        )
+    )
+    fleets = sorted(
+        u.location
+        for u in state.units
+        if not u.dislodged
+        and u.type == Unit.FLEET
+        and variant.provinces[variant.parent_of(u.location)].type == ProvinceType.SEA
+    )
+    fleet_seas = {variant.parent_of(loc) for loc in fleets}
+    armies = sorted(
+        {
+            variant.parent_of(u.location)
+            for u in state.units
+            if not u.dislodged and u.type == Unit.ARMY
+        }
+    )
+    coasts = sorted(
+        pid
+        for pid, p in variant.provinces.items()
+        if p.type != ProvinceType.SEA and variant.has_fleet_access(pid)
+    )
+    checks = [
+        c
+        for c in ConvoyOrder.LEGALITY_CHECKS
+        if c is not ConvoyFleetReachesEndpointsCheck
+    ]
+    expected = []
+    for fleet in fleets:
+        fleet_parent = {variant.parent_of(fleet)}
+        for army in armies:
+            for coast in coasts:
+                order = ConvoyOrder(
+                    nation=NORTH,
+                    source=fleet,
+                    army_source=army,
+                    army_target=coast,
+                    unit_type=Unit.FLEET,
+                )
+                if not all(c.check(view, order) for c in checks):
+                    continue
+                if _sea_chain_reaches(
+                    variant,
+                    _fleet_neighbour_seas(variant, army),
+                    fleet_parent,
+                    fleet_seas,
+                ) and _sea_chain_reaches(
+                    variant,
+                    fleet_parent,
+                    _fleet_neighbour_seas(variant, coast),
+                    fleet_seas,
+                ):
+                    expected.append((fleet, army, coast))
+    return expected
+
+
+def test_options_movement_convoy_expansion_matches_cross_product_on_long_chain():
+    state = _convoy_options_long_chain_state()
+    expected = _cross_product_convoy_options(state)
+    convoys = [
+        (o.source, o.aux, o.target)
+        for o in get_options(state)
+        if o.order_type == "Convoy"
+    ]
+    assert len(expected) > 100
+    assert convoys == expected
+
+
+def test_options_movement_convoy_compact_option_holds_reachable_endpoints():
+    state = _convoy_options_long_chain_state()
+    convoys = {
+        o.source: o for o in get_compact_options(state) if isinstance(o, ConvoyOption)
+    }
+    assert set(convoys) == {f"s{i:02d}" for i in range(12) if i != 6}
+    assert convoys["s00"] == ConvoyOption(
+        source="s00",
+        army_sources=("c00", "c02", "c05"),
+        army_targets=("c00", "c01", "c02", "c03", "c04", "c05"),
+    )
+    assert convoys["s11"] == ConvoyOption(
+        source="s11",
+        army_sources=("c08", "c11"),
+        army_targets=("c06", "c07", "c08", "c09", "c10", "c11"),
+    )
+    assert not any(
+        o.order_type == "Convoy"
+        for o in get_compact_options(state)
+        if isinstance(o, OrderOption)
+    )
+
+
+def test_options_movement_convoy_omitted_when_army_can_only_reach_its_own_coast():
+    state = _convoy_options_long_chain_state()
+    assert "lsea" not in {
+        o.source for o in get_compact_options(state) if isinstance(o, ConvoyOption)
+    }
+    assert "lsea" not in {
+        o.source for o in get_options(state) if o.order_type == "Convoy"
+    }
 
 
 # === Targeted Retreat-phase tests ===

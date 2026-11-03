@@ -947,6 +947,41 @@ class TestOptionsTransformation:
         assert result == expected
 
     @pytest.mark.django_db
+    def test_transform_convoy_product(self):
+        raw_options = {
+            "England": {
+                "nth": {
+                    "Next": {
+                        "Convoy": {
+                            "Type": "ConvoyProduct",
+                            "Aux": ["edi", "yor"],
+                            "Target": ["bel", "edi", "hol"],
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {
+            "England": {
+                "nth": {
+                    "Convoy": {
+                        "edi": {"bel": {}, "hol": {}},
+                        "yor": {"bel": {}, "edi": {}, "hol": {}},
+                    }
+                }
+            }
+        }
+
+        assert result == expected
+        assert "lon" not in result["England"]["nth"]["Convoy"]
+        with pytest.raises(KeyError):
+            result["England"]["nth"]["Convoy"]["lon"]
+
+    @pytest.mark.django_db
     def test_transform_army_move_to_named_coast_province(self):
         raw_options = {
             "France": {

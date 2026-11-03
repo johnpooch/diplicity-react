@@ -523,6 +523,48 @@ class TestOrderCreateView:
         response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_order_create_convoy_from_convoy_product_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game = game_with_options
+        phase = game.current_phase
+        phase.options["England"]["bud"]["Next"]["Convoy"] = {
+            "Type": "ConvoyProduct",
+            "Aux": ["sev", "vie"],
+            "Target": ["rum", "sev"],
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "Convoy", "sev", "rum"]}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+        assert response.data["complete"] is True
+        assert response.data["order_type"] == "Convoy"
+        assert response.data["aux"]["id"] == "sev"
+        assert response.data["target"]["id"] == "rum"
+
+    def test_order_create_convoy_to_own_source_rejected_by_convoy_product_options(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game = game_with_options
+        phase = game.current_phase
+        phase.options["England"]["bud"]["Next"]["Convoy"] = {
+            "Type": "ConvoyProduct",
+            "Aux": ["sev", "vie"],
+            "Target": ["rum", "sev"],
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "Convoy", "sev", "sev"]}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert Order.objects.count() == 0
+
     def test_order_create_support_with_source_and_aux_and_target(
         self, authenticated_client, game_with_options, primary_user
     ):
@@ -1774,6 +1816,25 @@ class TestGetOptionsForOrder:
         options = get_options_for_order(transform_options(sample_options), order)
         assert "sev" in options
         assert len(options) == 1
+
+    @pytest.mark.django_db
+    def test_convoy_product_order_structure(
+        self, sample_options, primary_phase_state, classical_budapest_province
+    ):
+        sample_options["England"]["bud"]["Next"]["Convoy"] = {
+            "Type": "ConvoyProduct",
+            "Aux": ["sev", "vie"],
+            "Target": ["rum", "sev"],
+        }
+        order = Order(
+            phase_state=primary_phase_state,
+            source=classical_budapest_province,
+            order_type=OrderType.CONVOY,
+            target=None,
+            aux=None,
+        )
+        options = get_options_for_order(transform_options(sample_options), order)
+        assert options == ["sev", "vie"]
 
     @pytest.mark.django_db
     def test_build_order_structure(
@@ -3936,6 +3997,49 @@ class TestOrderOptionsView:
                     assert "label" in field
                     assert isinstance(field["id"], str)
                     assert isinstance(field["label"], str)
+
+    @pytest.mark.django_db
+    def test_convoy_product_options_match_expanded_convoy_tree(
+        self, authenticated_client, game_with_options
+    ):
+        phase = game_with_options.current_phase
+        url = reverse("order-options", args=[game_with_options.id])
+        phase.options["England"]["bud"]["Next"]["Convoy"] = {
+            "Next": {
+                "bud": {
+                    "Next": {
+                        aux: {
+                            "Next": {
+                                target: {"Next": {}, "Type": "Province"}
+                                for target in ("rum", "sev")
+                                if target != aux
+                            },
+                            "Type": "Province",
+                        }
+                        for aux in ("sev", "vie")
+                    },
+                    "Type": "SrcProvince",
+                }
+            },
+            "Type": "OrderType",
+        }
+        phase.save()
+        expanded = authenticated_client.get(url).data["orders"]
+
+        phase.options["England"]["bud"]["Next"]["Convoy"] = {
+            "Type": "ConvoyProduct",
+            "Aux": ["sev", "vie"],
+            "Target": ["rum", "sev"],
+        }
+        phase.save()
+        compact = authenticated_client.get(url).data["orders"]
+
+        assert compact == expanded
+        assert [
+            (o["aux"]["id"], o["target"]["id"])
+            for o in compact
+            if o["order_type"]["id"] == "Convoy"
+        ] == [("sev", "rum"), ("vie", "rum"), ("vie", "sev")]
 
     @pytest.mark.django_db
     def test_sandbox_returns_all_nations(
