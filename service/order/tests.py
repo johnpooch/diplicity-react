@@ -1428,6 +1428,36 @@ class TestOrderListViewQueryPerformance:
 
         assert two_orders_query_count == one_order_query_count
 
+    @pytest.mark.django_db
+    def test_list_orders_does_not_load_phase_options(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+        url = reverse("order-list", args=[game.id, phase.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert not any(
+            '"phase_phase"."options"' in query["sql"] for query in connection.queries
+        )
+
 
 class TestOrderCreateViewQueryPerformance:
 
