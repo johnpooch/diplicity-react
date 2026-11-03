@@ -60,7 +60,7 @@ class OrderQuerySet(models.QuerySet):
             "target__named_coasts",
             "aux__named_coasts",
             "named_coast__named_coasts",
-        )
+        ).defer("phase_state__phase__options")
 
 
 class OrderManager(models.Manager):
