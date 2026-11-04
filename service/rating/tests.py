@@ -268,12 +268,12 @@ class TestRateChanges:
         assert weak_result.rating_after > even_result.rating_after
         assert weak_result.handicap == -50
 
-    def test_two_player_game_is_one_full_match(self, player_factory, rated_at):
+    def test_two_player_game_is_weighted_by_scale(self, player_factory, rated_at):
         players = [player_factory(1, victor=True), player_factory(2, rating=1600)]
 
         result = _by_member(rate(players, rated_at))[1]
         deviation, changes = update(
-            1500, 100, [Match(rating=1600, deviation=100, score=1, weight=1)]
+            1500, 100, [Match(rating=1600, deviation=100, score=1, weight=2)]
         )
 
         assert result.rating_after == pytest.approx(1500 + sum(changes))
@@ -288,7 +288,7 @@ class TestRateChanges:
         deviation, changes = update(
             1500,
             100,
-            [Match(rating=1500, deviation=100, score=1, weight=1 / 6)] * 6,
+            [Match(rating=1500, deviation=100, score=1, weight=2 / 6)] * 6,
         )
 
         assert result.rating_after == pytest.approx(1500 + sum(changes))
@@ -298,7 +298,7 @@ class TestRateChanges:
         players = [player_factory(1, victor=True), player_factory(2), player_factory(3)]
 
         default = _by_member(rate(players, rated_at))[1]
-        doubled = _by_member(rate(players, rated_at, Parameters(weight_scale=2)))[1]
+        doubled = _by_member(rate(players, rated_at, Parameters(weight_scale=4)))[1]
 
         assert doubled.rating_after > default.rating_after
 
