@@ -1,6 +1,7 @@
 import hashlib
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Prefetch
 
@@ -63,7 +64,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
         nations_prefetch = Prefetch(
-            "nations", queryset=Nation.objects.select_related("flag", "handicap")
+            "nations", queryset=Nation.objects.select_related("flag")
         )
 
         return (
@@ -94,7 +95,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
         nations_prefetch = Prefetch(
-            "nations", queryset=Nation.objects.select_related("flag", "handicap")
+            "nations", queryset=Nation.objects.select_related("flag")
         )
 
         return self.prefetch_related(
@@ -140,6 +141,18 @@ class Variant(BaseModel):
         related_name="owned_variants",
     )
     official = models.BooleanField(default=False)
+    ranked = models.BooleanField(default=False, db_default=False)
+
+    def clean(self):
+        super().clean()
+        if self.ranked and not self.fully_handicapped():
+            raise ValidationError(
+                {"ranked": "Every playable nation needs a handicap first."}
+            )
+
+    def fully_handicapped(self):
+        playable = self.nations.filter(non_playable=False)
+        return playable.exists() and not playable.filter(handicap__isnull=True).exists()
 
     @property
     def slug(self):
@@ -166,11 +179,6 @@ class Variant(BaseModel):
                 else:
                     summary["gameEndsYear"] = condition["year"]
         return summary
-
-    @property
-    def ranked(self):
-        playable = [nation for nation in self.nations.all() if not nation.non_playable]
-        return bool(playable) and all(hasattr(nation, "handicap") for nation in playable)
 
     @property
     def template_phase(self):

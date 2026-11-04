@@ -642,7 +642,7 @@ class GameCreateSerializer(serializers.Serializer):
 
     def validate_variant_id(self, value):
         try:
-            self._validated_variant = Variant.objects.with_game_creation_data().get(
+            self._validated_variant = Variant.objects.get(
                 id=value,
                 status__in=[VariantStatus.PUBLISHED, VariantStatus.DRAFT],
             )
@@ -744,7 +744,9 @@ class GameCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        variant = self._validated_variant
+        variant = Variant.objects.with_game_creation_data().get(
+            id=validated_data["variant_id"]
+        )
 
         with_game_master = validated_data["game_master"]
 

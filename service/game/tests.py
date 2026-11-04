@@ -36,6 +36,7 @@ from common.constants import (
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
+from variant.models import Variant
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
 from user_profile.models import UserProfile, UserProfilePicture
@@ -3875,7 +3876,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(
@@ -3896,7 +3897,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 48
+        assert query_count == 49
 
 
 class TestRankedGameCreation:
@@ -3954,6 +3955,19 @@ class TestRankedGameCreation:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data == {"code": "variant_not_ranked"}
         assert not Game.objects.filter(name="Ranked Game").exists()
+
+    @pytest.mark.django_db
+    def test_refuses_ranked_game_on_handicapped_variant_not_yet_ranked(
+        self, authenticated_client
+    ):
+        Variant.objects.filter(id="classical").update(ranked=False)
+
+        response = authenticated_client.post(
+            reverse(create_viewname), self._payload(), format="json"
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "variant_not_ranked"}
 
     @pytest.mark.django_db
     def test_creates_unranked_game_on_unranked_variant(self, authenticated_client):

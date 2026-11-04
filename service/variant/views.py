@@ -3,7 +3,7 @@ import json
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count, Max
+from django.db.models import Max
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
 from rest_framework import generics, status
@@ -17,7 +17,6 @@ from common.permissions import IsOwnedDraftForWrite
 from common.views import IMAGE_CONTENT_SECURITY_POLICY
 from nation.models import NationFlag
 from province.models import Province
-from rating.models import NationHandicap
 from .models import Variant, VariantSvg
 from .serializers import VariantSerializer, VariantWriteSerializer
 from .utils import variant_to_canonical_dict
@@ -28,20 +27,14 @@ from .utils import variant_to_canonical_dict
 _VARIANTS_LIST_CACHE_TIMEOUT = 60 * 60 * 24
 
 
-def _handicaps_version(handicaps):
-    version = handicaps.aggregate(Max("updated_at"), Count("id"))
-    return f"{version['updated_at__max']}|{version['id__count']}"
-
-
 def _variants_list_cache_inputs():
     variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
     flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
-    handicaps = _handicaps_version(NationHandicap.objects.all())
-    return f"{variant_max}|{flag_max}|{handicaps}"
+    return variant_max, flag_max
 
 
-def _variants_list_etag(inputs):
-    digest = hashlib.sha256(inputs.encode()).hexdigest()
+def _variants_list_etag(variant_max, flag_max):
+    digest = hashlib.sha256(f"{variant_max}|{flag_max}".encode()).hexdigest()
     return f'"{digest[:32]}"'
 
 
@@ -49,12 +42,9 @@ def _variant_detail_etag(variant, user):
     flag_max = NationFlag.objects.filter(nation__variant=variant).aggregate(
         Max("updated_at")
     )["updated_at__max"]
-    handicaps = _handicaps_version(
-        NationHandicap.objects.filter(nation__variant=variant)
-    )
     user_id = user.id if user.is_authenticated else "anon"
     digest = hashlib.sha256(
-        f"{variant.updated_at}|{flag_max}|{handicaps}|{user_id}".encode()
+        f"{variant.updated_at}|{flag_max}|{user_id}".encode()
     ).hexdigest()
     return f'"{digest[:32]}"'
 
@@ -78,18 +68,18 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return VariantSerializer
 
     def list(self, request, *args, **kwargs):
-        inputs = _variants_list_cache_inputs()
-        etag = _variants_list_etag(inputs)
+        variant_max, flag_max = _variants_list_cache_inputs()
+        etag = _variants_list_etag(variant_max, flag_max)
         if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
-            response = Response(self._published_variants_data(inputs))
+            response = Response(self._published_variants_data(variant_max, flag_max))
         response["ETag"] = etag
         response["Cache-Control"] = "public"
         return response
 
-    def _published_variants_data(self, inputs):
-        digest = hashlib.sha256(inputs.encode()).hexdigest()
+    def _published_variants_data(self, variant_max, flag_max):
+        digest = hashlib.sha256(f"{variant_max}|{flag_max}".encode()).hexdigest()
         cache_key = f"variants-list:published:{digest}"
         data = cache.get(cache_key)
         if data is None:
