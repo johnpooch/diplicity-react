@@ -44,6 +44,7 @@ const buildVariant = (nations: VariantNation[]): Variant => ({
   ownerId: null,
   ownerUsername: null,
   canEdit: false,
+  ranked: true,
   victoryConditions: {
     soloVictorySupplyCenters: 18,
     gameEndsYear: null,
