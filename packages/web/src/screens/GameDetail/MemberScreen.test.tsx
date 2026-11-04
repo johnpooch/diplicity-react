@@ -5,12 +5,15 @@ import type {
   GameRetrieve,
   MemberDetail,
   PublicUserProfile,
+  RatingPairingOutput,
+  RatingResultOutput,
 } from "@/api/generated/endpoints";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MemberScreen } from "./MemberScreen";
 
 let game: GameRetrieve;
 let member: MemberDetail;
+let rating: RatingResultOutput;
 
 const profile: PublicUserProfile = {
   id: 5,
@@ -29,6 +32,7 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
   useGameRetrieveSuspense: () => ({ data: game }),
   useGameMemberRetrieveSuspense: () => ({ data: member }),
+  useGameMemberRatingRetrieveSuspense: () => ({ data: rating }),
   useUsersRetrieveSuspense: () => ({ data: profile }),
 }));
 
@@ -60,6 +64,38 @@ const buildMember = (overrides: Partial<MemberDetail> = {}): MemberDetail => ({
   actions: [],
   canReport: false,
   alreadyReported: false,
+  rated: false,
+  ...overrides,
+});
+
+const buildPairing = (
+  overrides: Partial<RatingPairingOutput> = {}
+): RatingPairingOutput => ({
+  id: 1,
+  opponent: {
+    id: 4,
+    userId: 6,
+    name: "John Smith",
+    picture: null,
+    isCurrentUser: false,
+    isBot: false,
+    nation: "France",
+  },
+  opponentRating: 1612.4,
+  score: 1,
+  change: 12.6,
+  ...overrides,
+});
+
+const buildRating = (
+  overrides: Partial<RatingResultOutput> = {}
+): RatingResultOutput => ({
+  id: 1,
+  ratingBefore: 1530.2,
+  ratingAfter: 1561.4,
+  ratingChange: 31.2,
+  protected: false,
+  pairings: [buildPairing()],
   ...overrides,
 });
 
@@ -138,6 +174,7 @@ describe("MemberScreen", () => {
   beforeEach(() => {
     game = buildGame();
     member = buildMember();
+    rating = buildRating();
   });
 
   it("shows the player's commitment", () => {
@@ -182,6 +219,90 @@ describe("MemberScreen", () => {
 
     expect(
       screen.queryByRole("heading", { name: "Commitment" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the rating before and after a rated game", () => {
+    member = buildMember({ rated: true });
+    renderScreen();
+
+    expect(screen.getByRole("heading", { name: "Rating" })).toBeInTheDocument();
+    expect(screen.getByText("1,530")).toBeInTheDocument();
+    expect(screen.getByText("1,561")).toBeInTheDocument();
+    expect(screen.getByText("+31")).toBeInTheDocument();
+  });
+
+  it("shows a row per opponent in the rating breakdown", () => {
+    member = buildMember({ rated: true });
+    rating = buildRating({
+      pairings: [
+        buildPairing(),
+        buildPairing({
+          id: 2,
+          opponent: { ...buildPairing().opponent, id: 5, nation: "Germany" },
+          score: 0.5,
+          change: -1.2,
+        }),
+        buildPairing({
+          id: 3,
+          opponent: { ...buildPairing().opponent, id: 6, nation: "Russia" },
+          score: 0,
+          change: -8.4,
+        }),
+      ],
+    });
+    renderScreen();
+
+    expect(
+      screen.getByRole("heading", { name: "Rating breakdown" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Beat France")).toBeInTheDocument();
+    expect(screen.getByText("Tied with Germany")).toBeInTheDocument();
+    expect(screen.getByText("Lost to Russia")).toBeInTheDocument();
+    expect(screen.getAllByText("John Smith · 1,612")).toHaveLength(3);
+    expect(screen.getByText("+13")).toBeInTheDocument();
+    expect(screen.getByText("−1")).toBeInTheDocument();
+    expect(screen.getByText("−8")).toBeInTheDocument();
+  });
+
+  it("tells a protected replacement their rating can only go up", () => {
+    member = buildMember({ rated: true });
+    rating = buildRating({
+      ratingAfter: 1530.2,
+      ratingChange: 0,
+      protected: true,
+      pairings: [buildPairing({ score: 0, change: -9.8 })],
+    });
+    renderScreen();
+
+    expect(
+      screen.getByText(
+        "A replacement's rating can only go up. This result would have lowered it, so it was not applied."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("shows the rating between commitment and conduct history", () => {
+    member = buildMember({ rated: true });
+    renderScreen();
+
+    expect(
+      screen
+        .getAllByRole("heading")
+        .map(heading => heading.textContent)
+        .filter(name =>
+          ["Commitment", "Rating", "Rating breakdown", "Conduct history"].includes(
+            name ?? ""
+          )
+        )
+    ).toEqual(["Commitment", "Rating", "Rating breakdown", "Conduct history"]);
+  });
+
+  it("hides the rating for an unrated member", () => {
+    renderScreen();
+
+    expect(
+      screen.queryByRole("heading", { name: "Rating" })
     ).not.toBeInTheDocument();
   });
 });

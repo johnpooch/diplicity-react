@@ -437,7 +437,6 @@ class OutputSerializer(serializers.ModelSerializer):
 ### Views
 
 ```python
-from django.http import Http404
 from drf_spectacular.openapi import AutoSchema
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
@@ -471,10 +470,11 @@ class LoaderListView(LoaderMixin, generics.ListAPIView):
 
 
 class LoaderDetailView(LoaderMixin, generics.GenericAPIView):
+    def get_queryset(self):
+        return self.get_loader().get_queryset(self.request.user)
+
     def get(self, request, *args, **kwargs):
-        instance = self.get_loader().get(kwargs[self.lookup_field], request.user)
-        if instance is None:
-            raise Http404
+        [instance] = self.get_loader().hydrate([self.get_object()], request.user)
         return Response(self.get_serializer(instance).data)
 
 
@@ -532,6 +532,8 @@ class CreateActionView(ActionMixin, generics.CreateAPIView):
 ```
 
 `RefusalMixin` turns a `Refused` raised anywhere in the request into a 403 with the reason as its `code`. Every refusal answers 403, whether the rule is about the actor's relationship to a row or the row's state, because both are now checks. A 400 means only that the input serializer rejected the request body.
+
+`LoaderDetailView` looks up the row with DRF's generic lookup through the loader's queryset, so a view keyed by something other than `pk` sets `lookup_field` and narrows `get_queryset`, as `LoaderListView` does.
 
 `ActionView` looks up the target with DRF's generic lookup through the view's queryset. It does not apply `visible_to`; a view whose rows must stay hidden scopes its own `get_queryset`, as described in the placement rules. It validates the body with `input_serializer_class`, passes the validated values to `perform` as keyword arguments, and responds with the result loaded through the output serializer's loader. It serves `POST` by default. A view that serves other methods declares them with `http_method_names`: `PUT` and `PATCH` respond like `POST`, and `DELETE` responds 204 with no body. `ActionSchema` makes the OpenAPI request body the input serializer and the response the output serializer. An action validates its whole input whatever the method, so `ActionSchema` publishes the full input serializer for `PATCH` too, where drf-spectacular would otherwise publish a partial one. `CreateActionView` is the same without a target, and responds 201.
 

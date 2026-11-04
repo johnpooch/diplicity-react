@@ -405,6 +405,33 @@ class Province(TypedDict):
     named_coast_ids: list[str]
 
 
+class RatingOpponent(TypedDict):
+    id: int
+    user_id: int | None
+    name: str
+    picture: str | None
+    is_current_user: bool
+    is_bot: bool
+    nation: str | None
+
+
+class RatingPairingOutput(TypedDict):
+    id: int
+    opponent: RatingOpponent
+    opponent_rating: float
+    score: float
+    change: float
+
+
+class RatingResultOutput(TypedDict):
+    id: int
+    rating_before: float
+    rating_after: float
+    rating_change: float
+    protected: bool
+    pairings: list[RatingPairingOutput]
+
+
 type ReasonEnum = Literal[
     'abuse_and_harassment', 'multiple_accounts', 'secret_teaming', 'other'
 ]
@@ -767,6 +794,7 @@ class MemberDetail(TypedDict):
     actions: list[MemberAction]
     can_report: bool
     already_reported: bool
+    rated: bool
 
 
 class ModerationReportAction(TypedDict):

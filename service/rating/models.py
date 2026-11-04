@@ -4,6 +4,7 @@ from django.db import models
 from common.models import BaseModel
 
 from .managers import RatingResultManager
+from .querysets import RatingPairingQuerySet
 
 
 class Rating(BaseModel):
@@ -43,6 +44,10 @@ class RatingResult(BaseModel):
     handicap = models.IntegerField()
     protected = models.BooleanField(default=False)
 
+    @property
+    def rating_change(self):
+        return self.rating_after - self.rating_before
+
     def record_pairings(self, pairings):
         self.pairings.bulk_create(
             [
@@ -61,6 +66,8 @@ class RatingResult(BaseModel):
 
 
 class RatingPairing(BaseModel):
+    objects = RatingPairingQuerySet.as_manager()
+
     result = models.ForeignKey(
         RatingResult,
         related_name="pairings",
