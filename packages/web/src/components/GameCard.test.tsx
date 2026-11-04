@@ -78,6 +78,9 @@ const currentMember: Member = {
   nationPreferenceIds: [],
   commitmentTotal: 0,
   commitmentBand: "neutral",
+  ratingChange: null,
+  ratingBefore: null,
+  ratingAfter: null,
 };
 
 const renderCard = (game: GameList) =>
@@ -126,14 +129,18 @@ describe("GameCard", () => {
     const user = userEvent.setup();
     renderCard(lockedGame());
 
-    await user.hover(screen.getByRole("button", { name: "Join game" }).parentElement!);
+    await user.hover(
+      screen.getByRole("button", { name: "Join game" }).parentElement!
+    );
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(tooltipText);
   });
 
   it("opens the tooltip on focus", async () => {
     renderCard(lockedGame());
-    const trigger = screen.getByRole("button", { name: "Join game" }).parentElement!;
+    const trigger = screen.getByRole("button", {
+      name: "Join game",
+    }).parentElement!;
 
     act(() => trigger.focus());
 
@@ -144,7 +151,9 @@ describe("GameCard", () => {
   it("keeps the tooltip open after a tap and closes it on a tap outside", async () => {
     const user = userEvent.setup();
     renderCard(lockedGame());
-    const trigger = screen.getByRole("button", { name: "Join game" }).parentElement!;
+    const trigger = screen.getByRole("button", {
+      name: "Join game",
+    }).parentElement!;
 
     await user.pointer({ keys: "[TouchA]", target: trigger });
 
@@ -172,6 +181,8 @@ describe("GameCard", () => {
   it("shows no Join when the viewer cannot join for another reason", () => {
     renderCard(buildGame({ canJoin: false }));
 
-    expect(screen.queryByRole("button", { name: "Join game" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Join game" })
+    ).not.toBeInTheDocument();
   });
 });

@@ -1319,7 +1319,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 14
+        assert query_count == 15
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -1378,7 +1378,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 14
+        assert query_count == 15
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -1445,7 +1445,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 14
+        assert query_count == 15
 
     @pytest.mark.django_db
     def test_retrieve_game_does_not_select_latest_phases_across_all_games(

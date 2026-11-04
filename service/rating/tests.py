@@ -738,6 +738,95 @@ class TestRatingDeferredOnCompletion:
         assert _rating_jobs(in_memory_procrastinate) == []
 
 
+def _member_data(response, member):
+    return next(m for m in response.data["members"] if m["id"] == member.id)
+
+
+class TestMemberRatingChange:
+    @pytest.mark.django_db
+    def test_retrieve_shows_rating_change(
+        self, authenticated_client, ranked_game_factory, rating_result_factory
+    ):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+        rating_result_factory(member=winner, rating_before=1530.4, rating_after=1560.6)
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        member = _member_data(response, winner)
+        assert member["rating_change"] == 31
+        assert member["rating_before"] == 1530
+        assert member["rating_after"] == 1561
+
+    @pytest.mark.django_db
+    def test_retrieve_shows_rating_loss(
+        self, authenticated_client, ranked_game_factory, rating_result_factory
+    ):
+        game = ranked_game_factory()
+        loser = _losers(game)[0]
+        rating_result_factory(member=loser, rating_before=1500, rating_after=1488)
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        assert _member_data(response, loser)["rating_change"] == -12
+
+    @pytest.mark.django_db
+    def test_retrieve_shows_rating_change_on_victory_members(
+        self, authenticated_client, ranked_game_factory, rating_result_factory
+    ):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+        rating_result_factory(member=winner)
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        [member] = response.data["victory"]["members"]
+        assert member["rating_change"] == 31
+
+    @pytest.mark.django_db
+    def test_retrieve_omits_rating_change_for_unrated_game(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory(ranked=False)
+
+        response = authenticated_client.get(reverse("game-retrieve", args=[game.id]))
+
+        for member in response.data["members"]:
+            assert member["rating_change"] is None
+            assert member["rating_before"] is None
+            assert member["rating_after"] is None
+
+    @pytest.mark.django_db
+    def test_list_shows_rating_change(
+        self, authenticated_client, ranked_game_factory, rating_result_factory
+    ):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+        rating_result_factory(member=winner)
+
+        response = authenticated_client.get(reverse("game-list"))
+
+        [game_data] = [g for g in response.data["results"] if g["id"] == game.id]
+        member = next(m for m in game_data["members"] if m["id"] == winner.id)
+        assert member["rating_change"] == 31
+
+    @pytest.mark.django_db
+    def test_retrieve_returns_200_after_game_is_rated(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+        url = reverse("game-retrieve", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        RatingResult.objects.rate_game(game)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == 200
+        assert _member_data(response, winner)["rating_change"] > 0
+        assert response["ETag"] != etag
+
+
 member_rating_viewname = "game-member-rating"
 member_retrieve_viewname = "game-member-retrieve"
 
