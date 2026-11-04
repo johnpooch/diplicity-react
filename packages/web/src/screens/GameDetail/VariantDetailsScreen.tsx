@@ -19,8 +19,9 @@ const VariantDetailsScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
-  const handicappedNations =
-    variant?.nations.filter(nation => nation.handicap !== null) ?? [];
+  const handicappedNations = (
+    variant?.nations.filter(nation => nation.handicap !== null) ?? []
+  ).sort((a, b) => (b.handicap ?? 0) - (a.handicap ?? 0));
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

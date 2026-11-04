@@ -92,6 +92,28 @@ describe("VariantDetailsScreen", () => {
     expect(rowValue("Germany")).toBe("0");
   });
 
+  it("orders nations from highest to lowest handicap", () => {
+    variant = buildVariant([
+      buildNation({ nationId: "austria", name: "Austria", handicap: -30 }),
+      buildNation({ nationId: "france", name: "France", handicap: 25 }),
+      buildNation({ nationId: "germany", name: "Germany", handicap: 0 }),
+    ]);
+
+    renderScreen();
+
+    const labels = ["France", "Germany", "Austria"].map(name =>
+      screen.getByText(name, { selector: "span" })
+    );
+    expect(
+      labels[0].compareDocumentPosition(labels[1]) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      labels[1].compareDocumentPosition(labels[2]) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
   it("explains what the handicaps are for", () => {
     variant = buildVariant([buildNation({ handicap: 15 })]);
 
