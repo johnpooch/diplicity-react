@@ -979,6 +979,7 @@ export interface MemberDetail {
   readonly actions: readonly MemberAction[];
   readonly canReport: boolean;
   readonly alreadyReported: boolean;
+  readonly rated: boolean;
 }
 
 export interface MemberNationAssign {
@@ -1433,6 +1434,36 @@ export interface PublicUserProfile {
   readonly commitmentBand: CommitmentBandEnum;
   readonly commitmentSquares: readonly CommitmentSquare[];
   readonly marks: readonly Mark[];
+}
+
+export interface RatingOpponent {
+  readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly isCurrentUser: boolean;
+  readonly isBot: boolean;
+  /** @nullable */
+  nation: string | null;
+}
+
+export interface RatingPairingOutput {
+  readonly id: number;
+  readonly opponent: RatingOpponent;
+  readonly opponentRating: number;
+  readonly score: number;
+  readonly change: number;
+}
+
+export interface RatingResultOutput {
+  readonly id: number;
+  readonly ratingBefore: number;
+  readonly ratingAfter: number;
+  readonly ratingChange: number;
+  readonly protected: boolean;
+  readonly pairings: readonly RatingPairingOutput[];
 }
 
 export interface Register {
@@ -5434,6 +5465,310 @@ export const useGameMemberNationDestroy = <
     queryClient
   );
 };
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameMemberRatingRetrieve = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<RatingResultOutput>({
+    url: `/game/${gameId}/member/${memberId}/rating/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGameMemberRatingRetrieveQueryKey = (
+  gameId: string,
+  memberId: number
+) => {
+  return [`/game/${gameId}/member/${memberId}/rating/`] as const;
+};
+
+export const getGameMemberRatingRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGameMemberRatingRetrieveQueryKey(gameId, memberId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+  > = ({ signal }) => gameMemberRatingRetrieve(gameId, memberId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(gameId && memberId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberRatingRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+>;
+export type GameMemberRatingRetrieveQueryError = unknown;
+
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberRatingRetrieveQueryOptions(
+    gameId,
+    memberId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGameMemberRatingRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGameMemberRatingRetrieveQueryKey(gameId, memberId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+  > = ({ signal }) => gameMemberRatingRetrieve(gameId, memberId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberRatingRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+>;
+export type GameMemberRatingRetrieveSuspenseQueryError = unknown;
+
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberRatingRetrieveSuspenseQueryOptions(
+    gameId,
+    memberId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const gameMemberReportCreate = (
   gameId: string,

@@ -206,6 +206,7 @@ Every change below adds a new field or a new endpoint. Nothing is renamed or rem
 | User profile response | `rating`, either `null` or `{ rating, rank: int \| null, won, drew, lost }` |
 | Member responses in a completed ranked game | `rating_change`, `rating_before`, `rating_after` |
 | New: member rating detail | The before and after rating, `protected`, and the pairings: opponent member, opponent rating, score, change |
+| Member detail response | `rated: bool`, so the client only requests the rating detail for a rated member |
 | New: leaderboard | A paginated list of established players (rank, user, rating), plus the requesting user's own rank |
 
 Completed-game responses are cached through `CompletedPhaseCacheMixin`, so clients must cope with a missing `rating_change` for up to a week.
