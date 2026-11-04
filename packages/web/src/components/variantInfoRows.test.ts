@@ -33,6 +33,7 @@ const baseVariant: Variant = {
       nonPlayable: false,
       flagUrl: null,
       soloVictorySupplyCenters: null,
+      handicap: null,
     })
   ),
   provinces: [],

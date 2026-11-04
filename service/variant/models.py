@@ -64,7 +64,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
         nations_prefetch = Prefetch(
-            "nations", queryset=Nation.objects.select_related("flag")
+            "nations", queryset=Nation.objects.select_related("flag", "handicap")
         )
 
         return (

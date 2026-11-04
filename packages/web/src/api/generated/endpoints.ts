@@ -1570,6 +1570,8 @@ export interface VariantNation {
   readonly flagUrl: string | null;
   /** @nullable */
   readonly soloVictorySupplyCenters: number | null;
+  /** @nullable */
+  readonly handicap: number | null;
 }
 
 export interface VariantProvinceAdjacency {

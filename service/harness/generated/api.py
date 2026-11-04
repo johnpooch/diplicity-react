@@ -562,6 +562,7 @@ class VariantNation(TypedDict):
     non_playable: bool
     flag_url: str | None
     solo_victory_supply_centers: int | None
+    handicap: int | None
 
 
 VariantProvinceAdjacency = TypedDict(

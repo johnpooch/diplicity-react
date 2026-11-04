@@ -17,6 +17,7 @@ from common.permissions import IsOwnedDraftForWrite
 from common.views import IMAGE_CONTENT_SECURITY_POLICY
 from nation.models import NationFlag
 from province.models import Province
+from rating.models import NationHandicap
 from .models import Variant, VariantSvg
 from .serializers import VariantSerializer, VariantWriteSerializer
 from .utils import variant_to_canonical_dict
@@ -30,11 +31,16 @@ _VARIANTS_LIST_CACHE_TIMEOUT = 60 * 60 * 24
 def _variants_list_cache_inputs():
     variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
     flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
-    return variant_max, flag_max
+    handicap_max = NationHandicap.objects.aggregate(Max("updated_at"))[
+        "updated_at__max"
+    ]
+    return variant_max, flag_max, handicap_max
 
 
-def _variants_list_etag(variant_max, flag_max):
-    digest = hashlib.sha256(f"{variant_max}|{flag_max}".encode()).hexdigest()
+def _variants_list_etag(variant_max, flag_max, handicap_max):
+    digest = hashlib.sha256(
+        f"{variant_max}|{flag_max}|{handicap_max}".encode()
+    ).hexdigest()
     return f'"{digest[:32]}"'
 
 
@@ -42,9 +48,12 @@ def _variant_detail_etag(variant, user):
     flag_max = NationFlag.objects.filter(nation__variant=variant).aggregate(
         Max("updated_at")
     )["updated_at__max"]
+    handicap_max = NationHandicap.objects.filter(nation__variant=variant).aggregate(
+        Max("updated_at")
+    )["updated_at__max"]
     user_id = user.id if user.is_authenticated else "anon"
     digest = hashlib.sha256(
-        f"{variant.updated_at}|{flag_max}|{user_id}".encode()
+        f"{variant.updated_at}|{flag_max}|{handicap_max}|{user_id}".encode()
     ).hexdigest()
     return f'"{digest[:32]}"'
 
@@ -68,18 +77,20 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return VariantSerializer
 
     def list(self, request, *args, **kwargs):
-        variant_max, flag_max = _variants_list_cache_inputs()
-        etag = _variants_list_etag(variant_max, flag_max)
+        cache_inputs = _variants_list_cache_inputs()
+        etag = _variants_list_etag(*cache_inputs)
         if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
-            response = Response(self._published_variants_data(variant_max, flag_max))
+            response = Response(self._published_variants_data(*cache_inputs))
         response["ETag"] = etag
         response["Cache-Control"] = "public"
         return response
 
-    def _published_variants_data(self, variant_max, flag_max):
-        digest = hashlib.sha256(f"{variant_max}|{flag_max}".encode()).hexdigest()
+    def _published_variants_data(self, variant_max, flag_max, handicap_max):
+        digest = hashlib.sha256(
+            f"{variant_max}|{flag_max}|{handicap_max}".encode()
+        ).hexdigest()
         cache_key = f"variants-list:published:{digest}"
         data = cache.get(cache_key)
         if data is None:
