@@ -79,6 +79,7 @@ const buildGame = (overrides: Partial<GameRetrieve> = {}): GameRetrieve => ({
   showShortGameJoinWarning: false,
   private: false,
   anonymous: false,
+  ranked: false,
   isPaused: false,
   pausedAt: null,
   nmrExtensionsAllowed: 1,
