@@ -18,10 +18,12 @@ import { SecondaryButton } from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  useGameMemberRatingRetrieveSuspense,
   useGameMemberRetrieveSuspense,
   useGameRetrieveSuspense,
   MemberDetail,
   ParticipationStatusEnum,
+  RatingPairingOutput,
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useRequiredParams } from "@/hooks";
@@ -40,6 +42,90 @@ const PARTICIPATION_LABELS: Record<ParticipationStatusEnum, string> = {
   joined: "Joined",
   playing: "Playing",
 };
+
+const formatRating = (rating: number) => Math.round(rating).toLocaleString("en-US");
+
+const formatChange = (change: number) => {
+  const rounded = Math.round(change);
+  if (rounded > 0) return `+${rounded}`;
+  if (rounded < 0) return `−${Math.abs(rounded)}`;
+  return "0";
+};
+
+const pairingResult = (pairing: RatingPairingOutput) => {
+  const opponent = pairing.opponent.nation ?? pairing.opponent.name;
+  if (pairing.score === 1) return `Beat ${opponent}`;
+  if (pairing.score === 0) return `Lost to ${opponent}`;
+  return `Tied with ${opponent}`;
+};
+
+interface RatingSectionProps {
+  memberId: number;
+}
+
+const RatingSection: React.FC<RatingSectionProps> = ({ memberId }) => {
+  const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { data: rating } = useGameMemberRatingRetrieveSuspense(gameId, memberId);
+
+  const rows: SettingsRow[] = [
+    { key: "before", label: "Before", value: formatRating(rating.ratingBefore) },
+    { key: "after", label: "After", value: formatRating(rating.ratingAfter) },
+    {
+      key: "change",
+      label: "Change",
+      value: formatChange(rating.ratingChange),
+      text: rating.protected
+        ? "A replacement's rating can only go up. This result would have lowered it, so it was not applied."
+        : undefined,
+    },
+  ];
+
+  return (
+    <>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">Rating</h2>
+        <SettingsTable rows={rows} />
+      </section>
+      {rating.pairings.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Rating breakdown</h2>
+          <Card className="overflow-hidden py-0">
+            <CardContent className="flex flex-col divide-y p-0">
+              {rating.pairings.map(pairing => (
+                <div
+                  key={pairing.id}
+                  className="flex items-center justify-between gap-4 px-6 py-3 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate">{pairingResult(pairing)}</p>
+                    <p className="truncate text-muted-foreground">
+                      {[
+                        pairing.opponent.nation ? pairing.opponent.name : null,
+                        formatRating(pairing.opponentRating),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+                  <span className="tabular-nums text-muted-foreground">
+                    {formatChange(pairing.change)}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+    </>
+  );
+};
+
+const RatingSectionSkeleton: React.FC = () => (
+  <div className="flex flex-col gap-2">
+    <Skeleton className="h-4 w-16" />
+    <Skeleton className="h-[136px] w-full rounded-xl" />
+  </div>
+);
 
 const roleLabel = (member: MemberDetail) => {
   if (member.participationStatus === "game_master") return "Game master";
@@ -171,15 +257,17 @@ const MemberContent: React.FC = () => {
           <SettingsTable rows={gameRows} />
         </section>
         {!game.anonymous && member.userId !== null && (
-          <Suspense
-            fallback={
-              <>
-                <PlayerCommitmentSectionSkeleton />
-                <PlayerConductSectionSkeleton />
-              </>
-            }
-          >
+          <Suspense fallback={<PlayerCommitmentSectionSkeleton />}>
             <PlayerCommitmentSection userId={member.userId} />
+          </Suspense>
+        )}
+        {member.rated && (
+          <Suspense fallback={<RatingSectionSkeleton />}>
+            <RatingSection memberId={member.id} />
+          </Suspense>
+        )}
+        {!game.anonymous && member.userId !== null && (
+          <Suspense fallback={<PlayerConductSectionSkeleton />}>
             <PlayerConductSection userId={member.userId} />
           </Suspense>
         )}

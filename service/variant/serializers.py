@@ -34,6 +34,9 @@ class VariantNationSerializer(serializers.Serializer):
     non_playable = serializers.BooleanField()
     flag_url = serializers.SerializerMethodField()
     solo_victory_supply_centers = serializers.SerializerMethodField()
+    handicap = serializers.IntegerField(
+        source="handicap.offset", read_only=True, allow_null=True
+    )
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_flag_url(self, nation) -> str | None:
@@ -102,6 +105,7 @@ class VariantSerializer(serializers.Serializer):
     unit_scaling = serializers.FloatField()
     status = serializers.CharField(read_only=True)
     official = serializers.BooleanField(read_only=True)
+    ranked = serializers.BooleanField(read_only=True)
     owner_id = serializers.IntegerField(read_only=True, allow_null=True)
     owner_username = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()

@@ -1,9 +1,13 @@
 import React from "react";
+import { Link } from "react-router";
+import { ChevronRight } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RowActionButton } from "@/components/ui/role-buttons";
 import { PlayerCommitment } from "@/components/PlayerCommitment";
+import { Section, StatRow } from "@/components/Section";
 import {
   useUsersRetrieveSuspense,
   type ReasonEnum,
@@ -12,32 +16,6 @@ import {
 interface PlayerProfileContentProps {
   userId: number;
 }
-
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-const Section: React.FC<SectionProps> = ({ title, children }) => (
-  <section className="flex flex-col gap-2">
-    <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
-    <Card className="overflow-hidden py-0">
-      <CardContent className="p-0">{children}</CardContent>
-    </Card>
-  </section>
-);
-
-interface StatRowProps {
-  label: string;
-  value: React.ReactNode;
-}
-
-const StatRow: React.FC<StatRowProps> = ({ label, value }) => (
-  <div className="flex items-center justify-between gap-4 px-6 py-3 text-sm">
-    <span>{label}</span>
-    <span className="tabular-nums text-muted-foreground">{value}</span>
-  </div>
-);
 
 interface ProfileCardProps {
   avatar: React.ReactNode;
@@ -74,6 +52,47 @@ export const PlayerCommitmentSection: React.FC<PlayerProfileContentProps> = ({
         total={profile.commitmentTotal}
         squares={profile.commitmentSquares}
       />
+    </Section>
+  );
+};
+
+const PlayerRatingSectionSkeleton: React.FC = () => (
+  <Section title="Rating">
+    <Skeleton className="mx-6 my-3 h-5" />
+  </Section>
+);
+
+const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
+  userId,
+}) => {
+  const { data: profile } = useUsersRetrieveSuspense(userId);
+  const { rating } = profile;
+
+  return (
+    <Section title="Rating">
+      {rating === null ? (
+        <p className="px-6 py-3 text-sm">No ranked games yet</p>
+      ) : (
+        <div className="divide-y">
+          <StatRow label="Rating" value={rating.rating.toLocaleString("en-US")} />
+          {rating.rank === null ? (
+            <StatRow label="Leaderboard" value="Not ranked yet" />
+          ) : (
+            <RowActionButton asChild>
+              <Link to="/leaderboard">
+                <span className="flex-1">Leaderboard</span>
+                <span className="tabular-nums text-muted-foreground">
+                  #{rating.rank}
+                </span>
+                <ChevronRight className="text-muted-foreground" />
+              </Link>
+            </RowActionButton>
+          )}
+          <StatRow label="Won" value={rating.won} />
+          <StatRow label="Drew" value={rating.drew} />
+          <StatRow label="Lost" value={rating.lost} />
+        </div>
+      )}
     </Section>
   );
 };
@@ -133,6 +152,7 @@ export const PlayerProfileContentSkeleton: React.FC = () => (
       </div>
     </Section>
     <PlayerCommitmentSectionSkeleton />
+    <PlayerRatingSectionSkeleton />
     <PlayerConductSectionSkeleton />
   </div>
 );
@@ -175,6 +195,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
       </Section>
 
       <PlayerCommitmentSection userId={userId} />
+      <PlayerRatingSection userId={userId} />
       <PlayerConductSection userId={userId} />
     </div>
   );

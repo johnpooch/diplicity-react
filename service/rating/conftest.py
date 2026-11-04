@@ -5,7 +5,7 @@ from common.constants import GameStatus, PhaseStatus, PhaseType
 from game.models import Game
 from nation.models import Nation
 from rating.calculation import Player
-from rating.models import RatingPairing, RatingResult
+from rating.models import Rating, RatingPairing, RatingResult
 from victory.models import Victory
 
 
@@ -106,5 +106,17 @@ def ranked_game_factory(db, classical_variant, member_factory):
         victory = Victory.objects.create(game=game, winning_phase=last_phase)
         victory.members.set(members[:victors])
         return game
+
+    return _create
+
+
+@pytest.fixture
+def rating_factory(db, user_factory, rated_at):
+    def _create(user=None, **kwargs):
+        if user is None:
+            user = user_factory()
+        values = {"rating": 1500, "deviation": 100, "rated_at": rated_at}
+        values.update(kwargs)
+        return Rating.objects.create(user=user, **values)
 
     return _create

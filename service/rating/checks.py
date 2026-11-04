@@ -16,3 +16,10 @@ class HasPlayedMinimumYearsCheck(Check):
 class IsUnratedCheck(Check):
     def check(self, game, actor):
         return not game.members.filter(rating_result__isnull=False).exists()
+
+
+class IsRankedVariantCheck(Check):
+    reason = "variant_not_ranked"
+
+    def check(self, game, actor):
+        return game.variant.ranked

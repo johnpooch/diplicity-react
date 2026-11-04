@@ -795,6 +795,34 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{gameId}/member/{memberId}/rating/:
+    get:
+      operationId: gameMemberRatingRetrieve
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: memberId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingResultOutput'
+          description: ''
   /game/{gameId}/member/{memberId}/report/:
     post:
       operationId: gameMemberReportCreate
@@ -1954,6 +1982,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedMyGameList'
+          description: ''
+  /leaderboard/:
+    get:
+      operationId: leaderboardList
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - leaderboard
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardEntryList'
           description: ''
   /moderation/reports/:
     get:
@@ -3296,6 +3351,9 @@ components:
         anonymous:
           type: boolean
           default: false
+        ranked:
+          type: boolean
+          default: false
         gameMaster:
           type: boolean
           default: false
@@ -3452,6 +3510,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         movementPhaseDuration:
           type: string
           readOnly: true
@@ -3570,6 +3631,7 @@ components:
       - phases
       - pressType
       - private
+      - ranked
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
@@ -3804,6 +3866,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         isPaused:
           type: boolean
           readOnly: true
@@ -3911,6 +3976,7 @@ components:
       - playerListActions
       - pressType
       - private
+      - ranked
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
@@ -3975,6 +4041,32 @@ components:
         * `paused` - Paused
         * `sandbox` - Sandbox
         * `finished` - Finished
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          readOnly: true
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          nullable: true
+          readOnly: true
+        rating:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - name
+      - picture
+      - rank
+      - rating
+      - userId
     Mark:
       type: object
       properties:
@@ -4225,6 +4317,9 @@ components:
         alreadyReported:
           type: boolean
           readOnly: true
+        rated:
+          type: boolean
+          readOnly: true
       required:
       - actions
       - alreadyReported
@@ -4240,6 +4335,7 @@ components:
       - nmrExtensionsRemaining
       - participationStatus
       - picture
+      - rated
       - supplyCenterCount
       - unitCount
       - userId
@@ -4822,6 +4918,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GameList'
+    PaginatedLeaderboardEntryList:
+      type: object
+      required:
+      - count
+      - results
+      - own
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+        own:
+          allOf:
+          - $ref: '#/components/schemas/LeaderboardEntry'
+          nullable: true
     PaginatedMyGameList:
       type: object
       required:
@@ -5127,6 +5251,31 @@ components:
       description: |-
         * `full_press` - Full Press
         * `no_press` - No Press
+    ProfileRating:
+      type: object
+      properties:
+        rating:
+          type: integer
+          readOnly: true
+        rank:
+          type: integer
+          readOnly: true
+          nullable: true
+        won:
+          type: integer
+          readOnly: true
+        drew:
+          type: integer
+          readOnly: true
+        lost:
+          type: integer
+          readOnly: true
+      required:
+      - drew
+      - lost
+      - rank
+      - rating
+      - won
     Province:
       type: object
       properties:
@@ -5188,6 +5337,11 @@ components:
           items:
             $ref: '#/components/schemas/CommitmentSquare'
           readOnly: true
+        rating:
+          allOf:
+          - $ref: '#/components/schemas/ProfileRating'
+          nullable: true
+          readOnly: true
         marks:
           type: array
           items:
@@ -5203,7 +5357,103 @@ components:
       - marks
       - name
       - picture
+      - rating
       - totalGames
+    RatingOpponent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          nullable: true
+          readOnly: true
+        isCurrentUser:
+          type: boolean
+          readOnly: true
+        isBot:
+          type: boolean
+          readOnly: true
+        nation:
+          type: string
+          nullable: true
+      required:
+      - id
+      - isBot
+      - isCurrentUser
+      - name
+      - nation
+      - picture
+      - userId
+    RatingPairingOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        opponent:
+          allOf:
+          - $ref: '#/components/schemas/RatingOpponent'
+          readOnly: true
+        opponentRating:
+          type: number
+          format: double
+          readOnly: true
+        score:
+          type: number
+          format: double
+          readOnly: true
+        change:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - change
+      - id
+      - opponent
+      - opponentRating
+      - score
+    RatingResultOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ratingBefore:
+          type: number
+          format: double
+          readOnly: true
+        ratingAfter:
+          type: number
+          format: double
+          readOnly: true
+        ratingChange:
+          type: number
+          format: double
+          readOnly: true
+        protected:
+          type: boolean
+          readOnly: true
+        pairings:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingPairingOutput'
+          readOnly: true
+      required:
+      - id
+      - pairings
+      - protected
+      - ratingAfter
+      - ratingBefore
+      - ratingChange
     ReasonEnum:
       enum:
       - abuse_and_harassment
@@ -5544,6 +5794,9 @@ components:
         official:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         ownerId:
           type: integer
           readOnly: true
@@ -5581,6 +5834,7 @@ components:
       - ownerId
       - ownerUsername
       - provinces
+      - ranked
       - rules
       - status
       - svgUrl
@@ -5608,9 +5862,14 @@ components:
           type: integer
           nullable: true
           readOnly: true
+        handicap:
+          type: integer
+          readOnly: true
+          nullable: true
       required:
       - color
       - flagUrl
+      - handicap
       - name
       - nationId
       - nonPlayable

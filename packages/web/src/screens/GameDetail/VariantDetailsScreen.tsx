@@ -4,6 +4,7 @@ import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { MapView } from "@/components/MapView";
 import { SettingsTable } from "@/components/SettingsTable";
+import { Section, StatRow } from "@/components/Section";
 import { buildVariantInfoRows } from "@/components/variantInfoRows";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
@@ -18,6 +19,9 @@ const VariantDetailsScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
+  const handicappedNations = (
+    variant?.nations.filter(nation => nation.handicap !== null) ?? []
+  ).sort((a, b) => (b.handicap ?? 0) - (a.handicap ?? 0));
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -41,6 +45,24 @@ const VariantDetailsScreen: React.FC = () => {
                   />
                 </div>
                 <SettingsTable rows={buildVariantInfoRows(variant)} />
+                {variant.ranked && (
+                  <Section
+                    title="Ranked Handicaps"
+                    info="These handicaps are used to determine the scores in ranked games."
+                  >
+                    <div className="divide-y">
+                      {handicappedNations.map(nation => (
+                        <StatRow
+                          key={nation.nationId}
+                          label={nation.name}
+                          value={nation.handicap?.toLocaleString(undefined, {
+                            signDisplay: "exceptZero",
+                          })}
+                        />
+                      ))}
+                    </div>
+                  </Section>
+                )}
               </>
             ) : (
               <>

@@ -31,6 +31,7 @@ const buildGame = (overrides: Partial<GameList> = {}): GameList => ({
   memberStatus: null,
   private: false,
   anonymous: false,
+  ranked: false,
   movementPhaseDuration: "24 hours",
   retreatPhaseDuration: null,
   showShortGameJoinWarning: false,

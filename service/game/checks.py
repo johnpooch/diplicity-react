@@ -58,6 +58,13 @@ class IsNotSandboxGameCheck(Check):
         return not game_of(instance).sandbox
 
 
+class IsPublicGameCheck(Check):
+    reason = "private_game"
+
+    def check(self, instance, actor):
+        return not game_of(instance).private
+
+
 class IsCurrentPhaseActiveCheck(Check):
     reason = "phase_not_active"
 

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import (
@@ -10,6 +11,7 @@ from common.constants import (
 from game.models import Game
 from member.checks import MeetsCommitmentRequirementCheck
 from member.models import Member
+from rating.models import Rating
 from report.constants import ReportReason
 from report.models import Mark
 
@@ -106,6 +108,18 @@ class MarkSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
 
 
+class ProfileRatingSerializer(serializers.Serializer):
+    rating = serializers.SerializerMethodField()
+    rank = serializers.IntegerField(read_only=True, allow_null=True)
+    won = serializers.IntegerField(read_only=True)
+    drew = serializers.IntegerField(read_only=True)
+    lost = serializers.IntegerField(read_only=True)
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_rating(self, obj):
+        return round(obj.rating)
+
+
 class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
@@ -116,6 +130,7 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     commitment_total = serializers.IntegerField(read_only=True)
     commitment_band = serializers.SerializerMethodField()
     commitment_squares = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
     marks = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES))
@@ -127,6 +142,18 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
         squares = list(Member.objects.filter(user=obj.user).commitment_squares())
         Member.objects.hydrate_commitment_breakdowns(squares)
         return CommitmentSquareSerializer(squares, many=True).data
+
+    @extend_schema_field(ProfileRatingSerializer(allow_null=True))
+    def get_rating(self, obj):
+        rating = (
+            Rating.objects.filter(user=obj.user)
+            .with_rank(timezone.now())
+            .with_record()
+            .first()
+        )
+        if rating is None:
+            return None
+        return ProfileRatingSerializer(rating).data
 
     @extend_schema_field(MarkSerializer(many=True))
     def get_marks(self, obj):

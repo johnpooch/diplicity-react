@@ -3,7 +3,6 @@ import hashlib
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from django.http import Http404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import conditional_page
@@ -89,10 +88,11 @@ class LoaderListView(LoaderMixin, generics.ListAPIView):
 
 
 class LoaderDetailView(LoaderMixin, generics.GenericAPIView):
+    def get_queryset(self):
+        return self.get_loader().get_queryset(self.request.user)
+
     def get(self, request, *args, **kwargs):
-        instance = self.get_loader().get(kwargs[self.lookup_field], request.user)
-        if instance is None:
-            raise Http404
+        [instance] = self.get_loader().hydrate([self.get_object()], request.user)
         return Response(self.get_serializer(instance).data)
 
 

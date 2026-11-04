@@ -1,4 +1,5 @@
 import copy
+import importlib
 import json
 import re
 from pathlib import Path
@@ -12,7 +13,11 @@ from django.test.utils import override_settings
 from django.db import connection
 from rest_framework import status
 
+from django.apps import apps
+from django.core.exceptions import ValidationError
+from rating.models import NationHandicap
 from adjudicator.serializers import deserialize_variant, VariantValidationError
+from rating.models import NationHandicap
 from variant.models import Variant, default_phase_progression
 from variant.utils import normalize_dsvg, variant_to_canonical_dict
 
@@ -26,6 +31,10 @@ IN_DB_VARIANT_IDS = {
 }
 
 viewname = "variant-list"
+
+rank_migration = importlib.import_module(
+    "variant.migrations.0028_rank_handicapped_variants"
+)
 
 
 @pytest.mark.django_db
@@ -157,6 +166,97 @@ def test_svg_url_is_null_when_variant_has_no_svg(authenticated_client):
     assert no_svg["svg_url"] is None
 
 
+class TestVariantRanked:
+    def _variants(self, client):
+        return {v["id"]: v for v in client.get(reverse(viewname)).data}
+
+    @pytest.mark.django_db
+    def test_seeded_variant_is_ranked(self, authenticated_client):
+        assert self._variants(authenticated_client)["classical"]["ranked"] is True
+
+    @pytest.mark.django_db
+    def test_variant_without_handicaps_is_not_ranked(self, authenticated_client):
+        assert self._variants(authenticated_client)["vietnam-war"]["ranked"] is False
+
+    @pytest.mark.django_db
+    def test_retrieve_variant_includes_ranked(self, authenticated_client):
+        response = authenticated_client.get(
+            reverse("variant-detail", args=["classical"])
+        )
+
+        assert response.data["ranked"] is True
+
+    @pytest.mark.django_db
+    def test_new_variant_is_not_ranked(self):
+        variant = Variant.objects.create(
+            id="new-variant", name="New", description="", author=""
+        )
+
+        assert variant.ranked is False
+
+    @pytest.mark.django_db
+    def test_handicapped_variant_can_be_ranked(self):
+        Variant.objects.get(id="classical").clean()
+
+    @pytest.mark.django_db
+    def test_variant_missing_a_handicap_cannot_be_ranked(self):
+        NationHandicap.objects.filter(
+            nation__variant_id="classical", nation__name="France"
+        ).delete()
+
+        with pytest.raises(ValidationError) as excinfo:
+            Variant.objects.get(id="classical").clean()
+
+        assert "ranked" in excinfo.value.message_dict
+
+    @pytest.mark.django_db
+    def test_variant_without_playable_nations_cannot_be_ranked(self):
+        variant = Variant.objects.create(
+            id="no-nations", name="No Nations", description="", author=""
+        )
+        variant.ranked = True
+
+        with pytest.raises(ValidationError):
+            variant.clean()
+
+    @pytest.mark.django_db
+    def test_unranked_variant_without_handicaps_is_valid(self):
+        Variant.objects.get(id="vietnam-war").clean()
+
+
+class TestRankHandicappedVariantsMigration:
+    @pytest.mark.django_db
+    def test_ranks_every_fully_handicapped_variant(self):
+        Variant.objects.update(ranked=False)
+
+        rank_migration.rank(apps, None)
+
+        ranked = set(Variant.objects.filter(ranked=True).values_list("id", flat=True))
+        assert ranked == {
+            variant.id for variant in Variant.objects.all() if variant.fully_handicapped()
+        }
+        assert "classical" in ranked
+
+    @pytest.mark.django_db
+    def test_leaves_partly_handicapped_variant_unranked(self):
+        Variant.objects.update(ranked=False)
+        NationHandicap.objects.filter(
+            nation__variant_id="classical", nation__name="France"
+        ).delete()
+
+        rank_migration.rank(apps, None)
+
+        assert Variant.objects.get(id="classical").ranked is False
+
+    @pytest.mark.django_db
+    def test_bumps_updated_at_of_ranked_variants(self):
+        before = Variant.objects.get(id="classical").updated_at
+
+        rank_migration.rank(apps, None)
+
+        assert Variant.objects.get(id="classical").updated_at > before
+
+
 class TestVariantListViewQueryPerformance:
 
     @pytest.mark.django_db
@@ -177,9 +277,9 @@ class TestVariantListViewQueryPerformance:
         # regardless of the number of variants due to prefetch_related
         query_count = len(connection.queries)
 
-        # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at). This is the cache-miss path; hits skip the 18.
-        assert query_count == 20
+        # 18 prefetch queries + 3 ETag aggregates (Variant + NationFlag +
+        # NationHandicap max updated_at). This is the cache-miss path; hits skip the 18.
+        assert query_count == 21
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(
@@ -220,9 +320,9 @@ class TestVariantListViewQueryPerformance:
         # Should have the same number of queries regardless of variant count
         # due to prefetch_related optimization
         query_count = len(connection.queries)
-        # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at). This is the cache-miss path; hits skip the 18.
-        assert query_count == 20
+        # 18 prefetch queries + 3 ETag aggregates (Variant + NationFlag +
+        # NationHandicap max updated_at). This is the cache-miss path; hits skip the 18.
+        assert query_count == 21
 
 
 class TestPhaseProgressionBackfill:
@@ -632,6 +732,57 @@ class TestNationColor:
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
         assert nations_by_id["england"]["color"] == "#2196F3"
         assert nations_by_id["italy"]["color"] == "#4CAF50"
+
+
+class TestNationHandicapField:
+
+    @pytest.mark.django_db
+    def test_list_includes_nation_handicaps(self, authenticated_client):
+        response = authenticated_client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_name = {n["name"]: n for n in classical["nations"]}
+        assert nations_by_name["France"]["handicap"] == 25
+        assert nations_by_name["Austria"]["handicap"] == -30
+
+    @pytest.mark.django_db
+    def test_unhandicapped_nation_has_null_handicap(self, authenticated_client):
+        response = authenticated_client.get(
+            reverse("variant-detail", kwargs={"pk": "vietnam-war"})
+        )
+
+        nations_by_name = {n["name"]: n for n in response.data["nations"]}
+        assert nations_by_name["Laos"]["handicap"] is None
+
+    @pytest.mark.django_db
+    def test_list_etag_changes_when_a_handicap_changes(self, authenticated_client):
+        etag = authenticated_client.get(reverse(viewname))["ETag"]
+        handicap = NationHandicap.objects.get(
+            nation__variant_id="classical", nation__name="France"
+        )
+        handicap.offset = 20
+        handicap.save()
+
+        response = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_name = {n["name"]: n for n in classical["nations"]}
+        assert nations_by_name["France"]["handicap"] == 20
+
+    @pytest.mark.django_db
+    def test_detail_etag_changes_when_a_handicap_changes(self, authenticated_client):
+        url = reverse("variant-detail", kwargs={"pk": "classical"})
+        etag = authenticated_client.get(url)["ETag"]
+        handicap = NationHandicap.objects.get(
+            nation__variant_id="classical", nation__name="France"
+        )
+        handicap.offset = 20
+        handicap.save()
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
 
 
 COMMITTED_DSVGS = sorted(

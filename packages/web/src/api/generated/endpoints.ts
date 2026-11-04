@@ -549,6 +549,7 @@ export interface GameCreate {
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
   anonymous?: boolean;
+  ranked?: boolean;
   gameMaster?: boolean;
   deadlineMode?: DeadlineModeEnum;
   /** @nullable */
@@ -725,6 +726,7 @@ export interface GameList {
   readonly memberStatus: readonly MemberStatusEnum[] | null;
   readonly private: boolean;
   readonly anonymous: boolean;
+  readonly ranked: boolean;
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -797,6 +799,7 @@ export interface GameRetrieve {
   readonly showShortGameJoinWarning: boolean;
   readonly private: boolean;
   readonly anonymous: boolean;
+  readonly ranked: boolean;
   readonly isPaused: boolean;
   /** @nullable */
   readonly pausedAt: string | null;
@@ -861,6 +864,15 @@ export const KindEnum = {
   sandbox: "sandbox",
   finished: "finished",
 } as const;
+
+export interface LeaderboardEntry {
+  readonly rank: number;
+  readonly userId: number;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly rating: number;
+}
 
 /**
  * * `abuse_and_harassment` - Abuse and harassment
@@ -985,6 +997,7 @@ export interface MemberDetail {
   readonly actions: readonly MemberAction[];
   readonly canReport: boolean;
   readonly alreadyReported: boolean;
+  readonly rated: boolean;
 }
 
 export interface MemberNationAssign {
@@ -1275,6 +1288,16 @@ export interface PaginatedGameListList {
   results: GameList[];
 }
 
+export interface PaginatedLeaderboardEntryList {
+  count: number;
+  /** @nullable */
+  next?: string | null;
+  /** @nullable */
+  previous?: string | null;
+  results: LeaderboardEntry[];
+  own: LeaderboardEntry | null;
+}
+
 export interface PaginatedMyGameList {
   count: number;
   /** @nullable */
@@ -1427,6 +1450,15 @@ export const PlatformEnum = {
   android: "android",
 } as const;
 
+export interface ProfileRating {
+  readonly rating: number;
+  /** @nullable */
+  readonly rank: number | null;
+  readonly won: number;
+  readonly drew: number;
+  readonly lost: number;
+}
+
 export interface PublicUserProfile {
   readonly id: number;
   readonly name: string;
@@ -1438,7 +1470,38 @@ export interface PublicUserProfile {
   readonly commitmentTotal: number;
   readonly commitmentBand: CommitmentBandEnum;
   readonly commitmentSquares: readonly CommitmentSquare[];
+  readonly rating: ProfileRating | null;
   readonly marks: readonly Mark[];
+}
+
+export interface RatingOpponent {
+  readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly isCurrentUser: boolean;
+  readonly isBot: boolean;
+  /** @nullable */
+  nation: string | null;
+}
+
+export interface RatingPairingOutput {
+  readonly id: number;
+  readonly opponent: RatingOpponent;
+  readonly opponentRating: number;
+  readonly score: number;
+  readonly change: number;
+}
+
+export interface RatingResultOutput {
+  readonly id: number;
+  readonly ratingBefore: number;
+  readonly ratingAfter: number;
+  readonly ratingChange: number;
+  readonly protected: boolean;
+  readonly pairings: readonly RatingPairingOutput[];
 }
 
 export interface Register {
@@ -1532,6 +1595,8 @@ export interface VariantNation {
   readonly flagUrl: string | null;
   /** @nullable */
   readonly soloVictorySupplyCenters: number | null;
+  /** @nullable */
+  readonly handicap: number | null;
 }
 
 export interface VariantProvinceAdjacency {
@@ -1584,6 +1649,7 @@ export interface Variant {
   unitScaling: number;
   readonly status: string;
   readonly official: boolean;
+  readonly ranked: boolean;
   /** @nullable */
   readonly ownerId: number | null;
   /** @nullable */
@@ -1818,6 +1884,17 @@ export type GamesFindSimilarRetrieveParams = {
 };
 
 export type GamesMineFinishedListParams = {
+  /**
+   * A page number within the paginated result set.
+   */
+  page?: number;
+  /**
+   * Number of results to return per page.
+   */
+  page_size?: number;
+};
+
+export type LeaderboardListParams = {
   /**
    * A page number within the paginated result set.
    */
@@ -5440,6 +5517,310 @@ export const useGameMemberNationDestroy = <
     queryClient
   );
 };
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameMemberRatingRetrieve = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<RatingResultOutput>({
+    url: `/game/${gameId}/member/${memberId}/rating/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGameMemberRatingRetrieveQueryKey = (
+  gameId: string,
+  memberId: number
+) => {
+  return [`/game/${gameId}/member/${memberId}/rating/`] as const;
+};
+
+export const getGameMemberRatingRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGameMemberRatingRetrieveQueryKey(gameId, memberId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+  > = ({ signal }) => gameMemberRatingRetrieve(gameId, memberId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(gameId && memberId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberRatingRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+>;
+export type GameMemberRatingRetrieveQueryError = unknown;
+
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberRatingRetrieve<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberRatingRetrieveQueryOptions(
+    gameId,
+    memberId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGameMemberRatingRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGameMemberRatingRetrieveQueryKey(gameId, memberId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+  > = ({ signal }) => gameMemberRatingRetrieve(gameId, memberId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameMemberRatingRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameMemberRatingRetrieve>>
+>;
+export type GameMemberRatingRetrieveSuspenseQueryError = unknown;
+
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameMemberRatingRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  memberId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameMemberRatingRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameMemberRatingRetrieveSuspenseQueryOptions(
+    gameId,
+    memberId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const gameMemberReportCreate = (
   gameId: string,
@@ -11876,6 +12257,276 @@ export function useGamesMineFinishedListSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const leaderboardList = (
+  params?: LeaderboardListParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<PaginatedLeaderboardEntryList>({
+    url: `/leaderboard/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getLeaderboardListQueryKey = (params?: LeaderboardListParams) => {
+  return [`/leaderboard/`, ...(params ? [params] : [])] as const;
+};
+
+export const getLeaderboardListQueryOptions = <
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLeaderboardListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof leaderboardList>>> = ({
+    signal,
+  }) => leaderboardList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof leaderboardList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LeaderboardListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof leaderboardList>>
+>;
+export type LeaderboardListQueryError = unknown;
+
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params: undefined | LeaderboardListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaderboardList>>,
+          TError,
+          Awaited<ReturnType<typeof leaderboardList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaderboardList>>,
+          TError,
+          Awaited<ReturnType<typeof leaderboardList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLeaderboardListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getLeaderboardListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLeaderboardListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof leaderboardList>>> = ({
+    signal,
+  }) => leaderboardList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof leaderboardList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LeaderboardListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof leaderboardList>>
+>;
+export type LeaderboardListSuspenseQueryError = unknown;
+
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params: undefined | LeaderboardListParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLeaderboardListSuspenseQueryOptions(params, options);
 
   const query = useSuspenseQuery(
     queryOptions,
