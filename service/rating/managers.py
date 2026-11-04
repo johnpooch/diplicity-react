@@ -13,14 +13,13 @@ class RatingResultManager(Manager.from_queryset(RatingResultQuerySet)):
     @command(only_if=RateablePolicy)
     def rate_game(self, game):
         rated_at = timezone.now()
-        members = {
-            member.pk: member
-            for member in game.members.players()
+        members = list(
+            game.members.players()
             .humans()
             .select_related("nation__handicap")
             .prefetch_related("replaces")
-        }
-        user_ids = sorted(member.user_id for member in members.values())
+        )
+        user_ids = sorted(member.user_id for member in members)
         models.Rating.objects.bulk_create(
             [
                 models.Rating(
@@ -33,13 +32,12 @@ class RatingResultManager(Manager.from_queryset(RatingResultQuerySet)):
             ],
             ignore_conflicts=True,
         )
-        ratings = {
-            rating.user_id: rating
-            for rating in models.Rating.objects.select_for_update()
-            .filter(user_id__in=user_ids)
+        ratings = (
+            models.Rating.objects.select_for_update()
             .order_by("user_id")
-        }
-        victor_ids = {member.pk for member in game.victory.members.all()}
+            .in_bulk(user_ids, field_name="user_id")
+        )
+        victors = set(game.victory.members.all())
         results = rate(
             [
                 Player(
@@ -49,17 +47,17 @@ class RatingResultManager(Manager.from_queryset(RatingResultQuerySet)):
                     deviation=ratings[member.user_id].deviation,
                     rated_at=ratings[member.user_id].rated_at,
                     handicap=member.nation.handicap.offset,
-                    victor=member.pk in victor_ids,
+                    victor=member in victors,
                     departed=member.replaced_by_id is not None,
                     replacement=bool(member.replaces.all()),
                 )
-                for member in members.values()
+                for member in members
             ],
             rated_at,
         )
-        for result in results:
+        for member, result in zip(members, results):
             rating_result = self.create(
-                member=members[result.member_id],
+                member=member,
                 rating_before=result.rating_before,
                 deviation_before=result.deviation_before,
                 rating_after=result.rating_after,
@@ -68,6 +66,6 @@ class RatingResultManager(Manager.from_queryset(RatingResultQuerySet)):
                 protected=result.protected,
             )
             rating_result.record_pairings(result.pairings)
-            if not rating_result.protected:
-                ratings[rating_result.member.user_id].record(rating_result)
+            if not result.protected:
+                ratings[member.user_id].record(rating_result)
         return game
