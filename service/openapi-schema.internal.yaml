@@ -5112,6 +5112,31 @@ components:
       description: |-
         * `full_press` - Full Press
         * `no_press` - No Press
+    ProfileRating:
+      type: object
+      properties:
+        rating:
+          type: integer
+          readOnly: true
+        rank:
+          type: integer
+          readOnly: true
+          nullable: true
+        won:
+          type: integer
+          readOnly: true
+        drew:
+          type: integer
+          readOnly: true
+        lost:
+          type: integer
+          readOnly: true
+      required:
+      - drew
+      - lost
+      - rank
+      - rating
+      - won
     Province:
       type: object
       properties:
@@ -5173,6 +5198,11 @@ components:
           items:
             $ref: '#/components/schemas/CommitmentSquare'
           readOnly: true
+        rating:
+          allOf:
+          - $ref: '#/components/schemas/ProfileRating'
+          nullable: true
+          readOnly: true
         marks:
           type: array
           items:
@@ -5188,6 +5218,7 @@ components:
       - marks
       - name
       - picture
+      - rating
       - total_games
     ReasonEnum:
       enum:

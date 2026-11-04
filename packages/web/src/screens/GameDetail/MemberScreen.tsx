@@ -10,6 +10,8 @@ import {
   PlayerCommitmentSectionSkeleton,
   PlayerConductSection,
   PlayerConductSectionSkeleton,
+  PlayerRatingSection,
+  PlayerRatingSectionSkeleton,
 } from "@/components/PlayerProfileContent";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { SettingsTable, type SettingsRow } from "@/components/SettingsTable";
@@ -175,11 +177,13 @@ const MemberContent: React.FC = () => {
             fallback={
               <>
                 <PlayerCommitmentSectionSkeleton />
+                <PlayerRatingSectionSkeleton />
                 <PlayerConductSectionSkeleton />
               </>
             }
           >
             <PlayerCommitmentSection userId={member.userId} />
+            <PlayerRatingSection userId={member.userId} />
             <PlayerConductSection userId={member.userId} />
           </Suspense>
         )}

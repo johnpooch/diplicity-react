@@ -13,6 +13,7 @@ class Parameters:
     return_to_max: timedelta = timedelta(days=730)
     period: timedelta = timedelta(days=30)
     weight_scale: float = 2
+    ranked_deviation: float = 150
 
     @property
     def volatility(self):

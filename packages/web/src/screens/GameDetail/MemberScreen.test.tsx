@@ -22,6 +22,7 @@ const profile: PublicUserProfile = {
   commitmentTotal: 434,
   commitmentBand: "neutral",
   commitmentSquares: [],
+  rating: null,
   marks: [],
 };
 
@@ -146,6 +147,13 @@ describe("MemberScreen", () => {
       screen.getByRole("heading", { name: "Commitment" })
     ).toBeInTheDocument();
     expect(screen.getByText("+434")).toBeInTheDocument();
+  });
+
+  it("shows the player's rating", () => {
+    renderScreen();
+
+    expect(screen.getByRole("heading", { name: "Rating" })).toBeInTheDocument();
+    expect(screen.getByText("No ranked games yet")).toBeInTheDocument();
   });
 
   it("shows the player's conduct history", () => {

@@ -78,6 +78,38 @@ export const PlayerCommitmentSection: React.FC<PlayerProfileContentProps> = ({
   );
 };
 
+export const PlayerRatingSectionSkeleton: React.FC = () => (
+  <Section title="Rating">
+    <Skeleton className="mx-6 my-3 h-5" />
+  </Section>
+);
+
+export const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
+  userId,
+}) => {
+  const { data: profile } = useUsersRetrieveSuspense(userId);
+  const { rating } = profile;
+
+  return (
+    <Section title="Rating">
+      {rating === null ? (
+        <p className="px-6 py-3 text-sm">No ranked games yet</p>
+      ) : (
+        <div className="divide-y">
+          <StatRow label="Rating" value={rating.rating.toLocaleString()} />
+          <StatRow
+            label="Leaderboard"
+            value={rating.rank === null ? "Not ranked yet" : `#${rating.rank}`}
+          />
+          <StatRow label="Won" value={rating.won} />
+          <StatRow label="Drew" value={rating.drew} />
+          <StatRow label="Lost" value={rating.lost} />
+        </div>
+      )}
+    </Section>
+  );
+};
+
 const markLabel: Record<ReasonEnum, string> = {
   abuse_and_harassment: "Abuse and harassment",
   multiple_accounts: "Multiple accounts",
@@ -133,6 +165,7 @@ export const PlayerProfileContentSkeleton: React.FC = () => (
       </div>
     </Section>
     <PlayerCommitmentSectionSkeleton />
+    <PlayerRatingSectionSkeleton />
     <PlayerConductSectionSkeleton />
   </div>
 );
@@ -175,6 +208,7 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
       </Section>
 
       <PlayerCommitmentSection userId={userId} />
+      <PlayerRatingSection userId={userId} />
       <PlayerConductSection userId={userId} />
     </div>
   );
