@@ -1,7 +1,11 @@
+import importlib
 from datetime import timedelta
 
 import pytest
+from django.apps import apps
 from django.db import IntegrityError
+
+from nation.models import Nation
 
 from rating.calculation import (
     DEFAULT_PARAMETERS,
@@ -12,6 +16,10 @@ from rating.calculation import (
     update,
 )
 from rating.models import NationHandicap, Rating
+
+seed_handicaps_migration = importlib.import_module(
+    "rating.migrations.0002_seed_nation_handicaps"
+)
 
 
 class TestGameRanked:
@@ -72,11 +80,11 @@ class TestRatingPairing:
 
 class TestNationHandicap:
     @pytest.mark.django_db
-    def test_one_handicap_per_nation(self, classical_england_nation):
-        NationHandicap.objects.create(nation=classical_england_nation, offset=-20)
+    def test_one_handicap_per_nation(self, unhandicapped_nation):
+        NationHandicap.objects.create(nation=unhandicapped_nation, offset=-20)
 
         with pytest.raises(IntegrityError):
-            NationHandicap.objects.create(nation=classical_england_nation, offset=10)
+            NationHandicap.objects.create(nation=unhandicapped_nation, offset=10)
 
 
 class TestNationHandicapAdmin:
@@ -90,23 +98,77 @@ class TestNationHandicapAdmin:
         return client
 
     @pytest.mark.django_db
-    def test_superuser_adds_handicap(self, admin_client, classical_england_nation):
+    def test_superuser_adds_handicap(self, admin_client, unhandicapped_nation):
         response = admin_client.post(
             "/admin/rating/nationhandicap/add/",
-            {"nation": classical_england_nation.id, "offset": -25},
+            {"nation": unhandicapped_nation.id, "offset": -25},
         )
 
         assert response.status_code == 302
-        assert NationHandicap.objects.get(nation=classical_england_nation).offset == -25
+        assert NationHandicap.objects.get(nation=unhandicapped_nation).offset == -25
 
     @pytest.mark.django_db
-    def test_superuser_lists_handicaps(self, admin_client, classical_england_nation):
-        NationHandicap.objects.create(nation=classical_england_nation, offset=-25)
-
+    def test_superuser_lists_handicaps(self, admin_client):
         response = admin_client.get("/admin/rating/nationhandicap/")
 
         assert response.status_code == 200
         assert "England" in response.content.decode()
+
+
+class TestSeedNationHandicaps:
+    def _offsets(self, variant_id):
+        return dict(
+            NationHandicap.objects.filter(nation__variant_id=variant_id).values_list(
+                "nation__name", "offset"
+            )
+        )
+
+    @pytest.mark.django_db
+    def test_seeds_every_playable_nation_of_present_variants(self):
+        for variant_id, offsets in seed_handicaps_migration.HANDICAPS.items():
+            if Nation.objects.filter(variant_id=variant_id).exists():
+                assert self._offsets(variant_id) == offsets
+
+    @pytest.mark.django_db
+    def test_seeds_classical(self):
+        assert self._offsets("classical") == {
+            "France": 25,
+            "Turkey": 21,
+            "England": 15,
+            "Germany": -3,
+            "Russia": -11,
+            "Italy": -17,
+            "Austria": -30,
+        }
+
+    @pytest.mark.django_db
+    def test_leaves_unlisted_variants_without_handicaps(self):
+        assert self._offsets("vietnam-war") == {}
+
+    @pytest.mark.django_db
+    def test_seed_is_idempotent(self):
+        NationHandicap.objects.filter(nation__variant_id="classical").update(offset=0)
+
+        seed_handicaps_migration.seed(apps, None)
+
+        assert self._offsets("classical")["France"] == 25
+
+    @pytest.mark.django_db
+    def test_seed_refuses_mismatched_nations(self):
+        Nation.objects.filter(variant_id="classical", name="France").update(name="Gaul")
+
+        with pytest.raises(ValueError):
+            seed_handicaps_migration.seed(apps, None)
+
+    @pytest.mark.django_db
+    def test_unseed_removes_seeded_handicaps(self, unhandicapped_nation):
+        NationHandicap.objects.create(nation=unhandicapped_nation, offset=5)
+
+        seed_handicaps_migration.unseed(apps, None)
+
+        assert list(NationHandicap.objects.values_list("nation", flat=True)) == [
+            unhandicapped_nation.id
+        ]
 
 
 def _by_member(results):

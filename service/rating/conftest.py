@@ -1,6 +1,7 @@
 import pytest
 from django.utils import timezone
 
+from nation.models import Nation
 from rating.calculation import Player
 from rating.models import RatingPairing, RatingResult
 
@@ -62,3 +63,8 @@ def player_factory(rated_at):
         return Player(member_id=member_id, victor=victor, **values)
 
     return _create
+
+
+@pytest.fixture
+def unhandicapped_nation(db):
+    return Nation.objects.get(variant_id="vietnam-war", name="Laos")
