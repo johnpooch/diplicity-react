@@ -771,6 +771,7 @@ class Game(BaseModel):
     sandbox = models.BooleanField(default=False)
     private = models.BooleanField(default=False)
     anonymous = models.BooleanField(default=False)
+    ranked = models.BooleanField(default=False, db_default=False)
     press_type = models.CharField(
         max_length=20,
         choices=PressType.PRESS_TYPE_CHOICES,
