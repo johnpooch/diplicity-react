@@ -3875,7 +3875,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 48
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(
@@ -3896,7 +3896,91 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 48
+
+
+class TestRankedGameCreation:
+    def _payload(self, variant_id="classical", **kwargs):
+        payload = {
+            "name": "Ranked Game",
+            "variant_id": variant_id,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+            "ranked": True,
+        }
+        payload.update(kwargs)
+        return payload
+
+    @pytest.mark.django_db
+    def test_creates_ranked_game(self, authenticated_client):
+        response = authenticated_client.post(
+            reverse(create_viewname), self._payload(), format="json"
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["ranked"] is True
+        assert Game.objects.get(id=response.data["id"]).ranked is True
+
+    @pytest.mark.django_db
+    def test_game_is_not_ranked_when_omitted(self, authenticated_client):
+        payload = self._payload()
+        del payload["ranked"]
+
+        response = authenticated_client.post(
+            reverse(create_viewname), payload, format="json"
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["ranked"] is False
+
+    @pytest.mark.django_db
+    def test_refuses_ranked_private_game(self, authenticated_client):
+        response = authenticated_client.post(
+            reverse(create_viewname), self._payload(private=True), format="json"
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "private_game"}
+        assert not Game.objects.filter(name="Ranked Game").exists()
+
+    @pytest.mark.django_db
+    def test_refuses_ranked_game_on_unranked_variant(self, authenticated_client):
+        response = authenticated_client.post(
+            reverse(create_viewname),
+            self._payload(variant_id="vietnam-war"),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"code": "variant_not_ranked"}
+        assert not Game.objects.filter(name="Ranked Game").exists()
+
+    @pytest.mark.django_db
+    def test_creates_unranked_game_on_unranked_variant(self, authenticated_client):
+        response = authenticated_client.post(
+            reverse(create_viewname),
+            self._payload(variant_id="vietnam-war", ranked=False),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["ranked"] is False
+
+    @pytest.mark.django_db
+    def test_retrieve_includes_ranked(self, authenticated_client, game_factory):
+        game = game_factory(ranked=True)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        assert response.data["ranked"] is True
+
+    @pytest.mark.django_db
+    def test_list_includes_ranked(self, authenticated_client, game_factory):
+        game = game_factory(ranked=True)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert {g["id"]: g["ranked"] for g in response.data["results"]}[game.id]
 
 
 class TestGamePrivateFiltering:

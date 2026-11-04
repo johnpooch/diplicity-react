@@ -63,7 +63,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
         nations_prefetch = Prefetch(
-            "nations", queryset=Nation.objects.select_related("flag")
+            "nations", queryset=Nation.objects.select_related("flag", "handicap")
         )
 
         return (
@@ -94,7 +94,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
         nations_prefetch = Prefetch(
-            "nations", queryset=Nation.objects.select_related("flag")
+            "nations", queryset=Nation.objects.select_related("flag", "handicap")
         )
 
         return self.prefetch_related(
@@ -166,6 +166,11 @@ class Variant(BaseModel):
                 else:
                     summary["gameEndsYear"] = condition["year"]
         return summary
+
+    @property
+    def ranked(self):
+        playable = [nation for nation in self.nations.all() if not nation.non_playable]
+        return bool(playable) and all(hasattr(nation, "handicap") for nation in playable)
 
     @property
     def template_phase(self):

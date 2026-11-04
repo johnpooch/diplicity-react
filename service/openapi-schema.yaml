@@ -3296,6 +3296,9 @@ components:
         anonymous:
           type: boolean
           default: false
+        ranked:
+          type: boolean
+          default: false
         gameMaster:
           type: boolean
           default: false
@@ -3452,6 +3455,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         movementPhaseDuration:
           type: string
           readOnly: true
@@ -3570,6 +3576,7 @@ components:
       - phases
       - pressType
       - private
+      - ranked
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
@@ -3804,6 +3811,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         isPaused:
           type: boolean
           readOnly: true
@@ -3911,6 +3921,7 @@ components:
       - playerListActions
       - pressType
       - private
+      - ranked
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
@@ -5529,6 +5540,9 @@ components:
         official:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         ownerId:
           type: integer
           readOnly: true
@@ -5566,6 +5580,7 @@ components:
       - ownerId
       - ownerUsername
       - provinces
+      - ranked
       - rules
       - status
       - svgUrl

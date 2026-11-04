@@ -12,6 +12,7 @@ from django.test.utils import override_settings
 from django.db import connection
 from rest_framework import status
 
+from rating.models import NationHandicap
 from adjudicator.serializers import deserialize_variant, VariantValidationError
 from variant.models import Variant, default_phase_progression
 from variant.utils import normalize_dsvg, variant_to_canonical_dict
@@ -157,6 +158,74 @@ def test_svg_url_is_null_when_variant_has_no_svg(authenticated_client):
     assert no_svg["svg_url"] is None
 
 
+class TestVariantRanked:
+    def _variants(self, client):
+        return {v["id"]: v for v in client.get(reverse(viewname)).data}
+
+    @pytest.mark.django_db
+    def test_variant_with_every_playable_nation_handicapped_is_ranked(
+        self, authenticated_client
+    ):
+        assert self._variants(authenticated_client)["classical"]["ranked"] is True
+
+    @pytest.mark.django_db
+    def test_variant_without_handicaps_is_not_ranked(self, authenticated_client):
+        assert self._variants(authenticated_client)["vietnam-war"]["ranked"] is False
+
+    @pytest.mark.django_db
+    def test_variant_missing_one_handicap_is_not_ranked(self, authenticated_client):
+        NationHandicap.objects.filter(
+            nation__variant_id="classical", nation__name="France"
+        ).delete()
+
+        assert self._variants(authenticated_client)["classical"]["ranked"] is False
+
+    @pytest.mark.django_db
+    def test_variant_without_playable_nations_is_not_ranked(
+        self, authenticated_client
+    ):
+        Variant.objects.create(
+            id="no-nations",
+            name="No Nations",
+            description="",
+            author="",
+            status=VariantStatus.PUBLISHED,
+        )
+
+        assert self._variants(authenticated_client)["no-nations"]["ranked"] is False
+
+    @pytest.mark.django_db
+    def test_list_etag_changes_when_a_handicap_is_removed(self, authenticated_client):
+        etag = authenticated_client.get(reverse(viewname))["ETag"]
+        NationHandicap.objects.filter(nation__variant_id="classical").first().delete()
+
+        response = authenticated_client.get(
+            reverse(viewname), HTTP_IF_NONE_MATCH=etag
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_retrieve_etag_changes_when_a_handicap_is_removed(
+        self, authenticated_client
+    ):
+        url = reverse("variant-detail", args=["classical"])
+        etag = authenticated_client.get(url)["ETag"]
+        NationHandicap.objects.filter(nation__variant_id="classical").first().delete()
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_retrieve_variant_includes_ranked(self, authenticated_client):
+        response = authenticated_client.get(
+            reverse("variant-detail", args=["classical"])
+        )
+
+        assert response.data["ranked"] is True
+
+
 class TestVariantListViewQueryPerformance:
 
     @pytest.mark.django_db
@@ -179,7 +248,7 @@ class TestVariantListViewQueryPerformance:
 
         # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
         # updated_at). This is the cache-miss path; hits skip the 18.
-        assert query_count == 20
+        assert query_count == 21
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(
@@ -222,7 +291,7 @@ class TestVariantListViewQueryPerformance:
         query_count = len(connection.queries)
         # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
         # updated_at). This is the cache-miss path; hits skip the 18.
-        assert query_count == 20
+        assert query_count == 21
 
 
 class TestPhaseProgressionBackfill:
