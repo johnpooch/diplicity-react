@@ -119,6 +119,7 @@ INSTALLED_APPS = [
     "victory",
     "draw_proposal",
     "report",
+    "rating",
     "email_service",
     "discord_service",
     "inference",
