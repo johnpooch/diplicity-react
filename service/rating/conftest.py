@@ -1,6 +1,7 @@
 import pytest
 from django.utils import timezone
 
+from rating.calculation import Player
 from rating.models import RatingPairing, RatingResult
 
 
@@ -45,3 +46,19 @@ def rating_pairing_factory(db, rating_result_factory, member_factory):
 @pytest.fixture
 def rated_at():
     return timezone.now()
+
+
+@pytest.fixture
+def player_factory(rated_at):
+    def _create(member_id, victor=False, **kwargs):
+        values = {
+            "seat": member_id,
+            "rating": 1500,
+            "deviation": 100,
+            "rated_at": rated_at,
+            "handicap": 0,
+        }
+        values.update(kwargs)
+        return Player(member_id=member_id, victor=victor, **values)
+
+    return _create
