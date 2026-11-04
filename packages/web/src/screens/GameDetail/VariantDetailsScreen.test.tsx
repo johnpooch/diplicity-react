@@ -136,8 +136,11 @@ describe("VariantDetailsScreen", () => {
     expect(screen.queryByText("Neutral", { selector: "span" })).toBeNull();
   });
 
-  it("hides the section when the variant has no handicaps", () => {
-    variant = buildVariant([buildNation()]);
+  it("hides the section when the variant is not ranked", () => {
+    variant = {
+      ...buildVariant([buildNation({ handicap: 15 })]),
+      ranked: false,
+    };
 
     renderScreen();
 

@@ -45,7 +45,7 @@ const VariantDetailsScreen: React.FC = () => {
                   />
                 </div>
                 <SettingsTable rows={buildVariantInfoRows(variant)} />
-                {handicappedNations.length > 0 && (
+                {variant.ranked && (
                   <Section
                     title="Ranked Handicaps"
                     info="These handicaps are used to determine the scores in ranked games."
