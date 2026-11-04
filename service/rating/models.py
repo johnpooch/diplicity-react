@@ -4,10 +4,12 @@ from django.db import models
 from common.models import BaseModel
 
 from .managers import RatingResultManager
-from .querysets import RatingPairingQuerySet
+from .querysets import RatingPairingQuerySet, RatingQuerySet
 
 
 class Rating(BaseModel):
+    objects = RatingQuerySet.as_manager()
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         related_name="rating",

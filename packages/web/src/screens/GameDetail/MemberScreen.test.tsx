@@ -25,6 +25,7 @@ const profile: PublicUserProfile = {
   commitmentTotal: 434,
   commitmentBand: "neutral",
   commitmentSquares: [],
+  rating: null,
   marks: [],
 };
 
