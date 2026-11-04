@@ -1,8 +1,11 @@
 import React from "react";
+import { Link } from "react-router";
+import { ChevronRight } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RowActionButton } from "@/components/ui/role-buttons";
 import { PlayerCommitment } from "@/components/PlayerCommitment";
 import { Section, StatRow } from "@/components/Section";
 import {
@@ -72,10 +75,19 @@ const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
       ) : (
         <div className="divide-y">
           <StatRow label="Rating" value={rating.rating.toLocaleString("en-US")} />
-          <StatRow
-            label="Leaderboard"
-            value={rating.rank === null ? "Not ranked yet" : `#${rating.rank}`}
-          />
+          {rating.rank === null ? (
+            <StatRow label="Leaderboard" value="Not ranked yet" />
+          ) : (
+            <RowActionButton asChild>
+              <Link to="/leaderboard">
+                <span className="flex-1">Leaderboard</span>
+                <span className="tabular-nums text-muted-foreground">
+                  #{rating.rank}
+                </span>
+                <ChevronRight className="text-muted-foreground" />
+              </Link>
+            </RowActionButton>
+          )}
           <StatRow label="Won" value={rating.won} />
           <StatRow label="Drew" value={rating.drew} />
           <StatRow label="Lost" value={rating.lost} />

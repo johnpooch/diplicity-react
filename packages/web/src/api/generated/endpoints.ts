@@ -859,6 +859,15 @@ export const KindEnum = {
   finished: "finished",
 } as const;
 
+export interface LeaderboardEntry {
+  readonly rank: number;
+  readonly userId: number;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly rating: number;
+}
+
 /**
  * * `abuse_and_harassment` - Abuse and harassment
  * `multiple_accounts` - Multiple accounts
@@ -1271,6 +1280,16 @@ export interface PaginatedGameListList {
   /** @nullable */
   previous?: string | null;
   results: GameList[];
+}
+
+export interface PaginatedLeaderboardEntryList {
+  count: number;
+  /** @nullable */
+  next?: string | null;
+  /** @nullable */
+  previous?: string | null;
+  results: LeaderboardEntry[];
+  own: LeaderboardEntry | null;
 }
 
 export interface PaginatedMyGameList {
@@ -1859,6 +1878,17 @@ export type GamesFindSimilarRetrieveParams = {
 };
 
 export type GamesMineFinishedListParams = {
+  /**
+   * A page number within the paginated result set.
+   */
+  page?: number;
+  /**
+   * Number of results to return per page.
+   */
+  page_size?: number;
+};
+
+export type LeaderboardListParams = {
   /**
    * A page number within the paginated result set.
    */
@@ -12221,6 +12251,276 @@ export function useGamesMineFinishedListSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const leaderboardList = (
+  params?: LeaderboardListParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<PaginatedLeaderboardEntryList>({
+    url: `/leaderboard/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getLeaderboardListQueryKey = (params?: LeaderboardListParams) => {
+  return [`/leaderboard/`, ...(params ? [params] : [])] as const;
+};
+
+export const getLeaderboardListQueryOptions = <
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLeaderboardListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof leaderboardList>>> = ({
+    signal,
+  }) => leaderboardList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof leaderboardList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LeaderboardListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof leaderboardList>>
+>;
+export type LeaderboardListQueryError = unknown;
+
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params: undefined | LeaderboardListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaderboardList>>,
+          TError,
+          Awaited<ReturnType<typeof leaderboardList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof leaderboardList>>,
+          TError,
+          Awaited<ReturnType<typeof leaderboardList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLeaderboardList<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLeaderboardListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getLeaderboardListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLeaderboardListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof leaderboardList>>> = ({
+    signal,
+  }) => leaderboardList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof leaderboardList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LeaderboardListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof leaderboardList>>
+>;
+export type LeaderboardListSuspenseQueryError = unknown;
+
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params: undefined | LeaderboardListParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLeaderboardListSuspense<
+  TData = Awaited<ReturnType<typeof leaderboardList>>,
+  TError = unknown,
+>(
+  params?: LeaderboardListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof leaderboardList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLeaderboardListSuspenseQueryOptions(params, options);
 
   const query = useSuspenseQuery(
     queryOptions,

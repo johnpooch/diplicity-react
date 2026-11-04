@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   CommitmentSquare,
@@ -61,7 +62,7 @@ describe("PlayerProfileContent", () => {
   });
 
   it("shows the profile and game counts", () => {
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(
       screen.getByRole("heading", { name: "Jane Doe" })
@@ -89,7 +90,7 @@ describe("PlayerProfileContent", () => {
       ],
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(rowValue("Commitment")).toBe("+434");
     expect(rowValue("Missed orders")).toBe("1%");
@@ -99,7 +100,7 @@ describe("PlayerProfileContent", () => {
   it("shows a negative total with a minus sign and no rate without phases", () => {
     profile = buildProfile({ commitmentTotal: -15 });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(rowValue("Commitment")).toBe("−15");
     expect(rowValue("Missed orders")).toBe("—");
@@ -112,7 +113,7 @@ describe("PlayerProfileContent", () => {
       ),
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     const squares = screen.getAllByRole("img");
     expect(squares).toHaveLength(48);
@@ -136,7 +137,7 @@ describe("PlayerProfileContent", () => {
       ],
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
     await userEvent.click(
       screen.getByRole("button", {
         name: "Concert of Europe: Submitted 35 phases +35, Missed orders ×1 −2",
@@ -164,7 +165,7 @@ describe("PlayerProfileContent", () => {
       ],
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
     await userEvent.click(
       screen.getByRole("button", { name: "Anonymous game: +5" })
     );
@@ -176,7 +177,7 @@ describe("PlayerProfileContent", () => {
   });
 
   it("says the player has no ranked games", () => {
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(screen.getByRole("heading", { name: "Rating" })).toBeInTheDocument();
     expect(screen.getByText("No ranked games yet")).toBeInTheDocument();
@@ -187,11 +188,15 @@ describe("PlayerProfileContent", () => {
       rating: { rating: 1562, rank: 12, won: 4, drew: 7, lost: 9 },
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(screen.queryByText("No ranked games yet")).not.toBeInTheDocument();
     expect(rowValue("Rating")).toBe("1,562");
     expect(rowValue("Leaderboard")).toBe("#12");
+    expect(screen.getByRole("link", { name: /Leaderboard/ })).toHaveAttribute(
+      "href",
+      "/leaderboard"
+    );
     expect(rowValue("Won")).toBe("4");
     expect(rowValue("Drew")).toBe("7");
     expect(rowValue("Lost")).toBe("9");
@@ -202,13 +207,14 @@ describe("PlayerProfileContent", () => {
       rating: { rating: 1531, rank: null, won: 1, drew: 0, lost: 0 },
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(rowValue("Leaderboard")).toBe("Not ranked yet");
+    expect(screen.queryByRole("link", { name: /Leaderboard/ })).not.toBeInTheDocument();
   });
 
   it("says there is no bad conduct when the player has no marks", () => {
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(
       screen.getByRole("heading", { name: "Conduct history" })
@@ -224,7 +230,7 @@ describe("PlayerProfileContent", () => {
       ],
     });
 
-    render(<PlayerProfileContent userId={1} />);
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
 
     expect(screen.queryByText("No bad conduct")).not.toBeInTheDocument();
     expect(rowValue("Abuse and harassment")).toBe("Nov 1, 2026");

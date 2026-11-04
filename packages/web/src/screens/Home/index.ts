@@ -16,6 +16,7 @@ export const Home = {
     "NationAssignmentScreen"
   ),
   Community: lazyScreen(() => import("./Community"), "Community"),
+  Leaderboard: lazyScreen(() => import("./Leaderboard"), "Leaderboard"),
   DeleteAccount: lazyScreen(() => import("./DeleteAccount"), "DeleteAccount"),
   LearnToPlay: lazyScreen(() => import("./LearnToPlay"), "LearnToPlay"),
   PlayerProfileScreen: lazyScreen(

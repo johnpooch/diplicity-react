@@ -8,4 +8,5 @@ urlpatterns = [
         views.MemberRatingRetrieveView.as_view(),
         name="game-member-rating",
     ),
+    path("leaderboard/", views.LeaderboardListView.as_view(), name="leaderboard"),
 ]

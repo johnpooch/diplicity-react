@@ -884,3 +884,178 @@ class TestMemberDetailRated:
         response = self._retrieve(authenticated_client, _victors(game)[0])
 
         assert response.data["rated"] is False
+
+
+class TestEstablishedRatings:
+    @pytest.mark.django_db
+    def test_includes_ratings_at_ranked_deviation(self, rating_factory, rated_at):
+        rating = rating_factory(deviation=DEFAULT_PARAMETERS.ranked_deviation - 0.01)
+
+        assert list(Rating.objects.established(rated_at)) == [rating]
+
+    @pytest.mark.django_db
+    def test_excludes_ratings_above_ranked_deviation(self, rating_factory, rated_at):
+        rating_factory(deviation=DEFAULT_PARAMETERS.ranked_deviation + 1)
+
+        assert not Rating.objects.established(rated_at).exists()
+
+    @pytest.mark.django_db
+    def test_matches_grown_deviation(self, rating_factory, rated_at):
+        rating = rating_factory(deviation=60)
+        days = range(0, 730, 15)
+
+        established = [
+            Rating.objects.established(rated_at + timedelta(days=day)).exists()
+            for day in days
+        ]
+
+        assert established == [
+            grown_deviation(60, rating.rated_at, rated_at + timedelta(days=day))
+            <= DEFAULT_PARAMETERS.ranked_deviation
+            for day in days
+        ]
+        assert True in established
+        assert False in established
+
+
+class TestLeaderboard:
+    @pytest.mark.django_db
+    def test_requires_authentication(self, api_client):
+        response = api_client.get(reverse("leaderboard"))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_empty_leaderboard(self, authenticated_client):
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 0
+        assert response.data["results"] == []
+        assert response.data["own"] is None
+
+    @pytest.mark.django_db
+    def test_orders_by_rating(self, authenticated_client, rating_factory):
+        middle = rating_factory(rating=1600)
+        top = rating_factory(rating=1700)
+        bottom = rating_factory(rating=1400)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert [entry["user_id"] for entry in response.data["results"]] == [
+            top.user_id,
+            middle.user_id,
+            bottom.user_id,
+        ]
+        assert [entry["rank"] for entry in response.data["results"]] == [1, 2, 3]
+
+    @pytest.mark.django_db
+    def test_tied_ratings_share_a_rank(self, authenticated_client, rating_factory):
+        rating_factory(rating=1700)
+        rating_factory(rating=1600)
+        rating_factory(rating=1600)
+        rating_factory(rating=1500)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert [entry["rank"] for entry in response.data["results"]] == [1, 2, 2, 4]
+
+    @pytest.mark.django_db
+    def test_entry_shape(self, authenticated_client, rating_factory, user_factory):
+        user = user_factory(name="Ada Lovelace")
+        rating_factory(user=user, rating=1612.4)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert response.data["results"] == [
+            {
+                "rank": 1,
+                "user_id": user.id,
+                "name": "Ada Lovelace",
+                "picture": None,
+                "rating": 1612.4,
+            }
+        ]
+
+    @pytest.mark.django_db
+    def test_serves_uploaded_picture(
+        self, authenticated_client, primary_user, rating_factory, stored_picture
+    ):
+        rating_factory(user=primary_user)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        [entry] = response.data["results"]
+        assert entry["picture"] == primary_user.profile.picture_url(
+            response.wsgi_request
+        )
+
+    @pytest.mark.django_db
+    def test_excludes_unestablished_ratings(self, authenticated_client, rating_factory):
+        rating_factory(deviation=DEFAULT_PARAMETERS.max_deviation)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert response.data["count"] == 0
+
+    @pytest.mark.django_db
+    def test_inactive_player_drops_off(self, authenticated_client, rating_factory):
+        rating_factory(
+            deviation=100, rated_at=timezone.now() - timedelta(days=365)
+        )
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert response.data["count"] == 0
+
+    @pytest.mark.django_db
+    def test_paginates(self, authenticated_client, rating_factory):
+        for offset in range(3):
+            rating_factory(rating=1500 + offset)
+
+        response = authenticated_client.get(
+            reverse("leaderboard"), {"page": 2, "page_size": 2}
+        )
+
+        assert response.data["count"] == 3
+        assert [entry["rank"] for entry in response.data["results"]] == [3]
+
+    @pytest.mark.django_db
+    def test_includes_own_entry(
+        self, authenticated_client, primary_user, rating_factory
+    ):
+        for offset in range(3):
+            rating_factory(rating=1600 + offset)
+        rating_factory(user=primary_user, rating=1550)
+
+        response = authenticated_client.get(reverse("leaderboard"), {"page_size": 2})
+
+        assert response.data["own"]["user_id"] == primary_user.id
+        assert response.data["own"]["rank"] == 4
+        assert response.data["own"]["rating"] == 1550
+
+    @pytest.mark.django_db
+    def test_own_entry_shares_a_tied_rank(
+        self, authenticated_client, primary_user, rating_factory
+    ):
+        rating_factory(rating=1700)
+        tied = rating_factory(rating=1600)
+        rating_factory(user=primary_user, rating=1600)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        ranks = {entry["user_id"]: entry["rank"] for entry in response.data["results"]}
+        assert ranks[tied.user_id] == 2
+        assert response.data["own"]["rank"] == ranks[primary_user.id] == 2
+
+    @pytest.mark.django_db
+    def test_own_entry_is_null_when_not_established(
+        self, authenticated_client, primary_user, rating_factory
+    ):
+        rating_factory()
+        rating_factory(user=primary_user, deviation=DEFAULT_PARAMETERS.max_deviation)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        assert response.data["count"] == 1
+        assert response.data["own"] is None

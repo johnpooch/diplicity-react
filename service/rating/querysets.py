@@ -13,8 +13,9 @@ from django.db.models import (
     Subquery,
     Value,
     When,
+    Window,
 )
-from django.db.models.functions import Extract, Greatest
+from django.db.models.functions import Extract, Greatest, Rank
 
 from .calculation import DEFAULT_PARAMETERS
 
@@ -36,10 +37,18 @@ def _grown_variance(now, parameters):
 
 
 class RatingQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
     def established(self, now, parameters=DEFAULT_PARAMETERS):
         return self.alias(grown_variance=_grown_variance(now, parameters)).filter(
             grown_variance__lte=parameters.ranked_deviation**2
         )
+
+    def ranked(self):
+        return self.annotate(
+            rank=Window(Rank(), order_by=F("rating").desc())
+        ).order_by("-rating", "user_id")
 
     def with_rank(self, now, parameters=DEFAULT_PARAMETERS):
         higher = (

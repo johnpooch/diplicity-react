@@ -1,6 +1,10 @@
 from common.loaders import Loader
 
-from .models import RatingPairing, RatingResult
+from .models import Rating, RatingPairing, RatingResult
+
+
+class LeaderboardEntryLoader(Loader):
+    queryset = Rating.objects.select_related("user__profile__uploaded_picture")
 
 
 class RatingPairingLoader(Loader):
