@@ -39,6 +39,7 @@ const buildProfile = (
   commitmentTotal: 0,
   commitmentBand: "neutral",
   commitmentSquares: [],
+  rating: null,
   marks: [],
   ...overrides,
 });
@@ -172,6 +173,38 @@ describe("PlayerProfileContent", () => {
     expect(tooltip.getByText("Anonymous game")).toBeInTheDocument();
     expect(tooltip.queryByText("Submitted 5 phases")).not.toBeInTheDocument();
     expect(tooltip.queryByText("Total")).not.toBeInTheDocument();
+  });
+
+  it("says the player has no ranked games", () => {
+    render(<PlayerProfileContent userId={1} />);
+
+    expect(screen.getByRole("heading", { name: "Rating" })).toBeInTheDocument();
+    expect(screen.getByText("No ranked games yet")).toBeInTheDocument();
+  });
+
+  it("shows the rating, leaderboard position and ranked results", () => {
+    profile = buildProfile({
+      rating: { rating: 1562, rank: 12, won: 4, drew: 7, lost: 9 },
+    });
+
+    render(<PlayerProfileContent userId={1} />);
+
+    expect(screen.queryByText("No ranked games yet")).not.toBeInTheDocument();
+    expect(rowValue("Rating")).toBe("1,562");
+    expect(rowValue("Leaderboard")).toBe("#12");
+    expect(rowValue("Won")).toBe("4");
+    expect(rowValue("Drew")).toBe("7");
+    expect(rowValue("Lost")).toBe("9");
+  });
+
+  it("says an unestablished player is not ranked yet", () => {
+    profile = buildProfile({
+      rating: { rating: 1531, rank: null, won: 1, drew: 0, lost: 0 },
+    });
+
+    render(<PlayerProfileContent userId={1} />);
+
+    expect(rowValue("Leaderboard")).toBe("Not ranked yet");
   });
 
   it("says there is no bad conduct when the player has no marks", () => {

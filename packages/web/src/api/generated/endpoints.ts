@@ -1425,6 +1425,15 @@ export const PlatformEnum = {
   android: "android",
 } as const;
 
+export interface ProfileRating {
+  readonly rating: number;
+  /** @nullable */
+  readonly rank: number | null;
+  readonly won: number;
+  readonly drew: number;
+  readonly lost: number;
+}
+
 export interface PublicUserProfile {
   readonly id: number;
   readonly name: string;
@@ -1436,6 +1445,7 @@ export interface PublicUserProfile {
   readonly commitmentTotal: number;
   readonly commitmentBand: CommitmentBandEnum;
   readonly commitmentSquares: readonly CommitmentSquare[];
+  readonly rating: ProfileRating | null;
   readonly marks: readonly Mark[];
 }
 
