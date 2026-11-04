@@ -5593,9 +5593,14 @@ components:
           type: integer
           nullable: true
           readOnly: true
+        handicap:
+          type: integer
+          readOnly: true
+          nullable: true
       required:
       - color
       - flag_url
+      - handicap
       - name
       - nation_id
       - non_playable

@@ -13,6 +13,7 @@ from django.db import connection
 from rest_framework import status
 
 from adjudicator.serializers import deserialize_variant, VariantValidationError
+from rating.models import NationHandicap
 from variant.models import Variant, default_phase_progression
 from variant.utils import normalize_dsvg, variant_to_canonical_dict
 
@@ -177,9 +178,9 @@ class TestVariantListViewQueryPerformance:
         # regardless of the number of variants due to prefetch_related
         query_count = len(connection.queries)
 
-        # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at). This is the cache-miss path; hits skip the 18.
-        assert query_count == 20
+        # 18 prefetch queries + 3 ETag aggregates (Variant + NationFlag +
+        # NationHandicap max updated_at). This is the cache-miss path; hits skip the 18.
+        assert query_count == 21
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(
@@ -220,9 +221,9 @@ class TestVariantListViewQueryPerformance:
         # Should have the same number of queries regardless of variant count
         # due to prefetch_related optimization
         query_count = len(connection.queries)
-        # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at). This is the cache-miss path; hits skip the 18.
-        assert query_count == 20
+        # 18 prefetch queries + 3 ETag aggregates (Variant + NationFlag +
+        # NationHandicap max updated_at). This is the cache-miss path; hits skip the 18.
+        assert query_count == 21
 
 
 class TestPhaseProgressionBackfill:
@@ -632,6 +633,57 @@ class TestNationColor:
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
         assert nations_by_id["england"]["color"] == "#2196F3"
         assert nations_by_id["italy"]["color"] == "#4CAF50"
+
+
+class TestNationHandicapField:
+
+    @pytest.mark.django_db
+    def test_list_includes_nation_handicaps(self, authenticated_client):
+        response = authenticated_client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_name = {n["name"]: n for n in classical["nations"]}
+        assert nations_by_name["France"]["handicap"] == 25
+        assert nations_by_name["Austria"]["handicap"] == -30
+
+    @pytest.mark.django_db
+    def test_unhandicapped_nation_has_null_handicap(self, authenticated_client):
+        response = authenticated_client.get(
+            reverse("variant-detail", kwargs={"pk": "vietnam-war"})
+        )
+
+        nations_by_name = {n["name"]: n for n in response.data["nations"]}
+        assert nations_by_name["Laos"]["handicap"] is None
+
+    @pytest.mark.django_db
+    def test_list_etag_changes_when_a_handicap_changes(self, authenticated_client):
+        etag = authenticated_client.get(reverse(viewname))["ETag"]
+        handicap = NationHandicap.objects.get(
+            nation__variant_id="classical", nation__name="France"
+        )
+        handicap.offset = 20
+        handicap.save()
+
+        response = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_name = {n["name"]: n for n in classical["nations"]}
+        assert nations_by_name["France"]["handicap"] == 20
+
+    @pytest.mark.django_db
+    def test_detail_etag_changes_when_a_handicap_changes(self, authenticated_client):
+        url = reverse("variant-detail", kwargs={"pk": "classical"})
+        etag = authenticated_client.get(url)["ETag"]
+        handicap = NationHandicap.objects.get(
+            nation__variant_id="classical", nation__name="France"
+        )
+        handicap.offset = 20
+        handicap.save()
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
 
 
 COMMITTED_DSVGS = sorted(
