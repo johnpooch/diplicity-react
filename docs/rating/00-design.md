@@ -5,7 +5,7 @@
 
 This document covers the product decisions and the high-level technical design for a skill rating. The research that informed it, a study of how webDiplomacy rates players, is summarised in §9.
 
-**Numbers in this document are starting values.** They are calibrated in sub-issue 3 (§8) before the feature launches.
+**The constants in §4 were calibrated** in sub-issue 3 (§8) by replaying past games. §4.5 has the results.
 
 ---
 
@@ -128,8 +128,8 @@ A player's deviation grows with the time since they were last rated:
 
 `RD = min(√(RD² + c²·t), RD_max)`
 
-- `t` is the time since `rated_at`, in rating periods. A period is initially 30 days.
-- Starting values:
+- `t` is the time since `rated_at`, in rating periods. A period is 30 days.
+- Values:
   - starting rating 1500;
   - `RD_max` 350, also the starting deviation;
   - `c` chosen so that a settled player's deviation returns to `RD_max` after about two years without playing.
@@ -143,9 +143,9 @@ The pairings come from §1.9. For a player *i* against opponent *j*:
 where *h* is the nation handicap.
 
 The pairings in one game are not independent games, so each pairing is weighted by *w*:
-- *w* starts at 1/(N−1), where N is the number of players in the game.
+- *w* is 2/(N−1), where N is the number of players in the game.
 - This stops a single game shrinking a player's deviation as much as six separate games would.
-- The value is chosen in calibration.
+- Calibration chose the factor of 2 (§4.5).
 
 ### 4.3 Update and breakdown
 
@@ -163,9 +163,34 @@ Each pairing's `change` is its own term of that sum, `q·RD′²·w·g(RDⱼ)·(
 
 ### 4.4 Established ratings
 
-A rating is established when its deviation, after growing for the time since `rated_at`, is at most `RD_ranked`. That starts at 110.
+A rating is established when its deviation, after growing for the time since `rated_at`, is at most `RD_ranked`, which is 150 (§4.5).
 - The leaderboard filters and ranks on this inside the query, so a player drops off by themselves after a long break, with no scheduled job.
 - A player's profile `#n` is a count of established players with a higher rating.
+
+### 4.5 Calibration
+
+2,267 completed public games, from 28 Nov 2025 to 4 Nov 2026, were replayed through `rating/calculation.py`. They involved 2,132 players, and handicaps were set to 0. Games that were too short, included bots or had no finish time were skipped.
+
+- ***w*.** The weight was scored by log loss on each game's results, predicted before the game. A coin flip scores 0.693.
+  - 2/(N−1) scored best, at 0.6330. 1/(N−1) scored 0.6367.
+  - Any factor from 1.5 to 2 predicts about equally well.
+  - Full weight, 6× in Classic, predicts worse than 1/(N−1).
+- **Return to `RD_max`.** Moving it from one year to four changes log loss by less than 0.0005. A single year of history can't tell these apart, so two years stays as a product choice. It is worth re-running once ranked games have been live for a while.
+- **Period length.** `c` is derived from the return time, so 7, 30 and 90 days give identical results.
+- **`RD_ranked`.** The players on the leaderboard after the replay, at 2/(N−1):
+
+  | `RD_ranked` | Leaderboard now | Ever established |
+  | --- | --- | --- |
+  | 110 | 7 | 9 |
+  | 130 | 23 | 34 |
+  | 150 | 61 | 75 |
+  | 175 | 113 | 137 |
+  | 200 | 186 | 242 |
+
+  For scale, 1,953 players were rated in the last 180 days, and 262 of them played 10 or more games.
+  - At 1/(N−1) and 110, only one player would be listed.
+  - 150 gives a leaderboard of a useful size.
+- **Why deviations stay high.** A player who didn't win or draw is paired only with the winners, so one game tells little about them. `c` also adds uncertainty every idle month. An RD of 150 still means about ±300 points at 95%. That is the cost of learning from a few results per game, not something the constants can fix.
 
 ---
 
