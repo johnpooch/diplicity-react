@@ -676,6 +676,12 @@ export interface Member {
   /** @nullable */
   readonly commitmentTotal: number | null;
   readonly commitmentBand: CommitmentBandEnum | NullEnum | null;
+  /** @nullable */
+  readonly ratingChange: number | null;
+  /** @nullable */
+  readonly ratingBefore: number | null;
+  /** @nullable */
+  readonly ratingAfter: number | null;
 }
 
 export interface Victory {

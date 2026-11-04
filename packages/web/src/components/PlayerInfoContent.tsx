@@ -138,6 +138,51 @@ const PlayerMetric: React.FC<{
   </Tooltip>
 );
 
+const formatSigned = (value: number) =>
+  value > 0 ? `+${value}` : value < 0 ? `−${Math.abs(value)}` : "0";
+
+const signedClassName = (value: number) =>
+  cn(
+    "shrink-0 text-sm font-semibold tabular-nums",
+    value > 0 && "text-emerald-700 dark:text-emerald-400",
+    value < 0 && "text-red-700 dark:text-red-400"
+  );
+
+interface PlayerRatingChangeProps {
+  member: Member;
+}
+
+const PlayerRatingChange: React.FC<PlayerRatingChangeProps> = ({ member }) => {
+  const { ratingChange, ratingBefore, ratingAfter } = member;
+  if (
+    typeof ratingChange !== "number" ||
+    typeof ratingBefore !== "number" ||
+    typeof ratingAfter !== "number"
+  ) {
+    return null;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={signedClassName(ratingChange)}
+          aria-label={`Rating change: ${ratingChange}`}
+          tabIndex={0}
+          onPointerDown={event => event.stopPropagation()}
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => event.stopPropagation()}
+        >
+          {formatSigned(ratingChange)}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        {`${ratingBefore.toLocaleString("en-US")} → ${ratingAfter.toLocaleString("en-US")}`}
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+
 export const PlayerInfoContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
   const { phaseId } = useParams<{ phaseId: string }>();
@@ -455,21 +500,14 @@ export const PlayerInfoContent: React.FC = () => {
 
           {showsCommitment && member.commitmentTotal !== null && (
             <span
-              className={cn(
-                "shrink-0 text-sm font-semibold tabular-nums",
-                member.commitmentTotal > 0 &&
-                  "text-emerald-700 dark:text-emerald-400",
-                member.commitmentTotal < 0 && "text-red-700 dark:text-red-400"
-              )}
+              className={signedClassName(member.commitmentTotal)}
               aria-label={`Commitment: ${member.commitmentTotal}`}
             >
-              {member.commitmentTotal > 0
-                ? `+${member.commitmentTotal}`
-                : member.commitmentTotal < 0
-                  ? `−${Math.abs(member.commitmentTotal)}`
-                  : "0"}
+              {formatSigned(member.commitmentTotal)}
             </span>
           )}
+
+          <PlayerRatingChange member={member} />
 
           {path && (
             <ChevronRight className="size-3 shrink-0 text-muted-foreground" />

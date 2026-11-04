@@ -4065,6 +4065,18 @@ components:
           oneOf:
           - $ref: '#/components/schemas/CommitmentBandEnum'
           - $ref: '#/components/schemas/NullEnum'
+        rating_change:
+          type: integer
+          nullable: true
+          readOnly: true
+        rating_before:
+          type: integer
+          nullable: true
+          readOnly: true
+        rating_after:
+          type: integer
+          nullable: true
+          readOnly: true
       required:
       - civil_disorder
       - commitment_band
@@ -4081,6 +4093,9 @@ components:
       - nation_preference_ids
       - nmr_extensions_remaining
       - picture
+      - rating_after
+      - rating_before
+      - rating_change
       - removable
       - replaceable
       - seat_confirmed

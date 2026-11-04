@@ -116,6 +116,35 @@ class MemberSerializer(BaseMemberSerializer):
     nation_preference_ids = serializers.SerializerMethodField()
     commitment_total = serializers.SerializerMethodField()
     commitment_band = serializers.SerializerMethodField()
+    rating_change = serializers.SerializerMethodField()
+    rating_before = serializers.SerializerMethodField()
+    rating_after = serializers.SerializerMethodField()
+
+    def _rating_result(self, obj):
+        if self._get_game(obj).status != GameStatus.COMPLETED:
+            return None
+        return getattr(obj, "rating_result", None)
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_rating_change(self, obj):
+        result = self._rating_result(obj)
+        if result is None:
+            return None
+        return round(result.rating_after) - round(result.rating_before)
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_rating_before(self, obj):
+        result = self._rating_result(obj)
+        if result is None:
+            return None
+        return round(result.rating_before)
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_rating_after(self, obj):
+        result = self._rating_result(obj)
+        if result is None:
+            return None
+        return round(result.rating_after)
 
     def _has_commitment(self, obj):
         return (

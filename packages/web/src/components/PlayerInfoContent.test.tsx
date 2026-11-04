@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameRetrieve, Member } from "@/api/generated/endpoints";
@@ -48,6 +48,9 @@ const buildMember = (overrides: Partial<Member> = {}): Member => ({
   nationPreferenceIds: [],
   commitmentTotal: 0,
   commitmentBand: "neutral",
+  ratingChange: null,
+  ratingBefore: null,
+  ratingAfter: null,
   ...overrides,
 });
 
@@ -224,5 +227,90 @@ describe("PlayerInfoContent", () => {
     expect(
       within(gameMasterSection as HTMLElement).queryByLabelText(/^Commitment:/)
     ).not.toBeInTheDocument();
+  });
+
+  describe("in a finished ranked game", () => {
+    beforeEach(() => {
+      game = buildGame({
+        status: "completed",
+        members: [
+          buildMember({
+            id: 1,
+            userId: 1,
+            name: "Alice",
+            ratingChange: 31,
+            ratingBefore: 1530,
+            ratingAfter: 1561,
+          }),
+          buildMember({
+            id: 2,
+            userId: 2,
+            name: "Bob",
+            ratingChange: -12,
+            ratingBefore: 1500,
+            ratingAfter: 1488,
+          }),
+          buildMember({
+            id: 3,
+            userId: 3,
+            name: "Carol",
+            ratingChange: 0,
+            ratingBefore: 1412,
+            ratingAfter: 1412,
+          }),
+        ],
+      });
+    });
+
+    it("shows each player's rating change just before the chevron", () => {
+      renderContent();
+
+      const change = within(rowFor("Alice")).getByLabelText(
+        "Rating change: 31"
+      );
+      expect(change).toHaveTextContent("+31");
+      expect(change.nextElementSibling?.tagName.toLowerCase()).toBe("svg");
+    });
+
+    it("colours gains green, losses red and no change plainly", () => {
+      renderContent();
+
+      const gain = within(rowFor("Alice")).getByLabelText("Rating change: 31");
+      const loss = within(rowFor("Bob")).getByLabelText("Rating change: -12");
+      const none = within(rowFor("Carol")).getByLabelText("Rating change: 0");
+
+      expect(gain).toHaveClass("text-emerald-700");
+      expect(loss).toHaveTextContent("−12");
+      expect(loss).toHaveClass("text-red-700");
+      expect(none).toHaveTextContent("0");
+      expect(none).not.toHaveClass("text-emerald-700");
+      expect(none).not.toHaveClass("text-red-700");
+    });
+
+    it("shows the rating before and after in a tooltip", async () => {
+      renderContent();
+
+      act(() =>
+        within(rowFor("Alice")).getByLabelText("Rating change: 31").focus()
+      );
+
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
+        "1,530 → 1,561"
+      );
+    });
+
+    it("shows no rating change when the API omits it", () => {
+      const cached = Object.fromEntries(
+        Object.entries(buildMember({ name: "Alice" })).filter(
+          ([key]) => !key.startsWith("rating")
+        )
+      ) as unknown as Member;
+      game = buildGame({ status: "completed", members: [cached] });
+      renderContent();
+
+      expect(
+        screen.queryByLabelText(/^Rating change:/)
+      ).not.toBeInTheDocument();
+    });
   });
 });

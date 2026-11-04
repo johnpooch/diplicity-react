@@ -741,6 +741,9 @@ class Member(TypedDict):
     nation_preference_ids: list[str]
     commitment_total: int | None
     commitment_band: CommitmentBandEnum | NullEnum | None
+    rating_change: int | None
+    rating_before: int | None
+    rating_after: int | None
 
 
 class MemberAction(TypedDict):
