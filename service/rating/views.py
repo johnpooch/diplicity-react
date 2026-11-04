@@ -3,7 +3,6 @@ from rest_framework import permissions
 
 from common.views import LoaderDetailView, LoaderListView, SelectedGameMixin
 
-from .models import Rating
 from .pagination import LeaderboardPagination
 from .serializers import LeaderboardEntryOutputSerializer, RatingResultOutputSerializer
 
@@ -33,12 +32,12 @@ class LeaderboardListView(LoaderListView):
         return self.paginator.get_paginated_response(data, own=self.get_own_entry())
 
     def get_own_entry(self):
-        own = super().get_queryset().established(self.now).filter(
-            user=self.request.user
+        own = (
+            super()
+            .get_queryset()
+            .established(self.now)
+            .with_rank(self.now)
+            .filter(user=self.request.user)
         )
         entries = self.get_loader().hydrate(own, self.request.user)
-        if not entries:
-            return None
-        entry = entries[0]
-        entry.rank = Rating.objects.established(self.now).rank_of(entry)
-        return self.get_serializer(entry).data
+        return self.get_serializer(entries[0]).data if entries else None

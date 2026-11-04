@@ -20,6 +20,7 @@ from common.constants import (
 )
 from game.models import Game
 from phase.models import Phase, PhaseState
+from rating.models import Rating, RatingResult
 from user_profile.models import UserProfile, UserProfilePicture
 from user_profile.utils import PICTURE_MAX_BYTES, PICTURE_MAX_DIMENSION, PICTURE_SIZE
 from member.models import CommitmentEntry, Member
@@ -315,6 +316,116 @@ class TestPublicUserProfileMarks:
         ]
         assert "Called me names" not in response.content.decode()
         assert primary_user.profile.name not in response.content.decode()
+
+
+class TestPublicUserProfileRating:
+
+    def _retrieve(self, client, user):
+        return client.get(reverse("public-user-profile", kwargs={"user_id": user.id}))
+
+    def _rate(self, user, rating=1500, deviation=100, days_ago=0):
+        return Rating.objects.create(
+            user=user,
+            rating=rating,
+            deviation=deviation,
+            rated_at=timezone.now() - timedelta(days=days_ago),
+        )
+
+    def _result(self, user, variant, **member_fields):
+        game = Game.objects.create(
+            variant=variant,
+            name="Ranked Game",
+            status=GameStatus.COMPLETED,
+            ranked=True,
+        )
+        member = game.members.create(user=user, **member_fields)
+        return RatingResult.objects.create(
+            member=member,
+            rating_before=1500,
+            deviation_before=350,
+            rating_after=1531,
+            deviation_after=310,
+            handicap=0,
+        )
+
+    @pytest.mark.django_db
+    def test_player_without_ranked_games_has_no_rating(
+        self, authenticated_client, secondary_user
+    ):
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["rating"] is None
+
+    @pytest.mark.django_db
+    def test_counts_results_of_ranked_games(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        self._rate(secondary_user, rating=1561.6)
+        self._result(secondary_user, classical_variant, won=True)
+        self._result(secondary_user, classical_variant, drew=True)
+        self._result(secondary_user, classical_variant, drew=True)
+        self._result(secondary_user, classical_variant)
+        self._result(secondary_user, classical_variant)
+        self._result(secondary_user, classical_variant)
+        Game.objects.create(
+            variant=classical_variant,
+            name="Unranked Game",
+            status=GameStatus.COMPLETED,
+        ).members.create(user=secondary_user, won=True)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["rating"] == {
+            "rating": 1562,
+            "rank": 1,
+            "won": 1,
+            "drew": 2,
+            "lost": 3,
+        }
+
+    @pytest.mark.django_db
+    def test_rank_counts_established_players_rated_higher(
+        self,
+        authenticated_client,
+        user_factory,
+        secondary_user,
+        classical_variant,
+    ):
+        self._rate(secondary_user, rating=1600)
+        self._result(secondary_user, classical_variant, won=True)
+        self._rate(user_factory(), rating=1700)
+        self._rate(user_factory(), rating=1650)
+        self._rate(user_factory(), rating=1500)
+        self._rate(user_factory(), rating=1900, deviation=200)
+        self._rate(user_factory(), rating=1800, days_ago=730)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["rating"]["rank"] == 3
+
+    @pytest.mark.django_db
+    def test_unestablished_player_is_not_ranked(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        self._rate(secondary_user, rating=1531, deviation=310)
+        self._result(secondary_user, classical_variant, won=True)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["rating"]["rating"] == 1531
+        assert response.data["rating"]["rank"] is None
+
+    @pytest.mark.django_db
+    def test_player_drops_off_after_a_long_break(
+        self, authenticated_client, secondary_user, classical_variant
+    ):
+        self._rate(secondary_user, rating=1600, deviation=100, days_ago=365)
+        self._result(secondary_user, classical_variant, won=True)
+
+        response = self._retrieve(authenticated_client, secondary_user)
+
+        assert response.data["rating"]["rank"] is None
 
 
 class TestCommitmentBands:

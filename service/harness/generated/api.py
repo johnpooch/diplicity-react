@@ -412,6 +412,14 @@ type PlatformEnum = Literal['ios', 'android']
 type PressTypeEnum = Literal['full_press', 'no_press']
 
 
+class ProfileRating(TypedDict):
+    rating: int
+    rank: int | None
+    won: int
+    drew: int
+    lost: int
+
+
 class Province(TypedDict):
     id: str
     name: str
@@ -892,6 +900,7 @@ class PublicUserProfile(TypedDict):
     commitment_total: int
     commitment_band: CommitmentBandEnum
     commitment_squares: list[CommitmentSquare]
+    rating: ProfileRating | None
     marks: list[Mark]
 
 

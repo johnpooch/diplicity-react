@@ -917,15 +917,6 @@ class TestEstablishedRatings:
         assert True in established
         assert False in established
 
-    @pytest.mark.django_db
-    def test_rank_of_counts_higher_established_ratings(self, rating_factory, rated_at):
-        rating_factory(rating=1700)
-        rating_factory(rating=1600)
-        rating_factory(rating=1800, deviation=300)
-        rating = rating_factory(rating=1600)
-
-        assert Rating.objects.established(rated_at).rank_of(rating) == 2
-
 
 class TestLeaderboard:
     @pytest.mark.django_db
@@ -1042,6 +1033,20 @@ class TestLeaderboard:
         assert response.data["own"]["user_id"] == primary_user.id
         assert response.data["own"]["rank"] == 4
         assert response.data["own"]["rating"] == 1550
+
+    @pytest.mark.django_db
+    def test_own_entry_shares_a_tied_rank(
+        self, authenticated_client, primary_user, rating_factory
+    ):
+        rating_factory(rating=1700)
+        tied = rating_factory(rating=1600)
+        rating_factory(user=primary_user, rating=1600)
+
+        response = authenticated_client.get(reverse("leaderboard"))
+
+        ranks = {entry["user_id"]: entry["rank"] for entry in response.data["results"]}
+        assert ranks[tied.user_id] == 2
+        assert response.data["own"]["rank"] == ranks[primary_user.id] == 2
 
     @pytest.mark.django_db
     def test_own_entry_is_null_when_not_established(
