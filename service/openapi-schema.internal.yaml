@@ -3296,6 +3296,9 @@ components:
         anonymous:
           type: boolean
           default: false
+        ranked:
+          type: boolean
+          default: false
         game_master:
           type: boolean
           default: false
@@ -3452,6 +3455,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         movement_phase_duration:
           type: string
           readOnly: true
@@ -3570,6 +3576,7 @@ components:
       - phases
       - press_type
       - private
+      - ranked
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
@@ -3804,6 +3811,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         is_paused:
           type: boolean
           readOnly: true
@@ -3911,6 +3921,7 @@ components:
       - player_list_actions
       - press_type
       - private
+      - ranked
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
@@ -5529,6 +5540,9 @@ components:
         official:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         owner_id:
           type: integer
           readOnly: true
@@ -5566,6 +5580,7 @@ components:
       - owner_id
       - owner_username
       - provinces
+      - ranked
       - rules
       - status
       - svg_url

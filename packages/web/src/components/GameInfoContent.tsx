@@ -3,6 +3,7 @@ import {
   Calendar,
   ChevronRight,
   Lock,
+  Medal,
   MessageCircleOff,
   Pause,
   ShieldPlus,
@@ -94,6 +95,16 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             icon: ShieldPlus,
             label: "Committed game",
             info: "Only players with a commitment of 10 or more can join",
+          },
+        ]
+      : []),
+    ...(game.ranked
+      ? [
+          {
+            key: "ranked",
+            icon: Medal,
+            label: "Ranked",
+            info: "The result changes each player's rating",
           },
         ]
       : []),

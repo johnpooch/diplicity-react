@@ -50,6 +50,7 @@ const buildGame = (overrides: Partial<GameRetrieve> = {}): GameRetrieve => ({
   showShortGameJoinWarning: false,
   private: false,
   anonymous: false,
+  ranked: false,
   isPaused: false,
   pausedAt: null,
   nmrExtensionsAllowed: 1,
@@ -96,6 +97,21 @@ describe("GameInfo", () => {
 
   beforeEach(() => {
     game = buildGame();
+  });
+
+  it("shows a Ranked row for a ranked game", async () => {
+    game = buildGame({ ranked: true });
+
+    renderScreen();
+
+    expect(await screen.findByText("Ranked")).toBeInTheDocument();
+  });
+
+  it("shows no Ranked row for an unranked game", async () => {
+    renderScreen();
+
+    await screen.findByText("Committed game");
+    expect(screen.queryByText("Ranked")).not.toBeInTheDocument();
   });
 
   it("enables Join on a committed game the viewer can join", async () => {

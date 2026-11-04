@@ -549,6 +549,7 @@ export interface GameCreate {
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
   anonymous?: boolean;
+  ranked?: boolean;
   gameMaster?: boolean;
   deadlineMode?: DeadlineModeEnum;
   /** @nullable */
@@ -719,6 +720,7 @@ export interface GameList {
   readonly memberStatus: readonly MemberStatusEnum[] | null;
   readonly private: boolean;
   readonly anonymous: boolean;
+  readonly ranked: boolean;
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -791,6 +793,7 @@ export interface GameRetrieve {
   readonly showShortGameJoinWarning: boolean;
   readonly private: boolean;
   readonly anonymous: boolean;
+  readonly ranked: boolean;
   readonly isPaused: boolean;
   /** @nullable */
   readonly pausedAt: string | null;
@@ -1578,6 +1581,7 @@ export interface Variant {
   unitScaling: number;
   readonly status: string;
   readonly official: boolean;
+  readonly ranked: boolean;
   /** @nullable */
   readonly ownerId: number | null;
   /** @nullable */

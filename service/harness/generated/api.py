@@ -689,6 +689,7 @@ class GameCreate(TypedDict):
     retreat_phase_duration: NotRequired[DurationEnum | NullEnum | None]
     private: bool
     anonymous: NotRequired[bool]
+    ranked: NotRequired[bool]
     game_master: NotRequired[bool]
     deadline_mode: NotRequired[DeadlineModeEnum]
     fixed_deadline_time: NotRequired[str | None]
@@ -906,6 +907,7 @@ class GameList(TypedDict):
     member_status: list[MemberStatusEnum] | None
     private: bool
     anonymous: bool
+    ranked: bool
     movement_phase_duration: str | None
     retreat_phase_duration: str | None
     show_short_game_join_warning: bool
@@ -957,6 +959,7 @@ class GameRetrieve(TypedDict):
     show_short_game_join_warning: bool
     private: bool
     anonymous: bool
+    ranked: bool
     is_paused: bool
     paused_at: str | None
     nmr_extensions_allowed: int
@@ -1054,6 +1057,7 @@ class Variant(TypedDict):
     unit_scaling: float
     status: str
     official: bool
+    ranked: bool
     owner_id: int | None
     owner_username: str | None
     can_edit: bool

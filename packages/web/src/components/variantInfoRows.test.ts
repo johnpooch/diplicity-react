@@ -15,6 +15,7 @@ const baseVariant: Variant = {
   unitScaling: 1,
   status: "active",
   official: true,
+  ranked: false,
   ownerId: null,
   ownerUsername: null,
   canEdit: false,
