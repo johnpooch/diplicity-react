@@ -256,21 +256,18 @@ const MemberContent: React.FC = () => {
           <h2 className="text-sm font-medium text-muted-foreground">In this game</h2>
           <SettingsTable rows={gameRows} />
         </section>
+        {!game.anonymous && member.userId !== null && (
+          <Suspense fallback={<PlayerCommitmentSectionSkeleton />}>
+            <PlayerCommitmentSection userId={member.userId} />
+          </Suspense>
+        )}
         {member.rated && (
           <Suspense fallback={<RatingSectionSkeleton />}>
             <RatingSection memberId={member.id} />
           </Suspense>
         )}
         {!game.anonymous && member.userId !== null && (
-          <Suspense
-            fallback={
-              <>
-                <PlayerCommitmentSectionSkeleton />
-                <PlayerConductSectionSkeleton />
-              </>
-            }
-          >
-            <PlayerCommitmentSection userId={member.userId} />
+          <Suspense fallback={<PlayerConductSectionSkeleton />}>
             <PlayerConductSection userId={member.userId} />
           </Suspense>
         )}

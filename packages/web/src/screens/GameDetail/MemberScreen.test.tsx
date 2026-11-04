@@ -281,6 +281,22 @@ describe("MemberScreen", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the rating between commitment and conduct history", () => {
+    member = buildMember({ rated: true });
+    renderScreen();
+
+    expect(
+      screen
+        .getAllByRole("heading")
+        .map(heading => heading.textContent)
+        .filter(name =>
+          ["Commitment", "Rating", "Rating breakdown", "Conduct history"].includes(
+            name ?? ""
+          )
+        )
+    ).toEqual(["Commitment", "Rating", "Rating breakdown", "Conduct history"]);
+  });
+
   it("hides the rating for an unrated member", () => {
     renderScreen();
 
