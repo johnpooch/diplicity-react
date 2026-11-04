@@ -211,6 +211,14 @@ type KindEnum = Literal[
 ]
 
 
+class LeaderboardEntry(TypedDict):
+    rank: int
+    user_id: int
+    name: str
+    picture: str | None
+    rating: float
+
+
 type MemberActionKeyEnum = Literal[
     'join',
     'confirm_seat',
@@ -327,6 +335,14 @@ type OrderStatusEnum = Literal[
 type OrderTypeEnum = Literal[
     'Move', 'MoveViaConvoy', 'Hold', 'Support', 'Convoy', 'Build', 'Disband'
 ]
+
+
+class PaginatedLeaderboardEntryList(TypedDict):
+    count: int
+    next: NotRequired[str | None]
+    previous: NotRequired[str | None]
+    results: list[LeaderboardEntry]
+    own: LeaderboardEntry | None
 
 
 type ParticipationStatusEnum = Literal[

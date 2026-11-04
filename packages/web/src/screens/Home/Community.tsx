@@ -1,5 +1,6 @@
 import React from "react";
-import { ExternalLink, Map } from "lucide-react";
+import { Link } from "react-router";
+import { ExternalLink, Map, Trophy } from "lucide-react";
 
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
@@ -63,6 +64,26 @@ const Community: React.FC = () => {
           <PrimaryButton onClick={openDiscord} className="w-full">
             <ExternalLink className="size-4" />
             Open Discord
+          </PrimaryButton>
+        </ScreenCardContent>
+      </ScreenCard>
+
+      <ScreenCard>
+        <ScreenCardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Trophy className="size-5" />
+            <h2 className="text-lg font-semibold">Leaderboard</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            See how the strongest players rank by rating. Ratings change only
+            in ranked games, and players appear once their rating is
+            established.
+          </p>
+          <PrimaryButton asChild className="w-full">
+            <Link to="/leaderboard">
+              <Trophy className="size-4" />
+              View leaderboard
+            </Link>
           </PrimaryButton>
         </ScreenCardContent>
       </ScreenCard>

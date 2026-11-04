@@ -1955,6 +1955,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMyGameList'
           description: ''
+  /leaderboard/:
+    get:
+      operationId: leaderboardList
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - leaderboard
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardEntryList'
+          description: ''
   /moderation/reports/:
     get:
       operationId: moderationReportsList
@@ -3975,6 +4002,32 @@ components:
         * `paused` - Paused
         * `sandbox` - Sandbox
         * `finished` - Finished
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          readOnly: true
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          nullable: true
+          readOnly: true
+        rating:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - name
+      - picture
+      - rank
+      - rating
+      - userId
     Mark:
       type: object
       properties:
@@ -4807,6 +4860,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GameList'
+    PaginatedLeaderboardEntryList:
+      type: object
+      required:
+      - count
+      - results
+      - own
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+        own:
+          allOf:
+          - $ref: '#/components/schemas/LeaderboardEntry'
+          nullable: true
     PaginatedMyGameList:
       type: object
       required:
