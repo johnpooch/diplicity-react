@@ -139,6 +139,9 @@ const LeaderboardSkeleton: React.FC = () => (
 const LeaderboardSuspense: React.FC = () => (
   <ScreenContainer>
     <ScreenHeader title="Leaderboard" />
+    <Link to="/how-ratings-work" className="text-sm underline">
+      How ratings work
+    </Link>
     <QueryErrorBoundary>
       <Suspense fallback={<LeaderboardSkeleton />}>
         <Leaderboard />
