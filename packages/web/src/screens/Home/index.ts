@@ -17,6 +17,7 @@ export const Home = {
   ),
   Community: lazyScreen(() => import("./Community"), "Community"),
   Leaderboard: lazyScreen(() => import("./Leaderboard"), "Leaderboard"),
+  HowRatingsWork: lazyScreen(() => import("./HowRatingsWork"), "HowRatingsWork"),
   DeleteAccount: lazyScreen(() => import("./DeleteAccount"), "DeleteAccount"),
   LearnToPlay: lazyScreen(() => import("./LearnToPlay"), "LearnToPlay"),
   PlayerProfileScreen: lazyScreen(

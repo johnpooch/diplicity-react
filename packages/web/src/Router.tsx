@@ -218,6 +218,14 @@ export const createAuthenticatedRoutes = (): RouteObject[] => [
             ),
           },
           {
+            path: "how-ratings-work",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.HowRatingsWork />
+              </Suspense>
+            ),
+          },
+          {
             path: "leaderboard",
             element: (
               <Suspense fallback={<RouteFallback />}>

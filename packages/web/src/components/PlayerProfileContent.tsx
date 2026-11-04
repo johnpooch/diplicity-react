@@ -91,6 +91,12 @@ const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
           <StatRow label="Won" value={rating.won} />
           <StatRow label="Drew" value={rating.drew} />
           <StatRow label="Lost" value={rating.lost} />
+          <RowActionButton asChild>
+            <Link to="/how-ratings-work">
+              <span className="flex-1">How ratings work</span>
+              <ChevronRight className="text-muted-foreground" />
+            </Link>
+          </RowActionButton>
         </div>
       )}
     </Section>
