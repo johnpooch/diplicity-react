@@ -45,6 +45,9 @@ class MemberQuerySet(models.QuerySet):
     def players(self):
         return self.filter(kind=MemberKind.PLAYER)
 
+    def humans(self):
+        return self.filter(user__profile__kind=UserKind.HUMAN)
+
     def vacant(self):
         return self.not_replaced().filter(
             models.Q(civil_disorder_at__isnull=False)

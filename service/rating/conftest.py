@@ -1,9 +1,12 @@
 import pytest
 from django.utils import timezone
 
+from common.constants import GameStatus, PhaseStatus, PhaseType
+from game.models import Game
 from nation.models import Nation
 from rating.calculation import Player
 from rating.models import RatingPairing, RatingResult
+from victory.models import Victory
 
 
 @pytest.fixture
@@ -68,3 +71,40 @@ def player_factory(rated_at):
 @pytest.fixture
 def unhandicapped_nation(db):
     return Nation.objects.get(variant_id="vietnam-war", name="Laos")
+
+
+@pytest.fixture
+def ranked_game_factory(db, classical_variant, member_factory):
+    def _create(victors=1, last_year=1903, **kwargs):
+        values = {"status": GameStatus.COMPLETED, "ranked": True}
+        values.update(kwargs)
+        game = Game.objects.create(
+            variant=classical_variant,
+            name=f"Ranked Game {Game.objects.count()}",
+            **values,
+        )
+        game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        last_phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=last_year,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=2,
+        )
+        members = [
+            member_factory(game=game, nation=nation)
+            for nation in classical_variant.nations.filter(non_playable=False)
+        ]
+        victory = Victory.objects.create(game=game, winning_phase=last_phase)
+        victory.members.set(members[:victors])
+        return game
+
+    return _create

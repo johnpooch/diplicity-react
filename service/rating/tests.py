@@ -1,11 +1,15 @@
 import importlib
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.apps import apps
 from django.db import IntegrityError
+from django.utils import timezone
 
+from common.constants import GameStatus, PhaseType, RatingJob
 from nation.models import Nation
+from phase.models import Phase
 
 from rating.calculation import (
     DEFAULT_PARAMETERS,
@@ -15,7 +19,9 @@ from rating.calculation import (
     rate,
     update,
 )
-from rating.models import NationHandicap, Rating
+from rating.models import NationHandicap, Rating, RatingPairing, RatingResult
+from rating.tasks import rate_game
+from victory.models import Victory
 
 seed_handicaps_migration = importlib.import_module(
     "rating.migrations.0002_seed_nation_handicaps"
@@ -403,3 +409,328 @@ class TestRateReplacements:
 
         assert result.protected is False
         assert result.rating_after < result.rating_before
+
+
+def _replace(member, user_factory):
+    replacement = member.game.members.create(user=user_factory())
+    member.removed_at = timezone.now()
+    member.replaced_by = replacement
+    member.save(update_fields=["removed_at", "replaced_by"])
+    replacement.nation = member.nation
+    replacement.save(update_fields=["nation"])
+    return replacement
+
+
+def _victors(game):
+    return list(game.victory.members.all())
+
+
+def _losers(game):
+    victors = _victors(game)
+    return [member for member in game.members.all() if member not in victors]
+
+
+def _rating_jobs(connector):
+    return [
+        job
+        for job in connector.jobs.values()
+        if job["task_name"] == RatingJob.TASK_NAME
+    ]
+
+
+class TestRateGame:
+    @pytest.mark.django_db
+    def test_records_a_result_for_every_player(self, ranked_game_factory):
+        game = ranked_game_factory()
+
+        RatingResult.objects.rate_game(game)
+
+        assert RatingResult.objects.filter(member__game=game).count() == 7
+
+    @pytest.mark.django_db
+    def test_solo_winner_is_paired_with_every_other_player(self, ranked_game_factory):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+
+        RatingResult.objects.rate_game(game)
+
+        assert (
+            sorted(winner.rating_result.pairings.values_list("score", flat=True))
+            == [1] * 6
+        )
+
+    @pytest.mark.django_db
+    def test_losers_are_paired_only_with_the_winner(self, ranked_game_factory):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+
+        RatingResult.objects.rate_game(game)
+
+        for loser in _losers(game):
+            assert list(
+                loser.rating_result.pairings.values_list("opponent", "score")
+            ) == [(winner.pk, 0)]
+
+    @pytest.mark.django_db
+    def test_drawers_tie_each_other(self, ranked_game_factory):
+        game = ranked_game_factory(victors=2)
+        first, second = _victors(game)
+
+        RatingResult.objects.rate_game(game)
+
+        assert first.rating_result.pairings.get(opponent=second).score == 0.5
+
+    @pytest.mark.django_db
+    def test_creates_ratings_for_new_players(self, ranked_game_factory):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+
+        RatingResult.objects.rate_game(game)
+
+        result = winner.rating_result
+        rating = Rating.objects.get(user=winner.user)
+        assert result.rating_before == 1500
+        assert result.deviation_before == 350
+        assert rating.rating == result.rating_after > 1500
+        assert rating.deviation == result.deviation_after < 350
+        assert rating.rated_at == result.created_at
+
+    @pytest.mark.django_db
+    def test_lowers_the_losers_ratings(self, ranked_game_factory):
+        game = ranked_game_factory()
+
+        RatingResult.objects.rate_game(game)
+
+        for loser in _losers(game):
+            assert Rating.objects.get(user=loser.user).rating < 1500
+
+    @pytest.mark.django_db
+    def test_rates_from_existing_ratings(self, ranked_game_factory):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+        rated_at = timezone.now() - timedelta(days=30)
+        Rating.objects.create(
+            user=winner.user, rating=1700, deviation=80, rated_at=rated_at
+        )
+
+        RatingResult.objects.rate_game(game)
+
+        result = winner.rating_result
+        assert result.rating_before == 1700
+        assert result.deviation_before == pytest.approx(
+            grown_deviation(80, rated_at, result.created_at), abs=0.01
+        )
+        assert Rating.objects.get(user=winner.user).rating == result.rating_after
+
+    @pytest.mark.django_db
+    def test_copies_the_nation_handicaps(self, ranked_game_factory):
+        game = ranked_game_factory()
+        france = game.members.get(nation__name="France")
+
+        RatingResult.objects.rate_game(game)
+
+        assert france.rating_result.handicap == 25
+        assert (
+            RatingPairing.objects.filter(opponent=france).first().opponent_handicap
+            == 25
+        )
+
+    @pytest.mark.django_db
+    def test_pairing_changes_add_up_to_the_total_change(self, ranked_game_factory):
+        game = ranked_game_factory(victors=3)
+
+        RatingResult.objects.rate_game(game)
+
+        for result in RatingResult.objects.filter(member__game=game):
+            assert sum(
+                result.pairings.values_list("change", flat=True)
+            ) == pytest.approx(result.rating_after - result.rating_before)
+
+    @pytest.mark.django_db
+    def test_does_not_rate_bots(self, ranked_game_factory, bot_user):
+        game = ranked_game_factory()
+        bot = _losers(game)[0]
+        bot.user = bot_user
+        bot.save(update_fields=["user"])
+
+        RatingResult.objects.rate_game(game)
+
+        assert not RatingResult.objects.filter(member=bot).exists()
+        assert not RatingPairing.objects.filter(opponent=bot).exists()
+        assert not Rating.objects.filter(user=bot_user).exists()
+
+    @pytest.mark.django_db
+    def test_departed_player_loses_to_the_other_seats(
+        self, ranked_game_factory, user_factory
+    ):
+        game = ranked_game_factory()
+        departed = _losers(game)[0]
+        replacement = _replace(departed, user_factory)
+
+        RatingResult.objects.rate_game(game)
+
+        opponents = set(
+            departed.rating_result.pairings.values_list("opponent", flat=True)
+        )
+        assert replacement.pk not in opponents
+        assert len(opponents) == 6
+        assert set(departed.rating_result.pairings.values_list("score", flat=True)) == {
+            0
+        }
+
+    @pytest.mark.django_db
+    def test_losing_replacement_keeps_their_rating(
+        self, ranked_game_factory, user_factory
+    ):
+        game = ranked_game_factory()
+        replacement = _replace(_losers(game)[0], user_factory)
+        rated_at = timezone.now() - timedelta(days=30)
+        Rating.objects.create(
+            user=replacement.user, rating=1600, deviation=100, rated_at=rated_at
+        )
+
+        RatingResult.objects.rate_game(game)
+
+        result = replacement.rating_result
+        rating = Rating.objects.get(user=replacement.user)
+        assert result.protected
+        assert result.rating_after == 1600
+        assert result.pairings.get().change < 0
+        assert (rating.rating, rating.deviation, rating.rated_at) == (
+            1600,
+            100,
+            rated_at,
+        )
+
+    @pytest.mark.django_db
+    def test_winning_replacement_gains(self, ranked_game_factory, user_factory):
+        game = ranked_game_factory()
+        replacement = _replace(_victors(game)[0], user_factory)
+        game.victory.members.set([replacement])
+
+        RatingResult.objects.rate_game(game)
+
+        assert not replacement.rating_result.protected
+        assert Rating.objects.get(user=replacement.user).rating > 1500
+
+    @pytest.mark.django_db
+    def test_returns_the_game(self, ranked_game_factory):
+        game = ranked_game_factory()
+
+        assert RatingResult.objects.rate_game(game) == game
+
+    @pytest.mark.django_db
+    def test_skips_unranked_games(self, ranked_game_factory):
+        game = ranked_game_factory(ranked=False)
+
+        assert RatingResult.objects.rate_game(game) is None
+        assert not RatingResult.objects.exists()
+
+    @pytest.mark.django_db
+    def test_skips_games_that_are_not_completed(self, ranked_game_factory):
+        game = ranked_game_factory(status=GameStatus.ABANDONED)
+
+        assert RatingResult.objects.rate_game(game) is None
+        assert not RatingResult.objects.exists()
+
+    @pytest.mark.django_db
+    def test_skips_games_shorter_than_two_years(self, ranked_game_factory):
+        game = ranked_game_factory(last_year=1902)
+
+        assert RatingResult.objects.rate_game(game) is None
+        assert not RatingResult.objects.exists()
+
+    @pytest.mark.django_db
+    def test_does_not_rate_a_game_twice(self, ranked_game_factory):
+        game = ranked_game_factory()
+        [winner] = _victors(game)
+        RatingResult.objects.rate_game(game)
+        rating = Rating.objects.get(user=winner.user).rating
+
+        assert RatingResult.objects.rate_game(game) is None
+        assert RatingResult.objects.filter(member__game=game).count() == 7
+        assert Rating.objects.get(user=winner.user).rating == rating
+
+
+class TestRateGameTask:
+    @pytest.mark.django_db
+    def test_rates_the_game(self, ranked_game_factory):
+        game = ranked_game_factory()
+
+        rate_game(game_id=game.id)
+
+        assert RatingResult.objects.filter(member__game=game).count() == 7
+
+
+class TestRatingDeferredOnCompletion:
+    @pytest.mark.django_db
+    def test_draw_defers_rating(
+        self,
+        draw_notification_game_factory,
+        in_memory_procrastinate,
+        mock_immediate_on_commit,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+
+        game.finish_with_draw(game.current_phase, [italy, germany])
+
+        [job] = _rating_jobs(in_memory_procrastinate)
+        assert job["args"] == {"game_id": game.id}
+
+    @pytest.mark.django_db
+    def test_draw_defers_rating_only_after_commit(
+        self, draw_notification_game_factory, in_memory_procrastinate
+    ):
+        game, italy, germany = draw_notification_game_factory()
+
+        game.finish_with_draw(game.current_phase, [italy, germany])
+
+        assert _rating_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_solo_victory_defers_rating(
+        self,
+        draw_notification_game_factory,
+        in_memory_procrastinate,
+        mock_immediate_on_commit,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        phase = game.current_phase
+        adjudication_data = {
+            "season": "Fall",
+            "year": 1901,
+            "type": PhaseType.MOVEMENT,
+            "options": {},
+            "supply_centers": [],
+            "units": [],
+            "resolutions": [],
+        }
+
+        with patch("phase.models.resolve", return_value=adjudication_data), patch(
+            "phase.models.Victory.objects.try_create_victory",
+            side_effect=lambda new_phase: Victory.objects.create(
+                game=game, winning_phase=new_phase
+            ),
+        ):
+            Phase.objects.resolve(phase)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.COMPLETED
+        [job] = _rating_jobs(in_memory_procrastinate)
+        assert job["args"] == {"game_id": game.id}
+
+    @pytest.mark.django_db
+    def test_abandonment_does_not_defer_rating(
+        self,
+        draw_notification_game_factory,
+        in_memory_procrastinate,
+        mock_immediate_on_commit,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        game.members.update(civil_disorder_at=timezone.now())
+
+        Phase.objects.resolve(game.current_phase)
+
+        game.refresh_from_db()
+        assert game.status == GameStatus.ABANDONED
+        assert _rating_jobs(in_memory_procrastinate) == []

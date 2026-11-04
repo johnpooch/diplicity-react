@@ -628,6 +628,7 @@ class PhaseManager(models.Manager):
 
             if victory:
                 new_phase.game.finish(GameStatus.COMPLETED)
+                new_phase.game.defer_rating()
                 new_phase.game.emit_game_ended()
             elif new_phase.game.should_abandon():
                 new_phase.game.finish(GameStatus.ABANDONED)

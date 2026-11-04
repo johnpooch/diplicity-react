@@ -66,6 +66,10 @@ class MusterReminderJob:
     LIVE_STATUSES = (TODO, DOING, SUCCEEDED)
 
 
+class RatingJob:
+    TASK_NAME = "rating.rate_game"
+
+
 class MovementPhaseDuration:
     FIVE_MINUTES = "5 minutes"
     FIFTEEN_MINUTES = "15 minutes"

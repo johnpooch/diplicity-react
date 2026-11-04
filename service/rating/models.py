@@ -3,6 +3,8 @@ from django.db import models
 
 from common.models import BaseModel
 
+from .managers import RatingResultManager
+
 
 class Rating(BaseModel):
     user = models.OneToOneField(
@@ -19,8 +21,16 @@ class Rating(BaseModel):
             models.Index(fields=["rating"], name="rating_rating_idx"),
         ]
 
+    def record(self, result):
+        self.rating = result.rating_after
+        self.deviation = result.deviation_after
+        self.rated_at = result.created_at
+        self.save(update_fields=["rating", "deviation", "rated_at", "updated_at"])
+
 
 class RatingResult(BaseModel):
+    objects = RatingResultManager()
+
     member = models.OneToOneField(
         "member.Member",
         related_name="rating_result",
@@ -32,6 +42,22 @@ class RatingResult(BaseModel):
     deviation_after = models.FloatField()
     handicap = models.IntegerField()
     protected = models.BooleanField(default=False)
+
+    def record_pairings(self, pairings):
+        self.pairings.bulk_create(
+            [
+                RatingPairing(
+                    result=self,
+                    opponent_id=pairing.opponent_id,
+                    opponent_rating=pairing.opponent_rating,
+                    opponent_deviation=pairing.opponent_deviation,
+                    opponent_handicap=pairing.opponent_handicap,
+                    score=pairing.score,
+                    change=pairing.change,
+                )
+                for pairing in pairings
+            ]
+        )
 
 
 class RatingPairing(BaseModel):
