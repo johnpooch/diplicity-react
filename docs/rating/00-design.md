@@ -24,7 +24,7 @@ This document covers the product decisions and the high-level technical design f
 6. **A game is ranked** when it is public, not a sandbox, on a ranked variant, and the creator left the **Ranked** toggle on. The toggle is on by default.
    - Game-master games are always private, so they are never ranked.
    - Anonymous games can be ranked. Anonymity stays a separate toggle.
-7. **A variant is ranked** when every playable nation has a handicap row. The owner decides which variants are ranked and sets their handicaps by hand.
+7. **A variant is ranked** when its `ranked` flag is set. The owner decides which variants are ranked and sets their handicaps by hand. The flag can only be set once every playable nation has a handicap row.
 8. **Minimum length.** A ranked game only changes ratings if it played at least two full years before it ended (Spring 1903 in Classic). This stops quick agreed draws being farmed.
 
 ### Scoring
@@ -66,6 +66,7 @@ There is a new `rating` app, built to [`django-app-architecture.md`](../django-a
 
 ```
 Game.ranked                      bool, fixed when the game is created
+Variant.ranked                   bool, set by hand once handicaps exist
 User   ─1:1─ Rating              current state
 Member ─1:1─ RatingResult        one per rated member per game (append-only)
 RatingResult ─1:N─ RatingPairing one per opponent; the rows of the breakdown
@@ -100,7 +101,7 @@ Nation ─1:1─ NationHandicap      per-nation offset; set by hand
 **`NationHandicap`.** Fields: `nation`, a one-to-one link, and `offset`, in rating points.
 - Values are entered by hand through Django admin and seeded by a data migration.
 - When a value is changed, results already recorded keep the copy they used.
-- A variant is ranked when all of its playable nations (`Nation.non_playable=False`) have a row. There is no separate flag.
+- `Variant.ranked` can only be set when all of the variant's playable nations (`Nation.non_playable=False`) have a row. Model validation enforces this in Django admin.
 
 ---
 
@@ -202,10 +203,11 @@ Every change below adds a new field or a new endpoint. Nothing is renamed or rem
 | --- | --- |
 | Create game request | `ranked: bool`. Refused unless the game can be ranked. |
 | Game responses | `ranked: bool` |
-| Variant responses | `ranked: bool`, derived from the handicap rows |
+| Variant responses | `ranked: bool` |
 | User profile response | `rating`, either `null` or `{ rating, rank: int \| null, won, drew, lost }` |
 | Member responses in a completed ranked game | `rating_change`, `rating_before`, `rating_after` |
 | New: member rating detail | The before and after rating, `protected`, and the pairings: opponent member, opponent rating, score, change |
+| Member detail response | `rated: bool`, so the client only requests the rating detail for a rated member |
 | New: leaderboard | A paginated list of established players (rank, user, rating), plus the requesting user's own rank |
 
 Completed-game responses are cached through `CompletedPhaseCacheMixin`, so clients must cope with a missing `rating_change` for up to a week.
@@ -216,7 +218,7 @@ Completed-game responses are cached through `CompletedPhaseCacheMixin`, so clien
 
 - **Seeding handicaps.** A research prompt gathers per-nation results for Classic and the other mature variants from other platforms. The owner reviews the values and seeds them with a data migration.
 - **No backfill.** Ratings begin with the first ranked game that completes after launch.
-- **When it goes live.** Games can only be ranked once handicaps exist. Seeding the first variant is therefore the launch, so the backend and UI can ship ahead of it without being reachable.
+- **When it goes live.** Games can only be ranked on a ranked variant, and a variant can only be ranked once its handicaps exist. Setting the first variant's flag is therefore the launch. Variants with seeded handicaps were marked ranked by a data migration in sub-issue 5.
 
 ---
 
@@ -248,7 +250,7 @@ Sub-issues, in order:
 10. **Leaderboard.** Endpoint, screen, and links from Community and from profiles.
 11. **"How ratings work" page.**
 
-Sub-issue 6 is the launch switch, as §6 explains. The others can merge in any order once their prerequisites are in.
+Sub-issue 5 marks the seeded variants ranked, which is the launch switch, as §6 explains. The others can merge in any order once their prerequisites are in.
 
 ---
 

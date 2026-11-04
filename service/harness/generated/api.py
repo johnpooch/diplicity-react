@@ -413,6 +413,33 @@ class Province(TypedDict):
     named_coast_ids: list[str]
 
 
+class RatingOpponent(TypedDict):
+    id: int
+    user_id: int | None
+    name: str
+    picture: str | None
+    is_current_user: bool
+    is_bot: bool
+    nation: str | None
+
+
+class RatingPairingOutput(TypedDict):
+    id: int
+    opponent: RatingOpponent
+    opponent_rating: float
+    score: float
+    change: float
+
+
+class RatingResultOutput(TypedDict):
+    id: int
+    rating_before: float
+    rating_after: float
+    rating_change: float
+    protected: bool
+    pairings: list[RatingPairingOutput]
+
+
 type ReasonEnum = Literal[
     'abuse_and_harassment', 'multiple_accounts', 'secret_teaming', 'other'
 ]
@@ -697,6 +724,7 @@ class GameCreate(TypedDict):
     retreat_phase_duration: NotRequired[DurationEnum | NullEnum | None]
     private: bool
     anonymous: NotRequired[bool]
+    ranked: NotRequired[bool]
     game_master: NotRequired[bool]
     deadline_mode: NotRequired[DeadlineModeEnum]
     fixed_deadline_time: NotRequired[str | None]
@@ -774,6 +802,7 @@ class MemberDetail(TypedDict):
     actions: list[MemberAction]
     can_report: bool
     already_reported: bool
+    rated: bool
 
 
 class ModerationReportAction(TypedDict):
@@ -915,6 +944,7 @@ class GameList(TypedDict):
     member_status: list[MemberStatusEnum] | None
     private: bool
     anonymous: bool
+    ranked: bool
     movement_phase_duration: str | None
     retreat_phase_duration: str | None
     show_short_game_join_warning: bool
@@ -966,6 +996,7 @@ class GameRetrieve(TypedDict):
     show_short_game_join_warning: bool
     private: bool
     anonymous: bool
+    ranked: bool
     is_paused: bool
     paused_at: str | None
     nmr_extensions_allowed: int
@@ -1063,6 +1094,7 @@ class Variant(TypedDict):
     unit_scaling: float
     status: str
     official: bool
+    ranked: bool
     owner_id: int | None
     owner_username: str | None
     can_edit: bool

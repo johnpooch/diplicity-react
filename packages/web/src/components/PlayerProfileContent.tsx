@@ -78,13 +78,13 @@ export const PlayerCommitmentSection: React.FC<PlayerProfileContentProps> = ({
   );
 };
 
-export const PlayerRatingSectionSkeleton: React.FC = () => (
+const PlayerRatingSectionSkeleton: React.FC = () => (
   <Section title="Rating">
     <Skeleton className="mx-6 my-3 h-5" />
   </Section>
 );
 
-export const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
+const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
   userId,
 }) => {
   const { data: profile } = useUsersRetrieveSuspense(userId);
@@ -96,7 +96,7 @@ export const PlayerRatingSection: React.FC<PlayerProfileContentProps> = ({
         <p className="px-6 py-3 text-sm">No ranked games yet</p>
       ) : (
         <div className="divide-y">
-          <StatRow label="Rating" value={rating.rating.toLocaleString()} />
+          <StatRow label="Rating" value={rating.rating.toLocaleString("en-US")} />
           <StatRow
             label="Leaderboard"
             value={rating.rank === null ? "Not ranked yet" : `#${rating.rank}`}

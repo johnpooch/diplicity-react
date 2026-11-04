@@ -795,6 +795,34 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{game_id}/member/{member_id}/rating/:
+    get:
+      operationId: game_member_rating_retrieve
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: game_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingResultOutput'
+          description: ''
   /game/{game_id}/member/{member_id}/report/:
     post:
       operationId: game_member_report_create
@@ -3296,6 +3324,9 @@ components:
         anonymous:
           type: boolean
           default: false
+        ranked:
+          type: boolean
+          default: false
         game_master:
           type: boolean
           default: false
@@ -3452,6 +3483,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         movement_phase_duration:
           type: string
           readOnly: true
@@ -3570,6 +3604,7 @@ components:
       - phases
       - press_type
       - private
+      - ranked
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
@@ -3804,6 +3839,9 @@ components:
         anonymous:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         is_paused:
           type: boolean
           readOnly: true
@@ -3911,6 +3949,7 @@ components:
       - player_list_actions
       - press_type
       - private
+      - ranked
       - retreat_frequency
       - retreat_phase_duration
       - sandbox
@@ -4210,6 +4249,9 @@ components:
         already_reported:
           type: boolean
           readOnly: true
+        rated:
+          type: boolean
+          readOnly: true
       required:
       - actions
       - already_reported
@@ -4225,6 +4267,7 @@ components:
       - nmr_extensions_remaining
       - participation_status
       - picture
+      - rated
       - supply_center_count
       - unit_count
       - user_id
@@ -5220,6 +5263,101 @@ components:
       - picture
       - rating
       - total_games
+    RatingOpponent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+          nullable: true
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          nullable: true
+          readOnly: true
+        is_current_user:
+          type: boolean
+          readOnly: true
+        is_bot:
+          type: boolean
+          readOnly: true
+        nation:
+          type: string
+          nullable: true
+      required:
+      - id
+      - is_bot
+      - is_current_user
+      - name
+      - nation
+      - picture
+      - user_id
+    RatingPairingOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        opponent:
+          allOf:
+          - $ref: '#/components/schemas/RatingOpponent'
+          readOnly: true
+        opponent_rating:
+          type: number
+          format: double
+          readOnly: true
+        score:
+          type: number
+          format: double
+          readOnly: true
+        change:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - change
+      - id
+      - opponent
+      - opponent_rating
+      - score
+    RatingResultOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        rating_before:
+          type: number
+          format: double
+          readOnly: true
+        rating_after:
+          type: number
+          format: double
+          readOnly: true
+        rating_change:
+          type: number
+          format: double
+          readOnly: true
+        protected:
+          type: boolean
+          readOnly: true
+        pairings:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingPairingOutput'
+          readOnly: true
+      required:
+      - id
+      - pairings
+      - protected
+      - rating_after
+      - rating_before
+      - rating_change
     ReasonEnum:
       enum:
       - abuse_and_harassment
@@ -5560,6 +5698,9 @@ components:
         official:
           type: boolean
           readOnly: true
+        ranked:
+          type: boolean
+          readOnly: true
         owner_id:
           type: integer
           readOnly: true
@@ -5597,6 +5738,7 @@ components:
       - owner_id
       - owner_username
       - provinces
+      - ranked
       - rules
       - status
       - svg_url

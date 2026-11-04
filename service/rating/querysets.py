@@ -78,3 +78,8 @@ class RatingQuerySet(models.QuerySet):
 class RatingResultQuerySet(models.QuerySet):
     def visible_to(self, actor):
         return self
+
+
+class RatingPairingQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self

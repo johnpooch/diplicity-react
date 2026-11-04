@@ -192,6 +192,7 @@ class MemberDetailSerializer(BaseMemberSerializer):
     actions = serializers.SerializerMethodField()
     can_report = serializers.SerializerMethodField()
     already_reported = serializers.SerializerMethodField()
+    rated = serializers.SerializerMethodField()
 
     def _counted_phase(self, obj):
         game = self._get_game(obj)
@@ -248,6 +249,10 @@ class MemberDetailSerializer(BaseMemberSerializer):
     @extend_schema_field(serializers.BooleanField)
     def get_already_reported(self, obj):
         return obj.report_decision.reason == HasNotReportedCheck.reason
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_rated(self, obj):
+        return hasattr(obj, "rating_result")
 
 
 class MemberJoinSerializer(MemberSerializer):

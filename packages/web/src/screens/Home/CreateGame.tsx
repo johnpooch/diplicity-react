@@ -108,6 +108,7 @@ const gameSchema = z.object({
     .nullable(),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   committedOnly: z.boolean(),
+  ranked: z.boolean(),
 });
 
 type GameFormValues = z.infer<typeof gameSchema>;
@@ -304,6 +305,15 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   );
 };
 
+const rankedBlockedReasonFor = (
+  isPrivate: boolean,
+  variant: Variant | undefined
+) => {
+  if (isPrivate) return "Private games can't be ranked";
+  if (!variant?.ranked) return "Not available for this variant yet";
+  return null;
+};
+
 function getBrowserTimezone(): string {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const validTimezones = TIMEZONE_OPTIONS.map(
@@ -315,7 +325,15 @@ function getBrowserTimezone(): string {
 const STEPS = ["General", "Deadlines", "Advanced"] as const;
 
 const STEP_FIELDS: Record<number, (keyof GameFormValues)[]> = {
-  0: ["name", "variantId", "mode", "private", "committedOnly", "gameMaster"],
+  0: [
+    "name",
+    "variantId",
+    "mode",
+    "private",
+    "committedOnly",
+    "ranked",
+    "gameMaster",
+  ],
   1: [
     "deadlineMode",
     "movementPhaseDuration",
@@ -434,6 +452,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       retreatFrequency: null,
       nmrExtensionsAllowed: "0",
       committedOnly: false,
+      ranked: true,
     },
   });
 
@@ -471,6 +490,10 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
     ? [...PRIVATE_ONLY_DURATION_OPTIONS, ...DURATION_OPTIONS]
     : DURATION_OPTIONS;
   const isSandbox = form.watch("mode") === "sandbox";
+  const rankedBlockedReason = rankedBlockedReasonFor(
+    isPrivate,
+    selectedVariant
+  );
   const lastStep = isSandbox ? 0 : STEPS.length - 1;
   const isInitialVariantDraft =
     initialVariantId !== undefined &&
@@ -630,6 +653,31 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                 </FormItem>
               )}
             />
+
+            {!isSandbox && (
+              <FormField
+                control={form.control}
+                name="ranked"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value && !rankedBlockedReason}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting || !!rankedBlockedReason}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Ranked</FormLabel>
+                      <FormDescription>
+                        {rankedBlockedReason ??
+                          "The result changes each player's rating"}
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -1057,6 +1105,12 @@ const CreateGame: React.FC = () => {
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
           commitmentRequirement: data.committedOnly ? "committed" : "open",
+          ranked:
+            data.ranked &&
+            !rankedBlockedReasonFor(
+              data.private,
+              variants.find(v => v.id === data.variantId)
+            ),
         },
       });
       toast.success("Game created successfully");

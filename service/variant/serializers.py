@@ -102,6 +102,7 @@ class VariantSerializer(serializers.Serializer):
     unit_scaling = serializers.FloatField()
     status = serializers.CharField(read_only=True)
     official = serializers.BooleanField(read_only=True)
+    ranked = serializers.BooleanField(read_only=True)
     owner_id = serializers.IntegerField(read_only=True, allow_null=True)
     owner_username = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
