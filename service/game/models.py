@@ -39,6 +39,7 @@ from common.constants import (
     PhaseStatus,
     PhaseType,
     PressType,
+    RatingJob,
     UserKind,
     duration_to_seconds,
 )
@@ -1242,7 +1243,15 @@ class Game(BaseModel):
             member.drew = True
             member.save(update_fields=["drew", "updated_at"])
         self.finish(GameStatus.COMPLETED)
+        self.defer_rating()
         return victory
+
+    def defer_rating(self):
+        transaction.on_commit(
+            lambda: procrastinate_app.configure_task(RatingJob.TASK_NAME).defer(
+                game_id=self.pk
+            )
+        )
 
     def emit_game_ended(self):
         try:

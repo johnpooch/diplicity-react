@@ -41,6 +41,16 @@ class IsActivePlayerCheck(Check):
         return member is not None and not member.eliminated
 
 
+class IsRankedGameCheck(Check):
+    def check(self, instance, actor):
+        return game_of(instance).ranked
+
+
+class IsCompletedGameCheck(Check):
+    def check(self, instance, actor):
+        return game_of(instance).status == GameStatus.COMPLETED
+
+
 class IsNotSandboxGameCheck(Check):
     reason = "sandbox_game"
 

@@ -7,6 +7,7 @@ Q = math.log(10) / 400
 
 @dataclass(frozen=True)
 class Parameters:
+    starting_rating: float = 1500
     max_deviation: float = 350
     settled_deviation: float = 50
     return_to_max: timedelta = timedelta(days=730)
