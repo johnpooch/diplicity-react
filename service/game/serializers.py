@@ -33,6 +33,7 @@ from variant.models import Variant
 from common.policies import Refused
 from member.checks import MeetsCommitmentRequirementCheck
 from member.models import Member
+from rating.policies import RankablePolicy
 from .models import Game
 
 ChannelMember = apps.get_model("channel", "ChannelMember")
@@ -112,6 +113,7 @@ class GameListSerializer(serializers.Serializer):
     member_status = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
+    ranked = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     show_short_game_join_warning = serializers.BooleanField(read_only=True)
@@ -362,6 +364,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     show_short_game_join_warning = serializers.BooleanField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
+    ranked = serializers.BooleanField(read_only=True)
     is_paused = serializers.BooleanField(read_only=True)
     paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
     nmr_extensions_allowed = serializers.IntegerField(read_only=True)
@@ -598,6 +601,7 @@ class GameCreateSerializer(serializers.Serializer):
     )
     private = serializers.BooleanField()
     anonymous = serializers.BooleanField(default=False)
+    ranked = serializers.BooleanField(default=False)
     game_master = serializers.BooleanField(default=False)
     deadline_mode = serializers.ChoiceField(
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
@@ -682,6 +686,14 @@ class GameCreateSerializer(serializers.Serializer):
             if not decision:
                 raise Refused(decision)
 
+        if attrs["ranked"]:
+            decision = RankablePolicy.decide(
+                Game(variant=variant, private=attrs["private"]),
+                self.context["request"].user,
+            )
+            if not decision:
+                raise Refused(decision)
+
         deadline_mode = attrs["deadline_mode"]
 
         if deadline_mode == DeadlineMode.FIXED_TIME:
@@ -749,6 +761,7 @@ class GameCreateSerializer(serializers.Serializer):
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),
                 private=validated_data["private"],
                 anonymous=validated_data["anonymous"],
+                ranked=validated_data["ranked"],
                 deadline_mode=validated_data["deadline_mode"],
                 fixed_deadline_time=validated_data.get("fixed_deadline_time"),
                 fixed_deadline_timezone=validated_data.get("fixed_deadline_timezone"),

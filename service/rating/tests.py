@@ -738,6 +738,154 @@ class TestRatingDeferredOnCompletion:
         assert _rating_jobs(in_memory_procrastinate) == []
 
 
+member_rating_viewname = "game-member-rating"
+member_retrieve_viewname = "game-member-retrieve"
+
+
+def _rating_url(member, game_id=None):
+    return reverse(
+        member_rating_viewname, args=[game_id or member.game_id, member.id]
+    )
+
+
+class TestMemberRatingRetrieveView:
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, ranked_game_factory):
+        game = ranked_game_factory()
+        RatingResult.objects.rate_game(game)
+
+        response = unauthenticated_client.get(_rating_url(_victors(game)[0]))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_returns_the_rating_before_and_after(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory()
+        RatingResult.objects.rate_game(game)
+        winner = _victors(game)[0]
+        result = winner.rating_result
+
+        response = authenticated_client.get(_rating_url(winner))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == result.id
+        assert response.data["rating_before"] == 1500
+        assert response.data["rating_after"] == result.rating_after
+        assert response.data["rating_change"] == result.rating_after - 1500
+        assert response.data["protected"] is False
+
+    @pytest.mark.django_db
+    def test_returns_a_pairing_per_opponent(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory()
+        RatingResult.objects.rate_game(game)
+        winner = _victors(game)[0]
+
+        response = authenticated_client.get(_rating_url(winner))
+
+        pairings = response.data["pairings"]
+        assert {pairing["opponent"]["id"] for pairing in pairings} == {
+            member.id for member in _losers(game)
+        }
+        assert {pairing["score"] for pairing in pairings} == {1}
+        assert sum(pairing["change"] for pairing in pairings) == pytest.approx(
+            response.data["rating_change"]
+        )
+
+    @pytest.mark.django_db
+    def test_pairing_shows_the_opponent(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory()
+        RatingResult.objects.rate_game(game)
+        loser = _losers(game)[0]
+        winner = _victors(game)[0]
+
+        response = authenticated_client.get(_rating_url(loser))
+
+        [pairing] = response.data["pairings"]
+        assert pairing["opponent"]["name"] == winner.user.profile.name
+        assert pairing["opponent"]["nation"] == winner.nation.name
+        assert pairing["opponent_rating"] == 1500
+        assert pairing["score"] == 0
+        assert pairing["change"] < 0
+
+    @pytest.mark.django_db
+    def test_orders_pairings_by_result(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory(victors=2)
+        RatingResult.objects.rate_game(game)
+
+        response = authenticated_client.get(_rating_url(_victors(game)[0]))
+
+        scores = [pairing["score"] for pairing in response.data["pairings"]]
+        assert scores == [1, 1, 1, 1, 1, 0.5]
+
+    @pytest.mark.django_db
+    def test_protected_replacement_keeps_their_rating(
+        self, authenticated_client, ranked_game_factory, user_factory
+    ):
+        game = ranked_game_factory()
+        replacement = _replace(_losers(game)[0], user_factory)
+        RatingResult.objects.rate_game(game)
+
+        response = authenticated_client.get(_rating_url(replacement))
+
+        assert response.data["protected"] is True
+        assert response.data["rating_change"] == 0
+        assert response.data["pairings"][0]["change"] < 0
+
+    @pytest.mark.django_db
+    def test_unrated_member_not_found(self, authenticated_client, ranked_game_factory):
+        game = ranked_game_factory()
+
+        response = authenticated_client.get(_rating_url(_victors(game)[0]))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_member_of_another_game_not_found(
+        self, authenticated_client, ranked_game_factory
+    ):
+        game = ranked_game_factory()
+        other_game = ranked_game_factory()
+        RatingResult.objects.rate_game(game)
+
+        response = authenticated_client.get(
+            _rating_url(_victors(game)[0], game_id=other_game.id)
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestMemberDetailRated:
+    def _retrieve(self, client, member):
+        return client.get(
+            reverse(member_retrieve_viewname, args=[member.game_id, member.id])
+        )
+
+    @pytest.mark.django_db
+    def test_rated_member(self, authenticated_client, ranked_game_factory):
+        game = ranked_game_factory()
+        RatingResult.objects.rate_game(game)
+
+        response = self._retrieve(authenticated_client, _victors(game)[0])
+
+        assert response.data["rated"] is True
+
+    @pytest.mark.django_db
+    def test_unrated_member(self, authenticated_client, ranked_game_factory):
+        game = ranked_game_factory()
+
+        response = self._retrieve(authenticated_client, _victors(game)[0])
+
+        assert response.data["rated"] is False
+
+
 class TestEstablishedRatings:
     @pytest.mark.django_db
     def test_includes_ratings_at_ranked_deviation(self, rating_factory, rated_at):

@@ -94,6 +94,7 @@ class MemberQuerySet(models.QuerySet):
             "nation",
             "user__profile__uploaded_picture",
             "game__victory",
+            "rating_result",
         ).prefetch_related(
             "game__members",
             "game__victory__members",

@@ -1,11 +1,20 @@
 from django.utils import timezone
 from rest_framework import permissions
 
-from common.views import LoaderListView
+from common.views import LoaderDetailView, LoaderListView, SelectedGameMixin
 
 from .models import Rating
 from .pagination import LeaderboardPagination
-from .serializers import LeaderboardEntryOutputSerializer
+from .serializers import LeaderboardEntryOutputSerializer, RatingResultOutputSerializer
+
+
+class MemberRatingRetrieveView(SelectedGameMixin, LoaderDetailView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RatingResultOutputSerializer
+    lookup_field = "member_id"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(member__game=self.get_game())
 
 
 class LeaderboardListView(LoaderListView):

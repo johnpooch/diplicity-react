@@ -1,6 +1,7 @@
 import hashlib
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Prefetch
 
@@ -140,6 +141,18 @@ class Variant(BaseModel):
         related_name="owned_variants",
     )
     official = models.BooleanField(default=False)
+    ranked = models.BooleanField(default=False, db_default=False)
+
+    def clean(self):
+        super().clean()
+        if self.ranked and not self.fully_handicapped():
+            raise ValidationError(
+                {"ranked": "Every playable nation needs a handicap first."}
+            )
+
+    def fully_handicapped(self):
+        playable = self.nations.filter(non_playable=False)
+        return playable.exists() and not playable.filter(handicap__isnull=True).exists()
 
     @property
     def slug(self):

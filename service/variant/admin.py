@@ -68,8 +68,8 @@ class ReplaceVariantFilesForm(forms.Form):
 
 @admin.register(Variant)
 class VariantAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "status", "official", "owner")
-    list_filter = ("status", "official")
+    list_display = ("id", "name", "status", "official", "ranked", "owner")
+    list_filter = ("status", "official", "ranked")
     list_editable = ("official",)
     search_fields = ("name", "id")
     autocomplete_fields = ("owner",)
