@@ -17,6 +17,7 @@ import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   useGameRetrieve,
   getGameOptionsRetrieveQueryKey,
@@ -59,6 +60,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     phaseId: string;
   }>();
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const isMobile = useIsMobile();
 
   const { data: game } = useGameRetrieve(gameId, {
     query: {
@@ -243,9 +245,11 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           </SidebarInset>
 
           {/* Right Panel - GameMap (desktop only) */}
-          <div className="hidden md:flex flex-1 border-l overflow-hidden bg-muted">
-            <GameMap />
-          </div>
+          {!isMobile && (
+            <div className="flex flex-1 border-l overflow-hidden bg-muted">
+              <GameMap />
+            </div>
+          )}
         </div>
 
         {/* Bottom Navigation - Mobile only */}
