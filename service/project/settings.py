@@ -134,6 +134,7 @@ if _FIREBASE_PROJECT_ID:
 
 MIDDLEWARE = [
     "project.otel_config.ServerTimingMiddleware",
+    "project.otel_config.QueryStatsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.gzip.GZipMiddleware",
@@ -144,7 +145,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "project.otel_config.QueryStatsMiddleware",
 ]
 
 CORS_ALLOWED_ORIGINS = os.getenv(
