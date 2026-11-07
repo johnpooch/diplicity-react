@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { InternalAxiosRequestConfig } from "axios";
+import type { AxiosAdapter, InternalAxiosRequestConfig } from "axios";
 import { focusManager } from "@tanstack/react-query";
 import type { Query, QueryClient } from "@tanstack/react-query";
 
@@ -22,8 +22,9 @@ const MOUNT_WINDOW_MS = 1000;
 
 let registeredClient: QueryClient | null = null;
 let lastFocusAt = 0;
-let pendingTags = new Map<string, RequestTag[]>();
-let lastObserverAddedAt = new Map<string, number>();
+let tagInFlight: RequestTag | undefined;
+const xhrTags = new WeakMap<XMLHttpRequest, RequestTag>();
+const lastObserverAddedAt = new Map<string, number>();
 let unsubscribeCache: (() => void) | null = null;
 
 focusManager.subscribe(focused => {
@@ -32,6 +33,7 @@ focusManager.subscribe(focused => {
 
 export const registerQueryClient = (client: QueryClient) => {
   unsubscribeCache?.();
+  lastObserverAddedAt.clear();
   registeredClient = client;
   unsubscribeCache = client.getQueryCache().subscribe(event => {
     if (event.type === "observerAdded") {
@@ -39,15 +41,6 @@ export const registerQueryClient = (client: QueryClient) => {
     }
   });
 };
-
-export const resetRequestTags = () => {
-  pendingTags = new Map();
-  lastObserverAddedAt = new Map();
-  lastFocusAt = 0;
-};
-
-const tagKey = (method: string, url: string) =>
-  `${method.toUpperCase()} ${url}`;
 
 const classifyQuery = (query: Query): RequestTag => {
   const blocking = query.state.data === undefined;
@@ -83,21 +76,25 @@ export const classifyRequest = (
   return query ? classifyQuery(query) : { blocking: true, reason: "other" };
 };
 
-export const recordRequestTag = (config: InternalAxiosRequestConfig) => {
-  const key = tagKey(config.method ?? "get", axios.getUri(config));
-  const queue = pendingTags.get(key) ?? [];
-  queue.push(classifyRequest(config));
-  pendingTags.set(key, queue);
+export const taggedXhrAdapter: AxiosAdapter = config => {
+  tagInFlight = classifyRequest(config);
+  try {
+    return axios.getAdapter("xhr")(config);
+  } finally {
+    tagInFlight = undefined;
+  }
 };
 
-export const consumeRequestTag = (
-  method: unknown,
-  url: unknown
-): RequestTag | undefined => {
-  if (typeof method !== "string" || typeof url !== "string") return undefined;
-  const key = tagKey(method, url);
-  const queue = pendingTags.get(key);
-  const tag = queue?.shift();
-  if (queue && queue.length === 0) pendingTags.delete(key);
-  return tag;
+export const trackXhrRequestTags = () => {
+  const originalOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (
+    this: XMLHttpRequest,
+    ...args: Parameters<XMLHttpRequest["open"]>
+  ) {
+    if (tagInFlight) xhrTags.set(this, tagInFlight);
+    return originalOpen.apply(this, args);
+  } as XMLHttpRequest["open"];
 };
+
+export const requestTagFor = (xhr: XMLHttpRequest): RequestTag | undefined =>
+  xhrTags.get(xhr);

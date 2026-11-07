@@ -18,7 +18,7 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
 import { APP_LAUNCH_SPAN_NAME, WEB_VITAL_SPAN_PREFIX } from "./webVitals";
 import { Capacitor } from "@capacitor/core";
-import { consumeRequestTag } from "./api/requestTelemetry";
+import { requestTagFor, trackXhrRequestTags } from "./api/requestTelemetry";
 
 export const TRACE_SAMPLE_RATE = 10;
 
@@ -132,21 +132,6 @@ export const versionSpanProcessor: SpanProcessor = {
   shutdown: () => Promise.resolve(),
 };
 
-export const requestTagSpanProcessor: SpanProcessor = {
-  onStart(span: Span) {
-    const tag = consumeRequestTag(
-      span.attributes["http.method"],
-      span.attributes["http.url"]
-    );
-    if (!tag) return;
-    span.setAttribute("request.blocking", tag.blocking);
-    span.setAttribute("request.reason", tag.reason);
-  },
-  onEnd() {},
-  forceFlush: () => Promise.resolve(),
-  shutdown: () => Promise.resolve(),
-};
-
 export const parseServerDuration = (
   header: string | null | undefined
 ): number | undefined => {
@@ -221,10 +206,11 @@ export function initializeObservability() {
     spanProcessors: [
       sessionRouteSpanProcessor,
       versionSpanProcessor,
-      requestTagSpanProcessor,
       spanProcessor,
     ],
   });
+
+  trackXhrRequestTags();
 
   provider.register({
     contextManager: new ZoneContextManager(),
@@ -261,6 +247,11 @@ export function initializeObservability() {
         ],
         clearTimingResources: true,
         applyCustomAttributesOnSpan: (span, xhr) => {
+          const tag = requestTagFor(xhr);
+          if (tag) {
+            span.setAttribute("request.blocking", tag.blocking);
+            span.setAttribute("request.reason", tag.reason);
+          }
           recordServerDuration(
             span,
             xhr.getResponseHeader("server-timing"),
