@@ -7,8 +7,6 @@ export const APP_LAUNCH_SPAN_NAME = "app_launch";
 
 const tracer = trace.getTracer("web-vitals");
 
-const platform = () => (isNativePlatform() ? "native" : "web");
-
 const reportedOncePerLoad = new Set(["CLS", "INP"]);
 const reportedIds = new Set<string>();
 
@@ -27,7 +25,6 @@ const recordMetric = (metric: Metric) => {
       "web_vital.rating": metric.rating,
       "web_vital.navigation_type": metric.navigationType,
       "web_vital.id": metric.id,
-      "app.platform": platform(),
     },
   });
   span.end(now);
@@ -53,7 +50,6 @@ export function reportAppLaunch() {
     startTime: end - duration,
     attributes: {
       "app.launch.duration_ms": duration,
-      "app.platform": platform(),
     },
   });
   span.end(end);
