@@ -1,6 +1,11 @@
 import pytest
+from django.core.cache import cache
+from django.db import connection
+from django.test.utils import override_settings
 
 from province.models import Province
+
+LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
 class TestHomeNationBackfill:
@@ -61,3 +66,51 @@ class TestAdjacencyBackfill:
                     f"{variant_id}: {source} -> {target} ({pass_}) "
                     f"is not mirrored on the other side"
                 )
+
+
+@pytest.mark.django_db
+class TestCachedForVariant:
+
+    @pytest.fixture(autouse=True)
+    def locmem_cache(self):
+        with override_settings(CACHES=LOCMEM_CACHE):
+            cache.clear()
+            yield
+            cache.clear()
+
+    def _query_count(self, variant):
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            provinces = Province.objects.cached_for_variant(variant)
+            [province.parent and province.parent.province_id for province in provinces]
+        return len(connection.queries), provinces
+
+    def test_returns_every_province_in_the_variant(self, classical_variant):
+        provinces = Province.objects.cached_for_variant(classical_variant)
+
+        assert {province.province_id for province in provinces} == set(
+            classical_variant.provinces.values_list("province_id", flat=True)
+        )
+
+    def test_loads_parents_with_provinces(self, classical_variant):
+        query_count, provinces = self._query_count(classical_variant)
+
+        assert query_count == 1
+        spain_nc = next(p for p in provinces if p.province_id == "spa/nc")
+        assert spain_nc.parent.province_id == "spa"
+
+    def test_repeat_call_is_served_from_cache(self, classical_variant):
+        Province.objects.cached_for_variant(classical_variant)
+
+        query_count, provinces = self._query_count(classical_variant)
+
+        assert query_count == 0
+        assert len(provinces) == classical_variant.provinces.count()
+
+    def test_variant_update_invalidates_cache(self, classical_variant):
+        Province.objects.cached_for_variant(classical_variant)
+        classical_variant.save()
+
+        query_count, _ = self._query_count(classical_variant)
+
+        assert query_count == 1

@@ -1,3 +1,4 @@
+import hashlib
 import json
 from contextlib import contextmanager
 from functools import cached_property
@@ -36,6 +37,9 @@ from victory.utils import check_for_solo_winner
 from victory.models import Victory
 from emit import emit
 
+PHASE_LIST_REPRESENTATION_VERSION = 1
+PHASE_STATES_REPRESENTATION_VERSION = 1
+
 
 class PhaseQuerySet(models.QuerySet):
     def with_related_data(self):
@@ -55,6 +59,18 @@ class PhaseQuerySet(models.QuerySet):
             "phase_states__orders__aux",
             "phase_states__orders__named_coast",
             "phase_states__orders__resolution",
+        )
+
+    def with_retrieve_data(self):
+        return self.select_related("variant", "game").prefetch_related(
+            "units__nation__flag",
+            "units__province__parent",
+            "units__province__named_coasts",
+            "units__dislodged_from__parent",
+            "supply_centers__nation__flag",
+            "supply_centers__province__parent",
+            "supply_centers__province__named_coasts",
+            "variant__nations",
         )
 
     def filter_armable(self):
@@ -84,6 +100,35 @@ class PhaseManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def with_retrieve_data(self):
+        return self.get_queryset().with_retrieve_data()
+
+    def list_fingerprint(self, game_id):
+        phases = list(
+            self.filter(game_id=game_id)
+            .order_by("ordinal")
+            .values_list("id", "ordinal", "season", "year", "type", "status")
+        )
+        canonical = json.dumps([PHASE_LIST_REPRESENTATION_VERSION, phases])
+        return hashlib.sha256(canonical.encode()).hexdigest()[:32]
+
+    def phase_states_fingerprint(self, phase, user):
+        orders = list(
+            Order.objects.filter(
+                phase_state__phase=phase, phase_state__member__user=user
+            )
+            .order_by("id")
+            .values_list("id", "phase_state_id", "source_id")
+        )
+        projection = [
+            PHASE_STATES_REPRESENTATION_VERSION,
+            phase.id,
+            phase.variant.updated_at,
+            orders,
+        ]
+        canonical = json.dumps(projection, default=str)
+        return hashlib.sha256(canonical.encode()).hexdigest()[:32]
 
     def filter_armable(self):
         return self.get_queryset().filter_armable()

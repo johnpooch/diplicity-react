@@ -5,6 +5,7 @@ from django.db import IntegrityError, DatabaseError, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.test.utils import override_settings
+from django.core.cache import cache
 from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
@@ -35,6 +36,8 @@ from province.models import Province
 from user_profile.models import UserProfile
 from adjudicator.serializers import deserialize_variant, deserialize_game_state
 from variant.utils import variant_to_canonical_dict
+
+LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
 def _admin_reassigned_notifications():
@@ -2303,11 +2306,8 @@ class TestPhaseListView:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
 
-
     @pytest.mark.django_db
-    @pytest.mark.parametrize(
-        "game_status", [GameStatus.PENDING, GameStatus.MUSTERING]
-    )
+    @pytest.mark.parametrize("game_status", [GameStatus.PENDING, GameStatus.MUSTERING])
     def test_list_phases_unstarted_game(
         self, authenticated_client, pending_game_created_by_primary_user, game_status
     ):
@@ -2350,7 +2350,179 @@ class TestPhaseListViewPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 2
+        assert query_count == 3
+
+    @pytest.mark.django_db
+    def test_list_phases_not_modified_query_count(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse("phase-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert len(connection.queries) == 2
+
+
+class TestPhaseListViewConditionalGet:
+
+    @pytest.mark.django_db
+    def test_response_has_etag(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        response = authenticated_client.get(reverse("phase-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"]
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_matching_etag_returns_304(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse("phase-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+
+    @pytest.mark.django_db
+    def test_new_phase_changes_etag(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse("phase-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=2,
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_phase_status_change_changes_etag(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse("phase-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        game.phases.update(status=PhaseStatus.COMPLETED)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["status"] == PhaseStatus.COMPLETED
+
+    @pytest.mark.django_db
+    def test_unknown_game_returns_404(self, authenticated_client):
+        response = authenticated_client.get(reverse("phase-list", args=["missing"]))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestPhaseStateListViewConditionalGet:
+
+    @pytest.mark.django_db
+    def test_response_has_etag(
+        self, authenticated_client, active_game_with_phase_options
+    ):
+        game = active_game_with_phase_options
+        response = authenticated_client.get(reverse("phase-state-list", args=[game.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"]
+        assert response["Cache-Control"] == "private, no-cache"
+
+    @pytest.mark.django_db
+    def test_matching_etag_returns_304(
+        self, authenticated_client, active_game_with_phase_options
+    ):
+        game = active_game_with_phase_options
+        url = reverse("phase-state-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
+        assert response.content == b""
+        assert response["ETag"] == etag
+
+    @pytest.mark.django_db
+    def test_confirming_orders_changes_etag(
+        self, authenticated_client, active_game_with_phase_options
+    ):
+        game = active_game_with_phase_options
+        url = reverse("phase-state-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+        game.current_phase.phase_states.update(orders_confirmed=True)
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["orders_confirmed"] is True
+
+    @pytest.mark.django_db
+    def test_replacing_an_order_changes_etag(
+        self,
+        authenticated_client,
+        primary_user,
+        active_game_with_phase_options,
+        classical_budapest_province,
+        classical_vienna_province,
+    ):
+        game = active_game_with_phase_options
+        url = reverse("phase-state-list", args=[game.id])
+        phase_state = game.current_phase.phase_states.get(member__user=primary_user)
+        phase_state.orders.create(
+            order_type=OrderType.HOLD, source=classical_budapest_province
+        )
+        etag = authenticated_client.get(url)["ETag"]
+        phase_state.orders.all().delete()
+        phase_state.orders.create(
+            order_type=OrderType.HOLD, source=classical_vienna_province
+        )
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_etag_differs_per_user(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        active_game_with_phase_options,
+    ):
+        game = active_game_with_phase_options
+        url = reverse("phase-state-list", args=[game.id])
+        etag = authenticated_client.get(url)["ETag"]
+
+        response = authenticated_client_for_secondary_user.get(
+            url, HTTP_IF_NONE_MATCH=etag
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
 
 
 class TestPhaseRetrieveViewQueryPerformance:
@@ -2404,7 +2576,57 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 22
+        assert query_count == 16
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_serves_variant_provinces_from_cache(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse("phase-retrieve", args=[game.id, game.current_phase.id])
+
+        with override_settings(CACHES=LOCMEM_CACHE):
+            cache.clear()
+            authenticated_client.get(url)
+            connection.queries_log.clear()
+            with override_settings(DEBUG=True):
+                response = authenticated_client.get(url)
+            cache.clear()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(connection.queries) == 15
+
+
+class TestPhaseRetrieveProvinceNations:
+
+    @pytest.mark.django_db
+    def test_province_owned_by_surrounding_nation(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_edinburgh_province,
+        classical_liverpool_province,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        for province in [
+            classical_london_province,
+            classical_edinburgh_province,
+            classical_liverpool_province,
+        ]:
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=province
+            )
+
+        response = authenticated_client.get(
+            reverse("phase-retrieve", args=[game.id, phase.id])
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["province_nations"]["yor"] == "England"
+        assert response.data["province_nations"]["wal"] == "England"
 
 
 class TestResolveTransactionSafety:

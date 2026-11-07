@@ -1,3 +1,5 @@
+import hashlib
+
 from rest_framework import permissions, generics, views, status
 from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
@@ -11,11 +13,14 @@ from common.permissions import (
 )
 from common.views import (
     CompletedPhaseCacheMixin,
+    PrecomputedConditionalGetMixin,
     SelectedGameMixin,
     SelectedPhaseMixin,
     CurrentGameMemberMixin,
 )
 from rest_framework.response import Response
+from game.models import Game
+from province.models import Province
 from .models import Phase
 from .serializers import (
     PhaseStateSerializer,
@@ -47,19 +52,44 @@ class PhaseStateUpdateView(
         return current_phase.phase_states.get(member=member)
 
 
-class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
+class PhaseStateListView(
+    PrecomputedConditionalGetMixin, SelectedGameMixin, generics.ListAPIView
+):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PhaseStateSerializer
+
+    def get_fingerprint(self):
+        game = self.get_game()
+        key = "|".join(
+            [
+                Game.objects.retrieve_fingerprint(game.id, self.request),
+                Phase.objects.phase_states_fingerprint(
+                    game.current_phase, self.request.user
+                ),
+            ]
+        )
+        return hashlib.sha256(key.encode()).hexdigest()[:32]
 
     def get_queryset(self):
         game = self.get_game()
         current_phase = game.current_phase
-        return current_phase.phase_states.filter(member__user=self.request.user)
+        return current_phase.phase_states.filter(
+            member__user=self.request.user
+        ).select_related(
+            "member__game",
+            "member__nation",
+            "member__user__profile__uploaded_picture",
+        )
 
 
-class PhaseListView(SelectedGameMixin, generics.ListAPIView):
+class PhaseListView(
+    PrecomputedConditionalGetMixin, SelectedGameMixin, generics.ListAPIView
+):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PhaseListSerializer
+
+    def get_fingerprint(self):
+        return Phase.objects.list_fingerprint(self.get_game().id)
 
     def get_queryset(self):
         game = self.get_game()
@@ -91,7 +121,12 @@ class PhaseRetrieveView(
     completed_phase_etag_salt = "phase"
 
     def get_queryset(self):
-        return Phase.objects.with_related_data()
+        return Phase.objects.with_retrieve_data()
+
+    def get_object(self):
+        phase = super().get_object()
+        phase.variant_provinces = Province.objects.cached_for_variant(phase.variant)
+        return phase
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

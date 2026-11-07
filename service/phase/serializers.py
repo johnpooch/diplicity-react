@@ -81,7 +81,7 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     def get_province_nations(self, phase):
         return compute_province_nations(
             phase.supply_centers.all(),
-            phase.variant.provinces.all(),
+            phase.variant_provinces,
             phase.variant.dominance_rules,
             phase.variant.nations.all(),
         )
