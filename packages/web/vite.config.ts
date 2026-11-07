@@ -1,6 +1,7 @@
 import { defineConfig as defineTestConfig } from "vitest/config";
 import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { execSync } from "child_process";
 import { copyFileSync, readFileSync } from "fs";
 import { resolve } from "path";
 import tailwindcss from "@tailwindcss/vite";
@@ -10,11 +11,22 @@ const { version } = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf8")
 );
 
+const gitSha =
+  process.env.GITHUB_SHA ||
+  (() => {
+    try {
+      return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+    } catch {
+      return "unknown";
+    }
+  })();
+
 // https://vite.dev/config/
 const config = defineConfig({
   envDir: resolve(__dirname, "../.."),
   define: {
     __APP_VERSION__: JSON.stringify(version),
+    __GIT_SHA__: JSON.stringify(gitSha),
   },
   plugins: [
     react(),
