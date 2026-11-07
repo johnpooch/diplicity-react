@@ -4,7 +4,8 @@ import json
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Max
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect
+from django.urls import reverse
 from django.views import View
 from rest_framework import generics, status
 from rest_framework.parsers import MultiPartParser
@@ -162,11 +163,22 @@ class VariantDvarDownloadView(generics.GenericAPIView):
 class VariantSvgView(View):
     def get(self, request, variant_id, content_hash):
         try:
-            variant_svg = VariantSvg.objects.get(
-                variant_id=variant_id, content_hash=content_hash
-            )
+            variant_svg = VariantSvg.objects.get(variant_id=variant_id)
         except VariantSvg.DoesNotExist:
             return HttpResponseNotFound()
+
+        if variant_svg.content_hash != content_hash:
+            response = HttpResponseRedirect(
+                reverse(
+                    "variant-svg",
+                    kwargs={
+                        "variant_id": variant_id,
+                        "content_hash": variant_svg.content_hash,
+                    },
+                )
+            )
+            response["Cache-Control"] = "no-cache"
+            return response
 
         response = HttpResponse(variant_svg.svg, content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=31536000, immutable"
