@@ -2,10 +2,18 @@ import logging
 
 from procrastinate.contrib.django import app
 
+from health.railway_metrics import export_metrics
+
 logger = logging.getLogger(__name__)
 
 JOB_RETENTION_HOURS = 168
 STALLED_WORKER_SECONDS = 60
+
+
+@app.periodic(cron="* * * * *")
+@app.task(name="health.export_railway_metrics", lock="health.export_railway_metrics")
+def export_railway_metrics(timestamp: int):
+    return export_metrics(timestamp)
 
 
 @app.periodic(cron="*/5 * * * *")
