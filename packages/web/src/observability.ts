@@ -3,7 +3,10 @@ import {
   BatchSpanProcessor,
   SamplingDecision,
   type Sampler,
+  type Span,
+  type SpanProcessor,
 } from "@opentelemetry/sdk-trace-web";
+import type { DataRouter } from "react-router";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions/incubating";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
@@ -13,6 +16,7 @@ import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xm
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
 import { APP_LAUNCH_SPAN_NAME, WEB_VITAL_SPAN_PREFIX } from "./webVitals";
+import { Capacitor } from "@capacitor/core";
 
 export const TRACE_SAMPLE_RATE = 10;
 
@@ -38,6 +42,38 @@ export const deterministicSampler: Sampler = {
   toString: () => `DeterministicSampler{1/${TRACE_SAMPLE_RATE}}`,
 };
 
+export const sessionId = crypto.randomUUID();
+
+let activeRouter: Pick<DataRouter, "state"> | null = null;
+
+export const setActiveRouter = (router: Pick<DataRouter, "state">) => {
+  activeRouter = router;
+};
+
+export const currentRouteTemplate = (): string | undefined => {
+  if (!activeRouter) return undefined;
+  let template = "";
+  for (const match of activeRouter.state.matches) {
+    const path = match.route.path;
+    if (path === undefined) continue;
+    template = path.startsWith("/") ? path : `${template}/${path}`;
+  }
+  return template.replace(/\/+/g, "/") || undefined;
+};
+
+export const sessionRouteSpanProcessor: SpanProcessor = {
+  onStart(span: Span) {
+    span.setAttribute("session.id", sessionId);
+    const route = currentRouteTemplate();
+    if (route) {
+      span.setAttribute("app.route", route);
+    }
+  },
+  onEnd() {},
+  forceFlush: () => Promise.resolve(),
+  shutdown: () => Promise.resolve(),
+};
+
 export function initializeObservability() {
   const honeycombApiKey = import.meta.env.VITE_HONEYCOMB_API_KEY;
 
@@ -55,6 +91,8 @@ export function initializeObservability() {
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: serviceName,
     "deployment.environment": environment,
+    "app.platform": Capacitor.getPlatform(),
+    "app.version": __APP_VERSION__,
   });
 
   const exporter = new OTLPTraceExporter({
@@ -69,7 +107,7 @@ export function initializeObservability() {
   const provider = new WebTracerProvider({
     resource,
     sampler: deterministicSampler,
-    spanProcessors: [spanProcessor],
+    spanProcessors: [sessionRouteSpanProcessor, spanProcessor],
   });
 
   provider.register({

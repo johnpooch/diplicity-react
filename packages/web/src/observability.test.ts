@@ -1,7 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { ROOT_CONTEXT, SpanKind } from "@opentelemetry/api";
 import { SamplingDecision } from "@opentelemetry/sdk-trace-web";
-import { TRACE_SAMPLE_RATE, deterministicSampler } from "./observability";
+import {
+  TRACE_SAMPLE_RATE,
+  currentRouteTemplate,
+  deterministicSampler,
+  sessionId,
+  sessionRouteSpanProcessor,
+  setActiveRouter,
+} from "./observability";
 
 const sample = (traceId: string) =>
   deterministicSampler.shouldSample(
@@ -57,5 +64,40 @@ describe("deterministicSampler", () => {
     );
 
     expect(sampled).toHaveLength(1000 / TRACE_SAMPLE_RATE);
+  });
+});
+
+const routerWith = (...paths: (string | undefined)[]) => ({
+  state: {
+    matches: paths.map(path => ({ route: { path } })),
+  },
+}) as unknown as Parameters<typeof setActiveRouter>[0];
+
+describe("sessionRouteSpanProcessor", () => {
+  it("tags spans with the session id and the matched route template", () => {
+    setActiveRouter(
+      routerWith("/", "game/:gameId", "phase/:phaseId/orders")
+    );
+    const span = { setAttribute: vi.fn() };
+
+    sessionRouteSpanProcessor.onStart(span as never, ROOT_CONTEXT);
+
+    expect(span.setAttribute).toHaveBeenCalledWith("session.id", sessionId);
+    expect(span.setAttribute).toHaveBeenCalledWith(
+      "app.route",
+      "/game/:gameId/phase/:phaseId/orders"
+    );
+  });
+
+  it("resets the template at an absolute child path and skips index routes", () => {
+    setActiveRouter(routerWith("/", "ignored", "/forgot-password", undefined));
+
+    expect(currentRouteTemplate()).toBe("/forgot-password");
+  });
+
+  it("omits the route when no router is active", () => {
+    setActiveRouter(routerWith());
+
+    expect(currentRouteTemplate()).toBeUndefined();
   });
 });
