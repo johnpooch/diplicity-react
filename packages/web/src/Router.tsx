@@ -120,7 +120,9 @@ const CodeOfConductLayoutWrapper: React.FC = () => {
 const AuthenticatedRoot: React.FC = () => {
   const queryClient = useQueryClient();
   React.useEffect(() => {
-    queryClient.prefetchQuery(getVariantsListQueryOptions());
+    queryClient.prefetchQuery(
+      getVariantsListQueryOptions({ query: { meta: { prefetch: true } } })
+    );
   }, [queryClient]);
   useDeepLink();
   return (

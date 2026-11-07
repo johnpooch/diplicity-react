@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import type { InternalAxiosRequestConfig } from "axios";
 import {
@@ -20,11 +20,17 @@ const config = (url: string, method = "get"): InternalAxiosRequestConfig =>
 const startFetch = (
   client: QueryClient,
   url: string,
-  options: { data?: unknown; observe?: boolean; interval?: number } = {}
+  options: {
+    data?: unknown;
+    observe?: boolean;
+    interval?: number;
+    prefetch?: boolean;
+  } = {}
 ) => {
   const options_ = {
     queryKey: [url],
     queryFn: () => new Promise<unknown>(() => {}),
+    ...(options.prefetch ? { meta: { prefetch: true } } : {}),
     ...(options.interval ? { refetchInterval: options.interval } : {}),
   };
   if (options.data !== undefined) client.setQueryData([url], options.data);
@@ -44,6 +50,11 @@ describe("classifyRequest", () => {
     client = new QueryClient();
     registerQueryClient(client);
     resetRequestTags();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("marks a fetch with no cached data and an observer as blocking on mount", () => {
@@ -55,8 +66,34 @@ describe("classifyRequest", () => {
     });
   });
 
-  it("marks a fetch with no observers as a background prefetch", () => {
-    startFetch(client, "/variants/");
+  it("marks a suspense mount fetching before any observer subscribes as a mount", () => {
+    startFetch(client, "/game/1/");
+
+    expect(classifyRequest(config("/game/1/"))).toEqual({
+      blocking: true,
+      reason: "mount",
+    });
+  });
+
+  it("marks a refetch right after an observer mounts as a mount even when it polls", () => {
+    startFetch(client, "/game/1/", { data: { id: 1 } });
+    const query = client.getQueryCache().find({ queryKey: ["/game/1/"] })!;
+    query.addObserver({
+      options: { queryKey: ["/game/1/"], refetchInterval: 5000 },
+      onQueryUpdate() {},
+    } as never);
+    client
+      .getQueryCache()
+      .notify({ type: "observerAdded", query, observer: {} as never });
+
+    expect(classifyRequest(config("/game/1/"))).toEqual({
+      blocking: false,
+      reason: "mount",
+    });
+  });
+
+  it("marks a fetch flagged as a prefetch as a background prefetch", () => {
+    startFetch(client, "/variants/", { prefetch: true });
 
     expect(classifyRequest(config("/variants/"))).toEqual({
       blocking: true,
@@ -70,6 +107,7 @@ describe("classifyRequest", () => {
       observe: true,
       interval: 5000,
     });
+    vi.advanceTimersByTime(2000);
 
     expect(classifyRequest(config("/game/1/"))).toEqual({
       blocking: false,
