@@ -81,6 +81,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
+    "web-vitals": "^4.2.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -23,6 +23,7 @@ import { initializeSentry } from "./sentry";
 import { themeStorage } from "./theme/themeStorage";
 import { isNativePlatform } from "./utils/platform";
 import { reloadForStaleChunk } from "./utils/staleChunk";
+import { reportWebVitals } from "./webVitals";
 
 if (isNativePlatform()) {
   setTimeout(() => SplashScreen.hide(), 10000);
@@ -30,6 +31,7 @@ if (isNativePlatform()) {
 
 themeStorage.initialize();
 initializeObservability();
+reportWebVitals();
 initializeSentry();
 
 window.addEventListener("vite:preloadError", (event) => {
