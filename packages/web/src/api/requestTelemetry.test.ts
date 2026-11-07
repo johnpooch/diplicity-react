@@ -159,7 +159,51 @@ describe("request tag hand-off", () => {
     expect(requestTagFor(opened[0])).toEqual({
       blocking: true,
       reason: "mutation",
+      duplicate: false,
     });
     expect(requestTagFor(untagged)).toBeUndefined();
+  });
+
+  describe("duplicate detection", () => {
+    const tagsFor = async (...requests: InternalAxiosRequestConfig[]) => {
+      const opened: XMLHttpRequest[] = [];
+      vi.spyOn(axios, "getAdapter").mockReturnValue((() => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "http://api.test/x/");
+        opened.push(xhr);
+        return Promise.resolve({});
+      }) as never);
+      for (const request of requests) await taggedXhrAdapter(request);
+      return opened.map(xhr => requestTagFor(xhr)?.duplicate);
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("flags the same method and URL requested within 5 seconds", async () => {
+      expect(await tagsFor(config("/a/"), config("/a/"))).toEqual([
+        false,
+        true,
+      ]);
+    });
+
+    it("does not flag a different URL or method", async () => {
+      expect(
+        await tagsFor(config("/a/"), config("/b/"), config("/a/", "post"))
+      ).toEqual([false, false, false]);
+    });
+
+    it("does not flag a request made 5 seconds or more later", async () => {
+      const first = await tagsFor(config("/a/"));
+      vi.advanceTimersByTime(5000);
+      const second = await tagsFor(config("/a/"));
+
+      expect([...first, ...second]).toEqual([false, false]);
+    });
   });
 });
