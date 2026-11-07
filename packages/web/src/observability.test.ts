@@ -5,11 +5,14 @@ import {
   TRACE_SAMPLE_RATE,
   currentRouteTemplate,
   parseServerDuration,
+  requestTagSpanProcessor,
   deterministicSampler,
   sessionId,
   sessionRouteSpanProcessor,
   setActiveRouter,
 } from "./observability";
+import { recordRequestTag, resetRequestTags } from "./api/requestTelemetry";
+import type { InternalAxiosRequestConfig } from "axios";
 
 const sample = (traceId: string) =>
   deterministicSampler.shouldSample(
@@ -68,17 +71,16 @@ describe("deterministicSampler", () => {
   });
 });
 
-const routerWith = (...paths: (string | undefined)[]) => ({
-  state: {
-    matches: paths.map(path => ({ route: { path } })),
-  },
-}) as unknown as Parameters<typeof setActiveRouter>[0];
+const routerWith = (...paths: (string | undefined)[]) =>
+  ({
+    state: {
+      matches: paths.map(path => ({ route: { path } })),
+    },
+  }) as unknown as Parameters<typeof setActiveRouter>[0];
 
 describe("sessionRouteSpanProcessor", () => {
   it("tags spans with the session id and the matched route template", () => {
-    setActiveRouter(
-      routerWith("/", "game/:gameId", "phase/:phaseId/orders")
-    );
+    setActiveRouter(routerWith("/", "game/:gameId", "phase/:phaseId/orders"));
     const span = { setAttribute: vi.fn() };
 
     sessionRouteSpanProcessor.onStart(span as never, ROOT_CONTEXT);
@@ -115,5 +117,32 @@ describe("parseServerDuration", () => {
   it("returns undefined when the header is missing or has no app duration", () => {
     expect(parseServerDuration(null)).toBeUndefined();
     expect(parseServerDuration("db;dur=5")).toBeUndefined();
+  });
+});
+
+describe("requestTagSpanProcessor", () => {
+  it("sets the blocking state and reason on a span whose request was tagged", () => {
+    resetRequestTags();
+    recordRequestTag({
+      url: "/user/",
+      method: "post",
+      baseURL: "http://api.test",
+      headers: {},
+    } as InternalAxiosRequestConfig);
+    const span = {
+      attributes: {
+        "http.method": "POST",
+        "http.url": "http://api.test/user/",
+      },
+      setAttribute: vi.fn(),
+    };
+
+    requestTagSpanProcessor.onStart(span as never, ROOT_CONTEXT);
+
+    expect(span.setAttribute).toHaveBeenCalledWith("request.blocking", true);
+    expect(span.setAttribute).toHaveBeenCalledWith(
+      "request.reason",
+      "mutation"
+    );
   });
 });
