@@ -93,6 +93,48 @@ class TestRailwayMetricsData:
             for point in metrics["railway.cpu.usage"].gauge.data_points
         ] == [(1_080_000_000_000, 0, 0), (1_620_000_000_000, 0, 0.25)]
 
+    def test_integer_values_are_exported_as_doubles(self):
+        data = {
+            "environment": {
+                "name": "production",
+                "serviceInstances": {
+                    "edges": [{"node": {"serviceId": "web-id", "serviceName": "web"}}]
+                },
+            },
+            "resources": [],
+            "network": [
+                {
+                    "measurement": "NETWORK_TX_GB",
+                    "tags": {"serviceId": "web-id"},
+                    "values": [{"ts": 1080, "value": 13}],
+                }
+            ],
+        }
+
+        metrics_data = _metrics_data(
+            data,
+            "environment-id",
+            datetime.datetime.fromtimestamp(1080, tz=datetime.UTC),
+            datetime.datetime.fromtimestamp(1680, tz=datetime.UTC),
+        )
+
+        [point] = (
+            metrics_data.resource_metrics[0]
+            .scope_metrics[0]
+            .metrics[0]
+            .data.data_points
+        )
+        assert isinstance(point.value, float)
+        [encoded_point] = (
+            encode_metrics(metrics_data)
+            .resource_metrics[0]
+            .scope_metrics[0]
+            .metrics[0]
+            .gauge.data_points
+        )
+        assert encoded_point.WhichOneof("value") == "as_double"
+        assert encoded_point.as_double == 13
+
 
 @pytest.mark.django_db
 class TestRailwayMetricsExport:

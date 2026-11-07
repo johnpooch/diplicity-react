@@ -145,7 +145,7 @@ def _metrics_data(data, environment_id, start, end):
                 attributes={},
                 start_time_unix_nano=0,
                 time_unix_nano=point["ts"] * 1_000_000_000,
-                value=point["value"],
+                value=float(point["value"]),
             )
             for point in series["values"]
             if start.timestamp() <= point["ts"] < end.timestamp()
