@@ -1,12 +1,5 @@
 import { trace } from "@opentelemetry/api";
-import {
-  onCLS,
-  onFCP,
-  onINP,
-  onLCP,
-  onTTFB,
-  type Metric,
-} from "web-vitals";
+import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from "web-vitals";
 import { isNativePlatform } from "./utils/platform";
 
 export const WEB_VITAL_SPAN_PREFIX = "web_vital.";
@@ -16,7 +9,14 @@ const tracer = trace.getTracer("web-vitals");
 
 const platform = () => (isNativePlatform() ? "native" : "web");
 
+const reportedOncePerLoad = new Set(["CLS", "INP"]);
+const reportedIds = new Set<string>();
+
 const recordMetric = (metric: Metric) => {
+  if (reportedOncePerLoad.has(metric.name)) {
+    if (reportedIds.has(metric.id)) return;
+    reportedIds.add(metric.id);
+  }
   const now = Date.now();
   const span = tracer.startSpan(`${WEB_VITAL_SPAN_PREFIX}${metric.name}`, {
     startTime: now,

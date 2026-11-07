@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const spans: { name: string; options: unknown; end: ReturnType<typeof vi.fn> }[] =
-  [];
+const spans: {
+  name: string;
+  options: unknown;
+  end: ReturnType<typeof vi.fn>;
+}[] = [];
 
 vi.mock("@opentelemetry/api", () => ({
   trace: {
@@ -66,6 +69,34 @@ describe("webVitals", () => {
       },
     });
     expect(spans[0].end).toHaveBeenCalled();
+  });
+
+  it("emits CLS and INP once per page load", async () => {
+    isNativePlatform.mockReturnValue(true);
+    const { reportWebVitals } = await import("./webVitals");
+
+    reportWebVitals();
+    const metric = (name: string, id: string, value: number) => ({
+      name,
+      value,
+      delta: value,
+      rating: "good",
+      navigationType: "navigate",
+      id,
+    });
+    handlers.CLS(metric("CLS", "v5-1", 0.1));
+    handlers.CLS(metric("CLS", "v5-1", 0.2));
+    handlers.INP(metric("INP", "v5-2", 100));
+    handlers.INP(metric("INP", "v5-2", 150));
+    handlers.LCP(metric("LCP", "v5-3", 1800));
+    handlers.LCP(metric("LCP", "v5-3", 1800));
+
+    expect(spans.map(span => span.name)).toEqual([
+      "web_vital.CLS",
+      "web_vital.INP",
+      "web_vital.LCP",
+      "web_vital.LCP",
+    ]);
   });
 
   it("registers all five metrics", async () => {
