@@ -65,10 +65,14 @@ def test_uncompressed_when_client_does_not_accept_gzip(client):
 
 
 @pytest.mark.django_db
-def test_unknown_hash_returns_404(client):
+def test_stale_hash_redirects_to_current_svg(client):
+    variant_svg = VariantSvg.objects.get(variant_id="classical")
+
     response = client.get(_url("classical", "0" * 64))
 
-    assert response.status_code == 404
+    assert response.status_code == 302
+    assert response["Location"] == _url("classical", variant_svg.content_hash)
+    assert response["Cache-Control"] == "no-cache"
 
 
 @pytest.mark.django_db
@@ -76,5 +80,16 @@ def test_unknown_variant_returns_404(client):
     variant_svg = VariantSvg.objects.get(variant_id="classical")
 
     response = client.get(_url("nonexistent", variant_svg.content_hash))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_variant_without_svg_returns_404(client):
+    variant_svg = VariantSvg.objects.get(variant_id="classical")
+    content_hash = variant_svg.content_hash
+    variant_svg.delete()
+
+    response = client.get(_url("classical", content_hash))
 
     assert response.status_code == 404
