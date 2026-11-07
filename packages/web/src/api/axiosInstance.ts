@@ -9,6 +9,12 @@ const clientVersionHeaders = {
   'X-Client-Version': __APP_VERSION__,
 };
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    anonymous?: boolean;
+  }
+}
+
 const REQUEST_TIMEOUT_MS = 30_000;
 
 const axiosInstance = axios.create({
@@ -23,6 +29,11 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  if (config.anonymous) {
+    config.headers.delete('Authorization');
+    config.headers.delete('X-Client-Version');
+    return config;
+  }
   const { accessToken } = tokenStorage.getTokenState();
   if (accessToken && config.headers) {
     config.headers.Authorization = `Bearer ${accessToken}`;
@@ -65,7 +76,12 @@ axiosInstance.interceptors.response.use(
 
     const { refreshToken } = tokenStorage.getTokenState();
 
-    if (error.response?.status === 401 && !originalRequest._retry && refreshToken) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest.anonymous &&
+      !originalRequest._retry &&
+      refreshToken
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
