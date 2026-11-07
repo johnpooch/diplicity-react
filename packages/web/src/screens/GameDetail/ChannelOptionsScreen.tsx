@@ -192,7 +192,6 @@ const ChannelOptionsScreen: React.FC = () => {
                     ))}
                   {channel.canLeave && (
                     <RowActionButton
-                      destructive
                       onClick={() => setShowLeaveConfirmation(true)}
                       disabled={leaveMutation.isPending}
                     >
