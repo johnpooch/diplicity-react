@@ -178,6 +178,18 @@ describe("GameCard", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a Ranked badge on a ranked game", () => {
+    renderCard(buildGame({ ranked: true }));
+
+    expect(screen.getByText("Ranked")).toBeInTheDocument();
+  });
+
+  it("shows no Ranked badge on an unranked game", () => {
+    renderCard(buildGame());
+
+    expect(screen.queryByText("Ranked")).not.toBeInTheDocument();
+  });
+
   it("shows no Join when the viewer cannot join for another reason", () => {
     renderCard(buildGame({ canJoin: false }));
 
