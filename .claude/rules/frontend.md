@@ -58,11 +58,12 @@ This is the **only** sanctioned `eslint-disable` in the codebase.
 
 Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` or `PrecomputedConditionalGetMixin`. The precomputed variant also skips building the response, and it is allowed only when tests cover every response input. The browser/WebView revalidates with `If-None-Match` and receives an empty 304 when nothing changed; client code needs nothing extra. Do not add cache-busting query params or `Cache-Control` request headers to a polled request — both defeat revalidation.
 
+Otherwise, minimise `useEffect` — prefer derived state and event handlers.
+
+
 ### Request telemetry
 
 Request reasons are derived from query state. Pass `meta: { prefetch: true }` only to a speculative fetch nobody is waiting on, such as warming a cache in an effect. Never set it on a route loader fetch or any fetch that gates rendering: the user waits on it, so it is a `mount` and is classified that way by default.
-
-Otherwise, minimise `useEffect` — prefer derived state and event handlers.
 
 ## Components
 
