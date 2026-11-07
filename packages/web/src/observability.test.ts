@@ -10,6 +10,8 @@ import {
   sessionId,
   sessionRouteSpanProcessor,
   setActiveRouter,
+  setNativeVersions,
+  versionSpanProcessor,
 } from "./observability";
 import { recordRequestTag, resetRequestTags } from "./api/requestTelemetry";
 import type { InternalAxiosRequestConfig } from "axios";
@@ -112,6 +114,27 @@ describe("sessionRouteSpanProcessor", () => {
     setActiveRouter(routerWith());
 
     expect(currentRouteTemplate()).toBeUndefined();
+  });
+});
+
+describe("versionSpanProcessor", () => {
+  it("adds the bundle and native versions once they are known", () => {
+    const before = { setAttribute: vi.fn() };
+    versionSpanProcessor.onStart(before as never, ROOT_CONTEXT);
+    expect(before.setAttribute).not.toHaveBeenCalled();
+
+    setNativeVersions({ otaBundle: "1.5.12.4", nativeBinary: "1.5.12" });
+    const after = { setAttribute: vi.fn() };
+    versionSpanProcessor.onStart(after as never, ROOT_CONTEXT);
+
+    expect(after.setAttribute).toHaveBeenCalledWith(
+      "app.ota_bundle_version",
+      "1.5.12.4"
+    );
+    expect(after.setAttribute).toHaveBeenCalledWith(
+      "app.native_version",
+      "1.5.12"
+    );
   });
 });
 
