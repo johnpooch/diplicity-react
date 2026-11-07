@@ -4,6 +4,7 @@ import { SamplingDecision } from "@opentelemetry/sdk-trace-web";
 import {
   TRACE_SAMPLE_RATE,
   currentRouteTemplate,
+  parseServerDuration,
   deterministicSampler,
   sessionId,
   sessionRouteSpanProcessor,
@@ -80,5 +81,20 @@ describe("sessionRouteSpanProcessor", () => {
     setActiveRouter(routerWith());
 
     expect(currentRouteTemplate()).toBeUndefined();
+  });
+});
+
+describe("parseServerDuration", () => {
+  it("reads the app duration in milliseconds", () => {
+    expect(parseServerDuration("app;dur=123.4")).toBe(123.4);
+  });
+
+  it("finds the app entry among other metrics", () => {
+    expect(parseServerDuration("db;dur=5, app;desc=total;dur=42")).toBe(42);
+  });
+
+  it("returns undefined when the header is missing or has no app duration", () => {
+    expect(parseServerDuration(null)).toBeUndefined();
+    expect(parseServerDuration("db;dur=5")).toBeUndefined();
   });
 });

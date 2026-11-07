@@ -133,6 +133,7 @@ if _FIREBASE_PROJECT_ID:
     INSTALLED_APPS.append("fcm_django")
 
 MIDDLEWARE = [
+    "project.otel_config.ServerTimingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.gzip.GZipMiddleware",
@@ -171,6 +172,8 @@ CORS_ALLOW_HEADERS = [
     "tracestate",
     "x-client-version",
 ]
+
+CORS_EXPOSE_HEADERS = ["server-timing"]
 
 ROOT_URLCONF = "project.urls"
 

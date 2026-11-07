@@ -6,6 +6,7 @@ import {
   type Span,
   type SpanProcessor,
 } from "@opentelemetry/sdk-trace-web";
+import type { Span as ApiSpan } from "@opentelemetry/api";
 import type { DataRouter } from "react-router";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions/incubating";
@@ -64,6 +65,23 @@ export const sessionRouteSpanProcessor: SpanProcessor = {
   shutdown: () => Promise.resolve(),
 };
 
+export const parseServerDuration = (
+  header: string | null | undefined
+): number | undefined => {
+  const match = header?.match(/(?:^|,)\s*app;(?:[^,]*;)?dur=(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : undefined;
+};
+
+const recordServerDuration = (
+  span: Span | ApiSpan,
+  header: string | null | undefined
+) => {
+  const duration = parseServerDuration(header);
+  if (duration !== undefined) {
+    span.setAttribute("http.server_duration_ms", duration);
+  }
+};
+
 export function initializeObservability() {
   const honeycombApiKey = import.meta.env.VITE_HONEYCOMB_API_KEY;
 
@@ -112,12 +130,20 @@ export function initializeObservability() {
           new RegExp(import.meta.env.VITE_DIPLICITY_API_BASE_URL || "http://localhost:8000"),
         ],
         clearTimingResources: true,
+        applyCustomAttributesOnSpan: (span, _request, result) => {
+          if (result instanceof Response) {
+            recordServerDuration(span, result.headers.get("server-timing"));
+          }
+        },
       }),
       new XMLHttpRequestInstrumentation({
         propagateTraceHeaderCorsUrls: [
           new RegExp(import.meta.env.VITE_DIPLICITY_API_BASE_URL || "http://localhost:8000"),
         ],
         clearTimingResources: true,
+        applyCustomAttributesOnSpan: (span, xhr) => {
+          recordServerDuration(span, xhr.getResponseHeader("server-timing"));
+        },
       }),
     ],
   });
