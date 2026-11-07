@@ -89,8 +89,30 @@ class GameListCurrentPhaseSerializer(serializers.Serializer):
     remaining_time = serializers.IntegerField(
         source="remaining_time_seconds", read_only=True
     )
-    units = GameListUnitSerializer(many=True, read_only=True)
-    supply_centers = GameListSupplyCenterSerializer(many=True, read_only=True)
+    units = serializers.SerializerMethodField()
+    supply_centers = serializers.SerializerMethodField()
+
+    @extend_schema_field(GameListUnitSerializer(many=True))
+    def get_units(self, obj):
+        return [
+            {
+                "type": unit["type"],
+                "nation": {"name": unit["nation__name"]},
+                "province": {"id": unit["province__province_id"]},
+                "dislodged": unit["dislodged"],
+            }
+            for unit in obj.board_units
+        ]
+
+    @extend_schema_field(GameListSupplyCenterSerializer(many=True))
+    def get_supply_centers(self, obj):
+        return [
+            {
+                "nation": {"name": supply_center["nation__name"]},
+                "province": {"id": supply_center["province__province_id"]},
+            }
+            for supply_center in obj.board_supply_centers
+        ]
 
 
 class GameListSerializer(serializers.Serializer):
@@ -193,7 +215,7 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
-        return [phase.id for phase in obj.phases.all()]
+        return obj.phase_ids
 
     @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_current_phase_id(self, obj):

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from functools import cached_property
 import hashlib
@@ -7,6 +8,7 @@ import re
 import uuid
 
 from django.conf import settings
+from django.contrib.postgres.expressions import ArraySubquery
 from django.db import models, transaction
 from django.http import Http404
 from django.utils import timezone
@@ -110,9 +112,21 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
+        latest_phase = (
+            Phase.objects.filter(game=OuterRef("game"))
+            .order_by("-ordinal", "-id")
+            .values("id")[:1]
+        )
+        latest_completed_phase = (
+            Phase.objects.filter(game=OuterRef("game"), status=PhaseStatus.COMPLETED)
+            .order_by("-ordinal", "-id")
+            .values("id")[:1]
+        )
         phases_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.only(
+            queryset=Phase.objects.filter(
+                Q(id=Subquery(latest_phase)) | Q(id=Subquery(latest_completed_phase))
+            ).only(
                 "id",
                 "ordinal",
                 "season",
@@ -125,12 +139,22 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
-        return self.select_related(
-            "variant", "victory", "game_master__profile__uploaded_picture"
-        ).prefetch_related(
-            members_prefetch,
-            victory_members_prefetch,
-            phases_prefetch,
+        phase_ids = ArraySubquery(
+            Phase.objects.filter(game=OuterRef("pk"))
+            .order_by("ordinal", "id")
+            .values("id")
+        )
+
+        return (
+            self.select_related(
+                "variant", "victory", "game_master__profile__uploaded_picture"
+            )
+            .prefetch_related(
+                members_prefetch,
+                victory_members_prefetch,
+                phases_prefetch,
+            )
+            .annotate(phase_ids=phase_ids)
         )
 
     def with_retrieve_data(self):
@@ -293,18 +317,7 @@ class GameManager(models.Manager):
                 order_count=Count("orders")
             ),
         )
-        self._prefetch_for_phases(
-            phases,
-            current_phases,
-            "units",
-            Unit.objects.select_related("nation", "province"),
-        )
-        self._prefetch_for_phases(
-            phases,
-            current_phases,
-            "supply_centers",
-            SupplyCenter.objects.select_related("nation", "province"),
-        )
+        self._hydrate_boards(current_phases)
 
     def hydrate_total_unread_counts(self, games, user):
         games_without_counts = [
@@ -439,6 +452,22 @@ class GameManager(models.Manager):
             current_phases += game_phases[-1:]
             latest_completed_phases += completed_phases[-1:]
         return phases, current_phases, latest_completed_phases
+
+    def _hydrate_boards(self, phases):
+        phase_ids = [phase.id for phase in phases]
+        units = defaultdict(list)
+        for unit in Unit.objects.filter(phase_id__in=phase_ids).values(
+            "phase_id", "type", "dislodged", "nation__name", "province__province_id"
+        ):
+            units[unit["phase_id"]].append(unit)
+        supply_centers = defaultdict(list)
+        for supply_center in SupplyCenter.objects.filter(
+            phase_id__in=phase_ids
+        ).values("phase_id", "nation__name", "province__province_id"):
+            supply_centers[supply_center["phase_id"]].append(supply_center)
+        for phase in phases:
+            phase.board_units = units[phase.id]
+            phase.board_supply_centers = supply_centers[phase.id]
 
     def _prefetch_for_phases(self, phases, target_phases, lookup, queryset):
         target_ids = {phase.id for phase in target_phases}

@@ -2867,17 +2867,13 @@ class TestGameListViewQueryPerformance:
         Game.objects.hydrate_list_phases(games)
 
         with django_assert_num_queries(0):
-            hydrated_units = sum(
-                len(phase.units.all()) for game in games for phase in game.phases.all()
-            )
-            hydrated_supply_centers = sum(
-                len(phase.supply_centers.all())
-                for game in games
-                for phase in game.phases.all()
-            )
+            hydrated_units = [len(game.current_phase.board_units) for game in games]
+            hydrated_supply_centers = [
+                len(game.current_phase.board_supply_centers) for game in games
+            ]
 
-        assert hydrated_units == games_count * units_per_phase
-        assert hydrated_supply_centers == games_count * supply_centers_per_phase
+        assert hydrated_units == [units_per_phase] * games_count
+        assert hydrated_supply_centers == [supply_centers_per_phase] * games_count
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(
@@ -3276,6 +3272,12 @@ class TestGameListViewQueryPerformance:
         supply_center = result["current_phase"]["supply_centers"][0]
         assert set(supply_center.keys()) == {"nation", "province"}
 
+        unit_queries = [
+            q["sql"] for q in connection.queries if 'FROM "unit_unit"' in q["sql"]
+        ]
+        assert unit_queries
+        assert all('"unit_unit"."created_at"' not in sql for sql in unit_queries)
+
     @pytest.mark.django_db
     def test_list_games_does_not_fetch_phase_options(
         self,
@@ -3373,7 +3375,40 @@ class TestGameListViewQueryPerformance:
                 for phase in game_obj.phases.all()
             }
 
-        assert states_by_ordinal == {1: 0, 2: 0, 3: 0, 4: 2, 5: 2}
+        assert states_by_ordinal == {4: 2, 5: 2}
+
+    @pytest.mark.django_db
+    def test_list_games_loads_only_current_and_latest_completed_phases(
+        self, game_with_phase_history_factory
+    ):
+        active_game = game_with_phase_history_factory(phase_count=5)
+        finished_game = game_with_phase_history_factory(
+            phase_count=5, last_status=PhaseStatus.COMPLETED
+        )
+        new_game = game_with_phase_history_factory(phase_count=1)
+
+        games = Game.objects.filter(
+            id__in=[active_game.id, finished_game.id, new_game.id]
+        ).with_list_data()
+
+        assert {
+            game.id: [phase.ordinal for phase in game.phases.all()] for game in games
+        } == {active_game.id: [4, 5], finished_game.id: [5], new_game.id: [1]}
+
+    @pytest.mark.django_db
+    def test_list_games_returns_every_phase_id_in_order(
+        self, authenticated_client, game_with_phase_history_factory
+    ):
+        game = game_with_phase_history_factory(phase_count=5)
+
+        response = authenticated_client.get(reverse(list_viewname))
+
+        assert response.status_code == status.HTTP_200_OK
+        result = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert result["phases"] == list(
+            game.phases.order_by("ordinal").values_list("id", flat=True)
+        )
+        assert result["current_phase_id"] == result["phases"][-1]
 
 
 class TestGameCreateView:
@@ -7028,6 +7063,35 @@ class TestMyGamesCurrentView:
 
         assert my_games_sections(response) == [
             (MyGamesSection.NEEDS_ATTENTION, [mine.id])
+        ]
+
+    @pytest.mark.django_db
+    def test_my_games_current_includes_the_current_phase_board(
+        self,
+        authenticated_client,
+        game_with_phase_history_factory,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        game = game_with_phase_history_factory(phase_count=3)
+
+        response = authenticated_client.get(reverse(my_games_current_viewname))
+
+        current_phase = my_game(response, game.id)["current_phase"]
+        assert current_phase["id"] == game.phases.order_by("ordinal").last().id
+        assert current_phase["units"] == [
+            {
+                "type": UnitType.FLEET,
+                "nation": {"name": classical_england_nation.name},
+                "province": {"id": classical_edinburgh_province.province_id},
+                "dislodged": False,
+            }
+        ]
+        assert current_phase["supply_centers"] == [
+            {
+                "nation": {"name": classical_england_nation.name},
+                "province": {"id": classical_edinburgh_province.province_id},
+            }
         ]
 
     @pytest.mark.django_db
