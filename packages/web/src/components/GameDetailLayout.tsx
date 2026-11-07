@@ -19,6 +19,13 @@ import { SafeAreaView } from "@/components/SafeAreaView";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import {
   useGameRetrieve,
+  getGameRetrieveQueryOptions,
+  getGameOptionsRetrieveQueryOptions,
+  getGameOrdersListQueryOptions,
+  getGamePhaseRetrieveQueryOptions,
+  getGamePhasesListQueryOptions,
+  getGamePhaseStatesListQueryOptions,
+  getGamesDrawProposalsListQueryOptions,
   getGameOptionsRetrieveQueryKey,
   getGameOrdersListQueryKey,
   getGamePhaseRetrieveQueryKey,
@@ -68,6 +75,24 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   });
 
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const selectedPhaseId = Number(phaseId);
+    void Promise.all([
+      queryClient.prefetchQuery(getGameRetrieveQueryOptions(gameId)),
+      queryClient.prefetchQuery(
+        getGamePhaseRetrieveQueryOptions(gameId, selectedPhaseId)
+      ),
+      queryClient.prefetchQuery(
+        getGameOrdersListQueryOptions(gameId, selectedPhaseId)
+      ),
+      queryClient.prefetchQuery(getGameOptionsRetrieveQueryOptions(gameId)),
+      queryClient.prefetchQuery(getGamePhaseStatesListQueryOptions(gameId)),
+      queryClient.prefetchQuery(getGamePhasesListQueryOptions(gameId)),
+      queryClient.prefetchQuery(getGamesDrawProposalsListQueryOptions(gameId)),
+    ]);
+  }, [gameId, phaseId, queryClient]);
+
   const currentPhaseId = game?.currentPhaseId;
   const status = game?.status;
   const observedGameRef = useRef<{
