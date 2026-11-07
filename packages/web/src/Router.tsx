@@ -37,6 +37,7 @@ import {
 } from "./api/generated/endpoints";
 import { isUnstartedGameStatus } from "./util";
 import * as Sentry from "@sentry/react";
+import { setActiveRouter } from "./observability";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import {
   isNetworkError,
@@ -531,13 +532,13 @@ export const createUnauthenticatedRoutes = (): RouteObject[] => [
 ];
 
 const Router: React.FC<RouterProps> = ({ loggedIn }) => {
-  const router = React.useMemo(
-    () =>
-      loggedIn
-        ? createBrowserRouter(createAuthenticatedRoutes())
-        : createBrowserRouter(createUnauthenticatedRoutes()),
-    [loggedIn]
-  );
+  const router = React.useMemo(() => {
+    const created = loggedIn
+      ? createBrowserRouter(createAuthenticatedRoutes())
+      : createBrowserRouter(createUnauthenticatedRoutes());
+    setActiveRouter(created);
+    return created;
+  }, [loggedIn]);
 
   return <RouterProvider router={router} />;
 };
