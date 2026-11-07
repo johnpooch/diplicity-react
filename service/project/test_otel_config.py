@@ -1,4 +1,6 @@
 import pytest
+from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from django.test import RequestFactory
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
@@ -9,6 +11,7 @@ from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
 from project.otel_config import (
     TRACE_SAMPLE_RATE,
     DeterministicSampler,
+    QueryStatsMiddleware,
     client_version_request_hook,
 )
 
@@ -77,3 +80,40 @@ class TestClientVersionRequestHook:
     @pytest.mark.parametrize("headers", [{}, {"x_client_version": "   "}])
     def test_request_span_records_none_when_the_client_sends_no_version(self, headers):
         assert _client_version_attribute(**headers) == "none"
+
+
+def _query_stats_attributes(view):
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    middleware = QueryStatsMiddleware(view)
+    with provider.get_tracer(__name__).start_as_current_span("GET game/"):
+        middleware(RequestFactory().get("/game/"))
+    return exporter.get_finished_spans()[0].attributes
+
+
+@pytest.mark.django_db
+class TestQueryStatsMiddleware:
+    def test_root_span_records_query_count_and_total_db_time(self):
+        def view(request):
+            get_user_model().objects.count()
+            list(get_user_model().objects.all())
+            return HttpResponse()
+
+        attributes = _query_stats_attributes(view)
+
+        assert attributes["db.query_count"] == 2
+        assert attributes["db.total_time_ms"] > 0
+
+    def test_root_span_records_zero_queries_for_a_request_without_database_access(self):
+        attributes = _query_stats_attributes(lambda request: HttpResponse())
+
+        assert attributes["db.query_count"] == 0
+        assert attributes["db.total_time_ms"] == 0
+
+    def test_request_without_a_recording_span_is_passed_through(self):
+        response = QueryStatsMiddleware(lambda request: HttpResponse(status=204))(
+            RequestFactory().get("/game/")
+        )
+
+        assert response.status_code == 204
