@@ -404,6 +404,7 @@ class PatchedUserProfile(TypedDict):
 class PatchedVariantWrite(TypedDict):
     dvar: NotRequired[str]
     dsvg: NotRequired[str]
+    confirm: NotRequired[bool]
 
 
 type PlatformEnum = Literal['ios', 'android']
@@ -613,6 +614,7 @@ class VariantTemplateUnit(TypedDict):
 class VariantWrite(TypedDict):
     dvar: str
     dsvg: str
+    confirm: NotRequired[bool]
 
 
 class VerifyEmail(TypedDict):

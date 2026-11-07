@@ -12,6 +12,16 @@ import { PrimaryButton } from "@/components/ui/role-buttons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 
 import {
@@ -32,7 +42,6 @@ interface VariantUploadFormProps {
   mode: "create" | "edit";
   variantId?: string;
   submitLabel: string;
-  warning?: React.ReactNode;
   onSubmit: (files: { dvar: File; dsvg: File }) => Promise<void>;
   isSubmitting: boolean;
 }
@@ -100,7 +109,6 @@ const renderErrors = (errors: ServerError | null) => {
 
 const VariantUploadForm: React.FC<VariantUploadFormProps> = ({
   submitLabel,
-  warning,
   onSubmit,
   isSubmitting,
 }) => {
@@ -130,7 +138,6 @@ const VariantUploadForm: React.FC<VariantUploadFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {warning}
       <div className="space-y-2">
         <Label htmlFor="dvar">DVAR file (JSON)</Label>
         <Input
@@ -292,13 +299,22 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
   const queryClient = useQueryClient();
   const { data: variant } = useVariantsRetrieveSuspense(variantId);
   const updateMutation = useVariantsUpdate();
+  const [pendingReplace, setPendingReplace] = useState<{
+    dvar: File;
+    dsvg: File;
+    gameCount: number;
+  } | null>(null);
 
-  const handleSubmit = async ({ dvar, dsvg }: { dvar: File; dsvg: File }) => {
+  const replaceFiles = async (
+    { dvar, dsvg }: { dvar: File; dsvg: File },
+    confirm: boolean
+  ) => {
     await updateMutation.mutateAsync({
       id: variantId,
       data: {
         dvar: dvar as unknown as VariantWrite["dvar"],
         dsvg: dsvg as unknown as VariantWrite["dsvg"],
+        confirm,
       },
     });
     toast.success(`Updated draft variant '${variantId}'`);
@@ -306,6 +322,28 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
       queryKey: getVariantsMineListQueryKey(),
     });
     navigate("/variants");
+  };
+
+  const handleSubmit = async (files: { dvar: File; dsvg: File }) => {
+    try {
+      await replaceFiles(files, false);
+    } catch (error) {
+      const confirmError = (
+        error as AxiosError<{ confirm?: Array<{ count?: string }> }>
+      ).response?.data?.confirm?.[0];
+      if (!confirmError?.count) throw error;
+      setPendingReplace({ ...files, gameCount: Number(confirmError.count) });
+    }
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!pendingReplace) return;
+    setPendingReplace(null);
+    try {
+      await replaceFiles(pendingReplace, true);
+    } catch {
+      toast.error("Failed to update variant");
+    }
   };
 
   if (!variant.canEdit) {
@@ -329,19 +367,36 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
         mode="edit"
         variantId={variantId}
         submitLabel="Replace files"
-        warning={
-          <Alert>
-            <AlertTitle>This replaces the variant wholesale.</AlertTitle>
-            <AlertDescription>
-              Uploading new files for '{variant.name}' deletes any sandbox games
-              using it. Flags survive when the nation id is unchanged; flags for
-              removed or renamed nations are dropped.
-            </AlertDescription>
-          </Alert>
-        }
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}
       />
+      <AlertDialog
+        open={pendingReplace !== null}
+        onOpenChange={open => {
+          if (!open) setPendingReplace(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete games using this variant?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              These changes are too big for running games to carry on.{" "}
+              {pendingReplace?.gameCount}{" "}
+              {pendingReplace?.gameCount === 1 ? "game" : "games"} using this
+              variant will be deleted, including games in progress. This can't
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplace}>
+              Delete games and update
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Nation flags</h3>
         <p className="text-sm text-muted-foreground">
@@ -350,7 +405,11 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
         </p>
         <div className="divide-y border rounded-md px-2">
           {variant.nations.map(nation => (
-            <NationFlagRow key={nation.nationId} variantId={variantId} nation={nation} />
+            <NationFlagRow
+              key={nation.nationId}
+              variantId={variantId}
+              nation={nation}
+            />
           ))}
         </div>
       </div>
