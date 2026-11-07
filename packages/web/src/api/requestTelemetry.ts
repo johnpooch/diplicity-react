@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { AxiosAdapter, InternalAxiosRequestConfig } from "axios";
 import { focusManager } from "@tanstack/react-query";
+import { startRequestTracking } from "../utils/navigationTelemetry";
 import type { Query, QueryClient } from "@tanstack/react-query";
 
 export type RequestReason =
@@ -99,8 +100,9 @@ export const taggedXhrAdapter: AxiosAdapter = config => {
     ...classifyRequest(config),
     duplicate: recordRequest(config),
   };
+  const finishTracking = startRequestTracking();
   try {
-    return axios.getAdapter("xhr")(config);
+    return axios.getAdapter("xhr")(config).finally(finishTracking);
   } finally {
     tagInFlight = undefined;
   }

@@ -3,16 +3,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 type StartSpan = (
   name: string,
   options: { attributes: Record<string, string> }
-) => { end: () => void; setAttribute: () => void; name: string };
+) => { end: () => void; setAttribute: (key: string, value: unknown) => void; name: string };
 
-const { startSpanSpy, ended, routeRef } = vi.hoisted(() => {
+const { startSpanSpy, ended, attributes, routeRef } = vi.hoisted(() => {
   const ended: string[] = [];
+  const attributes: Record<string, unknown> = {};
   const startSpanSpy = vi.fn<StartSpan>((name) => ({
     name,
     end: () => ended.push(name),
-    setAttribute: vi.fn(),
+    setAttribute: (key, value) => {
+      attributes[key] = value;
+    },
   }));
-  return { startSpanSpy, ended, routeRef: { current: "/" as string | undefined } };
+  return { startSpanSpy, ended, attributes, routeRef: { current: "/" as string | undefined } };
 });
 
 vi.mock("@opentelemetry/api", () => ({
@@ -26,6 +29,7 @@ vi.mock("../observability", () => ({
 import {
   markNavigationCommitted,
   startFallbackSpan,
+  startRequestTracking,
   trackNavigations,
 } from "./navigationTelemetry";
 
@@ -55,6 +59,7 @@ describe("navigationTelemetry", () => {
     vi.useFakeTimers();
     startSpanSpy.mockClear();
     ended.length = 0;
+    Object.keys(attributes).forEach((key) => delete attributes[key]);
     routeRef.current = "/";
   });
 
@@ -117,5 +122,37 @@ describe("navigationTelemetry", () => {
     navigate("b", "/game/:gameId/phase/:phaseId/chat");
 
     expect(startSpanSpy).not.toHaveBeenCalledWith("game.open", expect.anything());
+  });
+
+  it("records fallback count and time on the navigation span", () => {
+    const { router, navigate } = makeRouter();
+    trackNavigations(router);
+    navigate("b", "/find-games");
+
+    const endFallback = startFallbackSpan();
+    vi.advanceTimersByTime(250);
+    endFallback();
+    vi.runAllTimers();
+
+    expect(attributes["navigation.fallback_count"]).toBe(1);
+    expect(attributes["navigation.fallback_ms"]).toBe(250);
+  });
+
+  it("records request count and sequential depth on game.open", () => {
+    const { router, navigate } = makeRouter();
+    trackNavigations(router);
+    navigate("b", "/game/:gameId/phase/:phaseId");
+
+    const first = startRequestTracking();
+    const parallel = startRequestTracking();
+    first();
+    parallel();
+    const second = startRequestTracking();
+    second();
+    markNavigationCommitted();
+    vi.runAllTimers();
+
+    expect(attributes["game.open.request_count"]).toBe(3);
+    expect(attributes["game.open.request_depth"]).toBe(2);
   });
 });
