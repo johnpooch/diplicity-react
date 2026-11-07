@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import type { ComponentType, FC } from "react";
 import { isStaleChunkError, reloadForStaleChunk } from "./staleChunk";
+import { recordChunkLoad, recordStaleChunkReload } from "./chunkTelemetry";
 
 // Rendered for the instant before reloadForStaleChunk() navigates to the fresh
 // deploy, instead of crashing into the error boundary.
@@ -17,21 +18,29 @@ export const StaleChunkFallback: FC = () => null;
 // latest deploy instead. reloadForStaleChunk() debounces via sessionStorage,
 // so this cannot loop.
 export const healLazyImport = async <T>(
+  chunk: string,
   load: () => Promise<T | undefined>,
   fallback: T
 ): Promise<{ default: T }> => {
+  const startedAt = Date.now();
   try {
     const component = await load();
     if (!component) {
+      recordChunkLoad({ chunk, startedAt, outcome: "stale" });
+      recordStaleChunkReload("missing_module");
       reloadForStaleChunk();
       return { default: fallback };
     }
+    recordChunkLoad({ chunk, startedAt, outcome: "loaded" });
     return { default: component };
   } catch (error) {
     if (isStaleChunkError(error)) {
+      recordChunkLoad({ chunk, startedAt, outcome: "stale" });
+      recordStaleChunkReload("import_error");
       reloadForStaleChunk();
       return { default: fallback };
     }
+    recordChunkLoad({ chunk, startedAt, outcome: "error" });
     throw error;
   }
 };
@@ -39,7 +48,7 @@ export const healLazyImport = async <T>(
 export const resolveScreenModule = <K extends string, M extends Record<K, ComponentType>>(
   factory: () => Promise<M>,
   name: K
-) => healLazyImport<ComponentType>(async () => (await factory())?.[name], StaleChunkFallback);
+) => healLazyImport<ComponentType>(name, async () => (await factory())?.[name], StaleChunkFallback);
 
 export const lazyScreen = <K extends string, M extends Record<K, ComponentType>>(
   factory: () => Promise<M>,
