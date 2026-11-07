@@ -18,21 +18,31 @@ export interface RequestTag {
 }
 
 const FOCUS_WINDOW_MS = 1000;
+const MOUNT_WINDOW_MS = 1000;
 
 let registeredClient: QueryClient | null = null;
 let lastFocusAt = 0;
 let pendingTags = new Map<string, RequestTag[]>();
+let lastObserverAddedAt = new Map<string, number>();
+let unsubscribeCache: (() => void) | null = null;
 
 focusManager.subscribe(focused => {
   if (focused) lastFocusAt = Date.now();
 });
 
 export const registerQueryClient = (client: QueryClient) => {
+  unsubscribeCache?.();
   registeredClient = client;
+  unsubscribeCache = client.getQueryCache().subscribe(event => {
+    if (event.type === "observerAdded") {
+      lastObserverAddedAt.set(event.query.queryHash, Date.now());
+    }
+  });
 };
 
 export const resetRequestTags = () => {
   pendingTags = new Map();
+  lastObserverAddedAt = new Map();
   lastFocusAt = 0;
 };
 
@@ -41,11 +51,15 @@ const tagKey = (method: string, url: string) =>
 
 const classifyQuery = (query: Query): RequestTag => {
   const blocking = query.state.data === undefined;
-  if (query.getObserversCount() === 0) return { blocking, reason: "prefetch" };
+  if (query.meta?.prefetch === true) return { blocking, reason: "prefetch" };
   if (blocking) return { blocking, reason: "mount" };
   if (query.state.isInvalidated) return { blocking, reason: "invalidation" };
   if (Date.now() - lastFocusAt < FOCUS_WINDOW_MS) {
     return { blocking, reason: "focus" };
+  }
+  const mountedAt = lastObserverAddedAt.get(query.queryHash);
+  if (mountedAt !== undefined && Date.now() - mountedAt < MOUNT_WINDOW_MS) {
+    return { blocking, reason: "mount" };
   }
   const polling = query.observers.some(observer => {
     const interval = observer.options.refetchInterval;
