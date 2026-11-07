@@ -51,6 +51,10 @@ else
     exit 1
 fi
 
+if [ "$PROCESS_ROLE" = "migrate" ]; then
+    exit 0
+fi
+
 if [ "$SEED_STAGING_DATA" = "True" ]; then
     echo "Seeding staging test data..."
     if ! python manage.py seed_staging --skip-if-seeded; then
