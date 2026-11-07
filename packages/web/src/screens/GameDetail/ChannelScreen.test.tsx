@@ -21,6 +21,7 @@ const channel: ChannelDetail = {
   muted: false,
   canMute: false,
   canRename: false,
+  canLeave: false,
   unreadMessageCount: 0,
   firstUnreadMessageId: null,
   latestMessageId: null,

@@ -146,6 +146,7 @@ export interface Channel {
   readonly muted: boolean;
   readonly canRename: boolean;
   readonly canMute: boolean;
+  readonly canLeave: boolean;
   memberIds: number[];
 }
 
@@ -157,6 +158,7 @@ export interface ChannelDetail {
   readonly muted: boolean;
   readonly canMute: boolean;
   readonly canRename: boolean;
+  readonly canLeave: boolean;
   readonly unreadMessageCount: number;
   /** @nullable */
   readonly firstUnreadMessageId: number | null;
@@ -9804,6 +9806,89 @@ export const useGamesChannelsPartialUpdate = <
 > => {
   return useMutation(
     getGamesChannelsPartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Leave a private channel. A member who leaves cannot rejoin.
+ */
+export const gamesChannelsLeaveCreate = (
+  gameId: string,
+  channelId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/games/${gameId}/channels/${channelId}/leave/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGamesChannelsLeaveCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsLeaveCreate>>,
+    TError,
+    { gameId: string; channelId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsLeaveCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsLeaveCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsLeaveCreate>>,
+    { gameId: string; channelId: number }
+  > = props => {
+    const { gameId, channelId } = props ?? {};
+
+    return gamesChannelsLeaveCreate(gameId, channelId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsLeaveCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsLeaveCreate>>
+>;
+
+export type GamesChannelsLeaveCreateMutationError = unknown;
+
+export const useGamesChannelsLeaveCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsLeaveCreate>>,
+      TError,
+      { gameId: string; channelId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsLeaveCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsLeaveCreateMutationOptions(options),
     queryClient
   );
 };

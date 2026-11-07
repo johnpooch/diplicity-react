@@ -144,3 +144,15 @@ class ChannelRenamedEvent(ChannelEventSpec):
         return (
             f"{event.payload['nation']} renamed the channel to {event.payload['name']}"
         )
+
+
+@register("channel_left")
+class ChannelLeftEvent(ChannelEventSpec):
+    target = SelectedChannel
+    displayed = True
+
+    def build_payload(self, context):
+        return {"nation": context.payload["nation"]}
+
+    def render(self, event):
+        return f"{event.payload['nation']} left the channel"

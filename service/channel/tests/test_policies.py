@@ -4,7 +4,7 @@ import pytest
 
 from common.constants import GameStatus, PressType
 
-from channel.policies import can_mute_channel, can_rename_channel
+from channel.policies import can_leave_channel, can_mute_channel, can_rename_channel
 
 
 def test_can_rename_private_channel():
@@ -105,3 +105,18 @@ def test_can_rename_private_channel_after_no_press_game_ends():
 )
 def test_can_mute_channel(member, is_channel_member, expected):
     assert can_mute_channel(member, is_channel_member) is expected
+
+
+@pytest.mark.parametrize(
+    ("private", "member", "is_channel_member", "expected"),
+    [
+        (True, SimpleNamespace(), True, True),
+        (False, SimpleNamespace(), True, False),
+        (True, None, False, False),
+        (True, SimpleNamespace(), False, False),
+    ],
+)
+def test_can_leave_channel(private, member, is_channel_member, expected):
+    channel = SimpleNamespace(private=private)
+
+    assert can_leave_channel(channel, member, is_channel_member) is expected

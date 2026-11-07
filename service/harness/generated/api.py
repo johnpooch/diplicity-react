@@ -640,6 +640,7 @@ class ChannelDetail(TypedDict):
     muted: bool
     can_mute: bool
     can_rename: bool
+    can_leave: bool
     unread_message_count: int
     first_unread_message_id: int | None
     latest_message_id: int | None
@@ -941,6 +942,7 @@ class Channel(TypedDict):
     muted: bool
     can_rename: bool
     can_mute: bool
+    can_leave: bool
     member_ids: list[int]
 
 

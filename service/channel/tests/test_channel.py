@@ -181,6 +181,31 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
+    def test_create_channel_with_only_yourself(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        url = reverse("channel-create", args=[game.id])
+        response = authenticated_client.post(url, {"member_ids": []}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == "England"
+        channel = game.channels.get(id=response.data["id"])
+        assert list(channel.members.all()) == [game.members.get(nation__name="England")]
+
+    @pytest.mark.django_db
+    def test_create_second_channel_with_only_yourself_rejected(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        url = reverse("channel-create", args=[active_game_with_phase_state.id])
+        authenticated_client.post(url, {"member_ids": []}, format="json")
+
+        response = authenticated_client.post(url, {"member_ids": []}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["member_ids"][0] == "Channel already exists."
+
+    @pytest.mark.django_db
     def test_create_channel_unauthenticated(
         self, unauthenticated_client, active_game_with_phase_state
     ):
@@ -474,6 +499,7 @@ class TestChannelRetrieveUpdateView:
             "muted": False,
             "can_mute": True,
             "can_rename": True,
+            "can_leave": True,
             "unread_message_count": 0,
             "first_unread_message_id": None,
             "latest_message_id": message.id,
@@ -496,6 +522,7 @@ class TestChannelRetrieveUpdateView:
         assert response.data["muted"] is False
         assert response.data["can_mute"] is False
         assert response.data["can_rename"] is False
+        assert response.data["can_leave"] is False
         assert response.data["unread_message_count"] == 0
         assert response.data["first_unread_message_id"] is None
         assert response.data["latest_message_id"] is None
@@ -2566,6 +2593,155 @@ class TestChannelMarkReadView:
 
         response2 = authenticated_client.post(url)
         assert response2.status_code == status.HTTP_204_NO_CONTENT
+
+
+class TestChannelLeaveView:
+
+    @pytest.mark.django_db
+    def test_leave_channel_success(
+        self, authenticated_client, active_game_with_channels, in_memory_procrastinate
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+
+        response = authenticated_client.post(
+            reverse("channel-leave", args=[game.id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not ChannelMember.objects.filter(
+            channel=channel, member__user=game.members.first().user
+        ).exists()
+
+    @pytest.mark.django_db
+    def test_leaving_removes_the_channel_from_the_requesters_list(
+        self, authenticated_client, active_game_with_channels, in_memory_procrastinate
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+        authenticated_client.post(reverse("channel-leave", args=[game.id, channel.id]))
+
+        response = authenticated_client.get(
+            reverse("channel-preview-list", args=[game.id])
+        )
+
+        assert channel.id not in [preview["id"] for preview in response.data]
+
+    @pytest.mark.django_db
+    def test_leaving_makes_the_channel_unreadable_to_the_requester(
+        self, authenticated_client, active_game_with_channels, in_memory_procrastinate
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+        authenticated_client.post(reverse("channel-leave", args=[game.id, channel.id]))
+
+        response = authenticated_client.get(
+            reverse("channel-update", args=[game.id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_leaving_announces_it_to_the_remaining_members(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        active_game_with_phase_state,
+        secondary_user,
+        classical_france_nation,
+        in_memory_procrastinate,
+    ):
+        game = active_game_with_phase_state
+        other_member = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        channel = Channel.objects.create_from_member_ids(
+            game.members.get(nation__name="England").user, [other_member.id], game
+        )
+
+        authenticated_client.post(reverse("channel-leave", args=[game.id, channel.id]))
+        response = authenticated_client_for_secondary_user.get(
+            reverse("channel-update", args=[game.id, channel.id])
+        )
+
+        assert response.data["name"] == "France"
+        assert [event["text"] for event in response.data["events"]] == [
+            "England left the channel"
+        ]
+
+    @pytest.mark.django_db
+    def test_leaving_keeps_the_channel_for_the_remaining_members(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        secondary_user,
+        classical_france_nation,
+        in_memory_procrastinate,
+    ):
+        game = active_game_with_phase_state
+        other_member = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        channel = Channel.objects.create_from_member_ids(
+            game.members.get(nation__name="England").user, [other_member.id], game
+        )
+
+        authenticated_client.post(reverse("channel-leave", args=[game.id, channel.id]))
+
+        assert channel.members.count() == 1
+        assert Channel.objects.filter(id=channel.id).exists()
+
+    @pytest.mark.django_db
+    def test_leaving_twice_is_forbidden(
+        self, authenticated_client, active_game_with_channels, in_memory_procrastinate
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Private Member")
+        url = reverse("channel-leave", args=[game.id, channel.id])
+        authenticated_client.post(url)
+
+        response = authenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_leave_public_channel_forbidden(
+        self, authenticated_client, active_game_with_channels
+    ):
+        game = active_game_with_channels
+        channel = game.channels.get(name="Public Channel")
+
+        response = authenticated_client.post(
+            reverse("channel-leave", args=[game.id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_leave_channel_as_non_member_forbidden(
+        self, authenticated_client_for_secondary_user, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = authenticated_client_for_secondary_user.post(
+            reverse("channel-leave", args=[game.id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_leave_channel_unauthenticated(
+        self, unauthenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+
+        response = unauthenticated_client.post(
+            reverse("channel-leave", args=[game.id, channel.id])
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestChannelMuteView:

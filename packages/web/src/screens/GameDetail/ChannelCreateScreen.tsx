@@ -43,7 +43,7 @@ const channelSchema = z.object({
       CHANNEL_TITLE_MAX_LENGTH,
       `Channel names cannot be longer than ${CHANNEL_TITLE_MAX_LENGTH} characters.`
     ),
-  memberIds: z.array(z.number()).min(1),
+  memberIds: z.array(z.number()),
 });
 
 type ChannelFormValues = z.infer<typeof channelSchema>;
@@ -227,7 +227,7 @@ const ChannelCreateScreen: React.FC = () => {
                 <PrimaryButton
                   type="submit"
                   className="w-full"
-                  disabled={form.watch("memberIds").length === 0 || isSubmitting}
+                  disabled={isSubmitting}
                 >
                   Create channel
                 </PrimaryButton>

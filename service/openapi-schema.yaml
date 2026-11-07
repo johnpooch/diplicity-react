@@ -1561,6 +1561,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChannelUpdate'
           description: ''
+  /games/{gameId}/channels/{channelId}/leave/:
+    post:
+      operationId: gamesChannelsLeaveCreate
+      description: Leave a private channel. A member who leaves cannot rejoin.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
   /games/{gameId}/channels/{channelId}/mark-read/:
     post:
       operationId: gamesChannelsMarkReadCreate
@@ -2691,12 +2713,16 @@ components:
         canMute:
           type: boolean
           readOnly: true
+        canLeave:
+          type: boolean
+          readOnly: true
         memberIds:
           type: array
           items:
             type: integer
           writeOnly: true
       required:
+      - canLeave
       - canMute
       - canRename
       - events
@@ -2731,6 +2757,9 @@ components:
         canRename:
           type: boolean
           readOnly: true
+        canLeave:
+          type: boolean
+          readOnly: true
         unreadMessageCount:
           type: integer
           readOnly: true
@@ -2752,6 +2781,7 @@ components:
             $ref: '#/components/schemas/ChannelEvent'
           readOnly: true
       required:
+      - canLeave
       - canMute
       - canRename
       - events
