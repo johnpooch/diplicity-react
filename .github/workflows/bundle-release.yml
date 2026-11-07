@@ -89,3 +89,10 @@ jobs:
           PLATFORM: ${{ inputs.platform }}
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_PUBLIC_URL }}
+
+      - name: Create Honeycomb marker
+        run: ./scripts/honeycomb-marker.sh bundle-release "Bundle $BUNDLE_VERSION ($PLATFORM)"
+        env:
+          BUNDLE_VERSION: ${{ inputs.bundle_version }}
+          PLATFORM: ${{ inputs.platform }}
+          HONEYCOMB_MARKERS_API_KEY: ${{ secrets.HONEYCOMB_MARKERS_API_KEY }}
