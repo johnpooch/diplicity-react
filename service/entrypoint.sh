@@ -51,22 +51,16 @@ else
     exit 1
 fi
 
+if [ "$PROCESS_ROLE" = "migrate" ]; then
+    exit 0
+fi
+
 if [ "$SEED_STAGING_DATA" = "True" ]; then
     echo "Seeding staging test data..."
     if ! python manage.py seed_staging --skip-if-seeded; then
         echo "Seeding staging test data failed!" >&2
         exit 1
     fi
-fi
-
-if [ -n "$RAILWAY_GIT_COMMIT_SHA" ] && [ -n "$HONEYCOMB_MARKERS_API_KEY" ] && [ "$RAILWAY_ENVIRONMENT_NAME" = "production" ]; then
-    MARKER_URL="https://api.honeycomb.io/1/markers/__all__"
-    curl --silent --show-error --fail --max-time 10 \
-        --request POST "$MARKER_URL" \
-        --header "X-Honeycomb-Team: $HONEYCOMB_MARKERS_API_KEY" \
-        --header "Content-Type: application/json" \
-        --data "{\"type\": \"backend-deploy\", \"message\": \"Backend deploy $RAILWAY_GIT_COMMIT_SHA\"}" \
-        || echo "Failed to create Honeycomb marker." >&2
 fi
 
 echo "Starting Gunicorn..."

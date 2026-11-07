@@ -1,9 +1,11 @@
 import * as Sentry from "@sentry/react";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { setNativeVersions } from "../observability";
 
 const reportOtaBundle = async (): Promise<void> => {
   try {
-    const { bundle } = await CapacitorUpdater.current();
+    const { bundle, native } = await CapacitorUpdater.current();
+    setNativeVersions({ otaBundle: bundle.version, nativeBinary: native });
     Sentry.setTag("ota_bundle", bundle.version);
 
     const failed = await CapacitorUpdater.getFailedUpdate();

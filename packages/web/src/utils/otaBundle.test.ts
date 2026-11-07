@@ -12,6 +12,12 @@ vi.mock("@capgo/capacitor-updater", () => ({
   },
 }));
 
+const setNativeVersions = vi.fn();
+
+vi.mock("../observability", () => ({
+  setNativeVersions: (...args: unknown[]) => setNativeVersions(...args),
+}));
+
 vi.mock("@sentry/react", () => ({
   setTag: (...args: unknown[]) => setTag(...args),
   captureMessage: (...args: unknown[]) => captureMessage(...args),
@@ -38,6 +44,15 @@ describe("reportOtaBundle", () => {
     await reportOtaBundle();
 
     expect(setTag).toHaveBeenCalledWith("ota_bundle", "1.5.12.4");
+  });
+
+  it("records the bundle and native versions for spans", async () => {
+    await reportOtaBundle();
+
+    expect(setNativeVersions).toHaveBeenCalledWith({
+      otaBundle: "1.5.12.4",
+      nativeBinary: "1.5.12",
+    });
   });
 
   it("reports nothing when no bundle was rolled back", async () => {

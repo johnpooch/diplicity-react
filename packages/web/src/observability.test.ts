@@ -4,6 +4,7 @@ import { SamplingDecision } from "@opentelemetry/sdk-trace-web";
 import {
   TRACE_SAMPLE_RATE,
   currentRouteTemplate,
+  isServedFromCache,
   parseServerDuration,
   requestTagSpanProcessor,
   deterministicSampler,
@@ -12,6 +13,8 @@ import {
   sessionRouteSpanProcessor,
   initializeObservability,
   setActiveRouter,
+  setNativeVersions,
+  versionSpanProcessor,
 } from "./observability";
 import { recordRequestTag, resetRequestTags } from "./api/requestTelemetry";
 import type { InternalAxiosRequestConfig } from "axios";
@@ -124,6 +127,27 @@ describe("sessionRouteSpanProcessor", () => {
   });
 });
 
+describe("versionSpanProcessor", () => {
+  it("adds the bundle and native versions once they are known", () => {
+    const before = { setAttribute: vi.fn() };
+    versionSpanProcessor.onStart(before as never, ROOT_CONTEXT);
+    expect(before.setAttribute).not.toHaveBeenCalled();
+
+    setNativeVersions({ otaBundle: "1.5.12.4", nativeBinary: "1.5.12" });
+    const after = { setAttribute: vi.fn() };
+    versionSpanProcessor.onStart(after as never, ROOT_CONTEXT);
+
+    expect(after.setAttribute).toHaveBeenCalledWith(
+      "app.ota_bundle_version",
+      "1.5.12.4"
+    );
+    expect(after.setAttribute).toHaveBeenCalledWith(
+      "app.native_version",
+      "1.5.12"
+    );
+  });
+});
+
 describe("parseServerDuration", () => {
   it("reads the app duration in milliseconds", () => {
     expect(parseServerDuration("app;dur=123.4")).toBe(123.4);
@@ -216,5 +240,25 @@ describe("initializeObservability", () => {
 
     expect(ignored("https://api.honeycomb.io/v1/traces")).toBe(true);
     expect(ignored("https://api.diplicity.com/games/")).toBe(false);
+  });
+});
+
+describe("isServedFromCache", () => {
+  it("is true when bytes were decoded without any transfer", () => {
+    expect(isServedFromCache({ transferSize: 0, decodedBodySize: 512 })).toBe(
+      true
+    );
+  });
+
+  it("is false when bytes crossed the network", () => {
+    expect(isServedFromCache({ transferSize: 800, decodedBodySize: 512 })).toBe(
+      false
+    );
+  });
+
+  it("is false for an empty body", () => {
+    expect(isServedFromCache({ transferSize: 0, decodedBodySize: 0 })).toBe(
+      false
+    );
   });
 });

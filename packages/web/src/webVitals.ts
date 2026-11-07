@@ -1,20 +1,11 @@
 import { trace } from "@opentelemetry/api";
-import {
-  onCLS,
-  onFCP,
-  onINP,
-  onLCP,
-  onTTFB,
-  type Metric,
-} from "web-vitals";
+import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from "web-vitals";
 import { isNativePlatform } from "./utils/platform";
 
 export const WEB_VITAL_SPAN_PREFIX = "web_vital.";
 export const APP_LAUNCH_SPAN_NAME = "app_launch";
 
 const tracer = trace.getTracer("web-vitals");
-
-const platform = () => (isNativePlatform() ? "native" : "web");
 
 const recordMetric = (metric: Metric) => {
   const now = Date.now();
@@ -27,7 +18,6 @@ const recordMetric = (metric: Metric) => {
       "web_vital.rating": metric.rating,
       "web_vital.navigation_type": metric.navigationType,
       "web_vital.id": metric.id,
-      "app.platform": platform(),
     },
   });
   span.end(now);
@@ -53,7 +43,6 @@ export function reportAppLaunch() {
     startTime: end - duration,
     attributes: {
       "app.launch.duration_ms": duration,
-      "app.platform": platform(),
     },
   });
   span.end(end);
