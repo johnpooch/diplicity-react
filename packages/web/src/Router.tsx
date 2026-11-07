@@ -45,6 +45,7 @@ import {
   trackNavigations,
 } from "./utils/navigationTelemetry";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
+import { prefetchScreens } from "./utils/lazyScreen";
 import {
   isNetworkError,
   isNotFoundError,
@@ -86,6 +87,10 @@ const RootErrorBoundary: React.FC = () => {
 };
 
 const HomeLayoutWrapper: React.FC = () => {
+  React.useEffect(() => {
+    prefetchScreens(Home);
+  }, []);
+
   return (
     <HomeLayout>
       <Outlet />
