@@ -21,12 +21,24 @@ import { Capacitor } from "@capacitor/core";
 
 export const TRACE_SAMPLE_RATE = 10;
 
+const FULL_RATE_SPAN_NAMES = new Set([
+  APP_LAUNCH_SPAN_NAME,
+  "documentLoad",
+  "documentFetch",
+  "navigation",
+  "game.open",
+  "suspense.fallback",
+  "chunk.load",
+  "chunk.stale_reload",
+]);
+
+const isFullRateSpan = (spanName: string) =>
+  FULL_RATE_SPAN_NAMES.has(spanName) ||
+  spanName.startsWith(WEB_VITAL_SPAN_PREFIX);
+
 export const deterministicSampler: Sampler = {
   shouldSample(_context, traceId, spanName) {
-    if (
-      spanName === APP_LAUNCH_SPAN_NAME ||
-      spanName.startsWith(WEB_VITAL_SPAN_PREFIX)
-    ) {
+    if (isFullRateSpan(spanName)) {
       return {
         decision: SamplingDecision.RECORD_AND_SAMPLED,
         attributes: { SampleRate: 1 },

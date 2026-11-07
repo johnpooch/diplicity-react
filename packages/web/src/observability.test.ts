@@ -35,9 +35,19 @@ describe("deterministicSampler", () => {
     );
   });
 
-  it("always keeps web vital and app launch spans", () => {
+  it("always keeps page load, web vital, navigation, loading state and chunk spans", () => {
     const dropped = "0af7651916cd43dd8448eb211c80319c";
-    for (const name of ["web_vital.LCP", "app_launch"]) {
+    for (const name of [
+      "web_vital.LCP",
+      "app_launch",
+      "documentLoad",
+      "documentFetch",
+      "navigation",
+      "game.open",
+      "suspense.fallback",
+      "chunk.load",
+      "chunk.stale_reload",
+    ]) {
       expect(
         deterministicSampler.shouldSample(
           ROOT_CONTEXT,
