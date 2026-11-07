@@ -1,4 +1,5 @@
 import { describe, test, expect } from "vitest";
+import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap, type RenderState } from "./mapRenderer";
 // Vendored copy of the converted classical map (service/variant/data/svg/
 // classical.d.svg) with the embedded woff2 font and raster pattern tiles
@@ -90,7 +91,7 @@ const CLASSICAL_SCENE: RenderState = {
 
 describe("DiplicityMap classical board", () => {
   test("places every unit in the scene on the real map", () => {
-    const svg = new DiplicityMap(CLASSICAL_DSVG).render(CLASSICAL_SCENE);
+    const svg = new DiplicityMap(parseDsvg(CLASSICAL_DSVG)).render(CLASSICAL_SCENE);
     expect(svg).toContain('id="units"');
     // One token per unit, plus a ghost token for each Build order.
     const builds = CLASSICAL_SCENE.orders!.filter(
@@ -102,7 +103,7 @@ describe("DiplicityMap classical board", () => {
   });
 
   test("draws every order type", () => {
-    const svg = new DiplicityMap(CLASSICAL_DSVG).render(CLASSICAL_SCENE);
+    const svg = new DiplicityMap(parseDsvg(CLASSICAL_DSVG)).render(CLASSICAL_SCENE);
     expect(svg).toContain('id="orders"');
     expect(svg).toContain("<polygon"); // Hold octagons
     expect(svg).toContain(" Q "); // head-to-head bur<->mun curves
@@ -111,7 +112,7 @@ describe("DiplicityMap classical board", () => {
   });
 
   test("matches the committed classical board artifact", async () => {
-    const svg = new DiplicityMap(CLASSICAL_DSVG).render(CLASSICAL_SCENE);
+    const svg = new DiplicityMap(parseDsvg(CLASSICAL_DSVG)).render(CLASSICAL_SCENE);
     await expect(svg).toMatchFileSnapshot("./__artifacts__/classical-board.svg");
   });
 });

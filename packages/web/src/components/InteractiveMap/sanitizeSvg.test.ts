@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import CLASSICAL_DSVG from "./classicalMap.dsvg?raw";
+import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import { sanitizeSvg, sanitizeSvgElement } from "./sanitizeSvg";
 
@@ -105,7 +106,7 @@ describe("sanitizeSvg", () => {
   });
 
   test("leaves the rendered classical board unchanged", () => {
-    const board = new DiplicityMap(CLASSICAL_DSVG).render({
+    const board = new DiplicityMap(parseDsvg(CLASSICAL_DSVG)).render({
       nationColors: { England: "#2196F3", France: "#80DEEA" },
       supplyCenters: [{ province: "lon", nation: "England" }],
       units: [

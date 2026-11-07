@@ -9,7 +9,6 @@ import type {
   Variant,
   VariantTemplatePhase,
 } from "../../api/generated/endpoints";
-import { parseDsvg } from "../InteractiveMap/dsvgParser";
 import { DiplicityMap } from "../InteractiveMap/mapRenderer";
 import { toRenderState } from "../InteractiveMap/toRenderState";
 import {
@@ -54,14 +53,13 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const mode = props.mode ?? "interactive";
   const showFillToggle = props.showFillToggle ?? false;
 
-  const { data: dsvg } = useDsvg(props.variant.svgUrl);
+  const { data: parsed } = useDsvg(props.variant.svgUrl);
 
   const [fill, setFill] = useState(showFillToggle);
 
-  const parsed = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
   const renderer = useMemo(
-    () => (dsvg ? new DiplicityMap(dsvg, props.variant.unitScaling) : null),
-    [dsvg, props.variant.unitScaling]
+    () => (parsed ? new DiplicityMap(parsed, props.variant.unitScaling) : null),
+    [parsed, props.variant.unitScaling]
   );
 
   const provincePaths = useMemo(

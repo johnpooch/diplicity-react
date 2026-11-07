@@ -47,35 +47,35 @@ const TOY_STATE: RenderState = {
 
 describe("DiplicityMap static base", () => {
   test("renders an svg root carrying the dSVG viewBox", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render();
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render();
     expect(svg.startsWith("<svg")).toBe(true);
     expect(svg).toContain('viewBox="0 0 600 400"');
   });
 
   test("omits the hidden metadata layers from the rendered output", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render();
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render();
     expect(svg).not.toContain('id="provinces"');
     expect(svg).not.toContain('id="named-coasts"');
     expect(svg).not.toContain('id="unit-positions"');
   });
 
   test("renders no province fills, units or orders without state", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render();
-    expect(svg).toBe(new DiplicityMap(TOY_DSVG).render({}));
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render();
+    expect(svg).toBe(new DiplicityMap(parseDsvg(TOY_DSVG)).render({}));
     expect(svg).not.toContain('id="province-fills"');
     expect(svg).not.toContain('id="units"');
     expect(svg).not.toContain('id="orders"');
   });
 
   test("matches the committed static base-map artifact", async () => {
-    const svg = new DiplicityMap(TOY_DSVG).render();
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render();
     await expect(svg).toMatchFileSnapshot("./__artifacts__/toy-base.svg");
   });
 });
 
 describe("DiplicityMap province fills", () => {
   test("tints a supply center with its owner's nation colour", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       supplyCenters: [{ province: "alpha", nation: "England" }],
     });
@@ -83,7 +83,7 @@ describe("DiplicityMap province fills", () => {
   });
 
   test("uses the lower opacity for a selected supply center", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       supplyCenters: [{ province: "alpha", nation: "England" }],
       selected: ["alpha"],
@@ -92,27 +92,27 @@ describe("DiplicityMap province fills", () => {
   });
 
   test("fills and strokes a selected non-supply-centre province", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({ selected: ["beta"] });
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({ selected: ["beta"] });
     expect(svg).toContain('fill="rgba(255, 255, 255, 0.8)"');
     expect(svg).toContain('stroke="white"');
   });
 
   test("draws highlighted provinces with stripes, a pulse and the pattern", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({ highlighted: ["gamma"] });
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({ highlighted: ["gamma"] });
     expect(svg).toContain('id="highlightedStripes"');
     expect(svg).toContain('fill="url(#highlightedStripes)"');
     expect(svg).toContain("<animate");
   });
 
   test("omits provinces with nothing to draw", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({ selected: ["beta"] });
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({ selected: ["beta"] });
     const { provincePaths } = parseDsvg(TOY_DSVG);
     expect(svg).not.toContain(`d="${provincePaths.get("alpha")}"`);
     expect(svg).toContain(`d="${provincePaths.get("beta")}"`);
   });
 
   test("highlights a named coast", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       highlighted: ["alpha/nc"],
     });
     const { namedCoastPaths } = parseDsvg(TOY_DSVG);
@@ -121,7 +121,7 @@ describe("DiplicityMap province fills", () => {
   });
 
   test("fills and strokes a selected named coast", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({ selected: ["alpha/nc"] });
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({ selected: ["alpha/nc"] });
     const { namedCoastPaths } = parseDsvg(TOY_DSVG);
     expect(svg).toContain(
       `d="${namedCoastPaths.get("alpha/nc")}" fill="rgba(255, 255, 255, 0.8)"`
@@ -130,7 +130,7 @@ describe("DiplicityMap province fills", () => {
 
   test("throws when a supply center's nation has no colour", () => {
     expect(() =>
-      new DiplicityMap(TOY_DSVG).render({
+      new DiplicityMap(parseDsvg(TOY_DSVG)).render({
         supplyCenters: [{ province: "alpha", nation: "Atlantis" }],
       })
     ).toThrow(/Atlantis/);
@@ -139,14 +139,14 @@ describe("DiplicityMap province fills", () => {
 
 describe("DiplicityMap non-SC province fills", () => {
   test("tints a non-SC province at the non-SC default opacity (0.4)", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nonScProvinceColors: { beta: "#1b4f9c" },
     });
     expect(svg).toContain('fill="rgba(27, 79, 156, 0.4)"');
   });
 
   test("uses non-SC active opacity (0.3) when the province is selected", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nonScProvinceColors: { beta: "#1b4f9c" },
       selected: ["beta"],
     });
@@ -154,7 +154,7 @@ describe("DiplicityMap non-SC province fills", () => {
   });
 
   test("SC ownership takes precedence over non-SC colour", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c", France: "#3b9c3b" },
       supplyCenters: [{ province: "alpha", nation: "England" }],
       nonScProvinceColors: { alpha: "#3b9c3b" },
@@ -166,7 +166,7 @@ describe("DiplicityMap non-SC province fills", () => {
 
 describe("DiplicityMap supply-center markers", () => {
   test("draws a marker at each supply-center position, even without state", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render();
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render();
     expect(svg).toContain('id="supply-center-markers"');
     expect(svg).toContain('cx="110" cy="175" r="7"');
     expect(svg).toContain('cx="490" cy="175" r="7"');
@@ -175,7 +175,7 @@ describe("DiplicityMap supply-center markers", () => {
 
 describe("DiplicityMap units", () => {
   test("draws a unit token at the unit position", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       units: [{ province: "alpha", nation: "England", type: "Army" }],
     });
@@ -185,7 +185,7 @@ describe("DiplicityMap units", () => {
   });
 
   test("labels armies A and fleets F", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { France: "#3b9c3b" },
       units: [{ province: "beta", nation: "France", type: "Fleet" }],
     });
@@ -193,7 +193,7 @@ describe("DiplicityMap units", () => {
   });
 
   test("offsets a dislodged unit and gives it a retreat flag", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { France: "#3b9c3b" },
       units: [
         { province: "beta", nation: "France", type: "Fleet", dislodged: true },
@@ -204,7 +204,7 @@ describe("DiplicityMap units", () => {
   });
 
   test("adds a civil-disorder badge to a unit in civil disorder", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { France: "#3b9c3b" },
       units: [
         { province: "beta", nation: "France", type: "Fleet", civilDisorder: true },
@@ -214,7 +214,7 @@ describe("DiplicityMap units", () => {
   });
 
   test("does not add a civil-disorder badge to active units", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { France: "#3b9c3b" },
       units: [
         { province: "beta", nation: "France", type: "Fleet", civilDisorder: false },
@@ -224,7 +224,7 @@ describe("DiplicityMap units", () => {
   });
 
   test("renders dislodged units after non-dislodged ones", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c", France: "#3b9c3b" },
       units: [
         { province: "beta", nation: "France", type: "Fleet", dislodged: true },
@@ -236,7 +236,7 @@ describe("DiplicityMap units", () => {
 
   test("throws when a unit's nation has no colour", () => {
     expect(() =>
-      new DiplicityMap(TOY_DSVG).render({
+      new DiplicityMap(parseDsvg(TOY_DSVG)).render({
         units: [{ province: "alpha", nation: "Atlantis", type: "Army" }],
       })
     ).toThrow(/Atlantis/);
@@ -245,7 +245,7 @@ describe("DiplicityMap units", () => {
 
 describe("DiplicityMap orders", () => {
   test("draws an octagon at a Hold order's source", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       orders: [{ type: "Hold", nation: "England", source: "alpha" }],
     });
     expect(svg).toContain('id="orders"');
@@ -253,10 +253,10 @@ describe("DiplicityMap orders", () => {
   });
 
   test("adds a failure cross to a failed Hold only", () => {
-    const failed = new DiplicityMap(TOY_DSVG).render({
+    const failed = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       orders: [{ type: "Hold", nation: "England", source: "alpha", failed: true }],
     });
-    const succeeded = new DiplicityMap(TOY_DSVG).render({
+    const succeeded = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       orders: [{ type: "Hold", nation: "England", source: "alpha" }],
     });
     expect(failed).toContain('stroke="red"');
@@ -264,7 +264,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a Build as a ghost unit with a green cross", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { France: "#3b9c3b" },
       orders: [
         { type: "Build", nation: "France", source: "gamma", unitType: "Fleet" },
@@ -276,14 +276,14 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a Disband as a red marker", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       orders: [{ type: "Disband", nation: "France", source: "alpha" }],
     });
     expect(svg).toContain('stroke="red"');
   });
 
   test("dims a unit and suppresses its retreat flag when it is disbanding", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { France: "#3b9c3b" },
       units: [
         { province: "alpha", nation: "France", type: "Army", dislodged: true },
@@ -295,7 +295,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a Move as a straight arrow", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         { type: "Move", nation: "England", source: "alpha", target: "beta" },
@@ -307,7 +307,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("curves both arrows of a head-to-head move pair", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c", France: "#3b9c3b" },
       orders: [
         { type: "Move", nation: "England", source: "alpha", target: "beta" },
@@ -318,7 +318,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("adds a failure cross to a failed Move", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         {
@@ -334,7 +334,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a MoveViaConvoy without a matching Convoy as a straight arrow", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         {
@@ -351,7 +351,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a support-hold as a dashed line and an octagon", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         {
@@ -368,7 +368,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a support-move as a dashed curved arrow", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         {
@@ -385,7 +385,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("adds a failure cross to a failed Support", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         {
@@ -402,7 +402,7 @@ describe("DiplicityMap orders", () => {
   });
 
   test("draws a Convoy as a wavy arrow with a fleet circle", () => {
-    const svg = new DiplicityMap(CONVOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(CONVOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         {
@@ -419,24 +419,24 @@ describe("DiplicityMap orders", () => {
   });
 
   test("upgrades a MoveViaConvoy to a routed B-spline when a Convoy matches", () => {
-    const svg = new DiplicityMap(CONVOY_DSVG).render(CONVOY_SCENE);
+    const svg = new DiplicityMap(parseDsvg(CONVOY_DSVG)).render(CONVOY_SCENE);
     expect(svg).toContain(" Q ");
   });
 
   test("matches the committed convoy artifact", async () => {
-    const svg = new DiplicityMap(CONVOY_DSVG).render(CONVOY_SCENE);
+    const svg = new DiplicityMap(parseDsvg(CONVOY_DSVG)).render(CONVOY_SCENE);
     await expect(svg).toMatchFileSnapshot("./__artifacts__/toy-convoy.svg");
   });
 });
 
 describe("DiplicityMap unit scaling", () => {
   test("defaults to unscaled unit and order sizes when unitScale is omitted", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
       nationColors: { England: "#1b4f9c" },
       units: [{ province: "alpha", nation: "England", type: "Army" }],
     });
     expect(svg).toBe(
-      new DiplicityMap(TOY_DSVG, 1).render({
+      new DiplicityMap(parseDsvg(TOY_DSVG), 1).render({
         nationColors: { England: "#1b4f9c" },
         units: [{ province: "alpha", nation: "England", type: "Army" }],
       })
@@ -444,7 +444,7 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("scales the unit token radius and label size", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       nationColors: { England: "#1b4f9c" },
       units: [{ province: "alpha", nation: "England", type: "Army" }],
     });
@@ -455,7 +455,7 @@ describe("DiplicityMap unit scaling", () => {
   test("scales the label baseline offset so the glyph stays centred", () => {
     // Unit centre is cy=130; the +5 baseline drop scales with the unit, so at
     // scale 2 the text baseline is cy + 5 * 2 = 140 (not a fixed cy + 5 = 135).
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       nationColors: { England: "#1b4f9c" },
       units: [{ province: "alpha", nation: "England", type: "Army" }],
     });
@@ -463,7 +463,7 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("scales the unit token's outline stroke width along with its radius", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       nationColors: { England: "#1b4f9c" },
       units: [{ province: "alpha", nation: "England", type: "Army" }],
     });
@@ -471,14 +471,14 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("scales a failed order's cross-out stroke width", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       orders: [{ type: "Hold", nation: "England", source: "alpha", failed: true }],
     });
     expect(svg).toContain('stroke="black" stroke-width="14"');
   });
 
   test("scales the civil-disorder badge's outline stroke width", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       nationColors: { France: "#3b9c3b" },
       units: [
         { province: "beta", nation: "France", type: "Fleet", civilDisorder: true },
@@ -488,7 +488,7 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("scales a Build order marker's outline stroke width", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       nationColors: { France: "#3b9c3b" },
       orders: [
         { type: "Build", nation: "France", source: "gamma", unitType: "Fleet" },
@@ -498,7 +498,7 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("scales order line and stroke width", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 2).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render({
       nationColors: { England: "#1b4f9c" },
       orders: [
         { type: "Move", nation: "England", source: "alpha", target: "beta" },
@@ -508,7 +508,7 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("does not scale supply-center marker radius", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 3).render({
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 3).render({
       nationColors: { England: "#1b4f9c" },
       supplyCenters: [{ province: "alpha", nation: "England" }],
     });
@@ -517,7 +517,7 @@ describe("DiplicityMap unit scaling", () => {
   });
 
   test("does not scale the selected province's stroke width", () => {
-    const svg = new DiplicityMap(TOY_DSVG, 3).render({ selected: ["beta"] });
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG), 3).render({ selected: ["beta"] });
     expect(svg).toContain('stroke-width="5"');
   });
 
@@ -536,8 +536,8 @@ describe("DiplicityMap unit scaling", () => {
       const cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
       return Math.hypot(pts[0][0] - cx, pts[0][1] - cy);
     };
-    const base = new DiplicityMap(TOY_DSVG, 1).render(opts);
-    const scaled = new DiplicityMap(TOY_DSVG, 2).render(opts);
+    const base = new DiplicityMap(parseDsvg(TOY_DSVG), 1).render(opts);
+    const scaled = new DiplicityMap(parseDsvg(TOY_DSVG), 2).render(opts);
     expect(octRadius(scaled) / octRadius(base)).toBeCloseTo(2, 2);
     expect(scaled).toMatch(/<polygon[^>]*stroke-width="6"/);
   });
@@ -549,8 +549,8 @@ describe("DiplicityMap unit scaling", () => {
         { type: "Convoy", nation: "England", source: "beta", aux: "alpha", target: "gamma" },
       ],
     };
-    expect(new DiplicityMap(CONVOY_DSVG, 1).render(opts)).toContain('r="5" fill="white"');
-    expect(new DiplicityMap(CONVOY_DSVG, 2).render(opts)).toContain('r="10" fill="white"');
+    expect(new DiplicityMap(parseDsvg(CONVOY_DSVG), 1).render(opts)).toContain('r="5" fill="white"');
+    expect(new DiplicityMap(parseDsvg(CONVOY_DSVG), 2).render(opts)).toContain('r="10" fill="white"');
   });
 
   test("scales the convoy wave amplitude with unit scale", () => {
@@ -565,15 +565,15 @@ describe("DiplicityMap unit scaling", () => {
       const xs = [...d.matchAll(/(-?\d+(?:\.\d+)?) -?\d+(?:\.\d+)?/g)].map((m) => Number(m[1]));
       return Math.max(...xs) - Math.min(...xs);
     };
-    const base = new DiplicityMap(CONVOY_DSVG, 1).render(opts);
-    const scaled = new DiplicityMap(CONVOY_DSVG, 2).render(opts);
+    const base = new DiplicityMap(parseDsvg(CONVOY_DSVG), 1).render(opts);
+    const scaled = new DiplicityMap(parseDsvg(CONVOY_DSVG), 2).render(opts);
     expect(lateralSpread(scaled) / lateralSpread(base)).toBeCloseTo(2, 1);
   });
 });
 
 describe("DiplicityMap layering", () => {
   test("composes the visible layers in z-order", () => {
-    const svg = new DiplicityMap(TOY_DSVG).render(TOY_STATE);
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render(TOY_STATE);
     const positions = [
       "background",
       "province-fills",
@@ -589,7 +589,7 @@ describe("DiplicityMap layering", () => {
   });
 
   test("matches the committed board-state artifact", async () => {
-    const svg = new DiplicityMap(TOY_DSVG).render(TOY_STATE);
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render(TOY_STATE);
     await expect(svg).toMatchFileSnapshot("./__artifacts__/toy-board.svg");
   });
 });
