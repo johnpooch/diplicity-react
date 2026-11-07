@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import axios from "axios";
 import { QueryClient } from "@tanstack/react-query";
 import type { InternalAxiosRequestConfig } from "axios";
 import {
   classifyRequest,
-  consumeRequestTag,
-  recordRequestTag,
   registerQueryClient,
-  resetRequestTags,
+  requestTagFor,
+  taggedXhrAdapter,
+  trackXhrRequestTags,
 } from "./requestTelemetry";
 
 const config = (url: string, method = "get"): InternalAxiosRequestConfig =>
@@ -43,7 +44,6 @@ describe("classifyRequest", () => {
   beforeEach(() => {
     client = new QueryClient();
     registerQueryClient(client);
-    resetRequestTags();
   });
 
   it("marks a fetch with no cached data and an observer as blocking on mount", () => {
@@ -102,16 +102,26 @@ describe("classifyRequest", () => {
 describe("request tag hand-off", () => {
   beforeEach(() => {
     registerQueryClient(new QueryClient());
-    resetRequestTags();
+    trackXhrRequestTags();
   });
 
-  it("hands each recorded tag to the span for the same method and URL once", () => {
-    recordRequestTag(config("/user/", "post"));
+  it("attaches the tag to the XHR opened for the request and to no other", async () => {
+    const opened: XMLHttpRequest[] = [];
+    vi.spyOn(axios, "getAdapter").mockReturnValue((() => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "http://api.test/user/");
+      opened.push(xhr);
+      return Promise.resolve({});
+    }) as never);
 
-    expect(consumeRequestTag("POST", "http://api.test/user/")).toEqual({
+    await taggedXhrAdapter(config("/user/", "post"));
+    const untagged = new XMLHttpRequest();
+    untagged.open("GET", "http://api.test/other/");
+
+    expect(requestTagFor(opened[0])).toEqual({
       blocking: true,
       reason: "mutation",
     });
-    expect(consumeRequestTag("POST", "http://api.test/user/")).toBeUndefined();
+    expect(requestTagFor(untagged)).toBeUndefined();
   });
 });

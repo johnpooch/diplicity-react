@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '../auth/tokenStorage';
-import { recordRequestTag } from './requestTelemetry';
+import { taggedXhrAdapter } from './requestTelemetry';
 
 const diplictityApiBaseUrl =
   import.meta.env.VITE_DIPLICITY_API_BASE_URL || 'http://localhost:8000';
@@ -14,6 +14,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const axiosInstance = axios.create({
   baseURL: diplictityApiBaseUrl,
   timeout: REQUEST_TIMEOUT_MS,
+  adapter: taggedXhrAdapter,
   transitional: { clarifyTimeoutError: true },
   headers: {
     'Content-Type': 'application/json',
@@ -26,7 +27,6 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (accessToken && config.headers) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
-  recordRequestTag(config);
   return config;
 });
 
