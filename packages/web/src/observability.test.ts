@@ -35,6 +35,25 @@ describe("deterministicSampler", () => {
     );
   });
 
+  it("always keeps web vital and app launch spans", () => {
+    const dropped = "0af7651916cd43dd8448eb211c80319c";
+    for (const name of ["web_vital.LCP", "app_launch"]) {
+      expect(
+        deterministicSampler.shouldSample(
+          ROOT_CONTEXT,
+          dropped,
+          name,
+          SpanKind.INTERNAL,
+          {},
+          []
+        )
+      ).toEqual({
+        decision: SamplingDecision.RECORD_AND_SAMPLED,
+        attributes: { SampleRate: 1 },
+      });
+    }
+  });
+
   it("samples traces at the trace sample rate", () => {
     const traceIds = Array.from({ length: 1000 }, (_, i) =>
       i.toString(16).padStart(32, "0")

@@ -83,6 +83,7 @@ const config = defineConfig({
             "@opentelemetry/resources",
             "@opentelemetry/context-zone",
             "@opentelemetry/semantic-conventions",
+            "web-vitals",
           ],
           "vendor-firebase": ["firebase/app", "firebase/messaging"],
         },

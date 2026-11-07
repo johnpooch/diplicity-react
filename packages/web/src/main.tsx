@@ -23,6 +23,7 @@ import { initializeSentry } from "./sentry";
 import { themeStorage } from "./theme/themeStorage";
 import { isNativePlatform } from "./utils/platform";
 import { reloadForStaleChunk } from "./utils/staleChunk";
+import { reportWebVitals } from "./webVitals";
 import { recordStaleChunkReload } from "./utils/chunkTelemetry";
 
 if (isNativePlatform()) {
@@ -31,6 +32,7 @@ if (isNativePlatform()) {
 
 themeStorage.initialize();
 initializeObservability();
+reportWebVitals();
 initializeSentry();
 
 window.addEventListener("vite:preloadError", (event) => {

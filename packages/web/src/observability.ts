@@ -16,12 +16,22 @@ import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
 import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xml-http-request";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
+import { APP_LAUNCH_SPAN_NAME, WEB_VITAL_SPAN_PREFIX } from "./webVitals";
 import { Capacitor } from "@capacitor/core";
 
 export const TRACE_SAMPLE_RATE = 10;
 
 export const deterministicSampler: Sampler = {
-  shouldSample(_context, traceId) {
+  shouldSample(_context, traceId, spanName) {
+    if (
+      spanName === APP_LAUNCH_SPAN_NAME ||
+      spanName.startsWith(WEB_VITAL_SPAN_PREFIX)
+    ) {
+      return {
+        decision: SamplingDecision.RECORD_AND_SAMPLED,
+        attributes: { SampleRate: 1 },
+      };
+    }
     if (BigInt(`0x${traceId.slice(16)}`) % BigInt(TRACE_SAMPLE_RATE) !== 0n) {
       return { decision: SamplingDecision.NOT_RECORD };
     }
