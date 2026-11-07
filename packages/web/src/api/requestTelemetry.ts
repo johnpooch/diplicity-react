@@ -13,19 +13,25 @@ export type RequestReason =
   | "mutation"
   | "other";
 
-export interface RequestTag {
+export interface RequestClassification {
   blocking: boolean;
   reason: RequestReason;
 }
 
+export interface RequestTag extends RequestClassification {
+  duplicate: boolean;
+}
+
 const FOCUS_WINDOW_MS = 1000;
 const MOUNT_WINDOW_MS = 1000;
+const DUPLICATE_WINDOW_MS = 5000;
 
 let registeredClient: QueryClient | null = null;
 let lastFocusAt = 0;
 let tagInFlight: RequestTag | undefined;
 const xhrTags = new WeakMap<XMLHttpRequest, RequestTag>();
 const lastObserverAddedAt = new Map<string, number>();
+const lastRequestedAt = new Map<string, number>();
 let unsubscribeCache: (() => void) | null = null;
 
 focusManager.subscribe(focused => {
@@ -35,6 +41,7 @@ focusManager.subscribe(focused => {
 export const registerQueryClient = (client: QueryClient) => {
   unsubscribeCache?.();
   lastObserverAddedAt.clear();
+  lastRequestedAt.clear();
   registeredClient = client;
   unsubscribeCache = client.getQueryCache().subscribe(event => {
     if (event.type === "observerAdded") {
@@ -43,7 +50,7 @@ export const registerQueryClient = (client: QueryClient) => {
   });
 };
 
-const classifyQuery = (query: Query): RequestTag => {
+const classifyQuery = (query: Query): RequestClassification => {
   const blocking = query.state.data === undefined;
   if (query.meta?.prefetch === true) return { blocking, reason: "prefetch" };
   if (blocking) return { blocking, reason: "mount" };
@@ -66,7 +73,7 @@ const classifyQuery = (query: Query): RequestTag => {
 
 export const classifyRequest = (
   config: InternalAxiosRequestConfig
-): RequestTag => {
+): RequestClassification => {
   if ((config.method ?? "get").toLowerCase() !== "get") {
     return { blocking: true, reason: "mutation" };
   }
@@ -77,8 +84,22 @@ export const classifyRequest = (
   return query ? classifyQuery(query) : { blocking: true, reason: "other" };
 };
 
+const recordRequest = (config: InternalAxiosRequestConfig): boolean => {
+  const now = Date.now();
+  const key = `${(config.method ?? "get").toLowerCase()} ${axios.getUri(config)}`;
+  const previous = lastRequestedAt.get(key);
+  lastRequestedAt.set(key, now);
+  for (const [otherKey, at] of lastRequestedAt) {
+    if (now - at >= DUPLICATE_WINDOW_MS) lastRequestedAt.delete(otherKey);
+  }
+  return previous !== undefined && now - previous < DUPLICATE_WINDOW_MS;
+};
+
 export const taggedXhrAdapter: AxiosAdapter = config => {
-  tagInFlight = classifyRequest(config);
+  tagInFlight = {
+    ...classifyRequest(config),
+    duplicate: recordRequest(config),
+  };
   const finishTracking = startRequestTracking();
   try {
     return axios.getAdapter("xhr")(config).finally(finishTracking);

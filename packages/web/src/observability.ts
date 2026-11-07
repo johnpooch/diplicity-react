@@ -251,6 +251,7 @@ export function initializeObservability() {
           if (tag) {
             span.setAttribute("request.blocking", tag.blocking);
             span.setAttribute("request.reason", tag.reason);
+            span.setAttribute("request.duplicate", tag.duplicate);
           }
           recordServerDuration(
             span,
