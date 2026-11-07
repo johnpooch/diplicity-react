@@ -57,6 +57,7 @@ jobs:
           VITE_MAINTENANCE_MODE: ${{ vars.MAINTENANCE_MODE }}
           VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_HONEYCOMB_API_KEY: ${{ secrets.VITE_HONEYCOMB_API_KEY }}
 
       - name: Install service dependencies
         run: pip install -r requirements.txt

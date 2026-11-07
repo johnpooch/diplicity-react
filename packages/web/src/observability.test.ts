@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { ROOT_CONTEXT, SpanKind } from "@opentelemetry/api";
 import { SamplingDecision } from "@opentelemetry/sdk-trace-web";
 import {
@@ -6,6 +6,7 @@ import {
   currentRouteTemplate,
   parseServerDuration,
   deterministicSampler,
+  generateSessionId,
   sessionId,
   sessionRouteSpanProcessor,
   setActiveRouter,
@@ -124,5 +125,34 @@ describe("parseServerDuration", () => {
   it("returns undefined when the header is missing or has no app duration", () => {
     expect(parseServerDuration(null)).toBeUndefined();
     expect(parseServerDuration("db;dur=5")).toBeUndefined();
+  });
+});
+
+describe("generateSessionId", () => {
+  const uuidV4 =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("uses randomUUID when available", () => {
+    vi.stubGlobal("crypto", { randomUUID: () => "fixed-id" });
+
+    expect(generateSessionId()).toBe("fixed-id");
+  });
+
+  it("builds a v4 UUID from getRandomValues when randomUUID is missing", () => {
+    vi.stubGlobal("crypto", {
+      getRandomValues: (bytes: Uint8Array) => bytes.fill(255),
+    });
+
+    expect(generateSessionId()).toMatch(uuidV4);
+  });
+
+  it("builds a v4 UUID without crypto", () => {
+    vi.stubGlobal("crypto", undefined);
+
+    expect(generateSessionId()).toMatch(uuidV4);
   });
 });
