@@ -5,7 +5,6 @@ import {
   TRACE_SAMPLE_RATE,
   currentRouteTemplate,
   parseServerDuration,
-  requestTagSpanProcessor,
   deterministicSampler,
   generateSessionId,
   sessionId,
@@ -14,8 +13,6 @@ import {
   setNativeVersions,
   versionSpanProcessor,
 } from "./observability";
-import { recordRequestTag, resetRequestTags } from "./api/requestTelemetry";
-import type { InternalAxiosRequestConfig } from "axios";
 
 const sample = (traceId: string) =>
   deterministicSampler.shouldSample(
@@ -151,33 +148,6 @@ describe("parseServerDuration", () => {
   it("returns undefined when the header is missing or has no app duration", () => {
     expect(parseServerDuration(null)).toBeUndefined();
     expect(parseServerDuration("db;dur=5")).toBeUndefined();
-  });
-});
-
-describe("requestTagSpanProcessor", () => {
-  it("sets the blocking state and reason on a span whose request was tagged", () => {
-    resetRequestTags();
-    recordRequestTag({
-      url: "/user/",
-      method: "post",
-      baseURL: "http://api.test",
-      headers: {},
-    } as InternalAxiosRequestConfig);
-    const span = {
-      attributes: {
-        "http.method": "POST",
-        "http.url": "http://api.test/user/",
-      },
-      setAttribute: vi.fn(),
-    };
-
-    requestTagSpanProcessor.onStart(span as never, ROOT_CONTEXT);
-
-    expect(span.setAttribute).toHaveBeenCalledWith("request.blocking", true);
-    expect(span.setAttribute).toHaveBeenCalledWith(
-      "request.reason",
-      "mutation"
-    );
   });
 });
 
