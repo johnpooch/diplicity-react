@@ -3,6 +3,7 @@ import axiosInstance from "../api/axiosInstance";
 
 const fetchDsvg = async (svgUrl: string): Promise<string> => {
   const response = await axiosInstance.get<string>(svgUrl, {
+    anonymous: true,
     responseType: "text",
     transformResponse: (data) => data,
   });

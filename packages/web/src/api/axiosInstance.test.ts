@@ -217,3 +217,69 @@ describe("token refresh", () => {
     expect(refreshed).toBe(false);
   });
 });
+
+describe("anonymous requests", () => {
+  const defaultAdapter = axios.defaults.adapter;
+
+  afterEach(() => {
+    axios.defaults.adapter = defaultAdapter;
+    tokenStorage.clearTokens();
+  });
+
+  const signIn = () =>
+    tokenStorage.setTokens({
+      accessToken: "access",
+      refreshToken: "original-refresh",
+      email: "player@example.com",
+      name: "Player",
+    });
+
+  it("omits the authorization and client version headers", async () => {
+    signIn();
+    let request: InternalAxiosRequestConfig | undefined;
+    axiosInstance.defaults.adapter = async config => {
+      request = config;
+      return {
+        status: 200,
+        statusText: "",
+        data: "",
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse;
+    };
+
+    await customInstance({ url: "/variants/", anonymous: true });
+
+    expect(request?.headers.has("Authorization")).toBe(false);
+    expect(request?.headers.has("X-Client-Version")).toBe(false);
+  });
+
+  it("does not refresh the access token after a 401", async () => {
+    signIn();
+    let refreshed = false;
+    axiosInstance.defaults.adapter = async config => {
+      throw new AxiosError("Unauthorized", "401", config, null, {
+        status: 401,
+        statusText: "",
+        data: null,
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse);
+    };
+    axios.defaults.adapter = async config => {
+      refreshed = true;
+      return {
+        status: 200,
+        statusText: "",
+        data: {},
+        headers: new AxiosHeaders(),
+        config,
+      } as AxiosResponse;
+    };
+
+    await expect(
+      customInstance({ url: "/variants/", anonymous: true })
+    ).rejects.toMatchObject({ response: { status: 401 } });
+    expect(refreshed).toBe(false);
+  });
+});
