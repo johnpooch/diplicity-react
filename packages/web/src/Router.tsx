@@ -4,6 +4,7 @@ import {
   Outlet,
   RouterProvider,
   redirect,
+  useLocation,
   useRouteError,
   type RouteObject,
 } from "react-router";
@@ -38,6 +39,11 @@ import {
 import { isUnstartedGameStatus } from "./util";
 import * as Sentry from "@sentry/react";
 import { setActiveRouter } from "./observability";
+import {
+  markNavigationCommitted,
+  startFallbackSpan,
+  trackNavigations,
+} from "./utils/navigationTelemetry";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import {
   isNetworkError,
@@ -45,11 +51,22 @@ import {
   isUnauthorizedError,
 } from "./utils/network";
 
-const RouteFallback: React.FC = () => (
-  <div className="flex-1 flex items-center justify-center">
-    <div className="animate-pulse text-muted-foreground"></div>
-  </div>
-);
+const RouteFallback: React.FC = () => {
+  React.useEffect(() => startFallbackSpan(), []);
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="animate-pulse text-muted-foreground"></div>
+    </div>
+  );
+};
+
+const NavigationTracker: React.FC = () => {
+  const location = useLocation();
+  React.useEffect(() => {
+    markNavigationCommitted();
+  }, [location.key]);
+  return null;
+};
 
 const RootErrorBoundary: React.FC = () => {
   const error = useRouteError() as Error;
@@ -106,7 +123,12 @@ const AuthenticatedRoot: React.FC = () => {
     queryClient.prefetchQuery(getVariantsListQueryOptions());
   }, [queryClient]);
   useDeepLink();
-  return <Outlet />;
+  return (
+    <>
+      <NavigationTracker />
+      <Outlet />
+    </>
+  );
 };
 
 const EMAIL_LINK_PATHS = ["/verify-email", "/reset-password"];
@@ -116,7 +138,12 @@ const isEmailLinkPath = (path: string) =>
 
 const UnauthenticatedRoot: React.FC = () => {
   useDeepLink(isEmailLinkPath);
-  return <Outlet />;
+  return (
+    <>
+      <NavigationTracker />
+      <Outlet />
+    </>
+  );
 };
 
 const DesktopGameIndex: React.FC = () => {
@@ -537,6 +564,7 @@ const Router: React.FC<RouterProps> = ({ loggedIn }) => {
       ? createBrowserRouter(createAuthenticatedRoutes())
       : createBrowserRouter(createUnauthenticatedRoutes());
     setActiveRouter(created);
+    trackNavigations(created);
     return created;
   }, [loggedIn]);
 
