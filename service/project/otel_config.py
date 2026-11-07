@@ -1,4 +1,7 @@
 import os
+import time
+
+from django.db import connection
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -6,6 +9,7 @@ from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, DEPLOYMENT_ENVIRONMENT
 from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 TRACE_SAMPLE_RATE = 10
@@ -40,6 +44,33 @@ class DeterministicSampler(Sampler):
 def client_version_request_hook(span, request):
     client_version = request.headers.get("X-Client-Version", "").strip()
     span.set_attribute("client.version", client_version or "none")
+
+
+class QueryStatsMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        span = trace.get_current_span()
+        if not span.is_recording():
+            return self.get_response(request)
+
+        stats = {"count": 0, "seconds": 0.0}
+
+        def timed_execute(execute, sql, params, many, context):
+            started = time.perf_counter()
+            try:
+                return execute(sql, params, many, context)
+            finally:
+                stats["count"] += 1
+                stats["seconds"] += time.perf_counter() - started
+
+        try:
+            with connection.execute_wrapper(timed_execute):
+                return self.get_response(request)
+        finally:
+            span.set_attribute("db.query_count", stats["count"])
+            span.set_attribute("db.total_time_ms", round(stats["seconds"] * 1000, 2))
 
 
 def configure_opentelemetry():
@@ -77,6 +108,8 @@ def configure_opentelemetry():
     trace.set_tracer_provider(tracer_provider)
 
     DjangoInstrumentor().instrument(request_hook=client_version_request_hook)
+
+    Psycopg2Instrumentor().instrument()
 
     RequestsInstrumentor().instrument()
 
