@@ -220,6 +220,7 @@ export function initializeObservability() {
     instrumentations: [
       new DocumentLoadInstrumentation(),
       new FetchInstrumentation({
+        ignoreUrls: [/api\.honeycomb\.io/],
         propagateTraceHeaderCorsUrls: [
           new RegExp(
             import.meta.env.VITE_DIPLICITY_API_BASE_URL ||

@@ -10,10 +10,18 @@ import {
   generateSessionId,
   sessionId,
   sessionRouteSpanProcessor,
+  initializeObservability,
   setActiveRouter,
   setNativeVersions,
   versionSpanProcessor,
 } from "./observability";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
+
+vi.mock("@opentelemetry/instrumentation", async importOriginal => ({
+  ...(await importOriginal<typeof import("@opentelemetry/instrumentation")>()),
+  registerInstrumentations: vi.fn(),
+}));
 
 const sample = (traceId: string) =>
   deterministicSampler.shouldSample(
@@ -178,6 +186,30 @@ describe("generateSessionId", () => {
     vi.stubGlobal("crypto", undefined);
 
     expect(generateSessionId()).toMatch(uuidV4);
+  });
+});
+
+describe("initializeObservability", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("does not trace uploads to Honeycomb", () => {
+    vi.stubEnv("VITE_HONEYCOMB_API_KEY", "test-key");
+
+    initializeObservability();
+
+    const { instrumentations } = vi.mocked(registerInstrumentations).mock
+      .calls[0][0];
+    const fetchInstrumentation = instrumentations?.find(
+      instrumentation => instrumentation instanceof FetchInstrumentation
+    ) as FetchInstrumentation;
+    const { ignoreUrls } = fetchInstrumentation.getConfig();
+    const ignored = (url: string) =>
+      ignoreUrls?.some(pattern => new RegExp(pattern).test(url));
+
+    expect(ignored("https://api.honeycomb.io/v1/traces")).toBe(true);
+    expect(ignored("https://api.diplicity.com/games/")).toBe(false);
   });
 });
 

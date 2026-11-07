@@ -7,7 +7,14 @@ export const APP_LAUNCH_SPAN_NAME = "app_launch";
 
 const tracer = trace.getTracer("web-vitals");
 
+const reportedOncePerLoad = new Set(["CLS", "INP"]);
+const reportedIds = new Set<string>();
+
 const recordMetric = (metric: Metric) => {
+  if (reportedOncePerLoad.has(metric.name)) {
+    if (reportedIds.has(metric.id)) return;
+    reportedIds.add(metric.id);
+  }
   const now = Date.now();
   const span = tracer.startSpan(`${WEB_VITAL_SPAN_PREFIX}${metric.name}`, {
     startTime: now,
