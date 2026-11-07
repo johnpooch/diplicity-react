@@ -1,4 +1,4 @@
-import { parseDsvg, type ParsedDsvg, type Point } from "./dsvgParser";
+import type { ParsedDsvg, Point } from "./dsvgParser";
 import {
   formatCoord,
   cross,
@@ -695,8 +695,8 @@ export class DiplicityMap {
   private readonly parsed: ParsedDsvg;
   private readonly unitScale: number;
 
-  constructor(svg: string, unitScale = 1) {
-    this.parsed = parseDsvg(svg);
+  constructor(parsed: ParsedDsvg, unitScale = 1) {
+    this.parsed = parsed;
     this.unitScale = unitScale;
   }
 

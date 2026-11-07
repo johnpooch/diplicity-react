@@ -80,12 +80,12 @@ const StaticMap: React.FC<{
     return () => observer.disconnect();
   }, []);
 
-  const { data: dsvg } = useDsvg(variant.svgUrl, inView);
+  const { data: parsed } = useDsvg(variant.svgUrl, inView);
 
   const svg = useMemo(() => {
-    if (!dsvg) return null;
+    if (!parsed) return null;
     const renderState = toRenderState(variant, phase, [], [], []);
-    const rendered = new DiplicityMap(dsvg, variant.unitScaling).render(renderState);
+    const rendered = new DiplicityMap(parsed, variant.unitScaling).render(renderState);
     if (cover) {
       return sanitizeSvg(
         rendered.replace(
@@ -95,7 +95,7 @@ const StaticMap: React.FC<{
       );
     }
     return sanitizeSvg(rendered);
-  }, [dsvg, variant, phase, cover]);
+  }, [parsed, variant, phase, cover]);
 
   return (
     <div ref={containerRef} className={className} style={style}>
