@@ -1,7 +1,7 @@
 import "./App.css";
 import { useEffect, Suspense } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
 import { MaintenanceMode } from "./components/MaintenanceMode";
 import { UpdateGate } from "./components/UpdateGate";
@@ -19,10 +19,10 @@ import { addNotificationTapListener } from "./messaging-native";
 import { clearDeliveredNotifications } from "./utils/deliveredNotifications";
 import { reportOtaBundle } from "./utils/otaBundle";
 import { registerQueryClient } from "./api/requestTelemetry";
+import { queryClient } from "./api/queryClient";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
 import { useNotificationPermissionPrompt } from "./hooks/useNotificationPermissionPrompt";
 
-const queryClient = new QueryClient();
 registerQueryClient(queryClient);
 
 // Variants are essentially static reference data (published variants almost
