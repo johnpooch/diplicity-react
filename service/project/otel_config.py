@@ -129,8 +129,4 @@ def configure_opentelemetry():
 
 
 def _detect_environment():
-    debug_mode = os.getenv("DJANGO_DEBUG", "False") == "True"
-    if debug_mode:
-        return "development"
-    else:
-        return "production"
+    return os.getenv("ENVIRONMENT") or "development"

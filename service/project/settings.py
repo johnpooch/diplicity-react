@@ -33,11 +33,8 @@ if SENTRY_DSN:
         ],
         traces_sampler=traces_sampler,
         send_default_pii=False,
-        environment=(
-            "development"
-            if os.getenv("DJANGO_DEBUG", "False") == "True"
-            else "production"
-        ),
+        environment=os.getenv("ENVIRONMENT") or "development",
+        release=os.getenv("GIT_SHA") or None,
     )
 
 

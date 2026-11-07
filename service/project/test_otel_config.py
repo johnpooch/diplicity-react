@@ -13,6 +13,7 @@ from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
 from project.otel_config import (
     TRACE_SAMPLE_RATE,
     DeterministicSampler,
+    _detect_environment,
     QueryStatsMiddleware,
     ServerTimingMiddleware,
     client_version_request_hook,
@@ -146,3 +147,21 @@ class TestServerTimingMiddleware:
 
         assert response["Server-Timing"].startswith("app;dur=")
         assert "server-timing" in response["Access-Control-Expose-Headers"]
+
+
+class TestDetectEnvironment:
+    def test_defaults_to_development(self, monkeypatch):
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+
+        assert _detect_environment() == "development"
+
+    def test_defaults_to_development_when_empty(self, monkeypatch):
+        monkeypatch.setenv("ENVIRONMENT", "")
+
+        assert _detect_environment() == "development"
+
+    def test_uses_environment_not_debug(self, monkeypatch):
+        monkeypatch.setenv("ENVIRONMENT", "staging")
+        monkeypatch.setenv("DJANGO_DEBUG", "False")
+
+        assert _detect_environment() == "staging"
