@@ -1,6 +1,21 @@
 import pytest
+from django.contrib import admin
+from django.core.cache import cache
+from django.test import override_settings
 
+from common.constants import ProvinceType
 from province.models import Province
+from variant.models import Variant
+
+LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+
+@pytest.fixture
+def locmem_cache():
+    with override_settings(CACHES=LOCMEM_CACHE):
+        cache.clear()
+        yield
+        cache.clear()
 
 
 class TestHomeNationBackfill:
@@ -61,3 +76,127 @@ class TestAdjacencyBackfill:
                     f"{variant_id}: {source} -> {target} ({pass_}) "
                     f"is not mirrored on the other side"
                 )
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("locmem_cache")
+class TestCachedForVariant:
+
+    def test_returns_every_province_in_the_variant(self, classical_variant):
+        provinces = Province.objects.cached_for_variant(classical_variant)
+
+        assert {province.province_id for province in provinces} == set(
+            classical_variant.provinces.values_list("province_id", flat=True)
+        )
+
+    def test_loads_parents_with_provinces(
+        self, classical_variant, django_assert_num_queries
+    ):
+        with django_assert_num_queries(1):
+            provinces = Province.objects.cached_for_variant(classical_variant)
+            spain_nc = next(
+                province for province in provinces if province.province_id == "spa/nc"
+            )
+            assert spain_nc.parent.province_id == "spa"
+
+    def test_repeat_call_is_served_from_cache(
+        self, classical_variant, django_assert_num_queries
+    ):
+        Province.objects.cached_for_variant(classical_variant)
+
+        with django_assert_num_queries(0):
+            provinces = Province.objects.cached_for_variant(classical_variant)
+            spain_nc = next(
+                province for province in provinces if province.province_id == "spa/nc"
+            )
+            assert spain_nc.parent.province_id == "spa"
+
+        assert len(provinces) == classical_variant.provinces.count()
+
+    def test_variant_update_invalidates_cache(
+        self, classical_variant, django_assert_num_queries
+    ):
+        Province.objects.cached_for_variant(classical_variant)
+        classical_variant.save()
+
+        with django_assert_num_queries(1):
+            Province.objects.cached_for_variant(classical_variant)
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("locmem_cache")
+class TestProvinceAdminCacheInvalidation:
+
+    @pytest.mark.parametrize("change", [False, True])
+    def test_save_invalidates_cache(
+        self, classical_variant, django_assert_num_queries, change
+    ):
+        province = Province(
+            variant=classical_variant,
+            province_id="new",
+            name="New province",
+            type=ProvinceType.LAND,
+        )
+        if change:
+            province.save()
+        Province.objects.cached_for_variant(classical_variant)
+        province.name = "Renamed province"
+
+        admin.site._registry[Province].save_model(None, province, None, change)
+
+        variant = Variant.objects.get(pk=classical_variant.pk)
+        with django_assert_num_queries(1):
+            provinces = Province.objects.cached_for_variant(variant)
+        assert (
+            next(cached.name for cached in provinces if cached.pk == province.pk)
+            == "Renamed province"
+        )
+
+    def test_moving_province_invalidates_both_variants(
+        self, classical_variant, italy_vs_germany_variant
+    ):
+        province = Province.objects.create(
+            variant=classical_variant,
+            province_id="new",
+            name="New province",
+            type=ProvinceType.LAND,
+        )
+        Province.objects.cached_for_variant(classical_variant)
+        Province.objects.cached_for_variant(italy_vs_germany_variant)
+        province.variant = italy_vs_germany_variant
+
+        admin.site._registry[Province].save_model(None, province, None, True)
+
+        original_variant = Variant.objects.get(pk=classical_variant.pk)
+        new_variant = Variant.objects.get(pk=italy_vs_germany_variant.pk)
+        assert province.pk not in {
+            province.pk
+            for province in Province.objects.cached_for_variant(original_variant)
+        }
+        assert province.pk in {
+            province.pk for province in Province.objects.cached_for_variant(new_variant)
+        }
+
+    @pytest.mark.parametrize("bulk", [False, True])
+    def test_delete_invalidates_cache(
+        self,
+        classical_variant,
+        classical_wales_province,
+        django_assert_num_queries,
+        bulk,
+    ):
+        Province.objects.cached_for_variant(classical_variant)
+        province_id = classical_wales_province.pk
+        province_admin = admin.site._registry[Province]
+
+        if bulk:
+            province_admin.delete_queryset(
+                None, Province.objects.filter(pk=province_id)
+            )
+        else:
+            province_admin.delete_model(None, classical_wales_province)
+
+        variant = Variant.objects.get(pk=classical_variant.pk)
+        with django_assert_num_queries(1):
+            provinces = Province.objects.cached_for_variant(variant)
+        assert province_id not in {province.pk for province in provinces}

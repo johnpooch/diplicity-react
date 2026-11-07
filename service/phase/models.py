@@ -57,6 +57,19 @@ class PhaseQuerySet(models.QuerySet):
             "phase_states__orders__resolution",
         )
 
+    def with_retrieve_data(self):
+        return self.select_related("variant", "game").prefetch_related(
+            "units__nation__flag",
+            "units__province__parent",
+            "units__province__named_coasts",
+            "units__dislodged_from__parent",
+            "units__dislodged_from__named_coasts",
+            "supply_centers__nation__flag",
+            "supply_centers__province__parent",
+            "supply_centers__province__named_coasts",
+            "variant__nations",
+        )
+
     def filter_armable(self):
         return self.filter(
             Q(status=PhaseStatus.ACTIVE)
@@ -84,6 +97,9 @@ class PhaseManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def with_retrieve_data(self):
+        return self.get_queryset().with_retrieve_data()
 
     def filter_armable(self):
         return self.get_queryset().filter_armable()

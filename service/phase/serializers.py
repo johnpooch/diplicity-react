@@ -7,6 +7,7 @@ from emit import emit
 from member.serializers import MemberSerializer
 from phase.models import Phase
 from phase.utils import compute_province_nations
+from province.models import Province
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
@@ -79,9 +80,12 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     province_nations = serializers.SerializerMethodField()
 
     def get_province_nations(self, phase):
+        provinces = getattr(phase, "variant_provinces", None)
+        if provinces is None:
+            provinces = Province.objects.cached_for_variant(phase.variant)
         return compute_province_nations(
             phase.supply_centers.all(),
-            phase.variant.provinces.all(),
+            provinces,
             phase.variant.dominance_rules,
             phase.variant.nations.all(),
         )
