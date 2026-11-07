@@ -24,7 +24,12 @@ describe("chunkTelemetry", () => {
   });
 
   it("emits a chunk.load span from the import start time", () => {
-    recordChunkLoad({ chunk: "MyGames", startedAt: 1000, outcome: "loaded" });
+    recordChunkLoad({
+      chunk: "MyGames",
+      startedAt: 1000,
+      outcome: "loaded",
+      navigationWaiting: true,
+    });
 
     expect(startSpanSpy).toHaveBeenCalledWith("chunk.load", {
       startTime: 1000,
@@ -35,6 +40,24 @@ describe("chunkTelemetry", () => {
       },
     });
     expect(endSpy).toHaveBeenCalledOnce();
+  });
+
+  it("records a chunk nobody was waiting on as not navigation waiting", () => {
+    recordChunkLoad({
+      chunk: "MyGames",
+      startedAt: 1000,
+      outcome: "loaded",
+      navigationWaiting: false,
+    });
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      "chunk.load",
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          "chunk.navigation_waiting": false,
+        }),
+      })
+    );
   });
 
   it("emits a chunk.stale_reload span with its source", () => {

@@ -11,13 +11,14 @@ export const recordChunkLoad = (params: {
   chunk: string;
   startedAt: number;
   outcome: "loaded" | "stale" | "error";
+  navigationWaiting: boolean;
 }): void => {
   const span = tracer.startSpan("chunk.load", {
     startTime: params.startedAt,
     attributes: {
       "chunk.name": params.chunk,
       "chunk.outcome": params.outcome,
-      "chunk.navigation_waiting": true,
+      "chunk.navigation_waiting": params.navigationWaiting,
     },
   });
   span.end();
