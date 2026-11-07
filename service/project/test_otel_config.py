@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
@@ -12,6 +14,7 @@ from project.otel_config import (
     TRACE_SAMPLE_RATE,
     DeterministicSampler,
     QueryStatsMiddleware,
+    ServerTimingMiddleware,
     client_version_request_hook,
 )
 
@@ -117,3 +120,29 @@ class TestQueryStatsMiddleware:
         )
 
         assert response.status_code == 204
+
+
+class TestServerTimingMiddleware:
+    def test_response_carries_the_server_duration_and_allows_cross_origin_timing(self):
+        response = ServerTimingMiddleware(lambda request: HttpResponse())(
+            RequestFactory().get("/game/")
+        )
+
+        assert response["Server-Timing"].startswith("app;dur=")
+        assert response["Timing-Allow-Origin"] == "*"
+
+    def test_duration_is_in_milliseconds(self):
+        def slow_view(request):
+            time.sleep(0.05)
+            return HttpResponse()
+
+        response = ServerTimingMiddleware(slow_view)(RequestFactory().get("/game/"))
+
+        duration = float(response["Server-Timing"].removeprefix("app;dur="))
+        assert 50 <= duration < 1000
+
+    def test_cors_exposes_the_header_to_browsers(self, client):
+        response = client.get("/health/", HTTP_ORIGIN="http://localhost:5173")
+
+        assert response["Server-Timing"].startswith("app;dur=")
+        assert "server-timing" in response["Access-Control-Expose-Headers"]
