@@ -112,6 +112,26 @@ export const sessionRouteSpanProcessor: SpanProcessor = {
   shutdown: () => Promise.resolve(),
 };
 
+let nativeVersions: { otaBundle: string; nativeBinary: string } | null = null;
+
+export const setNativeVersions = (versions: {
+  otaBundle: string;
+  nativeBinary: string;
+}) => {
+  nativeVersions = versions;
+};
+
+export const versionSpanProcessor: SpanProcessor = {
+  onStart(span: Span) {
+    if (!nativeVersions) return;
+    span.setAttribute("app.ota_bundle_version", nativeVersions.otaBundle);
+    span.setAttribute("app.native_version", nativeVersions.nativeBinary);
+  },
+  onEnd() {},
+  forceFlush: () => Promise.resolve(),
+  shutdown: () => Promise.resolve(),
+};
+
 export const requestTagSpanProcessor: SpanProcessor = {
   onStart(span: Span) {
     const tag = consumeRequestTag(
@@ -162,6 +182,7 @@ export function initializeObservability() {
     "deployment.environment": environment,
     "app.platform": Capacitor.getPlatform(),
     "app.version": __APP_VERSION__,
+    "app.git_sha": __GIT_SHA__,
   });
 
   const exporter = new OTLPTraceExporter({
@@ -178,6 +199,7 @@ export function initializeObservability() {
     sampler: deterministicSampler,
     spanProcessors: [
       sessionRouteSpanProcessor,
+      versionSpanProcessor,
       requestTagSpanProcessor,
       spanProcessor,
     ],
