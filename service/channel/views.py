@@ -12,13 +12,19 @@ from common.permissions import (
 from report.policies import CanModerateGamePolicy
 
 from .models import Channel, ChannelMember, ChannelMessage
-from .permissions import CanCreateChannel, CanMuteChannel, CanRenameChannel
+from .permissions import (
+    CanCreateChannel,
+    CanLeaveChannel,
+    CanMuteChannel,
+    CanRenameChannel,
+)
 from .serializers import (
     ChannelSerializer,
     ChannelDetailSerializer,
     ChannelMessageSerializer,
     ChannelMessagePageQuerySerializer,
     ChannelMessagePageSerializer,
+    ChannelLeaveSerializer,
     ChannelMarkReadSerializer,
     ChannelMuteSerializer,
     ChannelPreviewSerializer,
@@ -149,6 +155,24 @@ class ChannelMarkReadView(
         IsChannelMember,
     ]
     serializer_class = ChannelMarkReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data={})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ChannelLeaveView(
+    SelectedGameMixin,
+    SelectedChannelMixin,
+    CurrentGameMemberMixin,
+    generics.CreateAPIView,
+):
+    """Leave a private channel. A member who leaves cannot rejoin."""
+
+    permission_classes = [permissions.IsAuthenticated, CanLeaveChannel]
+    serializer_class = ChannelLeaveSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data={})

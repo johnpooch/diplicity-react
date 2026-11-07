@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     ChannelCreateView,
+    ChannelLeaveView,
     ChannelMessageCreateView,
     ChannelMessageListView,
     ChannelMarkReadView,
@@ -39,6 +40,11 @@ urlpatterns = [
         "games/<str:game_id>/channels/<int:channel_id>/mark-read/",
         ChannelMarkReadView.as_view(),
         name="channel-mark-read",
+    ),
+    path(
+        "games/<str:game_id>/channels/<int:channel_id>/leave/",
+        ChannelLeaveView.as_view(),
+        name="channel-leave",
     ),
     path(
         "games/<str:game_id>/channels/<int:channel_id>/mute/",

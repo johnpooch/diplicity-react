@@ -1,11 +1,28 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, BellOff, ChevronRight, Megaphone, Pencil } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  ChevronRight,
+  LogOut,
+  Megaphone,
+  Pencil,
+} from "lucide-react";
 import { toast } from "sonner";
 import { NationFlag, getContrastColor } from "@/components/NationFlag";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RowActionButton } from "@/components/ui/role-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Panel } from "@/components/Panel";
@@ -15,6 +32,7 @@ import {
   getGamesChannelPreviewsListQueryKey,
   getGamesChannelsRetrieveQueryKey,
   useGameRetrieveSuspense,
+  useGamesChannelsLeaveCreate,
   useGamesChannelsMutePartialUpdate,
   useGamesChannelsRetrieveSuspense,
 } from "@/api/generated/endpoints";
@@ -40,6 +58,8 @@ const ChannelOptionsScreen: React.FC = () => {
   );
   const variant = useGameVariant(game);
   const muteMutation = useGamesChannelsMutePartialUpdate();
+  const leaveMutation = useGamesChannelsLeaveCreate();
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
 
   const currentMember = game.members.find(member => member.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
@@ -91,6 +111,22 @@ const ChannelOptionsScreen: React.FC = () => {
     }
   };
 
+  const handleLeave = async () => {
+    setShowLeaveConfirmation(false);
+    try {
+      await leaveMutation.mutateAsync({ gameId, channelId: channel.id });
+      navigate(`/game/${gameId}/phase/${phaseId}/chat`);
+      queryClient.removeQueries({
+        queryKey: getGamesChannelsRetrieveQueryKey(gameId, channel.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelPreviewsListQueryKey(gameId),
+      });
+    } catch {
+      toast.error("There was an error leaving this channel");
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <GameDetailAppBar
@@ -118,7 +154,7 @@ const ChannelOptionsScreen: React.FC = () => {
                 <h2 className="text-2xl font-semibold">{displayName}</h2>
               </div>
             </div>
-            {(channel.canRename || channel.canMute) && (
+            {(channel.canRename || channel.canMute || channel.canLeave) && (
               <Card className="w-full overflow-hidden py-0">
                 <CardContent className="flex flex-col divide-y p-0">
                   {channel.canRename && (
@@ -154,6 +190,16 @@ const ChannelOptionsScreen: React.FC = () => {
                         </span>
                       </RowActionButton>
                     ))}
+                  {channel.canLeave && (
+                    <RowActionButton
+                      destructive
+                      onClick={() => setShowLeaveConfirmation(true)}
+                      disabled={leaveMutation.isPending}
+                    >
+                      <LogOut />
+                      <span className="flex-1">Leave channel</span>
+                    </RowActionButton>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -228,6 +274,24 @@ const ChannelOptionsScreen: React.FC = () => {
           </div>
         </Panel.Content>
       </Panel>
+      <AlertDialog
+        open={showLeaveConfirmation}
+        onOpenChange={setShowLeaveConfirmation}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave channel</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will no longer see this conversation or receive its
+              notifications. Once you leave, you cannot rejoin this channel.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeave}>Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

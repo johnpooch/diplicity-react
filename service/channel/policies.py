@@ -31,3 +31,7 @@ def can_rename_channel(channel, game, member, is_channel_member):
 
 def can_mute_channel(member, is_channel_member):
     return bool(member and is_channel_member)
+
+
+def can_leave_channel(channel, member, is_channel_member):
+    return bool(member and is_channel_member and channel.private)

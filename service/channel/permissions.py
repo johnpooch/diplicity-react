@@ -1,6 +1,11 @@
 from rest_framework.permissions import BasePermission
 
-from .policies import can_create_channel, can_mute_channel, can_rename_channel
+from .policies import (
+    can_create_channel,
+    can_leave_channel,
+    can_mute_channel,
+    can_rename_channel,
+)
 
 
 def is_channel_member(channel, member):
@@ -40,3 +45,12 @@ class CanMuteChannel(BasePermission):
         channel = view.get_channel()
         member = view.get_current_game_member()
         return can_mute_channel(member, is_channel_member(channel, member))
+
+
+class CanLeaveChannel(BasePermission):
+    message = "You cannot leave this channel."
+
+    def has_permission(self, request, view):
+        channel = view.get_channel()
+        member = view.get_current_game_member()
+        return can_leave_channel(channel, member, is_channel_member(channel, member))

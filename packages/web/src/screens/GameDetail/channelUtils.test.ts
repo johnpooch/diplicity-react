@@ -131,6 +131,20 @@ describe("getChannelMemberNations", () => {
   });
 });
 
+describe("channels with only the current member", () => {
+  const soloChannel = { id: 3, name: "England", private: true } as ChannelDetail;
+
+  it("shows the current nation's flag", () => {
+    expect(
+      getChannelFlagUrls(soloChannel, [], "England", variantNations)
+    ).toEqual([{ flagUrl: "england.svg", color: "#ff0000" }]);
+  });
+
+  it("is not a group channel", () => {
+    expect(isGroupChannel(soloChannel, [], "England")).toBe(false);
+  });
+});
+
 describe("isGroupChannel", () => {
   it("is false for a direct channel between two nations", () => {
     const channel = { id: 2, name: "England, Italy", private: true } as ChannelDetail;

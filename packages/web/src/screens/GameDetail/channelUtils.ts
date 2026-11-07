@@ -90,13 +90,16 @@ const getChannelNationNames = (
   channel: ChannelIdentity,
   members: readonly Member[],
   currentNationName: string | undefined
-): string[] =>
-  channel.private
-    ? getOtherNationNames(channel, currentNationName)
-    : members
-        .filter(m => !m.kicked)
-        .map(m => m.nation)
-        .filter((n): n is string => n !== null);
+): string[] => {
+  if (!channel.private) {
+    return members
+      .filter(m => !m.kicked)
+      .map(m => m.nation)
+      .filter((n): n is string => n !== null);
+  }
+  const others = getOtherNationNames(channel, currentNationName);
+  return others.length > 0 ? others : getAllChannelNationNames(channel, members);
+};
 
 export const getChannelFlagUrls = (
   channel: ChannelIdentity,
