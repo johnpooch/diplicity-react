@@ -62,3 +62,10 @@ describe("CapacitorUpdater configuration", () => {
     expect(updaterConfig(config).autoUpdate).toBe("atBackground");
   });
 });
+
+describe("CapacitorHttp configuration", () => {
+  it("routes web requests through native HTTP", async () => {
+    const config = await loadConfig("https://api.example.com");
+    expect(config.plugins?.CapacitorHttp?.enabled).toBe(true);
+  });
+});
