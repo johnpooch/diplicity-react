@@ -94,6 +94,7 @@ class NationFlagSvgView(View):
             return HttpResponseNotFound()
 
         response = HttpResponse(flag.svg, content_type="image/svg+xml")
+        response["Access-Control-Allow-Origin"] = "*"
         response["Cache-Control"] = "public, max-age=31536000, immutable"
         response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response
