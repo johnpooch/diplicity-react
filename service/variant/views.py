@@ -181,6 +181,7 @@ class VariantSvgView(View):
             return response
 
         response = HttpResponse(variant_svg.svg, content_type="image/svg+xml")
+        response["Access-Control-Allow-Origin"] = "*"
         response["Cache-Control"] = "public, max-age=31536000, immutable"
         response["Content-Security-Policy"] = IMAGE_CONTENT_SECURITY_POLICY
         return response
