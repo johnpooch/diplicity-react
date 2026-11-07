@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -6,7 +7,7 @@ from django.urls import reverse
 from procrastinate.contrib.django import app
 from rest_framework import status
 
-from health.tasks import JOB_RETENTION_HOURS, purge_old_jobs
+from health.tasks import JOB_RETENTION_HOURS, purge_old_jobs, retry_stalled_jobs
 
 
 class TestPurgeOldJobs:
@@ -19,6 +20,32 @@ class TestPurgeOldJobs:
             nb_hours=JOB_RETENTION_HOURS,
             include_cancelled=True,
         )
+
+
+class TestRetryStalledJobs:
+    def _doing_job(self, connector, worker_id):
+        job = asyncio.run(
+            app.configure_task("health.purge_old_jobs").defer_async(timestamp=0)
+        )
+        asyncio.run(connector.fetch_job_one(queues=None, worker_id=worker_id))
+        return job
+
+    def test_retries_job_held_by_dead_worker(self, in_memory_procrastinate):
+        worker_id = asyncio.run(in_memory_procrastinate.register_worker_one())[
+            "worker_id"
+        ]
+        in_memory_procrastinate.workers[worker_id] -= datetime.timedelta(hours=1)
+        job_id = self._doing_job(in_memory_procrastinate, worker_id)
+        asyncio.run(retry_stalled_jobs(timestamp=0))
+        assert in_memory_procrastinate.jobs[job_id]["status"] == "todo"
+
+    def test_does_not_retry_job_held_by_live_worker(self, in_memory_procrastinate):
+        worker_id = asyncio.run(in_memory_procrastinate.register_worker_one())[
+            "worker_id"
+        ]
+        job_id = self._doing_job(in_memory_procrastinate, worker_id)
+        asyncio.run(retry_stalled_jobs(timestamp=0))
+        assert in_memory_procrastinate.jobs[job_id]["status"] == "doing"
 
 
 class TestHealthCheckView:
