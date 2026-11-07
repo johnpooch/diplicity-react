@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const spans: { name: string; options: unknown; end: ReturnType<typeof vi.fn> }[] =
-  [];
+const spans: {
+  name: string;
+  options: unknown;
+  end: ReturnType<typeof vi.fn>;
+}[] = [];
 
 vi.mock("@opentelemetry/api", () => ({
   trace: {
@@ -62,8 +65,10 @@ describe("webVitals", () => {
         "web_vital.name": "LCP",
         "web_vital.value": 1800,
         "web_vital.rating": "good",
-        "app.platform": "web",
       },
+    });
+    expect(spans[0].options).not.toMatchObject({
+      attributes: { "app.platform": expect.anything() },
     });
     expect(spans[0].end).toHaveBeenCalled();
   });
@@ -102,7 +107,10 @@ describe("webVitals", () => {
     expect(spans).toHaveLength(1);
     expect(spans[0].name).toBe("app_launch");
     expect(spans[0].options).toMatchObject({
-      attributes: { "app.platform": "native" },
+      attributes: { "app.launch.duration_ms": expect.any(Number) },
+    });
+    expect(spans[0].options).not.toMatchObject({
+      attributes: { "app.platform": expect.anything() },
     });
   });
 });
