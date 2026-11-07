@@ -12,7 +12,6 @@ import { Notice } from "@/components/Notice";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/constants";
 import { isIosPlatform, isNativePlatform } from "@/utils/platform";
-import { reportAppLaunch } from "@/webVitals";
 
 const UPDATE_CHECK_TIMEOUT_MS = 5000;
 
@@ -72,7 +71,6 @@ interface UpdateGateProps {
 const ReleaseSplashScreen: React.FC<UpdateGateProps> = ({ children }) => {
   useEffect(() => {
     SplashScreen.hide();
-    reportAppLaunch();
   }, []);
   return <>{children}</>;
 };

@@ -68,6 +68,8 @@ export const trackNavigations = (
   });
 };
 
+export const hasActiveFallbacks = () => activeFallbacks > 0;
+
 export const markNavigationCommitted = settleSoon;
 
 export const startFallbackSpan = (): (() => void) => {
