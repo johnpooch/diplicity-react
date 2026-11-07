@@ -64,6 +64,23 @@ class OrderQuerySet(models.QuerySet):
 
 
 class OrderManager(models.Manager):
+
+    def save_order(self, order):
+        order.save()
+        apps.get_model("game", "Game").objects.bump_version(
+            [order.phase_state.phase.game_id]
+        )
+        return order
+
+    def delete_order(self, order):
+        return self.delete_orders(self.filter(pk=order.pk))
+
+    def delete_orders(self, orders):
+        game_ids = tuple(orders.values_list("phase_state__phase__game_id", flat=True))
+        result = orders.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
     def get_queryset(self):
         return OrderQuerySet(self.model, using=self._db)
 
@@ -82,6 +99,7 @@ class OrderManager(models.Manager):
     def delete_existing_for_source(self, phase_state, source):
         existing_orders = self.for_source_in_phase(phase_state, source)
         existing_orders.delete()
+        apps.get_model("game", "Game").objects.bump_version([phase_state.phase.game_id])
 
     def create_from_selected(self, user, phase, selected, province_lookup=None):
         order_data = get_order_data_from_selected(selected)

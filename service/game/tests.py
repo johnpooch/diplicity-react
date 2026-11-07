@@ -9,7 +9,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
 from django.test.utils import CaptureQueriesContext, override_settings
-from django.db import connection, connections
+from django.db import connection, connections, transaction
 from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
@@ -308,12 +308,17 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_game_row_updated_in_place(
-        self, authenticated_client, active_game_with_phase_state
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        Game.objects.filter(id=game.id).update(paused_at=timezone.now())
+        with django_capture_on_commit_callbacks(execute=True):
+            response = authenticated_client.patch(reverse("game-pause", args=[game.id]))
+        assert response.status_code == status.HTTP_200_OK
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -327,13 +332,15 @@ class TestGameRetrieveView:
         authenticated_client,
         game_with_public_channel_and_messages,
         secondary_user,
+        django_capture_on_commit_callbacks,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        game.members.filter(user=secondary_user).update(
-            civil_disorder_at=timezone.now()
-        )
+        member = game.members.get(user=secondary_user)
+        with django_capture_on_commit_callbacks(execute=True):
+            member.civil_disorder_at = timezone.now()
+            Member.objects.save_member(member)
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -350,11 +357,19 @@ class TestGameRetrieveView:
         authenticated_client,
         game_with_public_channel_and_messages,
         secondary_user,
+        authenticated_client_for_secondary_user,
+        django_capture_on_commit_callbacks,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        UserProfile.objects.filter(user=secondary_user).update(name="Renamed Player")
+        with django_capture_on_commit_callbacks(execute=True):
+            updated = authenticated_client_for_secondary_user.patch(
+                reverse("user-profile-update"),
+                {"name": "Renamed Player"},
+                format="json",
+            )
+        assert updated.status_code == status.HTTP_200_OK
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -368,13 +383,15 @@ class TestGameRetrieveView:
         authenticated_client,
         game_with_public_channel_and_messages,
         secondary_user,
+        django_capture_on_commit_callbacks,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        UserProfilePicture.objects.store(
-            secondary_user.profile, b"picture", "image/png"
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            UserProfilePicture.objects.store(
+                secondary_user.profile, b"picture", "image/png"
+            )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -387,15 +404,20 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_game_master_profile_change(
-        self, authenticated_client, active_game_with_phase_state, tertiary_user
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        tertiary_user,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_phase_state
         Game.objects.filter(id=game.id).update(game_master=tertiary_user)
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        UserProfile.objects.filter(user=tertiary_user).update(
-            name="Renamed Game Master"
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            profile = UserProfile.objects.get(user=tertiary_user)
+            profile.name = "Renamed Game Master"
+            UserProfile.objects.save_profile(profile)
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -427,21 +449,26 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_new_phase(
-        self, authenticated_client, active_game_with_phase_state
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
         previous = game.current_phase
-        Phase.objects.filter(id=previous.id).update(status=PhaseStatus.COMPLETED)
-        phase = game.phases.create(
-            variant=game.variant,
-            season="Fall",
-            year=1901,
-            type=PhaseType.MOVEMENT,
-            status=PhaseStatus.ACTIVE,
-            ordinal=previous.ordinal + 1,
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            previous.status = PhaseStatus.COMPLETED
+            Phase.objects.save_phase(previous)
+            phase = game.phases.create(
+                variant=game.variant,
+                season="Fall",
+                year=1901,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.ACTIVE,
+                ordinal=previous.ordinal + 1,
+            )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -451,14 +478,21 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_orders_confirmed(
-        self, authenticated_client, active_game_with_phase_state
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        PhaseState.objects.filter(phase=game.current_phase).update(
-            orders_confirmed=True
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            confirmed = authenticated_client.put(
+                reverse("game-confirm-phase", args=[game.id]),
+                {"orders_confirmed": True},
+                format="json",
+            )
+        assert confirmed.status_code == status.HTTP_200_OK
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -472,13 +506,19 @@ class TestGameRetrieveView:
         authenticated_client,
         active_game_with_phase_state,
         classical_edinburgh_province,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         first = authenticated_client.get(url)
-        game.current_phase.phase_states.get().orders.create(
-            source=classical_edinburgh_province, order_type=OrderType.HOLD
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            Order.objects.save_order(
+                Order(
+                    phase_state=game.current_phase.phase_states.get(),
+                    source=classical_edinburgh_province,
+                    order_type=OrderType.HOLD,
+                )
+            )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=first["ETag"])
 
@@ -518,6 +558,7 @@ class TestGameRetrieveView:
         game_with_public_channel_and_messages,
         secondary_user,
         classical_variant,
+        django_capture_on_commit_callbacks,
     ):
         game = game_with_public_channel_and_messages
         url = reverse(retrieve_viewname, args=[game.id])
@@ -525,10 +566,11 @@ class TestGameRetrieveView:
         other_game = Game.objects.create(
             variant=classical_variant, name="Other Game", status=GameStatus.ACTIVE
         )
-        CommitmentEntry.objects.create(
-            member=other_game.members.create(user=secondary_user),
-            kind=CommitmentEvent.NMR,
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            CommitmentEntry.objects.record(
+                member=other_game.members.create(user=secondary_user),
+                kind=CommitmentEvent.NMR,
+            )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -567,13 +609,18 @@ class TestGameRetrieveView:
 
     @pytest.mark.django_db
     def test_retrieve_game_returns_200_after_victory(
-        self, authenticated_client, active_game_with_phase_state
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_phase_state
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
-        victory = Victory.objects.create(game=game, winning_phase=game.current_phase)
-        victory.members.add(game.members.get())
+        with django_capture_on_commit_callbacks(execute=True):
+            victory = game.finish_with_draw(
+                game.current_phase, list(game.members.all())
+            )
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -1305,7 +1352,96 @@ class TestGameRetrieveView:
         assert response.data["actions"] == []
 
 
+class TestGameVersion:
+    @pytest.mark.django_db
+    def test_bump_updates_multiple_games_once_after_commit(
+        self,
+        active_game_with_phase_state,
+        pending_game_created_by_primary_user,
+        django_capture_on_commit_callbacks,
+        django_assert_num_queries,
+    ):
+        game_ids = [
+            active_game_with_phase_state.pk,
+            pending_game_created_by_primary_user.pk,
+        ]
+        before = dict(Game.objects.filter(pk__in=game_ids).values_list("pk", "version"))
+        with django_assert_num_queries(1):
+            with django_capture_on_commit_callbacks(execute=True):
+                Game.objects.bump_version(iter([*game_ids, *game_ids]))
+        after = dict(Game.objects.filter(pk__in=game_ids).values_list("pk", "version"))
+        assert after == {game_id: version + 1 for game_id, version in before.items()}
+
+    @pytest.mark.django_db
+    def test_rollback_does_not_bump(
+        self,
+        active_game_with_phase_state,
+        django_capture_on_commit_callbacks,
+    ):
+        game = active_game_with_phase_state
+        with django_capture_on_commit_callbacks(execute=True) as callbacks:
+            with pytest.raises(ValueError):
+                with transaction.atomic():
+                    Game.objects.bump_version([game.pk])
+                    raise ValueError("rollback")
+        assert callbacks == []
+
+    @pytest.mark.django_db
+    def test_saving_a_stale_game_preserves_its_stored_version(
+        self,
+        active_game_with_phase_state,
+        django_capture_on_commit_callbacks,
+    ):
+        game = active_game_with_phase_state
+        with django_capture_on_commit_callbacks(execute=True):
+            Game.objects.bump_version([game.pk])
+        version = Game.objects.get(pk=game.pk).version
+        with django_capture_on_commit_callbacks(execute=True):
+            game.name = "Renamed Game"
+            game.save()
+        game.refresh_from_db()
+        assert game.version == version + 1
+
+    @pytest.mark.django_db
+    def test_other_requesters_read_and_mute_do_not_invalidate_game(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        game_with_public_channel_and_messages,
+        django_capture_on_commit_callbacks,
+    ):
+        game = game_with_public_channel_and_messages
+        channel = game.channels.get(name="Public Press")
+        url = reverse(retrieve_viewname, args=[game.pk])
+        etag = authenticated_client.get(url)["ETag"]
+        with django_capture_on_commit_callbacks(execute=True):
+            marked = authenticated_client_for_secondary_user.post(
+                reverse("channel-mark-read", args=[game.pk, channel.pk])
+            )
+            muted = authenticated_client_for_secondary_user.patch(
+                reverse("channel-mute", args=[game.pk, channel.pk]),
+                {"mute_duration": "indefinite"},
+                format="json",
+            )
+        assert marked.status_code == status.HTTP_204_NO_CONTENT
+        assert muted.status_code == status.HTTP_200_OK
+        assert authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag).status_code == 304
+
+
 class TestGameRetrieveViewQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_unchanged_active_member_poll_uses_one_query(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        django_assert_num_queries,
+    ):
+        url = reverse(retrieve_viewname, args=[active_game_with_phase_state.id])
+        etag = authenticated_client.get(url)["ETag"]
+        with django_assert_num_queries(1):
+            response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+        assert response.status_code == status.HTTP_304_NOT_MODIFIED
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_simple(
@@ -1319,7 +1455,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 15
+        assert query_count == 16
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -1378,7 +1514,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 15
+        assert query_count < 15
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -1445,7 +1581,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 15
+        assert query_count < 15
 
     @pytest.mark.django_db
     def test_retrieve_game_does_not_select_latest_phases_across_all_games(

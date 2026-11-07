@@ -1,4 +1,5 @@
 import logging
+from django.apps import apps
 from django.db import models
 from django.db.models import Count
 from common.models import BaseModel
@@ -17,6 +18,17 @@ class VictoryQuerySet(models.QuerySet):
 
 
 class VictoryManager(models.Manager):
+
+    def save_victory(self, victory):
+        victory.save()
+        apps.get_model("game", "Game").objects.bump_version([victory.game_id])
+
+    def delete_victories(self, victories):
+        game_ids = tuple(victories.values_list("game_id", flat=True))
+        result = victories.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
     def get_queryset(self):
         return VictoryQuerySet(self.model, using=self._db)
 
@@ -38,6 +50,7 @@ class VictoryManager(models.Manager):
 
         victory = self.create(game=phase.game, winning_phase=phase)
         victory.members.add(winner)
+        type(phase.game).objects.bump_version([phase.game_id])
 
         return victory
 

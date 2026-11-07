@@ -34,6 +34,33 @@ EXIF_ORIENTATION_TAG = 0x0112
 EXIF_GPS_IFD_TAG = 0x8825
 
 
+@pytest.mark.django_db
+def test_profile_update_bumps_memberships_and_game_master_games(
+    authenticated_client,
+    primary_user,
+    active_game_with_phase_state,
+    pending_game_created_by_primary_user,
+    game_factory,
+    django_capture_on_commit_callbacks,
+):
+    managed = game_factory(game_master=primary_user)
+    game_ids = [
+        active_game_with_phase_state.pk,
+        pending_game_created_by_primary_user.pk,
+        managed.pk,
+    ]
+    before = dict(Game.objects.filter(pk__in=game_ids).values_list("pk", "version"))
+    with django_capture_on_commit_callbacks(execute=True):
+        response = authenticated_client.patch(
+            reverse("user-profile-update"),
+            {"name": "Renamed Player"},
+            format="json",
+        )
+    assert response.status_code == status.HTTP_200_OK
+    after = dict(Game.objects.filter(pk__in=game_ids).values_list("pk", "version"))
+    assert after == {game_id: version + 1 for game_id, version in before.items()}
+
+
 class TestUserProfileRetrieveView:
 
     @pytest.mark.django_db

@@ -1,4 +1,9 @@
+import hashlib
+import json
+
+from django.apps import apps
 from django.db import IntegrityError, models, transaction
+from django.http import Http404
 from django.db.models import (
     Q,
     BooleanField,
@@ -18,10 +23,12 @@ from django.core import exceptions
 from django.utils import timezone
 from channel import registry as channel_registry
 from common.models import BaseModel
+from emit import emit
 
 User = get_user_model()
 
 CHANNEL_TITLE_MAX_LENGTH = 50
+CHANNEL_DETAIL_REPRESENTATION_VERSION = 1
 
 
 class ChannelQuerySet(models.QuerySet):
@@ -79,14 +86,17 @@ class ChannelQuerySet(models.QuerySet):
             )
         )
 
-    def with_detail_data(self):
+    def with_latest_event_id(self):
         latest_event = (
             ChannelEvent.objects.for_display()
             .filter(channel=OuterRef("pk"))
             .order_by("-created_at", "-id")
             .values("id")[:1]
         )
-        return self.annotate(latest_event_id=Subquery(latest_event)).prefetch_related(
+        return self.annotate(latest_event_id=Subquery(latest_event))
+
+    def with_detail_data(self):
+        return self.with_latest_event_id().prefetch_related(
             models.Prefetch(
                 "events",
                 queryset=ChannelEvent.objects.for_display().select_related("phase"),
@@ -131,14 +141,138 @@ class ChannelQuerySet(models.QuerySet):
 
 
 class ChannelManager(models.Manager):
+
+    def create(self, **kwargs):
+        channel = super().create(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([channel.game_id])
+        return channel
+
+    def save_channel(self, channel, **kwargs):
+        channel.save(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([channel.game_id])
+        return channel
+
+    def delete_channels(self, channels):
+        game_ids = tuple(channels.values_list("game_id", flat=True))
+        result = channels.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
+    @transaction.atomic
+    def rename(self, channel, title, actor_name):
+        if title == channel.title:
+            return channel
+        channel.title = title
+        self.save_channel(channel, update_fields=["title"])
+        emit(
+            "channel_renamed",
+            game=channel.game,
+            phase=channel.game.current_phase,
+            channel=channel,
+            nation=actor_name,
+            name=title,
+        )
+        return channel
+
+    @transaction.atomic
+    def leave(self, channel, member, actor_name):
+        ChannelMember.objects.delete_memberships(
+            ChannelMember.objects.filter(member=member, channel=channel)
+        )
+        emit(
+            "channel_left",
+            game=channel.game,
+            phase=channel.game.current_phase,
+            channel=channel,
+            nation=actor_name,
+        )
+        return channel
+
+    def retrieve_fingerprint(self, game_id, channel_id, request):
+        user = request.user
+        member = apps.get_model("member", "Member").objects.filter(
+            game_id=OuterRef("game_id"), user_id=user.id
+        )
+        membership = ChannelMember.objects.filter(
+            channel_id=OuterRef("pk"), member__user_id=user.id
+        )
+        if not user.is_authenticated:
+            member = member.none()
+            membership = membership.none()
+        report = apps.get_model("report", "Report").objects.filter(
+            reported__game_id=OuterRef("game_id"),
+            reported__left_at__isnull=True,
+            assigned_to_id=user.id,
+            review__isnull=True,
+        )
+        moderator = apps.get_model("user_profile", "UserProfile").objects.filter(
+            user_id=user.id, is_moderator=True
+        )
+        message = ChannelMessage.objects.filter(channel_id=OuterRef("pk")).order_by(
+            "-id"
+        )
+        channel = (
+            self.filter(pk=channel_id, game_id=game_id)
+            .annotate(
+                requester_is_member=Exists(member),
+                requester_is_channel_member=Exists(
+                    membership.filter(member__left_at__isnull=True)
+                ),
+                requester_is_moderator=Exists(moderator),
+                requester_has_report=Exists(report),
+                last_read_at=Subquery(membership.values("last_read_at")[:1]),
+                latest_message_id=Subquery(message.values("id")[:1]),
+            )
+            .filter(
+                Q(private=False)
+                | Q(requester_is_channel_member=True)
+                | Q(
+                    requester_is_member=False,
+                    requester_is_moderator=True,
+                    requester_has_report=True,
+                )
+            )
+            .with_mute_state(user)
+            .with_latest_event_id()
+            .values(
+                "game__version",
+                "name",
+                "title",
+                "private",
+                "last_read_at",
+                "muted",
+                "latest_message_id",
+                "latest_event_id",
+                "requester_is_member",
+                "requester_is_moderator",
+                "requester_has_report",
+            )
+            .first()
+        )
+        if channel is None:
+            raise Http404
+        canonical = json.dumps(
+            [
+                CHANNEL_DETAIL_REPRESENTATION_VERSION,
+                user.id,
+                request.build_absolute_uri("/"),
+                channel,
+            ],
+            sort_keys=True,
+            default=str,
+        )
+        return hashlib.sha256(canonical.encode()).hexdigest()[:32]
+
     def get_queryset(self):
         return ChannelQuerySet(self.model, using=self._db)
 
+    @transaction.atomic
     def create_from_member_ids(self, user, member_ids, game, title=""):
         member_ids = member_ids + [game.members.players().get(user=user).id]
         channel_members = game.members.players().filter(id__in=member_ids)
         channel = self.create(title=title, private=True, game=game)
         channel.members.set(channel_members)
+        apps.get_model("game", "Game").objects.bump_version([game.pk])
         return channel
 
     def private_channel_exists_for_members(self, game, member_ids):
@@ -222,6 +356,27 @@ class ChannelMemberQuerySet(models.QuerySet):
         return self.filter(channel=channel)
 
 
+class ChannelMemberManager(models.Manager.from_queryset(ChannelMemberQuerySet)):
+    def create(self, **kwargs):
+        membership = super().create(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version(
+            [membership.channel.game_id]
+        )
+        return membership
+
+    def save_membership(self, membership):
+        membership.save()
+        apps.get_model("game", "Game").objects.bump_version(
+            [membership.channel.game_id]
+        )
+
+    def delete_memberships(self, memberships):
+        game_ids = tuple(memberships.values_list("channel__game_id", flat=True))
+        result = memberships.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
+
 class ChannelMember(BaseModel):
     member = models.ForeignKey(
         "member.Member", on_delete=models.CASCADE, related_name="member_channels"
@@ -233,7 +388,7 @@ class ChannelMember(BaseModel):
     muted_until = models.DateTimeField(null=True, blank=True)
     muted_indefinitely = models.BooleanField(default=False)
 
-    objects = ChannelMemberQuerySet.as_manager()
+    objects = ChannelMemberManager()
 
     class Meta:
         unique_together = ["member", "channel"]
@@ -246,6 +401,17 @@ class ChannelMember(BaseModel):
 
 
 class ChannelMessageQuerySet(models.QuerySet):
+
+    def save_message(self, message):
+        message.save()
+        apps.get_model("game", "Game").objects.bump_version([message.channel.game_id])
+
+    def delete_messages(self):
+        game_ids = tuple(self.values_list("channel__game_id", flat=True))
+        result = self.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
     def for_channel(self, channel):
         return self.filter(channel=channel)
 

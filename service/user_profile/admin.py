@@ -6,6 +6,16 @@ from .models import UserProfile, UserProfilePicture
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
+
+    def save_model(self, request, obj, form, change):
+        UserProfile.objects.save_profile(obj)
+
+    def delete_model(self, request, obj):
+        UserProfile.objects.delete_profiles(UserProfile.objects.filter(pk=obj.pk))
+
+    def delete_queryset(self, request, queryset):
+        UserProfile.objects.delete_profiles(queryset)
+
     list_display = ("name", "email", "is_moderator")
     list_select_related = ("user",)
     list_filter = ("is_moderator",)
@@ -38,7 +48,7 @@ class UserProfileAdmin(admin.ModelAdmin):
             )
             return
 
-        pictures.delete()
+        UserProfilePicture.objects.remove_for_profiles(queryset)
         self.message_user(
             request,
             f"Cleared the uploaded picture for {', '.join(names)}.",

@@ -659,12 +659,17 @@ class TestOrderCreateView:
         assert response.data["summary"] == "Support Spain (SC) to hold"
 
     def test_order_create_hold_with_source(
-        self, authenticated_client, game_with_options, primary_user
+        self,
+        authenticated_client,
+        game_with_options,
+        primary_user,
+        assert_game_revalidated,
     ):
         game = game_with_options
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "Hold"]}
-        response = authenticated_client.post(url, data, format="json")
+        with assert_game_revalidated(game):
+            response = authenticated_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert Order.objects.count() == 1
 
@@ -1125,6 +1130,7 @@ class TestOrderDeleteView:
         order_active_game,
         primary_user,
         classical_london_province,
+        assert_game_revalidated,
     ):
         game = order_active_game
         phase = game.current_phase
@@ -1140,7 +1146,8 @@ class TestOrderDeleteView:
         assert Order.objects.count() == 1
 
         url = reverse("order-delete", args=[game.id, "lon"])
-        response = authenticated_client.delete(url)
+        with assert_game_revalidated(game):
+            response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert Order.objects.count() == 0

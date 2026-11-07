@@ -442,10 +442,15 @@ def _rating_jobs(connector):
 
 class TestRateGame:
     @pytest.mark.django_db
-    def test_records_a_result_for_every_player(self, ranked_game_factory):
+    def test_records_a_result_for_every_player(
+        self,
+        ranked_game_factory,
+        assert_game_revalidated,
+    ):
         game = ranked_game_factory()
 
-        RatingResult.objects.rate_game(game)
+        with assert_game_revalidated(game):
+            RatingResult.objects.rate_game(game)
 
         assert RatingResult.objects.filter(member__game=game).count() == 7
 

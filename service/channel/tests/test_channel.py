@@ -479,6 +479,139 @@ class TestChannelCreateView:
 class TestChannelRetrieveUpdateView:
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "operation", ["create", "delete", "add_member", "remove_member"]
+    )
+    def test_shared_channel_writes_revalidate_the_game(
+        self,
+        active_game_with_private_channel,
+        secondary_user,
+        classical_france_nation,
+        assert_game_revalidated,
+        operation,
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        member = game.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+        if operation == "remove_member":
+            ChannelMember.objects.create(channel=channel, member=member)
+        with assert_game_revalidated(game):
+            if operation == "create":
+                Channel.objects.create(game=game, name="Another Channel")
+            elif operation == "delete":
+                Channel.objects.delete_channels(Channel.objects.filter(pk=channel.pk))
+            elif operation == "add_member":
+                ChannelMember.objects.create(channel=channel, member=member)
+            else:
+                ChannelMember.objects.delete_memberships(
+                    ChannelMember.objects.filter(channel=channel, member=member)
+                )
+
+    @pytest.mark.django_db
+    def test_profile_change_revalidates_channel_detail(
+        self,
+        authenticated_client,
+        active_game_with_private_channel,
+        django_capture_on_commit_callbacks,
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-update", args=[game.pk, channel.pk])
+        etag = authenticated_client.get(url)["ETag"]
+        with django_capture_on_commit_callbacks(execute=True):
+            updated = authenticated_client.patch(
+                reverse("user-profile-update"),
+                {"name": "Renamed Player"},
+                format="json",
+            )
+        assert updated.status_code == status.HTTP_200_OK
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != etag
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("operation", ["rename", "leave"])
+    def test_channel_commands_invalidate_without_revealing_a_departed_channel(
+        self,
+        authenticated_client,
+        active_game_with_private_channel,
+        assert_game_revalidated,
+        operation,
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        url = reverse("channel-update", args=[game.pk, channel.pk])
+        etag = authenticated_client.get(url)["ETag"]
+        with assert_game_revalidated(game):
+            if operation == "rename":
+                response = authenticated_client.patch(
+                    url, {"title": "War Room"}, format="json"
+                )
+                assert response.status_code == status.HTTP_200_OK
+            else:
+                response = authenticated_client.post(
+                    reverse("channel-leave", args=[game.pk, channel.pk])
+                )
+                assert response.status_code == status.HTTP_204_NO_CONTENT
+        polled = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+        if operation == "rename":
+            assert polled.status_code == status.HTTP_200_OK
+            assert polled["ETag"] != etag
+        else:
+            assert polled.status_code == status.HTTP_404_NOT_FOUND
+            assert "ETag" not in polled
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("operation", ["read", "mute"])
+    def test_requester_state_changes_the_channel_etag_without_a_shared_bump(
+        self,
+        authenticated_client,
+        game_with_public_channel_and_messages,
+        django_capture_on_commit_callbacks,
+        operation,
+    ):
+        game = game_with_public_channel_and_messages
+        channel = game.channels.get(name="Public Press")
+        url = reverse("channel-update", args=[game.pk, channel.pk])
+        etag = authenticated_client.get(url)["ETag"]
+        game.refresh_from_db(fields=["version"])
+        version = game.version
+        with django_capture_on_commit_callbacks(execute=True):
+            if operation == "read":
+                response = authenticated_client.post(
+                    reverse("channel-mark-read", args=[game.pk, channel.pk])
+                )
+                assert response.status_code == status.HTTP_204_NO_CONTENT
+            else:
+                response = authenticated_client.patch(
+                    reverse("channel-mute", args=[game.pk, channel.pk]),
+                    {"mute_duration": "indefinite"},
+                    format="json",
+                )
+                assert response.status_code == status.HTTP_200_OK
+        game.refresh_from_db(fields=["version"])
+        assert game.version == version
+        polled = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+        assert polled.status_code == status.HTTP_200_OK
+        assert polled["ETag"] != etag
+
+    @pytest.mark.django_db
+    def test_anonymous_private_channel_with_an_unowned_seat_is_hidden(
+        self,
+        unauthenticated_client,
+        active_game_with_private_channel,
+    ):
+        game = active_game_with_private_channel
+        channel = game.channels.get()
+        ChannelMember.objects.create(channel=channel, member=game.members.create())
+        url = reverse("channel-update", args=[game.pk, channel.pk])
+        response = unauthenticated_client.get(url, HTTP_IF_NONE_MATCH='"anything"')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "ETag" not in response
+
+    @pytest.mark.django_db
     def test_retrieve_channel_as_member(
         self, authenticated_client, active_game_with_channels
     ):
@@ -835,15 +968,18 @@ class TestChannelRetrieveUpdateView:
 
     @pytest.mark.django_db
     def test_retrieve_channel_returns_200_after_requester_is_kicked(
-        self, authenticated_client, active_game_with_private_channel
+        self,
+        authenticated_client,
+        active_game_with_private_channel,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_private_channel
         channel = game.channels.get()
         url = reverse("channel-update", args=[game.id, channel.id])
         etag = authenticated_client.get(url)["ETag"]
-        game.members.filter(user__username="primaryuser").update(
-            removed_at=timezone.now()
-        )
+        with django_capture_on_commit_callbacks(execute=True):
+            member = game.members.get(user__username="primaryuser")
+            Member.objects.remove(member)
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -874,7 +1010,10 @@ class TestChannelRetrieveUpdateView:
 
     @pytest.mark.django_db
     def test_retrieve_channel_returns_200_after_event_phase_display_changes(
-        self, authenticated_client, active_game_with_private_channel
+        self,
+        authenticated_client,
+        active_game_with_private_channel,
+        django_capture_on_commit_callbacks,
     ):
         game = active_game_with_private_channel
         channel = game.channels.get()
@@ -884,7 +1023,9 @@ class TestChannelRetrieveUpdateView:
         )
         url = reverse("channel-update", args=[game.id, channel.id])
         etag = authenticated_client.get(url)["ETag"]
-        Phase.objects.filter(id=phase.id).update(year=1950)
+        with django_capture_on_commit_callbacks(execute=True):
+            phase.year = 1950
+            Phase.objects.save_phase(phase)
 
         response = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
 
@@ -901,6 +1042,7 @@ class TestChannelRetrieveUpdateView:
         short_etag = authenticated_client.get(url)["ETag"]
         with CaptureQueriesContext(connection) as short_history:
             authenticated_client.get(url, HTTP_IF_NONE_MATCH=short_etag)
+        assert len(short_history) == 1
         sender = game.members.last()
         for index in range(20):
             ChannelMessage.objects.create(

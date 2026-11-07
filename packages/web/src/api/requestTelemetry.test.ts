@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import axios from "axios";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, type Query } from "@tanstack/react-query";
+import {
+  createAdaptiveRefetchInterval,
+  GAME_POLL_SCHEDULE,
+} from "../hooks/adaptiveRefetchInterval";
 import type { InternalAxiosRequestConfig } from "axios";
 import {
   classifyRequest,
@@ -24,7 +28,7 @@ const startFetch = (
   options: {
     data?: unknown;
     observe?: boolean;
-    interval?: number;
+    interval?: number | ((query: Query) => number | false);
     prefetch?: boolean;
   } = {}
 ) => {
@@ -55,6 +59,38 @@ describe("classifyRequest", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("classifies adaptive intervals as polls throughout the backoff", () => {
+    const { refetchInterval } =
+      createAdaptiveRefetchInterval(GAME_POLL_SCHEDULE);
+    const query = startFetch(client, "/game/1/", {
+      data: { id: 1 },
+      observe: true,
+      interval: refetchInterval,
+    });
+    vi.advanceTimersByTime(2_000);
+    for (const elapsed of [0, 60_000, 300_000]) {
+      vi.advanceTimersByTime(elapsed);
+      expect(refetchInterval(query)).toBeGreaterThan(0);
+      expect(classifyRequest(config("/game/1/"))).toEqual({
+        blocking: false,
+        reason: "poll",
+      });
+    }
+  });
+
+  it("does not classify a disabled function-form interval as a poll", () => {
+    startFetch(client, "/game/1/", {
+      data: { id: 1 },
+      observe: true,
+      interval: () => false,
+    });
+    vi.advanceTimersByTime(2_000);
+    expect(classifyRequest(config("/game/1/"))).toEqual({
+      blocking: false,
+      reason: "mount",
+    });
   });
 
   it("marks a fetch with no cached data and an observer as blocking on mount", () => {

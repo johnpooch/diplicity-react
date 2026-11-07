@@ -1,5 +1,6 @@
 import io
 import json
+from contextlib import contextmanager
 from datetime import time, timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -7,6 +8,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -2851,3 +2853,24 @@ def active_game_with_game_master_factory(
         return game
 
     return _create
+
+
+@pytest.fixture
+def assert_game_revalidated(authenticated_client, django_capture_on_commit_callbacks):
+    @contextmanager
+    def check(game, client=None):
+        client = client or authenticated_client
+        url = reverse("game-retrieve", args=[game.pk])
+        before = client.get(url)
+        assert before.status_code == 200
+        game.refresh_from_db(fields=["version"])
+        version = game.version
+        with django_capture_on_commit_callbacks(execute=True):
+            yield
+        game.refresh_from_db(fields=["version"])
+        assert game.version > version
+        after = client.get(url, HTTP_IF_NONE_MATCH=before["ETag"])
+        assert after.status_code == 200
+        assert after["ETag"] != before["ETag"]
+
+    return check

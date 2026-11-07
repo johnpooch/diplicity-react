@@ -7,6 +7,16 @@ from .models import Member
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
+
+    def save_model(self, request, obj, form, change):
+        Member.objects.save_member(obj)
+
+    def delete_model(self, request, obj):
+        Member.objects.delete_members(Member.all_objects.filter(pk=obj.pk))
+
+    def delete_queryset(self, request, queryset):
+        Member.objects.delete_members(queryset)
+
     list_display = (
         "id",
         "user",

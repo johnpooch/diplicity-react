@@ -15,7 +15,7 @@ from rating.models import Rating
 from report.constants import ReportReason
 from report.models import Mark
 
-from .models import UserProfilePicture
+from .models import UserProfile, UserProfilePicture
 from .utils import get_player_stats, normalise_picture, user_can_use_bot_opponent
 
 
@@ -59,7 +59,7 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
 
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
-        instance.save()
+        UserProfile.objects.save_profile(instance)
         return instance
 
 

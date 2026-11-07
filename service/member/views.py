@@ -183,7 +183,7 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
         member = get_object_or_404(Member, game=game, user=request.user)
 
         member.mustered_at = timezone.now()
-        member.save(update_fields=["mustered_at"])
+        Member.objects.save_member(member, update_fields=["mustered_at"])
 
         Game.objects.arm_muster(game)
 

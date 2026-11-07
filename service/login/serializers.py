@@ -57,7 +57,7 @@ class GoogleAuthSerializer(serializers.Serializer):
         )
         if not created and not profile.has_uploaded_picture:
             profile.picture = id_info.get("picture")
-            profile.save(update_fields=["picture"])
+            UserProfile.objects.save_profile(profile, update_fields=["picture"])
         refresh = RefreshToken.for_user(user)
         user.access_token = str(refresh.access_token)
         user.refresh_token = str(refresh)
@@ -91,7 +91,7 @@ class AppleAuthSerializer(serializers.Serializer):
             validated_data.get("first_name") or validated_data.get("last_name")
         ):
             profile.name = name
-            profile.save(update_fields=["name"])
+            UserProfile.objects.save_profile(profile, update_fields=["name"])
         refresh = RefreshToken.for_user(user)
         user.access_token = str(refresh.access_token)
         user.refresh_token = str(refresh)

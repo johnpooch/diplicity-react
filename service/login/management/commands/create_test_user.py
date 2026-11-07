@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from login.models import AuthUser
+from game.models import Game
 from user_profile.models import UserProfile
 
 
@@ -39,6 +40,7 @@ class Command(BaseCommand):
             user=user,
             defaults={"name": name},
         )
+        Game.objects.bump_versions_for_users([user.pk])
 
         refresh = RefreshToken.for_user(user)
         self.stdout.write(

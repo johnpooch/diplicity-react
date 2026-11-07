@@ -1,11 +1,13 @@
 import hashlib
 
+from django.apps import apps
 from django.contrib.auth.models import User
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils.functional import cached_property
+from django.utils import timezone
 
-from common.constants import UserKind
+from common.constants import GameStatus, PhaseStatus, UserKind
 from common.models import BaseModel
 from member.models import Member, commitment_points
 
@@ -31,6 +33,47 @@ class UserProfileQuerySet(models.QuerySet):
 
 
 class UserProfileManager(models.Manager):
+
+    def delete_profiles(self, profiles):
+        user_ids = tuple(profiles.values_list("user_id", flat=True))
+        result = profiles.delete()
+        apps.get_model("game", "Game").objects.bump_versions_for_users(user_ids)
+        return result
+
+    def save_profile(self, profile, **kwargs):
+        profile.save(**kwargs)
+        apps.get_model("game", "Game").objects.bump_versions_for_users(
+            [profile.user_id]
+        )
+        return profile
+
+    def delete_account(self, user):
+        Game = apps.get_model("game", "Game")
+        PhaseState = apps.get_model("phase", "PhaseState")
+        with transaction.atomic():
+            Game.objects.bump_versions_for_users([user.pk])
+            user_members = Member.objects.filter(user=user)
+            unstarted_statuses = [GameStatus.PENDING, GameStatus.MUSTERING]
+            pending_game_ids = list(
+                user_members.filter(game__status__in=unstarted_statuses).values_list(
+                    "game_id", flat=True
+                )
+            )
+            Member.objects.delete_members(
+                user_members.filter(game__status__in=unstarted_statuses)
+            )
+            ongoing_members = user_members.filter(
+                game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
+            )
+            ongoing_members.holding_seat().update(removed_at=timezone.now())
+            PhaseState.objects.filter(
+                member__in=ongoing_members, phase__status=PhaseStatus.ACTIVE
+            ).update(has_possible_orders=False)
+            for game in Game.objects.filter(id__in=pending_game_ids):
+                game.return_to_pending()
+                game.delete_if_empty_pending()
+            user.delete()
+
     def get_queryset(self):
         return UserProfileQuerySet(self.model, using=self._db)
 
@@ -81,6 +124,12 @@ class UserProfile(BaseModel):
 
 
 class UserProfilePictureManager(models.Manager):
+
+    def remove_for_profiles(self, profiles):
+        user_ids = tuple(profiles.values_list("user_id", flat=True))
+        self.filter(profile__in=profiles).delete()
+        apps.get_model("game", "Game").objects.bump_versions_for_users(user_ids)
+
     def store(self, profile, data, content_type):
         with transaction.atomic():
             self.filter(profile=profile).delete()
@@ -90,6 +139,9 @@ class UserProfilePictureManager(models.Manager):
                 content_hash=hashlib.sha256(data).hexdigest(),
             )
             UserProfilePictureContent.objects.create(picture=picture, data=data)
+            apps.get_model("game", "Game").objects.bump_versions_for_users(
+                [profile.user_id]
+            )
         return picture
 
 

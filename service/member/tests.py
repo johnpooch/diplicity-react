@@ -49,6 +49,43 @@ def _kicked_from_staging_notifications():
     return Notification.objects.filter(event_type="kicked_from_staging")
 
 
+@pytest.mark.django_db
+def test_commitment_record_bumps_every_membership_game(
+    primary_user,
+    active_game_with_phase_state,
+    pending_game_created_by_primary_user,
+    django_capture_on_commit_callbacks,
+):
+    games = [active_game_with_phase_state, pending_game_created_by_primary_user]
+    game_ids = [game.pk for game in games]
+    before = dict(Game.objects.filter(pk__in=game_ids).values_list("pk", "version"))
+    with django_capture_on_commit_callbacks(execute=True):
+        entry = CommitmentEntry.objects.record(
+            active_game_with_phase_state.members.get(user=primary_user),
+            CommitmentEvent.NMR,
+        )
+    assert entry is not None
+    after = dict(Game.objects.filter(pk__in=game_ids).values_list("pk", "version"))
+    assert after == {game_id: version + 1 for game_id, version in before.items()}
+
+
+@pytest.mark.django_db
+def test_nation_preferences_invalidate_game(
+    authenticated_client,
+    pending_game_created_by_primary_user,
+    classical_england_nation,
+    assert_game_revalidated,
+):
+    game = pending_game_created_by_primary_user
+    with assert_game_revalidated(game):
+        response = authenticated_client.put(
+            reverse("game-member-nation-preference", args=[game.pk]),
+            {"nation_ids": [classical_england_nation.nation_id]},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+
 class TestCivilDisorderSerialization:
 
     @pytest.mark.django_db

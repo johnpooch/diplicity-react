@@ -66,7 +66,7 @@ from game.utils import assign_nations
 
 FASTEST_START_MIN_PLAYERS = 3
 
-GAME_RETRIEVE_REPRESENTATION_VERSION = 4
+GAME_RETRIEVE_REPRESENTATION_VERSION = 5
 
 
 class GameQuerySet(models.QuerySet):
@@ -292,6 +292,22 @@ class GameQuerySet(models.QuerySet):
 
 
 class GameManager(models.Manager):
+
+    def bump_version(self, game_ids):
+        game_ids = tuple(set(game_ids))
+        if game_ids:
+            transaction.on_commit(
+                lambda: self.filter(id__in=game_ids).update(version=F("version") + 1)
+            )
+
+    def bump_versions_for_users(self, user_ids):
+        user_ids = tuple(user_ids)
+        self.bump_version(
+            self.filter(
+                Q(members__user_id__in=user_ids) | Q(game_master_id__in=user_ids)
+            ).values_list("id", flat=True)
+        )
+
     def get_queryset(self):
         return GameQuerySet(self.model, using=self._db)
 
@@ -357,6 +373,39 @@ class GameManager(models.Manager):
         )
 
     def retrieve_fingerprint(self, game_id, request):
+        user = request.user
+        game = (
+            self.filter(id=game_id)
+            .with_total_unread_counts(user)
+            .annotate(
+                requester_is_member=Exists(
+                    Member.objects.filter(game_id=OuterRef("pk"), user_id=user.id)
+                )
+            )
+            .values(
+                "version", "status", "total_unread_message_count", "requester_is_member"
+            )
+            .first()
+        )
+        if game is None:
+            raise Http404
+        if (
+            not user.is_authenticated
+            or game["status"] != GameStatus.ACTIVE
+            or not game["requester_is_member"]
+        ):
+            return self.legacy_retrieve_fingerprint(game_id, request)
+        projection = [
+            GAME_RETRIEVE_REPRESENTATION_VERSION,
+            user.id,
+            request.build_absolute_uri("/"),
+            game["version"],
+            game["total_unread_message_count"],
+        ]
+        canonical = json.dumps(projection, default=str)
+        return hashlib.sha256(canonical.encode()).hexdigest()[:32]
+
+    def legacy_retrieve_fingerprint(self, game_id, request):
         user = request.user
         game = self.filter(id=game_id).with_total_unread_counts(user).values().first()
         if game is None:
@@ -572,6 +621,7 @@ class GameManager(models.Manager):
             updates["muster_reminder_job_id"] = new_reminder_job_id
         if updates:
             self.filter(pk=game.pk).update(**updates)
+            self.bump_version([game.pk])
             for field, value in updates.items():
                 setattr(game, field, value)
 
@@ -782,6 +832,7 @@ class Game(BaseModel):
     objects = GameManager()
 
     id = models.CharField(max_length=150, primary_key=True)
+    version = models.PositiveBigIntegerField(default=0, db_default=0, editable=False)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -868,13 +919,24 @@ class Game(BaseModel):
     )
 
     def save(self, *args, **kwargs):
+        if not self._state.adding and kwargs.get("update_fields") is None:
+            deferred_fields = self.get_deferred_fields()
+            kwargs["update_fields"] = [
+                field.name
+                for field in self._meta.concrete_fields
+                if not field.primary_key
+                and field.name != "version"
+                and field.attname not in deferred_fields
+            ]
         if self.id:
             super().save(*args, **kwargs)
+            Game.objects.bump_version([self.id])
             return
 
         self.id = self._suffixed_id(self._generate_base_id())
         kwargs.setdefault("force_insert", True)
         super().save(*args, **kwargs)
+        Game.objects.bump_version([self.id])
 
     def _generate_base_id(self):
         base_id = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
@@ -1224,7 +1286,7 @@ class Game(BaseModel):
             current_phase.scheduled_resolution = self.get_scheduled_resolution(
                 current_phase.type, is_first_phase=True
             )
-            current_phase.save()
+            Phase.objects.save_phase(current_phase)
 
             # Use prefetched nations if available, otherwise fetch
             # variant.nations.all() is already prefetched via with_game_creation_data()
@@ -1275,14 +1337,14 @@ class Game(BaseModel):
             for phase in self.phases.exclude(status=PhaseStatus.COMPLETED):
                 phase.status = PhaseStatus.COMPLETED
                 phase.scheduled_resolution = None
-                phase.save()
+                Phase.objects.save_phase(phase)
 
     def finish_with_draw(self, phase, members):
         victory = Victory.objects.create(game=self, winning_phase=phase)
         victory.members.set(members)
         for member in members:
             member.drew = True
-            member.save(update_fields=["drew", "updated_at"])
+            Member.objects.save_member(member, update_fields=["drew", "updated_at"])
         self.finish(GameStatus.COMPLETED)
         self.defer_rating()
         return victory
@@ -1391,7 +1453,7 @@ class Game(BaseModel):
 
         if current_phase and current_phase.scheduled_resolution:
             current_phase.scheduled_resolution += pause_duration
-            current_phase.save()
+            Phase.objects.save_phase(current_phase)
 
         self.paused_at = None
         self.save()
@@ -1427,7 +1489,7 @@ class Game(BaseModel):
             raise ValueError("Invalid duration")
 
         current_phase.scheduled_resolution += timedelta(seconds=extension_seconds)
-        current_phase.save()
+        Phase.objects.save_phase(current_phase)
 
     class Meta:
         indexes = [

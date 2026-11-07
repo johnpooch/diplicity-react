@@ -1581,6 +1581,20 @@ class TestTokenRefreshView:
 
 @pytest.mark.django_db
 class TestCreateTestUserCommand:
+
+    def test_updating_an_existing_profile_invalidates_its_games(
+        self,
+        primary_user,
+        active_game_with_phase_state,
+        assert_game_revalidated,
+    ):
+        with assert_game_revalidated(active_game_with_phase_state):
+            call_command(
+                "create_test_user",
+                email=primary_user.email,
+                name="Renamed Player",
+            )
+
     def test_defaults_create_active_loginable_user(
         self, capsys, unauthenticated_client
     ):

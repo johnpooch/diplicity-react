@@ -104,6 +104,23 @@ class MemberQuerySet(models.QuerySet):
 
 
 class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
+
+    def create(self, **kwargs):
+        member = super().create(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([member.game_id])
+        return member
+
+    def save_member(self, member, **kwargs):
+        member.save(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([member.game_id])
+        return member
+
+    def delete_members(self, members):
+        game_ids = tuple(members.values_list("game_id", flat=True))
+        result = members.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
     def get_queryset(self):
         return super().get_queryset().filter(left_at__isnull=True)
 
@@ -165,10 +182,10 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
             if not member.vacant:
                 member.removed_at = timezone.now()
             member.replaced_by = replacement
-            member.save(update_fields=["removed_at", "replaced_by"])
+            self.save_member(member, update_fields=["removed_at", "replaced_by"])
 
             replacement.nation = member.nation
-            replacement.save(update_fields=["nation"])
+            self.save_member(replacement, update_fields=["nation"])
 
             phase = self._lock_active_phase(member.game)
             if phase is not None:
@@ -193,27 +210,28 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                     for rank, nation in enumerate(nations, start=1)
                 ]
             )
+            apps.get_model("game", "Game").objects.bump_version([member.game_id])
 
     def assign_nation(self, member, nation):
         member.nation = nation
-        member.save(update_fields=["nation"])
+        self.save_member(member, update_fields=["nation"])
 
     def clear_nation(self, member):
         member.nation = None
-        member.save(update_fields=["nation"])
+        self.save_member(member, update_fields=["nation"])
 
     def leave(self, member):
         with transaction.atomic():
             member.left_at = timezone.now()
             member.nation = None
             member.mustered_at = None
-            member.save(update_fields=["left_at", "nation", "mustered_at"])
+            self.save_member(member, update_fields=["left_at", "nation", "mustered_at"])
             member.game.return_to_pending()
 
     def rejoin(self, member, kind):
         member.left_at = None
         member.kind = kind
-        member.save(update_fields=["left_at", "kind"])
+        self.save_member(member, update_fields=["left_at", "kind"])
         return member
 
     def remove(self, member):
@@ -223,7 +241,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
         with transaction.atomic():
             member.removed_at = timezone.now()
-            member.save(update_fields=["removed_at"])
+            self.save_member(member, update_fields=["removed_at"])
 
             phase = self._lock_active_phase(member.game)
             if phase is not None:
@@ -238,7 +256,7 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
 
         with transaction.atomic():
             member.withdrawn_at = timezone.now()
-            member.save(update_fields=["withdrawn_at"])
+            self.save_member(member, update_fields=["withdrawn_at"])
             CommitmentEntry.objects.record(
                 member,
                 (
@@ -548,7 +566,9 @@ class CommitmentEntryManager(models.Manager):
             return None
         if member.user is None or member.user.profile.kind != UserKind.HUMAN:
             return None
-        return self.create(member=member, kind=kind)
+        entry = self.create(member=member, kind=kind)
+        apps.get_model("game", "Game").objects.bump_versions_for_users([member.user_id])
+        return entry
 
 
 class CommitmentEntry(BaseModel):

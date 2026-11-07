@@ -1,7 +1,7 @@
 import "./App.css";
 import { useEffect, Suspense } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { focusManager, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
 import { MaintenanceMode } from "./components/MaintenanceMode";
 import { UpdateGate } from "./components/UpdateGate";
@@ -111,9 +111,13 @@ function App() {
     clearDeliveredNotifications();
 
     if (isNativePlatform()) {
+      CapacitorApp.getState().then(({ isActive }) => {
+        focusManager.setFocused(isActive);
+      });
       const listener = CapacitorApp.addListener(
         "appStateChange",
         ({ isActive }) => {
+          focusManager.setFocused(isActive);
           if (isActive) clearDeliveredNotifications();
         }
       );

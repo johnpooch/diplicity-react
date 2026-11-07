@@ -68,4 +68,5 @@ class RatingResultManager(Manager.from_queryset(RatingResultQuerySet)):
             rating_result.record_pairings(result.pairings)
             if not result.protected:
                 ratings[member.user_id].record(rating_result)
+        type(game).objects.bump_version([game.pk])
         return game

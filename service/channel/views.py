@@ -32,11 +32,11 @@ from .serializers import (
 )
 from common.views import (
     ConditionalGetMixin,
+    PrecomputedConditionalGetMixin,
     SelectedGameMixin,
     SelectedChannelMixin,
     CurrentGameMemberMixin,
 )
-
 
 class ReadableChannelsMixin:
     def get_readable_channels(self):
@@ -56,13 +56,18 @@ class ChannelCreateView(
 
 
 class ChannelRetrieveUpdateView(
-    ConditionalGetMixin,
+    PrecomputedConditionalGetMixin,
     ReadableChannelsMixin,
     SelectedGameMixin,
     CurrentGameMemberMixin,
     generics.RetrieveUpdateAPIView,
 ):
     """Retrieve a channel without its message history, or rename a private channel."""
+
+    def get_fingerprint(self):
+        return Channel.objects.retrieve_fingerprint(
+            self.kwargs["game_id"], self.kwargs["channel_id"], self.request
+        )
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:

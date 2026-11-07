@@ -9,6 +9,16 @@ from .models import Phase, PhaseState
 
 @admin.register(Phase)
 class PhaseAdmin(admin.ModelAdmin):
+
+    def save_model(self, request, obj, form, change):
+        Phase.objects.save_phase(obj)
+
+    def delete_model(self, request, obj):
+        Phase.objects.delete_phases(Phase.objects.filter(pk=obj.pk))
+
+    def delete_queryset(self, request, queryset):
+        Phase.objects.delete_phases(queryset)
+
     list_display = [
         "id",
         "game",
@@ -217,6 +227,16 @@ class PhaseAdmin(admin.ModelAdmin):
 
 @admin.register(PhaseState)
 class PhaseStateAdmin(admin.ModelAdmin):
+
+    def save_model(self, request, obj, form, change):
+        PhaseState.objects.save_state(obj)
+
+    def delete_model(self, request, obj):
+        PhaseState.objects.delete_states(PhaseState.objects.filter(pk=obj.pk))
+
+    def delete_queryset(self, request, queryset):
+        PhaseState.objects.delete_states(queryset)
+
     list_display = ["id", "phase", "member", "orders_confirmed", "eliminated"]
     list_filter = ["orders_confirmed", "eliminated"]
     search_fields = ["phase__game__name", "member__user__username"]

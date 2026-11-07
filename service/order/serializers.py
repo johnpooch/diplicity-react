@@ -117,7 +117,7 @@ class OrderSerializer(serializers.Serializer):
                         order.clean()
                     except exceptions.ValidationError as e:
                         raise serializers.ValidationError(e.messages)
-                order.save()
+                Order.objects.save_order(order)
             return Order.objects.with_related_data().get(id=order.id)
 
         return order

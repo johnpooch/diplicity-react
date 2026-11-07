@@ -113,4 +113,4 @@ class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
         with transaction.atomic():
             if Phase.objects.lock_if_active(instance.phase_state.phase_id) is None:
                 raise serializers.ValidationError(IsCurrentPhaseActive.message)
-            instance.delete()
+            Order.objects.delete_order(instance)

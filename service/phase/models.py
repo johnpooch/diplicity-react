@@ -2,6 +2,7 @@ import json
 from contextlib import contextmanager
 from functools import cached_property
 
+from django.apps import apps
 from django.db import models, transaction
 from django.db.models import F, Q, Exists, OuterRef, Count, Prefetch
 from django.utils import timezone
@@ -92,6 +93,23 @@ class PhaseQuerySet(models.QuerySet):
 
 
 class PhaseManager(models.Manager):
+
+    def create(self, **kwargs):
+        phase = super().create(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([phase.game_id])
+        return phase
+
+    def save_phase(self, phase, **kwargs):
+        phase.save(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([phase.game_id])
+        return phase
+
+    def delete_phases(self, phases):
+        game_ids = tuple(phases.values_list("game_id", flat=True))
+        result = phases.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
     def get_queryset(self):
         return PhaseQuerySet(self.model, using=self._db)
 
@@ -120,6 +138,10 @@ class PhaseManager(models.Manager):
         claimed = queryset.filter(pk=phase_id).update(
             status=PhaseStatus.PROCESSING, processing_started_at=timezone.now()
         )
+        if claimed:
+            apps.get_model("game", "Game").objects.bump_version(
+                self.filter(pk=phase_id).values_list("game_id", flat=True)
+            )
         try:
             yield bool(claimed)
         except Exception:
@@ -128,9 +150,14 @@ class PhaseManager(models.Manager):
             raise
 
     def release_from_processing(self, phase_id):
-        return self.filter(pk=phase_id, status=PhaseStatus.PROCESSING).update(
+        updated = self.filter(pk=phase_id, status=PhaseStatus.PROCESSING).update(
             status=PhaseStatus.ACTIVE, processing_started_at=None
         )
+        if updated:
+            apps.get_model("game", "Game").objects.bump_version(
+                self.filter(pk=phase_id).values_list("game_id", flat=True)
+            )
+        return updated
 
     def arm_resolution(self, phase, not_before=None):
         state = list(
@@ -289,6 +316,7 @@ class PhaseManager(models.Manager):
             Member.objects.bulk_update(
                 members_with_extensions, ["nmr_extensions_remaining"]
             )
+            apps.get_model("game", "Game").objects.bump_version([phase.game_id])
 
             self.arm_resolution(phase, not_before=new_resolution)
             self.arm_warning(phase)
@@ -521,6 +549,9 @@ class PhaseManager(models.Manager):
                     CommitmentEntry(member=member, kind=CommitmentEvent.CIVIL_DISORDER)
                 )
         CommitmentEntry.objects.bulk_create(entries)
+        apps.get_model("game", "Game").objects.bump_versions_for_users(
+            [entry.member.user_id for entry in entries]
+        )
 
     def _notify_civil_disorder(self, phase, newly_cd_members):
         if not newly_cd_members:
@@ -554,7 +585,9 @@ class PhaseManager(models.Manager):
 
         game_ids = {m.game_id for m in staging_members}
 
-        Member.objects.filter(id__in=[m.id for m in staging_members]).delete()
+        Member.objects.delete_members(
+            Member.objects.filter(id__in=[m.id for m in staging_members])
+        )
 
         for m in staging_members:
             if m.user_id is None:
@@ -860,7 +893,7 @@ class PhaseManager(models.Manager):
 
         # Mark previous phase as completed
         previous_phase.status = PhaseStatus.COMPLETED
-        previous_phase.save()
+        self.save_phase(previous_phase)
 
         self._emit_phase_resolved(previous_phase)
 
@@ -1091,7 +1124,7 @@ class Phase(BaseModel):
         if self.game.status == GameStatus.COMPLETED:
             raise ValueError("Cannot revert phases in an ended game")
 
-        self.game.phases.filter(ordinal__gt=self.ordinal).delete()
+        Phase.objects.delete_phases(self.game.phases.filter(ordinal__gt=self.ordinal))
 
         orders = Order.objects.filter(phase_state__phase=self)
         orders.filter(is_implicit=True).delete()
@@ -1099,7 +1132,7 @@ class Phase(BaseModel):
 
         self.status = PhaseStatus.ACTIVE
         self.scheduled_resolution = self.game.get_scheduled_resolution(self.type)
-        self.save()
+        Phase.objects.save_phase(self)
 
         self.phase_states.update(orders_confirmed=False)
 
@@ -1108,7 +1141,22 @@ class Phase(BaseModel):
         emit("phase_started", phase=self)
 
 
+class PhaseStateManager(models.Manager):
+    def delete_states(self, states):
+        game_ids = tuple(states.values_list("phase__game_id", flat=True))
+        result = states.delete()
+        apps.get_model("game", "Game").objects.bump_version(game_ids)
+        return result
+
+    def save_state(self, phase_state, **kwargs):
+        phase_state.save(**kwargs)
+        apps.get_model("game", "Game").objects.bump_version([phase_state.phase.game_id])
+        return phase_state
+
+
 class PhaseState(BaseModel):
+    objects = PhaseStateManager()
+
     class OrdersOutcome(models.TextChoices):
         RECEIVED = "received"
         NMR = "nmr"

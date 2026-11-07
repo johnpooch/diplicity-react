@@ -4,6 +4,16 @@ from .models import Order, OrderResolution
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
+
+    def save_model(self, request, obj, form, change):
+        Order.objects.save_order(obj)
+
+    def delete_model(self, request, obj):
+        Order.objects.delete_order(obj)
+
+    def delete_queryset(self, request, queryset):
+        Order.objects.delete_orders(queryset)
+
     list_display = [
         "phase_state",
         "order_type",

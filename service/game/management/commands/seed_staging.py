@@ -126,11 +126,14 @@ class Command(BaseCommand):
             self._seed_reported_anonymous,
             self._seed_reported_in_tester_game,
         ]
+        seeded_game_ids = []
         for scenario in scenarios:
             game = scenario()
+            seeded_game_ids.append(game.pk)
             game.refresh_from_db()
             self.stdout.write(f"  {game.status:<10} {game.name} ({game.id})")
 
+        Game.objects.bump_version(seeded_game_ids)
         commitment = Member.objects.commitment_totals([self.tester.id]).get(
             self.tester.id, 0
         )
@@ -151,6 +154,7 @@ class Command(BaseCommand):
         UserProfile.objects.update_or_create(
             user=user, defaults={"name": name, "kind": kind}
         )
+        Game.objects.bump_versions_for_users([user.pk])
         return user
 
     def _clear(self):
@@ -209,7 +213,7 @@ class Command(BaseCommand):
             user, phase, selected, province_lookup=lookup
         )
         Order.objects.delete_existing_for_source(order.phase_state, order.source)
-        order.save()
+        Order.objects.save_order(order)
 
     def _random_orders(self, phase, phase_state, lookup):
         member = phase_state.member
@@ -279,12 +283,14 @@ class Command(BaseCommand):
         game.current_phase.phase_states.filter(member__user__in=users).update(
             orders_confirmed=True
         )
+        Game.objects.bump_version([game.pk])
 
     def _muster(self, game, confirmed=()):
         game.start_if_full()
         game.members.players().filter(user__in=confirmed).update(
             mustered_at=timezone.now()
         )
+        Game.objects.bump_version([game.pk])
         Game.objects.arm_muster(game)
         return game
 

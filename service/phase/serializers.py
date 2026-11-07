@@ -5,7 +5,7 @@ from common.constants import PhaseStatus, PhaseType
 from common.permissions import IsCurrentPhaseActive
 from emit import emit
 from member.serializers import MemberSerializer
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 from phase.utils import compute_province_nations
 from province.models import Province
 from province.serializers import ProvinceSerializer
@@ -33,7 +33,7 @@ class PhaseStateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(IsCurrentPhaseActive.message)
 
             instance.orders_confirmed = not instance.orders_confirmed
-            instance.save()
+            PhaseState.objects.save_state(instance)
 
             if instance.orders_confirmed:
                 emit("phase_state_confirmed", phase=instance.phase)

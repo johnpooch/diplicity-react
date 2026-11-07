@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
+import { useAdaptiveRefetchInterval } from "@/hooks/useAdaptiveRefetchInterval";
+import { GAME_POLL_SCHEDULE } from "@/hooks/adaptiveRefetchInterval";
+import type { GameRetrieve } from "@/api/generated/endpoints";
 import { Map, Gavel, MessageCircle, Users, Info, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -56,6 +59,9 @@ interface GameDetailLayoutProps {
   className?: string;
 }
 
+const isActiveGame = (game: GameRetrieve | undefined) =>
+  game?.status === "active";
+
 const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   children,
   className,
@@ -68,11 +74,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   }>();
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const isMobile = useIsMobile();
+  const refetchInterval = useAdaptiveRefetchInterval(
+    GAME_POLL_SCHEDULE,
+    isActiveGame
+  );
 
   const { data: game } = useGameRetrieve(gameId, {
     query: {
-      refetchInterval: query =>
-        query.state.data?.status === "active" ? 5000 : false,
+      refetchInterval,
+      refetchOnWindowFocus: "always",
     },
   });
 

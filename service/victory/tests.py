@@ -179,7 +179,12 @@ class TestCheckForSoloWinner:
 class TestVictoryManager:
 
     def test_try_create_victory_creates_solo_victory(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        supply_center_factory,
+        assert_game_revalidated,
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
         phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
@@ -193,7 +198,8 @@ class TestVictoryManager:
         for _ in range(10):
             supply_center_factory(phase=phase, nation=other_member.nation)
 
-        victory = Victory.objects.try_create_victory(phase)
+        with assert_game_revalidated(game):
+            victory = Victory.objects.try_create_victory(phase)
 
         assert victory is not None
         assert victory.game == game

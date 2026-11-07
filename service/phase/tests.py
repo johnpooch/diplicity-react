@@ -50,6 +50,7 @@ def test_confirm_phase_success(
     active_game_with_phase_state,
     secondary_user,
     classical_france_nation,
+    assert_game_revalidated,
 ):
     # Add secondary user so that phase doesn't resolve
     secondary_member = active_game_with_phase_state.members.create(
@@ -60,7 +61,8 @@ def test_confirm_phase_success(
     )
 
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
-    response = authenticated_client.put(url)
+    with assert_game_revalidated(active_game_with_phase_state):
+        response = authenticated_client.put(url)
     assert response.status_code == status.HTTP_200_OK
 
     phase_states = active_game_with_phase_state.current_phase.phase_states.all()
@@ -1299,13 +1301,15 @@ class TestCreateFromAdjudicationData:
         self,
         italy_vs_germany_phase_with_orders,
         mock_adjudication_data_basic,
+        assert_game_revalidated,
     ):
         phase = italy_vs_germany_phase_with_orders
         initial_phase_count = Phase.objects.count()
 
-        new_phase = Phase.objects.create_from_adjudication_data(
-            phase, mock_adjudication_data_basic
-        )
+        with assert_game_revalidated(phase.game):
+            new_phase = Phase.objects.create_from_adjudication_data(
+                phase, mock_adjudication_data_basic
+            )
 
         assert Phase.objects.count() == initial_phase_count + 1
         assert new_phase.season == "Spring"
@@ -7510,6 +7514,7 @@ class TestNMRExtensionsFixedTime:
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
         italy_vs_germany_venice_province,
+        assert_game_revalidated,
     ):
         now = timezone.now()
         game, italy, germany, phase = deadline_warning_game_factory(
@@ -7528,7 +7533,8 @@ class TestNMRExtensionsFixedTime:
         )
         phase.phase_states.create(member=italy, has_possible_orders=True)
 
-        result = Phase.objects._apply_nmr_extensions(phase)
+        with assert_game_revalidated(game):
+            result = Phase.objects._apply_nmr_extensions(phase)
 
         assert result is not None
         italy.refresh_from_db()

@@ -13,6 +13,8 @@ import { useDraft, useRequiredParams } from "@/hooks";
 import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { useChannelMessages } from "@/hooks/useChannelMessages";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useAdaptiveRefetchInterval } from "@/hooks/useAdaptiveRefetchInterval";
+import { CHANNEL_POLL_SCHEDULE } from "@/hooks/adaptiveRefetchInterval";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -390,10 +392,11 @@ const ChannelScreen: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: userProfile } = useUserRetrieveSuspense();
+  const refetchInterval = useAdaptiveRefetchInterval(CHANNEL_POLL_SCHEDULE);
   const { data: channel } = useGamesChannelsRetrieveSuspense(
     gameId,
     numericChannelId,
-    { query: { refetchInterval: 5000 } }
+    { query: { refetchInterval, refetchOnWindowFocus: "always" } }
   );
   const { messages, hasOlder, fetchOlder, isFetchingOlder, isFetchOlderError } =
     useChannelMessages(gameId, numericChannelId, channel.latestMessageId);

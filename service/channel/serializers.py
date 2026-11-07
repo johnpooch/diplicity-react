@@ -248,23 +248,10 @@ class ChannelUpdateSerializer(serializers.Serializer):
     )
 
     def update(self, instance, validated_data):
-        title = validated_data["title"]
-        if title == instance.title:
-            return instance
-
         member = self.context["current_game_member"]
-        instance.title = title
-        instance.save(update_fields=["title"])
-
-        emit(
-            "channel_renamed",
-            game=instance.game,
-            phase=instance.game.current_phase,
-            channel=instance,
-            nation=actor_label(member),
-            name=title,
+        return Channel.objects.rename(
+            instance, validated_data["title"], actor_label(member)
         )
-        return instance
 
 
 class ChannelMarkReadSerializer(serializers.Serializer):
@@ -281,15 +268,7 @@ class ChannelLeaveSerializer(serializers.Serializer):
     def create(self, validated_data):
         channel = self.context["channel"]
         member = self.context["current_game_member"]
-        ChannelMember.objects.filter(member=member, channel=channel).delete()
-        emit(
-            "channel_left",
-            game=channel.game,
-            phase=channel.game.current_phase,
-            channel=channel,
-            nation=actor_label(member),
-        )
-        return channel
+        return Channel.objects.leave(channel, member, actor_label(member))
 
 
 class ChannelMuteSerializer(serializers.Serializer):

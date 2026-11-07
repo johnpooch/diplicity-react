@@ -941,11 +941,16 @@ class TestModerationReportAssignView:
 
     @pytest.mark.django_db
     def test_moderator_takes_unassigned_report(
-        self, moderator_client, moderator, report_factory
+        self,
+        moderator_client,
+        moderator,
+        report_factory,
+        assert_game_revalidated,
     ):
         report = report_factory()
 
-        response = moderator_client.post(_assign_url(report))
+        with assert_game_revalidated(report.game, moderator_client):
+            response = moderator_client.post(_assign_url(report))
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == report.id
@@ -1216,12 +1221,19 @@ class TestModerationReportDecisionViews:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_assignee_approves(self, moderator_client, moderator, assigned_report):
-        response = moderator_client.post(
-            _approve_url(assigned_report),
-            {"note": "Slurs in global press."},
-            format="json",
-        )
+    def test_assignee_approves(
+        self,
+        moderator_client,
+        moderator,
+        assigned_report,
+        assert_game_revalidated,
+    ):
+        with assert_game_revalidated(assigned_report.game, moderator_client):
+            response = moderator_client.post(
+                _approve_url(assigned_report),
+                {"note": "Slurs in global press."},
+                format="json",
+            )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["status"] == "approved"
