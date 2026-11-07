@@ -24,6 +24,7 @@ vi.mock("../observability", () => ({
 }));
 
 import {
+  markGameUsable,
   markNavigationCommitted,
   startFallbackSpan,
   trackNavigations,
@@ -62,9 +63,17 @@ describe("navigationTelemetry", () => {
     vi.useRealTimers();
   });
 
+  const trackAndSettle = (router: Parameters<typeof trackNavigations>[0]) => {
+    trackNavigations(router);
+    markNavigationCommitted();
+    vi.runAllTimers();
+    startSpanSpy.mockClear();
+    ended.length = 0;
+  };
+
   it("ends a navigation span once the destination commits", () => {
     const { router, navigate } = makeRouter();
-    trackNavigations(router);
+    trackAndSettle(router);
 
     navigate("b", "/find-games");
 
@@ -81,7 +90,7 @@ describe("navigationTelemetry", () => {
 
   it("holds the navigation span open while a fallback is mounted", () => {
     const { router, navigate } = makeRouter();
-    trackNavigations(router);
+    trackAndSettle(router);
     navigate("b", "/find-games");
 
     const endFallback = startFallbackSpan();
@@ -95,9 +104,27 @@ describe("navigationTelemetry", () => {
     expect(ended).toEqual(["suspense.fallback", "navigation"]);
   });
 
-  it("starts a game.open span when entering a game", () => {
+  it("gives each navigation its own span", () => {
     const { router, navigate } = makeRouter();
-    trackNavigations(router);
+    trackAndSettle(router);
+
+    navigate("b", "/find-games");
+    navigate("c", "/");
+
+    expect(ended).toEqual(["navigation"]);
+    expect(
+      startSpanSpy.mock.calls.filter(([name]) => name === "navigation")
+    ).toHaveLength(2);
+
+    markNavigationCommitted();
+    vi.runAllTimers();
+
+    expect(ended).toEqual(["navigation", "navigation"]);
+  });
+
+  it("keeps game.open open after the navigation settles until the game is usable", () => {
+    const { router, navigate } = makeRouter();
+    trackAndSettle(router);
 
     navigate("b", "/game/:gameId/phase/:phaseId");
     markNavigationCommitted();
@@ -106,13 +133,49 @@ describe("navigationTelemetry", () => {
     expect(startSpanSpy).toHaveBeenCalledWith("game.open", {
       attributes: { "game.route": "/game/:gameId/phase/:phaseId" },
     });
+    expect(ended).toEqual(["navigation"]);
+
+    markGameUsable();
+
+    expect(ended).toEqual(["navigation", "game.open"]);
+  });
+
+  it("starts game.open for a game opened as the first location", () => {
+    routeRef.current = "/game/:gameId/phase/:phaseId";
+    const { router } = makeRouter();
+    trackNavigations(router);
+
+    expect(startSpanSpy).toHaveBeenCalledWith("navigation", {
+      attributes: {
+        "navigation.from": "",
+        "navigation.to": "/game/:gameId/phase/:phaseId",
+      },
+    });
+    expect(startSpanSpy).toHaveBeenCalledWith("game.open", {
+      attributes: { "game.route": "/game/:gameId/phase/:phaseId" },
+    });
+
+    ended.length = 0;
+    markGameUsable();
+
+    expect(ended).toEqual(["game.open"]);
+  });
+
+  it("ends game.open when navigating away before the game is usable", () => {
+    routeRef.current = "/game/:gameId/phase/:phaseId";
+    const { router, navigate } = makeRouter();
+    trackNavigations(router);
+    ended.length = 0;
+
+    navigate("b", "/");
+
     expect(ended).toEqual(["navigation", "game.open"]);
   });
 
   it("does not start game.open when moving within a game", () => {
     routeRef.current = "/game/:gameId/phase/:phaseId";
     const { router, navigate } = makeRouter();
-    trackNavigations(router);
+    trackAndSettle(router);
 
     navigate("b", "/game/:gameId/phase/:phaseId/chat");
 

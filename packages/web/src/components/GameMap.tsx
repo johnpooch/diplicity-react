@@ -34,6 +34,7 @@ import {
 import { useOrderWizard } from "../hooks/useOrderWizard";
 import { canEnterOrdersForPhase } from "../utils/orderEntry";
 import { filterOrderableOptions } from "../utils/orderableOptions";
+import { markGameUsable } from "../utils/navigationTelemetry";
 
 function useBanner(duration = 3000) {
   const [message, setMessage] = useState<string | null>(null);
@@ -138,6 +139,17 @@ const GameMap: React.FC = () => {
         .map((m) => m.nation as string),
     [game?.members]
   );
+
+  const isUsable =
+    !!game &&
+    !!variant &&
+    !!phase &&
+    !!orders &&
+    (!canEnterOrders || (!!optionsData && !!phaseStates));
+
+  useEffect(() => {
+    if (isUsable) markGameUsable();
+  }, [isUsable]);
 
   const isWizardActive = Object.keys(wizard.resolvedSelections).length > 0;
 
