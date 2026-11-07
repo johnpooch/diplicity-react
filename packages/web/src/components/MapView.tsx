@@ -18,6 +18,7 @@ import { healLazyImport, StaleChunkFallback } from "../utils/lazyScreen";
 
 const GameMapCanvas = lazy(() =>
   healLazyImport<ComponentType<GameMapCanvasProps>>(
+    "GameMapCanvas",
     async () => (await import("./GameMapCanvas/GameMapCanvas"))?.GameMapCanvas,
     StaleChunkFallback
   )
