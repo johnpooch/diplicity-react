@@ -2,6 +2,8 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import requests
+from django.core.management import call_command
 from django.urls import reverse
 from procrastinate.contrib.django import app
 from rest_framework import status
@@ -81,3 +83,40 @@ class TestHealthCheckView:
         # Test HEAD
         response = unauthenticated_client.head(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+class TestMarkDeploy:
+    @pytest.fixture
+    def production_env(self, monkeypatch):
+        monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", "abc123")
+        monkeypatch.setenv("HONEYCOMB_MARKERS_API_KEY", "key")
+        monkeypatch.setenv("RAILWAY_ENVIRONMENT_NAME", "production")
+
+    def test_posts_one_marker_for_the_release(self, production_env):
+        with patch("health.management.commands.mark_deploy.requests.post") as post:
+            call_command("mark_deploy")
+        post.assert_called_once()
+        assert post.call_args.kwargs["json"] == {
+            "type": "backend-deploy",
+            "message": "Backend deploy abc123",
+        }
+        assert post.call_args.kwargs["headers"] == {"X-Honeycomb-Team": "key"}
+
+    def test_skips_outside_production(self, production_env, monkeypatch):
+        monkeypatch.setenv("RAILWAY_ENVIRONMENT_NAME", "staging")
+        with patch("health.management.commands.mark_deploy.requests.post") as post:
+            call_command("mark_deploy")
+        post.assert_not_called()
+
+    def test_skips_without_api_key(self, production_env, monkeypatch):
+        monkeypatch.delenv("HONEYCOMB_MARKERS_API_KEY")
+        with patch("health.management.commands.mark_deploy.requests.post") as post:
+            call_command("mark_deploy")
+        post.assert_not_called()
+
+    def test_swallows_request_failures(self, production_env):
+        with patch(
+            "health.management.commands.mark_deploy.requests.post",
+            side_effect=requests.ConnectionError,
+        ):
+            call_command("mark_deploy")
