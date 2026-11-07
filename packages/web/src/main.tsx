@@ -23,6 +23,7 @@ import { initializeSentry } from "./sentry";
 import { themeStorage } from "./theme/themeStorage";
 import { isNativePlatform } from "./utils/platform";
 import { reloadForStaleChunk } from "./utils/staleChunk";
+import { recordStaleChunkReload } from "./utils/chunkTelemetry";
 
 if (isNativePlatform()) {
   setTimeout(() => SplashScreen.hide(), 10000);
@@ -34,6 +35,7 @@ initializeSentry();
 
 window.addEventListener("vite:preloadError", (event) => {
   event.preventDefault();
+  recordStaleChunkReload("preload_error");
   reloadForStaleChunk();
 });
 
