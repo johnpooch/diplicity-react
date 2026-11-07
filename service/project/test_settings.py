@@ -114,3 +114,56 @@ class TestVersion:
         result = _load_setting("VERSION", GIT_SHA="abc123")
 
         assert result.stdout.splitlines()[-1] == "'abc123'"
+
+
+def _sentry_init_kwargs(**overrides):
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in ("ENVIRONMENT", "GIT_SHA", "DJANGO_DEBUG")
+    }
+    environment.update(
+        DJANGO_SECRET_KEY="test-secret", SENTRY_DSN="https://key@example.com/1"
+    )
+    environment.update(overrides)
+    code = (
+        "import sentry_sdk\n"
+        "sentry_sdk.init = lambda **kwargs: print("
+        "repr((kwargs['environment'], kwargs['release'])))\n"
+        "import project.settings\n"
+    )
+    return subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=SERVICE_DIR,
+        env=environment,
+        capture_output=True,
+        text=True,
+    )
+
+
+class TestSentry:
+    def test_environment_comes_from_environment_variable(self):
+        result = _sentry_init_kwargs(ENVIRONMENT="staging", DJANGO_DEBUG="False")
+
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines()[-1] == "('staging', None)"
+
+    def test_environment_ignores_debug(self):
+        result = _sentry_init_kwargs(ENVIRONMENT="production", DJANGO_DEBUG="True")
+
+        assert result.stdout.splitlines()[-1] == "('production', None)"
+
+    def test_environment_defaults_to_development(self):
+        result = _sentry_init_kwargs()
+
+        assert result.stdout.splitlines()[-1] == "('development', None)"
+
+    def test_release_comes_from_git_sha(self):
+        result = _sentry_init_kwargs(ENVIRONMENT="staging", GIT_SHA="abc123")
+
+        assert result.stdout.splitlines()[-1] == "('staging', 'abc123')"
+
+    def test_release_is_unset_when_git_sha_is_empty(self):
+        result = _sentry_init_kwargs(GIT_SHA="")
+
+        assert result.stdout.splitlines()[-1] == "('development', None)"

@@ -139,10 +139,31 @@ export const parseServerDuration = (
   return match ? Number(match[1]) : undefined;
 };
 
+export const isServedFromCache = (
+  entry: Pick<PerformanceResourceTiming, "transferSize" | "decodedBodySize">
+): boolean => entry.transferSize === 0 && entry.decodedBodySize > 0;
+
+const lookupServedFromCache = (url: string): boolean => {
+  if (!url || typeof performance?.getEntriesByName !== "function") {
+    return false;
+  }
+  const entries = performance.getEntriesByName(url, "resource");
+  const entry = entries[entries.length - 1] as
+    | PerformanceResourceTiming
+    | undefined;
+  return entry !== undefined && isServedFromCache(entry);
+};
+
 const recordServerDuration = (
   span: Span | ApiSpan,
-  header: string | null | undefined
+  header: string | null | undefined,
+  url: string
 ) => {
+  if (lookupServedFromCache(url)) {
+    span.setAttribute("http.cache_hit", true);
+    return;
+  }
+  span.setAttribute("http.cache_hit", false);
   const duration = parseServerDuration(header);
   if (duration !== undefined) {
     span.setAttribute("http.server_duration_ms", duration);
@@ -208,7 +229,11 @@ export function initializeObservability() {
         clearTimingResources: true,
         applyCustomAttributesOnSpan: (span, _request, result) => {
           if (result instanceof Response) {
-            recordServerDuration(span, result.headers.get("server-timing"));
+            recordServerDuration(
+              span,
+              result.headers.get("server-timing"),
+              result.url
+            );
           }
         },
       }),
@@ -226,7 +251,11 @@ export function initializeObservability() {
             span.setAttribute("request.blocking", tag.blocking);
             span.setAttribute("request.reason", tag.reason);
           }
-          recordServerDuration(span, xhr.getResponseHeader("server-timing"));
+          recordServerDuration(
+            span,
+            xhr.getResponseHeader("server-timing"),
+            xhr.responseURL
+          );
         },
       }),
     ],

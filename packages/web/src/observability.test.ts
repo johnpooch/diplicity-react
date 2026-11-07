@@ -4,6 +4,7 @@ import { SamplingDecision } from "@opentelemetry/sdk-trace-web";
 import {
   TRACE_SAMPLE_RATE,
   currentRouteTemplate,
+  isServedFromCache,
   parseServerDuration,
   deterministicSampler,
   generateSessionId,
@@ -177,5 +178,25 @@ describe("generateSessionId", () => {
     vi.stubGlobal("crypto", undefined);
 
     expect(generateSessionId()).toMatch(uuidV4);
+  });
+});
+
+describe("isServedFromCache", () => {
+  it("is true when bytes were decoded without any transfer", () => {
+    expect(isServedFromCache({ transferSize: 0, decodedBodySize: 512 })).toBe(
+      true
+    );
+  });
+
+  it("is false when bytes crossed the network", () => {
+    expect(isServedFromCache({ transferSize: 800, decodedBodySize: 512 })).toBe(
+      false
+    );
+  });
+
+  it("is false for an empty body", () => {
+    expect(isServedFromCache({ transferSize: 0, decodedBodySize: 0 })).toBe(
+      false
+    );
   });
 });

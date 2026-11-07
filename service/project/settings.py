@@ -33,11 +33,8 @@ if SENTRY_DSN:
         ],
         traces_sampler=traces_sampler,
         send_default_pii=False,
-        environment=(
-            "development"
-            if os.getenv("DJANGO_DEBUG", "False") == "True"
-            else "production"
-        ),
+        environment=os.getenv("ENVIRONMENT") or "development",
+        release=os.getenv("GIT_SHA") or None,
     )
 
 
@@ -134,6 +131,7 @@ if _FIREBASE_PROJECT_ID:
 
 MIDDLEWARE = [
     "project.otel_config.ServerTimingMiddleware",
+    "project.otel_config.QueryStatsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.gzip.GZipMiddleware",
@@ -144,7 +142,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "project.otel_config.QueryStatsMiddleware",
 ]
 
 CORS_ALLOWED_ORIGINS = os.getenv(
