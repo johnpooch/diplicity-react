@@ -60,6 +60,11 @@ Only poll (`refetchInterval`) an endpoint whose view uses `ConditionalGetMixin` 
 
 Otherwise, minimise `useEffect` — prefer derived state and event handlers.
 
+
+### Request telemetry
+
+Request reasons are derived from query state. Pass `meta: { prefetch: true }` only to a speculative fetch nobody is waiting on, such as warming a cache in an effect. Never set it on a route loader fetch or any fetch that gates rendering: the user waits on it, so it is a `mount` and is classified that way by default.
+
 ## Components
 
 Screens live in `src/screens/` (or feature subdirectories like `screens/GameDetail/`); shared components in `src/components/`. Keep it flat. Check `src/components/` for an existing component before creating a new one. Keep components under 200 lines.

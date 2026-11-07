@@ -69,3 +69,8 @@ Every workflow that builds the web app for a store release or an OTA bundle pass
 without it `src/sentry.ts` skips initialisation and native failures are invisible.
 `src/utils/otaBundle.ts` tags events with the running bundle version (every bundle shares the store
 build's `__APP_VERSION__`) and reports a bundle the plugin rolled back. It also feeds the bundle and native binary versions to `diplicity-web` spans as `app.ota_bundle_version` and `app.native_version`; `app.git_sha` (the build's `__GIT_SHA__`) identifies the exact build on every platform.
+
+## Native builds send web telemetry
+
+`bundle-release.yml` passes `VITE_HONEYCOMB_API_KEY`; without it `src/observability.ts` skips
+initialisation, so a bundle built without it silences all native web telemetry.
