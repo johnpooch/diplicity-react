@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '../auth/tokenStorage';
+import { recordRequestTag } from './requestTelemetry';
 
 const diplictityApiBaseUrl =
   import.meta.env.VITE_DIPLICITY_API_BASE_URL || 'http://localhost:8000';
@@ -25,6 +26,7 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (accessToken && config.headers) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+  recordRequestTag(config);
   return config;
 });
 

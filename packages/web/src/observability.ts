@@ -17,6 +17,7 @@ import { XMLHttpRequestInstrumentation } from "@opentelemetry/instrumentation-xm
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
 import { Capacitor } from "@capacitor/core";
+import { consumeRequestTag } from "./api/requestTelemetry";
 
 export const TRACE_SAMPLE_RATE = 10;
 
@@ -65,6 +66,21 @@ export const sessionRouteSpanProcessor: SpanProcessor = {
   shutdown: () => Promise.resolve(),
 };
 
+export const requestTagSpanProcessor: SpanProcessor = {
+  onStart(span: Span) {
+    const tag = consumeRequestTag(
+      span.attributes["http.method"],
+      span.attributes["http.url"]
+    );
+    if (!tag) return;
+    span.setAttribute("request.blocking", tag.blocking);
+    span.setAttribute("request.reason", tag.reason);
+  },
+  onEnd() {},
+  forceFlush: () => Promise.resolve(),
+  shutdown: () => Promise.resolve(),
+};
+
 export const parseServerDuration = (
   header: string | null | undefined
 ): number | undefined => {
@@ -92,8 +108,7 @@ export function initializeObservability() {
     return;
   }
 
-  const serviceName =
-    import.meta.env.VITE_OTEL_SERVICE_NAME || "diplicity-web";
+  const serviceName = import.meta.env.VITE_OTEL_SERVICE_NAME || "diplicity-web";
   const environment = detectEnvironment();
 
   const resource = resourceFromAttributes({
@@ -115,7 +130,11 @@ export function initializeObservability() {
   const provider = new WebTracerProvider({
     resource,
     sampler: deterministicSampler,
-    spanProcessors: [sessionRouteSpanProcessor, spanProcessor],
+    spanProcessors: [
+      sessionRouteSpanProcessor,
+      requestTagSpanProcessor,
+      spanProcessor,
+    ],
   });
 
   provider.register({
@@ -127,7 +146,10 @@ export function initializeObservability() {
       new DocumentLoadInstrumentation(),
       new FetchInstrumentation({
         propagateTraceHeaderCorsUrls: [
-          new RegExp(import.meta.env.VITE_DIPLICITY_API_BASE_URL || "http://localhost:8000"),
+          new RegExp(
+            import.meta.env.VITE_DIPLICITY_API_BASE_URL ||
+              "http://localhost:8000"
+          ),
         ],
         clearTimingResources: true,
         applyCustomAttributesOnSpan: (span, _request, result) => {
@@ -138,7 +160,10 @@ export function initializeObservability() {
       }),
       new XMLHttpRequestInstrumentation({
         propagateTraceHeaderCorsUrls: [
-          new RegExp(import.meta.env.VITE_DIPLICITY_API_BASE_URL || "http://localhost:8000"),
+          new RegExp(
+            import.meta.env.VITE_DIPLICITY_API_BASE_URL ||
+              "http://localhost:8000"
+          ),
         ],
         clearTimingResources: true,
         applyCustomAttributesOnSpan: (span, xhr) => {

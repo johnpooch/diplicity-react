@@ -18,10 +18,12 @@ import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
 import { clearDeliveredNotifications } from "./utils/deliveredNotifications";
 import { reportOtaBundle } from "./utils/otaBundle";
+import { registerQueryClient } from "./api/requestTelemetry";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
 import { useNotificationPermissionPrompt } from "./hooks/useNotificationPermissionPrompt";
 
 const queryClient = new QueryClient();
+registerQueryClient(queryClient);
 
 // Variants are essentially static reference data (published variants almost
 // never change; drafts only change when the owner edits them). Combined with
