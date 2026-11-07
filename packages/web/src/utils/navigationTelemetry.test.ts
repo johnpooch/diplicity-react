@@ -24,6 +24,7 @@ vi.mock("../observability", () => ({
 }));
 
 import {
+  hasActiveFallbacks,
   markNavigationCommitted,
   startFallbackSpan,
   trackNavigations,
@@ -93,6 +94,16 @@ describe("navigationTelemetry", () => {
     vi.runAllTimers();
 
     expect(ended).toEqual(["suspense.fallback", "navigation"]);
+  });
+
+  it("reports active fallbacks while one is mounted", () => {
+    expect(hasActiveFallbacks()).toBe(false);
+
+    const endFallback = startFallbackSpan();
+    expect(hasActiveFallbacks()).toBe(true);
+
+    endFallback();
+    expect(hasActiveFallbacks()).toBe(false);
   });
 
   it("starts a game.open span when entering a game", () => {

@@ -8,7 +8,7 @@ import {
   useRouteError,
   type RouteObject,
 } from "react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
 import { Register } from "./screens/Register";
 import { CheckEmail } from "./screens/CheckEmail";
@@ -40,10 +40,12 @@ import { isUnstartedGameStatus } from "./util";
 import * as Sentry from "@sentry/react";
 import { setActiveRouter } from "./observability";
 import {
+  hasActiveFallbacks,
   markNavigationCommitted,
   startFallbackSpan,
   trackNavigations,
 } from "./utils/navigationTelemetry";
+import { reportAppLaunch } from "./webVitals";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import {
   isNetworkError,
@@ -65,6 +67,15 @@ const NavigationTracker: React.FC = () => {
   React.useEffect(() => {
     markNavigationCommitted();
   }, [location.key]);
+
+  const fetching = useIsFetching();
+  React.useEffect(() => {
+    if (fetching > 0) return;
+    const timer = setTimeout(() => {
+      if (!hasActiveFallbacks()) reportAppLaunch();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetching, location.key]);
   return null;
 };
 
