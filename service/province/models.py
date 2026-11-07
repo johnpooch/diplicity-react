@@ -1,8 +1,23 @@
+from django.core.cache import cache
 from django.db import models
 from common.constants import ProvinceType
 
+VARIANT_PROVINCES_CACHE_TIMEOUT = 60 * 60 * 24
+
+
+class ProvinceManager(models.Manager):
+    def cached_for_variant(self, variant):
+        key = f"variant-provinces:{variant.id}:{variant.updated_at.isoformat()}"
+        provinces = cache.get(key)
+        if provinces is None:
+            provinces = list(self.filter(variant=variant).select_related("parent"))
+            cache.set(key, provinces, VARIANT_PROVINCES_CACHE_TIMEOUT)
+        return provinces
+
 
 class Province(models.Model):
+    objects = ProvinceManager()
+
     province_id = models.CharField(max_length=10)
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=20, choices=ProvinceType.TYPE_CHOICES)

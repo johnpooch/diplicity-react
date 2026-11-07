@@ -5,6 +5,7 @@ from django.db import IntegrityError, DatabaseError, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.test.utils import override_settings
+from django.core.cache import cache
 from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
@@ -23,7 +24,7 @@ from common.constants import (
 )
 from game.models import Game
 from .models import Phase, PhaseState
-from .serializers import PhaseStateSerializer
+from .serializers import PhaseRetrieveSerializer, PhaseStateSerializer
 from .utils import transform_options, phase_to_canonical_game_state
 from order.models import Order, OrderResolution
 from supply_center.models import SupplyCenter
@@ -35,6 +36,8 @@ from province.models import Province
 from user_profile.models import UserProfile
 from adjudicator.serializers import deserialize_variant, deserialize_game_state
 from variant.utils import variant_to_canonical_dict
+
+LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
 def _admin_reassigned_notifications():
@@ -2404,7 +2407,108 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 22
+        assert query_count == 16
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_warm_cache_query_count(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        django_assert_num_queries,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+
+        with override_settings(CACHES=LOCMEM_CACHE):
+            cache.clear()
+            try:
+                Province.objects.cached_for_variant(phase.variant)
+                with django_assert_num_queries(15):
+                    response = authenticated_client.get(url)
+            finally:
+                cache.clear()
+
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_retrieve_serializer_uses_prefetched_relations(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_spain_province,
+        classical_spain_nc_province,
+        classical_stp_nc_province,
+        classical_london_province,
+        django_assert_num_queries,
+    ):
+        phase = active_game_with_phase_state.current_phase
+        for province, dislodged_from in [
+            (classical_spain_nc_province, classical_stp_nc_province),
+            (classical_london_province, classical_spain_province),
+        ]:
+            phase.units.create(
+                type=UnitType.FLEET,
+                nation=classical_england_nation,
+                province=province,
+                dislodged=True,
+                dislodged_from=dislodged_from,
+            )
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=province.parent or province
+            )
+        phase = Phase.objects.with_retrieve_data().get(pk=phase.pk)
+        phase.variant_provinces = Province.objects.cached_for_variant(phase.variant)
+
+        with django_assert_num_queries(2):
+            data = PhaseRetrieveSerializer(phase).data
+
+        dislodged_units = [unit for unit in data["units"] if unit["dislodged"]]
+        assert dislodged_units[0]["province"]["parent_id"] == "spa"
+        assert dislodged_units[0]["dislodged_from"]["parent_id"] == "stp"
+        assert set(dislodged_units[1]["dislodged_from"]["named_coast_ids"]) == {
+            "spa/nc",
+            "spa/sc",
+        }
+        assert len(data["supply_centers"]) == 3
+
+
+class TestPhaseRetrieveProvinceNations:
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("through_view", [False, True])
+    def test_province_owned_by_surrounding_nation(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_edinburgh_province,
+        classical_liverpool_province,
+        through_view,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        for province in [
+            classical_london_province,
+            classical_edinburgh_province,
+            classical_liverpool_province,
+        ]:
+            phase.supply_centers.create(
+                nation=classical_england_nation, province=province
+            )
+
+        if through_view:
+            response = authenticated_client.get(
+                reverse("phase-retrieve", args=[game.id, phase.id])
+            )
+            assert response.status_code == status.HTTP_200_OK
+            data = response.data
+        else:
+            data = PhaseRetrieveSerializer(phase).data
+
+        assert data["province_nations"]["yor"] == "England"
+        assert data["province_nations"]["wal"] == "England"
 
 
 class TestResolveTransactionSafety:

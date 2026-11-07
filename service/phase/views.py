@@ -16,6 +16,7 @@ from common.views import (
     CurrentGameMemberMixin,
 )
 from rest_framework.response import Response
+from province.models import Province
 from .models import Phase
 from .serializers import (
     PhaseStateSerializer,
@@ -91,7 +92,12 @@ class PhaseRetrieveView(
     completed_phase_etag_salt = "phase"
 
     def get_queryset(self):
-        return Phase.objects.with_related_data()
+        return Phase.objects.with_retrieve_data()
+
+    def get_object(self):
+        phase = super().get_object()
+        phase.variant_provinces = Province.objects.cached_for_variant(phase.variant)
+        return phase
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):
