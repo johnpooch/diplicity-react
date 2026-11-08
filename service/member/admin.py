@@ -13,8 +13,6 @@ class MemberAdmin(admin.ModelAdmin):
         "game",
         "kind",
         "nation_name",
-        "won",
-        "drew",
         "eliminated_at",
         "civil_disorder_at",
         "removed_at",
@@ -22,8 +20,6 @@ class MemberAdmin(admin.ModelAdmin):
     )
     list_filter = (
         "kind",
-        "won",
-        "drew",
         "eliminated_at",
         "civil_disorder_at",
         "removed_at",
