@@ -202,6 +202,25 @@ class TestVictoryManager:
         assert victory.members.count() == 1
         assert victory.members.first() == winner
 
+    def test_try_create_victory_marks_winner_as_won(
+        self, game_factory, phase_factory, member_factory, supply_center_factory
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
+
+        winner = member_factory(game=game)
+        other_member = member_factory(game=game)
+
+        for _ in range(18):
+            supply_center_factory(phase=phase, nation=winner.nation)
+
+        Victory.objects.try_create_victory(phase)
+
+        winner.refresh_from_db()
+        other_member.refresh_from_db()
+        assert winner.won is True
+        assert other_member.won is False
+
     def test_try_create_victory_returns_none_when_no_winner(
         self, game_factory, phase_factory, member_factory, supply_center_factory
     ):
