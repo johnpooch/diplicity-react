@@ -1342,9 +1342,6 @@ class Game(BaseModel):
     def finish_with_draw(self, phase, members):
         victory = Victory.objects.create(game=self, winning_phase=phase)
         victory.members.set(members)
-        for member in members:
-            member.drew = True
-            Member.objects.save_member(member, update_fields=["drew", "updated_at"])
         self.finish(GameStatus.COMPLETED)
         self.defer_rating()
         return victory

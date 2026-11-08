@@ -494,8 +494,16 @@ class TestNationFlagUploadView:
 
 @pytest.mark.django_db
 class TestNationFlagSvgView:
-    def test_serves_svg_for_a_valid_hash(self, unauthenticated_client, primary_flag):
-        response = unauthenticated_client.get(
+    @pytest.mark.parametrize("method", ["get", "head"])
+    @pytest.mark.parametrize(
+        "origin",
+        [None, "capacitor://localhost", "https://localhost", "https://other.example"],
+    )
+    def test_serves_svg_for_a_valid_hash(
+        self, unauthenticated_client, primary_flag, method, origin
+    ):
+        headers = {"Origin": origin} if origin else {}
+        response = getattr(unauthenticated_client, method)(
             reverse(
                 "nation-flag-svg",
                 kwargs={
@@ -503,10 +511,13 @@ class TestNationFlagSvgView:
                     "nation_id": "reds",
                     "content_hash": primary_flag.content_hash,
                 },
-            )
+            ),
+            headers=headers,
         )
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "image/svg+xml"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "Access-Control-Allow-Credentials" not in response
 
     def test_sets_immutable_cache_control(self, unauthenticated_client, primary_flag):
         response = unauthenticated_client.get(

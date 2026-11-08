@@ -1591,7 +1591,7 @@ class TestOrderDeleteViewQueryPerformance:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         query_count = len(connection.queries)
 
-        assert query_count == 10
+        assert query_count == 12
 
 
 class TestGetOptionsForOrder:

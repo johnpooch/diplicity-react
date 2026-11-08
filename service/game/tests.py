@@ -36,6 +36,7 @@ from common.constants import (
 
 from phase.models import Phase, PhaseState
 from nation.models import Nation
+from order.models import Order
 from variant.models import Variant
 from province.models import Province
 from notification.models import Notification, NotificationDelivery
@@ -310,10 +311,10 @@ class TestGameRetrieveView:
     def test_retrieve_game_returns_200_after_game_row_updated_in_place(
         self,
         authenticated_client,
-        active_game_with_phase_state,
+        active_game_with_game_master_factory,
         django_capture_on_commit_callbacks,
     ):
-        game = active_game_with_phase_state
+        game = active_game_with_game_master_factory()
         url = reverse(retrieve_viewname, args=[game.id])
         etag = authenticated_client.get(url)["ETag"]
         with django_capture_on_commit_callbacks(execute=True):

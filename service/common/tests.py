@@ -1,14 +1,69 @@
 from unittest.mock import Mock
 
 import pytest
+from django.http import HttpResponse
 from django.test import RequestFactory
+from django.urls import reverse
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 from rest_framework.views import APIView
 
 from common.etag import if_none_match
+from common.middleware import CorsMiddleware
 from common.views import PrecomputedConditionalGetMixin
+
+
+class TestCorsMiddleware:
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            None,
+            "https://diplicity.com",
+            "capacitor://localhost",
+            "https://localhost",
+            "https://other.example",
+        ],
+    )
+    def test_preserves_public_response_cors_across_origins(self, settings, origin):
+        settings.CORS_ALLOWED_ORIGINS = [
+            "https://diplicity.com",
+            "capacitor://localhost",
+            "https://localhost",
+        ]
+        response = HttpResponse(headers={"Access-Control-Allow-Origin": "*"})
+        middleware = CorsMiddleware(lambda request: response)
+        headers = {"Origin": origin} if origin else {}
+
+        response = middleware(RequestFactory().get("/", headers=headers))
+
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "Access-Control-Allow-Credentials" not in response
+
+    @pytest.mark.parametrize(
+        ("origin", "allowed_origin"),
+        [
+            (None, None),
+            ("https://diplicity.com", "https://diplicity.com"),
+            ("capacitor://localhost", "capacitor://localhost"),
+            ("https://localhost", "https://localhost"),
+            ("https://other.example", None),
+        ],
+    )
+    def test_keeps_api_origin_restrictions(
+        self, settings, client, origin, allowed_origin
+    ):
+        settings.CORS_ALLOWED_ORIGINS = [
+            "https://diplicity.com",
+            "capacitor://localhost",
+            "https://localhost",
+        ]
+        headers = {"Origin": origin} if origin else {}
+
+        response = client.get(reverse("variant-mine-list"), headers=headers)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.get("Access-Control-Allow-Origin") == allowed_origin
 
 
 def _request(header=None):

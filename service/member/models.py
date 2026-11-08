@@ -324,8 +324,6 @@ class Member(BaseModel):
         blank=True,
     )
     sandbox = models.BooleanField(default=False)
-    won = models.BooleanField(default=False)
-    drew = models.BooleanField(default=False)
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
     seeking_replacement = models.BooleanField(default=False)
     mustered_at = models.DateTimeField(null=True, blank=True)

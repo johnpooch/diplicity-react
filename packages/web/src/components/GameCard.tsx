@@ -27,6 +27,7 @@ import {
   Skull,
   Trophy,
   Users,
+  Medal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -331,6 +332,16 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       </Badge>
     );
 
+  const rankedPill = game.ranked && (
+    <Badge
+      variant="outline"
+      className="pointer-events-none absolute top-2 left-2 bg-background"
+    >
+      <Medal />
+      Ranked
+    </Badge>
+  );
+
   return (
     <Card className="w-full flex flex-col md:flex-row overflow-hidden p-0">
       <div className="relative shrink-0 w-full h-40 md:h-44 md:w-48">
@@ -341,6 +352,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
         >
           {map}
         </button>
+        {rankedPill}
         {nationPill}
       </div>
 

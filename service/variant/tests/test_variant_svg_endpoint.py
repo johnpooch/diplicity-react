@@ -10,13 +10,23 @@ def _url(variant_id, content_hash):
 
 
 @pytest.mark.django_db
-def test_serves_svg_for_a_valid_hash(client):
+@pytest.mark.parametrize("method", ["get", "head"])
+@pytest.mark.parametrize(
+    "origin",
+    [None, "capacitor://localhost", "https://localhost", "https://other.example"],
+)
+def test_serves_svg_for_a_valid_hash(client, method, origin):
     variant_svg = VariantSvg.objects.get(variant_id="classical")
+    headers = {"Origin": origin} if origin else {}
 
-    response = client.get(_url("classical", variant_svg.content_hash))
+    response = getattr(client, method)(
+        _url("classical", variant_svg.content_hash), headers=headers
+    )
 
     assert response.status_code == 200
     assert response["Content-Type"] == "image/svg+xml"
+    assert response["Access-Control-Allow-Origin"] == "*"
+    assert "Access-Control-Allow-Credentials" not in response
 
 
 @pytest.mark.django_db
