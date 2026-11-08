@@ -17,6 +17,8 @@ from django.db.models import (
 )
 from django.db.models.functions import Extract, Greatest, Rank
 
+from victory.models import Victory
+
 from .calculation import DEFAULT_PARAMETERS
 
 
@@ -73,13 +75,18 @@ class RatingQuerySet(models.QuerySet):
 
     def with_record(self):
         rated = Q(user__members__rating_result__isnull=False)
+        solo = Victory.objects.solo_victories().values("pk")
+        draw = Victory.objects.draw_victories().values("pk")
         return self.annotate(
-            won=Count("user__members", filter=rated & Q(user__members__won=True)),
-            drew=Count("user__members", filter=rated & Q(user__members__drew=True)),
+            won=Count(
+                "user__members", filter=rated & Q(user__members__victories__in=solo)
+            ),
+            drew=Count(
+                "user__members", filter=rated & Q(user__members__victories__in=draw)
+            ),
             lost=Count(
                 "user__members",
-                filter=rated
-                & Q(user__members__won=False, user__members__drew=False),
+                filter=rated & Q(user__members__victories__isnull=True),
             ),
         )
 

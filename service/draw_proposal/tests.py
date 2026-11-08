@@ -304,13 +304,6 @@ class TestDrawProposalConclude:
         assert m2 in victory.members.all()
         assert m3 not in victory.members.all()
 
-        m1.refresh_from_db()
-        m2.refresh_from_db()
-        m3.refresh_from_db()
-        assert m1.drew is True
-        assert m2.drew is True
-        assert m3.drew is False
-
         game.refresh_from_db()
         assert game.status == GameStatus.COMPLETED
 
@@ -368,9 +361,6 @@ class TestDrawProposalConclude:
         assert proposer in victory.members.all()
         assert active_other in victory.members.all()
         assert cd_member not in victory.members.all()
-
-        cd_member.refresh_from_db()
-        assert cd_member.drew is False
 
     def test_returns_none_when_not_accepted(
         self, game_factory, phase_factory, member_factory, draw_proposal_factory

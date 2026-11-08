@@ -17,6 +17,7 @@ from common.constants import (
     GameStatus,
     MemberKind,
     PhaseStatus,
+    PhaseType,
 )
 from game.models import Game
 from phase.models import Phase, PhaseState
@@ -331,14 +332,28 @@ class TestPublicUserProfileRating:
             rated_at=timezone.now() - timedelta(days=days_ago),
         )
 
-    def _result(self, user, variant, **member_fields):
+    def _victory(self, game, *members):
+        phase = Phase.objects.create(
+            game=game,
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+        )
+        Victory.objects.create(game=game, winning_phase=phase).members.set(members)
+
+    def _result(self, user, variant, victors=0):
         game = Game.objects.create(
             variant=variant,
             name="Ranked Game",
             status=GameStatus.COMPLETED,
             ranked=True,
         )
-        member = game.members.create(user=user, **member_fields)
+        member = game.members.create(user=user)
+        if victors:
+            others = [game.members.create() for _ in range(victors - 1)]
+            self._victory(game, member, *others)
         return RatingResult.objects.create(
             member=member,
             rating_before=1500,
@@ -362,17 +377,18 @@ class TestPublicUserProfileRating:
         self, authenticated_client, secondary_user, classical_variant
     ):
         self._rate(secondary_user, rating=1561.6)
-        self._result(secondary_user, classical_variant, won=True)
-        self._result(secondary_user, classical_variant, drew=True)
-        self._result(secondary_user, classical_variant, drew=True)
+        self._result(secondary_user, classical_variant, victors=1)
+        self._result(secondary_user, classical_variant, victors=2)
+        self._result(secondary_user, classical_variant, victors=3)
         self._result(secondary_user, classical_variant)
         self._result(secondary_user, classical_variant)
         self._result(secondary_user, classical_variant)
-        Game.objects.create(
+        unranked = Game.objects.create(
             variant=classical_variant,
             name="Unranked Game",
             status=GameStatus.COMPLETED,
-        ).members.create(user=secondary_user, won=True)
+        )
+        self._victory(unranked, unranked.members.create(user=secondary_user))
 
         response = self._retrieve(authenticated_client, secondary_user)
 
@@ -393,7 +409,7 @@ class TestPublicUserProfileRating:
         classical_variant,
     ):
         self._rate(secondary_user, rating=1600)
-        self._result(secondary_user, classical_variant, won=True)
+        self._result(secondary_user, classical_variant, victors=1)
         self._rate(user_factory(), rating=1700)
         self._rate(user_factory(), rating=1650)
         self._rate(user_factory(), rating=1500)
@@ -409,7 +425,7 @@ class TestPublicUserProfileRating:
         self, authenticated_client, secondary_user, classical_variant
     ):
         self._rate(secondary_user, rating=1531, deviation=310)
-        self._result(secondary_user, classical_variant, won=True)
+        self._result(secondary_user, classical_variant, victors=1)
 
         response = self._retrieve(authenticated_client, secondary_user)
 
@@ -421,7 +437,7 @@ class TestPublicUserProfileRating:
         self, authenticated_client, secondary_user, classical_variant
     ):
         self._rate(secondary_user, rating=1600, deviation=100, days_ago=365)
-        self._result(secondary_user, classical_variant, won=True)
+        self._result(secondary_user, classical_variant, victors=1)
 
         response = self._retrieve(authenticated_client, secondary_user)
 
@@ -1469,7 +1485,7 @@ class TestPublicUserProfileRetrieveView:
             return game.members.create(user=secondary_user, **member_fields)
 
         join(GameStatus.COMPLETED)
-        join(GameStatus.COMPLETED, drew=True)
+        join(GameStatus.COMPLETED)
         join(GameStatus.COMPLETED, kind=MemberKind.GAME_MASTER)
         join(GameStatus.ACTIVE)
         join(GameStatus.ACTIVE, civil_disorder_at=timezone.now())

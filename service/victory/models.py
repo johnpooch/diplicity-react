@@ -38,8 +38,6 @@ class VictoryManager(models.Manager):
 
         victory = self.create(game=phase.game, winning_phase=phase)
         victory.members.add(winner)
-        winner.won = True
-        winner.save(update_fields=["won", "updated_at"])
 
         return victory
 

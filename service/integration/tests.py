@@ -1595,14 +1595,12 @@ def test_dias_draw_proposal_accepted_ends_game_in_draw(
     assert vote_response.data["status"] == "accepted"
 
     active_game.refresh_from_db()
-    germany_member.refresh_from_db()
-    italy_member.refresh_from_db()
 
     assert active_game.status == GameStatus.COMPLETED
-    assert germany_member.drew is True
-    assert italy_member.drew is True
 
     victory = Victory.objects.get(game=active_game)
+    assert germany_member in victory.members.all()
+    assert italy_member in victory.members.all()
     assert victory.members.count() == 2
 
 
@@ -1682,12 +1680,8 @@ def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
     assert proposal.status == "accepted"
 
     active_game.refresh_from_db()
-    germany_member.refresh_from_db()
-    italy_member.refresh_from_db()
 
     assert active_game.status == GameStatus.COMPLETED
-    assert italy_member.drew is True
-    assert germany_member.drew is False
 
     victory = Victory.objects.get(game=active_game)
     assert italy_member in victory.members.all()
