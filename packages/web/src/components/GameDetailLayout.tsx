@@ -35,6 +35,8 @@ import {
 } from "@/api/generated/endpoints";
 import { isFinishedGameStatus, isUnstartedGameStatus } from "@/util";
 
+const GAME_POLL_INTERVAL_MS = 30000;
+
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
   { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
@@ -72,7 +74,9 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   const { data: game } = useGameRetrieve(gameId, {
     query: {
       refetchInterval: query =>
-        query.state.data?.status === "active" ? 5000 : false,
+        query.state.data?.status === "active" ? GAME_POLL_INTERVAL_MS : false,
+      refetchOnWindowFocus: query =>
+        query.state.data?.status === "active" ? "always" : false,
     },
   });
 
