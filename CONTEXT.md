@@ -34,8 +34,18 @@ _Avoid_: Simulation, self-play game
 A private game with one human and bot opponents.
 _Avoid_: Practice game, single-player game
 
+**Algorithmic fallback**:
+The orders a bot is given when it has not chosen its own by the time finalizing ends.
+_Avoid_: Default orders, safe orders
+
 ### Games
 
 **Game admin**:
 The member who manages a game: the game master if there is one, otherwise the creator.
 _Avoid_: Owner, host
+
+### Phases
+
+**Finalizing**:
+The stage of a phase after orders close to humans and before adjudication, in which the bots choose their orders. Only phases in which a bot has orders to give pass through it.
+_Avoid_: Processing, bot turn, thinking
