@@ -17,6 +17,7 @@ class MemberAdmin(admin.ModelAdmin):
         "civil_disorder_at",
         "removed_at",
         "withdrawn_at",
+        "withdrawal_reason",
     )
     list_filter = (
         "kind",
@@ -24,6 +25,7 @@ class MemberAdmin(admin.ModelAdmin):
         "civil_disorder_at",
         "removed_at",
         "withdrawn_at",
+        "withdrawal_reason",
     )
     search_fields = ("user__username", "game__name")
     raw_id_fields = ("user", "game", "nation")

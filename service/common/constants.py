@@ -486,6 +486,26 @@ class MemberDeparture:
     )
 
 
+class WithdrawalReason:
+    BUSY = "busy"
+    TOO_MANY_GAMES = "too_many_games"
+    ABOUT_TO_BE_ELIMINATED = "about_to_be_eliminated"
+    LOSING_POSITION = "losing_position"
+    DISLIKE_NATION = "dislike_nation"
+    NOT_ENJOYING = "not_enjoying"
+    OTHER = "other"
+
+    REASON_CHOICES = (
+        (BUSY, "I'm busy with things outside of Diplomacy"),
+        (TOO_MANY_GAMES, "I'm in too many games"),
+        (ABOUT_TO_BE_ELIMINATED, "I'm about to be eliminated"),
+        (LOSING_POSITION, "I think I'm going to lose"),
+        (DISLIKE_NATION, "I don't like my nation"),
+        (NOT_ENJOYING, "I'm not enjoying this game"),
+        (OTHER, "Something else"),
+    )
+
+
 class VariantStatus:
     DRAFT = "draft"
     PUBLISHED = "published"

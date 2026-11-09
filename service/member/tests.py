@@ -30,6 +30,7 @@ from common.constants import (
     PhaseStatus,
     PhaseType,
     UserKind,
+    WithdrawalReason,
 )
 
 User = get_user_model()
@@ -2710,8 +2711,10 @@ def _client_for(user):
     return client
 
 
-def _withdraw(game, member):
-    return _client_for(member.user).patch(reverse(withdraw_viewname, args=[game.id]))
+def _withdraw(game, member, data=None):
+    return _client_for(member.user).patch(
+        reverse(withdraw_viewname, args=[game.id]), data, format="json"
+    )
 
 
 def _non_admin_player(game):
@@ -2731,6 +2734,43 @@ class TestMemberWithdrawView:
         assert response.data["withdrawn"] is True
         member.refresh_from_db()
         assert member.withdrawn_at is not None
+
+    @pytest.mark.django_db
+    def test_withdraw_records_the_reason(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member, {"reason": WithdrawalReason.DISLIKE_NATION})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "reason" not in response.data
+        member.refresh_from_db()
+        assert member.withdrawal_reason == WithdrawalReason.DISLIKE_NATION
+
+    @pytest.mark.django_db
+    def test_withdraw_without_a_reason_records_a_blank_reason(
+        self, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        member.refresh_from_db()
+        assert member.withdrawn_at is not None
+        assert member.withdrawal_reason == ""
+
+    @pytest.mark.django_db
+    def test_withdraw_rejects_an_unknown_reason(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member, {"reason": "bored"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        member.refresh_from_db()
+        assert member.withdrawn_at is None
 
     @pytest.mark.django_db
     def test_withdraw_discards_orders_and_confirms_the_phase_state(
