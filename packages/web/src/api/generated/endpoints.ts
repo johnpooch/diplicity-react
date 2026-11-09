@@ -880,6 +880,7 @@ export interface LeaderboardEntry {
  * * `abuse_and_harassment` - Abuse and harassment
  * `multiple_accounts` - Multiple accounts
  * `secret_teaming` - Secret teaming
+ * `abuse_of_admin_powers` - Abuse of admin powers
  * `other` - Other
  */
 export type ReasonEnum = (typeof ReasonEnum)[keyof typeof ReasonEnum];
@@ -888,6 +889,7 @@ export const ReasonEnum = {
   abuse_and_harassment: "abuse_and_harassment",
   multiple_accounts: "multiple_accounts",
   secret_teaming: "secret_teaming",
+  abuse_of_admin_powers: "abuse_of_admin_powers",
   other: "other",
 } as const;
 

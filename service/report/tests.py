@@ -158,6 +158,7 @@ class TestReportReasonListView:
             "abuse_and_harassment",
             "multiple_accounts",
             "secret_teaming",
+            "abuse_of_admin_powers",
             "other",
         ]
         assert response.data[0]["label"] == "Abuse and harassment"

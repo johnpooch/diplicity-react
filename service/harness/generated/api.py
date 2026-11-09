@@ -457,7 +457,11 @@ class RatingResultOutput(TypedDict):
 
 
 type ReasonEnum = Literal[
-    'abuse_and_harassment', 'multiple_accounts', 'secret_teaming', 'other'
+    'abuse_and_harassment',
+    'multiple_accounts',
+    'secret_teaming',
+    'abuse_of_admin_powers',
+    'other',
 ]
 
 

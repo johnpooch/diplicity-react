@@ -107,6 +107,7 @@ const markLabel: Record<ReasonEnum, string> = {
   abuse_and_harassment: "Abuse and harassment",
   multiple_accounts: "Multiple accounts",
   secret_teaming: "Secret teaming",
+  abuse_of_admin_powers: "Abuse of admin powers",
   other: "Other conduct violation",
 };
 
