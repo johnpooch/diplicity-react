@@ -636,6 +636,17 @@ class VictoryConditions(TypedDict):
     draw_after_year: int | None
 
 
+type WithdrawalReasonEnum = Literal[
+    'busy',
+    'too_many_games',
+    'about_to_be_eliminated',
+    'losing_position',
+    'dislike_nation',
+    'not_enjoying',
+    'other',
+]
+
+
 class ChannelDetail(TypedDict):
     id: int
     name: str
@@ -830,6 +841,10 @@ class MemberDetail(TypedDict):
     rated: bool
 
 
+class MemberWithdraw(TypedDict):
+    reason: NotRequired[WithdrawalReasonEnum]
+
+
 class ModerationReportAction(TypedDict):
     key: ModerationReportActionKeyEnum
     blocked_reason: ModerationReportActionBlockedReasonEnum | NullEnum | None
@@ -852,6 +867,10 @@ class MyGameState(TypedDict):
 class OrderResolution(TypedDict):
     status: str
     by: Province | None
+
+
+class PatchedMemberWithdraw(TypedDict):
+    reason: NotRequired[WithdrawalReasonEnum]
 
 
 class PatchedPhaseState(TypedDict):

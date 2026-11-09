@@ -9,6 +9,7 @@ from common.constants import (
     GameStatus,
     MemberActionKey,
     ParticipationStatus,
+    WithdrawalReason,
 )
 from emit import emit
 from report.checks import HasNotReportedCheck
@@ -290,8 +291,12 @@ class MemberJoinSerializer(MemberSerializer):
 
 
 class MemberWithdrawSerializer(serializers.Serializer):
+    reason = serializers.ChoiceField(
+        choices=WithdrawalReason.REASON_CHOICES, required=False, write_only=True
+    )
+
     def update(self, instance, validated_data):
-        return Member.objects.withdraw(instance)
+        return Member.objects.withdraw(instance, validated_data.get("reason", ""))
 
     def to_representation(self, instance):
         return MemberSerializer(instance, context=self.context).data

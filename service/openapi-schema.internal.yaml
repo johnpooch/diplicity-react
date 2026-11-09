@@ -943,6 +943,11 @@ paths:
         required: true
       tags:
       - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberWithdraw'
       security:
       - jwtAuth: []
       responses:
@@ -964,6 +969,11 @@ paths:
         required: true
       tags:
       - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberWithdraw'
       security:
       - jwtAuth: []
       responses:
@@ -4394,6 +4404,13 @@ components:
       description: |-
         * `nmr` - nmr
         * `civil_disorder` - civil_disorder
+    MemberWithdraw:
+      type: object
+      properties:
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/WithdrawalReasonEnum'
+          writeOnly: true
     ModerationMemberOutput:
       type: object
       properties:
@@ -5089,6 +5106,13 @@ components:
       properties:
         duration:
           $ref: '#/components/schemas/DurationEnum'
+    PatchedMemberWithdraw:
+      type: object
+      properties:
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/WithdrawalReasonEnum'
+          writeOnly: true
     PatchedPhaseState:
       type: object
       properties:
@@ -6076,6 +6100,24 @@ components:
       - draw_after_year
       - game_ends_year
       - solo_victory_supply_centers
+    WithdrawalReasonEnum:
+      enum:
+      - busy
+      - too_many_games
+      - about_to_be_eliminated
+      - losing_position
+      - dislike_nation
+      - not_enjoying
+      - other
+      type: string
+      description: |-
+        * `busy` - I'm busy with things outside of Diplomacy
+        * `too_many_games` - I'm in too many games
+        * `about_to_be_eliminated` - I'm about to be eliminated
+        * `losing_position` - I think I'm going to lose
+        * `dislike_nation` - I don't like my nation
+        * `not_enjoying` - I'm not enjoying this game
+        * `other` - Something else
   securitySchemes:
     jwtAuth:
       type: http

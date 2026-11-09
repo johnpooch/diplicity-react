@@ -191,7 +191,7 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@extend_schema(request=None, responses={200: MemberSerializer})
+@extend_schema(responses={200: MemberSerializer})
 class MemberWithdrawView(SelectedGameMixin, generics.UpdateAPIView):
     """Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim."""
 

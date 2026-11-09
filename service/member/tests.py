@@ -30,6 +30,7 @@ from common.constants import (
     PhaseStatus,
     PhaseType,
     UserKind,
+    WithdrawalReason,
 )
 
 User = get_user_model()
@@ -852,6 +853,19 @@ def _record_nmr(game, member):
     return phase
 
 
+def _record_phase_without_orders(game, member):
+    phase = game.phases.create(
+        variant=game.variant,
+        season="Spring",
+        year=1900,
+        type="Retreat",
+        status=PhaseStatus.COMPLETED,
+        ordinal=1,
+    )
+    phase.phase_states.create(member=member, has_possible_orders=False)
+    return phase
+
+
 class TestRemoveMemberFromActiveGame:
 
     @pytest.mark.django_db
@@ -1047,6 +1061,46 @@ class TestRemovalRequiresMissedOrders:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
+    def test_member_who_missed_orders_before_a_phase_without_orders_can_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        _record_phase_without_orders(game, member)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    @pytest.mark.django_db
+    def test_member_who_submitted_orders_after_missing_them_cannot_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        fall = game.phases.create(
+            variant=game.variant,
+            season="Fall",
+            year=1900,
+            type="Movement",
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        fall.phase_states.create(
+            member=member,
+            has_possible_orders=True,
+            orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
+        )
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
     def test_bot_with_a_clean_record_can_be_removed(
         self, authenticated_client, active_game_factory, bot_user
     ):
@@ -1096,6 +1150,20 @@ class TestRemovableSerialization:
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
         _record_nmr(game, member)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[member.id]["removable"] is True
+
+    @pytest.mark.django_db
+    def test_removable_is_true_after_a_missed_phase_and_a_phase_without_orders(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        _record_phase_without_orders(game, member)
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
@@ -2710,8 +2778,10 @@ def _client_for(user):
     return client
 
 
-def _withdraw(game, member):
-    return _client_for(member.user).patch(reverse(withdraw_viewname, args=[game.id]))
+def _withdraw(game, member, data=None):
+    return _client_for(member.user).patch(
+        reverse(withdraw_viewname, args=[game.id]), data, format="json"
+    )
 
 
 def _non_admin_player(game):
@@ -2731,6 +2801,43 @@ class TestMemberWithdrawView:
         assert response.data["withdrawn"] is True
         member.refresh_from_db()
         assert member.withdrawn_at is not None
+
+    @pytest.mark.django_db
+    def test_withdraw_records_the_reason(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member, {"reason": WithdrawalReason.DISLIKE_NATION})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "reason" not in response.data
+        member.refresh_from_db()
+        assert member.withdrawal_reason == WithdrawalReason.DISLIKE_NATION
+
+    @pytest.mark.django_db
+    def test_withdraw_without_a_reason_records_a_blank_reason(
+        self, active_game_factory
+    ):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member)
+
+        assert response.status_code == status.HTTP_200_OK
+        member.refresh_from_db()
+        assert member.withdrawn_at is not None
+        assert member.withdrawal_reason == ""
+
+    @pytest.mark.django_db
+    def test_withdraw_rejects_an_unknown_reason(self, active_game_factory):
+        game = active_game_factory()
+        member = _non_admin_player(game)
+
+        response = _withdraw(game, member, {"reason": "bored"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        member.refresh_from_db()
+        assert member.withdrawn_at is None
 
     @pytest.mark.django_db
     def test_withdraw_discards_orders_and_confirms_the_phase_state(

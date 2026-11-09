@@ -17,6 +17,7 @@ import {
 import { ExtendDeadlineDialog } from "@/components/ExtendDeadlineDialog";
 import { InfoButton } from "@/components/InfoButton";
 import { ShortGameJoinWarningDialog } from "@/components/ShortGameJoinWarningDialog";
+import { WithdrawDialog } from "@/components/WithdrawDialog";
 import {
   ACTION_DISPLAY,
   BLOCKED_REASONS,
@@ -44,6 +45,7 @@ import {
   BlockedReasonEnum,
   DurationEnum,
   MemberActionKeyEnum,
+  WithdrawalReasonEnum,
 } from "@/api/generated/endpoints";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { copyLink } from "@/utils/copyLink";
@@ -52,6 +54,11 @@ import { getNationPreferencePath } from "@/util";
 interface Action {
   key: MemberActionKeyEnum;
   blockedReason: BlockedReasonEnum | null;
+}
+
+interface MutationInput {
+  duration?: DurationEnum;
+  reason?: WithdrawalReasonEnum;
 }
 
 interface ActionListProps {
@@ -91,7 +98,7 @@ export const ActionList: React.FC<ActionListProps> = ({
   const memberGone = (key: MemberActionKeyEnum) =>
     key === "leave" || key === "remove_from_lobby";
 
-  const mutate = async (key: MemberActionKeyEnum, duration: DurationEnum) => {
+  const mutate = async (key: MemberActionKeyEnum, input: MutationInput) => {
     switch (key) {
       case "join":
         await joinMutation.mutateAsync({ gameId });
@@ -104,13 +111,19 @@ export const ActionList: React.FC<ActionListProps> = ({
         navigate("/");
         return;
       case "withdraw":
-        return withdrawMutation.mutateAsync({ gameId });
+        return withdrawMutation.mutateAsync({
+          gameId,
+          data: { reason: input.reason },
+        });
       case "pause":
         return pauseMutation.mutateAsync({ gameId });
       case "unpause":
         return unpauseMutation.mutateAsync({ gameId });
       case "extend_deadline":
-        return extendDeadlineMutation.mutateAsync({ gameId, data: { duration } });
+        return extendDeadlineMutation.mutateAsync({
+          gameId,
+          data: { duration: input.duration ?? DurationEnum["24_hours"] },
+        });
       case "clone_to_sandbox": {
         const sandbox = await cloneMutation.mutateAsync({ gameId, data: {} });
         navigate(`/game/${sandbox.id}`);
@@ -150,15 +163,12 @@ export const ActionList: React.FC<ActionListProps> = ({
     );
   };
 
-  const runMutation = async (
-    key: MemberActionKeyEnum,
-    duration: DurationEnum = DurationEnum["24_hours"]
-  ) => {
+  const runMutation = async (key: MemberActionKeyEnum, input: MutationInput = {}) => {
     setOpenDialog(null);
     setRunningKey(key);
     const display = ACTION_DISPLAY[key];
     try {
-      await mutate(key, duration);
+      await mutate(key, input);
       if (memberGone(key)) onMemberGone?.();
       await invalidate(key);
       if (display.success) toast.success(display.success(member));
@@ -175,7 +185,7 @@ export const ActionList: React.FC<ActionListProps> = ({
     else if (key === "assign_nations") navigate(`/nation-assignment/${gameId}`);
     else if (key === "take_over" && replacePath) navigate(replacePath);
     else if (key === "share_replacement_link" && replacePath) copyLink(replacePath);
-    else if (key === "extend_deadline") setOpenDialog(key);
+    else if (key === "extend_deadline" || key === "withdraw") setOpenDialog(key);
     else if (key === "join" && game.showShortGameJoinWarning) setOpenDialog(key);
     else if (confirmationFor(key, member, game)) setOpenDialog(key);
     else runMutation(key);
@@ -263,7 +273,14 @@ export const ActionList: React.FC<ActionListProps> = ({
       <ExtendDeadlineDialog
         open={openDialog === "extend_deadline"}
         onOpenChange={closeDialog}
-        onConfirm={duration => runMutation("extend_deadline", duration)}
+        onConfirm={duration => runMutation("extend_deadline", { duration })}
+      />
+
+      <WithdrawDialog
+        open={openDialog === "withdraw"}
+        onOpenChange={closeDialog}
+        isFirstYear={game.isFirstYear}
+        onConfirm={reason => runMutation("withdraw", { reason })}
       />
 
       <ShortGameJoinWarningDialog
