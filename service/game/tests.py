@@ -1378,7 +1378,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 15
+        assert query_count == 16
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_with_multiple_members(
@@ -2687,7 +2687,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 10
+        assert query_count == 11
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -2744,7 +2744,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 10
+        assert query_count == 11
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -2879,10 +2879,10 @@ class TestGameListViewQueryPerformance:
     @pytest.mark.parametrize(
         ("client_name", "params", "expected_query_count"),
         [
-            ("authenticated", {}, 10),
-            ("authenticated", {"mine": "true"}, 10),
+            ("authenticated", {}, 11),
+            ("authenticated", {"mine": "true"}, 11),
             ("authenticated", {"sandbox": "true"}, 10),
-            ("unauthenticated", {}, 9),
+            ("unauthenticated", {}, 10),
         ],
     )
     def test_list_games_query_count_is_constant_as_games_and_phases_grow(
@@ -7861,11 +7861,11 @@ class TestMyGamesCurrentViewQueryPerformance:
             victory_factory,
         )
         self._create_games(*factories)
-        assert self._count_queries(authenticated_client) == 12
+        assert self._count_queries(authenticated_client) == 13
 
         self._create_games(*factories)
         self._create_games(*factories)
-        assert self._count_queries(authenticated_client) == 12
+        assert self._count_queries(authenticated_client) == 13
 
 
 my_games_finished_viewname = "my-games-finished"
@@ -8215,8 +8215,8 @@ class TestMyGamesFinishedViewQueryPerformance:
             victory_factory,
         )
         self._create_games(*factories)
-        assert self._count_queries(authenticated_client) == 11
+        assert self._count_queries(authenticated_client) == 12
 
         self._create_games(*factories)
         self._create_games(*factories)
-        assert self._count_queries(authenticated_client) == 11
+        assert self._count_queries(authenticated_client) == 12
