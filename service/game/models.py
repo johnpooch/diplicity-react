@@ -318,6 +318,7 @@ class GameManager(models.Manager):
             ),
         )
         self._hydrate_boards(current_phases)
+        self._hydrate_nmrd_member_ids(games, latest_completed_phases)
 
     def hydrate_total_unread_counts(self, games, user):
         games_without_counts = [
@@ -355,6 +356,7 @@ class GameManager(models.Manager):
                 order_count=Count("orders")
             ),
         )
+        self._hydrate_nmrd_member_ids(games, latest_completed_phases)
 
     def retrieve_fingerprint(self, game_id, request):
         user = request.user
@@ -452,6 +454,35 @@ class GameManager(models.Manager):
             current_phases += game_phases[-1:]
             latest_completed_phases += completed_phases[-1:]
         return phases, current_phases, latest_completed_phases
+
+    def nmrd_member_ids_by_game(self, game_ids):
+        latest_orders_outcome = (
+            PhaseState.objects.filter(
+                member=OuterRef("pk"),
+                phase__status=PhaseStatus.COMPLETED,
+                orders_outcome__isnull=False,
+            )
+            .order_by("-phase__ordinal")
+            .values("orders_outcome")[:1]
+        )
+        nmrd_members = (
+            Member.objects.filter(game_id__in=game_ids)
+            .annotate(latest_orders_outcome=Subquery(latest_orders_outcome))
+            .filter(latest_orders_outcome=PhaseState.OrdersOutcome.NMR)
+            .values_list("game_id", "id")
+        )
+        nmrd_member_ids = defaultdict(set)
+        for game_id, member_id in nmrd_members:
+            nmrd_member_ids[game_id].add(member_id)
+        return nmrd_member_ids
+
+    def _hydrate_nmrd_member_ids(self, games, latest_completed_phases):
+        game_ids = {phase.game_id for phase in latest_completed_phases}
+        nmrd_member_ids = (
+            self.nmrd_member_ids_by_game(game_ids) if game_ids else defaultdict(set)
+        )
+        for game in games:
+            game.nmrd_member_ids = nmrd_member_ids[game.id]
 
     def _hydrate_boards(self, phases):
         phase_ids = [phase.id for phase in phases]
@@ -949,15 +980,9 @@ class Game(BaseModel):
 
     @cached_property
     def nmrd_member_ids(self):
-        completed = [p for p in self.phases.all() if p.status == PhaseStatus.COMPLETED]
-        if not completed:
+        if not any(p.status == PhaseStatus.COMPLETED for p in self.phases.all()):
             return set()
-        latest = max(completed, key=lambda p: p.ordinal)
-        return {
-            phase_state.member_id
-            for phase_state in latest.phase_states.all()
-            if phase_state.orders_outcome == PhaseState.OrdersOutcome.NMR
-        }
+        return Game.objects.nmrd_member_ids_by_game([self.id])[self.id]
 
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:

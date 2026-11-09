@@ -852,6 +852,19 @@ def _record_nmr(game, member):
     return phase
 
 
+def _record_phase_without_orders(game, member):
+    phase = game.phases.create(
+        variant=game.variant,
+        season="Spring",
+        year=1900,
+        type="Retreat",
+        status=PhaseStatus.COMPLETED,
+        ordinal=1,
+    )
+    phase.phase_states.create(member=member, has_possible_orders=False)
+    return phase
+
+
 class TestRemoveMemberFromActiveGame:
 
     @pytest.mark.django_db
@@ -1047,6 +1060,46 @@ class TestRemovalRequiresMissedOrders:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
+    def test_member_who_missed_orders_before_a_phase_without_orders_can_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        _record_phase_without_orders(game, member)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    @pytest.mark.django_db
+    def test_member_who_submitted_orders_after_missing_them_cannot_be_removed(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        fall = game.phases.create(
+            variant=game.variant,
+            season="Fall",
+            year=1900,
+            type="Movement",
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        fall.phase_states.create(
+            member=member,
+            has_possible_orders=True,
+            orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
+        )
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
     def test_bot_with_a_clean_record_can_be_removed(
         self, authenticated_client, active_game_factory, bot_user
     ):
@@ -1096,6 +1149,20 @@ class TestRemovableSerialization:
         game = active_game_factory()
         member = game.members.exclude(user=game.admin).first()
         _record_nmr(game, member)
+
+        response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
+
+        members_by_id = {m["id"]: m for m in response.data["members"]}
+        assert members_by_id[member.id]["removable"] is True
+
+    @pytest.mark.django_db
+    def test_removable_is_true_after_a_missed_phase_and_a_phase_without_orders(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+        member = game.members.exclude(user=game.admin).first()
+        _record_nmr(game, member)
+        _record_phase_without_orders(game, member)
 
         response = authenticated_client.get(reverse(retrieve_viewname, args=[game.id]))
 
