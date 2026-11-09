@@ -31,11 +31,17 @@ Don't use a second account to play more than one power in the same game.
 
 Don't enter a game with a friend or anyone who you have a connection with outside of the game and secretly coordinate as a team.
 
+### Abuse of admin powers
+
+If you created a game or are its Game Master, you can pause it, extend its deadline and remove players who have missed orders. These powers are there to keep the game running fairly, not to win it.
+
+Don't pause a game to escape a losing position, leave it paused indefinitely, or time a restart for when another player is away. Don't extend deadlines to rescue your own position, or remove a player to gain an advantage. If you need to pause, tell the other players why and resume as soon as you can.
+
 **Note:** Missing orders or abandoning a game is tracked automatically by the reliability system, so there is no need to report it.
 
 ## Reporting
 
-If someone violates the code of conduct, report them and pick the reason that fits: abuse and harassment, multiple accounts, secret teaming, or other. Add a short note on what happened.
+If someone violates the code of conduct, report them and pick the reason that fits: abuse and harassment, multiple accounts, secret teaming, abuse of admin powers, or other. Add a short note on what happened.
 
 A moderator reviews each report. If they approve it, a mark is added to the reported player's profile. If they reject it, nothing happens.
 

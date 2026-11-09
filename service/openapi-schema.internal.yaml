@@ -5489,12 +5489,14 @@ components:
       - abuse_and_harassment
       - multiple_accounts
       - secret_teaming
+      - abuse_of_admin_powers
       - other
       type: string
       description: |-
         * `abuse_and_harassment` - Abuse and harassment
         * `multiple_accounts` - Multiple accounts
         * `secret_teaming` - Secret teaming
+        * `abuse_of_admin_powers` - Abuse of admin powers
         * `other` - Other
     Register:
       type: object

@@ -15,5 +15,8 @@ describe("CodeOfConduct", () => {
     expect(
       screen.getByRole("heading", { name: "Secret teaming" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Abuse of admin powers" })
+    ).toBeInTheDocument();
   });
 });

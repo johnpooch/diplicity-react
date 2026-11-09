@@ -2,6 +2,7 @@ class ReportReason:
     ABUSE_AND_HARASSMENT = "abuse_and_harassment"
     MULTIPLE_ACCOUNTS = "multiple_accounts"
     SECRET_TEAMING = "secret_teaming"
+    ABUSE_OF_ADMIN_POWERS = "abuse_of_admin_powers"
     OTHER = "other"
 
     REASONS = (
@@ -28,6 +29,15 @@ class ReportReason:
             "description": (
                 "This player entered the game with someone they know outside of it "
                 "and is secretly coordinating with them as a team."
+            ),
+        },
+        {
+            "key": ABUSE_OF_ADMIN_POWERS,
+            "label": "Abuse of admin powers",
+            "description": (
+                "This player used their powers as game creator or Game Master, such "
+                "as pausing the game, extending deadlines or removing players, to "
+                "gain an advantage or hold the game hostage."
             ),
         },
         {
