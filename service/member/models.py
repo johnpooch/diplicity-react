@@ -15,6 +15,7 @@ from common.constants import (
     MemberKind,
     ParticipationStatus,
     UserKind,
+    WithdrawalReason,
 )
 from common.models import BaseModel
 from .checks import MeetsCommitmentRequirementCheck
@@ -231,14 +232,15 @@ class MemberManager(models.Manager.from_queryset(MemberQuerySet)):
                 Phase = apps.get_model("phase", "Phase")
                 Phase.objects.arm_resolution(phase)
 
-    def withdraw(self, member):
+    def withdraw(self, member, reason=""):
         DrawProposal = apps.get_model("draw_proposal", "DrawProposal")
         Phase = apps.get_model("phase", "Phase")
         game = member.game
 
         with transaction.atomic():
             member.withdrawn_at = timezone.now()
-            member.save(update_fields=["withdrawn_at"])
+            member.withdrawal_reason = reason
+            member.save(update_fields=["withdrawn_at", "withdrawal_reason"])
             CommitmentEntry.objects.record(
                 member,
                 (
@@ -313,6 +315,12 @@ class Member(BaseModel):
     civil_disorder_at = models.DateTimeField(null=True, blank=True)
     removed_at = models.DateTimeField(null=True, blank=True)
     withdrawn_at = models.DateTimeField(null=True, blank=True)
+    withdrawal_reason = models.CharField(
+        max_length=32,
+        choices=WithdrawalReason.REASON_CHOICES,
+        blank=True,
+        db_default="",
+    )
     left_at = models.DateTimeField(null=True, blank=True)
     replaced_by = models.ForeignKey(
         "self",

@@ -1010,6 +1010,32 @@ export interface MemberNationPreference {
   nationIds: string[];
 }
 
+/**
+ * * `busy` - I'm busy with things outside of Diplomacy
+ * `too_many_games` - I'm in too many games
+ * `about_to_be_eliminated` - I'm about to be eliminated
+ * `losing_position` - I think I'm going to lose
+ * `dislike_nation` - I don't like my nation
+ * `not_enjoying` - I'm not enjoying this game
+ * `other` - Something else
+ */
+export type WithdrawalReasonEnum =
+  (typeof WithdrawalReasonEnum)[keyof typeof WithdrawalReasonEnum];
+
+export const WithdrawalReasonEnum = {
+  busy: "busy",
+  too_many_games: "too_many_games",
+  about_to_be_eliminated: "about_to_be_eliminated",
+  losing_position: "losing_position",
+  dislike_nation: "dislike_nation",
+  not_enjoying: "not_enjoying",
+  other: "other",
+} as const;
+
+export interface MemberWithdraw {
+  reason?: WithdrawalReasonEnum;
+}
+
 export interface ModerationMemberOutput {
   readonly id: number;
   /** @nullable */
@@ -1339,6 +1365,10 @@ export interface PatchedDrawVoteUpdate {
 
 export interface PatchedGameExtendDeadline {
   duration?: DurationEnum;
+}
+
+export interface PatchedMemberWithdraw {
+  reason?: WithdrawalReasonEnum;
 }
 
 export interface PatchedPhaseState {
@@ -6363,11 +6393,14 @@ export const useGameMemberNationPreferenceUpdate = <
  */
 export const gameMemberWithdrawUpdate = (
   gameId: string,
+  memberWithdraw: MemberWithdraw,
   signal?: AbortSignal
 ) => {
   return customInstance<Member>({
     url: `/game/${gameId}/member/withdraw/`,
     method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: memberWithdraw,
     signal,
   });
 };
@@ -6379,13 +6412,13 @@ export const getGameMemberWithdrawUpdateMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
     TError,
-    { gameId: string },
+    { gameId: string; data: MemberWithdraw },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
   TError,
-  { gameId: string },
+  { gameId: string; data: MemberWithdraw },
   TContext
 > => {
   const mutationKey = ["gameMemberWithdrawUpdate"];
@@ -6399,11 +6432,11 @@ export const getGameMemberWithdrawUpdateMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
-    { gameId: string }
+    { gameId: string; data: MemberWithdraw }
   > = props => {
-    const { gameId } = props ?? {};
+    const { gameId, data } = props ?? {};
 
-    return gameMemberWithdrawUpdate(gameId);
+    return gameMemberWithdrawUpdate(gameId, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -6412,7 +6445,7 @@ export const getGameMemberWithdrawUpdateMutationOptions = <
 export type GameMemberWithdrawUpdateMutationResult = NonNullable<
   Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>
 >;
-
+export type GameMemberWithdrawUpdateMutationBody = MemberWithdraw;
 export type GameMemberWithdrawUpdateMutationError = unknown;
 
 export const useGameMemberWithdrawUpdate = <
@@ -6423,7 +6456,7 @@ export const useGameMemberWithdrawUpdate = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
       TError,
-      { gameId: string },
+      { gameId: string; data: MemberWithdraw },
       TContext
     >;
   },
@@ -6431,7 +6464,7 @@ export const useGameMemberWithdrawUpdate = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof gameMemberWithdrawUpdate>>,
   TError,
-  { gameId: string },
+  { gameId: string; data: MemberWithdraw },
   TContext
 > => {
   return useMutation(
@@ -6445,11 +6478,14 @@ export const useGameMemberWithdrawUpdate = <
  */
 export const gameMemberWithdrawPartialUpdate = (
   gameId: string,
+  patchedMemberWithdraw: PatchedMemberWithdraw,
   signal?: AbortSignal
 ) => {
   return customInstance<Member>({
     url: `/game/${gameId}/member/withdraw/`,
     method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    data: patchedMemberWithdraw,
     signal,
   });
 };
@@ -6461,13 +6497,13 @@ export const getGameMemberWithdrawPartialUpdateMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
     TError,
-    { gameId: string },
+    { gameId: string; data: PatchedMemberWithdraw },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
   TError,
-  { gameId: string },
+  { gameId: string; data: PatchedMemberWithdraw },
   TContext
 > => {
   const mutationKey = ["gameMemberWithdrawPartialUpdate"];
@@ -6481,11 +6517,11 @@ export const getGameMemberWithdrawPartialUpdateMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
-    { gameId: string }
+    { gameId: string; data: PatchedMemberWithdraw }
   > = props => {
-    const { gameId } = props ?? {};
+    const { gameId, data } = props ?? {};
 
-    return gameMemberWithdrawPartialUpdate(gameId);
+    return gameMemberWithdrawPartialUpdate(gameId, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -6494,7 +6530,7 @@ export const getGameMemberWithdrawPartialUpdateMutationOptions = <
 export type GameMemberWithdrawPartialUpdateMutationResult = NonNullable<
   Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>
 >;
-
+export type GameMemberWithdrawPartialUpdateMutationBody = PatchedMemberWithdraw;
 export type GameMemberWithdrawPartialUpdateMutationError = unknown;
 
 export const useGameMemberWithdrawPartialUpdate = <
@@ -6505,7 +6541,7 @@ export const useGameMemberWithdrawPartialUpdate = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
       TError,
-      { gameId: string },
+      { gameId: string; data: PatchedMemberWithdraw },
       TContext
     >;
   },
@@ -6513,7 +6549,7 @@ export const useGameMemberWithdrawPartialUpdate = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof gameMemberWithdrawPartialUpdate>>,
   TError,
-  { gameId: string },
+  { gameId: string; data: PatchedMemberWithdraw },
   TContext
 > => {
   return useMutation(

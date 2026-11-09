@@ -13,7 +13,6 @@ import {
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
-import { withdrawConfirmation } from "@/components/WithdrawGameAction";
 import type {
   BlockedReasonEnum,
   MemberActionKeyEnum,
@@ -129,7 +128,7 @@ const BLOCKED_REASONS: Record<BlockedReasonEnum, string> = {
 const confirmationFor = (
   key: MemberActionKeyEnum,
   member: ActionMember | undefined,
-  game: { sandbox: boolean; isFirstYear: boolean }
+  game: { sandbox: boolean }
 ): ActionConfirmation | null => {
   const removeTitle = `Remove ${member?.nation ?? member?.name}`;
   switch (key) {
@@ -140,8 +139,6 @@ const confirmationFor = (
           "You give up your seat. You can join again while the game has an open seat.",
         confirmLabel: "Leave",
       };
-    case "withdraw":
-      return withdrawConfirmation(game.isFirstYear);
     case "clone_to_sandbox":
       return {
         title: "Clone to sandbox",

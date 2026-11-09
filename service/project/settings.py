@@ -369,6 +369,7 @@ SPECTACULAR_SETTINGS = {
         "ReasonEnum": "report.constants.ReportReason.REASON_CHOICES",
         "ReportStatusEnum": "report.constants.ReportStatus.STATUS_CHOICES",
         "StatusEnum": "common.constants.PhaseStatus.STATUS_CHOICES",
+        "WithdrawalReasonEnum": "common.constants.WithdrawalReason.REASON_CHOICES",
     },
 }
 

@@ -3,10 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { GameRetrieve } from "@/api/generated/endpoints";
+import type {
+  GameRetrieve,
+  MemberActionKeyEnum,
+} from "@/api/generated/endpoints";
 import { ActionList } from "./ActionList";
 
 const leaveGame = vi.fn();
+const withdrawFromGame = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
@@ -18,13 +22,14 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
     } as GameRetrieve,
   }),
   useGameLeaveDestroy: () => ({ mutateAsync: leaveGame }),
+  useGameMemberWithdrawPartialUpdate: () => ({ mutateAsync: withdrawFromGame }),
 }));
 
 vi.mock("@/hooks/useCheckNotificationPermission", () => ({
   useCheckNotificationPermission: () => vi.fn(),
 }));
 
-const renderList = () =>
+const renderList = (key: MemberActionKeyEnum = "leave") =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={["/game/g1"]}>
@@ -34,7 +39,7 @@ const renderList = () =>
             element={
               <ActionList
                 gameId="g1"
-                actions={[{ key: "leave", blockedReason: null }]}
+                actions={[{ key, blockedReason: null }]}
               />
             }
           />
@@ -47,6 +52,9 @@ const renderList = () =>
 describe("ActionList", () => {
   beforeEach(() => {
     leaveGame.mockReset();
+    withdrawFromGame.mockReset();
+    Element.prototype.hasPointerCapture = () => false;
+    Element.prototype.scrollIntoView = () => {};
   });
 
   it("returns home after leaving a game", async () => {
@@ -71,5 +79,26 @@ describe("ActionList", () => {
       await screen.findByRole("button", { name: "Leave game" })
     ).toBeInTheDocument();
     expect(screen.queryByText("Home screen")).not.toBeInTheDocument();
+  });
+
+  it("withdraws with the reason the player picks", async () => {
+    withdrawFromGame.mockResolvedValue(undefined);
+    renderList("withdraw");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Withdraw from game" })
+    );
+    await userEvent.click(
+      screen.getByRole("combobox", { name: "Why are you withdrawing?" })
+    );
+    await userEvent.click(
+      screen.getByRole("option", { name: "I'm in too many games" })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+
+    expect(withdrawFromGame).toHaveBeenCalledWith({
+      gameId: "g1",
+      data: { reason: "too_many_games" },
+    });
   });
 });
