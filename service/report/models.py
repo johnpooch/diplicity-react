@@ -60,6 +60,10 @@ class Report(BaseModel):
         self.assigned_to = None
         self.save(update_fields=["assigned_to", "updated_at"])
 
+    def reclassify(self, reason):
+        self.reason = reason
+        self.save(update_fields=["reason", "updated_at"])
+
     def decide(self, decision, user, note):
         self.review = ReportReview.objects.create(
             report=self, decision=decision, reviewed_by=user, note=note

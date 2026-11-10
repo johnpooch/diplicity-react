@@ -17,6 +17,7 @@ from .models import Report
 from .policies import ModeratorPolicy
 from .serializers import (
     ModerationReportOutputSerializer,
+    ReportApproveInputSerializer,
     ReportDecisionInputSerializer,
     ReportMemberInputSerializer,
     ReportOutputSerializer,
@@ -84,11 +85,11 @@ class ModerationReportUnassignView(ModeratorOnlyMixin, ActionView):
 class ModerationReportApproveView(ModeratorOnlyMixin, ActionView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Report.objects.all()
-    input_serializer_class = ReportDecisionInputSerializer
+    input_serializer_class = ReportApproveInputSerializer
     serializer_class = ModerationReportOutputSerializer
 
-    def perform(self, report, note):
-        return Report.objects.approve(report, self.request.user, note)
+    def perform(self, report, note, reason=None):
+        return Report.objects.approve(report, self.request.user, note, reason)
 
 
 class ModerationReportRejectView(ModeratorOnlyMixin, ActionView):

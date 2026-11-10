@@ -471,6 +471,11 @@ class Register(TypedDict):
     display_name: str
 
 
+class ReportApproveInput(TypedDict):
+    note: NotRequired[str]
+    reason: NotRequired[ReasonEnum]
+
+
 class ReportDecisionInput(TypedDict):
     note: NotRequired[str]
 

@@ -164,7 +164,6 @@ const ModerationReport: React.FC = () => {
       <ReportDecision
         report={report}
         reportedName={report.reported.name ?? "Deleted account"}
-        reasonLabel={reasonLabel}
       />
       {report.review?.note && (
         <div className="flex flex-col gap-1">

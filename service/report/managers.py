@@ -37,7 +37,9 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
         return report
 
     @command(requires=CanDecidePolicy, locks=["reported"])
-    def approve(self, report, actor, note):
+    def approve(self, report, actor, note, reason=None):
+        if reason is not None:
+            report.reclassify(reason)
         report.decide(ReportDecision.APPROVED, actor, note)
         models.Mark.objects.create_idempotent(
             member=report.reported, reason=report.reason
