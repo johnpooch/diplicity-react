@@ -35,7 +35,10 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
     isPending: false,
   }),
   useReportReasonsListSuspense: () => ({
-    data: [{ key: "abuse_and_harassment", label: "Abuse and harassment", description: "" }],
+    data: [
+      { key: "abuse_and_harassment", label: "Abuse and harassment", description: "" },
+      { key: "abuse_of_admin_powers", label: "Abuse of admin powers", description: "" },
+    ],
   }),
 }));
 
@@ -348,9 +351,35 @@ describe("ModerationReport", () => {
 
       expect(approveReport).toHaveBeenCalledWith({
         id: 5,
-        data: { note: "Slurs in global press." },
+        data: { reason: "abuse_and_harassment", note: "Slurs in global press." },
       });
       expect(rejectReport).not.toHaveBeenCalled();
+    });
+
+    it("approves under a reason the moderator picks", async () => {
+      retrieveReport.mockReturnValue(assigned());
+      renderScreen();
+
+      expect(
+        screen.getByRole("radio", { name: "Abuse and harassment" })
+      ).toBeChecked();
+      await userEvent.click(
+        screen.getByRole("radio", { name: "Abuse of admin powers" })
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByText(
+          "Decisions are final. Bruno Keller gets a mark for Abuse of admin powers in this game."
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+
+      expect(approveReport).toHaveBeenCalledWith({
+        id: 5,
+        data: { reason: "abuse_of_admin_powers", note: "" },
+      });
     });
 
     it("rejects without a note after confirming", async () => {

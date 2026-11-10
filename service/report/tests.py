@@ -1242,6 +1242,51 @@ class TestModerationReportDecisionViews:
         ]
 
     @pytest.mark.django_db
+    def test_assignee_approves_under_another_reason(
+        self, moderator_client, assigned_report
+    ):
+        response = moderator_client.post(
+            _approve_url(assigned_report),
+            {"reason": "abuse_of_admin_powers"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "approved"
+        assert response.data["reason"] == "abuse_of_admin_powers"
+        assigned_report.refresh_from_db()
+        assert assigned_report.reason == ReportReason.ABUSE_OF_ADMIN_POWERS
+        assert list(Mark.objects.values_list("member_id", "reason")) == [
+            (assigned_report.reported_id, ReportReason.ABUSE_OF_ADMIN_POWERS)
+        ]
+
+    @pytest.mark.django_db
+    def test_unknown_reason_rejected(self, moderator_client, assigned_report):
+        response = moderator_client.post(
+            _approve_url(assigned_report), {"reason": "rudeness"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assigned_report.refresh_from_db()
+        assert assigned_report.reason == ReportReason.ABUSE_AND_HARASSMENT
+        assert not ReportReview.objects.filter(report=assigned_report).exists()
+        assert not Mark.objects.exists()
+
+    @pytest.mark.django_db
+    def test_refused_approval_keeps_reason(
+        self, other_moderator_client, assigned_report
+    ):
+        response = other_moderator_client.post(
+            _approve_url(assigned_report),
+            {"reason": "abuse_of_admin_powers"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assigned_report.refresh_from_db()
+        assert assigned_report.reason == ReportReason.ABUSE_AND_HARASSMENT
+
+    @pytest.mark.django_db
     def test_assignee_rejects(self, moderator_client, moderator, assigned_report):
         response = moderator_client.post(
             _reject_url(assigned_report), {"note": "Ordinary diplomacy."}, format="json"

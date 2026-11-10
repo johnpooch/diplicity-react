@@ -25,6 +25,12 @@ class ReportDecisionInputSerializer(serializers.Serializer):
     note = serializers.CharField(max_length=1000, allow_blank=True, default="")
 
 
+class ReportApproveInputSerializer(ReportDecisionInputSerializer):
+    reason = serializers.ChoiceField(
+        choices=ReportReason.REASON_CHOICES, required=False
+    )
+
+
 class ReportOutputSerializer(OutputSerializer):
     status = serializers.CharField()
 

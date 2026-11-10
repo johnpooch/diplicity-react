@@ -26,18 +26,23 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ModerationReportActionKeyEnum,
+  ReasonEnum,
   getModerationReportsListQueryKey,
   getModerationReportsRetrieveQueryKey,
   useModerationReportsApproveCreate,
   useModerationReportsRejectCreate,
+  useReportReasonsListSuspense,
 } from "@/api/generated/endpoints";
 import type { ModerationReportOutput } from "@/api/generated/endpoints";
 
 const NOTE_MAX_LENGTH = 1000;
 
 const decisionSchema = z.object({
+  reason: z.nativeEnum(ReasonEnum),
   note: z
     .string()
     .trim()
@@ -56,23 +61,27 @@ type Decision =
 interface ReportDecisionProps {
   report: ModerationReportOutput;
   reportedName: string;
-  reasonLabel: string;
 }
 
 const ReportDecision: React.FC<ReportDecisionProps> = ({
   report,
   reportedName,
-  reasonLabel,
 }) => {
   const queryClient = useQueryClient();
+  const { data: reasons } = useReportReasonsListSuspense();
   const approveMutation = useModerationReportsApproveCreate();
   const rejectMutation = useModerationReportsRejectCreate();
   const [pending, setPending] = useState<Decision | null>(null);
 
   const form = useForm<DecisionFormValues>({
     resolver: zodResolver(decisionSchema),
-    defaultValues: { note: "" },
+    defaultValues: { reason: report.reason, note: "" },
   });
+
+  const selectedReason = form.watch("reason");
+  const reasonLabel =
+    reasons.find(reason => reason.key === selectedReason)?.label ??
+    selectedReason;
 
   const decisions = {
     [ModerationReportActionKeyEnum.approve]: {
@@ -81,6 +90,7 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
       description: `Decisions are final. ${reportedName} gets a mark for ${reasonLabel} in this game.`,
       failure: "Failed to approve report",
       mutation: approveMutation,
+      data: (values: DecisionFormValues) => values,
     },
     [ModerationReportActionKeyEnum.reject]: {
       label: "Reject",
@@ -88,6 +98,7 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
       description: `Decisions are final. Nothing is added to ${reportedName}'s profile.`,
       failure: "Failed to reject report",
       mutation: rejectMutation,
+      data: ({ note }: DecisionFormValues) => ({ note }),
     },
   };
 
@@ -106,7 +117,7 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
     try {
       await decisions[decision].mutation.mutateAsync({
         id: report.id,
-        data: values,
+        data: decisions[decision].data(values),
       });
     } catch {
       toast.error(decisions[decision].failure);
@@ -131,6 +142,41 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
   return (
     <Form {...form}>
       <div className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="reason"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mark reason</FormLabel>
+              <FormControl>
+                <Card className="overflow-hidden py-0">
+                  <CardContent className="p-0">
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                      className="gap-0 divide-y"
+                    >
+                      {reasons.map(reason => (
+                        <label
+                          key={reason.key}
+                          className="flex cursor-pointer items-center gap-3 p-3 hover:bg-accent/50"
+                        >
+                          <RadioGroupItem value={reason.key} />
+                          <span className="text-sm">{reason.label}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+              </FormControl>
+              <FormDescription>
+                Change this if the reporter picked the wrong reason.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="note"

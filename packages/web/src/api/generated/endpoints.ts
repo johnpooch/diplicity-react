@@ -1545,6 +1545,12 @@ export interface Register {
   displayName: string;
 }
 
+export interface ReportApproveInput {
+  /** @maxLength 1000 */
+  note?: string;
+  reason?: ReasonEnum;
+}
+
 export interface ReportDecisionInput {
   /** @maxLength 1000 */
   note?: string;
@@ -13216,14 +13222,14 @@ export function useModerationReportsRetrieveSuspense<
 
 export const moderationReportsApproveCreate = (
   id: number,
-  reportDecisionInput: ReportDecisionInput,
+  reportApproveInput: ReportApproveInput,
   signal?: AbortSignal
 ) => {
   return customInstance<ModerationReportOutput>({
     url: `/moderation/reports/${id}/approve/`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    data: reportDecisionInput,
+    data: reportApproveInput,
     signal,
   });
 };
@@ -13235,13 +13241,13 @@ export const getModerationReportsApproveCreateMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
     TError,
-    { id: number; data: ReportDecisionInput },
+    { id: number; data: ReportApproveInput },
     TContext
   >;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
   TError,
-  { id: number; data: ReportDecisionInput },
+  { id: number; data: ReportApproveInput },
   TContext
 > => {
   const mutationKey = ["moderationReportsApproveCreate"];
@@ -13255,7 +13261,7 @@ export const getModerationReportsApproveCreateMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
-    { id: number; data: ReportDecisionInput }
+    { id: number; data: ReportApproveInput }
   > = props => {
     const { id, data } = props ?? {};
 
@@ -13268,7 +13274,7 @@ export const getModerationReportsApproveCreateMutationOptions = <
 export type ModerationReportsApproveCreateMutationResult = NonNullable<
   Awaited<ReturnType<typeof moderationReportsApproveCreate>>
 >;
-export type ModerationReportsApproveCreateMutationBody = ReportDecisionInput;
+export type ModerationReportsApproveCreateMutationBody = ReportApproveInput;
 export type ModerationReportsApproveCreateMutationError = unknown;
 
 export const useModerationReportsApproveCreate = <
@@ -13279,7 +13285,7 @@ export const useModerationReportsApproveCreate = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
       TError,
-      { id: number; data: ReportDecisionInput },
+      { id: number; data: ReportApproveInput },
       TContext
     >;
   },
@@ -13287,7 +13293,7 @@ export const useModerationReportsApproveCreate = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof moderationReportsApproveCreate>>,
   TError,
-  { id: number; data: ReportDecisionInput },
+  { id: number; data: ReportApproveInput },
   TContext
 > => {
   return useMutation(
