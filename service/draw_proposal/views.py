@@ -4,7 +4,6 @@ from rest_framework import permissions
 from common.views import (
     ActionView,
     CreateActionView,
-    CurrentGameMemberMixin,
     LoaderListView,
     SelectedGameMixin,
 )
@@ -13,7 +12,7 @@ from .models import DrawProposal
 from .serializers import DrawProposalOutputSerializer, VoteDrawProposalInputSerializer
 
 
-class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, LoaderListView):
+class DrawProposalListView(SelectedGameMixin, LoaderListView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DrawProposalOutputSerializer
 
@@ -23,9 +22,7 @@ class DrawProposalListView(SelectedGameMixin, CurrentGameMemberMixin, LoaderList
 
 
 @extend_schema(request=DrawProposalOutputSerializer)
-class DrawProposalCreateView(
-    SelectedGameMixin, CurrentGameMemberMixin, CreateActionView
-):
+class DrawProposalCreateView(SelectedGameMixin, CreateActionView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DrawProposalOutputSerializer
 
@@ -40,7 +37,7 @@ class DrawProposalCreateView(
         responses=VoteDrawProposalInputSerializer,
     ),
 )
-class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, ActionView):
+class DrawProposalVoteView(SelectedGameMixin, ActionView):
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["put", "patch", "options"]
     queryset = DrawProposal.objects.all()

@@ -3,6 +3,7 @@ from django.db.models import Prefetch
 from common.loaders import Loader
 from phase.models import Phase
 
+from .hydrators import MyVoteHydrator
 from .models import DrawProposal
 
 
@@ -19,3 +20,6 @@ class DrawProposalLoader(Loader):
         ),
         "votes",
     )
+    hydrators = [
+        MyVoteHydrator(),
+    ]
