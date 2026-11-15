@@ -14,7 +14,6 @@ from common.constants import (
     MemberDeparture,
     MemberKind,
     ParticipationStatus,
-    UserKind,
     WithdrawalReason,
 )
 from common.models import BaseModel
@@ -47,7 +46,7 @@ class MemberQuerySet(models.QuerySet):
         return self.filter(kind=MemberKind.PLAYER)
 
     def humans(self):
-        return self.filter(user__profile__kind=UserKind.HUMAN)
+        return self.filter(user__bot__isnull=True)
 
     def vacant(self):
         return self.not_replaced().filter(
@@ -94,6 +93,7 @@ class MemberQuerySet(models.QuerySet):
         return self.select_related(
             "nation",
             "user__profile__uploaded_picture",
+            "user__bot",
             "game__victory",
             "rating_result",
         ).prefetch_related(
@@ -455,7 +455,7 @@ class Member(BaseModel):
 
     @property
     def is_bot(self):
-        return self.user is not None and self.user.profile.is_bot
+        return self.user is not None and hasattr(self.user, "bot")
 
     @property
     def name(self):
@@ -552,7 +552,7 @@ class CommitmentEntryManager(models.Manager):
         game = member.game
         if game.sandbox or game.private:
             return None
-        if member.user is None or member.user.profile.kind != UserKind.HUMAN:
+        if member.user is None or member.is_bot:
             return None
         return self.create(member=member, kind=kind)
 

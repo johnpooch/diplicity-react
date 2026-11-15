@@ -16,7 +16,7 @@ class UserProfileQuerySet(models.QuerySet):
 
     def addable_to_game(self, game):
         return (
-            self.filter(kind__in=UserKind.BOT_KINDS)
+            self.filter(user__bot__isnull=False)
             .select_related("user", "uploaded_picture")
             .exclude(user__members__game=game)
             .order_by("name")
@@ -58,7 +58,7 @@ class UserProfile(BaseModel):
 
     @property
     def is_bot(self):
-        return self.kind != UserKind.HUMAN
+        return hasattr(self.user, "bot")
 
     @cached_property
     def commitment_total(self):

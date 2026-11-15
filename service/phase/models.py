@@ -15,7 +15,6 @@ from common.constants import (
     GameStatus,
     DeadlineMode,
     OrderType,
-    UserKind,
     ResolutionJob,
     DeadlineWarningJob,
 )
@@ -501,7 +500,7 @@ class PhaseManager(models.Manager):
         phase_states = phase.phase_states.filter(
             has_possible_orders=True,
             orders_outcome__isnull=False,
-            member__user__profile__kind=UserKind.HUMAN,
+            member__user__bot__isnull=True,
         ).select_related("member")
 
         entries = []
@@ -1061,7 +1060,7 @@ class Phase(BaseModel):
                 has_possible_orders=True,
                 orders_confirmed=False,
             )
-            .exclude(member__user__profile__kind__in=UserKind.BOT_KINDS)
+            .filter(member__user__bot__isnull=True)
             .exists()
         )
 

@@ -279,8 +279,6 @@ class UserKind:
         (DUMBBOT, "DumbBot"),
     )
 
-    BOT_KINDS = (LLM, DUMBBOT)
-
 
 class MemberKind:
     PLAYER = "player"

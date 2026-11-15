@@ -42,7 +42,9 @@ class ChannelQuerySet(models.QuerySet):
         return self.filter(game=game)
 
     def with_member_names(self):
-        return self.prefetch_related("members__nation", "members__user__profile")
+        return self.prefetch_related(
+            "members__nation", "members__user__profile", "members__user__bot"
+        )
 
     def with_latest_message_id(self):
         latest_message = (
@@ -254,6 +256,7 @@ class ChannelMessageQuerySet(models.QuerySet):
             "sender",
             "sender__user",
             "sender__user__profile__uploaded_picture",
+            "sender__user__bot",
             "sender__nation__flag",
         )
 
