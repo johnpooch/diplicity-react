@@ -1,8 +1,8 @@
 from common.loaders import Loader
 
 from .hydrators import (
+    GameMembersHydrator,
     ListPhasesHydrator,
-    MemberCommitmentTotalsHydrator,
     RetrievePhasesHydrator,
     TotalUnreadCountsHydrator,
     ViewerActionsHydrator,
@@ -17,7 +17,7 @@ class GameListLoader(Loader):
     hydrators = [
         ListPhasesHydrator(),
         TotalUnreadCountsHydrator(),
-        MemberCommitmentTotalsHydrator(),
+        GameMembersHydrator(),
         ViewerPermissionsHydrator(),
         ViewerOrdersHydrator(),
     ]
@@ -27,7 +27,7 @@ class GameRetrieveLoader(Loader):
     queryset = Game.objects.with_retrieve_data()
     hydrators = [
         RetrievePhasesHydrator(),
-        MemberCommitmentTotalsHydrator(),
+        GameMembersHydrator(),
         ViewerPermissionsHydrator(),
         ViewerOrdersHydrator(),
         ViewerActionsHydrator(),

@@ -12,11 +12,13 @@ from common.permissions import (
 from common.views import (
     CompletedPhaseCacheMixin,
     LoaderDetailView,
+    LoaderListView,
     SelectedGameMixin,
     SelectedPhaseMixin,
     CurrentGameMemberMixin,
 )
 from rest_framework.response import Response
+from .loaders import PhaseStateLoader
 from .models import Phase
 from .serializers import (
     PhaseStateSerializer,
@@ -47,15 +49,24 @@ class PhaseStateUpdateView(
         current_phase = game.current_phase
         return current_phase.phase_states.get(member=member)
 
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        serializer.instance = PhaseStateLoader.get(
+            serializer.instance.pk, self.request.user
+        )
 
-class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
+
+class PhaseStateListView(SelectedGameMixin, LoaderListView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PhaseStateSerializer
 
     def get_queryset(self):
-        game = self.get_game()
-        current_phase = game.current_phase
-        return current_phase.phase_states.filter(member__user=self.request.user)
+        current_phase = self.get_game().current_phase
+        return (
+            super()
+            .get_queryset()
+            .filter(phase_id=current_phase.id, member__user=self.request.user)
+        )
 
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):

@@ -3,13 +3,14 @@ from django.db.models import Prefetch
 from common.loaders import Loader
 from phase.models import Phase
 
-from .hydrators import MyVoteHydrator
+from .hydrators import CreatedByHydrator, MyVoteHydrator
 from .models import DrawProposal
 
 
 class DrawProposalLoader(Loader):
     queryset = DrawProposal.objects.select_related(
         "game",
+        "created_by__game",
         "created_by__user__profile__uploaded_picture",
         "created_by__user__bot",
         "created_by__nation",
@@ -21,5 +22,6 @@ class DrawProposalLoader(Loader):
         "votes",
     )
     hydrators = [
+        CreatedByHydrator(),
         MyVoteHydrator(),
     ]

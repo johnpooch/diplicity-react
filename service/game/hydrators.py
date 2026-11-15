@@ -1,6 +1,7 @@
 from channel.policies import can_create_channel
 from common.constants import DeadlineMode
 from common.loaders import Hydrator
+from member.loaders import MemberLoader
 
 from .models import Game
 
@@ -20,9 +21,16 @@ class TotalUnreadCountsHydrator(Hydrator):
         Game.objects.hydrate_total_unread_counts(games, actor)
 
 
-class MemberCommitmentTotalsHydrator(Hydrator):
+class GameMembersHydrator(Hydrator):
     def hydrate(self, games, actor):
-        Game.objects.hydrate_member_commitment_totals(games)
+        members = [member for game in games for member in game.members.all()]
+        members += [
+            member
+            for game in games
+            if hasattr(game, "victory")
+            for member in game.victory.members.all()
+        ]
+        MemberLoader.hydrate(members, actor)
 
 
 class ViewerPermissionsHydrator(Hydrator):

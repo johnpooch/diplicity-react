@@ -6,9 +6,14 @@ from django.conf import settings
 from django.core import exceptions
 from django.utils import timezone
 
-from common.constants import ChannelMessagePagination
+from common.constants import ChannelMessagePagination, PlayerName
 from common.serializers import hydrated
-from .loaders import ChannelDetailLoader, ChannelLoader
+from .loaders import (
+    ChannelDetailLoader,
+    ChannelLoader,
+    ChannelMessageLoader,
+    ChannelPreviewLoader,
+)
 from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
@@ -23,29 +28,11 @@ class ChannelMemberSerializer(BaseMemberSerializer):
     is_game_master = serializers.BooleanField(read_only=True)
 
 
-def derive_channel_name(channel, context):
-    if not channel.private:
-        return channel.name
-    member_serializer = ChannelMemberSerializer(context=context)
-    return ", ".join(
-        sorted(
-            member.nation.name if member.nation else member_serializer.get_name(member)
-            for member in channel.members.all()
-            if member.replaced_by_id is None
-        )
-    )
-
-
-class ChannelNameMixin:
-    def get_name(self, channel) -> str:
-        return derive_channel_name(channel, self.context)
-
-
 def actor_label(member):
     if member.nation:
         return member.nation.name
     if member.game.anonymity_active:
-        return "Anonymous"
+        return PlayerName.ANONYMOUS
     return member.name
 
 
@@ -61,6 +48,9 @@ class ChannelMessageSerializer(serializers.Serializer):
     client_message_id = serializers.UUIDField(required=False, allow_null=True)
     sender = ChannelMemberSerializer(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        loader = ChannelMessageLoader
 
     def create(self, validated_data):
         channel = self.context["channel"]
@@ -112,9 +102,9 @@ class ChannelEventSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
 
 
-class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
+class ChannelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.SerializerMethodField()
+    name = hydrated(serializers.CharField(source="display_name", read_only=True))
     title = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -163,28 +153,30 @@ class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         game = self.context["game"]
-        channel = Channel.objects.create_from_member_ids(
+        return Channel.objects.create_from_member_ids(
             request.user,
             validated_data["member_ids"],
             game,
             validated_data.get("title", ""),
         )
-        return ChannelLoader.get(channel.pk, request.user)
 
 
-class ChannelPreviewSerializer(ChannelNameMixin, serializers.Serializer):
+class ChannelPreviewSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.SerializerMethodField()
+    name = hydrated(serializers.CharField(source="display_name", read_only=True))
     title = serializers.CharField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     muted = serializers.BooleanField(read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True)
     latest_message = ChannelMessageSerializer(read_only=True, allow_null=True)
 
+    class Meta:
+        loader = ChannelPreviewLoader
 
-class ChannelDetailSerializer(ChannelNameMixin, serializers.Serializer):
+
+class ChannelDetailSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.SerializerMethodField()
+    name = hydrated(serializers.CharField(source="display_name", read_only=True))
     title = serializers.CharField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     muted = serializers.BooleanField(read_only=True)

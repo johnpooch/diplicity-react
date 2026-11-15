@@ -1,112 +1,45 @@
 from rest_framework import serializers
 from django.db import IntegrityError, transaction
-from drf_spectacular.utils import extend_schema_field
 
 from common.constants import (
     ActionBlockedReason,
     CommitmentBand,
     GameActionKey,
-    GameStatus,
     MemberActionKey,
     ParticipationStatus,
     WithdrawalReason,
 )
+from common.serializers import AbsoluteUrlField, derived, hydrated
 from bot.constants import BotKind
 from emit import emit
-from report.checks import HasNotReportedCheck
-from report.policies import CanModerateGamePolicy
 from user_profile.models import UserProfile
 
+from .loaders import BaseMemberLoader, MemberDetailLoader, MemberLoader
 from .models import Member
 
 
 class BaseMemberSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    user_id = serializers.SerializerMethodField()
-    name = serializers.SerializerMethodField()
-    picture = serializers.SerializerMethodField()
-    is_current_user = serializers.SerializerMethodField()
-    is_bot = serializers.SerializerMethodField()
-    bot_kind = serializers.SerializerMethodField()
-
-    def _is_current_user(self, obj):
-        if obj.user is None:
-            return False
-        request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return False
-        return obj.user == request.user
-
-    def _is_bot(self, obj):
-        return obj.is_bot
-
-    def _is_masked(self, obj):
-        game = self._get_game(obj)
-        if not game.anonymous:
-            return False
-        if obj.is_game_master:
-            return False
-        if game.status == GameStatus.COMPLETED:
-            return False
-        if self._is_bot(obj):
-            return False
-        return not self._is_current_user(obj) and not self._is_moderating(game)
-
-    def _is_moderating(self, game):
-        request = self.context.get("request")
-        if not request:
-            return False
-        moderated = self.context.setdefault("moderated_game_ids", {})
-        if game.id not in moderated:
-            moderated[game.id] = CanModerateGamePolicy.decide(
-                game, request.user
-            ).allowed
-        return moderated[game.id]
-
-    def _get_game(self, obj):
-        if "game" in self.context:
-            return self.context["game"]
-        return obj.game
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_user_id(self, obj):
-        if self._is_masked(obj):
-            return None
-        if obj.user is None:
-            return None
-        return obj.user_id
-
-    @extend_schema_field(serializers.CharField)
-    def get_name(self, obj):
-        if self._is_masked(obj):
-            return "Anonymous"
-        if obj.user is None:
-            return "Deleted User"
-        return obj.user.profile.name
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_picture(self, obj):
-        if self._is_masked(obj):
-            return None
-        if obj.user is None:
-            return None
-        return obj.user.profile.picture_url(self.context.get("request"))
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_current_user(self, obj):
-        return self._is_current_user(obj)
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_bot(self, obj):
-        return self._is_bot(obj)
-
-    @extend_schema_field(
-        serializers.ChoiceField(choices=BotKind.KIND_CHOICES, allow_null=True)
+    user_id = hydrated(
+        serializers.IntegerField(
+            source="visible_user_id", read_only=True, allow_null=True
+        )
     )
-    def get_bot_kind(self, obj):
-        if not self._is_bot(obj):
-            return None
-        return obj.user.bot.kind
+    name = hydrated(serializers.CharField(source="visible_name", read_only=True))
+    picture = hydrated(AbsoluteUrlField(source="visible_picture_path"))
+    is_current_user = hydrated(serializers.BooleanField(read_only=True))
+    is_bot = serializers.BooleanField(read_only=True)
+    bot_kind = derived(
+        serializers.ChoiceField(
+            source="user.bot.kind",
+            choices=BotKind.KIND_CHOICES,
+            read_only=True,
+            allow_null=True,
+        )
+    )
+
+    class Meta:
+        loader = BaseMemberLoader
 
 
 class MemberSerializer(BaseMemberSerializer):
@@ -115,94 +48,45 @@ class MemberSerializer(BaseMemberSerializer):
     )
     eliminated = serializers.BooleanField(read_only=True)
     kicked = serializers.BooleanField(read_only=True, source="left_seat")
-    is_game_creator = serializers.SerializerMethodField()
-    is_admin = serializers.SerializerMethodField()
+    is_game_creator = hydrated(
+        serializers.BooleanField(source="visible_is_game_creator", read_only=True)
+    )
+    is_admin = hydrated(
+        serializers.BooleanField(source="visible_is_admin", read_only=True)
+    )
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
     withdrawn = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
     seat_confirmed = serializers.BooleanField(read_only=True, allow_null=True)
-    removable = serializers.SerializerMethodField()
-    nation_preference_ids = serializers.SerializerMethodField()
-    commitment_total = serializers.SerializerMethodField()
-    commitment_band = serializers.SerializerMethodField()
-    rating_change = serializers.SerializerMethodField()
-    rating_before = serializers.SerializerMethodField()
-    rating_after = serializers.SerializerMethodField()
-
-    def _rating_result(self, obj):
-        if self._get_game(obj).status != GameStatus.COMPLETED:
-            return None
-        return getattr(obj, "rating_result", None)
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_rating_change(self, obj):
-        result = self._rating_result(obj)
-        if result is None:
-            return None
-        return round(result.rating_after) - round(result.rating_before)
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_rating_before(self, obj):
-        result = self._rating_result(obj)
-        if result is None:
-            return None
-        return round(result.rating_before)
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_rating_after(self, obj):
-        result = self._rating_result(obj)
-        if result is None:
-            return None
-        return round(result.rating_after)
-
-    def _has_commitment(self, obj):
-        return (
-            obj.user is not None
-            and not self._is_bot(obj)
-            and not self._get_game(obj).anonymous
+    removable = serializers.BooleanField(read_only=True)
+    nation_preference_ids = hydrated(
+        serializers.ListField(
+            child=serializers.CharField(),
+            source="visible_nation_preference_ids",
+            read_only=True,
         )
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_commitment_total(self, obj):
-        if not self._has_commitment(obj):
-            return None
-        return obj.commitment_total
-
-    @extend_schema_field(
-        serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES, allow_null=True)
     )
-    def get_commitment_band(self, obj):
-        if not self._has_commitment(obj):
-            return None
-        return CommitmentBand.for_total(obj.commitment_total)
+    commitment_total = hydrated(
+        serializers.IntegerField(
+            source="public_commitment_total", read_only=True, allow_null=True
+        )
+    )
+    commitment_band = hydrated(
+        serializers.ChoiceField(
+            source="public_commitment_band",
+            choices=CommitmentBand.BAND_CHOICES,
+            read_only=True,
+            allow_null=True,
+        )
+    )
+    rating_change = derived(serializers.IntegerField(read_only=True, allow_null=True))
+    rating_before = derived(serializers.IntegerField(read_only=True, allow_null=True))
+    rating_after = derived(serializers.IntegerField(read_only=True, allow_null=True))
 
-    @extend_schema_field(serializers.BooleanField)
-    def get_removable(self, obj):
-        return self._get_game(obj).can_remove_member(obj)
-
-    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
-    def get_nation_preference_ids(self, obj):
-        if not self._is_current_user(obj):
-            return []
-        return [
-            preference.nation.nation_id for preference in obj.nation_preferences.all()
-        ]
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_game_creator(self, obj):
-        if self._is_masked(obj):
-            return False
-        game = self._get_game(obj)
-        return obj.user_id is not None and obj.user_id == game.created_by_id
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_admin(self, obj):
-        if self._is_masked(obj):
-            return False
-        game = self._get_game(obj)
-        return obj.user_id is not None and obj.user_id == game.admin_id
+    class Meta:
+        loader = MemberLoader
 
 
 class MemberActionSerializer(serializers.Serializer):
@@ -215,84 +99,44 @@ class MemberActionSerializer(serializers.Serializer):
 
 
 class MemberDetailSerializer(BaseMemberSerializer):
-    is_admin = serializers.SerializerMethodField()
+    is_admin = hydrated(
+        serializers.BooleanField(source="visible_is_admin", read_only=True)
+    )
     nation = serializers.CharField(
         allow_null=True, read_only=True, source="nation.name"
     )
     participation_status = serializers.ChoiceField(
         choices=ParticipationStatus.STATUS_CHOICES, read_only=True
     )
-    supply_center_count = serializers.SerializerMethodField()
-    unit_count = serializers.SerializerMethodField()
+    supply_center_count = hydrated(
+        serializers.IntegerField(read_only=True, allow_null=True)
+    )
+    unit_count = hydrated(serializers.IntegerField(read_only=True, allow_null=True))
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     nmr_extensions_allowed = serializers.IntegerField(
         read_only=True, source="game.nmr_extensions_allowed"
     )
-    nation_preferences = serializers.SerializerMethodField()
-    actions = serializers.SerializerMethodField()
-    can_report = serializers.SerializerMethodField()
-    already_reported = serializers.SerializerMethodField()
-    rated = serializers.SerializerMethodField()
-
-    def _counted_phase(self, obj):
-        game = self._get_game(obj)
-        if obj.nation_id is None or game.status in (
-            GameStatus.PENDING,
-            GameStatus.MUSTERING,
-        ):
-            return None
-        return game.current_phase
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_admin(self, obj):
-        if self._is_masked(obj):
-            return False
-        game = self._get_game(obj)
-        return obj.user_id is not None and obj.user_id == game.admin_id
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_supply_center_count(self, obj):
-        phase = self._counted_phase(obj)
-        if phase is None:
-            return None
-        return phase.supply_centers.filter(nation_id=obj.nation_id).count()
-
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_unit_count(self, obj):
-        phase = self._counted_phase(obj)
-        if phase is None:
-            return None
-        return phase.units.filter(nation_id=obj.nation_id).count()
-
-    @extend_schema_field(
-        serializers.ListField(child=serializers.CharField(), allow_null=True)
+    nation_preferences = hydrated(
+        serializers.ListField(
+            child=serializers.CharField(),
+            source="visible_nation_preferences",
+            read_only=True,
+            allow_null=True,
+        )
     )
-    def get_nation_preferences(self, obj):
-        if (
-            not self._is_current_user(obj)
-            or obj.is_game_master
-            or self._get_game(obj).status != GameStatus.PENDING
-        ):
-            return None
-        return [preference.nation.name for preference in obj.nation_preferences.all()]
+    actions = hydrated(
+        MemberActionSerializer(many=True, read_only=True, source="viewer_actions")
+    )
+    can_report = hydrated(
+        serializers.BooleanField(source="viewer_can_report", read_only=True)
+    )
+    already_reported = hydrated(
+        serializers.BooleanField(source="viewer_already_reported", read_only=True)
+    )
+    rated = serializers.BooleanField(read_only=True)
 
-    @extend_schema_field(MemberActionSerializer(many=True))
-    def get_actions(self, obj):
-        return MemberActionSerializer(
-            obj.actions_for(self.context["request"].user), many=True
-        ).data
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_can_report(self, obj):
-        return obj.report_decision.allowed
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_already_reported(self, obj):
-        return obj.report_decision.reason == HasNotReportedCheck.reason
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_rated(self, obj):
-        return hasattr(obj, "rating_result")
+    class Meta:
+        loader = MemberDetailLoader
 
 
 class MemberJoinSerializer(MemberSerializer):

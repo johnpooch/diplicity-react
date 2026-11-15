@@ -1372,7 +1372,7 @@ class TestUserProfileAdmin:
             profile=primary_user.profile
         ).exists()
         primary_user.profile.refresh_from_db()
-        assert primary_user.profile.picture_url() == "http://example.com/google.jpg"
+        assert primary_user.profile.picture_path == "http://example.com/google.jpg"
 
     @pytest.mark.django_db
     def test_clear_uploaded_picture_stops_serving_image(

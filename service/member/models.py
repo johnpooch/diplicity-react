@@ -15,6 +15,7 @@ from common.constants import (
     MemberDeparture,
     MemberKind,
     ParticipationStatus,
+    PlayerName,
     WithdrawalReason,
 )
 from common.models import BaseModel
@@ -40,6 +41,9 @@ def commitment_points(kind_lookup):
 
 
 class MemberQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
     def not_replaced(self):
         return self.filter(replaced_by__isnull=True)
 
@@ -471,8 +475,42 @@ class Member(BaseModel):
     @property
     def name(self):
         if self.user is None:
-            return "Deleted User"
+            return PlayerName.DELETED
         return self.user.profile.name
+
+    @property
+    def removable(self) -> bool:
+        return self.game.can_remove_member(self)
+
+    @property
+    def rated(self) -> bool:
+        return hasattr(self, "rating_result")
+
+    @property
+    def completed_rating_result(self):
+        if self.game.status != GameStatus.COMPLETED:
+            return None
+        return getattr(self, "rating_result", None)
+
+    @property
+    def rating_before(self) -> int | None:
+        result = self.completed_rating_result
+        if result is None:
+            return None
+        return round(result.rating_before)
+
+    @property
+    def rating_after(self) -> int | None:
+        result = self.completed_rating_result
+        if result is None:
+            return None
+        return round(result.rating_after)
+
+    @property
+    def rating_change(self) -> int | None:
+        if self.completed_rating_result is None:
+            return None
+        return self.rating_after - self.rating_before
 
     @property
     def picture(self):

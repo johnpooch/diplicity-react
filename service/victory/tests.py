@@ -6,6 +6,7 @@ from victory.models import Victory
 from victory.utils import check_for_solo_winner
 from victory.constants import VictoryType
 from victory.serializers import VictorySerializer
+from member.loaders import MemberLoader
 
 
 class TestCheckForSoloWinner:
@@ -416,6 +417,8 @@ class TestVictorySerializer:
         request = factory.get("/")
         request.user = primary_user
 
+        victory = Victory.objects.prefetch_related("members").get(pk=victory.pk)
+        MemberLoader.hydrate(victory.members.all(), primary_user)
         serializer = VictorySerializer(victory, context={"request": request})
         data = serializer.data
 
@@ -448,6 +451,8 @@ class TestVictorySerializer:
         request = factory.get("/")
         request.user = primary_user
 
+        victory = Victory.objects.prefetch_related("members").get(pk=victory.pk)
+        MemberLoader.hydrate(victory.members.all(), primary_user)
         serializer = VictorySerializer(victory, context={"request": request})
         data = serializer.data
 

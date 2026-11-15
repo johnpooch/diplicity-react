@@ -98,12 +98,6 @@ class UserProfile(BaseModel):
             kwargs={"user_id": self.user_id, "content_hash": picture.content_hash},
         )
 
-    def picture_url(self, request=None) -> str | None:
-        path = self.picture_path
-        if path is None or request is None:
-            return path
-        return request.build_absolute_uri(path)
-
 
 class UserProfilePictureManager(models.Manager):
     def store(self, profile, data, content_type):

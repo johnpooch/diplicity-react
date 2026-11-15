@@ -7,7 +7,7 @@ from common.permissions import IsCurrentPhaseActive
 from common.serializers import derived, hydrated
 from emit import emit
 from member.serializers import MemberSerializer
-from phase.loaders import PhaseRetrieveLoader
+from phase.loaders import PhaseRetrieveLoader, PhaseStateLoader
 from phase.models import Phase
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
@@ -21,6 +21,9 @@ class PhaseStateSerializer(serializers.Serializer):
     orderable_provinces = ProvinceSerializer(read_only=True, many=True)
     member = MemberSerializer(read_only=True)
     max_orders = derived(serializers.IntegerField(read_only=True, allow_null=True))
+
+    class Meta:
+        loader = PhaseStateLoader
 
     def update(self, instance, validated_data):
         with transaction.atomic():

@@ -11,7 +11,8 @@ from common.permissions import (
 )
 from report.policies import CanModerateGamePolicy
 
-from .models import Channel, ChannelMember, ChannelMessage
+from .loaders import ChannelLoader, ChannelMessageLoader
+from .models import Channel, ChannelMember
 from .permissions import (
     CanCreateChannel,
     CanLeaveChannel,
@@ -32,6 +33,7 @@ from .serializers import (
 )
 from common.views import (
     ConditionalGetMixin,
+    LoaderListView,
     LoaderMixin,
     SelectedGameMixin,
     SelectedChannelMixin,
@@ -54,6 +56,12 @@ class ChannelCreateView(
 ):
     permission_classes = [permissions.IsAuthenticated, CanCreateChannel]
     serializer_class = ChannelSerializer
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        serializer.instance = ChannelLoader.get(
+            serializer.instance.pk, self.request.user
+        )
 
 
 class ChannelRetrieveUpdateView(
@@ -120,11 +128,15 @@ class ChannelMessageListView(
         )
         query = ChannelMessagePageQuerySerializer(data=self.request.query_params)
         query.is_valid(raise_exception=True)
-        return (
-            ChannelMessage.objects.for_channel(channel)
-            .with_sender_data()
+        page = (
+            ChannelMessageLoader.get_queryset(self.request.user)
+            .for_channel(channel)
             .page(**query.validated_data)
         )
+        page["results"] = ChannelMessageLoader.hydrate(
+            page["results"], self.request.user
+        )
+        return page
 
 
 class ChannelMessageCreateView(
@@ -141,6 +153,12 @@ class ChannelMessageCreateView(
         IsNotNoPressActiveGame,
     ]
     serializer_class = ChannelMessageSerializer
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        serializer.instance = ChannelMessageLoader.get(
+            serializer.instance.pk, self.request.user
+        )
 
 
 class ChannelMarkReadView(
@@ -204,7 +222,7 @@ class ChannelPreviewListView(
     ReadableChannelsMixin,
     SelectedGameMixin,
     CurrentGameMemberMixin,
-    generics.ListAPIView,
+    LoaderListView,
 ):
     """List the channels the requester can read, each with only its latest message."""
 
@@ -212,14 +230,10 @@ class ChannelPreviewListView(
     serializer_class = ChannelPreviewSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        channels = list(
-            self.get_readable_channels()
-            .with_unread_counts(user)
-            .with_mute_state(user)
-            .with_latest_message_id()
-            .with_member_names()
+        readable = self.get_readable_channels()
+        return (
+            super()
+            .get_queryset()
+            .filter(pk__in=readable.values("pk"))
             .order_for_list()
         )
-        Channel.objects.hydrate_latest_messages(channels)
-        return channels

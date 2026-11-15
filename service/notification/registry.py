@@ -1,12 +1,11 @@
 from django.conf import settings
 
+from common.constants import PlayerName
 from notification.models import NotificationDelivery
 from notification.utils import build_push_tag
 
 Channel = NotificationDelivery.Channel
 
-ANONYMOUS_NAME = "Anonymous"
-UNKNOWN_PLAYER_NAME = "Deleted User"
 
 REGISTRY = {}
 
@@ -115,7 +114,7 @@ class NotificationSpec:
             return f" The draw proposal from {names[0]} has expired."
         return f" The draw proposals from {join_names(names)} have expired."
 
-    def player_name(self, name=None, nation=None, anonymous=ANONYMOUS_NAME):
+    def player_name(self, name=None, nation=None, anonymous=PlayerName.ANONYMOUS):
         if nation:
             return nation
         if self.context.game.anonymity_active:
@@ -123,7 +122,7 @@ class NotificationSpec:
         if name:
             return name
         actor = self.context.actor
-        return actor.profile.name if actor is not None else UNKNOWN_PLAYER_NAME
+        return actor.profile.name if actor is not None else PlayerName.DELETED
 
 
 @register("channel_message")

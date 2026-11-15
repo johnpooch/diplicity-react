@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 import pytest
 from django.apps import apps
-from django.db import IntegrityError
+from django.db import IntegrityError, connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -839,6 +840,23 @@ def _rating_url(member, game_id=None):
 
 class TestMemberRatingRetrieveView:
     @pytest.mark.django_db
+    def test_query_count_does_not_grow_with_pairings(
+        self, authenticated_client, rating_result_factory, rating_pairing_factory
+    ):
+        result = rating_result_factory()
+        rating_pairing_factory(result=result)
+        with CaptureQueriesContext(connection) as one_pairing:
+            authenticated_client.get(_rating_url(result.member))
+        rating_pairing_factory(result=result)
+        rating_pairing_factory(result=result)
+
+        with CaptureQueriesContext(connection) as three_pairings:
+            response = authenticated_client.get(_rating_url(result.member))
+
+        assert len(response.data["pairings"]) == 3
+        assert len(three_pairings.captured_queries) == len(one_pairing.captured_queries)
+
+    @pytest.mark.django_db
     def test_unauthenticated(self, unauthenticated_client, ranked_game_factory):
         game = ranked_game_factory()
         RatingResult.objects.rate_game(game)
@@ -1075,8 +1093,8 @@ class TestLeaderboard:
         response = authenticated_client.get(reverse("leaderboard"))
 
         [entry] = response.data["results"]
-        assert entry["picture"] == primary_user.profile.picture_url(
-            response.wsgi_request
+        assert entry["picture"] == response.wsgi_request.build_absolute_uri(
+            primary_user.profile.picture_path
         )
 
     @pytest.mark.django_db

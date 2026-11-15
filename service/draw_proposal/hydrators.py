@@ -1,5 +1,11 @@
 from common.loaders import Hydrator
+from member.loaders import BaseMemberLoader
 from member.models import Member
+
+
+class CreatedByHydrator(Hydrator):
+    def hydrate(self, proposals, actor):
+        BaseMemberLoader.hydrate([proposal.created_by for proposal in proposals], actor)
 
 
 class MyVoteHydrator(Hydrator):

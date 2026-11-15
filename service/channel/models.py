@@ -49,7 +49,7 @@ class ChannelQuerySet(models.QuerySet):
             models.Prefetch(
                 "members",
                 queryset=Member.objects.select_related(
-                    "nation", "user__profile", "user__bot"
+                    "game", "nation", "user__profile__uploaded_picture", "user__bot"
                 ),
             )
         )
@@ -242,12 +242,16 @@ class ChannelMember(BaseModel):
 
 
 class ChannelMessageQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
     def for_channel(self, channel):
         return self.filter(channel=channel)
 
     def with_sender_data(self):
         return self.select_related(
             "sender",
+            "sender__game",
             "sender__user",
             "sender__user__profile__uploaded_picture",
             "sender__user__bot",

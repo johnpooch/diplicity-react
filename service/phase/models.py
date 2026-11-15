@@ -1110,7 +1110,14 @@ class Phase(BaseModel):
         emit("phase_started", phase=self)
 
 
+class PhaseStateQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
+
 class PhaseState(BaseModel):
+    objects = PhaseStateQuerySet.as_manager()
+
     class OrdersOutcome(models.TextChoices):
         RECEIVED = "received"
         NMR = "nmr"

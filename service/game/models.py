@@ -123,6 +123,7 @@ class GameQuerySet(models.QuerySet):
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related(
+                "game",
                 "user__profile__uploaded_picture",
                 "user__bot",
                 "nation",
@@ -186,6 +187,7 @@ class GameQuerySet(models.QuerySet):
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related(
+                "game",
                 "user__profile__uploaded_picture",
                 "user__bot",
                 "nation__flag",
@@ -366,16 +368,6 @@ class GameManager(models.Manager):
             )
         for game in games_without_counts:
             game.total_unread_message_count = counts.get(game.id, 0)
-
-    def hydrate_member_commitment_totals(self, games):
-        members = [member for game in games for member in game.members.all()]
-        members += [
-            member
-            for game in games
-            if hasattr(game, "victory")
-            for member in game.victory.members.all()
-        ]
-        Member.objects.hydrate_commitment_totals(members)
 
     def hydrate_retrieve_phases(self, games):
         phases, current_phases, latest_completed_phases = self._latest_phases(games)
