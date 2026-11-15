@@ -37,6 +37,9 @@ from emit import emit
 
 
 class PhaseQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
     def with_related_data(self):
         return self.select_related("variant", "game").prefetch_related(
             "units__nation__flag",
@@ -1129,6 +1132,12 @@ class PhaseState(BaseModel):
     def __str__(self):
         username = self.member.user.username if self.member.user else "Deleted User"
         return f"{username} - {self.phase.name}"
+
+    @property
+    def max_orders(self) -> int | None:
+        if self.phase.type != PhaseType.ADJUSTMENT:
+            return None
+        return self.max_allowed_adjustment_orders()
 
     def max_allowed_adjustment_orders(self):
         if self.phase.type != PhaseType.ADJUSTMENT:

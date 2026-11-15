@@ -11,12 +11,12 @@ from common.permissions import (
 )
 from common.views import (
     CompletedPhaseCacheMixin,
+    LoaderDetailView,
     SelectedGameMixin,
     SelectedPhaseMixin,
     CurrentGameMemberMixin,
 )
 from rest_framework.response import Response
-from province.models import Province
 from .models import Phase
 from .serializers import (
     PhaseStateSerializer,
@@ -80,9 +80,7 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
         )
 
 
-class PhaseRetrieveView(
-    CompletedPhaseCacheMixin, SelectedPhaseMixin, generics.RetrieveAPIView
-):
+class PhaseRetrieveView(CompletedPhaseCacheMixin, SelectedPhaseMixin, LoaderDetailView):
     """Retrieve a phase with its units, supply centers and province ownership."""
 
     permission_classes = [permissions.AllowAny]
@@ -90,14 +88,6 @@ class PhaseRetrieveView(
     lookup_field = "id"
     lookup_url_kwarg = "phase_id"
     completed_phase_etag_salt = "phase"
-
-    def get_queryset(self):
-        return Phase.objects.with_retrieve_data()
-
-    def get_object(self):
-        phase = super().get_object()
-        phase.variant_provinces = Province.objects.cached_for_variant(phase.variant)
-        return phase
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

@@ -23,7 +23,9 @@ from common.constants import (
     PhaseFrequency,
 )
 from game.models import Game
+from common.actors import SYSTEM
 from .models import Phase, PhaseState
+from .loaders import PhaseRetrieveLoader
 from .serializers import PhaseRetrieveSerializer, PhaseStateSerializer
 from .utils import transform_options, phase_to_canonical_game_state
 from order.models import Order, OrderResolution
@@ -2457,8 +2459,7 @@ class TestPhaseRetrieveViewQueryPerformance:
             phase.supply_centers.create(
                 nation=classical_england_nation, province=province.parent or province
             )
-        phase = Phase.objects.with_retrieve_data().get(pk=phase.pk)
-        phase.variant_provinces = Province.objects.cached_for_variant(phase.variant)
+        phase = PhaseRetrieveLoader.get(phase.pk, SYSTEM)
 
         with django_assert_num_queries(2):
             data = PhaseRetrieveSerializer(phase).data
@@ -2505,7 +2506,7 @@ class TestPhaseRetrieveProvinceNations:
             assert response.status_code == status.HTTP_200_OK
             data = response.data
         else:
-            data = PhaseRetrieveSerializer(phase).data
+            data = PhaseRetrieveSerializer(PhaseRetrieveLoader.get(phase.pk, SYSTEM)).data
 
         assert data["province_nations"]["yor"] == "England"
         assert data["province_nations"]["wal"] == "England"
