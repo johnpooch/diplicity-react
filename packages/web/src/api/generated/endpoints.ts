@@ -96,6 +96,21 @@ export interface BlogPostRetrieve {
   readonly createdAt: string;
 }
 
+/**
+ * * `basic` - Basic
+ * `ai` - AI
+ */
+export type BotKindEnum = (typeof BotKindEnum)[keyof typeof BotKindEnum];
+
+export const BotKindEnum = {
+  basic: "basic",
+  ai: "ai",
+} as const;
+
+export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
+
+export const NullEnum = {} as const;
+
 export interface Nation {
   nationId: string;
   name: string;
@@ -114,6 +129,7 @@ export interface ChannelMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  readonly botKind: BotKindEnum | NullEnum | null;
   nation: Nation | null;
   readonly isGameMaster: boolean;
 }
@@ -188,10 +204,6 @@ export const MuteDurationEnum = {
   "24_hours": "24_hours",
   indefinite: "indefinite",
 } as const;
-
-export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
-
-export const NullEnum = {} as const;
 
 export interface ChannelMute {
   readonly muted: boolean;
@@ -340,6 +352,7 @@ export interface DrawVoteMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  readonly botKind: BotKindEnum | NullEnum | null;
   /** @nullable */
   nation: string | null;
 }
@@ -661,6 +674,7 @@ export interface Member {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  readonly botKind: BotKindEnum | NullEnum | null;
   /** @nullable */
   readonly nation: string | null;
   readonly eliminated: boolean;
@@ -986,6 +1000,7 @@ export interface MemberDetail {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  readonly botKind: BotKindEnum | NullEnum | null;
   readonly isAdmin: boolean;
   /** @nullable */
   readonly nation: string | null;
@@ -1498,7 +1513,9 @@ export interface PublicUserProfile {
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
-  readonly createdAt: string;
+  readonly botKind: BotKindEnum | NullEnum | null;
+  /** @nullable */
+  readonly createdAt: string | null;
   readonly totalGames: number;
   readonly activeGames: number;
   readonly commitmentTotal: number;
@@ -1517,6 +1534,7 @@ export interface RatingOpponent {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
+  readonly botKind: BotKindEnum | NullEnum | null;
   /** @nullable */
   nation: string | null;
 }

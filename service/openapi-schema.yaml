@@ -2684,6 +2684,14 @@ components:
       - slug
       - summary
       - title
+    BotKindEnum:
+      enum:
+      - basic
+      - ai
+      type: string
+      description: |-
+        * `basic` - Basic
+        * `ai` - AI
     Channel:
       type: object
       properties:
@@ -2844,6 +2852,12 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        botKind:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/BotKindEnum'
+          - $ref: '#/components/schemas/NullEnum'
         nation:
           allOf:
           - $ref: '#/components/schemas/Nation'
@@ -2852,6 +2866,7 @@ components:
           type: boolean
           readOnly: true
       required:
+      - botKind
       - id
       - isBot
       - isCurrentUser
@@ -3159,10 +3174,17 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        botKind:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/BotKindEnum'
+          - $ref: '#/components/schemas/NullEnum'
         nation:
           type: string
           nullable: true
       required:
+      - botKind
       - id
       - isBot
       - isCurrentUser
@@ -4144,6 +4166,12 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        botKind:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/BotKindEnum'
+          - $ref: '#/components/schemas/NullEnum'
         nation:
           type: string
           readOnly: true
@@ -4210,6 +4238,7 @@ components:
           nullable: true
           readOnly: true
       required:
+      - botKind
       - civilDisorder
       - commitmentBand
       - commitmentTotal
@@ -4315,6 +4344,12 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        botKind:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/BotKindEnum'
+          - $ref: '#/components/schemas/NullEnum'
         isAdmin:
           type: boolean
           readOnly: true
@@ -4363,6 +4398,7 @@ components:
       required:
       - actions
       - alreadyReported
+      - botKind
       - canReport
       - id
       - isAdmin
@@ -5369,9 +5405,16 @@ components:
           type: string
           nullable: true
           readOnly: true
+        botKind:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/BotKindEnum'
+          - $ref: '#/components/schemas/NullEnum'
         createdAt:
           type: string
           format: date-time
+          nullable: true
           readOnly: true
         totalGames:
           type: integer
@@ -5403,6 +5446,7 @@ components:
           readOnly: true
       required:
       - activeGames
+      - botKind
       - commitmentBand
       - commitmentSquares
       - commitmentTotal
@@ -5436,10 +5480,17 @@ components:
         isBot:
           type: boolean
           readOnly: true
+        botKind:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/BotKindEnum'
+          - $ref: '#/components/schemas/NullEnum'
         nation:
           type: string
           nullable: true
       required:
+      - botKind
       - id
       - isBot
       - isCurrentUser

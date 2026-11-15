@@ -34,6 +34,7 @@ const buildProfile = (
   id: 1,
   name: "Jane Doe",
   picture: null,
+  botKind: null,
   createdAt: "2025-01-15T00:00:00Z",
   totalGames: 15,
   activeGames: 3,
@@ -70,6 +71,17 @@ describe("PlayerProfileContent", () => {
     expect(screen.getByText(/Joined January 2025/)).toBeInTheDocument();
     expect(rowValue("Active")).toBe("3");
     expect(rowValue("Finished")).toBe("15");
+  });
+
+  it("shows no joined date for a bot", () => {
+    profile = buildProfile({ botKind: "basic", createdAt: null });
+
+    render(<PlayerProfileContent userId={1} />, { wrapper: MemoryRouter });
+
+    expect(
+      screen.getByRole("heading", { name: "Jane Doe" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Joined/)).not.toBeInTheDocument();
   });
 
   it("summarises commitment across the player's games", () => {

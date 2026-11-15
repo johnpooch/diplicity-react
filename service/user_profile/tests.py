@@ -10,6 +10,8 @@ from django.utils import timezone
 from rest_framework import status
 from PIL import Image
 from adjudicator import service as adjudication_service
+from bot.constants import BotKind
+from bot.models import Bot
 from common.constants import (
     CommitmentBand,
     CommitmentEvent,
@@ -1434,6 +1436,49 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["picture"] == primary_user.profile.picture
         assert "created_at" in response.data
         assert "email" not in response.data
+
+    @pytest.mark.django_db
+    def test_human_profile_has_no_bot_kind(self, authenticated_client, primary_user):
+        url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["bot_kind"] is None
+        assert response.data["created_at"] is not None
+
+    @pytest.mark.django_db
+    def test_bot_profile_has_bot_kind_and_no_history(
+        self, authenticated_client, primary_user, classical_variant
+    ):
+        bot = Bot.objects.filter(kind=BotKind.BASIC).first()
+        game = Game.objects.create(
+            name="Bot Game", variant=classical_variant, status=GameStatus.ACTIVE
+        )
+        member = game.members.create(user=bot.user)
+        Mark.objects.create(member=member, reason=ReportReason.OTHER)
+        Rating.objects.create(
+            user=bot.user, rating=1500, deviation=100, rated_at=timezone.now()
+        )
+
+        url = reverse("public-user-profile", kwargs={"user_id": bot.user.id})
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["name"] == bot.name
+        assert response.data["bot_kind"] == BotKind.BASIC
+        assert response.data["created_at"] is None
+        assert response.data["active_games"] == 1
+        assert response.data["commitment_total"] == 0
+        assert response.data["commitment_band"] == CommitmentBand.NEUTRAL
+        assert response.data["commitment_squares"] == []
+        assert response.data["rating"] is None
+        assert response.data["marks"] == []
+
+    @pytest.mark.django_db
+    def test_ai_bot_profile_has_ai_bot_kind(self, authenticated_client, bot_user):
+        url = reverse("public-user-profile", kwargs={"user_id": bot_user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["bot_kind"] == BotKind.AI
 
     @pytest.mark.django_db
     def test_public_profile_omits_moderator_flag(

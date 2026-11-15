@@ -12,7 +12,7 @@ from member.models import Member, commitment_points
 
 class UserProfileQuerySet(models.QuerySet):
     def with_related_data(self):
-        return self.select_related("user", "uploaded_picture")
+        return self.select_related("user__bot", "uploaded_picture")
 
     def addable_to_game(self, game):
         return (
