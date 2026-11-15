@@ -16,6 +16,8 @@ from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.fallback import first_legal_options
 from agent.models import AgentTask
 from agent.orders import option_to_selected
+from bot.constants import BotKind
+from bot.models import Bot
 from channel.models import ChannelMessage
 from common.constants import OrderType, PhaseStatus, PhaseType, UserKind
 from emit.context import build_context
@@ -1086,6 +1088,7 @@ class TestPhaseStartedSpec:
     ):
         idle_bot_user = user_factory()
         UserProfile.objects.filter(user=idle_bot_user).update(kind=UserKind.LLM)
+        Bot.objects.create(user=idle_bot_user, kind=BotKind.AI, name="Idle Bot")
         phase = self._phase(
             phase_factory,
             [
@@ -1458,6 +1461,7 @@ class TestReplanMemberCommand:
             .first()
         )
         UserProfile.objects.filter(user=member.user).update(kind=UserKind.LLM)
+        Bot.objects.create(user=member.user, kind=BotKind.AI, name="Replan Bot")
         return member
 
     def _replan(self, game, member):

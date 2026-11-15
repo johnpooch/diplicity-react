@@ -11,6 +11,8 @@ from rest_framework.test import APIClient
 from django.utils import timezone
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from agent.models import AgentTask
+from bot.constants import BotKind
+from bot.models import Bot
 from draw_proposal.models import DrawProposal
 from game.models import Game
 from django.apps import apps
@@ -2012,6 +2014,7 @@ class TestReplanOrdersAdminAction:
         game = active_game_factory()
         member = game.members.exclude(user=primary_user).first()
         UserProfile.objects.filter(user=member.user).update(kind=UserKind.LLM)
+        Bot.objects.create(user=member.user, kind=BotKind.AI, name="Replan Bot")
         client = self._staff_client(authenticated_client, primary_user)
 
         response = self._post_action(client, member)

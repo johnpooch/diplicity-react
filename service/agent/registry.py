@@ -25,7 +25,7 @@ def _finalize_tasks(phase):
     bot_phase_states = phase.phase_states.filter(
         has_possible_orders=True,
         orders_confirmed=False,
-        member__user__profile__kind__in=UserKind.BOT_KINDS,
+        member__user__bot__isnull=False,
     ).select_related("member")
     return [
         {"kind": AgentTaskKind.FINALIZE, "member": phase_state.member, "phase": phase}

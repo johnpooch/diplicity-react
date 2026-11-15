@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     "email_service",
     "discord_service",
     "inference",
+    "bot",
     "agent",
     "harness",
     "dumbbot",

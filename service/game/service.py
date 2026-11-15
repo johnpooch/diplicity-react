@@ -131,7 +131,7 @@ class MyGamesService:
     def _seats(self, games):
         members = Member.objects.filter(
             game_id__in=[game.id for game in games], user=self.user
-        ).select_related("nation", "user__profile")
+        ).select_related("nation", "user__profile", "user__bot")
         sandbox_game_ids = {game.id for game in games if game.sandbox}
         seats = {}
         for member in members:

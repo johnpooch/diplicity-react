@@ -10,6 +10,7 @@ class DrawProposalLoader(Loader):
     queryset = DrawProposal.objects.select_related(
         "game",
         "created_by__user__profile__uploaded_picture",
+        "created_by__user__bot",
         "created_by__nation",
         "phase",
     ).prefetch_related(

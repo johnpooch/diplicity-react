@@ -42,7 +42,6 @@ from common.constants import (
     PhaseType,
     PressType,
     RatingJob,
-    UserKind,
     duration_to_seconds,
 )
 from common.checks import Decision
@@ -100,7 +99,10 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related(
-                "nation", "user__profile__uploaded_picture", "rating_result"
+                "nation",
+                "user__profile__uploaded_picture",
+                "user__bot",
+                "rating_result",
             )
             .prefetch_related("nation_preferences__nation"),
         )
@@ -108,7 +110,10 @@ class GameQuerySet(models.QuerySet):
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related(
-                "user__profile__uploaded_picture", "nation", "rating_result"
+                "user__profile__uploaded_picture",
+                "user__bot",
+                "nation",
+                "rating_result",
             ),
         )
 
@@ -163,7 +168,10 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related(
-                "nation__flag", "user__profile__uploaded_picture", "rating_result"
+                "nation__flag",
+                "user__profile__uploaded_picture",
+                "user__bot",
+                "rating_result",
             )
             .prefetch_related("nation_preferences__nation"),
         )
@@ -171,7 +179,10 @@ class GameQuerySet(models.QuerySet):
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related(
-                "user__profile__uploaded_picture", "nation__flag", "rating_result"
+                "user__profile__uploaded_picture",
+                "user__bot",
+                "nation__flag",
+                "rating_result",
             ),
         )
 
@@ -233,6 +244,7 @@ class GameQuerySet(models.QuerySet):
             queryset=PhaseState.objects.select_related(
                 "member__nation__flag",
                 "member__user__profile__uploaded_picture",
+                "member__user__bot",
             ).annotate(order_count=Count("orders")),
         )
 
@@ -262,7 +274,10 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.players()
             .not_replaced()
             .select_related(
-                "nation__flag", "user__profile__uploaded_picture", "rating_result"
+                "nation__flag",
+                "user__profile__uploaded_picture",
+                "user__bot",
+                "rating_result",
             )
             .prefetch_related("nation_preferences__nation"),
         )
@@ -270,7 +285,10 @@ class GameQuerySet(models.QuerySet):
         victory_members_prefetch = Prefetch(
             "victory__members",
             queryset=Member.objects.select_related(
-                "user__profile__uploaded_picture", "nation__flag", "rating_result"
+                "user__profile__uploaded_picture",
+                "user__bot",
+                "nation__flag",
+                "rating_result",
             ),
         )
 
@@ -974,9 +992,7 @@ class Game(BaseModel):
 
     @property
     def bot_members(self):
-        return self.members.filter(
-            user__profile__kind__in=UserKind.BOT_KINDS
-        ).select_related("user")
+        return self.members.filter(user__bot__isnull=False).select_related("user")
 
     @cached_property
     def nmrd_member_ids(self):
@@ -1350,7 +1366,7 @@ class Game(BaseModel):
         return (
             self.members.players()
             .filter(mustered_at__isnull=True)
-            .exclude(user__profile__kind__in=UserKind.BOT_KINDS)
+            .filter(user__bot__isnull=True)
         )
 
     def is_mustered(self):
@@ -1423,9 +1439,7 @@ class Game(BaseModel):
             Phase.objects.arm_warning(current_phase)
 
     def delete_if_empty_pending(self):
-        human_members = self.members.players().exclude(
-            user__profile__kind__in=UserKind.BOT_KINDS
-        )
+        human_members = self.members.players().filter(user__bot__isnull=True)
         if (
             self.status in (GameStatus.PENDING, GameStatus.MUSTERING)
             and not human_members.exists()

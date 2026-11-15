@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from agent.orders import option_to_selected
+from bot.constants import BotKind
+from bot.models import Bot
 from channel.models import Channel, ChannelMessage
 from common.constants import (
     CommitmentRequirement,
@@ -84,6 +86,9 @@ class Command(BaseCommand):
         ]
         self.bot = self._user(
             BOT_EMAIL, BOT_NAME, make_password(None), kind=UserKind.DUMBBOT
+        )
+        Bot.objects.update_or_create(
+            user=self.bot, defaults={"kind": BotKind.BASIC, "name": BOT_NAME}
         )
         self._clear()
 
