@@ -9,6 +9,7 @@ from django.utils import timezone
 from common.constants import (
     ActionBlockedReason,
     CommitmentEvent,
+    CommitmentShade,
     GameStatus,
     MemberActionKey,
     MemberDeparture,
@@ -359,6 +360,16 @@ class Member(BaseModel):
         return CommitmentEntry.objects.filter(member__user_id=self.user_id).aggregate(
             total=commitment_points("kind")
         )["total"]
+
+    @property
+    def commitment_shade(self) -> str:
+        return CommitmentShade.for_points(self.commitment_square)
+
+    @property
+    def public_game_name(self) -> str | None:
+        if self.game.anonymity_active:
+            return None
+        return self.game.name
 
     @property
     def is_game_master(self):

@@ -2,7 +2,6 @@ from rest_framework import permissions, generics
 from rest_framework.parsers import MultiPartParser
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views import View
 from drf_spectacular.utils import extend_schema
@@ -12,7 +11,11 @@ from member.models import Member
 from phase.models import PhaseState
 from common.constants import GameStatus, PhaseStatus
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame
-from common.views import IMAGE_CONTENT_SECURITY_POLICY, SelectedGameMixin
+from common.views import (
+    IMAGE_CONTENT_SECURITY_POLICY,
+    LoaderDetailView,
+    SelectedGameMixin,
+)
 from .models import UserProfile, UserProfilePicture, UserProfilePictureContent
 from .serializers import (
     AddableUserSerializer,
@@ -22,12 +25,12 @@ from .serializers import (
 )
 
 
-class UserProfileRetrieveView(generics.RetrieveAPIView):
+class UserProfileRetrieveView(LoaderDetailView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserProfileSerializer
 
     def get_object(self):
-        return UserProfile.objects.with_related_data().get(user=self.request.user)
+        return self.get_queryset().get(user=self.request.user)
 
 
 class UserProfileUpdateView(generics.UpdateAPIView):
@@ -73,16 +76,10 @@ class UserProfilePictureImageView(View):
         return response
 
 
-class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
+class PublicUserProfileRetrieveView(LoaderDetailView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PublicUserProfileSerializer
-
-    def get_object(self):
-        user_id = self.kwargs["user_id"]
-        return get_object_or_404(
-            UserProfile.objects.with_related_data().with_commitment_total(),
-            user_id=user_id,
-        )
+    lookup_field = "user_id"
 
 
 class AddableUserListView(SelectedGameMixin, generics.ListAPIView):

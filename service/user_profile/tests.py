@@ -1628,6 +1628,20 @@ class TestCanCreateCommittedGame:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["can_create_committed_game"] is expected
 
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("total,expected", [(9, False), (10, True)])
+    def test_profile_update_reports_whether_user_can_create_committed_game(
+        self, authenticated_client, primary_user, set_commitment_total, total, expected
+    ):
+        set_commitment_total(primary_user, total)
+
+        response = authenticated_client.patch(
+            reverse("user-profile-update"), {"name": "Renamed"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_create_committed_game"] is expected
+
 
 class TestCanCreateBotGamesFlag:
 
