@@ -1,5 +1,6 @@
 from common.loaders import Loader
 
+from .hydrators import CanViewGameHydrator
 from .models import Report
 
 
@@ -17,3 +18,6 @@ class ModerationReportLoader(Loader):
         "reported__nation",
         "reported__user__profile",
     ).prefetch_related("reporter__game__members")
+    hydrators = [
+        CanViewGameHydrator(),
+    ]
