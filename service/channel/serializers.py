@@ -7,8 +7,9 @@ from django.core import exceptions
 from django.utils import timezone
 
 from common.constants import ChannelMessagePagination
+from common.serializers import hydrated
+from .loaders import ChannelDetailLoader, ChannelLoader
 from .models import Channel, ChannelMessage, ChannelMember, CHANNEL_TITLE_MAX_LENGTH
-from .policies import can_leave_channel, can_mute_channel, can_rename_channel
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
 from emit import emit
@@ -127,42 +128,20 @@ class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
     events = ChannelEventSerializer(many=True, read_only=True)
     unread_message_count = serializers.IntegerField(read_only=True, default=0)
     muted = serializers.BooleanField(read_only=True, default=False)
-    can_rename = serializers.SerializerMethodField()
-    can_mute = serializers.SerializerMethodField()
-    can_leave = serializers.SerializerMethodField()
+    can_rename = hydrated(
+        serializers.BooleanField(source="viewer_can_rename", read_only=True)
+    )
+    can_mute = hydrated(serializers.BooleanField(source="viewer_can_mute", read_only=True))
+    can_leave = hydrated(
+        serializers.BooleanField(source="viewer_can_leave", read_only=True)
+    )
 
     member_ids = serializers.ListField(
         child=serializers.IntegerField(), required=True, write_only=True
     )
 
-    def is_channel_member(self, channel, member):
-        if member is None:
-            return False
-        if not channel.private:
-            return True
-        return any(
-            channel_member.id == member.id for channel_member in channel.members.all()
-        )
-
-    def get_can_rename(self, channel) -> bool:
-        game = self.context["game"]
-        member = self.context.get("current_game_member")
-        return can_rename_channel(
-            channel,
-            game,
-            member,
-            self.is_channel_member(channel, member),
-        )
-
-    def get_can_mute(self, channel) -> bool:
-        member = self.context.get("current_game_member")
-        return can_mute_channel(member, self.is_channel_member(channel, member))
-
-    def get_can_leave(self, channel) -> bool:
-        member = self.context.get("current_game_member")
-        return can_leave_channel(
-            channel, member, self.is_channel_member(channel, member)
-        )
+    class Meta:
+        loader = ChannelLoader
 
     def validate_member_ids(self, value):
         game = self.context["game"]
@@ -184,12 +163,13 @@ class ChannelSerializer(ChannelNameMixin, serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         game = self.context["game"]
-        return Channel.objects.create_from_member_ids(
+        channel = Channel.objects.create_from_member_ids(
             request.user,
             validated_data["member_ids"],
             game,
             validated_data.get("title", ""),
         )
+        return ChannelLoader.get(channel.pk, request.user)
 
 
 class ChannelPreviewSerializer(ChannelNameMixin, serializers.Serializer):
@@ -208,32 +188,21 @@ class ChannelDetailSerializer(ChannelNameMixin, serializers.Serializer):
     title = serializers.CharField(read_only=True)
     private = serializers.BooleanField(read_only=True)
     muted = serializers.BooleanField(read_only=True)
-    can_mute = serializers.SerializerMethodField()
-    can_rename = serializers.SerializerMethodField()
-    can_leave = serializers.SerializerMethodField()
+    can_mute = hydrated(serializers.BooleanField(source="viewer_can_mute", read_only=True))
+    can_rename = hydrated(
+        serializers.BooleanField(source="viewer_can_rename", read_only=True)
+    )
+    can_leave = hydrated(
+        serializers.BooleanField(source="viewer_can_leave", read_only=True)
+    )
     unread_message_count = serializers.IntegerField(read_only=True)
     first_unread_message_id = serializers.IntegerField(read_only=True, allow_null=True)
     latest_message_id = serializers.IntegerField(read_only=True, allow_null=True)
     latest_event_id = serializers.IntegerField(read_only=True, allow_null=True)
     events = ChannelEventSerializer(many=True, read_only=True)
 
-    def get_can_mute(self, channel) -> bool:
-        return can_mute_channel(
-            self.context.get("current_game_member"), channel.requester_is_member
-        )
-
-    def get_can_rename(self, channel) -> bool:
-        member = self.context.get("current_game_member")
-        return can_rename_channel(
-            channel, self.context["game"], member, channel.requester_is_member
-        )
-
-    def get_can_leave(self, channel) -> bool:
-        return can_leave_channel(
-            channel,
-            self.context.get("current_game_member"),
-            channel.requester_is_member,
-        )
+    class Meta:
+        loader = ChannelDetailLoader
 
 
 class ChannelUpdateSerializer(serializers.Serializer):

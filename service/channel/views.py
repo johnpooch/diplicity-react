@@ -32,6 +32,7 @@ from .serializers import (
 )
 from common.views import (
     ConditionalGetMixin,
+    LoaderMixin,
     SelectedGameMixin,
     SelectedChannelMixin,
     CurrentGameMemberMixin,
@@ -57,6 +58,7 @@ class ChannelCreateView(
 
 class ChannelRetrieveUpdateView(
     ConditionalGetMixin,
+    LoaderMixin,
     ReadableChannelsMixin,
     SelectedGameMixin,
     CurrentGameMemberMixin,
@@ -78,17 +80,11 @@ class ChannelRetrieveUpdateView(
         game = self.get_game()
         if self.request.method not in permissions.SAFE_METHODS:
             return Channel.objects.for_game(game)
-        user = self.request.user
-        member = self.get_current_game_member()
+        readable = self.get_readable_channels()
         return (
-            self.get_readable_channels()
-            .with_unread_counts(user)
-            .with_mute_state(user)
-            .with_requester_membership(member)
-            .with_first_unread_message_id(user)
-            .with_latest_message_id()
-            .with_detail_data()
-            .with_member_names()
+            self.get_loader()
+            .get_queryset(self.request.user)
+            .filter(pk__in=readable.values("pk"))
         )
 
     def get_channel(self):
@@ -100,6 +96,10 @@ class ChannelRetrieveUpdateView(
 
     def get_object(self):
         return self.get_channel()
+
+    def retrieve(self, request, *args, **kwargs):
+        [channel] = self.get_loader().hydrate([self.get_object()], request.user)
+        return Response(self.get_serializer(channel).data)
 
 
 @extend_schema(parameters=[ChannelMessagePageQuerySerializer])

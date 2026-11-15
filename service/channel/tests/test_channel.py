@@ -55,6 +55,28 @@ class TestChannelCreateView:
         assert response.data["name"] == "England, France"
 
     @pytest.mark.django_db
+    def test_create_channel_reports_creator_permissions(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        secondary_user,
+        classical_france_nation,
+    ):
+        other_member = active_game_with_phase_state.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+
+        response = authenticated_client.post(
+            reverse("channel-create", args=[active_game_with_phase_state.id]),
+            {"member_ids": [other_member.id]},
+            format="json",
+        )
+
+        assert response.data["can_rename"] is True
+        assert response.data["can_mute"] is True
+        assert response.data["can_leave"] is True
+
+    @pytest.mark.django_db
     def test_create_channel_name_longer_than_250_characters(
         self, authenticated_client, active_game_with_phase_state, classical_variant
     ):
