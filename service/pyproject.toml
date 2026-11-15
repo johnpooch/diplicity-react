@@ -8,3 +8,10 @@ python_files = ["test*.py"]
 # when needed: `pytest integration/test_replay.py` or
 # `pytest integration/test_dumbbot_match.py`.
 addopts = "--ignore=integration/test_replay.py --ignore=integration/test_dumbbot_match.py"
+
+[tool.ruff.lint]
+select = ["TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"rest_framework.serializers.SerializerMethodField".msg = "Read a model field or property with source=, an AbsoluteUrlField, or an attribute set by a hydrator on the serializer's loader. See docs/django-app-architecture.md."
+"rest_framework.fields.SerializerMethodField".msg = "Read a model field or property with source=, an AbsoluteUrlField, or an attribute set by a hydrator on the serializer's loader. See docs/django-app-architecture.md."
