@@ -45,5 +45,9 @@ class Province(models.Model):
         ordering = ["name"]
         unique_together = ["province_id", "variant"]
 
+    @property
+    def named_coast_ids(self) -> list[str]:
+        return [coast.province_id for coast in self.named_coasts.all()]
+
     def __str__(self):
         return f"{self.name} ({self.variant.name})"
