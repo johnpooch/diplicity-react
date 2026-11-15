@@ -1,5 +1,6 @@
 from bot.core.constants import BASIC_BOT_REPLY, ResponseMode
 from bot.core.dumbbot.policy import select_orders
+from bot.core.interfaces import Bot, Selector
 from bot.core.types import (
     ConversationProposal,
     DrawContext,
@@ -14,7 +15,7 @@ from bot.core.types import (
 )
 
 
-class DeterministicBot:
+class BasicBot(Bot):
     def __init__(self, rng):
         self.rng = rng
 
@@ -37,7 +38,7 @@ class DeterministicBot:
         return True
 
 
-class DeterministicSelector:
+class BasicSelector(Selector):
     def select(self, context: SelectionContext) -> Selection | None:
         senders = {message["sender_id"] for message in context["channel"]["messages"]}
         for member_id in context["candidates"]:

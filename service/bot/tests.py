@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 
 from bot.constants import BotKind
 from bot.core.constants import BASIC_BOT_REPLY, OrderType, ResponseMode
-from bot.core.deterministic import DeterministicBot, DeterministicSelector
+from bot.core.basic import BasicBot, BasicSelector
 from bot.core.exceptions import BotCoreError
 from bot.models import Bot
 from common.constants import UserKind
@@ -180,11 +180,11 @@ def _movement_fixture(**overrides):
     return fixture
 
 
-class TestDeterministicOrders:
+class TestBasicOrders:
 
     def test_returns_options_by_identity(self):
         context = fixture_to_context(_movement_fixture())
-        orders = DeterministicBot(random.Random(1)).choose_orders(context)
+        orders = BasicBot(random.Random(1)).choose_orders(context)
 
         option_ids = {id(option) for option in context["order_options"]}
         assert orders
@@ -192,15 +192,15 @@ class TestDeterministicOrders:
 
     def test_at_most_one_order_per_source_and_full_coverage(self):
         context = fixture_to_context(_movement_fixture())
-        orders = DeterministicBot(random.Random(1)).choose_orders(context)
+        orders = BasicBot(random.Random(1)).choose_orders(context)
 
         sources = [order["source"] for order in orders]
         assert sorted(sources) == ["edi", "lon", "lvp"]
 
     def test_seeded_rng_is_deterministic(self):
         context = fixture_to_context(_movement_fixture())
-        first = DeterministicBot(random.Random(42)).choose_orders(context)
-        second = DeterministicBot(random.Random(42)).choose_orders(context)
+        first = BasicBot(random.Random(42)).choose_orders(context)
+        second = BasicBot(random.Random(42)).choose_orders(context)
 
         assert first == second
 
@@ -217,7 +217,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = DeterministicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert orders == [
             {
@@ -264,7 +264,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(fixture)
 
         for seed in range(20):
-            orders = DeterministicBot(random.Random(seed)).choose_orders(context)
+            orders = BasicBot(random.Random(seed)).choose_orders(context)
 
             army_order = next(order for order in orders if order["source"] == "ank")
             assert army_order["order_type"] != OrderType.MOVE_VIA_CONVOY
@@ -275,7 +275,7 @@ class TestDeterministicOrders:
         for province in context["provinces"]:
             province["adjacencies"] = []
 
-        orders = DeterministicBot(random.Random(1)).choose_orders(context)
+        orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert sorted(order["source"] for order in orders) == ["edi", "lon", "lvp"]
 
@@ -307,7 +307,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = DeterministicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert len(orders) == 1
         assert orders[0]["target"] == "spa"
@@ -338,7 +338,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = DeterministicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert len(orders) == 1
         assert orders[0]["order_type"] == OrderType.MOVE
@@ -368,7 +368,7 @@ class TestDeterministicOrders:
         )
         context = fixture_to_context(fixture)
 
-        orders = DeterministicBot(random.Random(1)).choose_orders(context)
+        orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert [order["order_type"] for order in orders] == [OrderType.DISBAND]
 
@@ -393,7 +393,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = DeterministicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert len(orders) == 1
         assert orders[0]["order_type"] == OrderType.BUILD
@@ -421,7 +421,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = DeterministicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(random.Random(1)).choose_orders(context)
 
         assert len(orders) == 1
         assert orders[0]["order_type"] == OrderType.DISBAND
@@ -433,12 +433,12 @@ class TestDeterministicOrders:
             member["is_current_user"] = False
 
         with pytest.raises(BotCoreError):
-            DeterministicBot(random.Random(1)).choose_orders(context)
+            BasicBot(random.Random(1)).choose_orders(context)
 
     def test_empty_options_return_no_orders(self):
         context = fixture_to_context(_movement_fixture(order_options=[]))
 
-        assert DeterministicBot(random.Random(1)).choose_orders(context) == []
+        assert BasicBot(random.Random(1)).choose_orders(context) == []
 
     @pytest.mark.parametrize(
         "overrides",
@@ -498,7 +498,7 @@ class TestDeterministicOrders:
         context = fixture_to_context(_movement_fixture(**overrides))
 
         for seed in range(20):
-            assert DeterministicBot(random.Random(seed)).choose_orders(
+            assert BasicBot(random.Random(seed)).choose_orders(
                 context
             ) == dumbbot_select_orders(context, rng=random.Random(seed))
 
@@ -516,10 +516,10 @@ def _phase():
     return {"season": "Spring", "year": 1901, "type": "Movement"}
 
 
-class TestDeterministicDraw:
+class TestBasicDraw:
 
     def test_accepts_every_draw(self):
-        bot = DeterministicBot(random.Random(1))
+        bot = BasicBot(random.Random(1))
 
         assert (
             bot.decide_draw(
@@ -529,10 +529,10 @@ class TestDeterministicDraw:
         )
 
 
-class TestDeterministicResponses:
+class TestBasicResponses:
 
     def test_response_says_it_cannot_chat(self):
-        bot = DeterministicBot(random.Random(1))
+        bot = BasicBot(random.Random(1))
 
         assert (
             bot.respond(
@@ -549,7 +549,7 @@ class TestDeterministicResponses:
         )
 
     def test_light_response_says_it_cannot_chat(self):
-        bot = DeterministicBot(random.Random(1))
+        bot = BasicBot(random.Random(1))
 
         assert (
             bot.respond_lightly({"member_id": 1, "channel": _channel(2)})
@@ -557,12 +557,12 @@ class TestDeterministicResponses:
         )
 
     def test_writes_no_journal_entry(self):
-        bot = DeterministicBot(random.Random(1))
+        bot = BasicBot(random.Random(1))
 
         assert bot.write_journal_entry({"member_id": 1, "phase": _phase()}) is None
 
     def test_plans_no_conversations(self):
-        bot = DeterministicBot(random.Random(1))
+        bot = BasicBot(random.Random(1))
 
         assert (
             bot.plan({"member_id": 1, "phase": _phase(), "channels": [_channel(2)]})
@@ -570,24 +570,22 @@ class TestDeterministicResponses:
         )
 
 
-class TestDeterministicSelector:
+class TestBasicSelector:
 
     def test_selects_bot_that_has_not_posted_with_light_response(self):
-        selection = DeterministicSelector().select(
-            {"channel": _channel(1), "candidates": [5]}
-        )
+        selection = BasicSelector().select({"channel": _channel(1), "candidates": [5]})
 
         assert selection == {"member_id": 5, "mode": ResponseMode.LIGHT}
 
     def test_skips_bot_that_has_posted(self):
-        selection = DeterministicSelector().select(
+        selection = BasicSelector().select(
             {"channel": _channel(1, 5), "candidates": [5, 6]}
         )
 
         assert selection == {"member_id": 6, "mode": ResponseMode.LIGHT}
 
     def test_selects_next_bot_after_first_bot_replies(self):
-        selector = DeterministicSelector()
+        selector = BasicSelector()
 
         first = selector.select({"channel": _channel(1), "candidates": [5, 6]})
         second = selector.select({"channel": _channel(1, 5), "candidates": [5, 6]})
@@ -596,21 +594,19 @@ class TestDeterministicSelector:
         assert second["member_id"] == 6
 
     def test_selects_no_one_once_every_bot_has_posted(self):
-        selection = DeterministicSelector().select(
+        selection = BasicSelector().select(
             {"channel": _channel(1, 5, 6), "candidates": [5, 6]}
         )
 
         assert selection is None
 
     def test_selects_no_one_without_candidates(self):
-        selection = DeterministicSelector().select(
-            {"channel": _channel(1), "candidates": []}
-        )
+        selection = BasicSelector().select({"channel": _channel(1), "candidates": []})
 
         assert selection is None
 
     def test_human_messages_do_not_count_as_bot_replies(self):
-        selection = DeterministicSelector().select(
+        selection = BasicSelector().select(
             {"channel": _channel(1, 2, 3), "candidates": [5]}
         )
 
