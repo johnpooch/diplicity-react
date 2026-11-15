@@ -184,13 +184,15 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
           <h2 className="font-medium truncate">{profile.name}</h2>
         }
         joined={
-          <p className="text-sm text-muted-foreground truncate">
-            Joined{" "}
-            {new Date(profile.createdAt).toLocaleDateString(undefined, {
-              year: "numeric",
-              month: "long",
-            })}
-          </p>
+          profile.createdAt && (
+            <p className="text-sm text-muted-foreground truncate">
+              Joined{" "}
+              {new Date(profile.createdAt).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+              })}
+            </p>
+          )
         }
       />
 

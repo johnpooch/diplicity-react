@@ -41,6 +41,9 @@ class BlogPostRetrieve(TypedDict):
     created_at: str
 
 
+type BotKindEnum = Literal['basic', 'ai']
+
+
 class ChannelEvent(TypedDict):
     id: int
     text: str
@@ -74,16 +77,6 @@ type DeadlineModeEnum = Literal['duration', 'fixed_time']
 
 
 type DepartureEnum = Literal['eliminated', 'civil_disorder', 'withdrawn', 'removed']
-
-
-class DrawVoteMember(TypedDict):
-    id: int
-    user_id: int | None
-    name: str
-    picture: str | None
-    is_current_user: bool
-    is_bot: bool
-    nation: str | None
 
 
 class DrawVoteUpdate(TypedDict):
@@ -436,6 +429,7 @@ class RatingOpponent(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
+    bot_kind: BotKindEnum | NullEnum | None
     nation: str | None
 
 
@@ -675,6 +669,7 @@ class ChannelMember(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
+    bot_kind: BotKindEnum | NullEnum | None
     nation: Nation | None
     is_game_master: bool
 
@@ -724,19 +719,15 @@ class CommitmentSquare(TypedDict):
     shade: ShadeEnum
 
 
-class DrawProposal(TypedDict):
+class DrawVoteMember(TypedDict):
     id: int
-    created_by: DrawVoteMember
-    status: str
-    accepted_count: int
-    rejected_count: int
-    pending_count: int
-    total_votes: int
-    included_member_ids: list[int]
-    my_vote: MyVote | None
-    phase_id: int
-    phase_name: str
-    created_at: str
+    user_id: int | None
+    name: str
+    picture: str | None
+    is_current_user: bool
+    is_bot: bool
+    bot_kind: BotKindEnum | NullEnum | None
+    nation: str | None
 
 
 class FCMDevice(TypedDict):
@@ -800,6 +791,7 @@ class Member(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
+    bot_kind: BotKindEnum | NullEnum | None
     nation: str | None
     eliminated: bool
     kicked: bool
@@ -832,6 +824,7 @@ class MemberDetail(TypedDict):
     picture: str | None
     is_current_user: bool
     is_bot: bool
+    bot_kind: BotKindEnum | NullEnum | None
     is_admin: bool
     nation: str | None
     participation_status: ParticipationStatusEnum
@@ -927,7 +920,8 @@ class PublicUserProfile(TypedDict):
     id: int
     name: str
     picture: str | None
-    created_at: str
+    bot_kind: BotKindEnum | NullEnum | None
+    created_at: str | None
     total_games: int
     active_games: int
     commitment_total: int
@@ -972,6 +966,21 @@ class Channel(TypedDict):
     can_mute: bool
     can_leave: bool
     member_ids: list[int]
+
+
+class DrawProposal(TypedDict):
+    id: int
+    created_by: DrawVoteMember
+    status: str
+    accepted_count: int
+    rejected_count: int
+    pending_count: int
+    total_votes: int
+    included_member_ids: list[int]
+    my_vote: MyVote | None
+    phase_id: int
+    phase_name: str
+    created_at: str
 
 
 class GameList(TypedDict):

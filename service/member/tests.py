@@ -1899,6 +1899,26 @@ class TestBotMemberSerialization:
         assert members_by_name["Primary User"]["is_bot"] is False
 
     @pytest.mark.django_db
+    def test_bot_kind_serialized(
+        self, authenticated_client, pending_game_created_by_primary_user, bot_user
+    ):
+        game = pending_game_created_by_primary_user
+        basic_bot_user = Bot.objects.filter(kind=BotKind.BASIC).first().user
+        game.members.create(user=bot_user)
+        game.members.create(user=basic_bot_user)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        members_by_name = {m["name"]: m for m in response.data["members"]}
+        assert members_by_name[bot_user.profile.name]["bot_kind"] == BotKind.AI
+        assert (
+            members_by_name[basic_bot_user.profile.name]["bot_kind"] == BotKind.BASIC
+        )
+        assert members_by_name["Primary User"]["bot_kind"] is None
+
+    @pytest.mark.django_db
     def test_bot_not_masked_in_anonymous_game(
         self,
         authenticated_client,

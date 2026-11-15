@@ -63,6 +63,7 @@ const currentMember: Member = {
   picture: null,
   isCurrentUser: true,
   isBot: false,
+  botKind: null,
   nation: null,
   eliminated: false,
   kicked: false,

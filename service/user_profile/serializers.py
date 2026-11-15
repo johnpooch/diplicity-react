@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 
+from bot.constants import BotKind
 from common.constants import (
     CommitmentBand,
     CommitmentEvent,
@@ -124,7 +125,8 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
     picture = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(read_only=True)
+    bot_kind = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
     total_games = serializers.IntegerField(read_only=True)
     active_games = serializers.IntegerField(read_only=True)
     commitment_total = serializers.IntegerField(read_only=True)
@@ -133,18 +135,36 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     rating = serializers.SerializerMethodField()
     marks = serializers.SerializerMethodField()
 
+    @extend_schema_field(
+        serializers.ChoiceField(choices=BotKind.KIND_CHOICES, allow_null=True)
+    )
+    def get_bot_kind(self, obj):
+        if not obj.is_bot:
+            return None
+        return obj.user.bot.kind
+
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
+    def get_created_at(self, obj):
+        if obj.is_bot:
+            return None
+        return serializers.DateTimeField().to_representation(obj.created_at)
+
     @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES))
     def get_commitment_band(self, obj):
         return CommitmentBand.for_total(obj.commitment_total)
 
     @extend_schema_field(CommitmentSquareSerializer(many=True))
     def get_commitment_squares(self, obj):
+        if obj.is_bot:
+            return []
         squares = list(Member.objects.filter(user=obj.user).commitment_squares())
         Member.objects.hydrate_commitment_breakdowns(squares)
         return CommitmentSquareSerializer(squares, many=True).data
 
     @extend_schema_field(ProfileRatingSerializer(allow_null=True))
     def get_rating(self, obj):
+        if obj.is_bot:
+            return None
         rating = (
             Rating.objects.filter(user=obj.user)
             .with_rank(timezone.now())
@@ -157,6 +177,8 @@ class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
 
     @extend_schema_field(MarkSerializer(many=True))
     def get_marks(self, obj):
+        if obj.is_bot:
+            return []
         marks = Mark.objects.filter(member__user=obj.user).order_by("-created_at")
         return MarkSerializer(marks, many=True).data
 
