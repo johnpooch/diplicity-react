@@ -37,3 +37,8 @@ class Loader:
     def get(cls, pk, actor):
         instances = cls.hydrate(cls.get_queryset(actor).filter(pk=pk), actor)
         return instances[0] if instances else None
+
+
+class Hydrator:
+    def hydrate(self, instances, actor):
+        raise NotImplementedError

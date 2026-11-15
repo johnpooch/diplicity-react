@@ -332,7 +332,7 @@ class AggregateHydrator(Hydrator):
             setattr(instance, self.attribute, values.get(instance.pk, self.default))
 ```
 
-A hydrator sets an attribute on every instance of a page with one query for the whole page. It is used for values that cannot be expressed as `select_related` or `prefetch_related`, such as counts, and values that depend on the actor. `AggregateHydrator` covers grouped aggregates declaratively.
+The hydrator classes live in `common/loaders.py`, beside `Loader`. A hydrator sets an attribute on every instance of a page with one query for the whole page. It is used for values that cannot be expressed as `select_related` or `prefetch_related`, such as counts, and values that depend on the actor. `AggregateHydrator` covers grouped aggregates declaratively.
 
 ### Loaders
 
@@ -1159,7 +1159,7 @@ Every response goes through a loader, including the response of a command, so a 
 ```python
 from django.db.models import Count
 
-from .common.hydrators import AggregateHydrator, Hydrator
+from .common.loaders import AggregateHydrator, Hydrator
 from .models import Loan
 
 
@@ -1445,6 +1445,8 @@ A conversion changes the code's structure, not what the API does. Shipped mobile
 4. Existing serializer component names are kept with `extend_schema_serializer(component_name=...)`.
 5. Every caller of the app's old internal methods in other apps is updated in the same change.
 6. Only the shared classes the app uses are added.
+
+The read side of an app may be converted separately from its write side. A read-side conversion gives each output serializer a loader, moves its views onto `LoaderListView` or `LoaderDetailView`, and passes every other instance it serializes through `Loader.get` or `Loader.hydrate`. The app's writes keep their existing shape until the write side is converted as a whole.
 
 ## Converting draw_proposal
 

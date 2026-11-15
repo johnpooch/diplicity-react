@@ -1,5 +1,8 @@
+import copy
+
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.fields import get_attribute
 
 
 class EmptySerializer(serializers.Serializer):
@@ -18,6 +21,27 @@ class AbsoluteUrlField(serializers.CharField):
         if request is None or not value.startswith("/"):
             return value
         return request.build_absolute_uri(value)
+
+
+class HydratedFieldMixin:
+    def get_attribute(self, instance):
+        return get_attribute(instance, self.source_attrs)
+
+
+def derived(field, *mixins):
+    field_class = type(field)
+    schema_kwargs = {
+        key: value for key, value in field._kwargs.items() if key != "read_only"
+    }
+    schema = field_class(*copy.deepcopy(field._args), **copy.deepcopy(schema_kwargs))
+    field.__class__ = extend_schema_field(schema)(
+        type(field_class.__name__, (*mixins, field_class), {})
+    )
+    return field
+
+
+def hydrated(field):
+    return derived(field, HydratedFieldMixin)
 
 
 class Actions(serializers.ListField):
