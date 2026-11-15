@@ -1,8 +1,23 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 
 class EmptySerializer(serializers.Serializer):
     pass
+
+
+@extend_schema_field(serializers.CharField(allow_null=True))
+class AbsoluteUrlField(serializers.CharField):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("read_only", True)
+        kwargs.setdefault("allow_null", True)
+        super().__init__(**kwargs)
+
+    def to_representation(self, value):
+        request = self.context.get("request")
+        if request is None or not value.startswith("/"):
+            return value
+        return request.build_absolute_uri(value)
 
 
 class Actions(serializers.ListField):
