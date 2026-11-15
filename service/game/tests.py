@@ -3911,7 +3911,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 32
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(
@@ -3932,7 +3932,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 32
 
 
 class TestRankedGameCreation:
@@ -4653,7 +4653,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 57
+        assert query_count == 40
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -4674,7 +4674,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 57
+        assert query_count == 40
 
 
 class TestSandboxGameFiltering:
@@ -5347,6 +5347,18 @@ class TestGamePauseUnpause:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["is_paused"] is True
         assert response.data["paused_at"] is not None
+
+    @pytest.mark.django_db
+    def test_pause_response_reports_viewer_actions(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+
+        response = authenticated_client.patch(reverse(pause_viewname, args=[game.id]))
+
+        assert response.data["can_manage"] is True
+        assert {"key": "unpause", "blocked_reason": None} in response.data["actions"]
+        assert "pause" not in {action["key"] for action in response.data["actions"]}
 
     @pytest.mark.django_db
     def test_pause_game_non_game_master_forbidden(

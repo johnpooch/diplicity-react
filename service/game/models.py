@@ -13,6 +13,7 @@ from django.db import models, transaction
 from django.http import Http404
 from django.utils import timezone
 from django.db.models import (
+    Case,
     Count,
     Exists,
     F,
@@ -22,6 +23,7 @@ from django.db.models import (
     Q,
     Subquery,
     Value,
+    When,
     prefetch_related_objects,
 )
 from django.db.models.functions import Coalesce
@@ -69,6 +71,17 @@ GAME_RETRIEVE_REPRESENTATION_VERSION = 4
 
 
 class GameQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
+    def with_phase_ids(self):
+        return self.annotate(
+            phase_ids=ArraySubquery(
+                Phase.objects.filter(game=OuterRef("pk"))
+                .order_by("ordinal", "id")
+                .values("id")
+            )
+        )
 
     def with_zero_unread_counts(self):
         return self.annotate(
@@ -144,12 +157,6 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
-        phase_ids = ArraySubquery(
-            Phase.objects.filter(game=OuterRef("pk"))
-            .order_by("ordinal", "id")
-            .values("id")
-        )
-
         return (
             self.select_related(
                 "variant", "victory", "game_master__profile__uploaded_picture"
@@ -159,7 +166,7 @@ class GameQuerySet(models.QuerySet):
                 victory_members_prefetch,
                 phases_prefetch,
             )
-            .annotate(phase_ids=phase_ids)
+            .with_phase_ids()
         )
 
     def with_retrieve_data(self):
@@ -201,7 +208,13 @@ class GameQuerySet(models.QuerySet):
                 victory_members_prefetch,
                 phases_prefetch,
             )
-            .annotate(game_master_member_id=Subquery(game_master_member_subquery))
+            .annotate(
+                game_master_member_id=Case(
+                    When(game_master__isnull=True, then=None),
+                    default=Subquery(game_master_member_subquery),
+                )
+            )
+            .with_phase_ids()
         )
 
     def filter_musterable(self):
@@ -508,12 +521,24 @@ class GameManager(models.Manager):
         for unit in Unit.objects.filter(phase_id__in=phase_ids).values(
             "phase_id", "type", "dislodged", "nation__name", "province__province_id"
         ):
-            units[unit["phase_id"]].append(unit)
+            units[unit["phase_id"]].append(
+                {
+                    "type": unit["type"],
+                    "nation": {"name": unit["nation__name"]},
+                    "province": {"province_id": unit["province__province_id"]},
+                    "dislodged": unit["dislodged"],
+                }
+            )
         supply_centers = defaultdict(list)
         for supply_center in SupplyCenter.objects.filter(
             phase_id__in=phase_ids
         ).values("phase_id", "nation__name", "province__province_id"):
-            supply_centers[supply_center["phase_id"]].append(supply_center)
+            supply_centers[supply_center["phase_id"]].append(
+                {
+                    "nation": {"name": supply_center["nation__name"]},
+                    "province": {"province_id": supply_center["province__province_id"]},
+                }
+            )
         for phase in phases:
             phase.board_units = units[phase.id]
             phase.board_supply_centers = supply_centers[phase.id]
@@ -565,12 +590,7 @@ class GameManager(models.Manager):
             ),
             None,
         )
-        if fastest is None:
-            return None
-        game = self.with_list_data().get(pk=fastest.pk)
-        self.hydrate_list_phases([game])
-        self.hydrate_member_commitment_totals([game])
-        return game
+        return fastest
 
     def arm_muster(self, game):
         state = list(

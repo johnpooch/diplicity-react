@@ -18,6 +18,7 @@ from channel.models import (
 from channel.serializers import ChannelSerializer
 from nation.models import Nation, NationFlag
 from game.models import Game
+from game.loaders import GameRetrieveLoader
 from game.serializers import GameRetrieveSerializer
 from member.models import Member
 from notification.models import Notification
@@ -3169,7 +3170,9 @@ class TestGameRetrieveUnreadCount:
     def test_retrieve_serializer_computes_unread_without_annotation(
         self, game_with_public_channel_and_messages, primary_user
     ):
-        game = Game.objects.get(pk=game_with_public_channel_and_messages.pk)
+        game = GameRetrieveLoader.get(
+            game_with_public_channel_and_messages.pk, primary_user
+        )
         request = APIRequestFactory().get("/")
         request.user = primary_user
 
