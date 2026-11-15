@@ -1,7 +1,7 @@
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from common.serializers import OutputSerializer
+from common.serializers import AbsoluteUrlField, OutputSerializer
 from member.serializers import BaseMemberSerializer
 
 from .loaders import LeaderboardEntryLoader, RatingPairingLoader, RatingResultLoader
@@ -12,16 +12,12 @@ from .models import Rating, RatingPairing, RatingResult
 class LeaderboardEntryOutputSerializer(OutputSerializer):
     rank = serializers.IntegerField()
     name = serializers.CharField(source="user.profile.name")
-    picture = serializers.SerializerMethodField()
+    picture = AbsoluteUrlField(source="user.profile.picture_path")
 
     class Meta:
         model = Rating
         loader = LeaderboardEntryLoader
         fields = ("rank", "user_id", "name", "picture", "rating")
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_picture(self, obj):
-        return obj.user.profile.picture_url(self.context.get("request"))
 
 
 class RatingOpponentSerializer(BaseMemberSerializer):
