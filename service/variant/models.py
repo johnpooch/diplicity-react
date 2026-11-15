@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Prefetch
+from django.urls import reverse
 
 from common.models import BaseModel
 from common.constants import PhaseStatus, VariantStatus
@@ -43,6 +44,8 @@ def default_phase_progression():
 
 
 class VariantQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
 
     def with_related_data(self):
         from nation.models import Nation
@@ -161,6 +164,17 @@ class Variant(BaseModel):
             if self.id.startswith(prefix):
                 return self.id[len(prefix) :]
         return self.id
+
+    @property
+    def svg_path(self) -> str | None:
+        try:
+            variant_svg = self.svg
+        except VariantSvg.DoesNotExist:
+            return None
+        return reverse(
+            "variant-svg",
+            kwargs={"variant_id": self.id, "content_hash": variant_svg.content_hash},
+        )
 
     @property
     def victory_conditions_summary(self):

@@ -15,10 +15,11 @@ from rest_framework.response import Response
 from common.constants import VariantStatus
 from common.etag import if_none_match
 from common.permissions import IsOwnedDraftForWrite
-from common.views import IMAGE_CONTENT_SECURITY_POLICY
+from common.views import IMAGE_CONTENT_SECURITY_POLICY, LoaderListView, LoaderMixin
 from nation.models import NationFlag
 from province.models import Province
 from rating.models import NationHandicap
+from .loaders import VariantLoader
 from .models import Variant, VariantSvg
 from .serializers import VariantSerializer, VariantWriteSerializer
 from .utils import variant_to_canonical_dict
@@ -59,7 +60,7 @@ def _variant_detail_etag(variant, user):
     return f'"{digest[:32]}"'
 
 
-class VariantListCreateView(generics.ListCreateAPIView):
+class VariantListCreateView(LoaderMixin, generics.ListCreateAPIView):
     parser_classes = [MultiPartParser]
 
     def get_permissions(self):
@@ -68,9 +69,9 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return [AllowAny()]
 
     def get_queryset(self):
-        return Variant.objects.filter(
+        return VariantLoader.get_queryset(self.request.user).filter(
             status=VariantStatus.PUBLISHED
-        ).with_related_data()
+        )
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -95,29 +96,32 @@ class VariantListCreateView(generics.ListCreateAPIView):
         cache_key = f"variants-list:published:{digest}"
         data = cache.get(cache_key)
         if data is None:
-            serialized = self.get_serializer(self.get_queryset(), many=True).data
+            variants = self.get_loader().hydrate(self.get_queryset(), self.request.user)
+            serialized = self.get_serializer(variants, many=True).data
             # Strip DRF's request-bound wrappers so the payload pickles cleanly.
             data = json.loads(json.dumps(serialized))
             cache.set(cache_key, data, _VARIANTS_LIST_CACHE_TIMEOUT)
         return data
 
 
-class VariantMineListView(generics.ListAPIView):
+class VariantMineListView(LoaderListView):
     permission_classes = [IsAuthenticated]
     serializer_class = VariantSerializer
 
     def get_queryset(self):
-        return Variant.objects.filter(
-            status=VariantStatus.DRAFT, owner=self.request.user
-        ).with_related_data()
+        return (
+            super()
+            .get_queryset()
+            .filter(status=VariantStatus.DRAFT, owner=self.request.user)
+        )
 
 
-class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
+class VariantDetailView(LoaderMixin, generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsOwnedDraftForWrite]
     parser_classes = [MultiPartParser]
 
     def get_queryset(self):
-        return Variant.objects.with_related_data()
+        return VariantLoader.get_queryset(self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -125,7 +129,7 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
         return VariantSerializer
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
+        [instance] = self.get_loader().hydrate([self.get_object()], request.user)
         etag = _variant_detail_etag(instance, request.user)
         if if_none_match(request, etag):
             response = Response(status=status.HTTP_304_NOT_MODIFIED)

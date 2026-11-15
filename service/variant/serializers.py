@@ -1,13 +1,14 @@
 import json
-from typing import Optional
 
 from django.db import IntegrityError, transaction
-from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field, inline_serializer
 from lxml import etree
 from rest_framework import serializers
 
 from common.constants import VariantStatus
+from common.serializers import AbsoluteUrlField, derived, hydrated
+from nation.serializers import FlagUrlField
+from .loaders import VariantLoader
 from .models import Variant, VariantSvg
 from .utils import (
     create_variant_from_dvar,
@@ -32,23 +33,24 @@ class VariantNationSerializer(serializers.Serializer):
     name = serializers.CharField()
     color = serializers.CharField(read_only=True)
     non_playable = serializers.BooleanField()
-    flag_url = serializers.SerializerMethodField()
-    solo_victory_supply_centers = serializers.SerializerMethodField()
+    flag_url = FlagUrlField(source="flag_path")
+    solo_victory_supply_centers = derived(
+        serializers.IntegerField(read_only=True, allow_null=True)
+    )
     handicap = serializers.IntegerField(
         source="handicap.offset", read_only=True, allow_null=True
     )
 
-    @extend_schema_field(serializers.URLField(allow_null=True))
-    def get_flag_url(self, nation) -> str | None:
-        path = nation.flag_path
-        if path is None:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(path) if request else path
 
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_solo_victory_supply_centers(self, nation) -> int | None:
-        return nation.variant.solo_victory_supply_centers_for(nation.nation_id)
+@extend_schema_field(
+    inline_serializer(
+        name="VariantProvinceAdjacency",
+        fields={"to": serializers.CharField(), "pass": serializers.CharField()},
+        many=True,
+    )
+)
+class AdjacenciesField(serializers.JSONField):
+    pass
 
 
 class VariantProvinceSerializer(serializers.Serializer):
@@ -57,17 +59,7 @@ class VariantProvinceSerializer(serializers.Serializer):
     type = serializers.CharField()
     supply_center = serializers.BooleanField()
     parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
-    adjacencies = serializers.SerializerMethodField()
-
-    @extend_schema_field(
-        inline_serializer(
-            name="VariantProvinceAdjacency",
-            fields={"to": serializers.CharField(), "pass": serializers.CharField()},
-            many=True,
-        )
-    )
-    def get_adjacencies(self, obj):
-        return obj.adjacencies
+    adjacencies = AdjacenciesField(read_only=True)
 
 
 class VariantTemplateNationRefSerializer(serializers.Serializer):
@@ -107,39 +99,20 @@ class VariantSerializer(serializers.Serializer):
     official = serializers.BooleanField(read_only=True)
     ranked = serializers.BooleanField(read_only=True)
     owner_id = serializers.IntegerField(read_only=True, allow_null=True)
-    owner_username = serializers.SerializerMethodField()
-    can_edit = serializers.SerializerMethodField()
+    owner_username = derived(
+        serializers.CharField(source="owner.username", read_only=True, allow_null=True)
+    )
+    can_edit = hydrated(serializers.BooleanField(read_only=True))
     victory_conditions = VictoryConditionsSerializer(
         source="victory_conditions_summary"
     )
-    svg_url = serializers.SerializerMethodField()
+    svg_url = AbsoluteUrlField(source="svg_path")
     nations = VariantNationSerializer(many=True)
     provinces = VariantProvinceSerializer(many=True)
     template_phase = VariantTemplatePhaseSerializer()
 
-    def get_svg_url(self, variant) -> Optional[str]:
-        try:
-            variant_svg = variant.svg
-        except VariantSvg.DoesNotExist:
-            return None
-        path = reverse(
-            "variant-svg",
-            kwargs={"variant_id": variant.id, "content_hash": variant_svg.content_hash},
-        )
-        request = self.context.get("request")
-        return request.build_absolute_uri(path) if request else path
-
-    def get_owner_username(self, variant) -> Optional[str]:
-        return variant.owner.username if variant.owner_id else None
-
-    def get_can_edit(self, variant) -> bool:
-        request = self.context.get("request")
-        if request is None or not request.user.is_authenticated:
-            return False
-        return (
-            variant.status == VariantStatus.DRAFT
-            and variant.owner_id == request.user.id
-        )
+    class Meta:
+        loader = VariantLoader
 
 
 class VariantWriteSerializer(serializers.Serializer):
@@ -220,7 +193,7 @@ class VariantWriteSerializer(serializers.Serializer):
                 self._save_dsvg(variant, dsvg_text)
         except IntegrityError as exc:
             raise serializers.ValidationError({"dvar": str(exc)}) from exc
-        return Variant.objects.with_related_data().get(id=variant.id)
+        return VariantLoader.get(variant.id, self.context["request"].user)
 
     def update(self, instance, validated_data):
         dvar = self._parse_dvar(validated_data["dvar"])
@@ -236,7 +209,7 @@ class VariantWriteSerializer(serializers.Serializer):
         with transaction.atomic():
             variant = update_variant_from_dvar(instance, dvar)
             self._save_dsvg(variant, dsvg_text)
-        return Variant.objects.with_related_data().get(id=variant.id)
+        return VariantLoader.get(variant.id, self.context["request"].user)
 
     def to_representation(self, instance):
         return VariantSerializer(instance, context=self.context).data
