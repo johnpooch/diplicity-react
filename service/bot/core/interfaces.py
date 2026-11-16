@@ -1,37 +1,32 @@
 from abc import ABC, abstractmethod
 
 from bot.core.types import (
+    BotContext,
     ConversationProposal,
-    DrawContext,
-    JournalContext,
-    LightResponseContext,
     OrderOption,
-    OrdersContext,
-    PlanContext,
-    ResponseContext,
     Selection,
     SelectionContext,
 )
 
 
 class Bot(ABC):
-    @abstractmethod
-    def write_journal_entry(self, context: JournalContext) -> str | None: ...
+    def __init__(self, context: BotContext):
+        self.context = context
 
     @abstractmethod
-    def plan(self, context: PlanContext) -> list[ConversationProposal]: ...
+    def write_journal_entry(self) -> str | None: ...
 
     @abstractmethod
-    def respond(self, context: ResponseContext) -> str | None: ...
+    def plan(self) -> list[ConversationProposal]: ...
 
     @abstractmethod
-    def respond_lightly(self, context: LightResponseContext) -> str | None: ...
+    def respond(self, channel_id: int, mode: str) -> str | None: ...
 
     @abstractmethod
-    def choose_orders(self, context: OrdersContext) -> list[OrderOption]: ...
+    def select_orders(self) -> list[OrderOption]: ...
 
     @abstractmethod
-    def decide_draw(self, context: DrawContext) -> bool: ...
+    def decide_draw(self) -> bool: ...
 
 
 class Selector(ABC):

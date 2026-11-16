@@ -58,7 +58,8 @@ class Channel(TypedDict):
     messages: list[Message]
 
 
-class OrdersContext(TypedDict):
+class BotContext(TypedDict):
+    member_id: int
     members: list[Member]
     phase: Phase
     max_orders: int | None
@@ -67,42 +68,12 @@ class OrdersContext(TypedDict):
     supply_centers: list[SupplyCenter]
     order_options: list[OrderOption]
     channels: list[Channel]
+    nations: list[str]
 
 
 class SelectionContext(TypedDict):
     channel: Channel
     candidates: list[int]
-
-
-class ResponseContext(TypedDict):
-    member_id: int
-    channel: Channel
-    phase: Phase
-    provinces: list[Province]
-    units: list[Unit]
-    supply_centers: list[SupplyCenter]
-
-
-class LightResponseContext(TypedDict):
-    member_id: int
-    channel: Channel
-
-
-class JournalContext(TypedDict):
-    member_id: int
-    phase: Phase
-
-
-class PlanContext(TypedDict):
-    member_id: int
-    phase: Phase
-    channels: list[Channel]
-
-
-class DrawContext(TypedDict):
-    member_id: int
-    phase: Phase
-    nations: list[str]
 
 
 class Selection(TypedDict):

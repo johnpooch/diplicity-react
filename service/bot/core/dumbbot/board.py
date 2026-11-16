@@ -6,7 +6,7 @@ from bot.core.dumbbot.weights import (
     SIZE_CONSTANT,
     SIZE_SQUARE_COEFFICIENT,
 )
-from bot.core.types import OrdersContext
+from bot.core.types import BotContext
 
 ALLOWS_TO_UNIT_TYPE = {
     "army": UnitType.ARMY,
@@ -15,7 +15,7 @@ ALLOWS_TO_UNIT_TYPE = {
 
 
 class Board:
-    def __init__(self, context: OrdersContext, nation: str):
+    def __init__(self, context: BotContext, nation: str):
         self.nation = nation
         provinces = context["provinces"]
         self.parent = {

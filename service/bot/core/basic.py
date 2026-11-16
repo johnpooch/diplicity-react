@@ -2,39 +2,32 @@ from bot.core.constants import BASIC_BOT_REPLY, ResponseMode
 from bot.core.dumbbot.policy import select_orders
 from bot.core.interfaces import Bot, Selector
 from bot.core.types import (
+    BotContext,
     ConversationProposal,
-    DrawContext,
-    JournalContext,
-    LightResponseContext,
     OrderOption,
-    OrdersContext,
-    PlanContext,
-    ResponseContext,
     Selection,
     SelectionContext,
 )
 
 
 class BasicBot(Bot):
-    def __init__(self, rng):
+    def __init__(self, context: BotContext, rng):
+        super().__init__(context)
         self.rng = rng
 
-    def write_journal_entry(self, context: JournalContext) -> str | None:
+    def write_journal_entry(self) -> str | None:
         return None
 
-    def plan(self, context: PlanContext) -> list[ConversationProposal]:
+    def plan(self) -> list[ConversationProposal]:
         return []
 
-    def respond(self, context: ResponseContext) -> str | None:
+    def respond(self, channel_id: int, mode: str) -> str | None:
         return BASIC_BOT_REPLY
 
-    def respond_lightly(self, context: LightResponseContext) -> str | None:
-        return BASIC_BOT_REPLY
+    def select_orders(self) -> list[OrderOption]:
+        return select_orders(self.context, rng=self.rng)
 
-    def choose_orders(self, context: OrdersContext) -> list[OrderOption]:
-        return select_orders(context, rng=self.rng)
-
-    def decide_draw(self, context: DrawContext) -> bool:
+    def decide_draw(self) -> bool:
         return True
 
 

@@ -10,10 +10,10 @@ from bot.core.dumbbot.weights import (
     SPRING_MOVEMENT,
 )
 from bot.core.exceptions import BotCoreError
-from bot.core.types import OrderOption, OrdersContext
+from bot.core.types import BotContext, OrderOption
 
 
-def select_orders(context: OrdersContext, *, rng) -> list[OrderOption]:
+def select_orders(context: BotContext, *, rng) -> list[OrderOption]:
     nation = _current_nation(context)
 
     options = context["order_options"]

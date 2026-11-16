@@ -180,27 +180,31 @@ def _movement_fixture(**overrides):
     return fixture
 
 
+def _context(fixture):
+    return {**fixture_to_context(fixture), "member_id": 1, "nations": []}
+
+
 class TestBasicOrders:
 
     def test_returns_options_by_identity(self):
-        context = fixture_to_context(_movement_fixture())
-        orders = BasicBot(random.Random(1)).choose_orders(context)
+        context = _context(_movement_fixture())
+        orders = BasicBot(context, random.Random(1)).select_orders()
 
         option_ids = {id(option) for option in context["order_options"]}
         assert orders
         assert all(id(order) in option_ids for order in orders)
 
     def test_at_most_one_order_per_source_and_full_coverage(self):
-        context = fixture_to_context(_movement_fixture())
-        orders = BasicBot(random.Random(1)).choose_orders(context)
+        context = _context(_movement_fixture())
+        orders = BasicBot(context, random.Random(1)).select_orders()
 
         sources = [order["source"] for order in orders]
         assert sorted(sources) == ["edi", "lon", "lvp"]
 
     def test_seeded_rng_is_deterministic(self):
-        context = fixture_to_context(_movement_fixture())
-        first = BasicBot(random.Random(42)).choose_orders(context)
-        second = BasicBot(random.Random(42)).choose_orders(context)
+        context = _context(_movement_fixture())
+        first = BasicBot(context, random.Random(42)).select_orders()
+        second = BasicBot(context, random.Random(42)).select_orders()
 
         assert first == second
 
@@ -214,10 +218,10 @@ class TestBasicOrders:
                 {"source": "pic", "order_type": "Move", "target": "bur"},
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = BasicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert orders == [
             {
@@ -261,21 +265,21 @@ class TestBasicOrders:
                 },
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
         for seed in range(20):
-            orders = BasicBot(random.Random(seed)).choose_orders(context)
+            orders = BasicBot(context, random.Random(seed)).select_orders()
 
             army_order = next(order for order in orders if order["source"] == "ank")
             assert army_order["order_type"] != OrderType.MOVE_VIA_CONVOY
             assert army_order["target"] != "sev"
 
     def test_empty_adjacencies_still_covers_every_source(self):
-        context = fixture_to_context(_movement_fixture())
+        context = _context(_movement_fixture())
         for province in context["provinces"]:
             province["adjacencies"] = []
 
-        orders = BasicBot(random.Random(1)).choose_orders(context)
+        orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert sorted(order["source"] for order in orders) == ["edi", "lon", "lvp"]
 
@@ -304,10 +308,10 @@ class TestBasicOrders:
                 {"source": "mid", "order_type": "Move", "target": "nat"},
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = BasicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert len(orders) == 1
         assert orders[0]["target"] == "spa"
@@ -335,10 +339,10 @@ class TestBasicOrders:
                 {"source": "tri", "order_type": "Disband"},
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = BasicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert len(orders) == 1
         assert orders[0]["order_type"] == OrderType.MOVE
@@ -366,9 +370,9 @@ class TestBasicOrders:
                 {"source": "tri", "order_type": "Disband"},
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
-        orders = BasicBot(random.Random(1)).choose_orders(context)
+        orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert [order["order_type"] for order in orders] == [OrderType.DISBAND]
 
@@ -390,10 +394,10 @@ class TestBasicOrders:
                 {"source": "war", "order_type": "Build", "unit_type": "Army"},
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = BasicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert len(orders) == 1
         assert orders[0]["order_type"] == OrderType.BUILD
@@ -418,27 +422,27 @@ class TestBasicOrders:
                 {"source": "wal", "order_type": "Disband"},
             ],
         )
-        context = fixture_to_context(fixture)
+        context = _context(fixture)
 
         with patch("bot.core.dumbbot.policy.PLAY_ALTERNATIVE", 0):
-            orders = BasicBot(random.Random(1)).choose_orders(context)
+            orders = BasicBot(context, random.Random(1)).select_orders()
 
         assert len(orders) == 1
         assert orders[0]["order_type"] == OrderType.DISBAND
         assert orders[0]["source"] == "wal"
 
     def test_raises_when_current_nation_missing(self):
-        context = fixture_to_context(_movement_fixture())
+        context = _context(_movement_fixture())
         for member in context["members"]:
             member["is_current_user"] = False
 
         with pytest.raises(BotCoreError):
-            BasicBot(random.Random(1)).choose_orders(context)
+            BasicBot(context, random.Random(1)).select_orders()
 
     def test_empty_options_return_no_orders(self):
-        context = fixture_to_context(_movement_fixture(order_options=[]))
+        context = _context(_movement_fixture(order_options=[]))
 
-        assert BasicBot(random.Random(1)).choose_orders(context) == []
+        assert BasicBot(context, random.Random(1)).select_orders() == []
 
     @pytest.mark.parametrize(
         "overrides",
@@ -495,12 +499,12 @@ class TestBasicOrders:
         ],
     )
     def test_matches_dumbbot_app(self, overrides):
-        context = fixture_to_context(_movement_fixture(**overrides))
+        context = _context(_movement_fixture(**overrides))
 
         for seed in range(20):
-            assert BasicBot(random.Random(seed)).choose_orders(
-                context
-            ) == dumbbot_select_orders(context, rng=random.Random(seed))
+            assert BasicBot(
+                context, random.Random(seed)
+            ).select_orders() == dumbbot_select_orders(context, rng=random.Random(seed))
 
 
 def _channel(*sender_ids):
@@ -512,62 +516,32 @@ def _channel(*sender_ids):
     }
 
 
-def _phase():
-    return {"season": "Spring", "year": 1901, "type": "Movement"}
+def _bot():
+    context = _context(_movement_fixture())
+    context["channels"] = [_channel(2)]
+    context["nations"] = ["England", "France"]
+    return BasicBot(context, random.Random(1))
 
 
 class TestBasicDraw:
 
     def test_accepts_every_draw(self):
-        bot = BasicBot(random.Random(1))
-
-        assert (
-            bot.decide_draw(
-                {"member_id": 1, "phase": _phase(), "nations": ["England", "France"]}
-            )
-            is True
-        )
+        assert _bot().decide_draw() is True
 
 
 class TestBasicResponses:
 
-    def test_response_says_it_cannot_chat(self):
-        bot = BasicBot(random.Random(1))
-
-        assert (
-            bot.respond(
-                {
-                    "member_id": 1,
-                    "channel": _channel(2),
-                    "phase": _phase(),
-                    "provinces": [],
-                    "units": [],
-                    "supply_centers": [],
-                }
-            )
-            == BASIC_BOT_REPLY
-        )
+    def test_full_response_says_it_cannot_chat(self):
+        assert _bot().respond(1, ResponseMode.FULL) == BASIC_BOT_REPLY
 
     def test_light_response_says_it_cannot_chat(self):
-        bot = BasicBot(random.Random(1))
-
-        assert (
-            bot.respond_lightly({"member_id": 1, "channel": _channel(2)})
-            == BASIC_BOT_REPLY
-        )
+        assert _bot().respond(1, ResponseMode.LIGHT) == BASIC_BOT_REPLY
 
     def test_writes_no_journal_entry(self):
-        bot = BasicBot(random.Random(1))
-
-        assert bot.write_journal_entry({"member_id": 1, "phase": _phase()}) is None
+        assert _bot().write_journal_entry() is None
 
     def test_plans_no_conversations(self):
-        bot = BasicBot(random.Random(1))
-
-        assert (
-            bot.plan({"member_id": 1, "phase": _phase(), "channels": [_channel(2)]})
-            == []
-        )
+        assert _bot().plan() == []
 
 
 class TestBasicSelector:
