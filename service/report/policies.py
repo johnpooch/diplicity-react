@@ -8,6 +8,7 @@ from .checks import (
     IsAssignedInGameCheck,
     IsAssigneeCheck,
     IsPendingCheck,
+    IsReviewedCheck,
     IsUnassignedCheck,
 )
 
@@ -57,6 +58,14 @@ class CanDecidePolicy(Policy):
         ModeratorPolicy,
         IsPendingCheck,
         IsAssigneeCheck,
+        IsNotGameMemberCheck,
+    ]
+
+
+class CanReopenPolicy(Policy):
+    checks = [
+        ModeratorPolicy,
+        IsReviewedCheck,
         IsNotGameMemberCheck,
     ]
 

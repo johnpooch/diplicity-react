@@ -87,7 +87,7 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
     [ModerationReportActionKeyEnum.approve]: {
       label: "Approve",
       title: "Approve this report?",
-      description: `Decisions are final. ${reportedName} gets a mark for ${reasonLabel} in this game.`,
+      description: `${reportedName} gets a mark for ${reasonLabel} in this game.`,
       failure: "Failed to approve report",
       mutation: approveMutation,
       data: (values: DecisionFormValues) => values,
@@ -95,7 +95,7 @@ const ReportDecision: React.FC<ReportDecisionProps> = ({
     [ModerationReportActionKeyEnum.reject]: {
       label: "Reject",
       title: "Reject this report?",
-      description: `Decisions are final. Nothing is added to ${reportedName}'s profile.`,
+      description: `Nothing is added to ${reportedName}'s profile.`,
       failure: "Failed to reject report",
       mutation: rejectMutation,
       data: ({ note }: DecisionFormValues) => ({ note }),

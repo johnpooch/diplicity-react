@@ -8,6 +8,7 @@ from .constants import ReportDecision
 from .policies import (
     CanAssignPolicy,
     CanDecidePolicy,
+    CanReopenPolicy,
     CanReportPolicy,
     CanUnassignPolicy,
 )
@@ -51,7 +52,21 @@ class ReportManager(Manager.from_queryset(ReportQuerySet)):
         report.decide(ReportDecision.REJECTED, actor, note)
         return report
 
+    @command(requires=CanReopenPolicy, locks=["reported"])
+    def reopen(self, report, actor):
+        approved = report.status == ReportDecision.APPROVED
+        report.reopen(actor)
+        if approved:
+            models.Mark.objects.remove_unless_approved(
+                member=report.reported, reason=report.reason
+            )
+        return report
+
 
 class MarkManager(Manager):
     def create_idempotent(self, member, reason):
         return self.get_or_create(member=member, reason=reason)[0]
+
+    def remove_unless_approved(self, member, reason):
+        if not member.reports_received.approved().filter(reason=reason).exists():
+            self.filter(member=member, reason=reason).delete()

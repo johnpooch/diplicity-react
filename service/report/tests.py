@@ -707,6 +707,7 @@ class TestModerationReportListView:
                     {"key": "unassign", "blocked_reason": "not_assignee"},
                     {"key": "approve", "blocked_reason": "not_assignee"},
                     {"key": "reject", "blocked_reason": "not_assignee"},
+                    {"key": "reopen", "blocked_reason": "not_reviewed"},
                 ],
                 "can_view_game": False,
             }
@@ -959,6 +960,7 @@ class TestModerationReportAssignView:
             "unassign": None,
             "approve": None,
             "reject": None,
+            "reopen": "not_reviewed",
         }
         report.refresh_from_db()
         assert report.assigned_to == moderator
@@ -1102,6 +1104,7 @@ class TestModerationReportUnassignView:
             "unassign": "not_assignee",
             "approve": "not_assignee",
             "reject": "not_assignee",
+            "reopen": "not_reviewed",
         }
         report.refresh_from_db()
         assert report.assigned_to is None
@@ -1236,6 +1239,7 @@ class TestModerationReportDecisionViews:
             "unassign": "already_reviewed",
             "approve": "already_reviewed",
             "reject": "already_reviewed",
+            "reopen": None,
         }
         assert list(Mark.objects.values_list("member_id", "reason")) == [
             (assigned_report.reported_id, ReportReason.ABUSE_AND_HARASSMENT)
@@ -1486,6 +1490,226 @@ class TestModerationReportDecisionViews:
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
+def _reopen_url(report):
+    return reverse("moderation-report-reopen", args=[report.id])
+
+
+@pytest.fixture
+def approved_report(report_factory, moderator):
+    report = report_factory(decision=ReportDecision.APPROVED, reviewed_by=moderator)
+    Report.objects.filter(pk=report.pk).update(assigned_to=moderator)
+    Mark.objects.create(member=report.reported, reason=report.reason)
+    report.refresh_from_db()
+    return report
+
+
+class TestModerationReportReopenView:
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, approved_report):
+        response = unauthenticated_client.post(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_non_moderator_not_found(self, authenticated_client, approved_report):
+        response = authenticated_client.post(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert ReportReview.objects.filter(report=approved_report).exists()
+        assert Mark.objects.count() == 1
+
+    @pytest.mark.django_db
+    def test_missing_report_not_found(self, moderator_client):
+        response = moderator_client.post(
+            reverse("moderation-report-reopen", args=[999999])
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_reopening_approved_report_removes_mark(
+        self, moderator_client, moderator, approved_report
+    ):
+        response = moderator_client.post(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "pending"
+        assert response.data["review"] is None
+        assert response.data["assigned_to"] == {
+            "user_id": moderator.id,
+            "name": "Mia Moderator",
+        }
+        assert _blocked_reasons(response.data) == {
+            "assign": "already_assigned",
+            "unassign": None,
+            "approve": None,
+            "reject": None,
+            "reopen": "not_reviewed",
+        }
+        assert not ReportReview.objects.filter(report=approved_report).exists()
+        assert not Mark.objects.exists()
+
+    @pytest.mark.django_db
+    def test_reopening_rejected_report(
+        self, moderator_client, moderator, report_factory
+    ):
+        report = report_factory(decision=ReportDecision.REJECTED, reviewed_by=moderator)
+
+        response = moderator_client.post(_reopen_url(report))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "pending"
+        assert response.data["review"] is None
+        assert not ReportReview.objects.filter(report=report).exists()
+
+    @pytest.mark.django_db
+    def test_reopening_rejected_report_keeps_existing_mark(
+        self, moderator_client, moderator, report_factory
+    ):
+        report = report_factory(decision=ReportDecision.REJECTED, reviewed_by=moderator)
+        Mark.objects.create(member=report.reported, reason=report.reason)
+
+        moderator_client.post(_reopen_url(report))
+
+        assert Mark.objects.count() == 1
+
+    @pytest.mark.django_db
+    def test_another_moderator_reopens_and_takes_report(
+        self, other_moderator_client, approved_report
+    ):
+        response = other_moderator_client.post(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["assigned_to"]["name"] == "Sam Moderator"
+        assert _blocked_reasons(response.data)["approve"] is None
+
+    @pytest.mark.django_db
+    def test_reopened_report_back_in_pending_queue(
+        self, moderator_client, approved_report
+    ):
+        moderator_client.post(_reopen_url(approved_report))
+
+        pending = moderator_client.get(LIST_URL, {"status": "pending"})
+        approved = moderator_client.get(LIST_URL, {"status": "approved"})
+
+        assert [row["id"] for row in pending.data] == [approved_report.id]
+        assert approved.data == []
+
+    @pytest.mark.django_db
+    def test_pending_report_refused(self, moderator_client, assigned_report):
+        response = moderator_client.post(_reopen_url(assigned_report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "not_reviewed"
+
+    @pytest.mark.django_db
+    def test_former_moderator_refused(
+        self, moderator_client, moderator, approved_report
+    ):
+        moderator.profile.is_moderator = False
+        moderator.profile.save()
+
+        response = moderator_client.post(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert ReportReview.objects.filter(report=approved_report).exists()
+
+    @pytest.mark.django_db
+    def test_moderator_in_game_refused(
+        self, moderator_client, moderator, member_factory, approved_report
+    ):
+        member_factory(game=approved_report.game, user=moderator)
+
+        response = moderator_client.post(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "game_member"
+        assert ReportReview.objects.filter(report=approved_report).exists()
+        assert Mark.objects.count() == 1
+
+    @pytest.mark.django_db
+    def test_mark_kept_while_another_approved_report_has_reason(
+        self, moderator_client, moderator, approved_report, second_report_factory
+    ):
+        second = second_report_factory(approved_report)
+        second.decide(ReportDecision.APPROVED, moderator, "")
+
+        moderator_client.post(_reopen_url(approved_report))
+
+        assert list(Mark.objects.values_list("member_id", "reason")) == [
+            (approved_report.reported_id, ReportReason.ABUSE_AND_HARASSMENT)
+        ]
+
+    @pytest.mark.django_db
+    def test_only_mark_for_reopened_reason_removed(
+        self, moderator_client, moderator, approved_report, second_report_factory
+    ):
+        second = second_report_factory(
+            approved_report, reason=ReportReason.SECRET_TEAMING
+        )
+        second.decide(ReportDecision.APPROVED, moderator, "")
+        Mark.objects.create(member=second.reported, reason=second.reason)
+
+        moderator_client.post(_reopen_url(approved_report))
+
+        assert list(Mark.objects.values_list("member_id", "reason")) == [
+            (approved_report.reported_id, ReportReason.SECRET_TEAMING)
+        ]
+
+    @pytest.mark.django_db
+    def test_reopened_report_can_be_rejected(self, moderator_client, approved_report):
+        moderator_client.post(_reopen_url(approved_report))
+
+        response = moderator_client.post(
+            _reject_url(approved_report), {"note": "Wrong report."}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "rejected"
+        assert response.data["review"]["note"] == "Wrong report."
+        assert not Mark.objects.exists()
+
+    @pytest.mark.django_db
+    def test_reopened_report_can_be_approved_under_another_reason(
+        self, moderator_client, approved_report
+    ):
+        moderator_client.post(_reopen_url(approved_report))
+
+        response = moderator_client.post(
+            _approve_url(approved_report),
+            {"reason": "secret_teaming"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "approved"
+        assert list(Mark.objects.values_list("member_id", "reason")) == [
+            (approved_report.reported_id, ReportReason.SECRET_TEAMING)
+        ]
+
+    @pytest.mark.django_db
+    def test_get_not_allowed(self, moderator_client, approved_report):
+        response = moderator_client.get(_reopen_url(approved_report))
+
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+class TestReopenCommand:
+    @pytest.mark.django_db
+    def test_returns_pending_report(self, moderator, approved_report):
+        report = Report.objects.reopen(approved_report, moderator)
+
+        assert report.status == ReportStatus.PENDING
+        assert report.assigned_to == moderator
+
+    @pytest.mark.django_db
+    def test_pending_report_refused(self, moderator, assigned_report):
+        with pytest.raises(Refused) as refused:
+            Report.objects.reopen(assigned_report, moderator)
+
+        assert refused.value.decision.reason == "not_reviewed"
+
+
 class TestMarkManager:
     @pytest.mark.django_db
     def test_create_idempotent_creates_mark(self, report_factory):
@@ -1508,6 +1732,28 @@ class TestMarkManager:
         )
 
         assert mark == existing
+        assert Mark.objects.count() == 1
+
+    @pytest.mark.django_db
+    def test_remove_unless_approved_removes_unsupported_mark(self, report_factory):
+        report = report_factory()
+        Mark.objects.create(member=report.reported, reason=report.reason)
+
+        Mark.objects.remove_unless_approved(
+            member=report.reported, reason=report.reason
+        )
+
+        assert not Mark.objects.exists()
+
+    @pytest.mark.django_db
+    def test_remove_unless_approved_keeps_supported_mark(self, report_factory):
+        report = report_factory(decision=ReportDecision.APPROVED)
+        Mark.objects.create(member=report.reported, reason=report.reason)
+
+        Mark.objects.remove_unless_approved(
+            member=report.reported, reason=report.reason
+        )
+
         assert Mark.objects.count() == 1
 
 
@@ -1533,6 +1779,7 @@ class TestModerationQueueAssignment:
             "unassign": "not_assignee",
             "approve": "not_assignee",
             "reject": "not_assignee",
+            "reopen": "not_reviewed",
         }
         assert rows[free.id]["assigned_to"] is None
         assert _blocked_reasons(rows[free.id])["assign"] is None

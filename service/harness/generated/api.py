@@ -259,10 +259,13 @@ type ModerationReportActionBlockedReasonEnum = Literal[
     'game_member',
     'not_assignee',
     'not_moderator',
+    'not_reviewed',
 ]
 
 
-type ModerationReportActionKeyEnum = Literal['assign', 'unassign', 'approve', 'reject']
+type ModerationReportActionKeyEnum = Literal[
+    'assign', 'unassign', 'approve', 'reject', 'reopen'
+]
 
 
 class ModerationReviewerOutput(TypedDict):

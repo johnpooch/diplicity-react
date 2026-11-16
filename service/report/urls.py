@@ -43,4 +43,9 @@ urlpatterns = [
         views.ModerationReportRejectView.as_view(),
         name="moderation-report-reject",
     ),
+    path(
+        "moderation/reports/<int:pk>/reopen/",
+        views.ModerationReportReopenView.as_view(),
+        name="moderation-report-reopen",
+    ),
 ]

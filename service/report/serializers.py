@@ -76,6 +76,7 @@ class ModerationReportOutputSerializer(OutputSerializer):
         unassign=Report.objects.unassign,
         approve=Report.objects.approve,
         reject=Report.objects.reject,
+        reopen=Report.objects.reopen,
     )
     can_view_game = serializers.SerializerMethodField()
 
