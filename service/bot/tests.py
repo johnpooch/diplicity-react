@@ -10,7 +10,12 @@ from django.apps import apps
 from django.contrib.auth.models import User
 
 from bot.constants import BotKind
-from bot.core.constants import BASIC_BOT_REPLY, OrderType, ResponseMode
+from bot.core.constants import (
+    BASIC_BOT_JOURNAL_ENTRY,
+    BASIC_BOT_REPLY,
+    OrderType,
+    ResponseMode,
+)
 from bot.core.basic import BasicBot, BasicSelector
 from bot.core.exceptions import BotCoreError
 from bot.models import Bot
@@ -537,8 +542,8 @@ class TestBasicResponses:
     def test_light_response_says_it_cannot_chat(self):
         assert _bot().respond(1, ResponseMode.LIGHT) == BASIC_BOT_REPLY
 
-    def test_writes_no_journal_entry(self):
-        assert _bot().write_journal_entry() is None
+    def test_writes_placeholder_journal_entry(self):
+        assert _bot().write_journal_entry() == BASIC_BOT_JOURNAL_ENTRY
 
     def test_plans_no_conversations(self):
         assert _bot().plan() == []

@@ -1,4 +1,4 @@
-from bot.core.constants import BASIC_BOT_REPLY, ResponseMode
+from bot.core.constants import BASIC_BOT_JOURNAL_ENTRY, BASIC_BOT_REPLY, ResponseMode
 from bot.core.dumbbot.policy import select_orders
 from bot.core.interfaces import Bot, Selector
 from bot.core.types import (
@@ -15,13 +15,13 @@ class BasicBot(Bot):
         super().__init__(context)
         self.rng = rng
 
-    def write_journal_entry(self) -> str | None:
-        return None
+    def write_journal_entry(self) -> str:
+        return BASIC_BOT_JOURNAL_ENTRY
 
     def plan(self) -> list[ConversationProposal]:
         return []
 
-    def respond(self, channel_id: int, mode: str) -> str | None:
+    def respond(self, channel_id: int, mode: str) -> str:
         return BASIC_BOT_REPLY
 
     def select_orders(self) -> list[OrderOption]:

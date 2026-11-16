@@ -32,3 +32,5 @@ class ResponseMode:
 
 
 BASIC_BOT_REPLY = "I'm a basic bot, so I can't chat. I'll just play my orders."
+
+BASIC_BOT_JOURNAL_ENTRY = "Basic journal entry"
