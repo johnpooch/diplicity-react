@@ -17,6 +17,13 @@ class IsPendingCheck(Check):
         return report.status == ReportStatus.PENDING
 
 
+class IsReviewedCheck(Check):
+    reason = "not_reviewed"
+
+    def check(self, report, actor):
+        return report.status != ReportStatus.PENDING
+
+
 class IsUnassignedCheck(Check):
     reason = "already_assigned"
 

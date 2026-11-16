@@ -1068,6 +1068,7 @@ export interface ModerationMemberOutput {
  * `unassign` - unassign
  * `approve` - approve
  * `reject` - reject
+ * `reopen` - reopen
  */
 export type ModerationReportActionKeyEnum =
   (typeof ModerationReportActionKeyEnum)[keyof typeof ModerationReportActionKeyEnum];
@@ -1077,6 +1078,7 @@ export const ModerationReportActionKeyEnum = {
   unassign: "unassign",
   approve: "approve",
   reject: "reject",
+  reopen: "reopen",
 } as const;
 
 /**
@@ -1085,6 +1087,7 @@ export const ModerationReportActionKeyEnum = {
  * `game_member` - game_member
  * `not_assignee` - not_assignee
  * `not_moderator` - not_moderator
+ * `not_reviewed` - not_reviewed
  */
 export type ModerationReportActionBlockedReasonEnum =
   (typeof ModerationReportActionBlockedReasonEnum)[keyof typeof ModerationReportActionBlockedReasonEnum];
@@ -1095,6 +1098,7 @@ export const ModerationReportActionBlockedReasonEnum = {
   game_member: "game_member",
   not_assignee: "not_assignee",
   not_moderator: "not_moderator",
+  not_reviewed: "not_reviewed",
 } as const;
 
 export interface ModerationReportAction {
@@ -13477,6 +13481,85 @@ export const useModerationReportsRejectCreate = <
 > => {
   return useMutation(
     getModerationReportsRejectCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const moderationReportsReopenCreate = (
+  id: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<ModerationReportOutput>({
+    url: `/moderation/reports/${id}/reopen/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getModerationReportsReopenCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moderationReportsReopenCreate>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moderationReportsReopenCreate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["moderationReportsReopenCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moderationReportsReopenCreate>>,
+    { id: number }
+  > = props => {
+    const { id } = props ?? {};
+
+    return moderationReportsReopenCreate(id);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ModerationReportsReopenCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moderationReportsReopenCreate>>
+>;
+
+export type ModerationReportsReopenCreateMutationError = unknown;
+
+export const useModerationReportsReopenCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof moderationReportsReopenCreate>>,
+      TError,
+      { id: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof moderationReportsReopenCreate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(
+    getModerationReportsReopenCreateMutationOptions(options),
     queryClient
   );
 };

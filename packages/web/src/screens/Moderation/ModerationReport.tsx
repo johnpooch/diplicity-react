@@ -26,6 +26,7 @@ import { formatDateTime } from "@/util";
 import { GameDetailAppBar } from "../GameDetail/AppBar";
 import { assignmentLabel } from "./assignment";
 import { ReportDecision } from "./ReportDecision";
+import { ReportReopen } from "./ReportReopen";
 
 const STATUS_LABELS = {
   pending: "Pending",
@@ -171,6 +172,11 @@ const ModerationReport: React.FC = () => {
           <p className="whitespace-pre-wrap text-sm">{report.review.note}</p>
         </div>
       )}
+      <ReportReopen
+        report={report}
+        reportedName={report.reported.name ?? "Deleted account"}
+        reasonLabel={reasonLabel}
+      />
     </div>
   );
 };

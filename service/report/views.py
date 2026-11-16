@@ -100,3 +100,12 @@ class ModerationReportRejectView(ModeratorOnlyMixin, ActionView):
 
     def perform(self, report, note):
         return Report.objects.reject(report, self.request.user, note)
+
+
+class ModerationReportReopenView(ModeratorOnlyMixin, ActionView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Report.objects.all()
+    serializer_class = ModerationReportOutputSerializer
+
+    def perform(self, report):
+        return Report.objects.reopen(report, self.request.user)

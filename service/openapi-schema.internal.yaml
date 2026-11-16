@@ -2162,6 +2162,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/ModerationReportOutput'
           description: ''
+  /moderation/reports/{id}/reopen/:
+    post:
+      operationId: moderation_reports_reopen_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - moderation
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationReportOutput'
+          description: ''
   /moderation/reports/{id}/unassign/:
     post:
       operationId: moderation_reports_unassign_create
@@ -4490,6 +4510,7 @@ components:
       - game_member
       - not_assignee
       - not_moderator
+      - not_reviewed
       type: string
       description: |-
         * `already_assigned` - already_assigned
@@ -4497,18 +4518,21 @@ components:
         * `game_member` - game_member
         * `not_assignee` - not_assignee
         * `not_moderator` - not_moderator
+        * `not_reviewed` - not_reviewed
     ModerationReportActionKeyEnum:
       enum:
       - assign
       - unassign
       - approve
       - reject
+      - reopen
       type: string
       description: |-
         * `assign` - assign
         * `unassign` - unassign
         * `approve` - approve
         * `reject` - reject
+        * `reopen` - reopen
     ModerationReportOutput:
       type: object
       properties:

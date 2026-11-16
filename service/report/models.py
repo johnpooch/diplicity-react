@@ -64,6 +64,12 @@ class Report(BaseModel):
         self.reason = reason
         self.save(update_fields=["reason", "updated_at"])
 
+    def reopen(self, user):
+        self.review.delete()
+        Report.review.related.delete_cached_value(self)
+        self.assigned_to = user
+        self.save(update_fields=["assigned_to", "updated_at"])
+
     def decide(self, decision, user, note):
         self.review = ReportReview.objects.create(
             report=self, decision=decision, reviewed_by=user, note=note

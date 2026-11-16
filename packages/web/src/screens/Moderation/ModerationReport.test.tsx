@@ -12,6 +12,7 @@ const assignReport = vi.fn();
 const unassignReport = vi.fn();
 const approveReport = vi.fn();
 const rejectReport = vi.fn();
+const reopenReport = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async importOriginal => ({
   ...(await importOriginal<typeof import("@/api/generated/endpoints")>()),
@@ -32,6 +33,10 @@ vi.mock("@/api/generated/endpoints", async importOriginal => ({
   }),
   useModerationReportsRejectCreate: () => ({
     mutateAsync: rejectReport,
+    isPending: false,
+  }),
+  useModerationReportsReopenCreate: () => ({
+    mutateAsync: reopenReport,
     isPending: false,
   }),
   useReportReasonsListSuspense: () => ({
@@ -93,6 +98,7 @@ describe("ModerationReport", () => {
     unassignReport.mockReset();
     approveReport.mockReset();
     rejectReport.mockReset();
+    reopenReport.mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
@@ -343,7 +349,7 @@ describe("ModerationReport", () => {
       const dialog = await screen.findByRole("alertdialog");
       expect(
         within(dialog).getByText(
-          "Decisions are final. Bruno Keller gets a mark for Abuse and harassment in this game."
+          "Bruno Keller gets a mark for Abuse and harassment in this game."
         )
       ).toBeInTheDocument();
 
@@ -371,7 +377,7 @@ describe("ModerationReport", () => {
       const dialog = await screen.findByRole("alertdialog");
       expect(
         within(dialog).getByText(
-          "Decisions are final. Bruno Keller gets a mark for Abuse of admin powers in this game."
+          "Bruno Keller gets a mark for Abuse of admin powers in this game."
         )
       ).toBeInTheDocument();
       await userEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
@@ -390,7 +396,7 @@ describe("ModerationReport", () => {
       const dialog = await screen.findByRole("alertdialog");
       expect(
         within(dialog).getByText(
-          "Decisions are final. Nothing is added to Bruno Keller's profile."
+          "Nothing is added to Bruno Keller's profile."
         )
       ).toBeInTheDocument();
 
@@ -471,6 +477,104 @@ describe("ModerationReport", () => {
       expect(screen.getByText("Approved by")).toBeInTheDocument();
       expect(screen.getByText("Decided")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    });
+  });
+  describe("reopening", () => {
+    const decided = (
+      status: "approved" | "rejected",
+      reopenBlockedReason: "game_member" | null = null
+    ) =>
+      report({
+        status,
+        review: {
+          reviewedBy: { userId: 300, name: "Mia Moderator" },
+          note: "",
+          createdAt: "2026-10-02T12:00:00Z",
+        },
+        actions: [
+          { key: "assign", blockedReason: "already_reviewed" },
+          { key: "unassign", blockedReason: "already_reviewed" },
+          { key: "approve", blockedReason: "already_reviewed" },
+          { key: "reject", blockedReason: "already_reviewed" },
+          { key: "reopen", blockedReason: reopenBlockedReason },
+        ],
+      });
+
+    it("reopens an approved report after confirming", async () => {
+      retrieveReport.mockReturnValue(decided("approved"));
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+
+      expect(reopenReport).not.toHaveBeenCalled();
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByText(
+          "The report goes back to Pending and is assigned to you. Bruno Keller loses the mark for Abuse and harassment in this game unless another approved report gave it."
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(dialog).getByRole("button", { name: "Reopen" }));
+
+      expect(reopenReport).toHaveBeenCalledWith({ id: 5 });
+    });
+
+    it("reopens a rejected report without mentioning a mark", async () => {
+      retrieveReport.mockReturnValue(decided("rejected"));
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByText(
+          "The report goes back to Pending and is assigned to you."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it("saves nothing when the moderator cancels", async () => {
+      retrieveReport.mockReturnValue(decided("approved"));
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+      await userEvent.click(
+        within(await screen.findByRole("alertdialog")).getByRole("button", {
+          name: "Cancel",
+        })
+      );
+
+      expect(reopenReport).not.toHaveBeenCalled();
+    });
+
+    it("shows an error when reopening fails", async () => {
+      reopenReport.mockRejectedValue(new Error("not_reviewed"));
+      retrieveReport.mockReturnValue(decided("approved"));
+      renderScreen();
+
+      await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+      await userEvent.click(
+        within(await screen.findByRole("alertdialog")).getByRole("button", {
+          name: "Reopen",
+        })
+      );
+
+      expect(toast.error).toHaveBeenCalledWith("Failed to reopen report");
+    });
+
+    it("offers no reopening when it is blocked", () => {
+      retrieveReport.mockReturnValue(decided("approved", "game_member"));
+      renderScreen();
+
+      expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
+    });
+
+    it("offers no reopening on a pending report", () => {
+      retrieveReport.mockReturnValue(
+        report({ actions: [{ key: "reopen", blockedReason: "not_reviewed" }] })
+      );
+      renderScreen();
+
+      expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
     });
   });
 });
