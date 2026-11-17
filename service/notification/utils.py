@@ -142,7 +142,7 @@ def send_notification_to_users(
     try:
         result = devices.send_message(message)
     except Exception as e:
-        logger.error(f"Failed to send {notification_type} notification: {str(e)}")
+        logger.warning("Failed to send %s notification: %s", notification_type, e)
         return {
             user_id: str(e) if user_id in tokens_by_user else NO_ACTIVE_DEVICE_ERROR
             for user_id in user_ids

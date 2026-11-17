@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.db import models
 from django.utils import timezone
+from procrastinate.exceptions import AlreadyEnqueued
 
 from agent.constants import AgentTaskKind, AgentTaskStatus
 from common.models import BaseModel
@@ -116,7 +117,11 @@ class AgentTask(BaseModel):
         # Local import: agent.tasks imports this module at top level.
         from agent.tasks import run
 
-        run.configure(lock=f"agent-task-{self.id}").defer(agent_task_id=self.id)
+        lock = f"agent-task-{self.id}"
+        try:
+            run.configure(lock=lock, queueing_lock=lock).defer(agent_task_id=self.id)
+        except AlreadyEnqueued:
+            pass
 
     def mark_running(self):
         self.status = AgentTaskStatus.RUNNING
