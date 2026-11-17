@@ -93,6 +93,26 @@ def test_validate_rejects_removed_nation(published_variant, published_variant_dv
 
 
 @pytest.mark.django_db
+def test_validate_rejects_renamed_nation_when_games_exist(
+    published_variant, published_variant_dvar, sandbox_game_on_published
+):
+    bad = copy.deepcopy(published_variant_dvar)
+    bad["nations"][0]["name"] = "Renamed"
+    errors = validate_safe_replacement(published_variant, bad)
+    assert "NATION_RENAMED" in _error_codes(errors)
+
+
+@pytest.mark.django_db
+def test_validate_accepts_renamed_nation_without_games(
+    published_variant, published_variant_dvar
+):
+    modified = copy.deepcopy(published_variant_dvar)
+    modified["nations"][0]["name"] = "Renamed"
+    errors = validate_safe_replacement(published_variant, modified)
+    assert errors == []
+
+
+@pytest.mark.django_db
 def test_validate_rejects_added_province(published_variant, published_variant_dvar):
     bad = copy.deepcopy(published_variant_dvar)
     bad["provinces"].append(

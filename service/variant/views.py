@@ -16,6 +16,7 @@ from common.constants import VariantStatus
 from common.etag import if_none_match
 from common.permissions import IsOwnedDraftForWrite
 from common.views import IMAGE_CONTENT_SECURITY_POLICY
+from member.models import Member
 from nation.models import NationFlag
 from province.models import Province
 from rating.models import NationHandicap
@@ -137,6 +138,9 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         with transaction.atomic():
+            Member.all_objects.filter(
+                game__variant=instance
+            ).delete_in_replacement_order()
             Province.objects.filter(variant=instance, parent__isnull=False).delete()
             instance.delete()
 
