@@ -1,0 +1,2 @@
+class BotCoreError(Exception):
+    pass
