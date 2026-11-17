@@ -128,12 +128,11 @@ describe("DiplicityMap province fills", () => {
     );
   });
 
-  test("throws when a supply center's nation has no colour", () => {
-    expect(() =>
-      new DiplicityMap(parseDsvg(TOY_DSVG)).render({
-        supplyCenters: [{ province: "alpha", nation: "Atlantis" }],
-      })
-    ).toThrow(/Atlantis/);
+  test("fills a supply center whose nation has no colour in neutral grey", () => {
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
+      supplyCenters: [{ province: "alpha", nation: "Atlantis" }],
+    });
+    expect(svg).toContain('fill="rgba(158, 158, 158, 0.4)"');
   });
 });
 
@@ -234,12 +233,11 @@ describe("DiplicityMap units", () => {
     expect(svg.indexOf('cx="150" cy="130"')).toBeLessThan(svg.indexOf('cx="308"'));
   });
 
-  test("throws when a unit's nation has no colour", () => {
-    expect(() =>
-      new DiplicityMap(parseDsvg(TOY_DSVG)).render({
-        units: [{ province: "alpha", nation: "Atlantis", type: "Army" }],
-      })
-    ).toThrow(/Atlantis/);
+  test("draws a unit whose nation has no colour in neutral grey", () => {
+    const svg = new DiplicityMap(parseDsvg(TOY_DSVG)).render({
+      units: [{ province: "alpha", nation: "Atlantis", type: "Army" }],
+    });
+    expect(svg).toContain('cx="150" cy="130" r="10" fill="#9E9E9E"');
   });
 });
 

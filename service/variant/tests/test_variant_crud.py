@@ -6,6 +6,8 @@ from django.urls import reverse
 from rest_framework import status
 
 from common.constants import VariantStatus
+from game.models import Game
+from member.models import Member
 from variant.models import Variant
 from variant.utils import variant_to_canonical_dict
 
@@ -354,6 +356,38 @@ def test_update_own_draft_success(authenticated_client, classical_dvar, classica
 
 
 @pytest.mark.django_db
+def test_update_own_draft_with_replaced_member(
+    authenticated_client,
+    primary_user,
+    secondary_user,
+    classical_dvar,
+    classical_dsvg,
+    game_factory,
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "my-draft-replaced"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    variant = Variant.objects.get(id=create_response.data["id"])
+    nation = variant.nations.first()
+    game = game_factory(variant=variant)
+    member = game.members.create(user=primary_user, nation=nation)
+    Member.objects.hand_over_seat(member, secondary_user)
+
+    response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": variant.id}),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_200_OK, response.data
+    assert not Game.objects.filter(id=game.id).exists()
+
+
+@pytest.mark.django_db
 def test_update_published_variant_forbidden(
     authenticated_client, classical_dvar, classical_dsvg
 ):
@@ -416,6 +450,37 @@ def test_delete_own_draft_cascades_sandbox_games(
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
     assert not Variant.objects.filter(id=variant_id).exists()
     assert Game.objects.filter(variant_id=variant_id).count() == 0
+
+
+@pytest.mark.django_db
+def test_delete_own_draft_with_replaced_member(
+    authenticated_client,
+    primary_user,
+    secondary_user,
+    classical_dvar,
+    classical_dsvg,
+    game_factory,
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "to-delete"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    variant = Variant.objects.get(id=create_response.data["id"])
+    nation = variant.nations.first()
+    game = game_factory(variant=variant)
+    member = game.members.create(user=primary_user, nation=nation)
+    Member.objects.hand_over_seat(member, secondary_user)
+
+    response = authenticated_client.delete(
+        reverse("variant-detail", kwargs={"pk": variant.id}),
+    )
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Variant.objects.filter(id=variant.id).exists()
+    assert not Game.objects.filter(id=game.id).exists()
 
 
 @pytest.mark.django_db

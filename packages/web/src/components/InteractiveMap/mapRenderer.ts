@@ -56,6 +56,7 @@ export type RenderState = {
 };
 
 const DEFAULT_FILL = "transparent";
+const NEUTRAL_NATION_COLOR = "#9E9E9E";
 const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
 const SELECTED_STROKE_COLOR = "white";
 const HIGHLIGHTED_STROKE_COLOR = "#FFFFFF";
@@ -111,13 +112,8 @@ const layer = (id: string, markup: string): string =>
 const opacityAttr = (opacity: number): string =>
   opacity === 1 ? "" : ` opacity="${opacity}"`;
 
-const nationColor = (state: RenderState, nation: string): string => {
-  const color = state.nationColors?.[nation];
-  if (!color) {
-    throw new Error(`No colour for nation "${nation}"`);
-  }
-  return color;
-};
+const nationColor = (state: RenderState, nation: string): string =>
+  state.nationColors?.[nation] ?? NEUTRAL_NATION_COLOR;
 
 const toRgba = (color: string, opacity: number): string => {
   const hex = color.match(/^#([0-9a-fA-F]{6})$/);
