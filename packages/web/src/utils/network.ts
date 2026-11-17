@@ -12,6 +12,9 @@ export const isNotFoundError = (error: unknown): boolean =>
 export const isUnauthorizedError = (error: unknown): boolean =>
   error instanceof AxiosError && error.response?.status === 401;
 
+export const isForbiddenError = (error: unknown): boolean =>
+  error instanceof AxiosError && error.response?.status === 403;
+
 export const isRateLimitedError = (error: unknown): boolean =>
   error instanceof AxiosError && error.response?.status === 429;
 
