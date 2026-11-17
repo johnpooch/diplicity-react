@@ -2,14 +2,17 @@ import ast
 import importlib
 import random
 import sys
+from datetime import timedelta
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.apps import apps
 from django.contrib.auth.models import User
+from django.utils import timezone
+from rest_framework import status
 
-from bot.constants import BotKind
+from bot.constants import BotKind, RunStatus, RunStep
 from bot.core.constants import (
     BASIC_BOT_JOURNAL_ENTRY,
     BASIC_BOT_REPLY,
@@ -18,12 +21,20 @@ from bot.core.constants import (
 )
 from bot.core.basic import BasicBot, BasicSelector
 from bot.core.exceptions import BotCoreError
-from bot.models import Bot
-from common.constants import UserKind
+from channel.models import Channel, ChannelMember, ChannelMessage
+from bot.context import BotContextBuilder
+from bot.coordinator import Coordinator
+from bot.models import Bot, Run
+from bot.steps import DrawDecisionStep
+from bot.tasks import coordinate, decide_draw
+from common.constants import GameStatus, UserKind
+from draw_proposal.constants import DrawProposalStatus
+from draw_proposal.models import DrawProposal
 from dumbbot.policy import select_orders as dumbbot_select_orders
 from harness.adapter import fixture_to_context
 from member.models import Member
 from user_profile.models import UserProfile
+from victory.models import Victory
 
 seed_bots_migration = importlib.import_module("bot.migrations.0002_seed_bots")
 
@@ -614,3 +625,340 @@ class TestCoreBoundary:
         )
 
         assert violations == []
+
+
+def _make_bot(member):
+    return Bot.objects.create(
+        user=member.user, kind=BotKind.BASIC, name=f"Test Bot {member.pk}"
+    )
+
+
+def _jobs(connector, task_name):
+    return [job for job in connector.jobs.values() if job["task_name"] == task_name]
+
+
+def _draw_run(member, proposal, **kwargs):
+    return Run.objects.create(
+        step=RunStep.DRAW_DECISION,
+        bot=member.user.bot,
+        member=member,
+        phase=proposal.phase,
+        draw_proposal=proposal,
+        **kwargs,
+    )
+
+
+class TestBotContextBuilder:
+
+    @pytest.mark.django_db
+    def test_builds_what_the_bot_can_see(self, active_game_factory, primary_user):
+        game = active_game_factory()
+        human = game.members.get(user=primary_user)
+        bot_member = game.members.exclude(user=primary_user).first()
+        _make_bot(bot_member)
+        channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        ChannelMember.objects.create(member=human, channel=channel)
+        ChannelMember.objects.create(member=bot_member, channel=channel)
+        ChannelMessage.objects.create(channel=channel, sender=human, body="Draw?")
+
+        context = BotContextBuilder(bot_member).build()
+
+        assert context["member_id"] == bot_member.id
+        assert len(context["nations"]) == 7
+        assert [
+            member["nation"]
+            for member in context["members"]
+            if member["is_current_user"]
+        ] == [bot_member.nation.name]
+        assert context["phase"]["type"] == "Movement"
+        assert context["units"]
+        assert context["order_options"]
+        assert context["channels"] == [
+            {"id": channel.id, "messages": [{"sender_id": human.id, "body": "Draw?"}]}
+        ]
+
+
+class TestDrawDecisionRuns:
+
+    def _propose(self, authenticated_client, game, capture):
+        with capture(execute=True):
+            response = authenticated_client.post(
+                f"/games/{game.id}/draw-proposals/create/", {}, format="json"
+            )
+        assert response.status_code == status.HTTP_201_CREATED
+        return DrawProposal.objects.get(game=game)
+
+    @pytest.mark.django_db
+    def test_bot_accepts_a_draw_proposed_by_a_player(
+        self,
+        active_game_factory,
+        authenticated_client,
+        primary_user,
+        in_memory_procrastinate,
+        django_capture_on_commit_callbacks,
+    ):
+        game = active_game_factory()
+        bot_member = game.members.exclude(user=primary_user).first()
+        _make_bot(bot_member)
+
+        proposal = self._propose(
+            authenticated_client, game, django_capture_on_commit_callbacks
+        )
+
+        run = Run.objects.get()
+        assert run.step == RunStep.DRAW_DECISION
+        assert run.status == RunStatus.PENDING
+        assert run.member == bot_member
+        assert run.draw_proposal == proposal
+        assert len(_jobs(in_memory_procrastinate, "bot.coordinate")) == 1
+
+        coordinate()
+
+        run.refresh_from_db()
+        assert run.status == RunStatus.RUNNING
+        assert [
+            job["args"] for job in _jobs(in_memory_procrastinate, "bot.decide_draw")
+        ] == [{"pk": run.pk}]
+
+        decide_draw(run.pk)
+
+        run.refresh_from_db()
+        assert run.status == RunStatus.SUCCEEDED
+        assert run.completed_at is not None
+        assert run.snapshot["member_id"] == bot_member.id
+        assert proposal.votes.get(member=bot_member).accepted is True
+        assert proposal.status == DrawProposalStatus.PENDING
+
+    @pytest.mark.django_db
+    def test_draw_passes_when_the_only_other_voters_are_bots(
+        self,
+        active_game_factory,
+        authenticated_client,
+        primary_user,
+        in_memory_procrastinate,
+        django_capture_on_commit_callbacks,
+    ):
+        game = active_game_factory()
+        for member in game.members.exclude(user=primary_user):
+            _make_bot(member)
+
+        self._propose(authenticated_client, game, django_capture_on_commit_callbacks)
+        coordinate()
+        for run in Run.objects.all():
+            decide_draw(run.pk)
+
+        assert set(Run.objects.values_list("status", flat=True)) == {
+            RunStatus.SUCCEEDED
+        }
+        game.refresh_from_db()
+        assert game.status == GameStatus.COMPLETED
+        assert Victory.objects.get(game=game).members.count() == 7
+
+    @pytest.mark.django_db
+    def test_humans_get_no_runs(
+        self,
+        active_game_factory,
+        authenticated_client,
+        in_memory_procrastinate,
+        django_capture_on_commit_callbacks,
+    ):
+        game = active_game_factory()
+
+        self._propose(authenticated_client, game, django_capture_on_commit_callbacks)
+
+        assert not Run.objects.exists()
+        assert _jobs(in_memory_procrastinate, "bot.coordinate") == []
+
+
+class TestRunCommands:
+
+    def _setup(
+        self, game_factory, phase_factory, member_factory, draw_proposal_factory
+    ):
+        game = game_factory()
+        phase = phase_factory(game=game)
+        proposer = member_factory(game=game)
+        bot_member = member_factory(game=game)
+        _make_bot(bot_member)
+        proposal = draw_proposal_factory(
+            game=game,
+            created_by=proposer,
+            phase=phase,
+            included_member_ids=[proposer.id, bot_member.id],
+        )
+        return game, bot_member, proposal
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "run_status",
+        [RunStatus.RUNNING, RunStatus.SUCCEEDED, RunStatus.SKIPPED],
+    )
+    def test_start_does_nothing_when_the_run_is_not_pending(
+        self,
+        run_status,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+        in_memory_procrastinate,
+    ):
+        _, bot_member, proposal = self._setup(
+            game_factory, phase_factory, member_factory, draw_proposal_factory
+        )
+        run = _draw_run(bot_member, proposal, status=run_status)
+
+        assert Run.objects.start(run) is None
+
+        run.refresh_from_db()
+        assert run.status == run_status
+        assert run.started_at is None
+        assert _jobs(in_memory_procrastinate, "bot.decide_draw") == []
+
+    @pytest.mark.django_db
+    def test_tick_skips_runs_whose_phase_is_no_longer_current(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+        in_memory_procrastinate,
+    ):
+        game, bot_member, proposal = self._setup(
+            game_factory, phase_factory, member_factory, draw_proposal_factory
+        )
+        run = _draw_run(bot_member, proposal)
+        phase_factory(game=game, season="Fall", ordinal=2)
+
+        Coordinator().tick()
+
+        run.refresh_from_db()
+        assert run.status == RunStatus.SKIPPED
+        assert run.completed_at is not None
+        assert _jobs(in_memory_procrastinate, "bot.decide_draw") == []
+
+    @pytest.mark.django_db
+    def test_tick_waits_for_the_earliest_start(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+        in_memory_procrastinate,
+    ):
+        _, bot_member, proposal = self._setup(
+            game_factory, phase_factory, member_factory, draw_proposal_factory
+        )
+        run = _draw_run(
+            bot_member,
+            proposal,
+            earliest_start_at=timezone.now() + timedelta(minutes=1),
+        )
+
+        Coordinator().tick()
+
+        run.refresh_from_db()
+        assert run.status == RunStatus.PENDING
+        assert _jobs(in_memory_procrastinate, "bot.decide_draw") == []
+
+    @pytest.mark.django_db
+    def test_tick_times_out_runs_past_their_step_timeout(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+    ):
+        _, bot_member, proposal = self._setup(
+            game_factory, phase_factory, member_factory, draw_proposal_factory
+        )
+        overdue = _draw_run(
+            bot_member,
+            proposal,
+            status=RunStatus.RUNNING,
+            started_at=timezone.now() - DrawDecisionStep.timeout - timedelta(seconds=1),
+        )
+        recent = _draw_run(
+            bot_member,
+            proposal,
+            status=RunStatus.RUNNING,
+            started_at=timezone.now(),
+        )
+
+        Coordinator().tick()
+
+        overdue.refresh_from_db()
+        recent.refresh_from_db()
+        assert overdue.status == RunStatus.TIMED_OUT
+        assert overdue.completed_at is not None
+        assert recent.status == RunStatus.RUNNING
+
+    @pytest.mark.django_db
+    def test_timed_out_run_does_not_vote(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+    ):
+        _, bot_member, proposal = self._setup(
+            game_factory, phase_factory, member_factory, draw_proposal_factory
+        )
+        run = _draw_run(bot_member, proposal, status=RunStatus.TIMED_OUT)
+
+        assert Run.objects.vote_on_draw(run, True) is None
+
+        assert proposal.votes.get(member=bot_member).accepted is None
+
+    @pytest.mark.django_db
+    def test_refused_vote_skips_the_run(
+        self,
+        active_game_factory,
+        primary_user,
+        draw_proposal_factory,
+        caplog,
+    ):
+        game = active_game_factory()
+        proposer = game.members.get(user=primary_user)
+        bot_member = game.members.exclude(user=primary_user).first()
+        _make_bot(bot_member)
+        proposal = draw_proposal_factory(
+            game=game,
+            created_by=proposer,
+            phase=game.current_phase,
+            included_member_ids=[proposer.id, bot_member.id],
+            cancelled_at=timezone.now(),
+        )
+        run = _draw_run(bot_member, proposal, status=RunStatus.RUNNING)
+
+        decide_draw(run.pk)
+
+        run.refresh_from_db()
+        assert run.status == RunStatus.SKIPPED
+        assert proposal.votes.get(member=bot_member).accepted is None
+        assert [
+            record.levelname for record in caplog.records if record.name == "bot.steps"
+        ] == ["WARNING"]
+
+    @pytest.mark.django_db
+    def test_unexpected_error_fails_the_run(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        draw_proposal_factory,
+    ):
+        _, bot_member, proposal = self._setup(
+            game_factory, phase_factory, member_factory, draw_proposal_factory
+        )
+        run = _draw_run(bot_member, proposal, status=RunStatus.RUNNING)
+        factory = Mock()
+        factory.build.side_effect = RuntimeError("bot exploded")
+
+        with patch("bot.steps.BotContextBuilder.build", return_value={}):
+            with pytest.raises(RuntimeError):
+                DrawDecisionStep(factory=factory).execute(run)
+
+        run.refresh_from_db()
+        assert run.status == RunStatus.FAILED
+        assert run.error == "bot exploded"
+        assert run.completed_at is not None
