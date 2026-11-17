@@ -6,6 +6,7 @@ import { Notice } from "@/components/Notice";
 import { OfflineNotice } from "@/components/OfflineNotice";
 import { NotFoundNotice } from "@/components/NotFoundNotice";
 import {
+  isForbiddenError,
   isNetworkError,
   isNotFoundError,
   isUnauthorizedError,
@@ -81,7 +82,8 @@ class ErrorBoundaryClass extends Component<
     if (
       !isNetworkError(error) &&
       !isNotFoundError(error) &&
-      !isUnauthorizedError(error)
+      !isUnauthorizedError(error) &&
+      !isForbiddenError(error)
     ) {
       Sentry.captureException(error);
     }

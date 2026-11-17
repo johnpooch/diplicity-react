@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Flag } from "lucide-react";
+import { Flag, Lock } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { PrimaryButton } from "@/components/ui/role-buttons";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import {
+  type GameRetrieve,
   useGameRetrieveSuspense,
   useGameMemberNationPreferenceRetrieveSuspense,
   useGameMemberNationPreferenceUpdate,
@@ -23,15 +24,20 @@ interface NationPreferenceContentProps {
   savedPath: string;
 }
 
-export const NationPreferenceContent: React.FC<NationPreferenceContentProps> = ({
+interface NationPreferenceFormProps extends NationPreferenceContentProps {
+  gameId: string;
+  game: GameRetrieve;
+}
+
+const NationPreferenceForm: React.FC<NationPreferenceFormProps> = ({
+  gameId,
+  game,
   savedPath,
 }) => {
-  const { gameId } = useRequiredParams<{ gameId: string }>();
-
   const navigate = useNavigate();
-  const { data: game } = useGameRetrieveSuspense(gameId);
   const variant = useGameVariant(game);
-  const { data: preference } = useGameMemberNationPreferenceRetrieveSuspense(gameId);
+  const { data: preference } =
+    useGameMemberNationPreferenceRetrieveSuspense(gameId);
   const queryClient = useQueryClient();
   const updateMutation = useGameMemberNationPreferenceUpdate();
 
@@ -40,8 +46,6 @@ export const NationPreferenceContent: React.FC<NationPreferenceContentProps> = (
   const playableNations = variant
     ? variant.nations.filter(n => !n.nonPlayable)
     : [];
-
-  const assignedNation = game.members.find(m => m.isCurrentUser)?.nation;
 
   const toggleNation = (nationId: string) => {
     setRankedIds(current =>
@@ -71,16 +75,6 @@ export const NationPreferenceContent: React.FC<NationPreferenceContentProps> = (
       toast.error("Failed to save nation preferences");
     }
   };
-
-  if (assignedNation) {
-    return (
-      <Notice
-        icon={Flag}
-        title={`The Game Master assigned you ${assignedNation}`}
-        message="Your nation is already set, so preferences do not apply to this game."
-      />
-    );
-  }
 
   return (
     <>
@@ -126,5 +120,41 @@ export const NationPreferenceContent: React.FC<NationPreferenceContentProps> = (
         Save preferences
       </PrimaryButton>
     </>
+  );
+};
+
+export const NationPreferenceContent: React.FC<
+  NationPreferenceContentProps
+> = ({ savedPath }) => {
+  const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+
+  const assignedNation = game.members.find(m => m.isCurrentUser)?.nation;
+  const canEditNationPreferences = game.playerListActions.some(
+    action => action.key === "edit_nation_preferences"
+  );
+
+  if (assignedNation) {
+    return (
+      <Notice
+        icon={Flag}
+        title={`The Game Master assigned you ${assignedNation}`}
+        message="Your nation is already set, so preferences do not apply to this game."
+      />
+    );
+  }
+
+  if (!canEditNationPreferences) {
+    return (
+      <Notice
+        icon={Lock}
+        title="Nation preferences are closed"
+        message="This game has started, so preferences no longer apply."
+      />
+    );
+  }
+
+  return (
+    <NationPreferenceForm gameId={gameId} game={game} savedPath={savedPath} />
   );
 };
