@@ -40,6 +40,8 @@ class OrderQuerySet(models.QuerySet):
             "phase_state__member__nation__flag",
             "phase_state__phase__game__variant",
             "resolution",
+            "resolution__by",
+            "resolution__by__parent",
             "source",
             "source__parent",
             "target",
@@ -56,6 +58,7 @@ class OrderQuerySet(models.QuerySet):
                 .objects.select_related("province__parent")
                 .prefetch_related("province__named_coasts"),
             ),
+            "resolution__by__named_coasts",
             "source__named_coasts",
             "target__named_coasts",
             "aux__named_coasts",

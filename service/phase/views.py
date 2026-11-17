@@ -16,6 +16,7 @@ from common.views import (
     CurrentGameMemberMixin,
 )
 from rest_framework.response import Response
+from member.models import Member
 from province.models import Province
 from .models import Phase
 from .serializers import (
@@ -45,7 +46,7 @@ class PhaseStateUpdateView(
         game = self.get_game()
         member = self.get_current_game_member()
         current_phase = game.current_phase
-        return current_phase.phase_states.get(member=member)
+        return current_phase.phase_states.with_member_data().get(member=member)
 
 
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
@@ -55,7 +56,17 @@ class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     def get_queryset(self):
         game = self.get_game()
         current_phase = game.current_phase
-        return current_phase.phase_states.filter(member__user=self.request.user)
+        return current_phase.phase_states.filter(
+            member__user=self.request.user
+        ).with_member_data()
+
+    def list(self, request, *args, **kwargs):
+        phase_states = list(self.get_queryset())
+        Member.objects.hydrate_commitment_totals(
+            [phase_state.member for phase_state in phase_states]
+        )
+        serializer = self.get_serializer(phase_states, many=True)
+        return Response(serializer.data)
 
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
