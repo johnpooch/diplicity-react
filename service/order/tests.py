@@ -1,10 +1,13 @@
 import json
+from contextlib import contextmanager
+from types import SimpleNamespace
+from unittest.mock import patch
 from phase.utils import transform_options
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 from django.test.utils import override_settings
-from django.db import connection
+from django.db import connection, transaction
 from django.test import TestCase
 from django.core import exceptions
 from rest_framework import status
@@ -448,6 +451,29 @@ class TestOrderCreateView:
         assert response.data["resolution"] is None
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
         assert response.data["title"] == "Select province to move Budapest to"
+
+    @pytest.mark.django_db
+    def test_order_create_succeeds_when_competing_submission_deletes_after_commit(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        real_atomic = transaction.atomic
+
+        @contextmanager
+        def atomic_then_competing_delete():
+            with real_atomic():
+                yield
+            Order.objects.all().delete()
+
+        url = reverse("order-create", args=[game_with_options.id])
+        data = {"selected": ["bud", "Move", "gal"]}
+        with patch(
+            "order.serializers.transaction",
+            SimpleNamespace(atomic=atomic_then_competing_delete),
+        ):
+            response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["selected"] == ["bud", "Move", "gal"]
 
     def test_order_create_move_with_source_and_target(
         self, authenticated_client, game_with_options, primary_user
