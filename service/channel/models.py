@@ -2,7 +2,6 @@ from django.db import IntegrityError, models, transaction
 from django.db.models import (
     Q,
     BooleanField,
-    Case,
     Count,
     Exists,
     Subquery,
@@ -11,8 +10,8 @@ from django.db.models import (
     Value,
     Max,
     F,
-    When,
 )
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core import exceptions
 from django.utils import timezone
@@ -25,6 +24,9 @@ CHANNEL_TITLE_MAX_LENGTH = 50
 
 
 class ChannelQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
     def accessible_to_member(self, member, game):
         queryset = self.filter(game=game)
         if member is None:
@@ -42,8 +44,14 @@ class ChannelQuerySet(models.QuerySet):
         return self.filter(game=game)
 
     def with_member_names(self):
+        Member = apps.get_model("member", "Member")
         return self.prefetch_related(
-            "members__nation", "members__user__profile", "members__user__bot"
+            models.Prefetch(
+                "members",
+                queryset=Member.objects.select_related(
+                    "game", "nation", "user__profile__uploaded_picture", "user__bot"
+                ),
+            )
         )
 
     def with_latest_message_id(self):
@@ -66,20 +74,6 @@ class ChannelQuerySet(models.QuerySet):
             .values("id")[:1]
         )
         return self.annotate(first_unread_message_id=Subquery(first_unread_message))
-
-    def with_requester_membership(self, member):
-        if member is None:
-            return self.annotate(
-                requester_is_member=Value(False, output_field=BooleanField())
-            )
-        membership = ChannelMember.objects.filter(channel=OuterRef("pk"), member=member)
-        return self.annotate(
-            requester_is_member=Case(
-                When(private=False, then=Value(True)),
-                default=Exists(membership),
-                output_field=BooleanField(),
-            )
-        )
 
     def with_detail_data(self):
         latest_event = (
@@ -248,12 +242,16 @@ class ChannelMember(BaseModel):
 
 
 class ChannelMessageQuerySet(models.QuerySet):
+    def visible_to(self, actor):
+        return self
+
     def for_channel(self, channel):
         return self.filter(channel=channel)
 
     def with_sender_data(self):
         return self.select_related(
             "sender",
+            "sender__game",
             "sender__user",
             "sender__user__profile__uploaded_picture",
             "sender__user__bot",

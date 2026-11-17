@@ -1,7 +1,7 @@
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from common.serializers import OutputSerializer
+from common.serializers import OutputSerializer, hydrated
 from member.serializers import BaseMemberSerializer
 
 from .loaders import DrawProposalLoader
@@ -31,7 +31,7 @@ class DrawProposalOutputSerializer(OutputSerializer):
     pending_count = serializers.IntegerField()
     total_votes = serializers.IntegerField()
     included_member_ids = serializers.ListField(child=serializers.IntegerField())
-    my_vote = serializers.SerializerMethodField()
+    my_vote = hydrated(MyVoteSerializer(allow_null=True))
     phase_id = serializers.IntegerField(source="phase.id")
     phase_name = serializers.CharField(source="phase.name")
 
@@ -52,13 +52,3 @@ class DrawProposalOutputSerializer(OutputSerializer):
             "phase_name",
             "created_at",
         )
-
-    @extend_schema_field(MyVoteSerializer(allow_null=True))
-    def get_my_vote(self, obj):
-        current_member = self.context.get("current_game_member")
-        if current_member is None:
-            return None
-        for vote in obj.votes.all():
-            if vote.member_id == current_member.id:
-                return {"included": vote.included, "accepted": vote.accepted}
-        return None

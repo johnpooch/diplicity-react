@@ -1,50 +1,31 @@
 from rest_framework import serializers
-from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
 
 from bot.constants import BotKind
 from common.constants import (
     CommitmentBand,
     CommitmentEvent,
-    CommitmentRequirement,
     CommitmentShade,
 )
-from game.models import Game
-from member.checks import MeetsCommitmentRequirementCheck
-from member.models import Member
-from rating.models import Rating
+from common.serializers import AbsoluteUrlField, derived, hydrated
 from report.constants import ReportReason
-from report.models import Mark
 
+from .loaders import PublicUserProfileLoader, UserProfileLoader
 from .models import UserProfilePicture
-from .utils import get_player_stats, normalise_picture, user_can_use_bot_opponent
+from .utils import normalise_picture
 
 
-class PictureUrlMixin:
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_picture(self, obj):
-        return obj.picture_url(self.context.get("request"))
-
-
-class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
+class UserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(min_length=2, max_length=255)
-    picture = serializers.SerializerMethodField()
+    picture = AbsoluteUrlField(source="picture_path")
     email = serializers.CharField(source="user.email", read_only=True)
-    can_create_bot_games = serializers.SerializerMethodField()
+    can_create_bot_games = serializers.BooleanField(read_only=True)
     is_moderator = serializers.BooleanField(read_only=True)
-    can_create_committed_game = serializers.SerializerMethodField()
+    can_create_committed_game = hydrated(serializers.BooleanField(read_only=True))
 
-    @extend_schema_field(serializers.BooleanField)
-    def get_can_create_bot_games(self, obj):
-        return user_can_use_bot_opponent(obj.user)
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_can_create_committed_game(self, obj):
-        return MeetsCommitmentRequirementCheck.decide(
-            Game(commitment_requirement=CommitmentRequirement.COMMITTED), obj.user
-        ).allowed
+    class Meta:
+        loader = UserProfileLoader
 
     def validate_name(self, value):
         value = value.strip()
@@ -61,13 +42,13 @@ class UserProfileSerializer(PictureUrlMixin, serializers.Serializer):
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
         instance.save()
-        return instance
+        return UserProfileLoader.get(instance.pk, self.context["request"].user)
 
 
-class AddableUserSerializer(PictureUrlMixin, serializers.Serializer):
+class AddableUserSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
-    picture = serializers.SerializerMethodField()
+    picture = AbsoluteUrlField(source="picture_path")
 
 
 class CommitmentBreakdownSerializer(serializers.Serializer):
@@ -82,24 +63,22 @@ class CommitmentSquareSerializer(serializers.Serializer):
     anonymous = serializers.BooleanField(
         source="game.anonymity_active", read_only=True
     )
-    game_name = serializers.SerializerMethodField()
+    game_name = derived(
+        serializers.CharField(source="public_game_name", read_only=True, allow_null=True)
+    )
     submitted = serializers.IntegerField(read_only=True, source="commitment_submitted")
     missed = serializers.IntegerField(read_only=True, source="commitment_missed")
     breakdown = CommitmentBreakdownSerializer(
         many=True, read_only=True, source="commitment_breakdown"
     )
     points = serializers.IntegerField(read_only=True, source="commitment_square")
-    shade = serializers.SerializerMethodField()
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_game_name(self, obj):
-        if obj.game.anonymity_active:
-            return None
-        return obj.game.name
-
-    @extend_schema_field(serializers.ChoiceField(choices=CommitmentShade.SHADE_CHOICES))
-    def get_shade(self, obj):
-        return CommitmentShade.for_points(obj.commitment_square)
+    shade = derived(
+        serializers.ChoiceField(
+            source="commitment_shade",
+            choices=CommitmentShade.SHADE_CHOICES,
+            read_only=True,
+        )
+    )
 
 
 class MarkSerializer(serializers.Serializer):
@@ -110,83 +89,42 @@ class MarkSerializer(serializers.Serializer):
 
 
 class ProfileRatingSerializer(serializers.Serializer):
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(source="rounded_rating", read_only=True)
     rank = serializers.IntegerField(read_only=True, allow_null=True)
     won = serializers.IntegerField(read_only=True)
     drew = serializers.IntegerField(read_only=True)
     lost = serializers.IntegerField(read_only=True)
 
-    @extend_schema_field(serializers.IntegerField)
-    def get_rating(self, obj):
-        return round(obj.rating)
 
-
-class PublicUserProfileSerializer(PictureUrlMixin, serializers.Serializer):
+class PublicUserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(read_only=True)
-    picture = serializers.SerializerMethodField()
-    bot_kind = serializers.SerializerMethodField()
-    created_at = serializers.SerializerMethodField()
-    total_games = serializers.IntegerField(read_only=True)
-    active_games = serializers.IntegerField(read_only=True)
-    commitment_total = serializers.IntegerField(read_only=True)
-    commitment_band = serializers.SerializerMethodField()
-    commitment_squares = serializers.SerializerMethodField()
-    rating = serializers.SerializerMethodField()
-    marks = serializers.SerializerMethodField()
-
-    @extend_schema_field(
-        serializers.ChoiceField(choices=BotKind.KIND_CHOICES, allow_null=True)
-    )
-    def get_bot_kind(self, obj):
-        if not obj.is_bot:
-            return None
-        return obj.user.bot.kind
-
-    @extend_schema_field(serializers.DateTimeField(allow_null=True))
-    def get_created_at(self, obj):
-        if obj.is_bot:
-            return None
-        return serializers.DateTimeField().to_representation(obj.created_at)
-
-    @extend_schema_field(serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES))
-    def get_commitment_band(self, obj):
-        return CommitmentBand.for_total(obj.commitment_total)
-
-    @extend_schema_field(CommitmentSquareSerializer(many=True))
-    def get_commitment_squares(self, obj):
-        if obj.is_bot:
-            return []
-        squares = list(Member.objects.filter(user=obj.user).commitment_squares())
-        Member.objects.hydrate_commitment_breakdowns(squares)
-        return CommitmentSquareSerializer(squares, many=True).data
-
-    @extend_schema_field(ProfileRatingSerializer(allow_null=True))
-    def get_rating(self, obj):
-        if obj.is_bot:
-            return None
-        rating = (
-            Rating.objects.filter(user=obj.user)
-            .with_rank(timezone.now())
-            .with_record()
-            .first()
+    picture = AbsoluteUrlField(source="picture_path")
+    bot_kind = derived(
+        serializers.ChoiceField(
+            source="user.bot.kind",
+            choices=BotKind.KIND_CHOICES,
+            read_only=True,
+            allow_null=True,
         )
-        if rating is None:
-            return None
-        return ProfileRatingSerializer(rating).data
+    )
+    created_at = derived(
+        serializers.DateTimeField(
+            source="public_created_at", read_only=True, allow_null=True
+        )
+    )
+    total_games = hydrated(serializers.IntegerField(read_only=True))
+    active_games = hydrated(serializers.IntegerField(read_only=True))
+    commitment_total = serializers.IntegerField(read_only=True)
+    commitment_band = derived(
+        serializers.ChoiceField(choices=CommitmentBand.BAND_CHOICES, read_only=True)
+    )
+    commitment_squares = hydrated(CommitmentSquareSerializer(many=True, read_only=True))
+    rating = hydrated(ProfileRatingSerializer(read_only=True, allow_null=True))
+    marks = hydrated(MarkSerializer(many=True, read_only=True))
 
-    @extend_schema_field(MarkSerializer(many=True))
-    def get_marks(self, obj):
-        if obj.is_bot:
-            return []
-        marks = Mark.objects.filter(member__user=obj.user).order_by("-created_at")
-        return MarkSerializer(marks, many=True).data
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        stats = get_player_stats(instance.user)
-        data.update(stats)
-        return data
+    class Meta:
+        loader = PublicUserProfileLoader
 
 
 class UserProfilePictureSerializer(serializers.Serializer):
@@ -198,7 +136,7 @@ class UserProfilePictureSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         data, content_type = validated_data["picture"]
         UserProfilePicture.objects.store(instance, data, content_type)
-        return instance
+        return UserProfileLoader.get(instance.pk, self.context["request"].user)
 
     def to_representation(self, instance):
         return UserProfileSerializer(instance, context=self.context).data

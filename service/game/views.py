@@ -1,11 +1,11 @@
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from common.constants import GameStatus
+from .loaders import GameListLoader
 from .models import Game
 from .service import MyGamesService
 from .serializers import (
@@ -23,6 +23,8 @@ from .serializers import (
     MyGameSerializer,
 )
 from common.views import (
+    LoaderDetailView,
+    LoaderListView,
     PrecomputedConditionalGetMixin,
     RefusalMixin,
     SelectedGameMixin,
@@ -35,28 +37,19 @@ from emit import emit
 from .filters import GameFilter
 
 
-class GameRetrieveView(PrecomputedConditionalGetMixin, generics.RetrieveAPIView):
+class GameRetrieveView(PrecomputedConditionalGetMixin, LoaderDetailView):
     permission_classes = [permissions.AllowAny]
     serializer_class = GameRetrieveSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "game_id"
 
     def get_fingerprint(self):
         return Game.objects.retrieve_fingerprint(
             self.kwargs.get("game_id"), self.request
         )
 
-    def get_object(self):
-        queryset = (
-            Game.objects.all()
-            .with_retrieve_data()
-            .with_total_unread_counts(self.request.user)
-        )
-        game = get_object_or_404(queryset, id=self.kwargs.get("game_id"))
-        Game.objects.hydrate_retrieve_phases([game])
-        Game.objects.hydrate_member_commitment_totals([game])
-        return game
 
-
-class GameListView(generics.ListAPIView):
+class GameListView(LoaderListView):
     permission_classes = [permissions.AllowAny]
     serializer_class = GameListSerializer
     filterset_class = GameFilter
@@ -64,7 +57,7 @@ class GameListView(generics.ListAPIView):
     pagination_class = StandardPageNumberPagination
 
     def get_queryset(self):
-        queryset = Game.objects.all().with_list_data().order_by("-created_at")
+        queryset = super().get_queryset().order_by("-created_at")
 
         if (
             "sandbox" not in self.request.query_params
@@ -76,13 +69,6 @@ class GameListView(generics.ListAPIView):
             queryset = queryset.filter(private=False)
 
         return queryset
-
-    def paginate_queryset(self, queryset):
-        page = super().paginate_queryset(queryset)
-        Game.objects.hydrate_list_phases(page)
-        Game.objects.hydrate_total_unread_counts(page, self.request.user)
-        Game.objects.hydrate_member_commitment_totals(page)
-        return page
 
 
 class MyGamesCurrentView(generics.RetrieveAPIView):
@@ -129,7 +115,7 @@ class GameFindSimilarView(generics.GenericAPIView):
             return Response({"game": None})
 
         candidates = list(
-            Game.objects.with_list_data()
+            GameListLoader.get_queryset(request.user)
             .filter(
                 status=GameStatus.PENDING,
                 private=False,
@@ -138,6 +124,7 @@ class GameFindSimilarView(generics.GenericAPIView):
                 movement_phase_duration=duration,
             )
             .exclude_mine(request.user)
+            .with_zero_unread_counts()
         )
 
         if not candidates:
@@ -150,11 +137,8 @@ class GameFindSimilarView(generics.GenericAPIView):
                 -g.created_at.timestamp(),
             )
         )
-        Game.objects.hydrate_list_phases(candidates[:1])
-        Game.objects.hydrate_member_commitment_totals(candidates[:1])
-        match_data = GameListSerializer(
-            candidates[0], context={"request": request}
-        ).data
+        [match] = GameListLoader.hydrate(candidates[:1], request.user)
+        match_data = GameListSerializer(match, context={"request": request}).data
         return Response({"game": match_data})
 
 
@@ -166,11 +150,15 @@ class GameFastestView(generics.GenericAPIView):
     def get(self, request):
         """Return the joinable game closest to starting whose movement phases last 24 hours or longer."""
         game = Game.objects.fastest_start(request.user)
-        game_data = (
-            GameListSerializer(game, context={"request": request}).data
-            if game
-            else None
-        )
+        game_data = None
+        if game is not None:
+            [game] = GameListLoader.hydrate(
+                GameListLoader.get_queryset(request.user)
+                .filter(pk=game.pk)
+                .with_zero_unread_counts(),
+                request.user,
+            )
+            game_data = GameListSerializer(game, context={"request": request}).data
         return Response({"game": game_data})
 
 

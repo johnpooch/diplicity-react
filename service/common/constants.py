@@ -280,6 +280,11 @@ class UserKind:
     )
 
 
+class PlayerName:
+    ANONYMOUS = "Anonymous"
+    DELETED = "Deleted User"
+
+
 class MemberKind:
     PLAYER = "player"
     GAME_MASTER = "game_master"

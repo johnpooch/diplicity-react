@@ -1,13 +1,14 @@
 from django.db import transaction
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from common.constants import PhaseStatus, PhaseType
+from common.constants import PhaseStatus
 from common.permissions import IsCurrentPhaseActive
+from common.serializers import derived, hydrated
 from emit import emit
 from member.serializers import MemberSerializer
+from phase.loaders import PhaseRetrieveLoader, PhaseStateLoader
 from phase.models import Phase
-from phase.utils import compute_province_nations
-from province.models import Province
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
@@ -19,13 +20,10 @@ class PhaseStateSerializer(serializers.Serializer):
     eliminated = serializers.BooleanField(read_only=True)
     orderable_provinces = ProvinceSerializer(read_only=True, many=True)
     member = MemberSerializer(read_only=True)
-    max_orders = serializers.SerializerMethodField()
+    max_orders = derived(serializers.IntegerField(read_only=True, allow_null=True))
 
-    @extend_schema_field(serializers.IntegerField(allow_null=True))
-    def get_max_orders(self, obj):
-        if obj.phase.type != PhaseType.ADJUSTMENT:
-            return None
-        return obj.max_allowed_adjustment_orders()
+    class Meta:
+        loader = PhaseStateLoader
 
     def update(self, instance, validated_data):
         with transaction.atomic():
@@ -63,6 +61,11 @@ class PhaseRevertSerializer(serializers.Serializer):
         return PhaseListSerializer(instance, context=self.context).data
 
 
+@extend_schema_field(OpenApiTypes.STR)
+class ProvinceNationsField(serializers.JSONField):
+    pass
+
+
 class PhaseRetrieveSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     ordinal = serializers.IntegerField()
@@ -77,15 +80,7 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     supply_centers = SupplyCenterSerializer(many=True)
     previous_phase_id = serializers.IntegerField(allow_null=True)
     next_phase_id = serializers.IntegerField(allow_null=True)
-    province_nations = serializers.SerializerMethodField()
+    province_nations = hydrated(ProvinceNationsField(read_only=True))
 
-    def get_province_nations(self, phase):
-        provinces = getattr(phase, "variant_provinces", None)
-        if provinces is None:
-            provinces = Province.objects.cached_for_variant(phase.variant)
-        return compute_province_nations(
-            phase.supply_centers.all(),
-            provinces,
-            phase.variant.dominance_rules,
-            phase.variant.nations.all(),
-        )
+    class Meta:
+        loader = PhaseRetrieveLoader

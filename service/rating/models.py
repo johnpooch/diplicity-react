@@ -24,6 +24,10 @@ class Rating(BaseModel):
             models.Index(fields=["rating"], name="rating_rating_idx"),
         ]
 
+    @property
+    def rounded_rating(self) -> int:
+        return round(self.rating)
+
     def record(self, result):
         self.rating = result.rating_after
         self.deviation = result.deviation_after

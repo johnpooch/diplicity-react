@@ -2876,6 +2876,31 @@ class TestGameListViewQueryPerformance:
         assert hydrated_supply_centers == [supply_centers_per_phase] * games_count
 
     @pytest.mark.django_db
+    def test_list_games_query_count_does_not_grow_with_victory_members(
+        self, authenticated_client, victory_factory, member_factory
+    ):
+        def add_won_game(winner_count):
+            victory = victory_factory()
+            victory.game.status = GameStatus.COMPLETED
+            victory.game.save()
+            for _ in range(winner_count):
+                victory.members.add(member_factory(game=victory.game))
+
+        url = reverse(list_viewname)
+        add_won_game(1)
+        with CaptureQueriesContext(connection) as one_winner:
+            authenticated_client.get(url)
+        add_won_game(3)
+
+        with CaptureQueriesContext(connection) as more_winners:
+            response = authenticated_client.get(url)
+
+        assert sorted(
+            len(game["victory"]["members"]) for game in response.data["results"]
+        ) == [1, 3]
+        assert len(more_winners.captured_queries) == len(one_winner.captured_queries)
+
+    @pytest.mark.django_db
     @pytest.mark.parametrize(
         ("client_name", "params", "expected_query_count"),
         [
@@ -3911,7 +3936,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 32
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(
@@ -3932,7 +3957,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 49
+        assert query_count == 32
 
 
 class TestRankedGameCreation:
@@ -4653,7 +4678,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 57
+        assert query_count == 40
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -4674,7 +4699,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 57
+        assert query_count == 40
 
 
 class TestSandboxGameFiltering:
@@ -5347,6 +5372,18 @@ class TestGamePauseUnpause:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["is_paused"] is True
         assert response.data["paused_at"] is not None
+
+    @pytest.mark.django_db
+    def test_pause_response_reports_viewer_actions(
+        self, authenticated_client, active_game_factory
+    ):
+        game = active_game_factory()
+
+        response = authenticated_client.patch(reverse(pause_viewname, args=[game.id]))
+
+        assert response.data["can_manage"] is True
+        assert {"key": "unpause", "blocked_reason": None} in response.data["actions"]
+        assert "pause" not in {action["key"] for action in response.data["actions"]}
 
     @pytest.mark.django_db
     def test_pause_game_non_game_master_forbidden(

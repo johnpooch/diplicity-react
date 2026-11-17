@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
+from .loaders import MemberLoader
 from .models import Member
 from .serializers import (
     MemberCreateSerializer,
@@ -38,14 +39,33 @@ from common.permissions import (
     IsSpaceAvailable,
     MeetsCommitmentRequirement,
 )
-from common.views import RefusalMixin, SeatClaimMixin, SelectedGameMixin
+from common.views import (
+    LoaderDetailView,
+    RefusalMixin,
+    SeatClaimMixin,
+    SelectedGameMixin,
+)
 from emit import emit
 from game.models import Game
-from report.policies import CanReportPolicy
+
+
+class MemberResponseMixin:
+    def load_member(self, serializer):
+        serializer.instance = MemberLoader.get(
+            serializer.instance.pk, self.request.user
+        )
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        self.load_member(serializer)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        self.load_member(serializer)
 
 
 @extend_schema(responses={201: MemberSerializer})
-class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
+class MemberCreateView(MemberResponseMixin, SeatClaimMixin, generics.CreateAPIView):
     serializer_class = MemberCreateSerializer
     permission_classes = [
         permissions.IsAuthenticated,
@@ -57,7 +77,9 @@ class MemberCreateView(SeatClaimMixin, generics.CreateAPIView):
 
 
 @extend_schema(request=EmptySerializer, responses={201: MemberSerializer})
-class MemberJoinView(RefusalMixin, SeatClaimMixin, generics.CreateAPIView):
+class MemberJoinView(
+    MemberResponseMixin, RefusalMixin, SeatClaimMixin, generics.CreateAPIView
+):
     serializer_class = MemberJoinSerializer
     permission_classes = [
         permissions.IsAuthenticated,
@@ -69,22 +91,17 @@ class MemberJoinView(RefusalMixin, SeatClaimMixin, generics.CreateAPIView):
     ]
 
 
-class MemberRetrieveView(generics.RetrieveAPIView):
+class MemberRetrieveView(LoaderDetailView):
     """Retrieve one member's place in a game, including game masters and members
     who have left their seat, with the actions the requesting user can take on
     them. On the requesting user's own member, the actions are the game actions."""
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = MemberDetailSerializer
+    lookup_url_kwarg = "member_id"
 
-    def get_object(self):
-        member = get_object_or_404(
-            Member.objects.with_detail_data(),
-            game_id=self.kwargs["game_id"],
-            id=self.kwargs["member_id"],
-        )
-        member.report_decision = CanReportPolicy.decide(member, self.request.user)
-        return member
+    def get_queryset(self):
+        return super().get_queryset().filter(game_id=self.kwargs["game_id"])
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
@@ -144,7 +161,9 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
                 emit(event_type, game=game, recipients=[user_id])
 
 
-class MemberReplaceView(RefusalMixin, SelectedGameMixin, generics.CreateAPIView):
+class MemberReplaceView(
+    MemberResponseMixin, RefusalMixin, SelectedGameMixin, generics.CreateAPIView
+):
     serializer_class = MemberReplaceSerializer
     permission_classes = [
         permissions.IsAuthenticated,
@@ -187,12 +206,15 @@ class MemberMusterView(SelectedGameMixin, generics.GenericAPIView):
 
         Game.objects.arm_muster(game)
 
-        serializer = MemberSerializer(member, context=self.get_serializer_context())
+        serializer = MemberSerializer(
+            MemberLoader.get(member.pk, request.user),
+            context=self.get_serializer_context(),
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema(responses={200: MemberSerializer})
-class MemberWithdrawView(SelectedGameMixin, generics.UpdateAPIView):
+class MemberWithdrawView(MemberResponseMixin, SelectedGameMixin, generics.UpdateAPIView):
     """Withdraw the requesting user from an active game, leaving their seat vacant for another player to claim."""
 
     serializer_class = MemberWithdrawSerializer
@@ -252,6 +274,7 @@ class MemberNationAssignView(SelectedGameMixin, generics.GenericAPIView):
         serializer = self.get_serializer(self.get_object(), data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        serializer.instance = MemberLoader.get(serializer.instance.pk, request.user)
         return Response(serializer.data)
 
     @extend_schema(request=None, responses={204: None})

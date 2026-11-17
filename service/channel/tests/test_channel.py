@@ -18,6 +18,7 @@ from channel.models import (
 from channel.serializers import ChannelSerializer
 from nation.models import Nation, NationFlag
 from game.models import Game
+from game.loaders import GameRetrieveLoader
 from game.serializers import GameRetrieveSerializer
 from member.models import Member
 from notification.models import Notification
@@ -52,6 +53,28 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_201_CREATED
         assert "id" in response.data
         assert response.data["name"] == "England, France"
+
+    @pytest.mark.django_db
+    def test_create_channel_reports_creator_permissions(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        secondary_user,
+        classical_france_nation,
+    ):
+        other_member = active_game_with_phase_state.members.create(
+            user=secondary_user, nation=classical_france_nation
+        )
+
+        response = authenticated_client.post(
+            reverse("channel-create", args=[active_game_with_phase_state.id]),
+            {"member_ids": [other_member.id]},
+            format="json",
+        )
+
+        assert response.data["can_rename"] is True
+        assert response.data["can_mute"] is True
+        assert response.data["can_leave"] is True
 
     @pytest.mark.django_db
     def test_create_channel_name_longer_than_250_characters(
@@ -3169,7 +3192,9 @@ class TestGameRetrieveUnreadCount:
     def test_retrieve_serializer_computes_unread_without_annotation(
         self, game_with_public_channel_and_messages, primary_user
     ):
-        game = Game.objects.get(pk=game_with_public_channel_and_messages.pk)
+        game = GameRetrieveLoader.get(
+            game_with_public_channel_and_messages.pk, primary_user
+        )
         request = APIRequestFactory().get("/")
         request.user = primary_user
 

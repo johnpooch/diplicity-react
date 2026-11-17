@@ -1372,7 +1372,7 @@ class TestUserProfileAdmin:
             profile=primary_user.profile
         ).exists()
         primary_user.profile.refresh_from_db()
-        assert primary_user.profile.picture_url() == "http://example.com/google.jpg"
+        assert primary_user.profile.picture_path == "http://example.com/google.jpg"
 
     @pytest.mark.django_db
     def test_clear_uploaded_picture_stops_serving_image(
@@ -1624,6 +1624,20 @@ class TestCanCreateCommittedGame:
         set_commitment_total(primary_user, total)
 
         response = authenticated_client.get(reverse("user-profile"))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_create_committed_game"] is expected
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("total,expected", [(9, False), (10, True)])
+    def test_profile_update_reports_whether_user_can_create_committed_game(
+        self, authenticated_client, primary_user, set_commitment_total, total, expected
+    ):
+        set_commitment_total(primary_user, total)
+
+        response = authenticated_client.patch(
+            reverse("user-profile-update"), {"name": "Renamed"}, format="json"
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["can_create_committed_game"] is expected

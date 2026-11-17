@@ -628,6 +628,50 @@ def test_any_user_can_retrieve_other_users_draft(authenticated_client, user_fact
 
 
 @pytest.mark.django_db
+def test_owner_can_edit_own_draft(user_factory, authenticated_client_factory):
+    owner = user_factory()
+    draft_variant = Variant.objects.create(
+        id="edit-draft",
+        name="Edit Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
+    )
+    owner_client = authenticated_client_factory(owner)
+
+    detail = owner_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
+    mine = owner_client.get(reverse("variant-mine-list"))
+
+    assert detail.data["can_edit"] is True
+    assert [v["can_edit"] for v in mine.data] == [True]
+
+
+@pytest.mark.django_db
+def test_other_user_cannot_edit_draft(authenticated_client, user_factory):
+    owner = user_factory()
+    draft_variant = Variant.objects.create(
+        id="edit-draft",
+        name="Edit Draft",
+        description="",
+        status=VariantStatus.DRAFT,
+        owner=owner,
+    )
+
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": draft_variant.id})
+    )
+
+    assert response.data["can_edit"] is False
+
+
+@pytest.mark.django_db
+def test_published_variants_are_not_editable(authenticated_client):
+    response = authenticated_client.get(reverse(viewname))
+
+    assert {v["can_edit"] for v in response.data} == {False}
+
+
+@pytest.mark.django_db
 def test_any_user_can_retrieve_archived_variant(authenticated_client):
     archived_variant = Variant.objects.create(
         id="vis-archived",

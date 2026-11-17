@@ -1,13 +1,11 @@
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from common.serializers import Actions, OutputSerializer
+from common.serializers import Actions, OutputSerializer, hydrated
 from member.models import Member
 
 from .constants import ReportReason, ReportStatus
 from .loaders import ModerationReportLoader, ReportLoader
 from .models import Report, ReportReview
-from .policies import CanViewReportedGamePolicy
 
 
 class ReportReasonSerializer(serializers.Serializer):
@@ -78,7 +76,7 @@ class ModerationReportOutputSerializer(OutputSerializer):
         reject=Report.objects.reject,
         reopen=Report.objects.reopen,
     )
-    can_view_game = serializers.SerializerMethodField()
+    can_view_game = hydrated(serializers.BooleanField())
 
     class Meta:
         model = Report
@@ -99,9 +97,3 @@ class ModerationReportOutputSerializer(OutputSerializer):
             "actions",
             "can_view_game",
         )
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_can_view_game(self, report):
-        return CanViewReportedGamePolicy.decide(
-            report, self.context["request"].user
-        ).allowed

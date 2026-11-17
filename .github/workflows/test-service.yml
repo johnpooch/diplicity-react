@@ -46,6 +46,10 @@ jobs:
       run: pip install -r requirements.txt -r dev_requirements.txt
       working-directory: service
 
+    - name: Lint service
+      run: ruff check
+      working-directory: service
+
     - name: Run service tests
       run: python -m pytest -v --timeout=60 -n auto --ignore=integration/
       working-directory: service

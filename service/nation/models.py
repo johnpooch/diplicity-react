@@ -34,6 +34,10 @@ class Nation(models.Model):
             },
         )
 
+    @property
+    def solo_victory_supply_centers(self) -> int | None:
+        return self.variant.solo_victory_supply_centers_for(self.nation_id)
+
     def __str__(self):
         return f"{self.name} ({self.variant.name})"
 
