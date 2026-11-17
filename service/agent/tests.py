@@ -578,6 +578,7 @@ class TestPlanTrigger:
         jobs = _agent_run_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
         assert jobs[0]["lock"] == f"agent-task-{task.id}"
+        assert jobs[0]["queueing_lock"] == f"agent-task-{task.id}"
         assert jobs[0]["args"] == {"agent_task_id": task.id}
 
     @pytest.mark.django_db
@@ -1205,6 +1206,22 @@ class TestAgentTaskReconcile:
         redriven = AgentTask.objects.reconcile()
 
         assert [t.id for t in redriven] == [task.id]
+        assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
+
+    @pytest.mark.django_db
+    def test_repeated_reconcile_queues_one_job_per_task(
+        self, member_factory, in_memory_procrastinate
+    ):
+        task = AgentTask.objects.create(
+            kind=AgentTaskKind.PLAN, member=member_factory()
+        )
+        AgentTask.objects.filter(pk=task.pk).update(
+            created_at=timezone.now() - timedelta(minutes=5)
+        )
+
+        AgentTask.objects.reconcile()
+        AgentTask.objects.reconcile()
+
         assert len(_run_jobs_for(in_memory_procrastinate, task)) == 1
 
     @pytest.mark.django_db

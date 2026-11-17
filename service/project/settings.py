@@ -18,6 +18,7 @@ from django.core.exceptions import ImproperlyConfigured
 from datetime import timedelta
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import ignore_logger
 
 from project.sentry import traces_sampler
 
@@ -36,6 +37,7 @@ if SENTRY_DSN:
         environment=os.getenv("ENVIRONMENT") or "development",
         release=os.getenv("GIT_SHA") or None,
     )
+    ignore_logger("opentelemetry.exporter.otlp.proto.grpc.exporter")
 
 
 # Quick-start development settings - unsuitable for production

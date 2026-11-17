@@ -179,7 +179,7 @@ def run(agent_task_id):
         .first()
     )
     if task is None:
-        logger.error(f"[{label}] no agent task found; skipping")
+        logger.warning("[%s] no agent task found; skipping", label)
         return
     if task.status == AgentTaskStatus.SUCCEEDED:
         logger.info(f"[{label}] already succeeded; skipping")
