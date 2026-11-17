@@ -29,6 +29,7 @@ export function initializeSentry() {
       "Failed to fetch dynamically imported module",
       "error loading dynamically imported module",
       "SCDynimacBridge",
+      "Script message handler is unavailable",
     ],
 
     denyUrls: [/chrome-extension:\/\//, /moz-extension:\/\//, /iabjs:\/\//],
