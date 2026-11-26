@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { ROOT_CONTEXT, SpanKind } from "@opentelemetry/api";
-import { SamplingDecision } from "@opentelemetry/sdk-trace-web";
+import { SamplingDecision } from "@opentelemetry/sdk-trace";
 import {
   TRACE_SAMPLE_RATE,
   currentRouteTemplate,

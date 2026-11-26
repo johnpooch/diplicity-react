@@ -86,7 +86,8 @@ const config = defineConfig({
           "vendor-observability": [
             "@sentry/react",
             "@opentelemetry/api",
-            "@opentelemetry/sdk-trace-web",
+            "@opentelemetry/core",
+            "@opentelemetry/sdk-trace",
             "@opentelemetry/exporter-trace-otlp-http",
             "@opentelemetry/instrumentation",
             "@opentelemetry/instrumentation-document-load",

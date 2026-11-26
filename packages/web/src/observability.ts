@@ -1,12 +1,22 @@
 import {
-  WebTracerProvider,
+  TracerProvider,
   BatchSpanProcessor,
   SamplingDecision,
   type Sampler,
   type Span,
   type SpanProcessor,
-} from "@opentelemetry/sdk-trace-web";
-import type { Span as ApiSpan } from "@opentelemetry/api";
+} from "@opentelemetry/sdk-trace";
+import {
+  context,
+  propagation,
+  trace,
+  type Span as ApiSpan,
+} from "@opentelemetry/api";
+import {
+  CompositePropagator,
+  W3CBaggagePropagator,
+  W3CTraceContextPropagator,
+} from "@opentelemetry/core";
 import type { DataRouter } from "react-router";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions/incubating";
@@ -149,8 +159,7 @@ const lookupServedFromCache = (url: string): boolean => {
   }
   const entries = performance.getEntriesByName(url, "resource");
   const entry = entries[entries.length - 1] as
-    | PerformanceResourceTiming
-    | undefined;
+    PerformanceResourceTiming | undefined;
   return entry !== undefined && isServedFromCache(entry);
 };
 
@@ -198,9 +207,9 @@ export function initializeObservability() {
     },
   });
 
-  const spanProcessor = new BatchSpanProcessor(exporter);
+  const spanProcessor = new BatchSpanProcessor({ exporter });
 
-  const provider = new WebTracerProvider({
+  const provider = new TracerProvider({
     resource,
     sampler: deterministicSampler,
     spanProcessors: [
@@ -212,9 +221,16 @@ export function initializeObservability() {
 
   trackXhrRequestTags();
 
-  provider.register({
-    contextManager: new ZoneContextManager(),
-  });
+  trace.setGlobalTracerProvider(provider);
+  context.setGlobalContextManager(new ZoneContextManager().enable());
+  propagation.setGlobalPropagator(
+    new CompositePropagator({
+      propagators: [
+        new W3CTraceContextPropagator(),
+        new W3CBaggagePropagator(),
+      ],
+    })
+  );
 
   registerInstrumentations({
     instrumentations: [
