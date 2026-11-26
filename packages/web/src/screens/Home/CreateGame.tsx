@@ -162,9 +162,8 @@ const GameMetadataTable: React.FC<GameMetadataTableProps> = ({ rows }) => {
 type VariantCategory = "official" | "community";
 
 interface VariantSelectorProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  control: Control<any>;
-  name: string;
+  control: Control<GameFormValues>;
+  name: "variantId";
   disabled?: boolean;
   category: VariantCategory;
   onCategoryChange: (category: VariantCategory) => void;
