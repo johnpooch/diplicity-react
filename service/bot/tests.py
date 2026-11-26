@@ -133,6 +133,17 @@ class TestIsBot:
         ) == [primary_user.id]
 
     @pytest.mark.django_db
+    def test_humans_excludes_members_without_a_user(
+        self, pending_game_created_by_primary_user, user_factory, primary_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.members.create(user=user_factory()).user.delete()
+
+        assert list(
+            Member.objects.filter(game=game).humans().values_list("user_id", flat=True)
+        ) == [primary_user.id]
+
+    @pytest.mark.django_db
     def test_addable_to_game_lists_bots_not_in_the_game(
         self, pending_game_created_by_primary_user, bot_user, user_factory
     ):

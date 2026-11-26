@@ -562,6 +562,18 @@ class TestRateGame:
         assert not Rating.objects.filter(user=bot_user).exists()
 
     @pytest.mark.django_db
+    def test_skips_members_whose_account_was_deleted(self, ranked_game_factory):
+        game = ranked_game_factory()
+        deleted = _losers(game)[0]
+        deleted.user.delete()
+
+        RatingResult.objects.rate_game(game)
+
+        assert not RatingResult.objects.filter(member=deleted).exists()
+        assert not RatingPairing.objects.filter(opponent=deleted).exists()
+        assert RatingResult.objects.filter(member__game=game).count() == 6
+
+    @pytest.mark.django_db
     def test_departed_player_loses_to_the_other_seats(
         self, ranked_game_factory, user_factory
     ):

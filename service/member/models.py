@@ -46,7 +46,7 @@ class MemberQuerySet(models.QuerySet):
         return self.filter(kind=MemberKind.PLAYER)
 
     def humans(self):
-        return self.filter(user__bot__isnull=True)
+        return self.filter(user__isnull=False, user__bot__isnull=True)
 
     def vacant(self):
         return self.not_replaced().filter(
