@@ -86,6 +86,27 @@ def test_confirm_phase_already_confirmed(
 
 
 @pytest.mark.django_db
+def test_confirm_phase_query_count(
+    authenticated_client,
+    active_game_with_phase_state,
+    primary_user,
+    django_assert_num_queries,
+):
+    game = active_game_with_phase_state
+    member = game.members.get(user=primary_user)
+    nations = list(game.variant.nations.all())
+    for rank, nation in enumerate(nations):
+        member.nation_preferences.create(nation=nation, rank=rank)
+    url = reverse("game-confirm-phase", args=[game.id])
+    with django_assert_num_queries(24):
+        response = authenticated_client.put(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["member"]["nation_preference_ids"] == [
+        nation.nation_id for nation in nations
+    ]
+
+
+@pytest.mark.django_db
 def test_confirm_phase_game_not_active(
     authenticated_client, pending_game_created_by_primary_user
 ):
@@ -161,6 +182,26 @@ def test_list_orderable_provinces_sandbox_game(
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data) == 7
+
+
+@pytest.mark.django_db
+def test_list_phase_states_sandbox_game_query_count(
+    authenticated_client, sandbox_game_with_phase_options, django_assert_num_queries
+):
+    game = sandbox_game_with_phase_options
+    nations = list(game.variant.nations.all())
+    for member in game.members.all():
+        for rank, nation in enumerate(nations):
+            member.nation_preferences.create(nation=nation, rank=rank)
+    url = reverse("phase-state-list", args=[game.id])
+    with django_assert_num_queries(10):
+        response = authenticated_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 7
+    assert all(
+        len(phase_state["member"]["nation_preference_ids"]) == len(nations)
+        for phase_state in response.data
+    )
 
 
 @pytest.mark.django_db

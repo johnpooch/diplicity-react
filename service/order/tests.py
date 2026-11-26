@@ -161,6 +161,43 @@ class TestOrderListView:
         assert france_order["resolution"]["by"]["id"] == "bur"
 
     @pytest.mark.django_db
+    def test_list_orders_query_count(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_variant,
+        django_assert_num_queries,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        phase_state = phase.phase_states.get(member__user=primary_user)
+        provinces = list(classical_variant.provinces.filter(parent__isnull=True))
+        for index in range(8):
+            order = Order.objects.create(
+                phase_state=phase_state,
+                order_type=OrderType.SUPPORT,
+                source=provinces[index],
+                target=provinces[index + 8],
+                aux=provinces[index + 16],
+            )
+            OrderResolution.objects.create(
+                order=order,
+                status=OrderResolutionStatus.BOUNCED,
+                by=provinces[index + 24],
+            )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        with django_assert_num_queries(10):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 8
+        assert {order["resolution"]["by"]["id"] for order in response.data} == {
+            province.province_id for province in provinces[24:32]
+        }
+
+    @pytest.mark.django_db
     def test_list_orders_invalid_phase(self, authenticated_client, order_active_game):
         game = order_active_game
         url = reverse("order-list", args=[game.id, 999])

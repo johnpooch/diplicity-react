@@ -1107,7 +1107,20 @@ class Phase(BaseModel):
         emit("phase_started", phase=self)
 
 
+class PhaseStateQuerySet(models.QuerySet):
+    def with_member_data(self):
+        return self.select_related(
+            "member__nation",
+            "member__game",
+            "member__user__profile__uploaded_picture",
+            "member__user__bot",
+            "member__rating_result",
+        ).prefetch_related("member__nation_preferences__nation")
+
+
 class PhaseState(BaseModel):
+    objects = PhaseStateQuerySet.as_manager()
+
     class OrdersOutcome(models.TextChoices):
         RECEIVED = "received"
         NMR = "nmr"
