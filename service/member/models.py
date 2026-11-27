@@ -55,6 +55,10 @@ class MemberQuerySet(models.QuerySet):
             | models.Q(withdrawn_at__isnull=False)
         )
 
+    def delete_in_replacement_order(self):
+        while self.exists():
+            self.filter(replaces__isnull=True).delete()
+
     def holding_seat(self):
         return self.filter(removed_at__isnull=True, replaced_by__isnull=True)
 

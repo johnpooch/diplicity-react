@@ -1288,6 +1288,7 @@ def create_variant_from_dvar(dvar, owner=None, status=None):
 
 def update_variant_from_dvar(variant, dvar):
     from game.models import Game
+    from member.models import Member
     from nation.models import Nation, NationFlag
     from phase.models import Phase
     from province.models import Province
@@ -1298,6 +1299,7 @@ def update_variant_from_dvar(variant, dvar):
         )
     )
 
+    Member.all_objects.filter(game__variant=variant).delete_in_replacement_order()
     Game.objects.filter(variant=variant).delete()
     Phase.objects.filter(variant=variant).delete()
     Province.objects.filter(variant=variant, parent__isnull=False).delete()
@@ -1342,6 +1344,7 @@ class SafeReplacementError:
 
 
 def validate_safe_replacement(variant, dvar):
+    from game.models import Game
     from supply_center.models import SupplyCenter
     from unit.models import Unit
 
@@ -1375,6 +1378,20 @@ def validate_safe_replacement(variant, dvar):
                 f"Nation '{nation_id}' exists in the variant but is missing from the new DVAR.",
             )
         )
+
+    if Game.objects.filter(variant=variant).exists():
+        old_nation_names = dict(variant.nations.values_list("nation_id", "name"))
+        for nation in sorted(dvar["nations"], key=lambda nation: nation["id"]):
+            old_name = old_nation_names.get(nation["id"])
+            if old_name is not None and old_name != nation["name"]:
+                errors.append(
+                    SafeReplacementError(
+                        "NATION_RENAMED",
+                        f"Nation '{nation['id']}' is used by games; "
+                        f"its name cannot change "
+                        f"(was {old_name!r}, now {nation['name']!r}).",
+                    )
+                )
 
     old_provinces = {
         province.province_id: province for province in variant.provinces.all()
