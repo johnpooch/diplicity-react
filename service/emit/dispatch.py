@@ -3,6 +3,7 @@ from emit.context import build_context
 
 def emit(event_type, **kwargs):
     from agent.models import AgentTask
+    from bot.models import Run
     from channel.models import ChannelEvent
     from discord_service.dispatch import post_from_event
     from notification.models import Notification
@@ -11,4 +12,5 @@ def emit(event_type, **kwargs):
     Notification.objects.create_from_event(event_type, context)
     ChannelEvent.objects.create_from_event(event_type, context)
     AgentTask.objects.create_from_event(event_type, context)
+    Run.objects.create_from_event(event_type, context)
     post_from_event(event_type, context)
